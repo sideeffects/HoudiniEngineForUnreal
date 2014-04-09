@@ -19,6 +19,37 @@ struct FHoudiniMeshTriangle
 	FVector Vertex2;
 };
 
+/** Structure storing Data for pre-computation */
+USTRUCT()
+struct FHoudiniAssetData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	int32 AssetId;
+
+	UPROPERTY()
+	FString AssetLibraryPath;
+
+	TArray< FHoudiniMeshTriangle > HoudiniMeshTris;
+};
+
+/** Component Instance Data Cache */
+class FHoudiniComponentInstanceData : public FComponentInstanceDataBase
+{
+public:
+	static const FName InstanceDataTypeName;
+
+	// Begin FComponentInstanceDataBase interface
+	virtual FName GetDataTypeName() const OVERRIDE
+	{
+		return InstanceDataTypeName;
+	}
+	// End FComponentInstanceDataBase interface
+
+	struct FHoudiniAssetData AssetData;
+};
+
 /** Component that allows you to specify custom triangle mesh geometry */
 UCLASS(hidecategories=(Object,LOD, Physics, Collision), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
 class UHoudiniAssetComponent : public UMeshComponent
@@ -26,16 +57,24 @@ class UHoudiniAssetComponent : public UMeshComponent
 	GENERATED_UCLASS_BODY()
 
 	/** Set the geometry to use on this triangle mesh */
-	UFUNCTION(BlueprintCallable, Category="Components|CustomMesh")
-	bool InstantiateAssetFromPath(const FString& Path);
+	UFUNCTION( BlueprintCallable, Category="Components|CustomMesh" )
+	int32 InstantiateAssetFromPath( const FString& Path );
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Asset Id" )
-	int32 AssetId;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Asset Library Path" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Houdini Asset Settings" )
 	FString AssetLibraryPath;
 
 private:
+
+	void CookAsset( int32 asset_id );
+
+	// Begin UActorComponent interface.
+	virtual void OnComponentCreated() OVERRIDE;
+	virtual void OnComponentDestroyed() OVERRIDE;
+	virtual void OnRegister() OVERRIDE;
+	virtual void OnUnregister() OVERRIDE;
+	virtual void GetComponentInstanceData( FComponentInstanceDataCache& Cache ) const OVERRIDE;
+	virtual void ApplyComponentInstanceData( const FComponentInstanceDataCache& Cache ) OVERRIDE;
+	// End UActorComponent interface.
 
 	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
@@ -46,11 +85,14 @@ private:
 	// End UMeshComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const OVERRIDE;
 	// Begin USceneComponent interface.
 
 	/** */
-	TArray<FHoudiniMeshTriangle> HoudiniMeshTris;
+	TArray< FHoudiniMeshTriangle > HoudiniMeshTris;
+	int32 myAssetId;
+	FString myAssetLibraryPath;
+	bool myDataLoaded;
 
 	friend class FHoudiniMeshSceneProxy;
 };

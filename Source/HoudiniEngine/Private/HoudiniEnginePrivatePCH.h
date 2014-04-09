@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 #include "UnrealEd.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
+
 #include "IHoudiniEngine.h"
 #include "CoreUObject.h"
 #include "Engine.h"

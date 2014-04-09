@@ -5,6 +5,8 @@
 #include "HAPI.h"
 #include <string>
 
+const FName FHoudiniComponentInstanceData::InstanceDataTypeName(TEXT("HoudiniComponentInstanceData"));
+
 /** Vertex Buffer */
 class FHoudiniMeshVertexBuffer : public FVertexBuffer 
 {
@@ -212,84 +214,86 @@ private:
 
 UHoudiniAssetComponent::UHoudiniAssetComponent( const FPostConstructInitializeProperties& PCIP )
 	: Super( PCIP )
-	, AssetId( -1 )
+	, myAssetId( -1 )
+	, myDataLoaded( false )
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
-	AssetLibraryPath = "Blah";
+	AssetLibraryPath = "";
+	myAssetLibraryPath = "";
 }
 
-bool UHoudiniAssetComponent::InstantiateAssetFromPath( const FString& Path )
+int32 UHoudiniAssetComponent::InstantiateAssetFromPath( const FString& Path )
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, Path);
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Yellow, FString::FromInt( AssetId ) );
-	}
-
-	if ( AssetId >= 0 )
-		return true;
+	myAssetId = -1;
 
 	FString escapedPath = Path.ReplaceCharWithEscapedChar();
 	std::wstring wpath( *escapedPath );
-	std::string path( wpath.begin( ), wpath.end( ) );
+	std::string path( wpath.begin(), wpath.end() );
 
 	HAPI_AssetLibraryId library_id;
 	HAPI_Result result = HAPI_LoadAssetLibraryFromFile( path.c_str(), &library_id );
 	if ( result )
-		return false;
+		return myAssetId;
 
 	int asset_count;
 	result = HAPI_GetAvailableAssetCount( library_id, &asset_count );
 	if ( result )
-		return false;
+		return myAssetId;
 
 	int* asset_names_sh = new int[ asset_count ];
 	result = HAPI_GetAvailableAssets( library_id, asset_names_sh, asset_count );
 	if ( result )
-		return false;
+		return myAssetId;
 
 	int first_asset_name_length;
 	result = HAPI_GetStringBufLength( asset_names_sh[ 0 ], &first_asset_name_length );
 	if ( result )
-		return false;
+		return myAssetId;
 
 	char* first_asset_name = new char[ first_asset_name_length ];
 	result = HAPI_GetString( asset_names_sh[ 0 ], first_asset_name, first_asset_name_length );
 	if ( result )
-		return false;
+		return myAssetId;
 
-	result = HAPI_InstantiateAsset( first_asset_name, true, &AssetId );
+	result = HAPI_InstantiateAsset( first_asset_name, true, &myAssetId );
 	if ( result )
-		return false;
+		return myAssetId;
 
+	CookAsset( myAssetId );
+
+	return myAssetId;
+}
+
+void UHoudiniAssetComponent::CookAsset( int32 asset_id )
+{
 	HAPI_AssetInfo asset_info;
-	result = HAPI_GetAssetInfo( AssetId, &asset_info );
+	HAPI_Result result = HAPI_GetAssetInfo( asset_id, &asset_info );
 	if ( result )
-		return false;
+		return;
 
 	HAPI_PartInfo part_info;
-	result = HAPI_GetPartInfo( AssetId, 0, 0, 0, &part_info );
+	result = HAPI_GetPartInfo( asset_id, 0, 0, 0, &part_info );
 	if ( result )
-		return false;
+		return;
 
 	int* vertex_list = new int[ part_info.vertexCount ];
-	result = HAPI_GetVertexList( AssetId, 0, 0, 0, vertex_list, 0, part_info.vertexCount );
+	result = HAPI_GetVertexList( asset_id, 0, 0, 0, vertex_list, 0, part_info.vertexCount );
 	if ( result )
-		return false;
+		return;
 
 	HAPI_AttributeInfo attrib_info;
-	result = HAPI_GetAttributeInfo( AssetId, 0, 0, 0, "P", HAPI_ATTROWNER_POINT, &attrib_info );
+	result = HAPI_GetAttributeInfo( asset_id, 0, 0, 0, "P", HAPI_ATTROWNER_POINT, &attrib_info );
 	if ( result )
-		return false;
+		return;
 
 	float* positions = new float[ attrib_info.count * attrib_info.tupleSize ];
 	result = HAPI_GetAttributeFloatData(
-		AssetId, 0, 0, 0, "P", &attrib_info, positions, 0, attrib_info.count );
+		asset_id, 0, 0, 0, "P", &attrib_info, positions, 0, attrib_info.count );
 	if ( result )
-		return false;
+		return;
 
 	HoudiniMeshTris.Reset();
 	for ( int i = 0; i < part_info.vertexCount / 3; ++i )
@@ -311,17 +315,119 @@ bool UHoudiniAssetComponent::InstantiateAssetFromPath( const FString& Path )
 		HoudiniMeshTris.Push( triangle );
 	}
 
-	if ( GEngine )
+	// Need to recreate scene proxy to send it over
+	MarkRenderStateDirty();
+}
+
+void UHoudiniAssetComponent::OnComponentCreated()
+{
+	Super::OnComponentCreated();
+
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"OnComponentCreated: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
+}
+
+void UHoudiniAssetComponent::OnComponentDestroyed()
+{
+	Super::OnComponentDestroyed();
+
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"OnComponentDestroyed: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
+}
+
+void UHoudiniAssetComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"OnRegister: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
+}
+
+void UHoudiniAssetComponent::OnUnregister()
+{
+	Super::OnUnregister();
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"OnUnregister: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
+}
+
+void UHoudiniAssetComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+{
+	Super::GetComponentInstanceData( Cache );
+
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"SaveData: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
+
+	TSharedRef< FHoudiniComponentInstanceData > asset_data = MakeShareable( new FHoudiniComponentInstanceData() );
+	asset_data->AssetData.AssetId = myAssetId;
+	asset_data->AssetData.AssetLibraryPath = myAssetLibraryPath;
+	asset_data->AssetData.HoudiniMeshTris = HoudiniMeshTris;
+
+	Cache.AddInstanceData( asset_data );
+}
+
+void UHoudiniAssetComponent::ApplyComponentInstanceData(
+	const FComponentInstanceDataCache& Cache )
+{
+	Super::ApplyComponentInstanceData( Cache );
+
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"LoadData-Before: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
+
+	TArray< TSharedPtr< FComponentInstanceDataBase > > CachedData;
+	Cache.GetInstanceDataOfType(
+		FHoudiniComponentInstanceData::InstanceDataTypeName, CachedData );
+
+	for ( int32 DataIdx = 0; DataIdx<CachedData.Num(); DataIdx++ )
 	{
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Yellow, FString::FromInt( HoudiniMeshTris.Num() ) );
+		check( CachedData[ DataIdx ].IsValid() );
+		check( CachedData[ DataIdx ]->GetDataTypeName() == FHoudiniComponentInstanceData::InstanceDataTypeName );
+		TSharedPtr< FHoudiniComponentInstanceData > HoudiniAssetData =
+			StaticCastSharedPtr< FHoudiniComponentInstanceData >( CachedData[ DataIdx ] );
+
+		myAssetId = HoudiniAssetData->AssetData.AssetId;
+		myAssetLibraryPath = HoudiniAssetData->AssetData.AssetLibraryPath;
+		HoudiniMeshTris = HoudiniAssetData->AssetData.HoudiniMeshTris;
+	}
+
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"LoadData-After: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
+
+	if ( !AssetLibraryPath.IsEmpty() && AssetLibraryPath != myAssetLibraryPath )
+	{
+		myAssetLibraryPath = AssetLibraryPath;
+		myAssetId = InstantiateAssetFromPath( myAssetLibraryPath );
 	}
 
 	// Need to recreate scene proxy to send it over
 	MarkRenderStateDirty();
 
-	return true;
+	UE_LOG(
+		LogHoudiniEngine, Log,
+		TEXT(
+			"LoadData-AfterCook: id: %d, public_path: %s, private_path: %s" ),
+			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
 }
-
 
 FPrimitiveSceneProxy* UHoudiniAssetComponent::CreateSceneProxy()
 {

@@ -12,6 +12,7 @@ class FHoudiniEngine : public IHoudiniEngine
 };
 
 IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngine)
+DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 
 //extern "C" __declspec(dllimport) int HAPI_IsInitialized();
 
