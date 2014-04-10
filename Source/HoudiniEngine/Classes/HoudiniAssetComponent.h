@@ -1,5 +1,3 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "HoudiniAssetComponent.generated.h"
@@ -56,11 +54,14 @@ class UHoudiniAssetComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
 
+	void DoWork();
+	int32 GetAssetId() const;
+
 	/** Set the geometry to use on this triangle mesh */
 	UFUNCTION( BlueprintCallable, Category="Components|CustomMesh" )
 	int32 InstantiateAssetFromPath( const FString& Path );
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Houdini Asset Settings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Houdini Asset" )
 	FString AssetLibraryPath;
 
 private:

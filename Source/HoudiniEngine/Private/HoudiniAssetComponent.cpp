@@ -1,5 +1,3 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HAPI.h"
@@ -225,6 +223,23 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FPostConstructInitializePr
 	myAssetLibraryPath = "";
 }
 
+void UHoudiniAssetComponent::DoWork()
+{
+	if ( !AssetLibraryPath.IsEmpty() && AssetLibraryPath != myAssetLibraryPath )
+	{
+		myAssetLibraryPath = AssetLibraryPath;
+		myAssetId = InstantiateAssetFromPath( myAssetLibraryPath );
+	}
+
+	// Need to recreate scene proxy to send it over
+	MarkRenderStateDirty();
+}
+
+int32 UHoudiniAssetComponent::GetAssetId() const
+{
+	return myAssetId;
+}
+
 int32 UHoudiniAssetComponent::InstantiateAssetFromPath( const FString& Path )
 {
 	myAssetId = -1;
@@ -416,14 +431,7 @@ void UHoudiniAssetComponent::ApplyComponentInstanceData(
 			"LoadData-After: id: %d, public_path: %s, private_path: %s" ),
 			myAssetId, *AssetLibraryPath, *myAssetLibraryPath );
 
-	if ( !AssetLibraryPath.IsEmpty() && AssetLibraryPath != myAssetLibraryPath )
-	{
-		myAssetLibraryPath = AssetLibraryPath;
-		myAssetId = InstantiateAssetFromPath( myAssetLibraryPath );
-	}
-
-	// Need to recreate scene proxy to send it over
-	MarkRenderStateDirty();
+	DoWork();
 
 	UE_LOG(
 		LogHoudiniEngine, Log,
