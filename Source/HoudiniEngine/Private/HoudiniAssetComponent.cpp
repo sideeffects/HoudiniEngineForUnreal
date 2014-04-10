@@ -299,18 +299,21 @@ void UHoudiniAssetComponent::CookAsset( int32 asset_id )
 	for ( int i = 0; i < part_info.vertexCount / 3; ++i )
 	{
 		FHoudiniMeshTriangle triangle;
+		
+		// Need to flip the Y with the Z since UE4 is Z-up.
+		// Need to flip winding order also.
 
 		triangle.Vertex0.X = positions[ vertex_list[ i * 3 + 0 ] * 3 + 0 ] * 100.0f;
-		triangle.Vertex0.Y = positions[ vertex_list[ i * 3 + 0 ] * 3 + 1 ] * 100.0f;
-		triangle.Vertex0.Z = positions[ vertex_list[ i * 3 + 0 ] * 3 + 2 ] * 100.0f;
+		triangle.Vertex0.Z = positions[ vertex_list[ i * 3 + 0 ] * 3 + 1 ] * 100.0f;
+		triangle.Vertex0.Y = positions[ vertex_list[ i * 3 + 0 ] * 3 + 2 ] * 100.0f;
 
-		triangle.Vertex1.X = positions[ vertex_list[ i * 3 + 1 ] * 3 + 0 ] * 100.0f;
-		triangle.Vertex1.Y = positions[ vertex_list[ i * 3 + 1 ] * 3 + 1 ] * 100.0f;
-		triangle.Vertex1.Z = positions[ vertex_list[ i * 3 + 1 ] * 3 + 2 ] * 100.0f;
+		triangle.Vertex2.X = positions[ vertex_list[ i * 3 + 1 ] * 3 + 0 ] * 100.0f;
+		triangle.Vertex2.Z = positions[ vertex_list[ i * 3 + 1 ] * 3 + 1 ] * 100.0f;
+		triangle.Vertex2.Y = positions[ vertex_list[ i * 3 + 1 ] * 3 + 2 ] * 100.0f;
 
-		triangle.Vertex2.X = positions[ vertex_list[ i * 3 + 2 ] * 3 + 0 ] * 100.0f;
-		triangle.Vertex2.Y = positions[ vertex_list[ i * 3 + 2 ] * 3 + 1 ] * 100.0f;
-		triangle.Vertex2.Z = positions[ vertex_list[ i * 3 + 2 ] * 3 + 2 ] * 100.0f;
+		triangle.Vertex1.X = positions[ vertex_list[ i * 3 + 2 ] * 3 + 0 ] * 100.0f;
+		triangle.Vertex1.Z = positions[ vertex_list[ i * 3 + 2 ] * 3 + 1 ] * 100.0f;
+		triangle.Vertex1.Y = positions[ vertex_list[ i * 3 + 2 ] * 3 + 2 ] * 100.0f;
 
 		HoudiniMeshTris.Push( triangle );
 	}
