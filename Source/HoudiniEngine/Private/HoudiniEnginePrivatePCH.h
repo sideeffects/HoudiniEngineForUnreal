@@ -2,9 +2,11 @@
 
 #pragma once
 
+#define HOUDINI_DEBUG_LOGGING 0
+
 #include "UnrealEd.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 
 #include "IHoudiniEngine.h"
 #include "CoreUObject.h"

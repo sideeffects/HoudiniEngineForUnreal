@@ -2,6 +2,18 @@
 
 #include "HoudiniAssetComponent.generated.h"
 
+USTRUCT()
+struct FHoudiniParm
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString Name;
+
+	UPROPERTY()
+	float FloatValue;
+};
+
 USTRUCT(BlueprintType)
 struct FHoudiniMeshTriangle
 {
@@ -57,9 +69,14 @@ class UHoudiniAssetComponent : public UMeshComponent
 	void DoWork();
 	int32 GetAssetId() const;
 
-	/** Set the geometry to use on this triangle mesh */
+	UFUNCTION( BlueprintCallable, Category="Components|CustomMesh" )
+	bool SetParmFloatValue( const FString& Name, float Value );
+
 	UFUNCTION( BlueprintCallable, Category="Components|CustomMesh" )
 	int32 InstantiateAssetFromPath( const FString& Path );
+
+	UFUNCTION( BlueprintCallable, Category="Components|CustomMesh" )
+	void SaveHIPFile( const FString& Path );
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Houdini Asset" )
 	FString AssetLibraryPath;
@@ -67,6 +84,7 @@ class UHoudiniAssetComponent : public UMeshComponent
 private:
 
 	void CookAsset( int32 asset_id );
+	void SetChangedParms();
 
 	// Begin UActorComponent interface.
 	virtual void OnComponentCreated() OVERRIDE;
@@ -91,6 +109,7 @@ private:
 
 	/** */
 	TArray< FHoudiniMeshTriangle > HoudiniMeshTris;
+	TArray< FHoudiniParm > myChangedParms;
 	int32 myAssetId;
 	FString myAssetLibraryPath;
 	bool myDataLoaded;
