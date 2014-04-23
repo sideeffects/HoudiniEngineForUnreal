@@ -13,19 +13,16 @@
  */
 #pragma once
 
-#define HOUDINI_DEBUG_LOGGING 0
-
 #include "UnrealEd.h"
+#define HOUDINI_ENGINE_LOGGING 1
+DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
-DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
-
-#include "IHoudiniEngine.h"
+/** Unreal headers **/
 #include "CoreUObject.h"
 #include "Engine.h"
 
-// You should place include statements to your module's private header files here.  You only need to
-// add includes for headers that are used in most of your module's source files though.
+/** HoudiniEngineEditor Class headers **/
+#include "HoudiniEngineClasses.h"
 
-#include "HoudiniAssetActor.h"
-#include "HoudiniAssetComponent.h"
-#include "HoudiniParmFloatComponent.h"
+/** HoudiniEngineEditor Private headers **/
+#include "HoudiniEngineModule.h"
