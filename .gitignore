@@ -11,4 +11,4 @@
 *.generated.h
 Intermediate/
 Binaries/
-Source/HoudiniEngine/HoudiniEngine.Build.Template.cs
+*.Template.cs
