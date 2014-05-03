@@ -19,7 +19,10 @@
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
 
-//--
+IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngine);
+DEFINE_LOG_CATEGORY(LogHoudiniEngine);
+
+
 void
 FHoudiniEngine::StartupModule()
 {
@@ -28,10 +31,13 @@ FHoudiniEngine::StartupModule()
 	UE_LOG(LogHoudiniEngine, Log, TEXT("FHoudiniEngine::StartupModule"));
 
 #endif
+
+	// Register our asset type actions and our asset.
+	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+	RegisterAssetTypeAction(AssetTools, MakeShareable(new FHoudiniAssetTypeActions()));
 }
 
 
-//--
 void
 FHoudiniEngine::ShutdownModule()
 {
@@ -40,8 +46,25 @@ FHoudiniEngine::ShutdownModule()
 	UE_LOG(LogHoudiniEngine, Log, TEXT("FHoudiniEngine::ShutdownModule"));
 
 #endif
+
+	// Unregister asset type actions we have previously registered.
+	if(FModuleManager::Get().IsModuleLoaded("AssetTools"))
+	{
+		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+		for(int32 Index = 0; Index < AssetTypeActions.Num(); ++Index)
+		{
+			AssetTools.UnregisterAssetTypeActions(AssetTypeActions[Index].ToSharedRef());
+		}
+
+		AssetTypeActions.Empty();
+	}
 }
 
 
-IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngine);
-DEFINE_LOG_CATEGORY(LogHoudiniEngine);
+void
+FHoudiniEngine::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
+{
+	AssetTools.RegisterAssetTypeActions(Action);
+	AssetTypeActions.Add(Action);
+}

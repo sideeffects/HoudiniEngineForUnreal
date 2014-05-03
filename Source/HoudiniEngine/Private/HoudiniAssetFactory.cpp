@@ -48,3 +48,17 @@ UHoudiniAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName N
 	UHoudiniAsset* HoudiniAsset = ConstructObject<UHoudiniAsset>(Class, InParent, Name, Flags);
 	return HoudiniAsset;
 }
+
+
+UObject* 
+UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn)
+{
+	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+
+	//UObject* HoudiniAsset = NULL;
+	UObject* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());
+
+	FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+
+	return HoudiniAsset;
+}

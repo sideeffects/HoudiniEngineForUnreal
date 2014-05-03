@@ -18,4 +18,5 @@
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP)
 {
+
 }
