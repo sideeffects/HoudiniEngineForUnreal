@@ -18,4 +18,5 @@
 AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP)
 {
+
 }

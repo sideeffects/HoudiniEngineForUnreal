@@ -28,4 +28,14 @@ public:
 
 	/** App identifier string. **/
 	static const FName HoudiniEngineAppIdentifier;
+
+private:
+
+	/** Register AssetType action. **/
+	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
+
+private:
+
+	/** AssetType actions associated with this editor. **/
+	TArray< TSharedPtr<IAssetTypeActions> > AssetTypeActions;
 };
