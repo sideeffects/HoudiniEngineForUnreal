@@ -16,11 +16,6 @@
 			"Name" : "HoudiniEngine",
 			"Type" : "Runtime",
 			"BlacklistPlatforms" : [ "HTML5" ]
-		},
-		{
-			"Name" : "HoudiniEngineEditor",
-			"Type" : "Editor",
-			"BlacklistPlatforms" : [ "HTML5" ]
 		}
 	]
 }
