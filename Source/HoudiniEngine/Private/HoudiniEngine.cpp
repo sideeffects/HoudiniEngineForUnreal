@@ -15,6 +15,7 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngine.generated.inl"
+#include "HAPI.h"
 
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
@@ -26,26 +27,44 @@ DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 void
 FHoudiniEngine::StartupModule()
 {
-#if HOUDINI_ENGINE_LOGGING
-
-	UE_LOG(LogHoudiniEngine, Log, TEXT("FHoudiniEngine::StartupModule"));
-
-#endif
+	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
 
 	// Register our asset type actions and our asset.
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FHoudiniAssetTypeActions()));
+
+	// Perform HAPI initialization.
+	HAPI_CookOptions cook_options = HAPI_CookOptions_Create();
+	HAPI_Result result = HAPI_Initialize("", "", cook_options, true, -1);
+
+	if(HAPI_RESULT_SUCCESS == result)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine module."));
+	}
+	else
+	{
+		switch(result)
+		{
+			case HAPI_RESULT_FAILURE:
+			case HAPI_RESULT_ALREADY_INITIALIZED:
+			case HAPI_RESULT_NOT_INITIALIZED:
+			case HAPI_RESULT_CANT_LOADFILE:
+			case HAPI_RESULT_PARM_SET_FAILED:
+			case HAPI_RESULT_INVALID_ARGUMENT:
+			case HAPI_RESULT_CANT_LOAD_GEO:
+			case HAPI_RESULT_CANT_GENERATE_PRESET:
+			case HAPI_RESULT_CANT_LOAD_PRESET:
+			default:
+				ASSUME(0);
+		};
+	}
 }
 
 
 void
 FHoudiniEngine::ShutdownModule()
 {
-#if HOUDINI_ENGINE_LOGGING
-
-	UE_LOG(LogHoudiniEngine, Log, TEXT("FHoudiniEngine::ShutdownModule"));
-
-#endif
+	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine module."));
 
 	// Unregister asset type actions we have previously registered.
 	if(FModuleManager::Get().IsModuleLoaded("AssetTools"))
@@ -59,6 +78,9 @@ FHoudiniEngine::ShutdownModule()
 
 		AssetTypeActions.Empty();
 	}
+
+	// Perform HAPI finalization.
+	HAPI_Cleanup();
 }
 
 

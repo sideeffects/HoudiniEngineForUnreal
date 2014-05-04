@@ -14,6 +14,8 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HAPI.h"
+
 
 UHoudiniAssetFactory::UHoudiniAssetFactory(const class FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP)
@@ -42,22 +44,46 @@ UHoudiniAssetFactory::GetDisplayName() const
 }
 
 
-UObject*
-UHoudiniAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
-{
-	UHoudiniAsset* HoudiniAsset = ConstructObject<UHoudiniAsset>(Class, InParent, Name, Flags);
-	return HoudiniAsset;
-}
-
-
 UObject* 
 UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn)
 {
+	// Broadcast notification that a new asset is being imported.
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
-	//UObject* HoudiniAsset = NULL;
-	UObject* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());
+	UObject* HoudiniAsset = NULL;
+	HAPI_Result Result;
 
+	// Check if HAPI has been initialized.
+	Result = HAPI_IsInitialized();
+	if(HAPI_RESULT_SUCCESS == Result)
+	{
+		HAPI_AssetLibraryId AssetLibraryId;
+		int32 AssetCount = 0;
+
+		// Load the Houdini Engine asset library (OTL). This does not instantiate anything inside the Houdini scene.
+		Result = HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(Buffer), BufferEnd - Buffer, &AssetLibraryId);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			// We failed loading asset library from memory, report.
+
+			
+			//Broadcast post import notification and return.
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+			return HoudiniAsset;
+		}
+
+
+
+		// Construct an empty Houdini Engine asset.
+		HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());	
+	}
+	else
+	{
+		// HAPI has not been initialized.
+		HOUDINI_LOG_ERROR(TEXT("Cannot import Houdini Engine asset, HAPI has not been initialized."));
+	}
+	
+	// Broadcast notification that the new asset has been imported.
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
 
 	return HoudiniAsset;
