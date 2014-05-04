@@ -12,6 +12,7 @@
  *      416-504-9876
  *
  */
+
 #pragma once
 
 /** Unreal headers. **/
@@ -20,13 +21,10 @@
 #include "AssetTypeActions_Base.h"
 #include "ModuleManager.h"
 #include "UnrealEd.h"
+#include "Core.h"
 
-/** HoudiniEngine Class headers. **/
-#include "HoudiniEngineClasses.h"
-
-/** HoudiniEngine Private headers. **/
-#include "HoudiniEngine.h"
-#include "HoudiniAssetTypeActions.h"
+/** Houdini Engine headers. **/
+#include "HAPI.h"
 
 /** Other definitions. **/
 #define HOUDINI_ENGINE_LOGGING 1
@@ -36,26 +34,42 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Some additional logging macros. **/
 #ifdef HOUDINI_ENGINE_LOGGING
 
+#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT)							\
+	do																			\
+	{																			\
+		UE_LOG(LogHoudiniEngine, VERBOSITY, HOUDINI_LOG_TEXT);					\
+	}																			\
+	while(0)
+
 #define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT)									\
-	do																			\
-	{																			\
-		UE_LOG(LogHoudiniEngine, Log, HOUDINI_LOG_TEXT);						\
-	}																			\
-	while(0)
+	HOUDINI_LOG_HELPER(Log, HOUDINI_LOG_TEXT)	
 
-#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT)									\
-	do																			\
-	{																			\
-		UE_LOG(LogHoudiniEngine, Warning, HOUDINI_LOG_TEXT);					\
-	}																			\
-	while(0)
-
+#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT)										\
+	HOUDINI_LOG_HELPER(Fatal, HOUDINI_LOG_TEXT)	
 
 #define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT)										\
-	do																			\
-	{																			\
-		UE_LOG(LogHoudiniEngine, Error, HOUDINI_LOG_TEXT);						\
-	}																			\
-	while(0)
+	HOUDINI_LOG_HELPER(Error, HOUDINI_LOG_TEXT)	
 
-#endif
+#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT)									\
+	HOUDINI_LOG_HELPER(Warning, HOUDINI_LOG_TEXT)	
+
+#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT)									\
+	HOUDINI_LOG_HELPER(Display, HOUDINI_LOG_TEXT)	
+
+#elif
+
+#define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT)
+#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT)
+#define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT)
+#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT)
+#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT)
+
+#endif // HOUDINI_ENGINE_LOGGING
+
+/** HoudiniEngine Class headers. **/
+#include "HoudiniEngineClasses.h"
+
+/** HoudiniEngine Private headers. **/
+#include "HoudiniEngine.h"
+#include "HoudiniAssetTypeActions.h"
+#include "HoudiniEngineUtils.h"

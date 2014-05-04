@@ -14,7 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HAPI.h"
+#include <vector>
 
 
 UHoudiniAssetFactory::UHoudiniAssetFactory(const class FPostConstructInitializeProperties& PCIP) :
@@ -51,20 +51,18 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
 	UObject* HoudiniAsset = NULL;
-	HAPI_Result Result;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	// Check if HAPI has been initialized.
 	Result = HAPI_IsInitialized();
 	if(HAPI_RESULT_SUCCESS == Result)
 	{
-		HAPI_AssetLibraryId AssetLibraryId;
-		int32 AssetCount = 0;
-
 		// Load the Houdini Engine asset library (OTL). This does not instantiate anything inside the Houdini scene.
+		HAPI_AssetLibraryId AssetLibraryId = 0;
 		Result = HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(Buffer), BufferEnd - Buffer, &AssetLibraryId);
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
-			// We failed loading asset library from memory, report.
+			// We failed loading Houdini Engine asset library from memory, report.
 
 			
 			//Broadcast post import notification and return.
@@ -72,10 +70,72 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 			return HoudiniAsset;
 		}
 
+		// Retrieve number of assets contained in this library.
+		int32 AssetCount = 0;
+		Result = HAPI_GetAvailableAssetCount(AssetLibraryId, &AssetCount);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			// We failed to retrieve number of assets, report.
 
 
+			//Broadcast post import notification and return.
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+			return HoudiniAsset;
+		}
+
+		// Retrieve available assets. 
+		std::vector<int> AssetNames;
+		AssetNames.reserve(AssetCount);
+		Result = HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount);
+		if (HAPI_RESULT_SUCCESS != Result)
+		{
+			// We failed to retrieve available assets, report.
+
+			//Broadcast post import notification and return.
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+			return HoudiniAsset;
+		}
+
+		// For now we will load first asset only.
+		int32 AssetFirstNameLength = 0;
+		Result = HAPI_GetStringBufLength(AssetNames[0], &AssetFirstNameLength);
+		if (HAPI_RESULT_SUCCESS != Result)
+		{
+			// We failed to retrieve length of first asset's name, report.
+
+			//Broadcast post import notification and return.
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+			return HoudiniAsset;
+		}
+
+		// Retrieve name of first asset.
+		std::vector<char> AssetFirstName;
+		AssetFirstName.reserve(AssetFirstNameLength + 1);
+		AssetFirstName[AssetFirstNameLength] = '\0';
+		Result = HAPI_GetString(AssetNames[0], &AssetFirstName[0], AssetFirstNameLength);
+		if (HAPI_RESULT_SUCCESS != Result)
+		{
+			// We failed to retrieve asset name, report.
+		
+			//Broadcast post import notification and return.
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+			return HoudiniAsset;
+		}
+
+		// Instantiate the asset.
+		HAPI_AssetId AssetId = -1;
+		Result = HAPI_InstantiateAsset(&AssetFirstName[0], true, &AssetId);
+		if (HAPI_RESULT_SUCCESS != Result)
+		{
+			// We failed asset instantiation, report.
+
+			//Broadcast post import notification and return.
+			FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+			return HoudiniAsset;
+		}
+		
 		// Construct an empty Houdini Engine asset.
-		HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());	
+		HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties(), (const char*) &AssetFirstName[0], AssetId);	
 	}
 	else
 	{

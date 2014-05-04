@@ -16,7 +16,17 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) : 
-	Super(PCIP)
+	Super(PCIP),
+	AssetId(-1)
 {
 
+}
+
+
+UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const char* InAssetName, HAPI_AssetId InAssetId) :
+	Super(PCIP),
+	AssetId(InAssetId)
+{
+	FUTF8ToTCHAR StringConverter(InAssetName);
+	AssetName = StringConverter.Get();
 }
