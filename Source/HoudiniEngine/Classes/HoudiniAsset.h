@@ -20,4 +20,16 @@ UCLASS(DependsOn = UEngineTypes, BlueprintType)
 class HOUDINIENGINE_API UHoudiniAsset : public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+public:
+
+	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const char* InAssetName, HAPI_AssetId InAssetId);
+
+protected:
+
+	/** Holds this asset's name. **/
+	FString AssetName;
+
+	/** Holds this asset's handle. **/
+	HAPI_AssetId AssetId;
 };
