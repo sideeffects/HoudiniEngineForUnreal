@@ -22,6 +22,10 @@
 #include "ModuleManager.h"
 #include "UnrealEd.h"
 #include "Core.h"
+#include "AssetData.h"
+#include "MessageLog.h"
+#include "UnrealNetwork.h"
+#include "ComponentAssetBroker.h"
 
 /** Houdini Engine headers. **/
 #include "HAPI.h"
@@ -67,9 +71,20 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #endif // HOUDINI_ENGINE_LOGGING
 
 /** HoudiniEngine Class headers. **/
-#include "HoudiniEngineClasses.h"
+#include "HoudiniMeshTriangle.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniAsset.h"
+#include "HoudiniAssetActor.h"
+#include "HoudiniAssetActorFactory.h"
+#include "HoudiniAssetFactory.h"
 
 /** HoudiniEngine Private headers. **/
 #include "HoudiniEngine.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniAssetBroker.h"
+#include "HoudiniMeshIndexBuffer.h"
+#include "HoudiniMeshVertexBuffer.h"
+#include "HoudiniMeshVertexFactory.h"
+#include "HoudiniMeshSceneProxy.h"
+#include "HoudiniAssetComponentInstanceData.h"

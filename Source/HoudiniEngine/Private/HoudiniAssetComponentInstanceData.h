@@ -14,14 +14,23 @@
  */
 
 #pragma once
-#include "HoudiniAssetActor.generated.h"
 
-
-UCLASS(hidecategories=(Input), ConversionRoot, meta=(ChildCanTick))
-class HOUDINIENGINE_API AHoudiniAssetActor : public AActor
+class FHoudiniAssetComponentInstanceData : public FComponentInstanceDataBase
 {
-	GENERATED_UCLASS_BODY()
+public:
 
-	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
-	TSubobjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
+	FHoudiniAssetComponentInstanceData();
+	virtual ~FHoudiniAssetComponentInstanceData();
+
+public: /** FComponentInstanceDataBase methods. **/
+
+	virtual FName GetDataTypeName() const OVERRIDE;
+
+public:
+
+	static const FName InstanceDataTypeName;
+
+public:
+
+	
 };

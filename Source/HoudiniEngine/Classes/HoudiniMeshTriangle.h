@@ -14,14 +14,19 @@
  */
 
 #pragma once
-#include "HoudiniAssetActor.generated.h"
+#include "HoudiniMeshTriangle.generated.h"
 
-
-UCLASS(hidecategories=(Input), ConversionRoot, meta=(ChildCanTick))
-class HOUDINIENGINE_API AHoudiniAssetActor : public AActor
+USTRUCT(BlueprintType)
+struct FHoudiniMeshTriangle
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
-	TSubobjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Vertex0;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Vertex1;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Vertex2;
 };

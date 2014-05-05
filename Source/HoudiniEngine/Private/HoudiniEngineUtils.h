@@ -13,12 +13,9 @@
 *
 */
 
-#include "HoudiniEnginePrivatePCH.h"
+#pragma once
 
-
-//--
-UHoudiniEngineAsset::UHoudiniEngineAsset(const FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+struct FHoudiniEngineUtils
 {
 
-}
+};

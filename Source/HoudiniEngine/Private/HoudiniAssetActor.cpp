@@ -18,5 +18,14 @@
 AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP)
 {
+	bWantsInitialize = false;
+	bCanBeDamaged = false;
 
+	HoudiniAssetComponent = PCIP.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent0"));
+	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	HoudiniAssetComponent->Mobility = EComponentMobility::Static;
+	HoudiniAssetComponent->bGenerateOverlapEvents = false;
+
+	RootComponent = HoudiniAssetComponent;
 }
+

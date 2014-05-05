@@ -29,9 +29,13 @@ FHoudiniEngine::StartupModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
 
-	// Register our asset type actions and our asset.
+	// Create and register asset type actions for Houdini asset.
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FHoudiniAssetTypeActions()));
+
+	// Create and register broker for Houdini asset.
+	HoudiniAssetBroker = MakeShareable(new FHoudiniAssetBroker);
+	FComponentAssetBrokerage::RegisterBroker(HoudiniAssetBroker, UHoudiniAssetComponent::StaticClass(), true);
 
 	// Perform HAPI initialization.
 	HAPI_CookOptions cook_options = HAPI_CookOptions_Create();
@@ -65,6 +69,12 @@ void
 FHoudiniEngine::ShutdownModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine module."));
+
+	if(UObjectInitialized())
+	{
+		// Unregister broker.
+		FComponentAssetBrokerage::UnregisterBroker(HoudiniAssetBroker);
+	}
 
 	// Unregister asset type actions we have previously registered.
 	if(FModuleManager::Get().IsModuleLoaded("AssetTools"))
