@@ -36,6 +36,9 @@ private:
 
 private:
 
-	/** AssetType actions associated with this editor. **/
+	/** AssetType actions associated with Houdini asset. **/
 	TArray< TSharedPtr<IAssetTypeActions> > AssetTypeActions;
+
+	/** Broker associated with Houdini asset. **/
+	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 };

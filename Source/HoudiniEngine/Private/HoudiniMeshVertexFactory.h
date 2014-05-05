@@ -14,10 +14,14 @@
 */
 
 #pragma once
-#include "HoudiniEngineAsset.generated.h"
 
-UCLASS(DependsOn = UEngineTypes, BlueprintType, meta = (DisplayThumbnail = "true"))
-class HOUDINIENGINE_API UHoudiniEngineAsset : public UObject//, public IInterface_CollisionDataProvider
+class FHoudiniMeshVertexFactory : public FLocalVertexFactory
 {
-	GENERATED_UCLASS_BODY()
+public:
+
+	FHoudiniMeshVertexFactory();
+
+public:
+
+	void Init(const FHoudiniMeshVertexBuffer* VertexBuffer);
 };

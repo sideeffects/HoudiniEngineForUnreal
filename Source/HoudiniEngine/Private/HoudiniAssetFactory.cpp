@@ -140,7 +140,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	else
 	{
 		// HAPI has not been initialized.
-		HOUDINI_LOG_ERROR(TEXT("Cannot import Houdini Engine asset, HAPI has not been initialized."));
+		HOUDINI_LOG_ERROR(TEXT(" Cannot import Houdini Engine asset, HAPI has not been initialized."));
 	}
 	
 	// Broadcast notification that the new asset has been imported.

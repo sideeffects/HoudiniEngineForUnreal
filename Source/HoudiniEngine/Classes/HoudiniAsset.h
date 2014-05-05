@@ -16,7 +16,7 @@
 #pragma once
 #include "HoudiniAsset.generated.h"
 
-UCLASS(DependsOn = UEngineTypes, BlueprintType)
+UCLASS(Blueprintable, BlueprintType, EditInlineNew, HeaderGroup=HoudiniAsset, config=Editor) // collapsecategories, hidecategories=Object
 class HOUDINIENGINE_API UHoudiniAsset : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -25,9 +25,10 @@ public:
 
 	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const char* InAssetName, HAPI_AssetId InAssetId);
 
-protected:
+public:
 
 	/** Holds this asset's name. **/
+	UPROPERTY(Transient, BlueprintReadOnly, Category = HoudiniAsset)
 	FString AssetName;
 
 	/** Holds this asset's handle. **/
