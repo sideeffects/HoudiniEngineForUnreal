@@ -27,7 +27,7 @@ UHoudiniAssetFactory::UHoudiniAssetFactory(const class FPostConstructInitializeP
 	bCreateNew = false;
 
 	// This factory will open the editor for each new object.
-	bEditAfterNew = true;
+	bEditAfterNew = false;
 
 	// This factory will import objects from files.
 	bEditorImport = true;
@@ -50,6 +50,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	// Broadcast notification that a new asset is being imported.
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
+	/*
 	UObject* HoudiniAsset = NULL;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -142,7 +143,18 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 		// HAPI has not been initialized.
 		HOUDINI_LOG_ERROR(TEXT(" Cannot import Houdini Engine asset, HAPI has not been initialized."));
 	}
-	
+	*/
+
+	// Create new Houdini asset object.
+	UHoudiniAsset* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());
+
+	// Initialize data.
+	if(HoudiniAsset && !HoudiniAsset->InitializeStorage(Buffer, BufferEnd))
+	{
+		delete HoudiniAsset;
+		HoudiniAsset = NULL;
+	}
+
 	// Broadcast notification that the new asset has been imported.
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
 

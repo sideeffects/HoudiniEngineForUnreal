@@ -48,32 +48,54 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor* Instance)
 }
 
 
+/*
+bool
+UHoudiniAssetActorFactory::PreSpawnActor(UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
+{
+	return Super::PreSpawnActor(Asset, InOutLocation, InOutRotation, bRotationWasSupplied);
+}
+
+
+AActor*
+UHoudiniAssetActorFactory::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
+{
+	AHoudiniAssetActor* Actor = CastChecked<AHoudiniAssetActor>(Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name));
+	return Actor;
+}
+*/
+
+
 void 
 UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
+	HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor, supplied Asset = 0x%0.8p"), Asset);
+
 	UHoudiniAsset* HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
-	GEditor->SetActorLabelUnique(NewActor, HoudiniAsset->GetName());
+	if(HoudiniAsset)
+	{
+		GEditor->SetActorLabelUnique(NewActor, HoudiniAsset->GetName());
 
-	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
-	UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
-	check(HoudiniAssetComponent);
+		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
+		check(HoudiniAssetComponent);
 
-	HoudiniAssetComponent->UnregisterComponent();
-
-	HoudiniAssetComponent->HoudiniAsset = HoudiniAsset;
-	//HoudiniAssetComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
-
-	HoudiniAssetComponent->RegisterComponent();
+		HoudiniAssetComponent->UnregisterComponent();
+		HoudiniAssetComponent->HoudiniAsset = HoudiniAsset;
+		HoudiniAssetComponent->RegisterComponent();
+	}
 }
 
 
 void 
 UHoudiniAssetActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
-	UHoudiniAsset* HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
-	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(CDO);
-	UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
+	HOUDINI_LOG_MESSAGE(TEXT("PostCreateBlueprint, supplied Asset = 0x%0.8p"), Asset);
 
-	HoudiniAssetComponent->HoudiniAsset = HoudiniAsset;
-	//StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
+	UHoudiniAsset* HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
+	if(HoudiniAsset)
+	{
+		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(CDO);
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
+		HoudiniAssetComponent->HoudiniAsset = HoudiniAsset;
+	}
 }

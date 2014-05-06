@@ -38,13 +38,19 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 	UFUNCTION(BlueprintCallable, Category = "Components|HoudiniAsset")
 	virtual bool SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset);
 
-private: /** UActorComponent methods. **/
+protected: /** UActorComponent methods. **/
 
 	virtual void OnComponentCreated() OVERRIDE;
 	virtual void OnComponentDestroyed() OVERRIDE;
 
+	virtual void OnRegister() OVERRIDE;
+	virtual void OnUnregister() OVERRIDE;
+
 	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
 	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+
+	//virtual void BeginDestroy() OVERRIDE;
+	//virtual void FinishDestroy() OVERRIDE;
 
 private: /** UPrimitiveComponent methods. **/
 
@@ -56,9 +62,19 @@ private: /** UMeshComponent methods. **/
 
 private: /** UsceneComponent methods. **/
 
+	//virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags ) OVERRIDE;
 	//virtual FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const OVERRIDE;
 
 private:
 
+	/** This function is used to check if this component belongs to a temporary preview actor. **/
+	bool DoesBelongToPreviewActor() const;
+
+private:
+	
+	/** Triangle data used for rendering in viewport / preview window. **/
 	TArray<FHoudiniMeshTriangle> HoudiniMeshTris;
+
+	/** Holds this asset's handle. **/
+	HAPI_AssetId AssetId;
 };
