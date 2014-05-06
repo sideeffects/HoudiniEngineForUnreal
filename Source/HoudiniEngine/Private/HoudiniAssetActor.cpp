@@ -29,3 +29,9 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties&
 	RootComponent = HoudiniAssetComponent;
 }
 
+
+bool
+AHoudiniAssetActor::IsUsedForPreview() const
+{
+	return HasAnyFlags(RF_Transient);
+}

@@ -37,6 +37,9 @@ FHoudiniEngine::StartupModule()
 	HoudiniAssetBroker = MakeShareable(new FHoudiniAssetBroker);
 	FComponentAssetBrokerage::RegisterBroker(HoudiniAssetBroker, UHoudiniAssetComponent::StaticClass(), true);
 
+	// Register thumbnail renderer for Houdini asset.
+	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
+
 	// Perform HAPI initialization.
 	HAPI_CookOptions cook_options = HAPI_CookOptions_Create();
 	HAPI_Result result = HAPI_Initialize("", "", cook_options, true, -1);
@@ -74,6 +77,9 @@ FHoudiniEngine::ShutdownModule()
 	{
 		// Unregister broker.
 		FComponentAssetBrokerage::UnregisterBroker(HoudiniAssetBroker);
+
+		// Unregister thumbnail renderer.
+		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
 	}
 
 	// Unregister asset type actions we have previously registered.

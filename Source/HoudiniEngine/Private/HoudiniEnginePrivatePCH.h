@@ -26,6 +26,7 @@
 #include "MessageLog.h"
 #include "UnrealNetwork.h"
 #include "ComponentAssetBroker.h"
+#include "LevelEditorViewport.h"
 
 /** Houdini Engine headers. **/
 #include "HAPI.h"
@@ -38,27 +39,27 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Some additional logging macros. **/
 #ifdef HOUDINI_ENGINE_LOGGING
 
-#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT)							\
+#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT, ...)					\
 	do																			\
 	{																			\
-		UE_LOG(LogHoudiniEngine, VERBOSITY, HOUDINI_LOG_TEXT);					\
+		UE_LOG(LogHoudiniEngine, VERBOSITY, HOUDINI_LOG_TEXT, __VA_ARGS__);		\
 	}																			\
 	while(0)
 
-#define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT)									\
-	HOUDINI_LOG_HELPER(Log, HOUDINI_LOG_TEXT)	
+#define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT, ...)								\
+	HOUDINI_LOG_HELPER(Log, HOUDINI_LOG_TEXT, __VA_ARGS__)	
 
-#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT)										\
-	HOUDINI_LOG_HELPER(Fatal, HOUDINI_LOG_TEXT)	
+#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT, ...)								\
+	HOUDINI_LOG_HELPER(Fatal, HOUDINI_LOG_TEXT, __VA_ARGS__)	
 
-#define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT)										\
-	HOUDINI_LOG_HELPER(Error, HOUDINI_LOG_TEXT)	
+#define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT, ...)								\
+	HOUDINI_LOG_HELPER(Error, HOUDINI_LOG_TEXT, __VA_ARGS__)	
 
-#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT)									\
-	HOUDINI_LOG_HELPER(Warning, HOUDINI_LOG_TEXT)	
+#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT, ...)								\
+	HOUDINI_LOG_HELPER(Warning, HOUDINI_LOG_TEXT, __VA_ARGS__)	
 
-#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT)									\
-	HOUDINI_LOG_HELPER(Display, HOUDINI_LOG_TEXT)	
+#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT, ...)								\
+	HOUDINI_LOG_HELPER(Display, HOUDINI_LOG_TEXT, __VA_ARGS__)	
 
 #elif
 
@@ -77,10 +78,12 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniAssetFactory.h"
+#include "HoudiniAssetThumbnailRenderer.h"
 
 /** HoudiniEngine Private headers. **/
 #include "HoudiniEngine.h"
 #include "HoudiniAssetTypeActions.h"
+#include "HoudiniAssetCooking.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniMeshIndexBuffer.h"

@@ -24,4 +24,9 @@ class HOUDINIENGINE_API AHoudiniAssetActor : public AActor
 
 	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
 	TSubobjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
+
+public:
+
+	/** Return true if this actor is used for preview. **/
+	bool IsUsedForPreview() const;
 };
