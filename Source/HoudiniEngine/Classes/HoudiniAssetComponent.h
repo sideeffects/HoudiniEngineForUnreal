@@ -14,7 +14,9 @@
  */
 
 #pragma once
+#include "HAPI.h"
 #include "HoudiniAssetComponent.generated.h"
+
 
 class UHoudiniAsset;
 
@@ -29,7 +31,7 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 	/** **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HoudiniAsset, ReplicatedUsing = OnRep_HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
-
+	
 	/** **/
 	UFUNCTION()
 	void OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset);
@@ -37,6 +39,23 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 	/** Change the Houdini asset used by this instance. **/
 	UFUNCTION(BlueprintCallable, Category = "Components|HoudiniAsset")
 	virtual bool SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset);
+		
+public:
+
+	/** Used to differentiate native components from dynamic ones. **/
+	void SetNative(bool InbIsNativeComponent);
+
+public:
+
+	/** Callback used by cooking to notify about cooking results. **/
+	void CookingCompleted(HAPI_AssetId InAssetId, const char* AssetName);
+
+	/** Callback used by cooking to notify about errors. **/
+	void CookingFailed();
+
+public: /** UObject methods. **/
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 
 protected: /** UActorComponent methods. **/
 
@@ -65,16 +84,42 @@ private: /** UsceneComponent methods. **/
 	//virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags ) OVERRIDE;
 	//virtual FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const OVERRIDE;
 
-private:
+protected:
 
-	/** This function is used to check if this component belongs to a temporary preview actor. **/
-	bool DoesBelongToPreviewActor() const;
+	/** Monkey patching: given a new class instance, patch class information of this. **/
+	void MonkeyPatchClassInformation(UClass* ClassInstance);
 
-private:
+	/** Monkey patching: translate asset parameters to class properties and insert them into a given class instance. **/
+	void MonkeyPatchCreateProperties(UClass* ClassInstance);
+
+	/** Monkey patching: helper function used by property creation to generate array sub properties. **/
+	void MonkeyPatchArrayProperties(UArrayProperty* ArrayProperty);
+	
+protected:
+
+	/** Map holding a list of monkey patched classes and corresponding houdini asset instances. **/
+	static TMap<UHoudiniAsset*, UClass*> AssetClassRegistry;
+	
+protected:
 	
 	/** Triangle data used for rendering in viewport / preview window. **/
 	TArray<FHoudiniMeshTriangle> HoudiniMeshTris;
+	
+	/** Original UClass value, before monkey patching. **/
+	UClass* OriginalClass;
+
+	/** Is set to true when this component is native and false is when it is dynamic. **/
+	bool bIsNativeComponent;
+
+	/** Is set to true if cooking job has been spawned for this component. **/
+	bool bIsCooking;
 
 	/** Holds this asset's handle. **/
 	HAPI_AssetId AssetId;
+
+	
+
+private:
+
+	char buffer[4];
 };
