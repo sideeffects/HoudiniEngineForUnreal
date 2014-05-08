@@ -18,8 +18,8 @@
 
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP),
-	HoudiniAssetBytes(NULL),
-	HoudiniAssetBytesCount(0)
+	AssetBytes(NULL),
+	AssetBytesCount(0)
 {
 
 }
@@ -39,25 +39,25 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, con
 bool 
 UHoudiniAsset::InitializeStorage(const uint8*& Buffer, const uint8* BufferEnd)
 {
-	if(HoudiniAssetBytes)
+	if(AssetBytes)
 	{
 		// Deallocate previously loaded buffer.
-		FMemory::Free(HoudiniAssetBytes);
-		HoudiniAssetBytes = NULL;
-		HoudiniAssetBytesCount = 0;
+		FMemory::Free(AssetBytes);
+		AssetBytes = NULL;
+		AssetBytesCount = 0;
 	}
 
 	// Calculate buffer size.
-	HoudiniAssetBytesCount = BufferEnd - Buffer;
+	AssetBytesCount = BufferEnd - Buffer;
 
-	if(HoudiniAssetBytesCount)
+	if(AssetBytesCount)
 	{
-		HoudiniAssetBytes = static_cast<uint8*>(FMemory::Malloc(HoudiniAssetBytesCount));
+		AssetBytes = static_cast<uint8*>(FMemory::Malloc(AssetBytesCount));
 
-		if(HoudiniAssetBytes)
+		if(AssetBytes)
 		{
 			// Copy data into newly allocated buffer.
-			FMemory::Memcpy(HoudiniAssetBytes, Buffer, HoudiniAssetBytesCount);
+			FMemory::Memcpy(AssetBytes, Buffer, AssetBytesCount);
 			return true;
 		}
 	}
@@ -69,15 +69,16 @@ UHoudiniAsset::InitializeStorage(const uint8*& Buffer, const uint8* BufferEnd)
 void 
 UHoudiniAsset::FinishDestroy()
 {
-	if(HoudiniAssetBytes)
+	if(AssetBytes)
 	{
-		FMemory::Free(HoudiniAssetBytes);
-		HoudiniAssetBytes = NULL;
-		HoudiniAssetBytesCount = 0;
+		FMemory::Free(AssetBytes);
+		AssetBytes = NULL;
+		AssetBytesCount = 0;
 	}
 
 	Super::FinishDestroy();
 }
+
 
 void 
 UHoudiniAsset::Serialize(FArchive& Ar)
@@ -85,11 +86,25 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	// Serialize the number of bytes of raw Houdini OTL data.
-	Ar << HoudiniAssetBytesCount;
+	Ar << AssetBytesCount;
 
 	// Serialize the raw Houdini OTL data.
-	if(HoudiniAssetBytesCount && HoudiniAssetBytes)
+	if(AssetBytesCount && AssetBytes)
 	{
-		Ar.Serialize(HoudiniAssetBytes, HoudiniAssetBytesCount);
+		Ar.Serialize(AssetBytes, AssetBytesCount);
 	}
+}
+
+
+const uint8*
+UHoudiniAsset::GetAssetBytes() const
+{
+	return AssetBytes;
+}
+
+
+uint32
+UHoudiniAsset::GetAssetBytesCount() const
+{
+	return AssetBytesCount;
 }

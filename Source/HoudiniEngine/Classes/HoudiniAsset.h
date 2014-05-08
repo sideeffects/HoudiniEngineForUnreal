@@ -41,13 +41,21 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = HoudiniAsset)
 	FString AssetName;
 
+public:
+
+	/** Return buffer containing the raw Houdini OTL data. **/
+	const uint8* GetAssetBytes() const;
+
+	/** Return the size in bytes of raw Houdini OTL data. **/
+	uint32 GetAssetBytesCount() const;
+
 protected:
 
 	/** Buffer containing raw Houdini OTL data. **/
-	uint8* HoudiniAssetBytes; 
+	uint8* AssetBytes; 
 
 	/** Field containing the size of raw Houdini OTL data in bytes. **/
-	uint32 HoudiniAssetBytesCount;
+	uint32 AssetBytesCount;
 
 	/** Holds this asset's handle. **/
 	//HAPI_AssetId AssetId;
