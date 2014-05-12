@@ -27,6 +27,7 @@
 #include "UnrealNetwork.h"
 #include "ComponentAssetBroker.h"
 #include "LevelEditorViewport.h"
+#include "ImageUtils.h"
 
 /** Houdini Engine headers. **/
 #include "HAPI.h"

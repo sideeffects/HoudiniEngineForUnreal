@@ -561,9 +561,122 @@ UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* Ass
 
 			HoudiniMeshTris.Push(triangle);
 		}
+
+		// Load textures.
+		HAPI_MaterialInfo MaterialInfo;
+		Result = HAPI_GetMaterial(AssetId, PartInfo.materialId, &MaterialInfo);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			return;
+		}
+
+		HAPI_NodeInfo NodeInfo;
+		Result = HAPI_GetNodeInfo(MaterialInfo.nodeId, &NodeInfo);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			return;
+		}
+
+		std::vector<HAPI_ParmInfo> NodeParams;
+		NodeParams.resize(NodeInfo.parmCount);
+		Result = HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			return;
+		}
+
+		for(int ParmIdx = 0; ParmIdx < NodeInfo.parmCount; ++ParmIdx)
+		{
+			HAPI_ParmInfo& NodeParmInfo = NodeParams[ParmIdx];
+			HAPI_StringHandle NodeParmHandle = NodeParmInfo.nameSH;
+
+			int NodeParmNameLength = 0;
+			Result = HAPI_GetStringBufLength(NodeParmHandle, &NodeParmNameLength);
+			if(HAPI_RESULT_SUCCESS != Result)
+			{
+				continue;
+			}
+
+			std::vector<char> NodeParmName;
+			NodeParmName.reserve(NodeParmNameLength + 1);
+			NodeParmName[NodeParmNameLength] = '\0';
+			Result = HAPI_GetString(NodeParmHandle, &NodeParmName[0], NodeParmNameLength);
+			if(HAPI_RESULT_SUCCESS != Result)
+			{
+				continue;
+			}
+
+			if(!strncmp(&NodeParmName[0], "map", 3) || !strncmp(&NodeParmName[0], "ogl_tex1", 8) || !strncmp(&NodeParmName[0], "baseColorMap", 12))
+			{
+				Result = HAPI_RenderTextureToImage(AssetInfo.id, MaterialInfo.id, NodeParmInfo.id);
+				if(HAPI_RESULT_SUCCESS != Result)
+				{
+					continue;
+				}
+
+				//extractHoudiniImageToTexture( material_info, folder_path, "C A" );
+				HAPI_ImageInfo ImageInfo;
+				Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+				if(HAPI_RESULT_SUCCESS != Result)
+				{
+					continue;
+				}
+
+				ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
+				ImageInfo.interleaved = true;
+				ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;
+
+				Result = HAPI_SetImageInfo(MaterialInfo.assetId, MaterialInfo.id, ImageInfo);
+				if(HAPI_RESULT_SUCCESS != Result)
+				{
+					continue;
+				}
+
+				int ImageBufferSize = 0;
+				Result = HAPI_ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, "C A", &ImageBufferSize);
+				if(HAPI_RESULT_SUCCESS != Result)
+				{
+					continue;
+				}
+
+				std::vector<char> ImageBuffer;
+				ImageBuffer.reserve(ImageBufferSize);
+				Result = HAPI_GetImageMemoryBuffer(MaterialInfo.assetId, MaterialInfo.id, &ImageBuffer[0], ImageBufferSize);
+				if(HAPI_RESULT_SUCCESS != Result)
+				{
+					continue;
+				}
+
+				
+				/*
+				FName MaterialName = MakeUniqueObjectName(this->GetOuter(), UMaterial::StaticClass(), TEXT("HoudiniAsset_Material"));
+				UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), this->GetOuter(), MaterialName, this->GetFlags());
+				Material->TwoSided = false;
+				Material->SetLightingModel(MLM_DefaultLit);
+
+				MaterialExportUtils::FFlattenMaterial FlattenMaterial;
+
+				FString DiffuseTextureName = MakeUniqueObjectName(this->GetOuter(), UTexture2D::StaticClass(), TEXT("Texture_Diffuse")).ToString();
+				FCreateTexture2DParameters TexParams;
+				TexParams.bUseAlpha = false;
+				TexParams.CompressionSettings = TC_Default;
+				TexParams.bDeferCompression = true;
+				TexParams.bSRGB = false;
+
+				UTexture2D* DiffuseTexture = FImageUtils::CreateTexture2D(
+					ImageInfo.xRes,
+					ImageInfo.yRes,
+					FlattenMaterial.DiffuseSamples,
+					this->GetOuter(),
+					DiffuseTextureName,
+					this->GetFlags(),
+					TexParams);
+				*/
+			}
+		}
 	}
 
-	const uint32 CustomDataStartOffset = 24000;
+	//const uint32 CustomDataStartOffset = 24000;
 
 	// See if we have this class already.
 	UClass** StoredHoudiniClass = UHoudiniAssetComponent::AssetClassRegistry.Find(HoudiniAsset);
