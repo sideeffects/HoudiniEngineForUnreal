@@ -21,6 +21,7 @@ struct FHoudiniMeshTriangle
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Position information. **/
 	UPROPERTY(EditAnywhere, Category = Triangle)
 	FVector Vertex0;
 
@@ -29,4 +30,24 @@ struct FHoudiniMeshTriangle
 
 	UPROPERTY(EditAnywhere, Category = Triangle)
 	FVector Vertex2;
+
+	/** Normals information. **/
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Normal0;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Normal1;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Normal2;
+
+	/** Texture coordinates information. **/
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector2D TextureCoordinate0;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector2D TextureCoordinate1;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector2D TextureCoordinate2;
 };

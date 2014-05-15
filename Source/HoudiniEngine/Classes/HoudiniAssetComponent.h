@@ -82,7 +82,7 @@ private: /** UMeshComponent methods. **/
 private: /** UsceneComponent methods. **/
 
 	//virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags ) OVERRIDE;
-	//virtual FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const OVERRIDE;
 
 protected:
 
@@ -117,9 +117,12 @@ protected:
 	/** Holds this asset's handle. **/
 	HAPI_AssetId AssetId;
 
-	
+	//
+	UMaterial* Material;
 
 private:
 
-	char buffer[4];
+	int foo;
+	//char buffer[65536];
+	//__declspec(align(16)) char* buffer;
 };
