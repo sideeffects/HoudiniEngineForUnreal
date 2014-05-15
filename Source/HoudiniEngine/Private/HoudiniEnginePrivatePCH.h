@@ -28,6 +28,8 @@
 #include "ComponentAssetBroker.h"
 #include "LevelEditorViewport.h"
 #include "ImageUtils.h"
+#include "PackageTools.h"
+
 
 /** Houdini Engine headers. **/
 #include "HAPI.h"

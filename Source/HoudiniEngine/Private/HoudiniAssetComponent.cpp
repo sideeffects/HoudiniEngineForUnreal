@@ -28,8 +28,15 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	OriginalClass(nullptr),
 	bIsNativeComponent(false),
 	bIsCooking(false),
-	AssetId(-1)
+	AssetId(-1),
+	Material(nullptr)
 {
+	// These are experimental.
+	bRenderInMainPass = true;
+	//bTickInEditor = true;
+	//bTreatAsBackgroundForOcclusion = false;
+	//bNeverNeedsRenderUpdate = false;
+
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
@@ -103,6 +110,34 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 }
 
 
+FBoxSphereBounds 
+UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
+{
+	if(HoudiniAsset)
+	{
+		//FBoxSphereBounds NewBounds = HoudiniAsset->GetBounds().TransformBy(LocalToWorld);
+	}
+	else
+	{
+
+	}
+	/*
+	FBoxSphereBounds NewBounds;
+	NewBounds.Origin = FVector::ZeroVector;
+	NewBounds.BoxExtent = FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX);
+	NewBounds.SphereRadius = FMath::Sqrt(3.0f * FMath::Square(HALF_WORLD_MAX));
+	return NewBounds;
+	*/
+
+	//return Super::CalcBounds(LocalToWorld);
+	//return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
+
+	 const FVector UnitV(1,1,1);
+	 const FBox VeryVeryBig( -UnitV * HALF_WORLD_MAX, UnitV * HALF_WORLD_MAX );
+	 return FBoxSphereBounds( VeryVeryBig );
+}
+
+
 int32 
 UHoudiniAssetComponent::GetNumMaterials() const
 {
@@ -119,7 +154,7 @@ UHoudiniAssetComponent::CreateSceneProxy()
 	{
 		Proxy = new FHoudiniMeshSceneProxy(this);
 	}
-
+	
 	return Proxy;
 }
 
@@ -218,8 +253,10 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 	UField* ChildLast = ChildFirst;
 
 	// Calculate next 128 boundary past scratch space (or use scratch space address if it is 16bb aligned).
-	const char* ScratchSpaceAligned = (const char*) ((reinterpret_cast<uintptr_t>(buffer) + 15) & ~15);
-	uint32 ValuesOffsetStart = (const char*) ScratchSpaceAligned - (const char*) this;
+	//const char* ScratchSpaceAligned = (const char*) ((reinterpret_cast<uintptr_t>(buffer) + 15) & ~15);
+	//uint32 ValuesOffsetStart = (const char*) ScratchSpaceAligned - (const char*) this;
+	//uint32 ValuesOffsetStart = offsetof(UHoudiniAssetComponent, buffer);
+	uint32 ValuesOffsetStart = sizeof(UHoudiniAssetComponent);
 	uint32 ValuesOffsetEnd = ValuesOffsetStart;
 
 	for(int idx = 0; idx < NodeInfo.parmCount; ++idx)
@@ -530,8 +567,10 @@ UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* Ass
 			return;
 		}
 
+		// Retrieve positions.
 		std::vector<float> Positions;
 		Positions.reserve(AttribInfo.count * AttribInfo.tupleSize);
+		//positions are always o na point.
 		Result = HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "P", &AttribInfo, &Positions[0], 0, AttribInfo.count);
 		if(HAPI_RESULT_SUCCESS != Result)
 		{	
@@ -562,6 +601,43 @@ UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* Ass
 			HoudiniMeshTris.Push(triangle);
 		}
 
+		// Retrieve uv data.
+		{
+			HAPI_AttributeInfo AttribInfo;
+			// can be both, check both. could be on detail.
+			Result = HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "uv", HAPI_ATTROWNER_VERTEX, &AttribInfo);
+			if (HAPI_RESULT_SUCCESS != Result)
+			{
+				return;
+			}
+
+			std::vector<float> UVs;
+			UVs.reserve(AttribInfo.count * AttribInfo.tupleSize);
+			Result = HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "uv", &AttribInfo, &UVs[0], 0, AttribInfo.count);
+			if (HAPI_RESULT_SUCCESS != Result)
+			{
+				return;
+			}
+
+			for (int i = 0; i < PartInfo.vertexCount / 3; ++i)
+			{
+				FHoudiniMeshTriangle& triangle = HoudiniMeshTris[i];
+
+				triangle.TextureCoordinate0.X = UVs[i * 9 + 0];
+				triangle.TextureCoordinate0.Y = 1.0f - UVs[i * 9 + 1];
+				
+				triangle.TextureCoordinate2.X = UVs[i * 9 + 3];
+				triangle.TextureCoordinate2.Y = 1.0f - UVs[i * 9 + 4];
+
+				triangle.TextureCoordinate1.X = UVs[i * 9 + 6];
+				triangle.TextureCoordinate1.Y = 1.0f - UVs[i * 9 + 7];
+			}
+		}
+
+
+
+
+
 		// Load textures.
 		HAPI_MaterialInfo MaterialInfo;
 		Result = HAPI_GetMaterial(AssetId, PartInfo.materialId, &MaterialInfo);
@@ -584,6 +660,8 @@ UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* Ass
 		{
 			return;
 		}
+
+		int TexturesLoaded = 0;
 
 		for(int ParmIdx = 0; ParmIdx < NodeInfo.parmCount; ++ParmIdx)
 		{
@@ -662,16 +740,85 @@ UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* Ass
 				TexParams.CompressionSettings = TC_Default;
 				TexParams.bDeferCompression = true;
 				TexParams.bSRGB = false;
-
+				*/
+				/*
 				UTexture2D* DiffuseTexture = FImageUtils::CreateTexture2D(
 					ImageInfo.xRes,
 					ImageInfo.yRes,
 					FlattenMaterial.DiffuseSamples,
-					this->GetOuter(),
-					DiffuseTextureName,
-					this->GetFlags(),
-					TexParams);
+					this,
+					TEXT("sdf"),
+					GetFlags(),
+					FCreateTexture2DParameters());
 				*/
+
+				// Create material if does not exist already.
+				if(!Material)
+				{
+					Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), this->GetOuter(), TEXT("DiffuseSpaceship"),  RF_Public | RF_Standalone | RF_Transient);
+				
+					/*
+					FString MaterialFullName = TEXT("MaterialSpaceShipLongName");
+					FString NewPackageName = FPackageName::GetLongPackagePath(GetOutermost()->GetName()) + TEXT("/") + MaterialFullName;
+					NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
+					UPackage* Package = CreatePackage(NULL, *NewPackageName);
+					UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+					UMaterial* Material = (UMaterial*)MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone|RF_Public, NULL, GWarn);
+					*/
+
+					Material->TwoSided = false;
+					Material->SetLightingModel(MLM_DefaultLit);
+
+					// Assign material.
+					SetMaterial(0, Material);
+				}
+
+
+
+				// Create diffuse texture.
+				UTexture2D* DiffuseTexture = UTexture2D::CreateTransient(ImageInfo.xRes, ImageInfo.yRes, PF_B8G8R8A8);
+
+				// Lock texture for modification.
+				uint8* MipData = static_cast<uint8*>(DiffuseTexture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
+
+				// Create base map.
+				uint8* DestPtr = NULL;
+				const FColor* SrcPtr = NULL;
+				uint32 SrcWidth = ImageInfo.xRes;
+				uint32 SrcHeight = ImageInfo.yRes;
+				const char* SrcData = &ImageBuffer[0];
+
+				for(uint32 y = 0; y < SrcHeight; y++)
+				{
+					DestPtr = &MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(FColor)];
+					
+					for(uint32 x = 0; x < SrcWidth; x++)
+					{
+						uint32 DataOffset = y * SrcWidth * 4 + x * 4;
+
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //B
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //R
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
+						//*DestPtr++ = 0xFF; //A
+					}
+				}
+
+				// Unlock the texture.
+				DiffuseTexture->PlatformData->Mips[0].BulkData.Unlock();
+				DiffuseTexture->UpdateResource();
+
+
+				
+
+				// Assign texture to material.
+				UMaterialExpressionTextureSample* Expression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+				Material->Expressions.Add(Expression);
+				Material->DiffuseColor.Expression = Expression;
+				Expression->Texture = DiffuseTexture;
+
+
+				
 			}
 		}
 	}
@@ -709,6 +856,7 @@ UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* Ass
 		MonkeyPatchAssetPatchedClass->ClassAddReferencedObjects = ClassOfUHoudiniAssetComponent->ClassAddReferencedObjects;
 		MonkeyPatchAssetPatchedClass->MinAlignment = ClassOfUHoudiniAssetComponent->MinAlignment;
 		MonkeyPatchAssetPatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize + 65536;
+		//MonkeyPatchAssetPatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
 		MonkeyPatchAssetPatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
 
 		MonkeyPatchAssetPatchedClass->ClassReps = ClassOfUHoudiniAssetComponent->ClassReps;
@@ -966,6 +1114,40 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			triangle.Vertex1.Y = Positions[VertexList[i * 3 + 2] * 3 + 2] * 100.0f;
 
 			HoudiniMeshTris.Push(triangle);
+		}
+
+
+		// Retrieve uv data.
+		{
+			HAPI_AttributeInfo AttribInfo;
+			// can be both, check both. could be on detail.
+			Result = HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "uv", HAPI_ATTROWNER_VERTEX, &AttribInfo);
+			if (HAPI_RESULT_SUCCESS != Result)
+			{
+				return;
+			}
+
+			std::vector<float> UVs;
+			UVs.reserve(AttribInfo.count * AttribInfo.tupleSize);
+			Result = HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "uv", &AttribInfo, &UVs[0], 0, AttribInfo.count);
+			if (HAPI_RESULT_SUCCESS != Result)
+			{
+				return;
+			}
+
+			for (int i = 0; i < PartInfo.vertexCount / 3; ++i)
+			{
+				FHoudiniMeshTriangle& triangle = HoudiniMeshTris[i];
+
+				triangle.TextureCoordinate0.X = UVs[i * 9 + 0];
+				triangle.TextureCoordinate0.Y = 1.0f - UVs[i * 9 + 1];
+
+				triangle.TextureCoordinate2.X = UVs[i * 9 + 3];
+				triangle.TextureCoordinate2.Y = 1.0f - UVs[i * 9 + 4];
+
+				triangle.TextureCoordinate1.X = UVs[i * 9 + 6];
+				triangle.TextureCoordinate1.Y = 1.0f - UVs[i * 9 + 7];
+			}
 		}
 	}
 
