@@ -1,17 +1,17 @@
 /*
-* PROPRIETARY INFORMATION.  This software is proprietary to
-* Side Effects Software Inc., and is not to be reproduced,
-* transmitted, or disclosed in any way without written permission.
-*
-* Produced by:
-*      Damian Campeanu
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
-*/
+ * PROPRIETARY INFORMATION.  This software is proprietary to
+ * Side Effects Software Inc., and is not to be reproduced,
+ * transmitted, or disclosed in any way without written permission.
+ *
+ * Produced by:
+ *      Damian Campeanu
+ *      Side Effects Software Inc
+ *      123 Front Street West, Suite 1401
+ *      Toronto, Ontario
+ *      Canada   M5J 2M2
+ *      416-504-9876
+ *
+ */
 
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngine.generated.inl"
@@ -40,30 +40,21 @@ FHoudiniEngine::StartupModule()
 	// Register thumbnail renderer for Houdini asset.
 	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
 
-	// Perform HAPI initialization.
-	HAPI_CookOptions cook_options = HAPI_CookOptions_Create();
-	HAPI_Result result = HAPI_Initialize("", "", cook_options, true, -1);
+	// Create asset manager.
+	HoudiniAssetManager = NewObject<UHoudiniAssetManager>();
+	HoudiniAssetManager->AddToRoot();
 
-	if(HAPI_RESULT_SUCCESS == result)
+	// Perform HAPI initialization.
+	HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
+	HAPI_Result Result = HAPI_Initialize("", "", CookOptions, true, -1);
+
+	if(HAPI_RESULT_SUCCESS == Result)
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine module."));
+		HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine API module."));
 	}
 	else
 	{
-		switch(result)
-		{
-			case HAPI_RESULT_FAILURE:
-			case HAPI_RESULT_ALREADY_INITIALIZED:
-			case HAPI_RESULT_NOT_INITIALIZED:
-			case HAPI_RESULT_CANT_LOADFILE:
-			case HAPI_RESULT_PARM_SET_FAILED:
-			case HAPI_RESULT_INVALID_ARGUMENT:
-			case HAPI_RESULT_CANT_LOAD_GEO:
-			case HAPI_RESULT_CANT_GENERATE_PRESET:
-			case HAPI_RESULT_CANT_LOAD_PRESET:
-			default:
-				ASSUME(0);
-		};
+		HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
 	}
 }
 
@@ -80,6 +71,15 @@ FHoudiniEngine::ShutdownModule()
 
 		// Unregister thumbnail renderer.
 		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
+
+		// We can delete the asset manager.
+		HoudiniAssetManager->RemoveFromRoot();
+
+		if(HoudiniAssetManager->IsValidLowLevel())
+		{
+			HoudiniAssetManager->MarkPendingKill();
+			HoudiniAssetManager = nullptr;
+		}
 	}
 
 	// Unregister asset type actions we have previously registered.

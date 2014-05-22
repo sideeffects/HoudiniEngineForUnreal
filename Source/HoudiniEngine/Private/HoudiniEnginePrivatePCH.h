@@ -32,6 +32,8 @@
 
 
 /** Houdini Engine headers. **/
+#include <vector>
+#include <string>
 #include "HAPI.h"
 
 /** Other definitions. **/
@@ -74,6 +76,24 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 #endif // HOUDINI_ENGINE_LOGGING
 
+
+/** Error checking. **/
+#define HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HAPI_LOG_ROUTINE)				\
+	do																										\
+	{																										\
+		HAPI_Result Result = HAPI_PARAM_CALL;																\
+		if(HAPI_RESULT_SUCCESS != Result)																	\
+		{																									\
+			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));	\
+			return HAPI_PARAM_RETURN;																		\
+		}																									\
+	}																										\
+	while(0)
+
+#define HOUDINI_CHECK_ERROR_RETURN(HAPI_PARAM_CALL, HAPI_PARAM_RETURN)										\
+	HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HOUDINI_LOG_ERROR)
+
+
 /** HoudiniEngine Class headers. **/
 #include "HoudiniMeshTriangle.h"
 #include "HoudiniAssetComponent.h"
@@ -84,6 +104,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetThumbnailRenderer.h"
 
 /** HoudiniEngine Private headers. **/
+#include "HoudiniAssetManager.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAssetCooking.h"
