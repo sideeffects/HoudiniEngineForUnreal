@@ -1,17 +1,17 @@
 /*
-* PROPRIETARY INFORMATION.  This software is proprietary to
-* Side Effects Software Inc., and is not to be reproduced,
-* transmitted, or disclosed in any way without written permission.
-*
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
-*/
+ * PROPRIETARY INFORMATION.  This software is proprietary to
+ * Side Effects Software Inc., and is not to be reproduced,
+ * transmitted, or disclosed in any way without written permission.
+ *
+ * Produced by:
+ *      Mykola Konyk
+ *      Side Effects Software Inc
+ *      123 Front Street West, Suite 1401
+ *      Toronto, Ontario
+ *      Canada   M5J 2M2
+ *      416-504-9876
+ *
+ */
 
 #pragma once
 #include "IHoudiniEngine.h"
@@ -37,8 +37,11 @@ private:
 private:
 
 	/** AssetType actions associated with Houdini asset. **/
-	TArray< TSharedPtr<IAssetTypeActions> > AssetTypeActions;
+	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
 
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
+
+	/** Object which manages all assets. **/
+	UHoudiniAssetManager* HoudiniAssetManager;
 };

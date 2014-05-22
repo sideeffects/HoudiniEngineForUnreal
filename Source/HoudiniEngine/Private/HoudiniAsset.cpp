@@ -18,27 +18,23 @@
 
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP),
-	AssetBytes(NULL),
-	AssetBytesCount(0)
+	AssetBytes(nullptr),
+	AssetBytesCount(0),
+	AssetId(-1)
 {
 
 }
 
 
-/*
-UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const char* InAssetName, HAPI_AssetId InAssetId) :
-	Super(PCIP),
-	AssetId(InAssetId)
+bool
+UHoudiniAsset::InitializeAsset(HAPI_AssetId InAssetId, FString Name, const uint8*& Buffer, const uint8* BufferEnd)
 {
-	FUTF8ToTCHAR StringConverter(InAssetName);
-	AssetName = StringConverter.Get();
-}
-*/
+	// Store asset name.
+	AssetName = Name;
 
+	// Copy asset id.
+	AssetId = InAssetId;
 
-bool 
-UHoudiniAsset::InitializeStorage(const uint8*& Buffer, const uint8* BufferEnd)
-{
 	if(AssetBytes)
 	{
 		// Deallocate previously loaded buffer.
@@ -54,19 +50,21 @@ UHoudiniAsset::InitializeStorage(const uint8*& Buffer, const uint8* BufferEnd)
 	{
 		AssetBytes = static_cast<uint8*>(FMemory::Malloc(AssetBytesCount));
 
-		if(AssetBytes)
+		if(!AssetBytes)
 		{
-			// Copy data into newly allocated buffer.
-			FMemory::Memcpy(AssetBytes, Buffer, AssetBytesCount);
-			return true;
+			// Failed allocation.
+			return false;
 		}
+
+		// Copy data into newly allocated buffer.
+		FMemory::Memcpy(AssetBytes, Buffer, AssetBytesCount);
 	}
 
-	return false;
+	return true;
 }
 
 
-void 
+void
 UHoudiniAsset::FinishDestroy()
 {
 	if(AssetBytes)
@@ -80,10 +78,13 @@ UHoudiniAsset::FinishDestroy()
 }
 
 
-void 
+void
 UHoudiniAsset::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
+
+	// Serialize asset name.
+	Ar << AssetName;
 
 	// Serialize the number of bytes of raw Houdini OTL data.
 	Ar << AssetBytesCount;
@@ -107,4 +108,11 @@ uint32
 UHoudiniAsset::GetAssetBytesCount() const
 {
 	return AssetBytesCount;
+}
+
+
+bool
+UHoudiniAsset::IsInitialized() const
+{
+	return (AssetId != -1);
 }

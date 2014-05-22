@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Damian Campeanu
+ *      Mykola Konyk
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -13,9 +13,11 @@
  *
  */
 
-#pragma once
+#include "HoudiniEnginePrivatePCH.h"
 
-class IHoudiniEngine : public IModuleInterface
+
+UHoudiniAssetManager::UHoudiniAssetManager(const FPostConstructInitializeProperties& PCIP) : 
+	Super(PCIP)
 {
 
-};
+}

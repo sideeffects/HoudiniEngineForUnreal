@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Damian Campeanu
+ *      Mykola Konyk
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -14,23 +14,14 @@
  */
 
 #pragma once
+#include "HoudiniAssetManager.generated.h"
 
-class FHoudiniAssetComponentInstanceData : public FComponentInstanceDataBase
+
+UCLASS()
+class HOUDINIENGINE_API UHoudiniAssetManager : public UObject
 {
-public:
-
-	FHoudiniAssetComponentInstanceData();
-	virtual ~FHoudiniAssetComponentInstanceData();
-
-public: /** FComponentInstanceDataBase methods. **/
-
-	virtual FName GetDataTypeName() const OVERRIDE;
+	GENERATED_UCLASS_BODY()
 
 public:
 
-	static const FName InstanceDataTypeName;
-
-public:
-
-	
 };

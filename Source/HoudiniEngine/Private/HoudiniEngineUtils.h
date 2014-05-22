@@ -17,5 +17,15 @@
 
 struct FHoudiniEngineUtils
 {
+public:
 
+	/** Return a string description of error from a given error code. **/
+	static const FString GetErrorDescription(HAPI_Result Result);
+
+	/** Return true if module has been properly initialized. **/
+	static bool IsInitialized();
+
+	/** Return name for a given asset. */
+	static bool GetAssetName(int AssetName, std::string& AssetNameString);
+	static bool GetAssetName(int AssetName, FString& AssetNameString);
 };
