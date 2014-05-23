@@ -16,6 +16,11 @@
 #pragma once
 #include "HoudiniAssetThumbnailRenderer.generated.h"
 
+class UObject;
+class FCanvas;
+class FRenderTarget;
+class FHoudiniAssetThumbnailScene;
+
 UCLASS(config = Editor)
 class HOUDINIENGINE_API UHoudiniAssetThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
@@ -25,4 +30,12 @@ public: /** ThumbnailRenderer methods. **/
 	
 	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas) OVERRIDE;
 
+public: /** UObject methods. **/
+
+	virtual void BeginDestroy() OVERRIDE;
+
+private:
+
+	/** Thumbnail scene used by this renderer. **/
+	FHoudiniAssetThumbnailScene* ThumbnailScene;
 };

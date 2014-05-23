@@ -15,6 +15,11 @@
 
 #pragma once
 
+class FSceneView;
+class UMaterialInterface;
+class UHoudiniAssetComponent;
+class FPrimitiveDrawInterface;
+
 class FHoudiniMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:

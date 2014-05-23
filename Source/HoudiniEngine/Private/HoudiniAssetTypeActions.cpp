@@ -42,3 +42,19 @@ FHoudiniAssetTypeActions::GetCategories()
 {
 	return EAssetTypeCategories::Misc;
 }
+
+
+UThumbnailInfo* 
+FHoudiniAssetTypeActions::GetThumbnailInfo(UObject* Asset) const
+{
+	UHoudiniAsset* HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
+	UThumbnailInfo* ThumbnailInfo = HoudiniAsset->ThumbnailInfo;
+	if(!ThumbnailInfo)
+	{
+		// If we have no thumbnail information, construct it.
+		ThumbnailInfo = ConstructObject<USceneThumbnailInfo>(USceneThumbnailInfo::StaticClass(), HoudiniAsset);
+		HoudiniAsset->ThumbnailInfo = ThumbnailInfo;
+	}
+
+	return ThumbnailInfo;
+}

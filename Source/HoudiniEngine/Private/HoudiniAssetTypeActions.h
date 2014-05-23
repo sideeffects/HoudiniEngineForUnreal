@@ -15,6 +15,10 @@
 
 #pragma once
 
+class UClass;
+class UObject;
+class UThumbnailInfo;
+
 class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
 {
 public: /** FAssetTypeActions_Base methods. **/
@@ -23,6 +27,5 @@ public: /** FAssetTypeActions_Base methods. **/
 	virtual FColor GetTypeColor() const OVERRIDE;
 	virtual UClass* GetSupportedClass() const OVERRIDE;
 	virtual uint32 GetCategories() OVERRIDE;
-
-private:
+	virtual UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const OVERRIDE;
 };

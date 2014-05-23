@@ -15,6 +15,8 @@
 
 #pragma once
 
+class FHoudiniMeshVertexBuffer;
+
 class FHoudiniMeshVertexFactory : public FLocalVertexFactory
 {
 public:

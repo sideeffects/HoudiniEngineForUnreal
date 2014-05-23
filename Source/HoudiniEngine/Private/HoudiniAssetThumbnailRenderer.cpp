@@ -15,8 +15,10 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 
+
 UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+	: Super(PCIP),
+	ThumbnailScene(nullptr)
 {
 	
 }
@@ -25,6 +27,7 @@ UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const class FPost
 void
 UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas)
 {
+	/*
 	static UTexture2D* GridTexture = NULL;
 	if (GridTexture == NULL)
 	{
@@ -45,4 +48,42 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 		FLinearColor(1.0f, 0.647f, 0.0f),
 		GridTexture->Resource,
 		bAlphaBlend);
+	*/
+
+	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Object);
+	if(HoudiniAsset && !HoudiniAsset->IsPendingKill())
+	{
+		// If we do not have a scene, create one.
+		if(!ThumbnailScene)
+		{
+			ThumbnailScene = new FHoudiniAssetThumbnailScene();
+		}
+
+		ThumbnailScene->SetHoudiniAsset(HoudiniAsset);
+		ThumbnailScene->GetScene()->UpdateSpeedTreeWind(0.0);
+
+		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
+			.SetWorldTimes(GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime));
+
+		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
+		ViewFamily.EngineShowFlags.MotionBlur = 0;
+		ViewFamily.EngineShowFlags.LOD = 0;
+
+		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
+		GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+		ThumbnailScene->SetHoudiniAsset(nullptr);
+	}
+}
+
+
+void 
+UHoudiniAssetThumbnailRenderer::BeginDestroy()
+{
+	if(ThumbnailScene)
+	{
+		delete ThumbnailScene;
+		ThumbnailScene = nullptr;
+	}
+
+	Super::BeginDestroy();
 }

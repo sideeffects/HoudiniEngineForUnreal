@@ -16,6 +16,10 @@
 #pragma once
 #include "HoudiniAssetFactory.generated.h"
 
+class UClass;
+class UObject;
+class FFeedbackContext;
+
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetFactory : public UFactory
 {
