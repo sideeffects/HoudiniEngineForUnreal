@@ -17,8 +17,14 @@
 #include "HAPI.h"
 #include "HoudiniAssetComponent.generated.h"
 
-
+class UClass;
+class UMaterial;
+class FTransform;
 class UHoudiniAsset;
+class FPrimitiveSceneProxy;
+class FComponentInstanceDataCache;
+
+struct FPropertyChangedEvent;
 
 //UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), dependson=ULightmassPrimitiveSettingsObject, editinlinenew, meta=(BlueprintSpawnableComponent))
 UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
@@ -82,7 +88,7 @@ private: /** UMeshComponent methods. **/
 private: /** UsceneComponent methods. **/
 
 	//virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags ) OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const OVERRIDE;
 
 protected:
 
@@ -94,7 +100,7 @@ protected:
 
 	/** Monkey patching: helper function used by property creation to generate array sub properties. **/
 	void MonkeyPatchArrayProperties(UArrayProperty* ArrayProperty);
-	
+
 protected:
 
 	/** Map holding a list of monkey patched classes and corresponding houdini asset instances. **/
@@ -104,6 +110,9 @@ protected:
 	
 	/** Triangle data used for rendering in viewport / preview window. **/
 	TArray<FHoudiniMeshTriangle> HoudiniMeshTris;
+
+	/** Bounding volume information for current geometry. **/
+	FBoxSphereBounds HoudiniMeshSphereBounds;
 	
 	/** Original UClass value, before monkey patching. **/
 	UClass* OriginalClass;

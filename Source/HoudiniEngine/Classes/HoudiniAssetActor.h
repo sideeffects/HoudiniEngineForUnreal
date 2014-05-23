@@ -16,6 +16,7 @@
 #pragma once
 #include "HoudiniAssetActor.generated.h"
 
+class UHoudiniAssetComponent;
 
 UCLASS(hidecategories=(Input), ConversionRoot, meta=(ChildCanTick))
 class HOUDINIENGINE_API AHoudiniAssetActor : public AActor

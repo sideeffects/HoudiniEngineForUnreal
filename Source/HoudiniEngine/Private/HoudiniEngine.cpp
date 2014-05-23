@@ -106,3 +106,10 @@ FHoudiniEngine::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAss
 	AssetTools.RegisterAssetTypeActions(Action);
 	AssetTypeActions.Add(Action);
 }
+
+
+UHoudiniAssetManager* 
+FHoudiniEngine::GetAssetManager() const
+{
+	return HoudiniAssetManager;
+}

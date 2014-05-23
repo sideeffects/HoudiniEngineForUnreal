@@ -16,6 +16,11 @@
 #pragma once
 #include "IHoudiniEngine.h"
 
+class IAssetTools;
+class IAssetTypeActions;
+class IComponentAssetBroker;
+class UHoudiniAssetManager;
+
 class FHoudiniEngine : public IHoudiniEngine
 {
 
@@ -33,6 +38,11 @@ private:
 
 	/** Register AssetType action. **/
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
+
+public:
+
+	/** Return associated asset manager. **/
+	UHoudiniAssetManager* GetAssetManager() const;
 
 private:
 

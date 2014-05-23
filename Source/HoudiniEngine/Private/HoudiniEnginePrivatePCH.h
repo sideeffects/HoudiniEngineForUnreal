@@ -29,6 +29,7 @@
 #include "LevelEditorViewport.h"
 #include "ImageUtils.h"
 #include "PackageTools.h"
+#include "ThumbnailHelpers.h"
 
 
 /** Houdini Engine headers. **/
@@ -84,7 +85,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 		HAPI_Result Result = HAPI_PARAM_CALL;																\
 		if(HAPI_RESULT_SUCCESS != Result)																	\
 		{																									\
-			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));	\
+			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());			\
 			return HAPI_PARAM_RETURN;																		\
 		}																									\
 	}																										\
@@ -92,6 +93,20 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 #define HOUDINI_CHECK_ERROR_RETURN(HAPI_PARAM_CALL, HAPI_PARAM_RETURN)										\
 	HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HOUDINI_LOG_ERROR)
+
+#define HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_CALL, HAPI_LOG_ROUTINE)										\
+	do																										\
+	{																										\
+		HAPI_Result Result = HAPI_PARAM_CALL;																\
+		if(HAPI_RESULT_SUCCESS != Result)																	\
+		{																									\
+			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());			\
+		}																									\
+	}																										\
+	while(0)
+
+#define HOUDINI_CHECK_ERROR(HAPI_PARAM_CALL)																\
+	HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
 
 
 /** HoudiniEngine Class headers. **/
@@ -115,3 +130,5 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniMeshVertexFactory.h"
 #include "HoudiniMeshSceneProxy.h"
 #include "HoudiniAssetComponentInstanceData.h"
+#include "HoudiniAssetThumbnailScene.h"
+#include "HoudiniTaskCookAsset.h"

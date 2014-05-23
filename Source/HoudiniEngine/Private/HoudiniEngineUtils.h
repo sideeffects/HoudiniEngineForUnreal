@@ -22,10 +22,21 @@ public:
 	/** Return a string description of error from a given error code. **/
 	static const FString GetErrorDescription(HAPI_Result Result);
 
+	/** Return a string error description. **/
+	static const FString GetErrorDescription();
+
 	/** Return true if module has been properly initialized. **/
 	static bool IsInitialized();
-
+	
 	/** Return name for a given asset. */
 	static bool GetAssetName(int AssetName, std::string& AssetNameString);
 	static bool GetAssetName(int AssetName, FString& AssetNameString);
+
+	/** Extract geometry information for a given asset. **/
+	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
+	
+protected:
+	
+	/** Given current min and max extent vectors, update them from given position if necessary. **/
+	static void UpdateBoundingVolumeExtent(const FVector& Vector, FVector& ExtentMin, FVector& ExtentMax);
 };

@@ -16,6 +16,7 @@
 #pragma once
 #include "HoudiniAssetManager.generated.h"
 
+class UHoudiniAsset;
 
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetManager : public UObject
@@ -24,4 +25,25 @@ class HOUDINIENGINE_API UHoudiniAssetManager : public UObject
 
 public:
 
+	/** Called externally to notify manager about asset creation. **/
+	void NotifyAssetCreated(UHoudiniAsset* HoudiniAsset);
+
+	/** Called externally to notify manager about asset destruction. **/
+	void NotifyAssetDestroyed(UHoudiniAsset* HoudiniAsset);
+
+	/** Called to schedule an asynchronous cooking on a given asset. **/
+	void ScheduleAsynchronousCooking(UHoudiniAsset* HoudiniAsset);
+
+public: /** FHoudiniTaskCookAsset callbacks. **/
+
+	/** Called by FHoudiniTaskCookAsset to notify manager about error during asset cooking. **/
+	void NotifyAssetCookingFailed(UHoudiniAsset* HoudiniAsset, HAPI_Result Result);
+
+	/** Called by FHoudiniTaskCookAsset to notify manager that asset cooking has been completed. **/
+	void NotifyAssetCookingFinished(UHoudiniAsset* HoudiniAsset, HAPI_AssetId AssetId, const std::string& AssetInternalName);
+
+public:
+
+	/** Array containing all managed assets. **/
+	TArray<UHoudiniAsset*> HoudiniAssets;
 };

@@ -47,9 +47,12 @@ UHoudiniAssetFactory::GetDisplayName() const
 UObject* 
 UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn)
 {
+	HOUDINI_LOG_MESSAGE(TEXT("UHoudiniAssetFactory is creating an asset, Factory = 0x%0.8p, Parent = 0x%0.8p"), this, InParent);
+
 	// Broadcast notification that a new asset is being imported.
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
+	/*
 	UHoudiniAsset* HoudiniAsset = nullptr;
 
 	if(!FHoudiniEngineUtils::IsInitialized())
@@ -71,8 +74,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssetCount(AssetLibraryId, &AssetCount), HoudiniAsset);
 
 	// Retrieve available assets. 
-	std::vector<int> AssetNames;
-	AssetNames.reserve(AssetCount);
+	std::vector<int> AssetNames(AssetCount, 0);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), HoudiniAsset);
 
 	// If we have assets, instantiate first one.
@@ -89,6 +91,28 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 		{
 			HoudiniAsset->MarkPendingKill();
 			HoudiniAsset = nullptr;
+		}
+	}
+	*/
+
+	// Retrieve asset manager from Houdini Engine module.
+	FHoudiniEngine* HoudiniEngine = &FModuleManager::GetModuleChecked<FHoudiniEngine>("HoudiniEngine");
+	UHoudiniAssetManager* HoudiniAssetManager = HoudiniEngine->GetAssetManager();
+
+	// Create a new asset.
+	UHoudiniAsset* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());
+	if(HoudiniAsset)
+	{
+		if(!HoudiniAsset->InitializeAsset(HoudiniAssetManager, Buffer, BufferEnd))
+		{
+			// If we failed initialization, mark asset for deletion.
+			HoudiniAsset->MarkPendingKill();
+			HoudiniAsset = nullptr;
+		}
+		else
+		{
+			// At this point we can schedule an asynchronous cooking through manager.
+			HoudiniAssetManager->ScheduleAsynchronousCooking(HoudiniAsset);
 		}
 	}
 

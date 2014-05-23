@@ -31,11 +31,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	AssetId(-1),
 	Material(nullptr)
 {
-	// These are experimental.
-	bRenderInMainPass = true;
-	//bTickInEditor = true;
-	//bTreatAsBackgroundForOcclusion = false;
-	//bNeverNeedsRenderUpdate = false;
+	// Create generic bounding volume.
+	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
 	PrimaryComponentTick.bCanEverTick = false;
 }
@@ -58,7 +55,7 @@ UHoudiniAssetComponent::OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset)
 	{
 		// We have to force a call to SetHoudiniAsset with a new HoudiniAsset.
 		UHoudiniAsset* NewHoudiniAsset = HoudiniAsset;
-		HoudiniAsset = NULL;
+		HoudiniAsset = nullptr;
 
 		SetHoudiniAsset(NewHoudiniAsset);
 	}
@@ -94,6 +91,23 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 
 	HoudiniAsset = NewHoudiniAsset;
 
+	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	if(HoudiniAssetActor && HoudiniAssetActor->IsUsedForPreview())
+	{
+		// If this is a preview actor, check if cooking has been done.
+		if(HoudiniAsset && HoudiniAsset->HasBeenCooked())
+		{
+			// We can recreate geometry.
+			if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAsset->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Failed Geometry Extraction"));
+			}
+
+			// Reset cooked status.
+			HoudiniAsset->SetCooked(false);
+		}
+	}
+
 	// Need to send this to render thread at some point.
 	MarkRenderStateDirty();
 
@@ -113,28 +127,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 FBoxSphereBounds 
 UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-	if(HoudiniAsset)
-	{
-		//FBoxSphereBounds NewBounds = HoudiniAsset->GetBounds().TransformBy(LocalToWorld);
-	}
-	else
-	{
-
-	}
-	/*
-	FBoxSphereBounds NewBounds;
-	NewBounds.Origin = FVector::ZeroVector;
-	NewBounds.BoxExtent = FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX);
-	NewBounds.SphereRadius = FMath::Sqrt(3.0f * FMath::Square(HALF_WORLD_MAX));
-	return NewBounds;
-	*/
-
-	//return Super::CalcBounds(LocalToWorld);
-	//return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
-
-	 const FVector UnitV(1,1,1);
-	 const FBox VeryVeryBig( -UnitV * HALF_WORLD_MAX, UnitV * HALF_WORLD_MAX );
-	 return FBoxSphereBounds( VeryVeryBig );
+	return HoudiniMeshSphereBounds;
 }
 
 
@@ -148,7 +141,7 @@ UHoudiniAssetComponent::GetNumMaterials() const
 FPrimitiveSceneProxy* 
 UHoudiniAssetComponent::CreateSceneProxy()
 {
-	FPrimitiveSceneProxy* Proxy = NULL;
+	FPrimitiveSceneProxy* Proxy = nullptr;
 	
 	if(HoudiniMeshTris.Num() > 0)
 	{
@@ -782,8 +775,8 @@ UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* Ass
 				uint8* MipData = static_cast<uint8*>(DiffuseTexture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
 
 				// Create base map.
-				uint8* DestPtr = NULL;
-				const FColor* SrcPtr = NULL;
+				uint8* DestPtr = nullptr;
+				const FColor* SrcPtr = nullptr;
 				uint32 SrcWidth = ImageInfo.xRes;
 				uint32 SrcHeight = ImageInfo.yRes;
 				const char* SrcData = &ImageBuffer[0];

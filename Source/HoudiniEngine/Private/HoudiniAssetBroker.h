@@ -15,6 +15,9 @@
 
 #pragma once
 
+class UObject;
+class UActorComponent;
+
 class FHoudiniAssetBroker : public IComponentAssetBroker
 {
 public: /** IComponentAssetBroker methods. **/

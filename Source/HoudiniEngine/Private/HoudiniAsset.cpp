@@ -20,20 +20,19 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
-	AssetId(-1)
+	AssetId(-1),
+	bIsCooking(false),
+	bHasBeenCooked(false)
 {
 
 }
 
 
 bool
-UHoudiniAsset::InitializeAsset(HAPI_AssetId InAssetId, FString Name, const uint8*& Buffer, const uint8* BufferEnd)
+UHoudiniAsset::InitializeAsset(UHoudiniAssetManager* AssetManager, const uint8*& Buffer, const uint8* BufferEnd)
 {
-	// Store asset name.
-	AssetName = Name;
-
-	// Copy asset id.
-	AssetId = InAssetId;
+	// Store the asset manager.
+	HoudiniAssetManager = AssetManager;
 
 	if(AssetBytes)
 	{
@@ -60,20 +59,48 @@ UHoudiniAsset::InitializeAsset(HAPI_AssetId InAssetId, FString Name, const uint8
 		FMemory::Memcpy(AssetBytes, Buffer, AssetBytesCount);
 	}
 
+	// Notify asset manager about our creation.
+	if(HoudiniAssetManager.IsValid())
+	{
+		HoudiniAssetManager->NotifyAssetCreated(this);
+	}
+
 	return true;
+}
+
+
+void 
+UHoudiniAsset::BeginDestroy()
+{
+	if(HoudiniAssetManager.IsValid())
+	{
+		// If manager is valid, we need to notify it about our destruction.
+		HoudiniAssetManager->NotifyAssetDestroyed(this);
+	}
+
+	Super::BeginDestroy();
 }
 
 
 void
 UHoudiniAsset::FinishDestroy()
 {
+	// Reset the asset manager value.
+	HoudiniAssetManager.Reset();
+
 	if(AssetBytes)
 	{
 		FMemory::Free(AssetBytes);
-		AssetBytes = NULL;
+		AssetBytes = nullptr;
 		AssetBytesCount = 0;
 	}
 
+	if(-1 != AssetId)
+	{
+		// We need to release the internal asset.
+		HOUDINI_CHECK_ERROR(HAPI_DestroyAsset(AssetId));
+	}
+	
 	Super::FinishDestroy();
 }
 
@@ -114,5 +141,40 @@ UHoudiniAsset::GetAssetBytesCount() const
 bool
 UHoudiniAsset::IsInitialized() const
 {
-	return (AssetId != -1);
+	return(-1 != AssetId);
+}
+
+
+void 
+UHoudiniAsset::SetCooking(bool bCooking)
+{
+	bIsCooking = bCooking;
+}
+
+
+bool 
+UHoudiniAsset::IsCooking() const
+{
+	return bIsCooking;
+}
+
+
+void 
+UHoudiniAsset::SetCooked(bool bCooked)
+{
+	bHasBeenCooked = bCooked;
+}
+
+
+bool 
+UHoudiniAsset::HasBeenCooked() const
+{
+	return bHasBeenCooked;
+}
+
+
+HAPI_AssetId 
+UHoudiniAsset::GetAssetId() const
+{
+	return(AssetId);
 }
