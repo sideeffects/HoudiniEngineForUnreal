@@ -311,15 +311,24 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 	// Retrieve integer values for this asset.
 	ParmValuesIntegers.reserve(NodeInfo.parmIntValueCount);
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIntValues(AssetInfo.nodeId, &ParmValuesIntegers[0], 0, NodeInfo.parmIntValueCount), false);
+	if(NodeInfo.parmIntValueCount > 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIntValues(AssetInfo.nodeId, &ParmValuesIntegers[0], 0, NodeInfo.parmIntValueCount), false);
+	}
 
 	// Retrieve float values for this asset.
 	ParmValuesFloats.reserve(NodeInfo.parmFloatValueCount);
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmFloatValues(AssetInfo.nodeId, &ParmValuesFloats[0], 0, NodeInfo.parmFloatValueCount), false);
+	if(NodeInfo.parmFloatValueCount > 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmFloatValues(AssetInfo.nodeId, &ParmValuesFloats[0], 0, NodeInfo.parmFloatValueCount), false);
+	}
 
 	// Retrieve string values for this asset.
 	ParmStringFloats.reserve(NodeInfo.parmStringValueCount);
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmStringFloats[0], 0, NodeInfo.parmStringValueCount), false);
+	if(NodeInfo.parmStringValueCount > 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmStringFloats[0], 0, NodeInfo.parmStringValueCount), false);
+	}
 
 	// We need to insert new properties and new children in the beginning of single link list.
 	// This way properties and children from the original class can be reused and will not have
