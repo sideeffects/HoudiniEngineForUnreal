@@ -19,10 +19,7 @@
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP),
 	AssetBytes(nullptr),
-	AssetBytesCount(0)/*,
-	AssetId(-1),
-	bIsCooking(false),
-	bHasBeenCooked(false)*/
+	AssetBytesCount(0)
 {
 
 }
@@ -31,10 +28,7 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& Buffer, const uint8* BufferEnd) : 
 	Super(PCIP),
 	AssetBytes(nullptr),
-	AssetBytesCount(0)/*,
-	AssetId(-1),
-	bIsCooking(false),
-	bHasBeenCooked(false)*/
+	AssetBytesCount(0)
 {
 	// Calculate buffer size.
 	AssetBytesCount = BufferEnd - Buffer;
@@ -50,63 +44,6 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, con
 		}
 	}
 }
-
-
-/*
-void 
-UHoudiniAsset::BeginDestroy()
-{
-	//if(HoudiniAssetManager.IsValid())
-	//{
-	//	// If manager is valid, we need to notify it about our destruction.
-	//	HoudiniAssetManager->NotifyAssetDestroyed(this);
-	//}
-
-	Super::BeginDestroy();
-}
-
-
-void
-UHoudiniAsset::FinishDestroy()
-{
-	// Reset the asset manager value.
-	//HoudiniAssetManager.Reset();
-
-	if(AssetBytes)
-	{
-		FMemory::Free(AssetBytes);
-		AssetBytes = nullptr;
-		AssetBytesCount = 0;
-	}
-
-	if(-1 != AssetId)
-	{
-		// We need to release the internal asset.
-		HOUDINI_CHECK_ERROR(HAPI_DestroyAsset(AssetId));
-	}
-	
-	Super::FinishDestroy();
-}
-
-
-void
-UHoudiniAsset::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
-	// Serialize asset name.
-	Ar << AssetName;
-
-	// Serialize the number of bytes of raw Houdini OTL data.
-	Ar << AssetBytesCount;
-
-	// Serialize the raw Houdini OTL data.
-	if(AssetBytesCount && AssetBytes)
-	{
-		Ar.Serialize(AssetBytes, AssetBytesCount);
-	}
-}
-*/
 
 const uint8*
 UHoudiniAsset::GetAssetBytes() const

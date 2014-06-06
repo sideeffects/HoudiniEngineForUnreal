@@ -128,6 +128,5 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniMeshVertexBuffer.h"
 #include "HoudiniMeshVertexFactory.h"
 #include "HoudiniMeshSceneProxy.h"
-#include "HoudiniAssetComponentInstanceData.h"
 #include "HoudiniAssetThumbnailScene.h"
 #include "HoudiniTaskCookAssetInstance.h"
