@@ -19,29 +19,23 @@
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP),
 	AssetBytes(nullptr),
-	AssetBytesCount(0),
+	AssetBytesCount(0)/*,
 	AssetId(-1),
 	bIsCooking(false),
-	bHasBeenCooked(false)
+	bHasBeenCooked(false)*/
 {
 
 }
 
 
-bool
-UHoudiniAsset::InitializeAsset(UHoudiniAssetManager* AssetManager, const uint8*& Buffer, const uint8* BufferEnd)
+UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& Buffer, const uint8* BufferEnd) : 
+	Super(PCIP),
+	AssetBytes(nullptr),
+	AssetBytesCount(0)/*,
+	AssetId(-1),
+	bIsCooking(false),
+	bHasBeenCooked(false)*/
 {
-	// Store the asset manager.
-	HoudiniAssetManager = AssetManager;
-
-	if(AssetBytes)
-	{
-		// Deallocate previously loaded buffer.
-		FMemory::Free(AssetBytes);
-		AssetBytes = NULL;
-		AssetBytesCount = 0;
-	}
-
 	// Calculate buffer size.
 	AssetBytesCount = BufferEnd - Buffer;
 
@@ -49,34 +43,24 @@ UHoudiniAsset::InitializeAsset(UHoudiniAssetManager* AssetManager, const uint8*&
 	{
 		AssetBytes = static_cast<uint8*>(FMemory::Malloc(AssetBytesCount));
 
-		if(!AssetBytes)
+		if(AssetBytes)
 		{
-			// Failed allocation.
-			return false;
+			// Copy data into newly allocated buffer.
+			FMemory::Memcpy(AssetBytes, Buffer, AssetBytesCount);
 		}
-
-		// Copy data into newly allocated buffer.
-		FMemory::Memcpy(AssetBytes, Buffer, AssetBytesCount);
 	}
-
-	// Notify asset manager about our creation.
-	if(HoudiniAssetManager.IsValid())
-	{
-		HoudiniAssetManager->NotifyAssetCreated(this);
-	}
-
-	return true;
 }
 
 
+/*
 void 
 UHoudiniAsset::BeginDestroy()
 {
-	if(HoudiniAssetManager.IsValid())
-	{
-		// If manager is valid, we need to notify it about our destruction.
-		HoudiniAssetManager->NotifyAssetDestroyed(this);
-	}
+	//if(HoudiniAssetManager.IsValid())
+	//{
+	//	// If manager is valid, we need to notify it about our destruction.
+	//	HoudiniAssetManager->NotifyAssetDestroyed(this);
+	//}
 
 	Super::BeginDestroy();
 }
@@ -86,7 +70,7 @@ void
 UHoudiniAsset::FinishDestroy()
 {
 	// Reset the asset manager value.
-	HoudiniAssetManager.Reset();
+	//HoudiniAssetManager.Reset();
 
 	if(AssetBytes)
 	{
@@ -122,7 +106,7 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 		Ar.Serialize(AssetBytes, AssetBytesCount);
 	}
 }
-
+*/
 
 const uint8*
 UHoudiniAsset::GetAssetBytes() const
@@ -135,46 +119,4 @@ uint32
 UHoudiniAsset::GetAssetBytesCount() const
 {
 	return AssetBytesCount;
-}
-
-
-bool
-UHoudiniAsset::IsInitialized() const
-{
-	return(-1 != AssetId);
-}
-
-
-void 
-UHoudiniAsset::SetCooking(bool bCooking)
-{
-	bIsCooking = bCooking;
-}
-
-
-bool 
-UHoudiniAsset::IsCooking() const
-{
-	return bIsCooking;
-}
-
-
-void 
-UHoudiniAsset::SetCooked(bool bCooked)
-{
-	bHasBeenCooked = bCooked;
-}
-
-
-bool 
-UHoudiniAsset::HasBeenCooked() const
-{
-	return bHasBeenCooked;
-}
-
-
-HAPI_AssetId 
-UHoudiniAsset::GetAssetId() const
-{
-	return(AssetId);
 }

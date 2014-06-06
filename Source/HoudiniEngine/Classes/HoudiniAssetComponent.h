@@ -15,20 +15,21 @@
 
 #pragma once
 #include "HAPI.h"
+#include "IHoudiniTaskCookAssetInstanceCallback.h"
 #include "HoudiniAssetComponent.generated.h"
 
 class UClass;
 class UMaterial;
 class FTransform;
 class UHoudiniAsset;
+class UHoudiniAssetInstance;
 class FPrimitiveSceneProxy;
 class FComponentInstanceDataCache;
 
 struct FPropertyChangedEvent;
 
-//UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), dependson=ULightmassPrimitiveSettingsObject, editinlinenew, meta=(BlueprintSpawnableComponent))
-UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
-class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
+UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
+class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public IHoudiniTaskCookAssetInstanceCallback
 {
 	friend class FHoudiniMeshSceneProxy;
 
@@ -51,13 +52,10 @@ public:
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
-public:
+public: /** IHoudiniTaskCookAssetInstanceCallback methods. **/
 
-	/** Callback used by cooking to notify about cooking results. **/
-	void CookingCompleted(HAPI_AssetId InAssetId, const char* AssetName);
-
-	/** Callback used by cooking to notify about errors. **/
-	void CookingFailed();
+	void NotifyAssetInstanceCookingFailed(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_Result Result);
+	void NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_AssetId AssetId, const std::string& AssetInternalName);
 
 public: /** UObject methods. **/
 
@@ -92,19 +90,18 @@ private: /** UsceneComponent methods. **/
 
 protected:
 
-	/** Monkey patching: given a new class instance, patch class information of this. **/
-	void MonkeyPatchClassInformation(UClass* ClassInstance);
+	/** Patch RTTI : patch class information for this component's class based on given Houdini Asset. **/
+	void ReplaceClassInformation();
 
-	/** Monkey patching: translate asset parameters to class properties and insert them into a given class instance. **/
-	void MonkeyPatchCreateProperties(UClass* ClassInstance);
+private:
 
-	/** Monkey patching: helper function used by property creation to generate array sub properties. **/
-	void MonkeyPatchArrayProperties(UArrayProperty* ArrayProperty);
+	/** Patch RTTI : translate asset parameters to class properties and insert them into a given class instance. **/
+	bool ReplaceClassProperties(UClass* ClassInstance);
 
-protected:
-
-	/** Map holding a list of monkey patched classes and corresponding houdini asset instances. **/
-	static TMap<UHoudiniAsset*, UClass*> AssetClassRegistry;
+	/** Patch RTTI : Create integer property. **/
+	UProperty* CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, int32 Value, uint32& Offset);
+	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, float Value, uint32& Offset);
+	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, bool bValue, uint32& Offset);
 	
 protected:
 	
@@ -129,9 +126,14 @@ protected:
 	//
 	UMaterial* Material;
 
+	/** Instance of Houdini Asset created by this component. **/
+	UHoudiniAssetInstance* HoudiniAssetInstance;
+
 private:
 
-	int foo;
-	//char buffer[65536];
-	//__declspec(align(16)) char* buffer;
+	/** Marker ~ beginning of scratch space. **/
+	uint64 ScratchSpaceMarker;
+
+	/** Scratch space buffer ~ used to store data for each property. **/
+	char ScratchSpaceBuffer[HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE];
 };

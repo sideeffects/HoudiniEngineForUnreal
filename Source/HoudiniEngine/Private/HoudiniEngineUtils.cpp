@@ -233,8 +233,8 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 	UVs.resize(AttribInfo.count * AttribInfo.tupleSize);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "uv", &AttribInfo, &UVs[0], 0, AttribInfo.count), false);
 
-	// Retrieve normals information. (points $ prims)
 	/*
+	// Retrieve normals information. (points $ prims)
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "N", HAPI_ATTROWNER_VERTEX, &AttribInfo), false);
 	Normals.resize(AttribInfo.count * AttribInfo.tupleSize);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "N", &AttribInfo, &Normals[0], 0, AttribInfo.count), false);
@@ -275,8 +275,8 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 		Triangle.TextureCoordinate1.X = UVs[TriangleIdx * 9 + 6];
 		Triangle.TextureCoordinate1.Y = 1.0f - UVs[TriangleIdx * 9 + 7];
 
-		// Process normals.
 		/*
+		// Process normals.
 		Triangle.Normal0.X = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
 		Triangle.Normal0.Z = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
 		Triangle.Normal0.Y = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 2];

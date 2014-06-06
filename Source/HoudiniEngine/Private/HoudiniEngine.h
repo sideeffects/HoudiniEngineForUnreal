@@ -19,7 +19,6 @@
 class IAssetTools;
 class IAssetTypeActions;
 class IComponentAssetBroker;
-class UHoudiniAssetManager;
 
 class FHoudiniEngine : public IHoudiniEngine
 {
@@ -39,11 +38,6 @@ private:
 	/** Register AssetType action. **/
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
 
-public:
-
-	/** Return associated asset manager. **/
-	UHoudiniAssetManager* GetAssetManager() const;
-
 private:
 
 	/** AssetType actions associated with Houdini asset. **/
@@ -51,7 +45,4 @@ private:
 
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
-
-	/** Object which manages all assets. **/
-	UHoudiniAssetManager* HoudiniAssetManager;
 };

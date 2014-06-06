@@ -14,7 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include <vector>
 
 
 UHoudiniAssetFactory::UHoudiniAssetFactory(const class FPostConstructInitializeProperties& PCIP) :
@@ -51,71 +50,10 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 
 	// Broadcast notification that a new asset is being imported.
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
-
-	/*
-	UHoudiniAsset* HoudiniAsset = nullptr;
-
-	if(!FHoudiniEngineUtils::IsInitialized())
-	{
-		HOUDINI_LOG_ERROR(TEXT("CreateAsset failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
-		return HoudiniAsset;
-	}
-
-	// Calculate buffer size.
-	uint32 AssetBytesCount = BufferEnd - Buffer;
-	HAPI_Result Result = HAPI_RESULT_SUCCESS;
-
-	// Load asset library from given buffer.
-	HAPI_AssetLibraryId AssetLibraryId = 0;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(Buffer), AssetBytesCount, &AssetLibraryId), HoudiniAsset);
-
-	// Retrieve number of assets contained in this library.
-	int32 AssetCount = 0;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssetCount(AssetLibraryId, &AssetCount), HoudiniAsset);
-
-	// Retrieve available assets. 
-	std::vector<int> AssetNames(AssetCount, 0);
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), HoudiniAsset);
-
-	// If we have assets, instantiate first one.
-	std::string AssetName;
-	if(AssetCount && FHoudiniEngineUtils::GetAssetName(AssetNames[0], AssetName))
-	{
-		HAPI_AssetId AssetId = -1;
-		bool CookOnLoad = true;
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetName[0], CookOnLoad, &AssetId), HoudiniAsset);
-
-		// Create a Houdini asset and perform initialization.
-		HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());
-		if(HoudiniAsset && !HoudiniAsset->InitializeAsset(AssetId, ANSI_TO_TCHAR(AssetName.c_str()), Buffer, BufferEnd))
-		{
-			HoudiniAsset->MarkPendingKill();
-			HoudiniAsset = nullptr;
-		}
-	}
-	*/
-
-	// Retrieve asset manager from Houdini Engine module.
-	FHoudiniEngine* HoudiniEngine = &FModuleManager::GetModuleChecked<FHoudiniEngine>("HoudiniEngine");
-	UHoudiniAssetManager* HoudiniAssetManager = HoudiniEngine->GetAssetManager();
-
+	
 	// Create a new asset.
-	UHoudiniAsset* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties());
-	if(HoudiniAsset)
-	{
-		if(!HoudiniAsset->InitializeAsset(HoudiniAssetManager, Buffer, BufferEnd))
-		{
-			// If we failed initialization, mark asset for deletion.
-			HoudiniAsset->MarkPendingKill();
-			HoudiniAsset = nullptr;
-		}
-		else
-		{
-			// At this point we can schedule an asynchronous cooking through manager.
-			HoudiniAssetManager->ScheduleAsynchronousCooking(HoudiniAsset);
-		}
-	}
-
+	UHoudiniAsset* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties(), Buffer, BufferEnd);
+	
 	// Broadcast notification that the new asset has been imported.
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
 

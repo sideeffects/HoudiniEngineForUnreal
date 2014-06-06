@@ -15,15 +15,14 @@
 
 #pragma once
 
-class UHoudiniAsset;
-class UHoudiniAssetManager;
+class IHoudiniTaskCookAssetInstanceCallback;
 
-class FHoudiniTaskCookAsset : public FRunnable
+class FHoudiniTaskCookAssetInstance : public FRunnable
 {
 public:
 
-	FHoudiniTaskCookAsset(UHoudiniAssetManager* InHoudiniAssetManager, UHoudiniAsset* InHoudiniAsset);
-	virtual ~FHoudiniTaskCookAsset();
+	FHoudiniTaskCookAssetInstance(IHoudiniTaskCookAssetInstanceCallback* InHoudiniTaskCookAssetInstanceCallback, UHoudiniAssetInstance* InHoudiniAssetInstance);
+	virtual ~FHoudiniTaskCookAssetInstance();
 
 public: /** FRunnable methods. **/
 	
@@ -36,9 +35,9 @@ private:
 		
 protected:
 
-	/** Houdini asset manager. **/
-	UHoudiniAssetManager* HoudiniAssetManager;
+	/** Callback for completion / status report. **/
+	IHoudiniTaskCookAssetInstanceCallback* HoudiniTaskCookAssetInstanceCallback;
 
-	/** Houdini asset we are cooking. **/
-	UHoudiniAsset* HoudiniAsset;
+	/** Houdini asset instance we are cooking. **/
+	UHoudiniAssetInstance* HoudiniAssetInstance;
 };

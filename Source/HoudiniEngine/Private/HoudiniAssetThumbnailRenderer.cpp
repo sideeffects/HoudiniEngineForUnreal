@@ -27,29 +27,6 @@ UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const class FPost
 void
 UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas)
 {
-	/*
-	static UTexture2D* GridTexture = NULL;
-	if (GridTexture == NULL)
-	{
-		GridTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), NULL, LOAD_None, NULL);
-	}
-
-	const bool bAlphaBlend = false;
-
-	Canvas->DrawTile(
-		(float)X,
-		(float)Y,
-		(float)Width,
-		(float)Height,
-		0.0f,
-		0.0f,
-		4.0f,
-		4.0f,
-		FLinearColor(1.0f, 0.647f, 0.0f),
-		GridTexture->Resource,
-		bAlphaBlend);
-	*/
-
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Object);
 	if(HoudiniAsset && !HoudiniAsset->IsPendingKill())
 	{
@@ -61,9 +38,9 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 
 		ThumbnailScene->SetHoudiniAsset(HoudiniAsset);
 		ThumbnailScene->GetScene()->UpdateSpeedTreeWind(0.0);
-
+		
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
-			.SetWorldTimes(GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime));
+			.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime));
 
 		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
 		ViewFamily.EngineShowFlags.MotionBlur = 0;
@@ -71,6 +48,8 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
 		GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
+
+
 		ThumbnailScene->SetHoudiniAsset(nullptr);
 	}
 }
