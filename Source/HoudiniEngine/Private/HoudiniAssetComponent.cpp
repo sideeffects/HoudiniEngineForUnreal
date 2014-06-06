@@ -22,6 +22,7 @@
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP),
 	HoudiniAssetInstance(nullptr),
+	PreviewHoudiniAsset(nullptr),
 	bIsNativeComponent(false),
 	Material(nullptr)
 {
@@ -109,71 +110,69 @@ UHoudiniAssetComponent::NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance
 		// Update physics representation right away.
 		RecreatePhysicsState();
 
-		//FIXME: remove unused code.
-		// Click actor to update details information.
-		//HoudiniAssetActor->OnClicked.Broadcast();
-		//DispatchOnClicked();
+		// Since we have new asset, we need to update bounds.
+		UpdateBounds();
 	}
 }
 
 
-bool 
+UHoudiniAsset* 
+UHoudiniAssetComponent::GetPreviewHoudiniAsset() const
+{
+	return PreviewHoudiniAsset;
+}
+
+
+void 
+UHoudiniAssetComponent::SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset)
+{
+	if(PreviewHoudiniAsset == InPreviewHoudiniAsset)
+	{
+		return;
+	}
+
+	PreviewHoudiniAsset = InPreviewHoudiniAsset;
+
+	if(PreviewHoudiniAsset)
+	{
+		// Check if we need to create a new instance of an asset.
+		if(!HoudiniAssetInstance)
+		{
+			// Create asset instance and cook it.
+			HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
+			HoudiniAssetInstance->SetHoudiniAsset(PreviewHoudiniAsset);
+
+			// Start asynchronous task to perform the cooking from the referenced asset instance.
+			FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
+
+			// Create a new thread to execute our runnable.
+			FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
+		}
+		else
+		{
+			// Need to send this to render thread at some point.
+			MarkRenderStateDirty();
+
+			// Update physics representation right away.
+			RecreatePhysicsState();
+
+			// Since we have new asset, we need to update bounds.
+			UpdateBounds();
+		}
+	}
+}
+
+
+void 
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
-	// Do nothing if we are already using the supplied Houdini asset.
-	if(NewHoudiniAsset == HoudiniAsset)
-	{
-		return false;
-	}
-
-	// Don't allow changing Houdini assets if "static" and registered.
-	AActor* Owner = GetOwner();
-	if(Mobility == EComponentMobility::Static && IsRegistered() && Owner != NULL)
-	{
-		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("SetHoudiniAssetOnStatic", "Calling SetHoudiniAsset on '{0}' but Mobility is Static."), FText::FromString(GetPathName(this))));
-		return false;
-	}
-
-	// Store the new asset.
-	HoudiniAsset = NewHoudiniAsset;
-
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
 	if(HoudiniAssetActor && HoudiniAssetActor->IsUsedForPreview())
 	{
-		// If this is a preview actor, check if we need to cook an asset for thumbnail.
-		if(HoudiniAsset)
-		{
-			if(!HoudiniAssetInstance)
-			{
-				// Create asset instance and cook it.
-				HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
-				HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
-
-				// Start asynchronous task to perform the cooking from the referenced asset instance.
-				FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
-
-				// Create a new thread to execute our runnable.
-				FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
-			}
-		}
+		SetPreviewHoudiniAsset(NewHoudiniAsset);
 	}
-
-	// Need to send this to render thread at some point.
-	MarkRenderStateDirty();
-
-	// Update physics representation right away.
-	RecreatePhysicsState();
-
-	//FIXME: remove unused code.
-	// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
-	// and the component may have to be added to the streaming system for the first time.
-	//GStreamingManager->NotifyPrimitiveAttached(this, DPT_Spawned);
-
-	// Since we have new asset, we need to update bounds.
-	UpdateBounds();
-	return true;
 }
 
 
@@ -204,23 +203,6 @@ UHoudiniAssetComponent::CreateSceneProxy()
 	return Proxy;
 }
 
-//FIXME: remove unused code.
-/*
-void 
-UHoudiniAssetComponent::BeginDestroy()
-{
-	Super::BeginDestroy();
-	HOUDINI_LOG_MESSAGE(TEXT("Starting destruction, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
-}
-
-void 
-UHoudiniAssetComponent::FinishDestroy()
-{
-	Super::FinishDestroy();
-	HOUDINI_LOG_MESSAGE(TEXT("Finishing destruction, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
-}
-*/
-
 
 void 
 UHoudiniAssetComponent::ReplaceClassInformation()
@@ -236,9 +218,6 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 
 	// Create new class instance.
 	static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
-
-	//FIXME: remove unused code.
-	//UClass* PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*this->GetName()), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
 
 	UClass* PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*PatchedClassName), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
 	PatchedClass->ClassFlags = UHoudiniAssetComponent::StaticClassFlags;
@@ -693,15 +672,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		Super::PostEditChangeProperty(PropertyChangedEvent);
 		return;
 	}
-
-
-	//FIXME: remove unused code.
-	// At this point we can recook the data.
-	//FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
-
-	// Create a new thread to execute our runnable.
-	//FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
-
+	
 	if(HoudiniAssetInstance->IsInitialized())
 	{
 		// We can recreate geometry.
@@ -715,6 +686,9 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 		// Update physics representation right away.
 		RecreatePhysicsState();
+
+		// Since we have new asset, we need to update bounds.
+		UpdateBounds();
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);

@@ -56,12 +56,6 @@ public:
 	/** Return Houdini asset. **/
 	UHoudiniAsset* GetHoudiniAsset() const;
 		
-public: /** UObject methods. **/
-
-	//virtual void Serialize(FArchive& Ar) OVERRIDE;
-	//virtual void BeginDestroy() OVERRIDE;
-	//virtual void FinishDestroy() OVERRIDE;
-
 protected:
 
 	/** Holds Houdini asset we are instantiating. **/

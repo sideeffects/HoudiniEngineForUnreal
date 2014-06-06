@@ -39,7 +39,7 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public I
 
 	GENERATED_UCLASS_BODY()
 
-	/** **/
+	/** Houdini Asset associated with this component (except preview). Preview component will use PreviewHoudiniAsset instead. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HoudiniAsset, ReplicatedUsing = OnRep_HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 	
@@ -47,14 +47,17 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public I
 	UFUNCTION()
 	void OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset);
 
-	/** Change the Houdini asset used by this instance. **/
+	/** Change the Houdini Asset used by this component. **/
 	UFUNCTION(BlueprintCallable, Category = "Components|HoudiniAsset")
-	virtual bool SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset);
+	virtual void SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset);
 		
 public:
 
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
+
+	/** Return preview asset associated with this component. **/
+	UHoudiniAsset* GetPreviewHoudiniAsset() const;
 
 public: /** IHoudiniTaskCookAssetInstanceCallback methods. **/
 
@@ -76,9 +79,6 @@ protected: /** UActorComponent methods. **/
 	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
 	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
 
-	//virtual void BeginDestroy() OVERRIDE;
-	//virtual void FinishDestroy() OVERRIDE;
-
 private: /** UPrimitiveComponent methods. **/
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
@@ -87,9 +87,8 @@ private: /** UMeshComponent methods. **/
 
 	virtual int32 GetNumMaterials() const OVERRIDE;
 
-private: /** UsceneComponent methods. **/
+private: /** USceneComponent methods. **/
 
-	//virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags ) OVERRIDE;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const OVERRIDE;
 
 protected:
@@ -106,7 +105,10 @@ private:
 	UProperty* CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, int32 Value, uint32& Offset);
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, float Value, uint32& Offset);
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, bool bValue, uint32& Offset);
-	
+
+	/** Set preview asset used by this component. **/
+	void SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset);
+			
 protected:
 	
 	/** Triangle data used for rendering in viewport / preview window. **/
@@ -117,7 +119,10 @@ protected:
 
 	/** Instance of Houdini Asset created by this component. **/
 	UHoudiniAssetInstance* HoudiniAssetInstance;
-	
+
+	/** Houdini Asset used for preview. This is only used by components attached to preview actors. **/
+	UHoudiniAsset* PreviewHoudiniAsset;
+		
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;
 	
