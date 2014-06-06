@@ -40,6 +40,7 @@ FHoudiniEngine::StartupModule()
 	
 	// Perform HAPI initialization.
 	HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
+	CookOptions.maxVerticesPerPrimitive = 3;
 	HAPI_Result Result = HAPI_Initialize("", "", CookOptions, true, -1);
 
 	if(HAPI_RESULT_SUCCESS == Result)
