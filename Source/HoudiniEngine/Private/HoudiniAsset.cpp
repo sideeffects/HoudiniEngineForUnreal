@@ -31,6 +31,8 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, con
 	AssetBytesCount(0)
 {
 	// Calculate buffer size.
+
+	//FIXME: Maybe BufferStart instead of Buffer?
 	AssetBytesCount = BufferEnd - Buffer;
 
 	if(AssetBytesCount)

@@ -22,6 +22,7 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties&
 	bWantsInitialize = false;
 	bCanBeDamaged = false;
 
+	//FIXME: Hardcoding to HoudiniAssetComponent0 to be removed
 	HoudiniAssetComponent = PCIP.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent0"));
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	HoudiniAssetComponent->Mobility = EComponentMobility::Static;

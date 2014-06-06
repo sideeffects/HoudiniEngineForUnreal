@@ -109,6 +109,7 @@ UHoudiniAssetComponent::NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance
 		// Update physics representation right away.
 		RecreatePhysicsState();
 
+		//FIXME: remove unused code.
 		// Click actor to update details information.
 		//HoudiniAssetActor->OnClicked.Broadcast();
 		//DispatchOnClicked();
@@ -165,6 +166,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 	// Update physics representation right away.
 	RecreatePhysicsState();
 
+	//FIXME: remove unused code.
 	// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
 	// and the component may have to be added to the streaming system for the first time.
 	//GStreamingManager->NotifyPrimitiveAttached(this, DPT_Spawned);
@@ -202,7 +204,7 @@ UHoudiniAssetComponent::CreateSceneProxy()
 	return Proxy;
 }
 
-
+//FIXME: remove unused code.
 /*
 void 
 UHoudiniAssetComponent::BeginDestroy()
@@ -234,7 +236,10 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 
 	// Create new class instance.
 	static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
+
+	//FIXME: remove unused code.
 	//UClass* PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*this->GetName()), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
+
 	UClass* PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*PatchedClassName), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
 	PatchedClass->ClassFlags = UHoudiniAssetComponent::StaticClassFlags;
 	PatchedClass->ClassCastFlags = UHoudiniAssetComponent::StaticClassCastFlags();
@@ -256,7 +261,7 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 	// If RTTI has been previously patched, we need to restore the data.
 	if(PreviousClass != UHoudiniAssetComponent::StaticClass())
 	{
-		// Not yet implemented.
+		//FIXME: Not yet implemented.
 	}
 
 	// Insert necessary properties.
@@ -305,6 +310,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetNodeInfo(AssetInfo.nodeId, &NodeInfo), false);
 
+	//FIXME: everything hard coded to 0 for now.
 	// Retrieve parameters.
 	ParmInfo.reserve(NodeInfo.parmCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParameters(AssetInfo.nodeId, &ParmInfo[0], 0, NodeInfo.parmCount), false);
@@ -688,6 +694,8 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		return;
 	}
 
+
+	//FIXME: remove unused code.
 	// At this point we can recook the data.
 	//FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
 

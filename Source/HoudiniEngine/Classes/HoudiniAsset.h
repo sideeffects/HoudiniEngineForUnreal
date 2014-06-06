@@ -31,6 +31,7 @@ public:
 	
 public: /** UObject methods. **/
 
+	//FIXME: remove unused code
 	//virtual void Serialize(FArchive& Ar) OVERRIDE;
 	//virtual void BeginDestroy() OVERRIDE;
 	//virtual void FinishDestroy() OVERRIDE;

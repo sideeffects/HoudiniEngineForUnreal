@@ -47,7 +47,7 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor* Instance)
 	return HoudiniAssetActor->HoudiniAssetComponent->HoudiniAsset;
 }
 
-
+//FIXME: Remove unused code.
 /*
 bool
 UHoudiniAssetActorFactory::PreSpawnActor(UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
