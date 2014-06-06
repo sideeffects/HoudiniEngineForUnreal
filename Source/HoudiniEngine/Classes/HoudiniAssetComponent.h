@@ -110,24 +110,15 @@ protected:
 
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
-	
-	/** Original UClass value, before monkey patching. **/
-	UClass* OriginalClass;
-
-	/** Is set to true when this component is native and false is when it is dynamic. **/
-	bool bIsNativeComponent;
-
-	/** Is set to true if cooking job has been spawned for this component. **/
-	bool bIsCooking;
-
-	/** Holds this asset's handle. **/
-	HAPI_AssetId AssetId;
-
-	//
-	UMaterial* Material;
 
 	/** Instance of Houdini Asset created by this component. **/
 	UHoudiniAssetInstance* HoudiniAssetInstance;
+	
+	/** Is set to true when this component is native and false is when it is dynamic. **/
+	bool bIsNativeComponent;
+	
+	/** **/
+	UMaterial* Material;
 
 private:
 
