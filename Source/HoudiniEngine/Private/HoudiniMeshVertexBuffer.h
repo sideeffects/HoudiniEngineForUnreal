@@ -23,5 +23,6 @@ public: /** FRenderResource methods. **/
 
 public:
 
+	/** Array of stored vertices. **/
 	TArray<FDynamicMeshVertex> Vertices;
 };

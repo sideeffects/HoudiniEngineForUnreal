@@ -28,7 +28,7 @@ class HOUDINIENGINE_API UHoudiniAssetFactory : public UFactory
 private: /** UFactory methods. **/
 
 	virtual FText GetDisplayName() const OVERRIDE;
-
-	//FIXME: perhaps we should consider a maximum line length?
-	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn) OVERRIDE;
+	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, 
+										 UObject* Context, const TCHAR* Type, const uint8*& Buffer, 
+										 const uint8* BufferEnd, FFeedbackContext* Warn) OVERRIDE;
 };
