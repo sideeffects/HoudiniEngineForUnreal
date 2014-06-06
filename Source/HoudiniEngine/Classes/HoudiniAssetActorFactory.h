@@ -41,6 +41,7 @@ public: /** UActorFactory inherited methods. **/
 	/** update the blueprint's CDO properties with state from the asset for this factory.									**/
 	virtual void PostCreateBlueprint(UObject* Asset, AActor* CDO) OVERRIDE;
 
+	//FIXME: remove unused code.
 	//virtual bool PreSpawnActor(UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied) OVERRIDE;
 	//virtual AActor* SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name) OVERRIDE;
 };

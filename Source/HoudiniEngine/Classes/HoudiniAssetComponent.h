@@ -28,6 +28,10 @@ class FComponentInstanceDataCache;
 
 struct FPropertyChangedEvent;
 
+//FIXME: As this section involves some very tricky implementation, an overview would be nice here to explain
+//the approach we have taken, what RTTI patching is, why it was done, and details such as the 65k scratch
+//space.
+
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public IHoudiniTaskCookAssetInstanceCallback
 {
