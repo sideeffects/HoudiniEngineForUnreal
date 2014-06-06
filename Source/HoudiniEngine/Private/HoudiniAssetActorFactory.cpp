@@ -47,23 +47,6 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor* Instance)
 	return HoudiniAssetActor->HoudiniAssetComponent->HoudiniAsset;
 }
 
-//FIXME: Remove unused code.
-/*
-bool
-UHoudiniAssetActorFactory::PreSpawnActor(UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied)
-{
-	return Super::PreSpawnActor(Asset, InOutLocation, InOutRotation, bRotationWasSupplied);
-}
-
-
-AActor*
-UHoudiniAssetActorFactory::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
-{
-	AHoudiniAssetActor* Actor = CastChecked<AHoudiniAssetActor>(Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name));
-	return Actor;
-}
-*/
-
 
 void 
 UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
