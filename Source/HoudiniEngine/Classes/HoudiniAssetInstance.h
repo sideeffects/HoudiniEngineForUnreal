@@ -56,50 +56,11 @@ public:
 	/** Return Houdini asset. **/
 	UHoudiniAsset* GetHoudiniAsset() const;
 		
-public:
-
-	/** Given the provided raw OTL data, allocate sufficient buffer and store it. **/
-	//bool InitializeAsset(UHoudiniAssetManager* AssetManager, const uint8*& Buffer, const uint8* BufferEnd);
-	
 public: /** UObject methods. **/
 
 	//virtual void Serialize(FArchive& Ar) OVERRIDE;
 	//virtual void BeginDestroy() OVERRIDE;
 	//virtual void FinishDestroy() OVERRIDE;
-
-#if 0
-public:
-
-	/** Return buffer containing the raw Houdini OTL data. **/
-	const uint8* GetAssetBytes() const;
-
-	/** Return the size in bytes of raw Houdini OTL data. **/
-	uint32 GetAssetBytesCount() const;
-
-	
-	
-public:
-
-	/** Holds this asset's name. **/
-	UPROPERTY()
-	FString AssetName;
-
-	/** Information for thumbnail rendering. */
-	UPROPERTY()
-	class UThumbnailInfo* ThumbnailInfo;
-
-protected:
-
-	/** Asset manager for this asset. **/
-	TWeakObjectPtr<UHoudiniAssetManager> HoudiniAssetManager;
-
-	/** Buffer containing raw Houdini OTL data. **/
-	uint8* AssetBytes;
-
-	/** Field containing the size of raw Houdini OTL data in bytes. **/
-	uint32 AssetBytesCount;
-
-#endif
 
 protected:
 
