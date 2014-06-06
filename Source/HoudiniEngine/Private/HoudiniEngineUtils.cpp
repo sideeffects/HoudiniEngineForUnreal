@@ -230,18 +230,19 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 
 	// Retrieve texture coordinate information. (points too, prim)
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "uv", HAPI_ATTROWNER_VERTEX, &AttribInfo), false);
-	UVs.resize(AttribInfo.count * AttribInfo.tupleSize);
 	if(AttribInfo.exists)
 	{
+		UVs.resize(AttribInfo.count * AttribInfo.tupleSize);
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "uv", &AttribInfo, &UVs[0], 0, AttribInfo.count), false);
 	}
 
-	/*
 	// Retrieve normals information (points and prims).
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "N", HAPI_ATTROWNER_VERTEX, &AttribInfo), false);
-	Normals.resize(AttribInfo.count * AttribInfo.tupleSize);
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "N", &AttribInfo, &Normals[0], 0, AttribInfo.count), false);
-	*/
+	if(AttribInfo.exists)
+	{
+		Normals.resize(AttribInfo.count * AttribInfo.tupleSize);
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "N", &AttribInfo, &Normals[0], 0, AttribInfo.count), false);
+	}
 
 	// Transfer data.
 	for(int TriangleIdx = 0; TriangleIdx < PartInfo.vertexCount / 3; ++TriangleIdx)
@@ -269,29 +270,33 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 
 		// Process texture information.
 		// Need to flip the U coordinate.
-		Triangle.TextureCoordinate0.X = UVs[TriangleIdx * 9 + 0];
-		Triangle.TextureCoordinate0.Y = 1.0f - UVs[TriangleIdx * 9 + 1];
+		if(UVs.size())
+		{
+			Triangle.TextureCoordinate0.X = UVs[TriangleIdx * 9 + 0];
+			Triangle.TextureCoordinate0.Y = 1.0f - UVs[TriangleIdx * 9 + 1];
 
-		Triangle.TextureCoordinate2.X = UVs[TriangleIdx * 9 + 3];
-		Triangle.TextureCoordinate2.Y = 1.0f - UVs[TriangleIdx * 9 + 4];
+			Triangle.TextureCoordinate2.X = UVs[TriangleIdx * 9 + 3];
+			Triangle.TextureCoordinate2.Y = 1.0f - UVs[TriangleIdx * 9 + 4];
 
-		Triangle.TextureCoordinate1.X = UVs[TriangleIdx * 9 + 6];
-		Triangle.TextureCoordinate1.Y = 1.0f - UVs[TriangleIdx * 9 + 7];
+			Triangle.TextureCoordinate1.X = UVs[TriangleIdx * 9 + 6];
+			Triangle.TextureCoordinate1.Y = 1.0f - UVs[TriangleIdx * 9 + 7];
+		}
 
-		/*
 		// Process normals.
-		Triangle.Normal0.X = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
-		Triangle.Normal0.Z = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
-		Triangle.Normal0.Y = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
+		if(Normals.size())
+		{
+			Triangle.Normal0.X = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
+			Triangle.Normal0.Z = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+			Triangle.Normal0.Y = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
 
-		Triangle.Normal2.X = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
-		Triangle.Normal2.Z = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
-		Triangle.Normal2.Y = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
+			Triangle.Normal2.X = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
+			Triangle.Normal2.Z = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+			Triangle.Normal2.Y = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
 
-		Triangle.Normal1.X = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
-		Triangle.Normal1.Z = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
-		Triangle.Normal1.Y = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
-		*/
+			Triangle.Normal1.X = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
+			Triangle.Normal1.Z = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+			Triangle.Normal1.Y = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
+		}
 
 		// Store the extracted triangle.
 		Geometry.Push(Triangle);
