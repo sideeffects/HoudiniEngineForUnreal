@@ -25,27 +25,27 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 }
 
 
-UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& Buffer, const uint8* BufferEnd) : 
+UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& BufferStart, const uint8* BufferEnd) : 
 	Super(PCIP),
 	AssetBytes(nullptr),
 	AssetBytesCount(0)
 {
 	// Calculate buffer size.
-
-	//FIXME: Maybe BufferStart instead of Buffer?
-	AssetBytesCount = BufferEnd - Buffer;
+	AssetBytesCount = BufferEnd - BufferStart;
 
 	if(AssetBytesCount)
 	{
+		// Allocate buffer to store OTL raw data.
 		AssetBytes = static_cast<uint8*>(FMemory::Malloc(AssetBytesCount));
 
 		if(AssetBytes)
 		{
-			// Copy data into newly allocated buffer.
-			FMemory::Memcpy(AssetBytes, Buffer, AssetBytesCount);
+			// Copy data into a newly allocated buffer.
+			FMemory::Memcpy(AssetBytes, BufferStart, AssetBytesCount);
 		}
 	}
 }
+
 
 const uint8*
 UHoudiniAsset::GetAssetBytes() const
@@ -58,4 +58,12 @@ uint32
 UHoudiniAsset::GetAssetBytesCount() const
 {
 	return AssetBytesCount;
+}
+
+
+void
+UHoudiniAsset::FinishDestroy()
+{
+	int foo = 2;
+	Super::FinishDestroy();
 }

@@ -19,6 +19,7 @@
 class UObject;
 class FCanvas;
 class FRenderTarget;
+class UHoudiniAsset;
 class FHoudiniAssetThumbnailScene;
 
 UCLASS(config = Editor)
@@ -36,6 +37,6 @@ public: /** UObject methods. **/
 
 private:
 
-	/** Thumbnail scene used by this renderer. **/
-	FHoudiniAssetThumbnailScene* ThumbnailScene;
+	/** Map of scenes managed by this thumbnail renderer, one for each asset. **/
+	TMap<UHoudiniAsset*, FHoudiniAssetThumbnailScene*> ThumbnailScenes;
 };

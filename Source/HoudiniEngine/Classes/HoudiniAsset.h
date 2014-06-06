@@ -27,14 +27,14 @@ class HOUDINIENGINE_API UHoudiniAsset : public UObject
 
 public:
 
-	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& Buffer, const uint8* BufferEnd);
+	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& BufferStart, const uint8* BufferEnd);
 	
 public: /** UObject methods. **/
 
 	//FIXME: remove unused code
 	//virtual void Serialize(FArchive& Ar) OVERRIDE;
 	//virtual void BeginDestroy() OVERRIDE;
-	//virtual void FinishDestroy() OVERRIDE;
+	virtual void FinishDestroy() OVERRIDE;
 
 public:
 
@@ -52,7 +52,7 @@ public:
 
 	/** Information for thumbnail rendering. */
 	UPROPERTY()
-	class UThumbnailInfo* ThumbnailInfo;
+	UThumbnailInfo* ThumbnailInfo;
 
 protected:
 
