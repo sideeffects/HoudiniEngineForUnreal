@@ -21,12 +21,9 @@
 
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP),
-	OriginalClass(nullptr),
+	HoudiniAssetInstance(nullptr),
 	bIsNativeComponent(false),
-	bIsCooking(false),
-	AssetId(-1),
-	Material(nullptr),
-	HoudiniAssetInstance(nullptr)
+	Material(nullptr)
 {
 	// Create generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
