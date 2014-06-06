@@ -14,8 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniEngine.generated.inl"
-#include "HAPI.h"
 
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
@@ -35,15 +33,11 @@ FHoudiniEngine::StartupModule()
 
 	// Create and register broker for Houdini asset.
 	HoudiniAssetBroker = MakeShareable(new FHoudiniAssetBroker);
-	FComponentAssetBrokerage::RegisterBroker(HoudiniAssetBroker, UHoudiniAssetComponent::StaticClass(), true);
+	FComponentAssetBrokerage::RegisterBroker(HoudiniAssetBroker, UHoudiniAssetComponent::StaticClass(), true, true);
 
 	// Register thumbnail renderer for Houdini asset.
 	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
-
-	// Create asset manager.
-	HoudiniAssetManager = NewObject<UHoudiniAssetManager>();
-	HoudiniAssetManager->AddToRoot();
-
+	
 	// Perform HAPI initialization.
 	HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
 	HAPI_Result Result = HAPI_Initialize("", "", CookOptions, true, -1);
@@ -71,15 +65,6 @@ FHoudiniEngine::ShutdownModule()
 
 		// Unregister thumbnail renderer.
 		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
-
-		// We can delete the asset manager.
-		HoudiniAssetManager->RemoveFromRoot();
-
-		if(HoudiniAssetManager->IsValidLowLevel())
-		{
-			HoudiniAssetManager->MarkPendingKill();
-			HoudiniAssetManager = nullptr;
-		}
 	}
 
 	// Unregister asset type actions we have previously registered.
@@ -105,11 +90,4 @@ FHoudiniEngine::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAss
 {
 	AssetTools.RegisterAssetTypeActions(Action);
 	AssetTypeActions.Add(Action);
-}
-
-
-UHoudiniAssetManager* 
-FHoudiniEngine::GetAssetManager() const
-{
-	return HoudiniAssetManager;
 }

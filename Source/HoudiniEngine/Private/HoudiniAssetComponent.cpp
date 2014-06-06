@@ -19,22 +19,23 @@
 #include <stdint.h>
 
 
-TMap<UHoudiniAsset*, UClass*> 
-UHoudiniAssetComponent::AssetClassRegistry;
-
-
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) : 
 	Super(PCIP),
 	OriginalClass(nullptr),
 	bIsNativeComponent(false),
 	bIsCooking(false),
 	AssetId(-1),
-	Material(nullptr)
+	Material(nullptr),
+	HoudiniAssetInstance(nullptr)
 {
 	// Create generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
+	// This component can tick.
 	PrimaryComponentTick.bCanEverTick = false;
+
+	// Zero scratch space.
+	FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
 }
 
 
@@ -70,6 +71,54 @@ UHoudiniAssetComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 }
 
 
+void 
+UHoudiniAssetComponent::NotifyAssetInstanceCookingFailed(UHoudiniAssetInstance* InHoudiniAssetInstance, HAPI_Result Result)
+{
+	HOUDINI_LOG_ERROR(TEXT("Failed cooking for asset = %0x0.8p"), InHoudiniAssetInstance);
+}
+
+
+void 
+UHoudiniAssetComponent::NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance* InHoudiniAssetInstance, HAPI_AssetId AssetId, const std::string& AssetInternalName)
+{
+	// Make sure we received instance we requested to be cooked.
+	if(InHoudiniAssetInstance != HoudiniAssetInstance)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Received mismatched asset instance, Owned = %0x0.8p, Recieved = %0x0.8p"), HoudiniAssetInstance, InHoudiniAssetInstance);
+		return;
+	}
+
+	if(HoudiniAssetInstance->IsInitialized())
+	{
+		// We can recreate geometry.
+		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Preview actor, failed geometry extraction."));
+		}
+	}
+
+	// Reset cooked status.
+	HoudiniAssetInstance->SetCooked(false);
+
+	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	if(!HoudiniAssetActor->IsUsedForPreview())
+	{
+		// Since this is not a preview actor, we need to patch component RTTI to reflect properties for this asset.
+		ReplaceClassInformation();
+
+		// Need to send this to render thread at some point.
+		MarkRenderStateDirty();
+
+		// Update physics representation right away.
+		RecreatePhysicsState();
+
+		// Click actor to update details information.
+		//HoudiniAssetActor->OnClicked.Broadcast();
+		//DispatchOnClicked();
+	}
+}
+
+
 bool 
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 {
@@ -89,22 +138,27 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 		return false;
 	}
 
+	// Store the new asset.
 	HoudiniAsset = NewHoudiniAsset;
 
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
 	if(HoudiniAssetActor && HoudiniAssetActor->IsUsedForPreview())
 	{
-		// If this is a preview actor, check if cooking has been done.
-		if(HoudiniAsset && HoudiniAsset->HasBeenCooked())
+		// If this is a preview actor, check if we need to cook an asset for thumbnail.
+		if(HoudiniAsset)
 		{
-			// We can recreate geometry.
-			if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAsset->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
+			if(!HoudiniAssetInstance)
 			{
-				HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Failed Geometry Extraction"));
-			}
+				// Create asset instance and cook it.
+				HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
+				HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
 
-			// Reset cooked status.
-			HoudiniAsset->SetCooked(false);
+				// Start asynchronous task to perform the cooking from the referenced asset instance.
+				FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
+
+				// Create a new thread to execute our runnable.
+				FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
+			}
 		}
 	}
 
@@ -116,7 +170,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 
 	// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
 	// and the component may have to be added to the streaming system for the first time.
-	GStreamingManager->NotifyPrimitiveAttached(this, DPT_Spawned);
+	//GStreamingManager->NotifyPrimitiveAttached(this, DPT_Spawned);
 
 	// Since we have new asset, we need to update bounds.
 	UpdateBounds();
@@ -170,71 +224,105 @@ UHoudiniAssetComponent::FinishDestroy()
 
 
 void 
-UHoudiniAssetComponent::MonkeyPatchArrayProperties(UArrayProperty* ArrayProperty)
-{
+UHoudiniAssetComponent::ReplaceClassInformation()
+{	
+	// Grab default object of UClass.
+	UObject* ClassOfUClass = UClass::StaticClass()->GetDefaultObject();
 
+	// Grab class of UHoudiniAssetComponent.
+	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
+
+	// Construct unique name for this class.
+	FString PatchedClassName = FString::Printf(TEXT("%s_%d"), *GetClass()->GetName(), HoudiniAssetInstance->GetAssetId());
+
+	// Create new class instance.
+	static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
+	//UClass* PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*this->GetName()), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
+	UClass* PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*PatchedClassName), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
+	PatchedClass->ClassFlags = UHoudiniAssetComponent::StaticClassFlags;
+	PatchedClass->ClassCastFlags = UHoudiniAssetComponent::StaticClassCastFlags();
+	PatchedClass->ClassConfigName = UHoudiniAssetComponent::StaticConfigName();
+	PatchedClass->ClassDefaultObject = this->GetClass()->ClassDefaultObject;
+	PatchedClass->ClassConstructor = ClassOfUHoudiniAssetComponent->ClassConstructor;
+	PatchedClass->ClassAddReferencedObjects = ClassOfUHoudiniAssetComponent->ClassAddReferencedObjects;
+	PatchedClass->MinAlignment = ClassOfUHoudiniAssetComponent->MinAlignment;
+	PatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
+	PatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
+	PatchedClass->ClassReps = ClassOfUHoudiniAssetComponent->ClassReps;
+	PatchedClass->NetFields = ClassOfUHoudiniAssetComponent->NetFields;
+	PatchedClass->ReferenceTokenStream = ClassOfUHoudiniAssetComponent->ReferenceTokenStream;
+	PatchedClass->NativeFunctionLookupTable = ClassOfUHoudiniAssetComponent->NativeFunctionLookupTable;
+
+	// Before patching, grab the previous class.
+	UClass* PreviousClass = this->GetClass();
+
+	// If RTTI has been previously patched, we need to restore the data.
+	if(PreviousClass != UHoudiniAssetComponent::StaticClass())
+	{
+		// Not yet implemented.
+	}
+
+	// Insert necessary properties.
+	ReplaceClassProperties(PatchedClass);
+
+	// Patch class information.
+	{
+		UClass** Address = (UClass**) this;
+		UClass** EndAddress = (UClass**) this + sizeof(UHoudiniAssetComponent);
+
+		//Grab class of UHoudiniAssetComponent.
+		UClass* HoudiniAssetComponentClass = GetClass();
+
+		while(*Address != HoudiniAssetComponentClass && Address < EndAddress)
+		{
+			Address++;
+		}
+
+		if(*Address == HoudiniAssetComponentClass)
+		{
+			*Address = PatchedClass;
+		}
+		else
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Failed class patching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
+		}
+	}
 }
 
 
-void 
-UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
+bool 
+UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 {
-	if(-1 == AssetId)
-	{
-		// Asset has not been instantiated, there's nothing we can do.
-		return;
-	}
-
+	HAPI_AssetId AssetId = HoudiniAssetInstance->GetAssetId();
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
-
 	HAPI_AssetInfo AssetInfo;
-	Result = HAPI_GetAssetInfo(AssetId, &AssetInfo);
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
-		return;
-	}
-
 	HAPI_NodeInfo NodeInfo;
-	Result = HAPI_GetNodeInfo(AssetInfo.nodeId, &NodeInfo);
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
-		
-	}
-		
+
 	std::vector<HAPI_ParmInfo> ParmInfo;
+	std::vector<int> ParmValuesIntegers;
+	std::vector<float> ParmValuesFloats;
+	std::vector<HAPI_StringHandle> ParmStringFloats;
+	std::vector<char> ParmName;
+	std::vector<char> ParmLabel;
+
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetNodeInfo(AssetInfo.nodeId, &NodeInfo), false);
+
+	// Retrieve parameters.
 	ParmInfo.reserve(NodeInfo.parmCount);
-	Result = HAPI_GetParameters(AssetInfo.nodeId, &ParmInfo[0], 0, NodeInfo.parmCount);
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
-		
-	}
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParameters(AssetInfo.nodeId, &ParmInfo[0], 0, NodeInfo.parmCount), false);
 
 	// Retrieve integer values for this asset.
-	std::vector<int> ParmValuesIntegers;
 	ParmValuesIntegers.reserve(NodeInfo.parmIntValueCount);
-	Result = HAPI_GetParmIntValues(AssetInfo.nodeId, &ParmValuesIntegers[0], 0, NodeInfo.parmIntValueCount);
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
-	
-	}
-	
-	// Retrieve float values for this asset.
-	std::vector<float> ParmValuesFloats;
-	ParmValuesFloats.reserve(NodeInfo.parmFloatValueCount);
-	Result = HAPI_GetParmFloatValues(AssetInfo.nodeId, &ParmValuesFloats[0], 0, NodeInfo.parmFloatValueCount);
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIntValues(AssetInfo.nodeId, &ParmValuesIntegers[0], 0, NodeInfo.parmIntValueCount), false);
 
-	}
+	// Retrieve float values for this asset.
+	ParmValuesFloats.reserve(NodeInfo.parmFloatValueCount);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmFloatValues(AssetInfo.nodeId, &ParmValuesFloats[0], 0, NodeInfo.parmFloatValueCount), false);
 
 	// Retrieve string values for this asset.
-	std::vector<HAPI_StringHandle> ParmStringFloats;
 	ParmStringFloats.reserve(NodeInfo.parmStringValueCount);
-	Result = HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmStringFloats[0], 0, NodeInfo.parmStringValueCount);
-	if (HAPI_RESULT_SUCCESS != Result)
-	{
-
-	}	
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmStringFloats[0], 0, NodeInfo.parmStringValueCount), false);
 
 	// We need to insert new properties and new children in the beginning of single link list.
 	// This way properties and children from the original class can be reused and will not have
@@ -245,11 +333,7 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 	UField* ChildFirst = nullptr;
 	UField* ChildLast = ChildFirst;
 
-	// Calculate next 128 boundary past scratch space (or use scratch space address if it is 16bb aligned).
-	//const char* ScratchSpaceAligned = (const char*) ((reinterpret_cast<uintptr_t>(buffer) + 15) & ~15);
-	//uint32 ValuesOffsetStart = (const char*) ScratchSpaceAligned - (const char*) this;
-	//uint32 ValuesOffsetStart = offsetof(UHoudiniAssetComponent, buffer);
-	uint32 ValuesOffsetStart = sizeof(UHoudiniAssetComponent);
+	uint32 ValuesOffsetStart = offsetof(UHoudiniAssetComponent, ScratchSpaceBuffer);
 	uint32 ValuesOffsetEnd = ValuesOffsetStart;
 
 	for(int idx = 0; idx < NodeInfo.parmCount; ++idx)
@@ -275,10 +359,10 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 				continue;
 			}
 		}
-			
+
 		// Retrieve length of this parameter's name.
 		int32 ParmNameLength = 0;
-		Result = HAPI_GetStringBufLength(ParmInfoIter.nameSH, &ParmNameLength);
+		HOUDINI_CHECK_ERROR(HAPI_GetStringBufLength(ParmInfoIter.nameSH, &ParmNameLength));
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
 			// We have encountered an error retrieving length of this parameter's name, continue onto next parameter.
@@ -290,12 +374,10 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 		{
 			continue;
 		}
-						
+
 		// Retrieve name for this parameter.
-		std::vector<char> ParmName;
-		ParmName.reserve(ParmNameLength + 1);
-		ParmName[ParmNameLength] = '\0';
-		Result = HAPI_GetString(ParmInfoIter.nameSH, &ParmName[0], ParmNameLength);
+		ParmName.reserve(ParmNameLength);
+		HOUDINI_CHECK_ERROR(HAPI_GetString(ParmInfoIter.nameSH, &ParmName[0], ParmNameLength));
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
 			// We have encountered an error retrieving the name of this parameter, continue onto next parameter.
@@ -308,7 +390,7 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 
 		// Retrieve length of this parameter's label.
 		int32 ParmLabelLength = 0;
-		Result = HAPI_GetStringBufLength(ParmInfoIter.labelSH, &ParmLabelLength);
+		HOUDINI_CHECK_ERROR(HAPI_GetStringBufLength(ParmInfoIter.labelSH, &ParmLabelLength));
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
 			// We have encountered an error retrieving length of this parameter's label, continue onto next parameter.
@@ -316,10 +398,8 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 		}
 
 		// Retrieve label for this parameter.
-		std::vector<char> ParmLabel;
-		ParmLabel.reserve(ParmLabelLength + 1);
-		ParmLabel[ParmLabelLength] = '\0';
-		Result = HAPI_GetString(ParmInfoIter.labelSH, &ParmLabel[0], ParmLabelLength);
+		ParmLabel.reserve(ParmLabelLength);
+		HOUDINI_CHECK_ERROR(HAPI_GetString(ParmInfoIter.labelSH, &ParmLabel[0], ParmLabelLength));
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
 			// We have encountered an error retrieving the label of this parameter, continue onto next parameter.
@@ -328,108 +408,42 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 
 		// We need to convert label to a string Unreal understands.
 		FUTF8ToTCHAR ParamLabelStringConverter(&ParmLabel[0]);
-			
-		// Create a property.
-		static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
-		static const uint64 PropertyFlags =  UINT64_C(69793219077);
-		UProperty* Property = nullptr;
 
+		UProperty* Property = nullptr;
 		switch(ParmInfoIter.type)
 		{
 			case HAPI_PARMTYPE_INT:
 			{
-				if(ParmInfoIter.size == 1)
-				{
-					// Create property object.
-					Property = new(ClassInstance, ParmNameConverted, PropertyObjectFlags) UIntProperty(FPostConstructInitializeProperties(), EC_CppProperty, ValuesOffsetEnd, 0x0);
-
-					// Write property data to which it refers by offset.
-					*(int*)((char*) this + ValuesOffsetEnd) = ParmValuesIntegers[ParmInfoIter.intValuesIndex];
-
-					// Increment offset for next property.
-					ValuesOffsetEnd += sizeof(int);
-
-					//Property->SetMetaData("MakeStructureDefaultValue", *FString::FromInt(ParmValuesIntegers[ParmInfoIter.intValuesIndex]));
-				}
-				/*
-				else
-				{
-					Property = new(ClassInstance, ParamNameStringConverter.Get(), PropertyObjectFlags) UArrayProperty(FPostConstructInitializeProperties(), EC_CppProperty, ValuesOffsetEnd, 0x0);						
-				}
-				*/
-
+				Property = CreatePropertyInt(ClassInstance, ParmNameConverted, ParmInfoIter.size, ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
 			case HAPI_PARMTYPE_FLOAT:
 			{
-				if(ParmInfoIter.size == 1)
-				{
-					Property = new(ClassInstance, ParmNameConverted, PropertyObjectFlags) UFloatProperty(FPostConstructInitializeProperties(), EC_CppProperty, ValuesOffsetEnd, 0x0);
-
-					// Write property data to which it refers by offset.
-					*(float*)((char*) this + ValuesOffsetEnd) = ParmValuesFloats[ParmInfoIter.floatValuesIndex];
-
-					ValuesOffsetEnd += sizeof(float);
-
-					//Property->SetMetaData("MakeStructureDefaultValue", *FString::SanitizeFloat(ParmValuesFloats[ParmInfoIter.floatValuesIndex]));
-				}
-
+				Property = CreatePropertyFloat(ClassInstance, ParmNameConverted, ParmInfoIter.size, ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
 			case HAPI_PARMTYPE_TOGGLE:
 			{
-				if(ParmInfoIter.size == 1)
-				{
-					Property = new(ClassInstance, ParmNameConverted, PropertyObjectFlags) UBoolProperty(FPostConstructInitializeProperties(), EC_CppProperty, ValuesOffsetEnd, 0x0, ~0, sizeof(bool), true);
-					
-					// Write property data to which it refers by offset.
-					*(bool*)((char*) this + ValuesOffsetEnd) = ParmValuesIntegers[ParmInfoIter.intValuesIndex] != 0;
-					
-					ValuesOffsetEnd += sizeof(bool);
-				}
-
+				Property = CreatePropertyToggle(ClassInstance, ParmNameConverted, ParmInfoIter.size, (ParmValuesIntegers[ParmInfoIter.intValuesIndex] != 0), ValuesOffsetEnd);
 				break;
 			}
 
 			case HAPI_PARMTYPE_COLOR:
-			{
-				if(ParmInfoIter.size == 1)
-				{
-					// Implement this.
-				}
-
-				break;
-			}
-
 			case HAPI_PARMTYPE_STRING:
-			{
-				if(ParmInfoIter.size == 1)
-				{
-					// Implement this.
-				}
-
-				break;
-			}
-			
 			default:
 			{
-				ASSUME(0);
+				break;
 			}
 		}
 
 		if(!Property)
 		{
-			// There was an error creating a property - report and skip to next param.
+			// Unsupported type property - skip to next parameter.
 			continue;
 		}
 		
-		// Otherwise, perform relevant property initialization.
-		Property->PropertyLinkNext = nullptr;
-		Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
-		Property->PropertyFlags = PropertyFlags;
-
 		// Use label instead of name if it is present.
 		if(ParmLabelLength)
 		{
@@ -493,448 +507,74 @@ UHoudiniAssetComponent::MonkeyPatchCreateProperties(UClass* ClassInstance)
 		ClassInstance->Children = ChildFirst;
 		ChildLast->Next = GetClass()->Children;
 	}
+
+	return true;
 }
 
 
-void 
-UHoudiniAssetComponent::MonkeyPatchClassInformation(UClass* ClassInstance)
+UProperty* 
+UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, int32 Value, uint32& Offset)
 {
-	UClass** Address = (UClass**) this;
-	UClass** EndAddress = (UClass**) this + sizeof(UHoudiniAssetComponent);
+	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
+	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
-	//Grab class of UHoudiniAssetComponent.
-	UClass* HoudiniAssetComponentClass = GetClass();
+	// Construct property.
+	UProperty* Property = new(ClassInstance, Name, PropertyObjectFlags) UIntProperty(FPostConstructInitializeProperties(), EC_CppProperty, Offset, 0x0);
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->PropertyFlags = PropertyFlags;
 
-	while(*Address != HoudiniAssetComponentClass && Address < EndAddress)
-	{
-		Address++;
-	}
+	// Write property data to which it refers by offset.
+	*(int*)((char*) this + Offset) = Value;
 
-	if(*Address == HoudiniAssetComponentClass)
-	{
-		*Address = ClassInstance;
-	}
+	// Increment offset for next property.
+	Offset += sizeof(int);
+
+	return Property;
 }
 
 
-void 
-UHoudiniAssetComponent::CookingCompleted(HAPI_AssetId InAssetId, const char* AssetName)
+UProperty* 
+UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, float Value, uint32& Offset)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("Notification about finished cooking, AssetId = %d, AssetName = %s."), AssetId, AssetName);
+	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
+	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
-	// We are no longer cooking.
-	bIsCooking = false;
+	// Construct property.
+	UProperty* Property = new(ClassInstance, Name, PropertyObjectFlags) UFloatProperty(FPostConstructInitializeProperties(), EC_CppProperty, Offset, 0x0);
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->PropertyFlags = PropertyFlags;
 
-	// Copy over the supplied asset id.
-	AssetId = InAssetId;
+	// Write property data to which it refers by offset.
+	*(float*)((char*) this + Offset) = Value;
 
-	{
-		HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	// Increment offset for next property.
+	Offset += sizeof(float);
 
-		HAPI_AssetInfo AssetInfo;
-		Result = HAPI_GetAssetInfo(AssetId, &AssetInfo);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			return;
-		}
-
-		HAPI_PartInfo PartInfo;
-		Result = HAPI_GetPartInfo(AssetId, 0, 0, 0, &PartInfo);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			return;
-		}
-
-		std::vector<int> VertexList;
-		VertexList.reserve(PartInfo.vertexCount);
-		Result = HAPI_GetVertexList(AssetId, 0, 0, 0, &VertexList[0], 0, PartInfo.vertexCount);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			return;
-		}
-
-		HAPI_AttributeInfo AttribInfo;
-		Result = HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "P", HAPI_ATTROWNER_POINT, &AttribInfo);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			return;
-		}
-
-		// Retrieve positions.
-		std::vector<float> Positions;
-		Positions.reserve(AttribInfo.count * AttribInfo.tupleSize);
-		//positions are always o na point.
-		Result = HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "P", &AttribInfo, &Positions[0], 0, AttribInfo.count);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{	
-			return;
-		}
-
-		HoudiniMeshTris.Reset();
-
-		for(int i = 0; i < PartInfo.vertexCount / 3; ++i)
-		{
-			FHoudiniMeshTriangle triangle;
-
-			// Need to flip the Y with the Z since UE4 is Z-up.
-			// Need to flip winding order also.
-
-			triangle.Vertex0.X = Positions[VertexList[i * 3 + 0] * 3 + 0] * 100.0f;
-			triangle.Vertex0.Z = Positions[VertexList[i * 3 + 0] * 3 + 1] * 100.0f;
-			triangle.Vertex0.Y = Positions[VertexList[i * 3 + 0] * 3 + 2] * 100.0f;
-
-			triangle.Vertex2.X = Positions[VertexList[i * 3 + 1] * 3 + 0] * 100.0f;
-			triangle.Vertex2.Z = Positions[VertexList[i * 3 + 1] * 3 + 1] * 100.0f;
-			triangle.Vertex2.Y = Positions[VertexList[i * 3 + 1] * 3 + 2] * 100.0f;
-
-			triangle.Vertex1.X = Positions[VertexList[i * 3 + 2] * 3 + 0] * 100.0f;
-			triangle.Vertex1.Z = Positions[VertexList[i * 3 + 2] * 3 + 1] * 100.0f;
-			triangle.Vertex1.Y = Positions[VertexList[i * 3 + 2] * 3 + 2] * 100.0f;
-
-			HoudiniMeshTris.Push(triangle);
-		}
-
-		// Retrieve uv data.
-		{
-			HAPI_AttributeInfo AttribInfo;
-			// can be both, check both. could be on detail.
-			Result = HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "uv", HAPI_ATTROWNER_VERTEX, &AttribInfo);
-			if (HAPI_RESULT_SUCCESS != Result)
-			{
-				return;
-			}
-
-			std::vector<float> UVs;
-			UVs.reserve(AttribInfo.count * AttribInfo.tupleSize);
-			Result = HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "uv", &AttribInfo, &UVs[0], 0, AttribInfo.count);
-			if (HAPI_RESULT_SUCCESS != Result)
-			{
-				return;
-			}
-
-			for (int i = 0; i < PartInfo.vertexCount / 3; ++i)
-			{
-				FHoudiniMeshTriangle& triangle = HoudiniMeshTris[i];
-
-				triangle.TextureCoordinate0.X = UVs[i * 9 + 0];
-				triangle.TextureCoordinate0.Y = 1.0f - UVs[i * 9 + 1];
-				
-				triangle.TextureCoordinate2.X = UVs[i * 9 + 3];
-				triangle.TextureCoordinate2.Y = 1.0f - UVs[i * 9 + 4];
-
-				triangle.TextureCoordinate1.X = UVs[i * 9 + 6];
-				triangle.TextureCoordinate1.Y = 1.0f - UVs[i * 9 + 7];
-			}
-		}
-
-
-
-
-
-		// Load textures.
-		HAPI_MaterialInfo MaterialInfo;
-		Result = HAPI_GetMaterial(AssetId, PartInfo.materialId, &MaterialInfo);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			return;
-		}
-
-		HAPI_NodeInfo NodeInfo;
-		Result = HAPI_GetNodeInfo(MaterialInfo.nodeId, &NodeInfo);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			return;
-		}
-
-		std::vector<HAPI_ParmInfo> NodeParams;
-		NodeParams.resize(NodeInfo.parmCount);
-		Result = HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			return;
-		}
-
-		int TexturesLoaded = 0;
-
-		for(int ParmIdx = 0; ParmIdx < NodeInfo.parmCount; ++ParmIdx)
-		{
-			HAPI_ParmInfo& NodeParmInfo = NodeParams[ParmIdx];
-			HAPI_StringHandle NodeParmHandle = NodeParmInfo.nameSH;
-
-			int NodeParmNameLength = 0;
-			Result = HAPI_GetStringBufLength(NodeParmHandle, &NodeParmNameLength);
-			if(HAPI_RESULT_SUCCESS != Result)
-			{
-				continue;
-			}
-
-			std::vector<char> NodeParmName;
-			NodeParmName.reserve(NodeParmNameLength + 1);
-			NodeParmName[NodeParmNameLength] = '\0';
-			Result = HAPI_GetString(NodeParmHandle, &NodeParmName[0], NodeParmNameLength);
-			if(HAPI_RESULT_SUCCESS != Result)
-			{
-				continue;
-			}
-
-			if(!strncmp(&NodeParmName[0], "map", 3) || !strncmp(&NodeParmName[0], "ogl_tex1", 8) || !strncmp(&NodeParmName[0], "baseColorMap", 12))
-			{
-				Result = HAPI_RenderTextureToImage(AssetInfo.id, MaterialInfo.id, NodeParmInfo.id);
-				if(HAPI_RESULT_SUCCESS != Result)
-				{
-					continue;
-				}
-
-				//extractHoudiniImageToTexture( material_info, folder_path, "C A" );
-				HAPI_ImageInfo ImageInfo;
-				Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
-				if(HAPI_RESULT_SUCCESS != Result)
-				{
-					continue;
-				}
-
-				ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
-				ImageInfo.interleaved = true;
-				ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;
-
-				Result = HAPI_SetImageInfo(MaterialInfo.assetId, MaterialInfo.id, ImageInfo);
-				if(HAPI_RESULT_SUCCESS != Result)
-				{
-					continue;
-				}
-
-				int ImageBufferSize = 0;
-				Result = HAPI_ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, "C A", &ImageBufferSize);
-				if(HAPI_RESULT_SUCCESS != Result)
-				{
-					continue;
-				}
-
-				std::vector<char> ImageBuffer;
-				ImageBuffer.reserve(ImageBufferSize);
-				Result = HAPI_GetImageMemoryBuffer(MaterialInfo.assetId, MaterialInfo.id, &ImageBuffer[0], ImageBufferSize);
-				if(HAPI_RESULT_SUCCESS != Result)
-				{
-					continue;
-				}
-
-				
-				/*
-				FName MaterialName = MakeUniqueObjectName(this->GetOuter(), UMaterial::StaticClass(), TEXT("HoudiniAsset_Material"));
-				UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), this->GetOuter(), MaterialName, this->GetFlags());
-				Material->TwoSided = false;
-				Material->SetLightingModel(MLM_DefaultLit);
-
-				MaterialExportUtils::FFlattenMaterial FlattenMaterial;
-
-				FString DiffuseTextureName = MakeUniqueObjectName(this->GetOuter(), UTexture2D::StaticClass(), TEXT("Texture_Diffuse")).ToString();
-				FCreateTexture2DParameters TexParams;
-				TexParams.bUseAlpha = false;
-				TexParams.CompressionSettings = TC_Default;
-				TexParams.bDeferCompression = true;
-				TexParams.bSRGB = false;
-				*/
-				/*
-				UTexture2D* DiffuseTexture = FImageUtils::CreateTexture2D(
-					ImageInfo.xRes,
-					ImageInfo.yRes,
-					FlattenMaterial.DiffuseSamples,
-					this,
-					TEXT("sdf"),
-					GetFlags(),
-					FCreateTexture2DParameters());
-				*/
-
-				// Create material if does not exist already.
-				if(!Material)
-				{
-					Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), this->GetOuter(), TEXT("DiffuseSpaceship"),  RF_Public | RF_Standalone | RF_Transient);
-				
-					/*
-					FString MaterialFullName = TEXT("MaterialSpaceShipLongName");
-					FString NewPackageName = FPackageName::GetLongPackagePath(GetOutermost()->GetName()) + TEXT("/") + MaterialFullName;
-					NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
-					UPackage* Package = CreatePackage(NULL, *NewPackageName);
-					UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
-					UMaterial* Material = (UMaterial*)MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone|RF_Public, NULL, GWarn);
-					*/
-
-					Material->TwoSided = false;
-					Material->SetLightingModel(MLM_DefaultLit);
-
-					// Assign material.
-					SetMaterial(0, Material);
-				}
-
-
-
-				// Create diffuse texture.
-				UTexture2D* DiffuseTexture = UTexture2D::CreateTransient(ImageInfo.xRes, ImageInfo.yRes, PF_B8G8R8A8);
-
-				// Lock texture for modification.
-				uint8* MipData = static_cast<uint8*>(DiffuseTexture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
-
-				// Create base map.
-				uint8* DestPtr = nullptr;
-				const FColor* SrcPtr = nullptr;
-				uint32 SrcWidth = ImageInfo.xRes;
-				uint32 SrcHeight = ImageInfo.yRes;
-				const char* SrcData = &ImageBuffer[0];
-
-				for(uint32 y = 0; y < SrcHeight; y++)
-				{
-					DestPtr = &MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(FColor)];
-					
-					for(uint32 x = 0; x < SrcWidth; x++)
-					{
-						uint32 DataOffset = y * SrcWidth * 4 + x * 4;
-
-						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //B
-						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
-						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //R
-						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
-						//*DestPtr++ = 0xFF; //A
-					}
-				}
-
-				// Unlock the texture.
-				DiffuseTexture->PlatformData->Mips[0].BulkData.Unlock();
-				DiffuseTexture->UpdateResource();
-
-
-				
-
-				// Assign texture to material.
-				UMaterialExpressionTextureSample* Expression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
-				Material->Expressions.Add(Expression);
-				Material->DiffuseColor.Expression = Expression;
-				Expression->Texture = DiffuseTexture;
-
-
-				
-			}
-		}
-	}
-
-	//const uint32 CustomDataStartOffset = 24000;
-
-	// See if we have this class already.
-	UClass** StoredHoudiniClass = UHoudiniAssetComponent::AssetClassRegistry.Find(HoudiniAsset);
-	UClass* MonkeyPatchAssetPatchedClass = nullptr;
-
-	// Class does not exist, we need to create one.
-	if(!StoredHoudiniClass)
-	{
-		// We need to monkey patch this component instance.
-		EObjectFlags MonkeyPatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
-		//RF_RootSet = 0x00000080,	///< Object will not be garbage collected, even if unreferenced.
-		//RF_Public = 0x00000001,	///< Object is visible outside its package.
-		//RF_Standalone = 0x00000002,	///< Keep object around for editing even if unreferenced.
-		//RF_Native = 0x00000004,	///< Native (UClass only).
-
-		// Grab default object of UClass.
-		UObject* ClassOfUClass = UClass::StaticClass()->GetDefaultObject();
-
-		//Grab class of UHoudiniAssetComponent.
-		UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
-
-		MonkeyPatchAssetPatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*GetClass()->GetName()), MonkeyPatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
-		//MonkeyPatchAssetPatchedClass = ConstructObject<UClass>(UClass::StaticClass(), this->GetOutermost(), FName(*this->GetName()), MonkeyPatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
-		MonkeyPatchAssetPatchedClass->ClassFlags = UHoudiniAssetComponent::StaticClassFlags;
-		MonkeyPatchAssetPatchedClass->ClassCastFlags = UHoudiniAssetComponent::StaticClassCastFlags();
-		MonkeyPatchAssetPatchedClass->ClassConfigName = UHoudiniAssetComponent::StaticConfigName();
-
-		MonkeyPatchAssetPatchedClass->ClassDefaultObject = this->GetClass()->ClassDefaultObject;
-		MonkeyPatchAssetPatchedClass->ClassConstructor = ClassOfUHoudiniAssetComponent->ClassConstructor;
-		MonkeyPatchAssetPatchedClass->ClassAddReferencedObjects = ClassOfUHoudiniAssetComponent->ClassAddReferencedObjects;
-		MonkeyPatchAssetPatchedClass->MinAlignment = ClassOfUHoudiniAssetComponent->MinAlignment;
-		MonkeyPatchAssetPatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize + 65536;
-		//MonkeyPatchAssetPatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
-		MonkeyPatchAssetPatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
-
-		MonkeyPatchAssetPatchedClass->ClassReps = ClassOfUHoudiniAssetComponent->ClassReps;
-		MonkeyPatchAssetPatchedClass->NetFields = ClassOfUHoudiniAssetComponent->NetFields;
-		MonkeyPatchAssetPatchedClass->ReferenceTokenStream = ClassOfUHoudiniAssetComponent->ReferenceTokenStream;
-		MonkeyPatchAssetPatchedClass->NativeFunctionLookupTable = ClassOfUHoudiniAssetComponent->NativeFunctionLookupTable;
-		//MonkeyPatchAssetPatchedClass->FuncMap
-
-		// Iterate original properties ~ find Houdini asset.
-		/*
-		UProperty* PropertyIterator = GetClass()->PropertyLink;
-		UProperty* LastProperty = NULL;
-		while(PropertyIterator)
-		{
-			LastProperty = PropertyIterator;
-			PropertyIterator = PropertyIterator->PropertyLinkNext;
-		}
-		*/
-
-		/*
-		MonkeyPatchAssetPatchedClass->PropertyLink = GetClass()->PropertyLink;
-
-		// Create first custom property.
-		UProperty* PatchedProperty0 = new(MonkeyPatchAssetPatchedClass, TEXT("PatchedPropertyUint"), RF_Public | RF_Transient | RF_Native) UIntProperty(FPostConstructInitializeProperties(), EC_CppProperty, CustomDataStartOffset, 0x0);
-		//UProperty* PatchedProperty = new(MonkeyPatchAssetPatchedClass, TEXT("PatchedProperty"), RF_Public | RF_Transient | RF_Native) UIntProperty(FPostConstructInitializeProperties(), EC_CppProperty, CustomDataStartOffset, 0x0);
-		PatchedProperty0->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
-		PatchedProperty0->PropertyFlags = 69793219077;
-		//PatchedProperty0->PropertyLinkNext = nullptr;
-		PatchedProperty0->PropertyLinkNext = MonkeyPatchAssetPatchedClass->PropertyLink;
-		MonkeyPatchAssetPatchedClass->PropertyLink = PatchedProperty0;
-	
-		// Create second custom property.
-		UProperty* PatchedProperty1 = new(MonkeyPatchAssetPatchedClass, TEXT("PatchedPropertyFloat"), RF_Public | RF_Transient | RF_Native) UFloatProperty(FPostConstructInitializeProperties(), EC_CppProperty, CustomDataStartOffset + 4, 0x0);
-		//UProperty* PatchedProperty = new(MonkeyPatchAssetPatchedClass, TEXT("PatchedProperty"), RF_Public | RF_Transient | RF_Native) UIntProperty(FPostConstructInitializeProperties(), EC_CppProperty, CustomDataStartOffset, 0x0);
-		PatchedProperty1->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
-		PatchedProperty1->PropertyFlags = 69793219077;
-		//PatchedProperty1->PropertyLinkNext = PatchedProperty0;
-		PatchedProperty1->PropertyLinkNext = MonkeyPatchAssetPatchedClass->PropertyLink;
-		MonkeyPatchAssetPatchedClass->PropertyLink = PatchedProperty1;
-
-		// Patch children.
-		UField* ChildrenIterator = MonkeyPatchAssetPatchedClass->Children;
-		UField* LastChild = nullptr;
-		while(ChildrenIterator)
-		{
-			LastChild = ChildrenIterator;
-			ChildrenIterator = ChildrenIterator->Next;
-		}
-
-		if(LastChild)
-		{
-			LastChild->Next = ClassOfUHoudiniAssetComponent->Children;
-		}
-		else
-		{
-			MonkeyPatchAssetPatchedClass->Children = ClassOfUHoudiniAssetComponent->Children;
-		}
-		*/
-
-		// Generate custom properties for our new monkey patched class.
-		MonkeyPatchCreateProperties(MonkeyPatchAssetPatchedClass);
-		
-		// Store our new monkey patched class in registry.
-		UHoudiniAssetComponent::AssetClassRegistry.Add(HoudiniAsset, MonkeyPatchAssetPatchedClass);
-	}
-	else
-	{
-		MonkeyPatchAssetPatchedClass = *StoredHoudiniClass;
-	}
-
-	// Before monkey patching, store original class instance, so we can patch it back for proper destruction.
-	OriginalClass = GetClass();
-
-	// Attempt to monkey patch this instance with new class information.
-	MonkeyPatchClassInformation(MonkeyPatchAssetPatchedClass);
-
-	// Mark render state as dirty - we have updated the data.
-	MarkRenderStateDirty();
+	return Property;
 }
 
 
-void
-UHoudiniAssetComponent::CookingFailed()
+UProperty* 
+UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, bool bValue, uint32& Offset)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("Notificatoin about failed cooking."));
+	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
+	static const uint64 PropertyFlags =  UINT64_C(69793219077);
+
+	// Construct property.
+	UProperty* Property = new(ClassInstance, Name, PropertyObjectFlags) UBoolProperty(FPostConstructInitializeProperties(), EC_CppProperty, Offset, 0x0, ~0, sizeof(bool), true);
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->PropertyFlags = PropertyFlags;
+
+	// Write property data to which it refers by offset.
+	*(bool*)((char*) this + Offset) = bValue;
+
+	// Increment offset for next property.
+	Offset += sizeof(bool);
+
+	return Property;
 }
 
 
@@ -962,21 +602,23 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	std::wstring PropertyName(*Property->GetName());
 	std::string PropertyNameConverted(PropertyName.begin(), PropertyName.end());
 
+	HAPI_AssetId AssetId = HoudiniAssetInstance->GetAssetId();
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	HAPI_AssetInfo AssetInfo;
+	HAPI_ParmId ParamId;
+	HAPI_ParmInfo ParamInfo;
 
 	// Retrieve asset information.
-	HAPI_AssetInfo AssetInfo;
-	Result = HAPI_GetAssetInfo(AssetId, &AssetInfo);
+	HOUDINI_CHECK_ERROR(HAPI_GetAssetInfo(AssetId, &AssetInfo));
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		// Error retrieving asset information, do not proceed.
 		Super::PostEditChangeProperty(PropertyChangedEvent);
 		return;
 	}
-
+	
 	// Locate corresponding param.
-	HAPI_ParmId ParamId;
-	Result = HAPI_GetParmIdFromName(AssetInfo.nodeId, PropertyNameConverted.c_str(), &ParamId);
+	HOUDINI_CHECK_ERROR(HAPI_GetParmIdFromName(AssetInfo.nodeId, PropertyNameConverted.c_str(), &ParamId));
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		// Error locating corresponding param, do not proceed.
@@ -985,8 +627,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	}
 
 	// Get parameter information.
-	HAPI_ParmInfo ParamInfo;
-	Result = HAPI_GetParameters(AssetInfo.nodeId, &ParamInfo, ParamId, 1);
+	HOUDINI_CHECK_ERROR(HAPI_GetParameters(AssetInfo.nodeId, &ParamInfo, ParamId, 1));
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		// Error retrieving param information, do not proceed.
@@ -998,7 +639,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	if(UIntProperty::StaticClass() == Property->GetClass())
 	{
 		int Value = *(int*)((const char*) this + ValueOffset);
-		Result = HAPI_SetParmIntValues(AssetInfo.nodeId, &Value, ParamInfo.intValuesIndex, ParamInfo.size);
+		HOUDINI_CHECK_ERROR(HAPI_SetParmIntValues(AssetInfo.nodeId, &Value, ParamInfo.intValuesIndex, ParamInfo.size));
 
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
@@ -1010,7 +651,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	else if(UFloatProperty::StaticClass() == Property->GetClass())
 	{
 		float Value = *(float*)((const char*) this + ValueOffset);
-		Result = HAPI_SetParmFloatValues(AssetInfo.nodeId, &Value, ParamInfo.floatValuesIndex, ParamInfo.size);
+		HOUDINI_CHECK_ERROR(HAPI_SetParmFloatValues(AssetInfo.nodeId, &Value, ParamInfo.floatValuesIndex, ParamInfo.size));
 
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
@@ -1022,7 +663,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	else if(UBoolProperty::StaticClass() == Property->GetClass())
 	{
 		int Value = *(bool*)((const char*) this + ValueOffset);
-		Result = HAPI_SetParmIntValues(AssetInfo.nodeId, &Value, ParamInfo.intValuesIndex, ParamInfo.size);
+		HOUDINI_CHECK_ERROR(HAPI_SetParmIntValues(AssetInfo.nodeId, &Value, ParamInfo.intValuesIndex, ParamInfo.size));
 
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
@@ -1032,7 +673,37 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		}
 	}
 
+	// Recook synchronously as user needs to see the changes.
+	HOUDINI_CHECK_ERROR(HAPI_CookAsset(AssetId, nullptr));
+	if(HAPI_RESULT_SUCCESS != Result)
+	{
+		// Error recooking.
+		Super::PostEditChangeProperty(PropertyChangedEvent);
+		return;
+	}
+
 	// At this point we can recook the data.
+	//FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
+
+	// Create a new thread to execute our runnable.
+	//FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
+
+	if(HoudiniAssetInstance->IsInitialized())
+	{
+		// We can recreate geometry.
+		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Preview actor, failed geometry extraction."));
+		}
+
+		// Need to send this to render thread at some point.
+		MarkRenderStateDirty();
+
+		// Update physics representation right away.
+		RecreatePhysicsState();
+	}
+
+#if 0
 	Result = HAPI_CookAsset(AssetId, nullptr);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
@@ -1143,6 +814,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			}
 		}
 	}
+#endif 
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -1167,18 +839,18 @@ UHoudiniAssetComponent::OnRegister()
 				if(!HoudiniAssetActor->IsUsedForPreview())
 				{
 					HOUDINI_LOG_MESSAGE(TEXT("Native::OnRegister"));
-
-					// Check if we need to cook the asset and it has not been started already.
-					if((-1 == AssetId) && !bIsCooking)
+					
+					if(!HoudiniAssetInstance)
 					{
-						// We are starting cooking the asset.
-						bIsCooking = true;
-						
-						// Create new runnable to perform the cooking from the referenced asset.
-						FHoudiniAssetCooking* HoudiniAssetCooking = new FHoudiniAssetCooking(this, HoudiniAsset);
+						// Create asset instance and cook it.
+						HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
+						HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
+
+						// Start asynchronous task to perform the cooking from the referenced asset instance.
+						FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
 
 						// Create a new thread to execute our runnable.
-						FRunnableThread* Thread = FRunnableThread::Create(HoudiniAssetCooking, TEXT("HoudiniAssetCooking"), true, true, 0, TPri_Normal);
+						FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
 					}
 				}
 			}
@@ -1212,6 +884,7 @@ UHoudiniAssetComponent::OnComponentCreated()
 void 
 UHoudiniAssetComponent::OnComponentDestroyed()
 {
+	/*
 	// We need to destroy Houdini asset, if it has been created.
 	if(-1 != AssetId)
 	{
@@ -1223,6 +896,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	{
 		MonkeyPatchClassInformation(OriginalClass);
 	}
+	*/
 
 	Super::OnComponentDestroyed();
 	HOUDINI_LOG_MESSAGE(TEXT("Destroying component, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);	

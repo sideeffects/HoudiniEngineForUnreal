@@ -16,42 +16,45 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-FHoudiniTaskCookAsset::FHoudiniTaskCookAsset(UHoudiniAssetManager* InHoudiniAssetManager, UHoudiniAsset* InHoudiniAsset) :
-	HoudiniAssetManager(InHoudiniAssetManager),
-	HoudiniAsset(InHoudiniAsset)
+FHoudiniTaskCookAssetInstance::FHoudiniTaskCookAssetInstance(IHoudiniTaskCookAssetInstanceCallback* InHoudiniTaskCookAssetInstanceCallback, UHoudiniAssetInstance* InHoudiniAssetInstance) :
+	HoudiniTaskCookAssetInstanceCallback(InHoudiniTaskCookAssetInstanceCallback),
+	HoudiniAssetInstance(InHoudiniAssetInstance)
 {
 
 }
 
 
-FHoudiniTaskCookAsset::~FHoudiniTaskCookAsset()
+FHoudiniTaskCookAssetInstance::~FHoudiniTaskCookAssetInstance()
 {
 
 }
 
 
 uint32 
-FHoudiniTaskCookAsset::RunErrorCleanUp(HAPI_Result Result)
+FHoudiniTaskCookAssetInstance::RunErrorCleanUp(HAPI_Result Result)
 {
-	// Notify manager that a certain error occurred during cooking.
-	HoudiniAssetManager->NotifyAssetCookingFailed(HoudiniAsset, Result);
+	// Notify callback that a certain error occurred during cooking.
+	HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFailed(HoudiniAssetInstance, Result);
 	return 0;
 }
 
 
 uint32 
-FHoudiniTaskCookAsset::Run()
+FHoudiniTaskCookAssetInstance::Run()
 {
-	HOUDINI_LOG_MESSAGE(TEXT("HoudiniTaskCookAsset Asynchronous Cooking Started."));
+	HOUDINI_LOG_MESSAGE(TEXT("HoudiniTaskCookAssetInstance Asynchronous Cooking Started."));
 
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
-		HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAsset failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
+		HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAssetInstance failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
 		return RunErrorCleanUp(HAPI_RESULT_NOT_INITIALIZED);
 	}
 
-	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	// Get asset associated with this instance.
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetInstance->GetHoudiniAsset();
 
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	
 	// Load asset library from given buffer.
 	HAPI_AssetLibraryId AssetLibraryId = 0;
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()), HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), RunErrorCleanUp(Result));
@@ -80,15 +83,19 @@ FHoudiniTaskCookAsset::Run()
 
 			if(HAPI_STATE_READY == Status)
 			{
+				HoudiniAssetInstance->SetCooking(false);
+				HoudiniAssetInstance->SetCooked(true);
+				HoudiniAssetInstance->SetAssetId(AssetId);
+
 				// Cooking has been successful.
-				HoudiniAssetManager->NotifyAssetCookingFinished(HoudiniAsset, AssetId, AssetName);
+				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFinished(HoudiniAssetInstance, AssetId, AssetName);
 				break;
 			}
 			else if(HAPI_STATE_READY_WITH_ERRORS == Status)
 			{
 				// There was an error while cooking.
 				HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAsset failed: Asset cooked with errors."));
-				HoudiniAssetManager->NotifyAssetCookingFailed(HoudiniAsset, HAPI_RESULT_FAILURE);
+				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFailed(HoudiniAssetInstance, HAPI_RESULT_FAILURE);
 				break;
 			}
 

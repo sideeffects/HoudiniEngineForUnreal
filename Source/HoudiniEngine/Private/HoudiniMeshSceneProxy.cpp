@@ -69,7 +69,7 @@ FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component
 
 	// Grab material.
 	Material = Component->GetMaterial(0);
-	if(Material == NULL)
+	if(!Material)
 	{
 		Material = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
