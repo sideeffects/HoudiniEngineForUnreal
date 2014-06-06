@@ -37,7 +37,7 @@ FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 	}
 	else
 	{
-		switch (Result)
+		switch(Result)
 		{
 			case HAPI_RESULT_FAILURE:
 			{
@@ -237,7 +237,7 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 	}
 
 	/*
-	// Retrieve normals information. (points $ prims)
+	// Retrieve normals information (points and prims).
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "N", HAPI_ATTROWNER_VERTEX, &AttribInfo), false);
 	Normals.resize(AttribInfo.count * AttribInfo.tupleSize);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "N", &AttribInfo, &Normals[0], 0, AttribInfo.count), false);
