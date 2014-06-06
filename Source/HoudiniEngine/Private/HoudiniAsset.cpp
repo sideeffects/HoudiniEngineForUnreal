@@ -64,6 +64,15 @@ UHoudiniAsset::GetAssetBytesCount() const
 void
 UHoudiniAsset::FinishDestroy()
 {
-	int foo = 2;
+	FThumbnailRenderingInfo* RenderInfo = UThumbnailManager::Get().GetRenderingInfo(this);
+	if(RenderInfo)
+	{
+		UHoudiniAssetThumbnailRenderer* ThumbnailRenderer = CastChecked<UHoudiniAssetThumbnailRenderer>(RenderInfo->Renderer);
+		if(ThumbnailRenderer)
+		{
+			ThumbnailRenderer->RemoveAssetThumbnail(this);
+		}
+	}
+
 	Super::FinishDestroy();
 }

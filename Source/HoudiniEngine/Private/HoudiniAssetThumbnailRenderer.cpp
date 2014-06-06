@@ -73,3 +73,15 @@ UHoudiniAssetThumbnailRenderer::BeginDestroy()
 
 	Super::BeginDestroy();
 }
+
+
+void 
+UHoudiniAssetThumbnailRenderer::RemoveAssetThumbnail(UHoudiniAsset* HoudiniAsset)
+{
+	FHoudiniAssetThumbnailScene** StoredThumbnailScene = ThumbnailScenes.Find(HoudiniAsset);
+	if(StoredThumbnailScene)
+	{
+		delete(*StoredThumbnailScene);
+		ThumbnailScenes.Remove(HoudiniAsset);
+	}
+}
