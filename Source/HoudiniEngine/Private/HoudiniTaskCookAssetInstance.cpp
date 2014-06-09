@@ -91,7 +91,8 @@ FHoudiniTaskCookAssetInstance::Run()
 				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFinished(HoudiniAssetInstance, AssetId, AssetName);
 				break;
 			}
-			else if(HAPI_STATE_READY_WITH_ERRORS == Status)
+			else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status
+				|| HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
 			{
 				// There was an error while cooking.
 				HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAsset failed: Asset cooked with errors."));
