@@ -22,10 +22,32 @@ IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngine);
 DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 
 
+FHoudiniEngine* 
+FHoudiniEngine::HoudiniEngineInstance = nullptr;
+
+
+TSharedPtr<FSlateDynamicImageBrush> 
+FHoudiniEngine::GetHoudiniLogoBrush() const
+{
+	return HoudiniLogoBrush;
+}
+
+
+FHoudiniEngine& 
+FHoudiniEngine::Get()
+{
+	check(FHoudiniEngine::HoudiniEngineInstance);
+	return *FHoudiniEngine::HoudiniEngineInstance;
+}
+
+
 void
 FHoudiniEngine::StartupModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
+
+	// Store the instance.
+	FHoudiniEngine::HoudiniEngineInstance = this;
 
 	// Create and register asset type actions for Houdini asset.
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -37,7 +59,29 @@ FHoudiniEngine::StartupModule()
 
 	// Register thumbnail renderer for Houdini asset.
 	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
-	
+
+	// Create Houdini logo brush.
+	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
+	for(auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
+	{
+		const FPluginStatus& PluginStatus = *PluginIt;
+		if(PluginStatus.Name == TEXT("HoudiniEngine"))
+		{
+			if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*PluginStatus.Icon128FilePath))
+			{
+				const FName BrushName(*PluginStatus.Icon128FilePath);
+				const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
+
+				if(Size.X > 0 && Size.Y > 0)
+				{
+					HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D( Size.X, Size.Y)));
+				}
+			}
+
+			break;
+		}
+	}
+
 	// Perform HAPI initialization.
 	HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
 	CookOptions.maxVerticesPerPrimitive = 3;

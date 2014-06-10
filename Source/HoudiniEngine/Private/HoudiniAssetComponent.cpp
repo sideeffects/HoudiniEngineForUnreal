@@ -49,7 +49,6 @@ UHoudiniAssetComponent::OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("OnRep_HoudiniAsset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
-	// Only do stuff if this actually changed from the last local value.
 	if(OldHoudiniAsset != HoudiniAsset)
 	{
 		// We have to force a call to SetHoudiniAsset with a new HoudiniAsset.
@@ -85,10 +84,11 @@ UHoudiniAssetComponent::NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance
 		HOUDINI_LOG_ERROR(TEXT("Received mismatched asset instance, Owned = %0x0.8p, Recieved = %0x0.8p"), HoudiniAssetInstance, InHoudiniAssetInstance);
 		return;
 	}
-
+	
 	if(HoudiniAssetInstance->IsInitialized())
 	{
 		// We can recreate geometry.
+		FScopeLock ScopeLock(&CriticalSection);
 		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
 		{
 			HOUDINI_LOG_MESSAGE(TEXT("Preview actor, failed geometry extraction."));
@@ -197,6 +197,7 @@ UHoudiniAssetComponent::CreateSceneProxy()
 	
 	if(HoudiniMeshTris.Num() > 0)
 	{
+		FScopeLock ScopeLock(&CriticalSection);
 		Proxy = new FHoudiniMeshSceneProxy(this);
 	}
 	
@@ -676,6 +677,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	if(HoudiniAssetInstance->IsInitialized())
 	{
 		// We can recreate geometry.
+		FScopeLock ScopeLock(&CriticalSection);
 		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
 		{
 			HOUDINI_LOG_MESSAGE(TEXT("Preview actor, failed geometry extraction."));

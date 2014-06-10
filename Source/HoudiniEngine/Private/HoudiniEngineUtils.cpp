@@ -228,7 +228,7 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 	Positions.resize(AttribInfo.count * AttribInfo.tupleSize);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "P", &AttribInfo, &Positions[0], 0, AttribInfo.count), false);
 
-	// Retrieve texture coordinate information. (points too, prim)
+	// Retrieve texture coordinate information (points too, prim).
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "uv", HAPI_ATTROWNER_VERTEX, &AttribInfo), false);
 	if(AttribInfo.exists)
 	{
