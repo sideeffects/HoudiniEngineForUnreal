@@ -20,15 +20,15 @@ namespace UnrealBuildTool.Rules
 	{
 		public HoudiniEngine(TargetInfo Target)
 		{
-            Definitions.Add("HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE=65536");
+			Definitions.Add("HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE=65536");
 
-			PublicLibraryPaths.Add("C:/Program Files/Side Effects Software/Houdini 13.5.196/custom/houdini/dsolib");
-			PublicAdditionalLibraries.Add("C:/Program Files/Side Effects Software/Houdini 13.5.196/custom/houdini/dsolib/libHAPI.a");
+			PublicLibraryPaths.Add("C:/Program Files/Side Effects Software/Houdini 13.5.198/custom/houdini/dsolib");
+			PublicAdditionalLibraries.Add("C:/Program Files/Side Effects Software/Houdini 13.5.198/custom/houdini/dsolib/libHAPI.a");
 
 			PublicIncludePaths.AddRange(
 				new string[] {
 					// ... add public include paths required here ...
-					"C:/Program Files/Side Effects Software/Houdini 13.5.196/toolkit/include/HAPI"
+					"C:/Program Files/Side Effects Software/Houdini 13.5.198/toolkit/include/HAPI"
 				}
 				);
 
@@ -49,9 +49,11 @@ namespace UnrealBuildTool.Rules
 					"ShaderCore",
 					"InputCore",
 					"RHI",
-                    "AssetTools",
-                    "UnrealEd"
-                    
+					"AssetTools",
+					"UnrealEd",
+					"Slate",
+					"SlateCore",
+					"Projects"
 				}
 				);
 
