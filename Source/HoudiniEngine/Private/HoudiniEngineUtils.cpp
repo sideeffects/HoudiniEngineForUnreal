@@ -97,7 +97,8 @@ const FString
 FHoudiniEngineUtils::GetErrorDescription()
 {
 	int StatusBufferLength = 0;
-	HAPI_GetStatusStringBufLength(HAPI_STATUS_RESULT, &StatusBufferLength);
+	HAPI_GetStatusStringBufLength(
+		HAPI_STATUS_RESULT, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
 	
 	std::vector<char> StatusStringBuffer(StatusBufferLength, 0);
 	HAPI_GetStatusString(HAPI_STATUS_RESULT, &StatusStringBuffer[0]);
