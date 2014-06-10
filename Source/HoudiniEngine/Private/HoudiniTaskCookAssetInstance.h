@@ -32,7 +32,7 @@ private:
 
 	/** Helper function used to clean up while running in case of error. **/
 	uint32 RunErrorCleanUp(HAPI_Result Result);
-		
+
 protected:
 
 	/** Callback for completion / status report. **/

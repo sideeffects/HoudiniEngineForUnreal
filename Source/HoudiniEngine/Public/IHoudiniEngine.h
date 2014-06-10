@@ -17,5 +17,8 @@
 
 class IHoudiniEngine : public IModuleInterface
 {
+public:
 
+	/** Return Houdini logo brush. **/
+	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
 };

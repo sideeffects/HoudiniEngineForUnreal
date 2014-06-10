@@ -28,10 +28,19 @@ public: /** IModuleInterface methods. **/
 	virtual void StartupModule() OVERRIDE;
 	virtual void ShutdownModule() OVERRIDE;
 
+public: /** IHoudiniEngine methods. **/
+
+	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const OVERRIDE;
+
 public:
 
 	/** App identifier string. **/
 	static const FName HoudiniEngineAppIdentifier;
+
+public:
+
+	/** Return singleton instance of Houdini Engine, used internally. **/
+	static FHoudiniEngine& Get();
 
 private:
 
@@ -40,9 +49,17 @@ private:
 
 private:
 
+	/** Singleton instnace of Houdini Engine. **/
+	static FHoudiniEngine* HoudiniEngineInstance;
+
+private:
+
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
 
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
+
+	/** Houdini logo brush. **/
+	TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;
 };

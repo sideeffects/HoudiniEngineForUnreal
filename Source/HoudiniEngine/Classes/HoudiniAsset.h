@@ -40,7 +40,7 @@ public:
 
 	/** Return the size in bytes of raw Houdini OTL data. **/
 	uint32 GetAssetBytesCount() const;
-	
+
 public:
 
 	/** Holds this asset's name. **/

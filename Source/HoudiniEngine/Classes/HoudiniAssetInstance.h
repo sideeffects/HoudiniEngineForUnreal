@@ -55,7 +55,7 @@ public:
 
 	/** Return Houdini asset. **/
 	UHoudiniAsset* GetHoudiniAsset() const;
-		
+
 protected:
 
 	/** Holds Houdini asset we are instantiating. **/
