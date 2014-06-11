@@ -16,6 +16,7 @@
 #pragma once
 
 class IHoudiniTaskCookAssetInstanceCallback;
+struct FHoudiniEngineNotificationInfo;
 
 class FHoudiniTaskCookAssetInstance : public FRunnable
 {
@@ -33,7 +34,13 @@ private:
 	/** Helper function used to clean up while running in case of error. **/
 	uint32 RunErrorCleanUp(HAPI_Result Result);
 
+	/** Instruct engine to remove notification used by this runnable. **/
+	void RemoveNotification();
+
 protected:
+
+	/** Notification used by this runnable. **/
+	TSharedPtr<FHoudiniEngineNotificationInfo> NotificationInfo;
 
 	/** Callback for completion / status report. **/
 	IHoudiniTaskCookAssetInstanceCallback* HoudiniTaskCookAssetInstanceCallback;

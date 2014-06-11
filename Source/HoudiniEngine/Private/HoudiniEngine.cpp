@@ -45,10 +45,7 @@ void
 FHoudiniEngine::StartupModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
-
-	// Store the instance.
-	FHoudiniEngine::HoudiniEngineInstance = this;
-
+	
 	// Create and register asset type actions for Houdini asset.
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FHoudiniAssetTypeActions()));
@@ -71,10 +68,11 @@ FHoudiniEngine::StartupModule()
 			{
 				const FName BrushName(*PluginStatus.Icon128FilePath);
 				const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
-
+				
 				if(Size.X > 0 && Size.Y > 0)
 				{
-					HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D( Size.X, Size.Y)));
+					static const int ProgressIconSize = 32;
+					HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(ProgressIconSize, ProgressIconSize)));
 				}
 			}
 
@@ -95,6 +93,9 @@ FHoudiniEngine::StartupModule()
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
 	}
+
+	// Store the instance.
+	FHoudiniEngine::HoudiniEngineInstance = this;
 }
 
 
@@ -135,4 +136,119 @@ FHoudiniEngine::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAss
 {
 	AssetTools.RegisterAssetTypeActions(Action);
 	AssetTypeActions.Add(Action);
+}
+
+
+void 
+FHoudiniEngine::Tick(float DeltaTime)
+{
+	if(!FHoudiniEngine::HoudiniEngineInstance)
+	{
+		// Module has not been initialized yet.
+		return;
+	}
+
+	FScopeLock ScopeLock(&CriticalSection);
+
+	// We need to record notifications which are being removed.
+	TArray<FHoudiniEngineNotificationInfo*> RemovedNotifications;
+
+	// Process existing notifications.
+	for(TMap<FHoudiniEngineNotificationInfo*, TWeakPtr<SNotificationItem> >::TConstIterator ParamIter(Notifications); ParamIter; ++ParamIter)
+	{
+		FHoudiniEngineNotificationInfo* NotificationInfo = ParamIter.Key();
+
+		if(NotificationInfo->bScheduledRemoved)
+		{
+			TWeakPtr<SNotificationItem> NotificationItem = ParamIter.Value();
+			TSharedPtr<SNotificationItem> NotificationPtr = NotificationItem.Pin();
+			NotificationPtr->ExpireAndFadeout();
+
+			RemovedNotifications.Add(NotificationInfo);
+		}
+		else if(NotificationInfo->bScheduledUpdate)
+		{
+			TWeakPtr<SNotificationItem> NotificationItem = ParamIter.Value();
+			TSharedPtr<SNotificationItem> NotificationPtr = NotificationItem.Pin();
+
+			NotificationPtr->SetText(NotificationInfo->Text);
+		}
+	}
+
+	// Process all notifications scheduled for removal.
+	for(int32 Index = 0; Index < RemovedNotifications.Num(); ++Index)
+	{
+		FHoudiniEngineNotificationInfo* NotificationInfo = RemovedNotifications[Index];
+		Notifications.Remove(NotificationInfo);
+	}
+
+	// Process all queued notifications (these are incoming from threads).
+	for(int32 Index = 0; Index < QueuedNotifications.Num(); ++Index)
+	{
+		FHoudiniEngineNotificationInfo* NotificationInfo = QueuedNotifications[Index];
+
+		// Submit this notification to slate.
+		TWeakPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(*NotificationInfo);
+		Notifications.Add(NotificationInfo, Notification);
+	}
+
+	// We processed all notifications.
+	QueuedNotifications.Reset();
+}
+
+
+bool 
+FHoudiniEngine::IsTickable() const
+{
+	return true;
+}
+
+
+TStatId 
+FHoudiniEngine::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FHoudiniEngine, STATGROUP_Tickables);
+}
+
+
+void
+FHoudiniEngine::AddNotification(FHoudiniEngineNotificationInfo* Notification)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+
+	Notification->bFireAndForget = false;
+
+	if(HoudiniLogoBrush.IsValid())
+	{
+		Notification->Image = HoudiniLogoBrush.Get();
+	}
+
+	// Store this notification information in queue for processing on the render thread.
+	QueuedNotifications.Add(Notification);
+}
+
+
+void 
+FHoudiniEngine::RemoveNotification(FHoudiniEngineNotificationInfo* Notification)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+
+	// If notification is still queued, remove it.
+	if(QueuedNotifications.RemoveSingleSwap(Notification))
+	{
+		return;
+	}
+
+	// Flag notification for removal.
+	Notification->bScheduledRemoved = true;
+}
+
+
+void 
+FHoudiniEngine::UpdateNotification(FHoudiniEngineNotificationInfo* Notification)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+
+	// Flag notification for update.
+	Notification->bScheduledUpdate = true;
 }
