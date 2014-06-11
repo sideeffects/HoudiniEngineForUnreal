@@ -120,6 +120,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetThumbnailRenderer.h"
 
 /** HoudiniEngine Private headers. **/
+#include "HoudiniEngineNotificationInfo.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniEngineUtils.h"

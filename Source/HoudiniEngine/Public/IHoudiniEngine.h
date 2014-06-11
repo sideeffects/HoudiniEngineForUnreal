@@ -15,10 +15,21 @@
 
 #pragma once
 
+struct FHoudiniEngineNotificationInfo;
+
 class IHoudiniEngine : public IModuleInterface
 {
 public:
 
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
+
+	/** Add new notification item. **/
+	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
+
+	/** Remove existing notification item. **/
+	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
+
+	/** Update notification. **/
+	virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
 };

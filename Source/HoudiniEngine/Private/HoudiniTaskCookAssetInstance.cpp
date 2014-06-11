@@ -30,11 +30,24 @@ FHoudiniTaskCookAssetInstance::~FHoudiniTaskCookAssetInstance()
 }
 
 
+void 
+FHoudiniTaskCookAssetInstance::RemoveNotification()
+{
+	// If we have a notification object, tell engine to remove it.
+	if(NotificationInfo.IsValid())
+	{
+		FHoudiniEngine::Get().RemoveNotification(NotificationInfo.Get());
+	}
+}
+
+
 uint32 
 FHoudiniTaskCookAssetInstance::RunErrorCleanUp(HAPI_Result Result)
 {
 	// Notify callback that a certain error occurred during cooking.
 	HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFailed(HoudiniAssetInstance, Result);
+	RemoveNotification();
+	
 	return 0;
 }
 
@@ -71,6 +84,14 @@ FHoudiniTaskCookAssetInstance::Run()
 	std::string AssetName;
 	if(AssetCount && FHoudiniEngineUtils::GetAssetName(AssetNames[0], AssetName))
 	{
+		FString AssetNameString = ANSI_TO_TCHAR(AssetName.c_str());
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("AssetName"), FText::FromString(AssetNameString));
+		FText ProgressMessage = FText::Format(NSLOCTEXT("AssetBaking", "AssetBakingInProgress", "Cooking Houdini Asset ({AssetName})"), Args);
+		FHoudiniEngineNotificationInfo* Notification = new FHoudiniEngineNotificationInfo(ProgressMessage);
+		FHoudiniEngine::Get().AddNotification(Notification);
+		NotificationInfo = MakeShareable(Notification);
+		
 		HAPI_AssetId AssetId = -1;
 		bool CookOnLoad = true;
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetName[0], CookOnLoad, &AssetId), RunErrorCleanUp(Result));
@@ -91,8 +112,7 @@ FHoudiniTaskCookAssetInstance::Run()
 				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFinished(HoudiniAssetInstance, AssetId, AssetName);
 				break;
 			}
-			else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status
-				|| HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
+			else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status || HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
 			{
 				// There was an error while cooking.
 				HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAsset failed: Asset cooked with errors."));
@@ -102,8 +122,9 @@ FHoudiniTaskCookAssetInstance::Run()
 
 			// We want to yield for a bit.
 			FPlatformProcess::Sleep(0.01f);
-		}		
+		}
 	}
 
+	RemoveNotification();
 	return 0;
 }

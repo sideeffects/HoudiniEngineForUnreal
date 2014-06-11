@@ -20,7 +20,7 @@ class IAssetTools;
 class IAssetTypeActions;
 class IComponentAssetBroker;
 
-class FHoudiniEngine : public IHoudiniEngine
+class FHoudiniEngine : public IHoudiniEngine, public FTickableEditorObject
 {
 
 public: /** IModuleInterface methods. **/
@@ -31,6 +31,15 @@ public: /** IModuleInterface methods. **/
 public: /** IHoudiniEngine methods. **/
 
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const OVERRIDE;
+	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
+	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
+	virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
+
+public: /** FTickableEditorObject methods. **/
+
+	virtual void Tick(float DeltaTime) OVERRIDE;
+	virtual bool IsTickable() const OVERRIDE;
+	virtual TStatId GetStatId() const OVERRIDE;
 
 public:
 
@@ -54,12 +63,21 @@ private:
 
 private:
 
+	/** Map of currently active notifications. **/
+	TMap<FHoudiniEngineNotificationInfo*, TWeakPtr<SNotificationItem> > Notifications;
+
+	/** Queue of notifications we need to process and submit to Slate. **/
+	TArray<FHoudiniEngineNotificationInfo*> QueuedNotifications;
+
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
-
+	
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 
 	/** Houdini logo brush. **/
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;
+
+	/* Synchronization primitive used to control access to notifications. **/
+	FCriticalSection CriticalSection;
 };
