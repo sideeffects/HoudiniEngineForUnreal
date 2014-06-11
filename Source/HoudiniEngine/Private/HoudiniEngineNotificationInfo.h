@@ -17,6 +17,9 @@
 
 struct FHoudiniEngineNotificationInfo : public FNotificationInfo
 {
+	/** Default constructor. **/
+	FHoudiniEngineNotificationInfo();
+
 	/** Constructor which just passes parameter to the base class. **/
 	FHoudiniEngineNotificationInfo(const FText& InText);
 
