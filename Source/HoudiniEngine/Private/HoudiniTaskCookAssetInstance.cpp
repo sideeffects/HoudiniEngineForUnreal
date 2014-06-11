@@ -18,7 +18,8 @@
 
 FHoudiniTaskCookAssetInstance::FHoudiniTaskCookAssetInstance(IHoudiniTaskCookAssetInstanceCallback* InHoudiniTaskCookAssetInstanceCallback, UHoudiniAssetInstance* InHoudiniAssetInstance) :
 	HoudiniTaskCookAssetInstanceCallback(InHoudiniTaskCookAssetInstanceCallback),
-	HoudiniAssetInstance(InHoudiniAssetInstance)
+	HoudiniAssetInstance(InHoudiniAssetInstance),
+	LastUpdateTime(0.0)
 {
 
 }
@@ -52,6 +53,23 @@ FHoudiniTaskCookAssetInstance::RunErrorCleanUp(HAPI_Result Result)
 }
 
 
+void 
+FHoudiniTaskCookAssetInstance::UpdateNotification(const FString& StatusString)
+{
+	if(NotificationInfo.IsValid())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("AssetName"), FText::FromString(AssetName));
+		Args.Add(TEXT("AssetStatus"), FText::FromString(StatusString));
+
+		NotificationInfo->Text = FText::Format(NSLOCTEXT("AssetBaking", "AssetBakingInProgress", "({AssetName}) : ({AssetStatus})"), Args);
+
+		// Ask engine to update notification.
+		FHoudiniEngine::Get().UpdateNotification(NotificationInfo.Get());
+	}
+}
+
+
 uint32 
 FHoudiniTaskCookAssetInstance::Run()
 {
@@ -66,35 +84,37 @@ FHoudiniTaskCookAssetInstance::Run()
 	// Get asset associated with this instance.
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetInstance->GetHoudiniAsset();
 
+	// Retrieve instance of Houdini Engine, this is used for notification submission.
+	FHoudiniEngine& HoudiniEngine = FHoudiniEngine::Get();
+
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
-	
-	// Load asset library from given buffer.
 	HAPI_AssetLibraryId AssetLibraryId = 0;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()), HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), RunErrorCleanUp(Result));
-
-	// Retrieve number of assets contained in this library.
 	int32 AssetCount = 0;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssetCount(AssetLibraryId, &AssetCount), RunErrorCleanUp(Result));
+	std::vector<int> AssetNames;
+	std::string AssetNameString;
 
-	// Retrieve available assets. 
-	std::vector<int> AssetNames(AssetCount, 0);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()), HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), RunErrorCleanUp(Result));
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssetCount(AssetLibraryId, &AssetCount), RunErrorCleanUp(Result));
+	AssetNames.resize(AssetCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), RunErrorCleanUp(Result));
 
 	// If we have assets, instantiate first one.
-	std::string AssetName;
-	if(AssetCount && FHoudiniEngineUtils::GetAssetName(AssetNames[0], AssetName))
+	if(AssetCount && FHoudiniEngineUtils::GetAssetName(AssetNames[0], AssetNameString))
 	{
-		FString AssetNameString = ANSI_TO_TCHAR(AssetName.c_str());
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("AssetName"), FText::FromString(AssetNameString));
-		FText ProgressMessage = FText::Format(NSLOCTEXT("AssetBaking", "AssetBakingInProgress", "Cooking Houdini Asset ({AssetName})"), Args);
-		FHoudiniEngineNotificationInfo* Notification = new FHoudiniEngineNotificationInfo(ProgressMessage);
-		FHoudiniEngine::Get().AddNotification(Notification);
-		NotificationInfo = MakeShareable(Notification);
+		// Translate asset name into Unreal string.
+		AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());
+
+		// Construct initial notification message.
+		NotificationInfo = MakeShareable(new FHoudiniEngineNotificationInfo());
+		HoudiniEngine.AddNotification(NotificationInfo.Get());
+		UpdateNotification(TEXT("Cook started"));
+
+		// Initialize last update time.
+		LastUpdateTime = FPlatformTime::Seconds();
 		
 		HAPI_AssetId AssetId = -1;
 		bool CookOnLoad = true;
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetName[0], CookOnLoad, &AssetId), RunErrorCleanUp(Result));
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetNameString[0], CookOnLoad, &AssetId), RunErrorCleanUp(Result));
 
 		// We need to spin until cooking is finished.
 		while(true)
@@ -109,15 +129,33 @@ FHoudiniTaskCookAssetInstance::Run()
 				HoudiniAssetInstance->SetAssetId(AssetId);
 
 				// Cooking has been successful.
-				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFinished(HoudiniAssetInstance, AssetId, AssetName);
+				UpdateNotification(TEXT("Cook finished"));
+				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFinished(HoudiniAssetInstance, AssetId, AssetNameString);
 				break;
 			}
 			else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status || HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
 			{
 				// There was an error while cooking.
 				HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAsset failed: Asset cooked with errors."));
+				UpdateNotification(TEXT("Cook finished with errors"));
 				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFailed(HoudiniAssetInstance, HAPI_RESULT_FAILURE);
 				break;
+			}
+
+			static const double NotificationUpdateFrequency = 1.0;
+			if((FPlatformTime::Seconds() - LastUpdateTime) >= NotificationUpdateFrequency)
+			{
+				// Reset update time.
+				LastUpdateTime = FPlatformTime::Seconds();
+
+				// Retrieve status string.
+				int StatusStringBufferLength = 0;
+				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusStringBufLength(HAPI_STATUS_STATE, &StatusStringBufferLength), RunErrorCleanUp(Result));
+				std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
+				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusString(HAPI_STATUS_STATE, &StatusStringBuffer[0]), RunErrorCleanUp(Result));
+				FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
+
+				UpdateNotification(StatusString);
 			}
 
 			// We want to yield for a bit.
@@ -125,6 +163,7 @@ FHoudiniTaskCookAssetInstance::Run()
 		}
 	}
 
+	FPlatformProcess::Sleep(1.0f);
 	RemoveNotification();
 	return 0;
 }

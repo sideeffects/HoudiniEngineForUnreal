@@ -16,6 +16,14 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+FHoudiniEngineNotificationInfo::FHoudiniEngineNotificationInfo() :
+	FNotificationInfo(FText()),
+	bScheduledRemoved(false),
+	bScheduledUpdate(false)
+{
+
+}
+
 FHoudiniEngineNotificationInfo::FHoudiniEngineNotificationInfo(const FText& InText) :
 	FNotificationInfo(InText),
 	bScheduledRemoved(false),

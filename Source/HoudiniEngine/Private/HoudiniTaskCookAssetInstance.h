@@ -37,6 +37,9 @@ private:
 	/** Instruct engine to remove notification used by this runnable. **/
 	void RemoveNotification();
 
+	/** Update notification with new status string. **/
+	void UpdateNotification(const FString& StatusString);
+
 protected:
 
 	/** Notification used by this runnable. **/
@@ -47,4 +50,10 @@ protected:
 
 	/** Houdini asset instance we are cooking. **/
 	UHoudiniAssetInstance* HoudiniAssetInstance;
+
+	/** Tracks the last time notification has been used to avoid spamming. **/
+	double LastUpdateTime;
+
+	/** Name of the asset being processed. **/
+	FString AssetName;
 };
