@@ -34,6 +34,9 @@ public:
 
 	/** Extract geometry information for a given asset. **/
 	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
+
+	/** Extract Houdini logo temporary geometry. **/
+	static void GetHoudiniLogoGeometry(TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
 	
 protected:
 	
