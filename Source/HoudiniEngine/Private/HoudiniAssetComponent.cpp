@@ -293,25 +293,25 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 	//FIXME: everything hard coded to 0 for now.
 	// Retrieve parameters.
-	ParmInfo.reserve(NodeInfo.parmCount);
+	ParmInfo.resize(NodeInfo.parmCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParameters(AssetInfo.nodeId, &ParmInfo[0], 0, NodeInfo.parmCount), false);
 
 	// Retrieve integer values for this asset.
-	ParmValuesIntegers.reserve(NodeInfo.parmIntValueCount);
+	ParmValuesIntegers.resize(NodeInfo.parmIntValueCount);
 	if(NodeInfo.parmIntValueCount > 0)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIntValues(AssetInfo.nodeId, &ParmValuesIntegers[0], 0, NodeInfo.parmIntValueCount), false);
 	}
 
 	// Retrieve float values for this asset.
-	ParmValuesFloats.reserve(NodeInfo.parmFloatValueCount);
+	ParmValuesFloats.resize(NodeInfo.parmFloatValueCount);
 	if(NodeInfo.parmFloatValueCount > 0)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmFloatValues(AssetInfo.nodeId, &ParmValuesFloats[0], 0, NodeInfo.parmFloatValueCount), false);
 	}
 
 	// Retrieve string values for this asset.
-	ParmStringFloats.reserve(NodeInfo.parmStringValueCount);
+	ParmStringFloats.resize(NodeInfo.parmStringValueCount);
 	if(NodeInfo.parmStringValueCount > 0)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmStringFloats[0], 0, NodeInfo.parmStringValueCount), false);
@@ -340,12 +340,12 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			case HAPI_PARMTYPE_INT:
 			case HAPI_PARMTYPE_FLOAT:
 			case HAPI_PARMTYPE_TOGGLE:
-			case HAPI_PARMTYPE_COLOR:
-			case HAPI_PARMTYPE_STRING:
 			{
 				break;
 			}
 
+			case HAPI_PARMTYPE_COLOR:
+			case HAPI_PARMTYPE_STRING:
 			default:
 			{
 				// Just ignore unsupported types for now.
@@ -369,7 +369,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		}
 
 		// Retrieve name for this parameter.
-		ParmName.reserve(ParmNameLength);
+		ParmName.resize(ParmNameLength);
 		HOUDINI_CHECK_ERROR(HAPI_GetString(ParmInfoIter.nameSH, &ParmName[0], ParmNameLength));
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
@@ -391,7 +391,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		}
 
 		// Retrieve label for this parameter.
-		ParmLabel.reserve(ParmLabelLength);
+		ParmLabel.resize(ParmLabelLength);
 		HOUDINI_CHECK_ERROR(HAPI_GetString(ParmInfoIter.labelSH, &ParmLabel[0], ParmLabelLength));
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
@@ -427,7 +427,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			case HAPI_PARMTYPE_STRING:
 			default:
 			{
-				break;
+				continue;
 			}
 		}
 
@@ -436,11 +436,15 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			// Unsupported type property - skip to next parameter.
 			continue;
 		}
-		
+				
 		// Use label instead of name if it is present.
 		if(ParmLabelLength)
 		{
 			Property->SetMetaData(TEXT("DisplayName"), ParamLabelStringConverter.Get());
+		}
+		else
+		{
+			Property->SetMetaData(TEXT("DisplayName"), ParamNameStringConverter.Get());
 		}
 
 		// Set UI and physical ranges, if present.
@@ -512,7 +516,7 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
 	// No support for arrays at the moment.
-	if(Count > 1)
+	if(Count != 1)
 	{
 		return nullptr;
 	}
@@ -523,8 +527,12 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
 	Property->PropertyFlags = PropertyFlags;
 
+	// We need to compute proper alignment for this type.
+	int* Boundary = Align((int*) (((char*) this) + Offset), ALIGNOF(int));
+	Offset = (const char*) Boundary - (const char*) this;
+
 	// Write property data to which it refers by offset.
-	*(int*)((char*) this + Offset) = Value;
+	*Boundary = Value;
 
 	// Increment offset for next property.
 	Offset += sizeof(int);
@@ -540,7 +548,7 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
 	// No support for arrays at the moment.
-	if(Count > 1)
+	if(Count != 1)
 	{
 		return nullptr;
 	}
@@ -551,8 +559,12 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
 	Property->PropertyFlags = PropertyFlags;
 
+	// We need to compute proper alignment for this type.
+	float* Boundary = Align((float*) (((char*) this) + Offset), ALIGNOF(float));
+	Offset = (const char*) Boundary - (const char*) this;
+
 	// Write property data to which it refers by offset.
-	*(float*)((char*) this + Offset) = Value;
+	*Boundary = Value;
 
 	// Increment offset for next property.
 	Offset += sizeof(float);
@@ -568,7 +580,7 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
 	// No support for arrays at the moment.
-	if(Count > 1)
+	if(Count != 1)
 	{
 		return nullptr;
 	}
@@ -579,8 +591,12 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
 	Property->PropertyFlags = PropertyFlags;
 
+	// We need to compute proper alignment for this type.
+	bool* Boundary = Align((bool*) (((char*) this) + Offset), ALIGNOF(bool));
+	Offset = (const char*) Boundary - (const char*) this;
+
 	// Write property data to which it refers by offset.
-	*(bool*)((char*) this + Offset) = bValue;
+	*Boundary = bValue;
 
 	// Increment offset for next property.
 	Offset += sizeof(bool);
