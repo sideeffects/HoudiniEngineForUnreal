@@ -245,6 +245,10 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, 0, 0, 0, "N", &AttribInfo, &Normals[0], 0, AttribInfo.count), false);
 	}
 
+	// Geometry scale factor.
+	static const float ScaleFactor = 100.0f;
+	static const FColor VertexColor(255, 255, 255);
+
 	// Transfer data.
 	for(int TriangleIdx = 0; TriangleIdx < PartInfo.vertexCount / 3; ++TriangleIdx)
 	{
@@ -254,19 +258,19 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 		// Need to flip the Y with the Z since UE4 is Z-up.
 		// Need to flip winding order also.
 
-		Triangle.Vertex0.X = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 0] * 100.0f;
-		Triangle.Vertex0.Z = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 1] * 100.0f;
-		Triangle.Vertex0.Y = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 2] * 100.0f;
+		Triangle.Vertex0.X = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 0] * ScaleFactor;
+		Triangle.Vertex0.Z = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 1] * ScaleFactor;
+		Triangle.Vertex0.Y = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 2] * ScaleFactor;
 		UpdateBoundingVolumeExtent(Triangle.Vertex0, ExtentMin, ExtentMax);
 
-		Triangle.Vertex2.X = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 0] * 100.0f;
-		Triangle.Vertex2.Z = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 1] * 100.0f;
-		Triangle.Vertex2.Y = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 2] * 100.0f;
+		Triangle.Vertex2.X = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 0] * ScaleFactor;
+		Triangle.Vertex2.Z = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 1] * ScaleFactor;
+		Triangle.Vertex2.Y = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 2] * ScaleFactor;
 		UpdateBoundingVolumeExtent(Triangle.Vertex2, ExtentMin, ExtentMax);
 
-		Triangle.Vertex1.X = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 0] * 100.0f;
-		Triangle.Vertex1.Z = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 1] * 100.0f;
-		Triangle.Vertex1.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * 100.0f;	
+		Triangle.Vertex1.X = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 0] * ScaleFactor;
+		Triangle.Vertex1.Z = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 1] * ScaleFactor;
+		Triangle.Vertex1.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * ScaleFactor;	
 		UpdateBoundingVolumeExtent(Triangle.Vertex1, ExtentMin, ExtentMax);
 
 		// Process texture information.
@@ -299,6 +303,11 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 			Triangle.Normal1.Y = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
 		}
 
+		// Set color.
+		Triangle.Color0 = VertexColor;
+		Triangle.Color1 = VertexColor;
+		Triangle.Color2 = VertexColor;
+
 		// Store the extracted triangle.
 		Geometry.Push(Triangle);
 	}
@@ -307,4 +316,58 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 	SphereBounds = FBoxSphereBounds(FBox(ExtentMin, ExtentMax));
 
 	return true;
+}
+
+
+void 
+FHoudiniEngineUtils::GetHoudiniLogoGeometry(TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds)
+{
+	// Reset input geometry.
+	Geometry.Reset();
+
+	// Used for computation of bounding volume.
+	FVector ExtentMin(TNumericLimits<float>::Max(), TNumericLimits<float>::Max(), TNumericLimits<float>::Max());
+	FVector ExtentMax(TNumericLimits<float>::Min(), TNumericLimits<float>::Min(), TNumericLimits<float>::Min());
+
+	// Compute number of triangles in Houdini logo.
+	int VertexIndexCount = sizeof(FHoudiniLogo::VertexIndices) / sizeof(int);
+	
+	// Geometry scale factor.
+	static const float ScaleFactor = 12.0f;
+	static const FColor VertexColor(255, 165, 0);
+
+	int VertexIndexLookup;
+
+	// Construct triangle data.
+	for(int VertexIndex = 0; VertexIndex < VertexIndexCount; VertexIndex += 3)
+	{
+		FHoudiniMeshTriangle Triangle;
+		
+		VertexIndexLookup = FHoudiniLogo::VertexIndices[VertexIndex + 0] - 1;
+		Triangle.Vertex0.X = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 0] * ScaleFactor;
+		Triangle.Vertex0.Z = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 1] * ScaleFactor;
+		Triangle.Vertex0.Y = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 2] * ScaleFactor;
+		Triangle.Color0 = VertexColor;
+		UpdateBoundingVolumeExtent(Triangle.Vertex0, ExtentMin, ExtentMax);
+
+		VertexIndexLookup = FHoudiniLogo::VertexIndices[VertexIndex + 1] - 1;
+		Triangle.Vertex1.X = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 0] * ScaleFactor;
+		Triangle.Vertex1.Z = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 1] * ScaleFactor;
+		Triangle.Vertex1.Y = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 2] * ScaleFactor;
+		Triangle.Color1 = VertexColor;
+		UpdateBoundingVolumeExtent(Triangle.Vertex1, ExtentMin, ExtentMax);
+
+		VertexIndexLookup = FHoudiniLogo::VertexIndices[VertexIndex + 2] - 1;
+		Triangle.Vertex2.X = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 0] * ScaleFactor;
+		Triangle.Vertex2.Z = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 1] * ScaleFactor;
+		Triangle.Vertex2.Y = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 2] * ScaleFactor;
+		Triangle.Color2 = VertexColor;
+		UpdateBoundingVolumeExtent(Triangle.Vertex2, ExtentMin, ExtentMax);
+
+		// Store the extracted triangle.
+		Geometry.Push(Triangle);
+	}
+
+	// Create bounding volume information.
+	SphereBounds = FBoxSphereBounds(FBox(ExtentMin, ExtentMax));
 }

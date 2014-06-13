@@ -14,8 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include <vector>
-#include <string>
 #include <stdint.h>
 
 
@@ -30,10 +28,13 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
 	// This component can tick.
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 
 	// Zero scratch space.
 	FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
+
+	// Create temporary geometry.
+	FHoudiniEngineUtils::GetHoudiniLogoGeometry(HoudiniMeshTris, HoudiniMeshSphereBounds);
 }
 
 
@@ -332,7 +333,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	{
 		// Retrieve param info at this index.
 		const HAPI_ParmInfo& ParmInfoIter = ParmInfo[idx];
-			
+
 		// Skip unsupported param types for now.
 		switch(ParmInfoIter.type)
 		{
@@ -397,7 +398,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			// We have encountered an error retrieving the label of this parameter, continue onto next parameter.
 			continue;
 		}
-
+		
 		// We need to convert label to a string Unreal understands.
 		FUTF8ToTCHAR ParamLabelStringConverter(&ParmLabel[0]);
 
@@ -510,6 +511,12 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
+	// No support for arrays at the moment.
+	if(Count > 1)
+	{
+		return nullptr;
+	}
+
 	// Construct property.
 	UProperty* Property = new(ClassInstance, Name, PropertyObjectFlags) UIntProperty(FPostConstructInitializeProperties(), EC_CppProperty, Offset, 0x0);
 	Property->PropertyLinkNext = nullptr;
@@ -532,6 +539,12 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
+	// No support for arrays at the moment.
+	if(Count > 1)
+	{
+		return nullptr;
+	}
+
 	// Construct property.
 	UProperty* Property = new(ClassInstance, Name, PropertyObjectFlags) UFloatProperty(FPostConstructInitializeProperties(), EC_CppProperty, Offset, 0x0);
 	Property->PropertyLinkNext = nullptr;
@@ -553,6 +566,12 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
+
+	// No support for arrays at the moment.
+	if(Count > 1)
+	{
+		return nullptr;
+	}
 
 	// Construct property.
 	UProperty* Property = new(ClassInstance, Name, PropertyObjectFlags) UBoolProperty(FPostConstructInitializeProperties(), EC_CppProperty, Offset, 0x0, ~0, sizeof(bool), true);

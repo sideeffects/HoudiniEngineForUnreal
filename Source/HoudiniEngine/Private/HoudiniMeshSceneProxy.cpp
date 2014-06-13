@@ -20,9 +20,10 @@ FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component
 	FPrimitiveSceneProxy(Component, ResourceName),
 	MaterialRelevance(Component->GetMaterialRelevance())
 {
+	int32 VIndex;
 	const FColor VertexColor(255, 255, 255);
 
-	// Add each triangle to the vertex/index buffer.
+	// Add each triangle to the vertex / index buffer.
 	for(int TriIdx = 0; TriIdx < Component->HoudiniMeshTris.Num(); TriIdx++)
 	{
 		FHoudiniMeshTriangle& Tri = Component->HoudiniMeshTris[TriIdx];
@@ -36,25 +37,28 @@ FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component
 
 		FDynamicMeshVertex Vert0;
 		Vert0.Position = Tri.Vertex0;
-		Vert0.Color = VertexColor;
+		Vert0.Color = Tri.Color0;
 		Vert0.TextureCoordinate = Tri.TextureCoordinate0;
 		Vert0.SetTangents(TangentX, TangentY, TangentZ);
-		int32 VIndex = VertexBuffer.Vertices.Add(Vert0);
+
+		VIndex = VertexBuffer.Vertices.Add(Vert0);
 		IndexBuffer.Indices.Add(VIndex);
 
 		FDynamicMeshVertex Vert1;
 		Vert1.Position = Tri.Vertex1;
-		Vert1.Color = VertexColor;
+		Vert1.Color = Tri.Color1;
 		Vert1.TextureCoordinate = Tri.TextureCoordinate1;
 		Vert1.SetTangents(TangentX, TangentY, TangentZ);
+
 		VIndex = VertexBuffer.Vertices.Add(Vert1);
 		IndexBuffer.Indices.Add(VIndex);
 
 		FDynamicMeshVertex Vert2;
 		Vert2.Position = Tri.Vertex2;
-		Vert2.Color = VertexColor;
+		Vert2.Color = Tri.Color2;
 		Vert2.TextureCoordinate = Tri.TextureCoordinate2;
 		Vert2.SetTangents(TangentX, TangentY, TangentZ);
+
 		VIndex = VertexBuffer.Vertices.Add(Vert2);
 		IndexBuffer.Indices.Add(VIndex);
 	}

@@ -123,6 +123,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniEngineNotificationInfo.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAssetTypeActions.h"
+#include "HoudiniLogo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniMeshIndexBuffer.h"

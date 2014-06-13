@@ -50,4 +50,14 @@ struct FHoudiniMeshTriangle
 
 	UPROPERTY(EditAnywhere, Category = Triangle)
 	FVector2D TextureCoordinate2;
+
+	/** Per vertex color information. **/
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FColor Color0;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FColor Color1;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FColor Color2;
 };
