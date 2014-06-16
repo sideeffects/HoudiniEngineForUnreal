@@ -334,6 +334,12 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		// Retrieve param info at this index.
 		const HAPI_ParmInfo& ParmInfoIter = ParmInfo[idx];
 
+		// If parameter is invisible, skip it.
+		if(ParmInfoIter.invisible)
+		{
+			continue;
+		}
+
 		// Skip unsupported param types for now.
 		switch(ParmInfoIter.type)
 		{
@@ -407,13 +413,13 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		{
 			case HAPI_PARMTYPE_INT:
 			{
-				Property = CreatePropertyInt(ClassInstance, ParmNameConverted, ParmInfoIter.size, ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyInt(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
 			case HAPI_PARMTYPE_FLOAT:
 			{
-				Property = CreatePropertyFloat(ClassInstance, ParmNameConverted, ParmInfoIter.size, ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyFloat(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
@@ -510,13 +516,13 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 
 UProperty* 
-UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, int32 Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
-	// No support for arrays at the moment.
-	if(Count != 1)
+	// Ignore parameters with size zero.
+	if(!Count)
 	{
 		return nullptr;
 	}
@@ -527,28 +533,40 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
 	Property->PropertyFlags = PropertyFlags;
 
+	// This property is array.
+	if(Count > 1)
+	{
+		Property->ArrayDim = Count;
+	}
+
 	// We need to compute proper alignment for this type.
 	int* Boundary = Align((int*) (((char*) this) + Offset), ALIGNOF(int));
 	Offset = (const char*) Boundary - (const char*) this;
 
 	// Write property data to which it refers by offset.
-	*Boundary = Value;
+	*Boundary = *Value;
+
+	// Write property data to which it refers by offset.
+	for(int Index = 0; Index < Count; ++Index)
+	{
+		*Boundary = *(Value + Index);
+	}
 
 	// Increment offset for next property.
-	Offset += sizeof(int);
+	Offset = Offset + sizeof(int) * Count;
 
 	return Property;
 }
 
 
 UProperty* 
-UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, float Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
-	// No support for arrays at the moment.
-	if(Count != 1)
+	// Ignore parameters with size zero.
+	if(!Count)
 	{
 		return nullptr;
 	}
@@ -559,15 +577,24 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
 	Property->PropertyFlags = PropertyFlags;
 
+	// This property is array.
+	if(Count > 1)
+	{
+		Property->ArrayDim = Count;
+	}
+
 	// We need to compute proper alignment for this type.
 	float* Boundary = Align((float*) (((char*) this) + Offset), ALIGNOF(float));
 	Offset = (const char*) Boundary - (const char*) this;
 
 	// Write property data to which it refers by offset.
-	*Boundary = Value;
+	for(int Index = 0; Index < Count; ++Index)
+	{
+		*Boundary = *(Value + Index);
+	}
 
 	// Increment offset for next property.
-	Offset += sizeof(float);
+	Offset = Offset + sizeof(float) * Count;
 
 	return Property;
 }
@@ -579,8 +606,8 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
-	// No support for arrays at the moment.
-	if(Count != 1)
+	// Ignore parameters with size zero.
+	if(!Count)
 	{
 		return nullptr;
 	}

@@ -135,8 +135,8 @@ private:
 	bool ReplaceClassProperties(UClass* ClassInstance);
 
 	/** Patch RTTI : Create integer property. **/
-	UProperty* CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, int32 Value, uint32& Offset);
-	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, float Value, uint32& Offset);
+	UProperty* CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset);
+	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, bool bValue, uint32& Offset);
 
 	/** Set preview asset used by this component. **/
