@@ -19,6 +19,7 @@
 #include "HoudiniAsset.generated.h"
 
 class UThumbnailInfo;
+class UHoudiniAssetComponent;
 
 UCLASS(Blueprintable, BlueprintType, EditInlineNew, config=Editor)
 class HOUDINIENGINE_API UHoudiniAsset : public UObject
@@ -27,11 +28,15 @@ class HOUDINIENGINE_API UHoudiniAsset : public UObject
 
 public:
 
-	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& BufferStart, const uint8* BufferEnd);
-	
+	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, 
+				  const uint8*& BufferStart, 
+				  const uint8* BufferEnd, 
+				  const FString& InFileName);
+
 public: /** UObject methods. **/
 
 	virtual void FinishDestroy() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) OVERRIDE;
 
 public:
 
@@ -41,7 +46,20 @@ public:
 	/** Return the size in bytes of raw Houdini OTL data. **/
 	uint32 GetAssetBytesCount() const;
 
+	/** Set preview geometry. **/
+	void SetPreviewTriangles(const TArray<FHoudiniMeshTriangle>& triangles);
+
+	/** Return preview geometry. **/
+	const TArray<FHoudiniMeshTriangle>& GetPreviewTriangles() const;
+
+	/** Return true if preview geometry has been set. **/
+	bool ContainsPreviewTriangles() const;
+
 public:
+
+	/** Filename of the OTL. **/
+	UPROPERTY()
+	FString OTLFileName;
 
 	/** Holds this asset's name. **/
 	UPROPERTY()
@@ -52,6 +70,9 @@ public:
 	UThumbnailInfo* ThumbnailInfo;
 
 protected:
+	
+	/** Triangle data used for preview window. **/
+	TArray<FHoudiniMeshTriangle> PreviewHoudiniMeshTriangles;
 
 	/** Buffer containing raw Houdini OTL data. **/
 	uint8* AssetBytes;

@@ -34,18 +34,18 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
 
 	// Create temporary geometry.
-	FHoudiniEngineUtils::GetHoudiniLogoGeometry(HoudiniMeshTris, HoudiniMeshSphereBounds);
+	FHoudiniEngineUtils::GetHoudiniLogoGeometry(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
 }
 
 
-void 
+void
 UHoudiniAssetComponent::SetNative(bool InbIsNativeComponent)
 {
 	bIsNativeComponent = InbIsNativeComponent;
 }
 
 
-void 
+void
 UHoudiniAssetComponent::OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("OnRep_HoudiniAsset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
@@ -61,7 +61,7 @@ UHoudiniAssetComponent::OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset)
 }
 
 
-void 
+void
 UHoudiniAssetComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -69,14 +69,14 @@ UHoudiniAssetComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 }
 
 
-void 
+void
 UHoudiniAssetComponent::NotifyAssetInstanceCookingFailed(UHoudiniAssetInstance* InHoudiniAssetInstance, HAPI_Result Result)
 {
 	HOUDINI_LOG_ERROR(TEXT("Failed cooking for asset = %0x0.8p"), InHoudiniAssetInstance);
 }
 
 
-void 
+void
 UHoudiniAssetComponent::NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance* InHoudiniAssetInstance, HAPI_AssetId AssetId, const std::string& AssetInternalName)
 {
 	// Make sure we received instance we requested to be cooked.
@@ -90,9 +90,16 @@ UHoudiniAssetComponent::NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance
 	{
 		// We can recreate geometry.
 		FScopeLock ScopeLock(&CriticalSection);
-		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
+
+		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTriangles, HoudiniMeshSphereBounds))
 		{
 			HOUDINI_LOG_MESSAGE(TEXT("Preview actor, failed geometry extraction."));
+		}
+
+		// If asset does not have preview geometry, copy it.
+		if(!HoudiniAssetInstance->GetHoudiniAsset()->ContainsPreviewTriangles())
+		{
+			HoudiniAssetInstance->GetHoudiniAsset()->SetPreviewTriangles(HoudiniMeshTriangles);
 		}
 	}
 
@@ -117,14 +124,14 @@ UHoudiniAssetComponent::NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance
 }
 
 
-UHoudiniAsset* 
+UHoudiniAsset*
 UHoudiniAssetComponent::GetPreviewHoudiniAsset() const
 {
 	return PreviewHoudiniAsset;
 }
 
 
-void 
+void
 UHoudiniAssetComponent::SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset)
 {
 	if(PreviewHoudiniAsset == InPreviewHoudiniAsset)
@@ -139,6 +146,25 @@ UHoudiniAssetComponent::SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAs
 		// Check if we need to create a new instance of an asset.
 		if(!HoudiniAssetInstance)
 		{
+			{
+				FScopeLock ScopeLock(&CriticalSection);
+
+				if(PreviewHoudiniAsset->ContainsPreviewTriangles())
+				{
+					HoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(PreviewHoudiniAsset->GetPreviewTriangles());
+					FHoudiniEngineUtils::GetBoundingVolume(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
+				}
+
+				// Need to send this to render thread at some point.
+				MarkRenderStateDirty();
+
+				// Update physics representation right away.
+				RecreatePhysicsState();
+
+				// Since we have new asset, we need to update bounds.
+				UpdateBounds();
+			}
+
 			// Create asset instance and cook it.
 			HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
 			HoudiniAssetInstance->SetHoudiniAsset(PreviewHoudiniAsset);
@@ -164,7 +190,7 @@ UHoudiniAssetComponent::SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAs
 }
 
 
-void 
+void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
@@ -177,26 +203,34 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 }
 
 
-FBoxSphereBounds 
+FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
 	return HoudiniMeshSphereBounds;
 }
 
 
-int32 
+int32
 UHoudiniAssetComponent::GetNumMaterials() const
 {
 	return 1;
 }
 
 
-FPrimitiveSceneProxy* 
+const TArray<FHoudiniMeshTriangle>&
+UHoudiniAssetComponent::GetMeshTriangles() const
+{
+	return HoudiniMeshTriangles;
+}
+
+
+
+FPrimitiveSceneProxy*
 UHoudiniAssetComponent::CreateSceneProxy()
 {
 	FPrimitiveSceneProxy* Proxy = nullptr;
 	
-	if(HoudiniMeshTris.Num() > 0)
+	if(HoudiniMeshTriangles.Num() > 0)
 	{
 		FScopeLock ScopeLock(&CriticalSection);
 		Proxy = new FHoudiniMeshSceneProxy(this);
@@ -206,9 +240,27 @@ UHoudiniAssetComponent::CreateSceneProxy()
 }
 
 
-void 
+void
+UHoudiniAssetComponent::Serialize(FArchive& Ar)
+{
+	UClass* CurrentClass = GetClass();
+	UClass* OriginalClass = UClass::StaticClass();
+
+	// We need to restore original class information.
+	ReplaceClassObject(CurrentClass, OriginalClass);
+
+	Super::Serialize(Ar);
+
+	// Restore patched class back.
+	ReplaceClassObject(OriginalClass, CurrentClass);
+
+
+}
+
+
+void
 UHoudiniAssetComponent::ReplaceClassInformation()
-{	
+{
 	// Grab default object of UClass.
 	UObject* ClassOfUClass = UClass::StaticClass()->GetDefaultObject();
 
@@ -249,31 +301,33 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 	ReplaceClassProperties(PatchedClass);
 
 	// Patch class information.
+	ReplaceClassObject(GetClass(), PatchedClass);
+}
+
+
+void
+UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectOriginal, UClass* ClassObjectNew)
+{
+	UClass** Address = (UClass**) this;
+	UClass** EndAddress = (UClass**) this + sizeof(UHoudiniAssetComponent);
+
+	while(*Address != ClassObjectOriginal && Address < EndAddress)
 	{
-		UClass** Address = (UClass**) this;
-		UClass** EndAddress = (UClass**) this + sizeof(UHoudiniAssetComponent);
+		Address++;
+	}
 
-		//Grab class of UHoudiniAssetComponent.
-		UClass* HoudiniAssetComponentClass = GetClass();
-
-		while(*Address != HoudiniAssetComponentClass && Address < EndAddress)
-		{
-			Address++;
-		}
-
-		if(*Address == HoudiniAssetComponentClass)
-		{
-			*Address = PatchedClass;
-		}
-		else
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("Failed class patching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
-		}
+	if(*Address == ClassObjectOriginal)
+	{
+		*Address = ClassObjectNew;
+	}
+	else
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Failed class patching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 	}
 }
 
 
-bool 
+bool
 UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 {
 	HAPI_AssetId AssetId = HoudiniAssetInstance->GetAssetId();
@@ -515,7 +569,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 }
 
 
-UProperty* 
+UProperty*
 UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
@@ -559,7 +613,7 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 }
 
 
-UProperty* 
+UProperty*
 UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
@@ -600,7 +654,7 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 }
 
 
-UProperty* 
+UProperty*
 UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, bool bValue, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
@@ -632,7 +686,7 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 }
 
 
-void 
+void
 UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Retrieve property which changed.
@@ -740,7 +794,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	{
 		// We can recreate geometry.
 		FScopeLock ScopeLock(&CriticalSection);
-		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTris, HoudiniMeshSphereBounds))
+		if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTriangles, HoudiniMeshSphereBounds))
 		{
 			HOUDINI_LOG_MESSAGE(TEXT("Preview actor, failed geometry extraction."));
 		}
@@ -759,7 +813,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 }
 
 
-void 
+void
 UHoudiniAssetComponent::OnRegister()
 {
 	Super::OnRegister();
@@ -803,7 +857,7 @@ UHoudiniAssetComponent::OnRegister()
 }
 
 
-void 
+void
 UHoudiniAssetComponent::OnUnregister()
 {
 	Super::OnUnregister();
@@ -811,7 +865,7 @@ UHoudiniAssetComponent::OnUnregister()
 }
 
 
-void 
+void
 UHoudiniAssetComponent::OnComponentCreated()
 {
 	// This event will only be fired for native Actor and native Component.
@@ -820,7 +874,7 @@ UHoudiniAssetComponent::OnComponentCreated()
 }
 
 
-void 
+void
 UHoudiniAssetComponent::OnComponentDestroyed()
 {
 	Super::OnComponentDestroyed();
@@ -828,7 +882,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 }
 
 
-void 
+void
 UHoudiniAssetComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
 {
 	// Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation.
@@ -837,7 +891,7 @@ UHoudiniAssetComponent::GetComponentInstanceData(FComponentInstanceDataCache& Ca
 }
 
 
-void 
+void
 UHoudiniAssetComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
 {
 	// Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData.

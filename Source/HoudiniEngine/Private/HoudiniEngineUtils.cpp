@@ -190,6 +190,28 @@ FHoudiniEngineUtils::UpdateBoundingVolumeExtent(const FVector& Vector, FVector& 
 }
 
 
+void 
+FHoudiniEngineUtils::GetBoundingVolume(const TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds)
+{
+	// Used for computation of bounding volume.
+	FVector ExtentMin(TNumericLimits<float>::Max(), TNumericLimits<float>::Max(), TNumericLimits<float>::Max());
+	FVector ExtentMax(TNumericLimits<float>::Min(), TNumericLimits<float>::Min(), TNumericLimits<float>::Min());
+
+	// Transfer data.
+	for(int TriangleIdx = 0; TriangleIdx < Geometry.Num(); ++TriangleIdx)
+	{
+		const FHoudiniMeshTriangle& Triangle = Geometry[TriangleIdx];
+
+		UpdateBoundingVolumeExtent(Triangle.Vertex0, ExtentMin, ExtentMax);
+		UpdateBoundingVolumeExtent(Triangle.Vertex2, ExtentMin, ExtentMax);
+		UpdateBoundingVolumeExtent(Triangle.Vertex1, ExtentMin, ExtentMax);
+	}
+
+	// Create bounding volume information.
+	SphereBounds = FBoxSphereBounds(FBox(ExtentMin, ExtentMax));
+}
+
+
 bool 
 FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds)
 {

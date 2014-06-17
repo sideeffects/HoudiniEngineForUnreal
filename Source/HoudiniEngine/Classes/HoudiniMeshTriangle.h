@@ -61,3 +61,19 @@ struct FHoudiniMeshTriangle
 	UPROPERTY(EditAnywhere, Category = Triangle)
 	FColor Color2;
 };
+
+
+FORCEINLINE 
+FArchive& 
+operator<<(FArchive& Ar, FHoudiniMeshTriangle& triangle)
+{
+	Ar << triangle.Vertex0; Ar << triangle.Vertex1; Ar << triangle.Vertex2;
+	Ar << triangle.Normal0; Ar << triangle.Normal1; Ar << triangle.Normal2;
+	Ar << triangle.TextureCoordinate0.X; Ar << triangle.TextureCoordinate0.Y;
+
+	Ar << triangle.Color0.R; Ar << triangle.Color0.G; Ar << triangle.Color0.B; Ar << triangle.Color0.A;
+	Ar << triangle.Color1.R; Ar << triangle.Color1.G; Ar << triangle.Color1.B; Ar << triangle.Color1.A;
+	Ar << triangle.Color2.R; Ar << triangle.Color2.G; Ar << triangle.Color2.B; Ar << triangle.Color2.A;
+
+	return Ar;
+}

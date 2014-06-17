@@ -25,8 +25,12 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 }
 
 
-UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, const uint8*& BufferStart, const uint8* BufferEnd) : 
+UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, 
+							 const uint8*& BufferStart, 
+							 const uint8* BufferEnd,
+							 const FString& InFileName) : 
 	Super(PCIP),
+	OTLFileName(InFileName),
 	AssetBytes(nullptr),
 	AssetBytesCount(0)
 {
@@ -61,6 +65,27 @@ UHoudiniAsset::GetAssetBytesCount() const
 }
 
 
+bool 
+UHoudiniAsset::ContainsPreviewTriangles() const
+{
+	return PreviewHoudiniMeshTriangles.Num() > 0;
+}
+
+
+const TArray<FHoudiniMeshTriangle>& 
+UHoudiniAsset::GetPreviewTriangles() const
+{
+	return PreviewHoudiniMeshTriangles;
+}
+
+
+void 
+UHoudiniAsset::SetPreviewTriangles(const TArray<FHoudiniMeshTriangle>& triangles)
+{
+	PreviewHoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(triangles);
+}
+
+
 void
 UHoudiniAsset::FinishDestroy()
 {
@@ -74,5 +99,74 @@ UHoudiniAsset::FinishDestroy()
 		}
 	}
 
+	// Release buffer which was used to store raw OTL data.
+	if(AssetBytes)
+	{
+		FMemory::Free(AssetBytes);
+		AssetBytes = nullptr;
+		AssetBytesCount = 0;
+	}
+
 	Super::FinishDestroy();
+}
+
+
+void 
+UHoudiniAsset::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	// Properties will get serialized.
+
+	{
+		Ar << AssetBytesCount;
+
+		if(Ar.IsLoading())
+		{
+			// If buffer was previously used, release it.
+			if(AssetBytes)
+			{
+				FMemory::Free(AssetBytes);
+				AssetBytes = nullptr;
+			}
+
+			// Allocate sufficient space to read stored raw OTL data.
+			if(AssetBytesCount)
+			{
+				AssetBytes = static_cast<uint8*>(FMemory::Malloc(AssetBytesCount));
+			}
+		}
+
+		if(AssetBytes && AssetBytesCount)
+		{
+			Ar.Serialize(AssetBytes, AssetBytesCount);
+		}
+	}
+
+	{
+		if(Ar.IsSaving())
+		{
+			int PreviewTriangleCount = PreviewHoudiniMeshTriangles.Num();
+			Ar << PreviewTriangleCount;
+
+			for(int TriIndex = 0; TriIndex < PreviewHoudiniMeshTriangles.Num(); ++TriIndex)
+			{
+				FHoudiniMeshTriangle& Triangle = PreviewHoudiniMeshTriangles[TriIndex];
+				Ar << Triangle;
+			}
+		}
+		else if(Ar.IsLoading())
+		{
+			int PreviewTriangleCount = 0;
+			Ar << PreviewTriangleCount;
+
+			for(int TriIndex = 0; TriIndex < PreviewTriangleCount; ++TriIndex)
+			{
+				FHoudiniMeshTriangle Triangle;
+				Ar << Triangle;
+
+				PreviewHoudiniMeshTriangles.Add(Triangle);
+			}
+		}
+	}
 }
