@@ -37,6 +37,9 @@ public:
 
 	/** Extract Houdini logo temporary geometry. **/
 	static void GetHoudiniLogoGeometry(TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
+
+	/** Compute bounding volume information from triangle data. **/
+	static void GetBoundingVolume(const TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
 	
 protected:
 	

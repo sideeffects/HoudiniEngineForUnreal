@@ -68,8 +68,6 @@ struct FPropertyChangedEvent;
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public IHoudiniTaskCookAssetInstanceCallback
 {
-	friend class FHoudiniMeshSceneProxy;
-
 	GENERATED_UCLASS_BODY()
 
 	/** Houdini Asset associated with this component (except preview). Preview component will use PreviewHoudiniAsset instead. **/
@@ -92,6 +90,9 @@ public:
 	/** Return preview asset associated with this component. **/
 	UHoudiniAsset* GetPreviewHoudiniAsset() const;
 
+	/** Return tris data associated with this component. **/
+	const TArray<FHoudiniMeshTriangle>& GetMeshTriangles() const;
+	
 public: /** IHoudiniTaskCookAssetInstanceCallback methods. **/
 
 	void NotifyAssetInstanceCookingFailed(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_Result Result);
@@ -100,6 +101,7 @@ public: /** IHoudiniTaskCookAssetInstanceCallback methods. **/
 public: /** UObject methods. **/
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) OVERRIDE;
 
 protected: /** UActorComponent methods. **/
 
@@ -134,6 +136,9 @@ private:
 	/** Patch RTTI : translate asset parameters to class properties and insert them into a given class instance. **/
 	bool ReplaceClassProperties(UClass* ClassInstance);
 
+	/** Patch RTTI : patch class object. **/
+	void ReplaceClassObject(UClass* ClassObjectOriginal, UClass* ClassObjectNew);
+
 	/** Patch RTTI : Create integer property. **/
 	UProperty* CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset);
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
@@ -145,7 +150,7 @@ private:
 protected:
 
 	/** Triangle data used for rendering in viewport / preview window. **/
-	TArray<FHoudiniMeshTriangle> HoudiniMeshTris;
+	TArray<FHoudiniMeshTriangle> HoudiniMeshTriangles;
 
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;

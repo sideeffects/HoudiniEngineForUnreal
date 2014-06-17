@@ -28,4 +28,17 @@ public: /** FAssetTypeActions_Base methods. **/
 	virtual UClass* GetSupportedClass() const OVERRIDE;
 	virtual uint32 GetCategories() OVERRIDE;
 	virtual UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const OVERRIDE;
+	virtual bool HasActions(const TArray<UObject*>& InObjects) const OVERRIDE;
+	virtual void GetActions(const TArray<UObject*>& InObjects, class FMenuBuilder& MenuBuilder) OVERRIDE;
+
+protected:
+
+	/** Handler for reload option. **/
+	void ExecuteReload(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
+
+	/** Handler for reimport option. **/
+	void ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
+
+	/** Handler for when find in explorer is selected */
+	void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
 };

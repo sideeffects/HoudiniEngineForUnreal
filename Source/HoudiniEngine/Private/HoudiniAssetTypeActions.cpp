@@ -58,3 +58,93 @@ FHoudiniAssetTypeActions::GetThumbnailInfo(UObject* Asset) const
 
 	return ThumbnailInfo;
 }
+
+
+bool 
+FHoudiniAssetTypeActions::HasActions(const TArray<UObject*>& InObjects) const
+{
+	return true;
+}
+
+
+void 
+FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FMenuBuilder& MenuBuilder)
+{
+	auto HoudiniAssets = GetTypedWeakObjectPtrs<UHoudiniAsset>(InObjects);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Reload", "Reload"),
+		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_ReloadTooltip", "Reload selected Houdini Assets."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteReload, HoudiniAssets),
+			FCanExecuteAction()
+		)
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Reimport", "Reimport"),
+		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_ReimportTooltip", "Reimport selected Houdini Assets."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteReimport, HoudiniAssets),
+			FCanExecuteAction()
+		)
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorer", "Find Source"),
+		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteFindInExplorer, HoudiniAssets),
+			FCanExecuteAction()
+		)
+	);
+}
+
+
+void
+FHoudiniAssetTypeActions::ExecuteReload(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets)
+{
+	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		auto Object = (*ObjIt).Get();
+		if(Object)
+		{
+			//FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/true);
+		}
+	}
+}
+
+
+void 
+FHoudiniAssetTypeActions::ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets)
+{
+	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		UHoudiniAsset* Object = (*ObjIt).Get();
+		if(Object)
+		{
+			//FReimportManager::Instance()->Reimport(Object, true);
+		}
+	}
+}
+
+
+void
+FHoudiniAssetTypeActions::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets)
+{
+	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		UHoudiniAsset* Object = (*ObjIt).Get();
+		if(Object)
+		{
+			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->OTLFileName, Object);
+			if(INDEX_NONE != SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath))
+			{
+				FPlatformProcess::ExploreFolder(*FPaths::GetPath(SourceFilePath));
+			}
+		}
+	}
+}

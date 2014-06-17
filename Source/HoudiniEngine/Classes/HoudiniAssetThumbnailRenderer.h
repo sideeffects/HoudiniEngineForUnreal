@@ -28,7 +28,7 @@ class HOUDINIENGINE_API UHoudiniAssetThumbnailRenderer : public UDefaultSizedThu
 	GENERATED_UCLASS_BODY()
 
 public: /** ThumbnailRenderer methods. **/
-	
+
 	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas) OVERRIDE;
 
 public: /** UObject methods. **/
