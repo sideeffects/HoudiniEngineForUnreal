@@ -164,11 +164,14 @@ protected:
 	/** Houdini Asset used for preview. This is only used by components attached to preview actors. **/
 	UHoudiniAsset* PreviewHoudiniAsset;
 
+	/** **/
+	UMaterial* Material;
+
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;
 
-	/** **/
-	UMaterial* Material;
+	/** Used to track whether component is using preview geometry. **/
+	bool bUsePreviewGeometry;
 
 private:
 

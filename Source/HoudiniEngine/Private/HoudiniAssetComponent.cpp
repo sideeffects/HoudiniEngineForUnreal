@@ -21,8 +21,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	Super(PCIP),
 	HoudiniAssetInstance(nullptr),
 	PreviewHoudiniAsset(nullptr),
+	Material(nullptr),
 	bIsNativeComponent(false),
-	Material(nullptr)
+	bUsePreviewGeometry(false)
 {
 	// Create generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -153,16 +154,16 @@ UHoudiniAssetComponent::SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAs
 				{
 					HoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(PreviewHoudiniAsset->GetPreviewTriangles());
 					FHoudiniEngineUtils::GetBoundingVolume(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
+
+					// Need to send this to render thread at some point.
+					MarkRenderStateDirty();
+
+					// Update physics representation right away.
+					RecreatePhysicsState();
+
+					// Since we have new asset, we need to update bounds.
+					UpdateBounds();
 				}
-
-				// Need to send this to render thread at some point.
-				MarkRenderStateDirty();
-
-				// Update physics representation right away.
-				RecreatePhysicsState();
-
-				// Since we have new asset, we need to update bounds.
-				UpdateBounds();
 			}
 
 			// Create asset instance and cook it.
@@ -820,39 +821,85 @@ UHoudiniAssetComponent::OnRegister()
 	HOUDINI_LOG_MESSAGE(TEXT("Registering component, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
 	// Make sure we have a Houdini asset to operate with.
-	if(HoudiniAsset)
+	if(!HoudiniAsset)
 	{
-		// Make sure we are attached to a Houdini asset actor.
-		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-		if(HoudiniAssetActor)
+		return;
+	}
+
+	// Make sure we are attached to a Houdini asset actor.
+	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	if(!HoudiniAssetActor)
+	{
+		return;
+	}
+
+	if(bIsNativeComponent)
+	{
+		// This is a native component ~ belonging to a c++ actor, make sure actor is not used for preview.
+		if(!HoudiniAssetActor->IsUsedForPreview())
 		{
-			if(bIsNativeComponent)
+			HOUDINI_LOG_MESSAGE(TEXT("Native::OnRegister, Non-Preview"));
+
+			if(!bUsePreviewGeometry && HoudiniAsset->ContainsPreviewTriangles())
 			{
-				// This is a native component ~ belonging to a c++ actor, make sure actor is not used for preview.
-				if(!HoudiniAssetActor->IsUsedForPreview())
-				{
-					HOUDINI_LOG_MESSAGE(TEXT("Native::OnRegister"));
-					
-					if(!HoudiniAssetInstance)
-					{
-						// Create asset instance and cook it.
-						HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
-						HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
+				FScopeLock ScopeLock(&CriticalSection);
 
-						// Start asynchronous task to perform the cooking from the referenced asset instance.
-						FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
+				HoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(HoudiniAsset->GetPreviewTriangles());
+				FHoudiniEngineUtils::GetBoundingVolume(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
 
-						// Create a new thread to execute our runnable.
-						FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
-					}
-				}
+				// Need to send this to render thread at some point.
+				MarkRenderStateDirty();
+
+				// Update physics representation right away.
+				RecreatePhysicsState();
+
+				// Since we have new asset, we need to update bounds.
+				UpdateBounds();
+
+				bUsePreviewGeometry = true;
 			}
-			else
+
+			if(!HoudiniAssetInstance)
 			{
-				// This is a dynamic component ~ part of blueprint.
-				HOUDINI_LOG_MESSAGE(TEXT("Dynamic::OnRegister"));
+				// Create asset instance and cook it.
+				HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
+				HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
+
+				// Start asynchronous task to perform the cooking from the referenced asset instance.
+				FHoudiniTaskCookAssetInstance* HoudiniTaskCookAssetInstance = new FHoudiniTaskCookAssetInstance(this, HoudiniAssetInstance);
+
+				// Create a new thread to execute our runnable.
+				FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAssetInstance, TEXT("HoudiniTaskCookAssetInstance"), true, true, 0, TPri_Normal);
 			}
 		}
+		else
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Native::OnRegister, Preview"));
+
+			if(!bUsePreviewGeometry && HoudiniAsset->ContainsPreviewTriangles())
+			{
+				FScopeLock ScopeLock(&CriticalSection);
+
+				HoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(HoudiniAsset->GetPreviewTriangles());
+				FHoudiniEngineUtils::GetBoundingVolume(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
+
+				// Need to send this to render thread at some point.
+				MarkRenderStateDirty();
+
+				// Update physics representation right away.
+				RecreatePhysicsState();
+
+				// Since we have new asset, we need to update bounds.
+				UpdateBounds();
+
+				bUsePreviewGeometry = true;
+			}
+		}
+	}
+	else
+	{
+		// This is a dynamic component ~ part of blueprint.
+		HOUDINI_LOG_MESSAGE(TEXT("Dynamic::OnRegister"));
 	}
 }
 
