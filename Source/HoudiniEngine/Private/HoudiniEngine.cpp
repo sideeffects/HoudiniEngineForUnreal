@@ -26,14 +26,14 @@ FHoudiniEngine*
 FHoudiniEngine::HoudiniEngineInstance = nullptr;
 
 
-TSharedPtr<FSlateDynamicImageBrush> 
+TSharedPtr<FSlateDynamicImageBrush>
 FHoudiniEngine::GetHoudiniLogoBrush() const
 {
 	return HoudiniLogoBrush;
 }
 
 
-FHoudiniEngine& 
+FHoudiniEngine&
 FHoudiniEngine::Get()
 {
 	check(FHoudiniEngine::HoudiniEngineInstance);
@@ -68,7 +68,7 @@ FHoudiniEngine::StartupModule()
 			{
 				const FName BrushName(*PluginStatus.Icon128FilePath);
 				const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
-				
+
 				if(Size.X > 0 && Size.Y > 0)
 				{
 					static const int ProgressIconSize = 32;
@@ -197,14 +197,14 @@ FHoudiniEngine::Tick(float DeltaTime)
 }
 
 
-bool 
+bool
 FHoudiniEngine::IsTickable() const
 {
 	return true;
 }
 
 
-TStatId 
+TStatId
 FHoudiniEngine::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FHoudiniEngine, STATGROUP_Tickables);
@@ -228,7 +228,7 @@ FHoudiniEngine::AddNotification(FHoudiniEngineNotificationInfo* Notification)
 }
 
 
-void 
+void
 FHoudiniEngine::RemoveNotification(FHoudiniEngineNotificationInfo* Notification)
 {
 	FScopeLock ScopeLock(&CriticalSection);
@@ -244,7 +244,7 @@ FHoudiniEngine::RemoveNotification(FHoudiniEngineNotificationInfo* Notification)
 }
 
 
-void 
+void
 FHoudiniEngine::UpdateNotification(FHoudiniEngineNotificationInfo* Notification)
 {
 	FScopeLock ScopeLock(&CriticalSection);

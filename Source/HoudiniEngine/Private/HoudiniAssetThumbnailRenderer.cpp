@@ -31,7 +31,7 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 	{
 		FHoudiniAssetThumbnailScene* ThumbnailScene = nullptr;
 		FHoudiniAssetThumbnailScene** StoredThumbnailScene = ThumbnailScenes.Find(HoudiniAsset);
-		
+
 		// See if we have a scene created for this asset.
 		if(!StoredThumbnailScene)
 		{
@@ -62,7 +62,7 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 }
 
 
-void 
+void
 UHoudiniAssetThumbnailRenderer::BeginDestroy()
 {
 	for(TMap<UHoudiniAsset*, FHoudiniAssetThumbnailScene*>::TConstIterator ParamIter(ThumbnailScenes); ParamIter; ++ParamIter)
@@ -75,7 +75,7 @@ UHoudiniAssetThumbnailRenderer::BeginDestroy()
 }
 
 
-void 
+void
 UHoudiniAssetThumbnailRenderer::RemoveAssetThumbnail(UHoudiniAsset* HoudiniAsset)
 {
 	FHoudiniAssetThumbnailScene** StoredThumbnailScene = ThumbnailScenes.Find(HoudiniAsset);

@@ -595,7 +595,7 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 	}
 
 	// We need to compute proper alignment for this type.
-	int* Boundary = Align((int*) (((char*) this) + Offset), ALIGNOF(int));
+	int* Boundary = Align<int*>((int*) (((char*) this) + Offset), ALIGNOF(int));
 	Offset = (const char*) Boundary - (const char*) this;
 
 	// Write property data to which it refers by offset.
@@ -639,7 +639,7 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 	}
 
 	// We need to compute proper alignment for this type.
-	float* Boundary = Align((float*) (((char*) this) + Offset), ALIGNOF(float));
+	float* Boundary = Align<float*>((float*) (((char*) this) + Offset), ALIGNOF(float));
 	Offset = (const char*) Boundary - (const char*) this;
 
 	// Write property data to which it refers by offset.
@@ -674,7 +674,7 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 	Property->PropertyFlags = PropertyFlags;
 
 	// We need to compute proper alignment for this type.
-	bool* Boundary = Align((bool*) (((char*) this) + Offset), ALIGNOF(bool));
+	bool* Boundary = Align<bool*>((bool*) (((char*) this) + Offset), ALIGNOF(bool));
 	Offset = (const char*) Boundary - (const char*) this;
 
 	// Write property data to which it refers by offset.
@@ -725,7 +725,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		Super::PostEditChangeProperty(PropertyChangedEvent);
 		return;
 	}
-	
+
 	// Locate corresponding param.
 	HOUDINI_CHECK_ERROR(HAPI_GetParmIdFromName(AssetInfo.nodeId, PropertyNameConverted.c_str(), &ParamId));
 	if(HAPI_RESULT_SUCCESS != Result)
@@ -743,7 +743,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		Super::PostEditChangeProperty(PropertyChangedEvent);
 		return;
 	}
-	
+
 	// Based on type, upload new values to Houdini Engine.
 	if(UIntProperty::StaticClass() == Property->GetClass())
 	{
@@ -790,7 +790,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		Super::PostEditChangeProperty(PropertyChangedEvent);
 		return;
 	}
-	
+
 	if(HoudiniAssetInstance->IsInitialized())
 	{
 		// We can recreate geometry.

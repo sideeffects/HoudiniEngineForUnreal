@@ -23,7 +23,7 @@ FHoudiniAssetBroker::GetSupportedAssetClass()
 }
 
 
-bool 
+bool
 FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset)
 {
 	if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
@@ -41,7 +41,7 @@ FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent* InComponent, UObjec
 }
 
 
-UObject* 
+UObject*
 FHoudiniAssetBroker::GetAssetFromComponent(UActorComponent* InComponent)
 {
 	if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
