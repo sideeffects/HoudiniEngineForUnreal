@@ -44,7 +44,7 @@ FHoudiniAssetTypeActions::GetCategories()
 }
 
 
-UThumbnailInfo* 
+UThumbnailInfo*
 FHoudiniAssetTypeActions::GetThumbnailInfo(UObject* Asset) const
 {
 	UHoudiniAsset* HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
@@ -60,14 +60,14 @@ FHoudiniAssetTypeActions::GetThumbnailInfo(UObject* Asset) const
 }
 
 
-bool 
+bool
 FHoudiniAssetTypeActions::HasActions(const TArray<UObject*>& InObjects) const
 {
 	return true;
 }
 
 
-void 
+void
 FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FMenuBuilder& MenuBuilder)
 {
 	auto HoudiniAssets = GetTypedWeakObjectPtrs<UHoudiniAsset>(InObjects);
@@ -118,7 +118,7 @@ FHoudiniAssetTypeActions::ExecuteReload(TArray<TWeakObjectPtr<UHoudiniAsset> > H
 }
 
 
-void 
+void
 FHoudiniAssetTypeActions::ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets)
 {
 	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)

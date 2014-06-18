@@ -36,7 +36,7 @@ FHoudiniAssetThumbnailScene::FHoudiniAssetThumbnailScene()
 }
 
 
-void 
+void
 FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 {
 	PreviewHoudiniAssetActor->HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
@@ -56,7 +56,7 @@ FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 }
 
 
-void 
+void
 FHoudiniAssetThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
 {
 	check(PreviewHoudiniAssetActor);

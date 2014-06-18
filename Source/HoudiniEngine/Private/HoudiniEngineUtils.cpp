@@ -93,16 +93,16 @@ FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 }
 
 
-const FString 
+const FString
 FHoudiniEngineUtils::GetErrorDescription()
 {
 	int StatusBufferLength = 0;
 	HAPI_GetStatusStringBufLength(
 		HAPI_STATUS_RESULT, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
-	
+
 	std::vector<char> StatusStringBuffer(StatusBufferLength, 0);
 	HAPI_GetStatusString(HAPI_STATUS_RESULT, &StatusStringBuffer[0]);
-	
+
 	return FString(ANSI_TO_TCHAR(&StatusStringBuffer[0]));
 }
 
@@ -155,7 +155,7 @@ FHoudiniEngineUtils::GetAssetName(int AssetName, FString& AssetNameString)
 }
 
 
-void 
+void
 FHoudiniEngineUtils::UpdateBoundingVolumeExtent(const FVector& Vector, FVector& ExtentMin, FVector& ExtentMax)
 {
 	if(ExtentMin.X > Vector.X)
@@ -190,7 +190,7 @@ FHoudiniEngineUtils::UpdateBoundingVolumeExtent(const FVector& Vector, FVector& 
 }
 
 
-void 
+void
 FHoudiniEngineUtils::GetBoundingVolume(const TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds)
 {
 	// Used for computation of bounding volume.
@@ -212,7 +212,7 @@ FHoudiniEngineUtils::GetBoundingVolume(const TArray<FHoudiniMeshTriangle>& Geome
 }
 
 
-bool 
+bool
 FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds)
 {
 	// Reset input geometry.
@@ -341,7 +341,7 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 }
 
 
-void 
+void
 FHoudiniEngineUtils::GetHoudiniLogoGeometry(TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds)
 {
 	// Reset input geometry.
@@ -364,7 +364,7 @@ FHoudiniEngineUtils::GetHoudiniLogoGeometry(TArray<FHoudiniMeshTriangle>& Geomet
 	for(int VertexIndex = 0; VertexIndex < VertexIndexCount; VertexIndex += 3)
 	{
 		FHoudiniMeshTriangle Triangle;
-		
+
 		VertexIndexLookup = FHoudiniLogo::VertexIndices[VertexIndex + 0] - 1;
 		Triangle.Vertex0.X = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 0] * ScaleFactor;
 		Triangle.Vertex0.Z = FHoudiniLogo::Vertices[VertexIndexLookup * 3 + 1] * ScaleFactor;

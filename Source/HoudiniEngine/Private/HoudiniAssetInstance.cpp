@@ -35,42 +35,42 @@ UHoudiniAssetInstance::IsInitialized() const
 }
 
 
-void 
+void
 UHoudiniAssetInstance::SetCooking(bool bCooking)
 {
 	bIsCooking = bCooking;
 }
 
 
-bool 
+bool
 UHoudiniAssetInstance::IsCooking() const
 {
 	return bIsCooking;
 }
 
 
-void 
+void
 UHoudiniAssetInstance::SetCooked(bool bCooked)
 {
 	bHasBeenCooked = bCooked;
 }
 
 
-bool 
+bool
 UHoudiniAssetInstance::HasBeenCooked() const
 {
 	return bHasBeenCooked;
 }
 
 
-HAPI_AssetId 
+HAPI_AssetId
 UHoudiniAssetInstance::GetAssetId() const
 {
 	return(AssetId);
 }
 
 
-void 
+void
 UHoudiniAssetInstance::SetAssetId(HAPI_AssetId InAssetId)
 {
 	AssetId = InAssetId;
@@ -84,7 +84,7 @@ UHoudiniAssetInstance::GetHoudiniAsset() const
 }
 
 
-void 
+void
 UHoudiniAssetInstance::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
 	HoudiniAsset = InHoudiniAsset;

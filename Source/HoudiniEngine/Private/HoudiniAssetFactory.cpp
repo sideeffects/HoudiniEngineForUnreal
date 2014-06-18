@@ -43,7 +43,7 @@ UHoudiniAssetFactory::GetDisplayName() const
 }
 
 
-UObject* 
+UObject*
 UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("UHoudiniAssetFactory is creating an asset, Factory = 0x%0.8p, Parent = 0x%0.8p"), this, InParent);

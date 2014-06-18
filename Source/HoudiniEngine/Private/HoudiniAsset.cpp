@@ -65,14 +65,14 @@ UHoudiniAsset::GetAssetBytesCount() const
 }
 
 
-bool 
+bool
 UHoudiniAsset::ContainsPreviewTriangles() const
 {
 	return PreviewHoudiniMeshTriangles.Num() > 0;
 }
 
 
-const TArray<FHoudiniMeshTriangle>& 
+const TArray<FHoudiniMeshTriangle>&
 UHoudiniAsset::GetPreviewTriangles() const
 {
 	return PreviewHoudiniMeshTriangles;
@@ -111,7 +111,7 @@ UHoudiniAsset::FinishDestroy()
 }
 
 
-void 
+void
 UHoudiniAsset::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);

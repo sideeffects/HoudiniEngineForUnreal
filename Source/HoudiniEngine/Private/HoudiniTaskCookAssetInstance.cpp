@@ -31,7 +31,7 @@ FHoudiniTaskCookAssetInstance::~FHoudiniTaskCookAssetInstance()
 }
 
 
-void 
+void
 FHoudiniTaskCookAssetInstance::RemoveNotification()
 {
 	// If we have a notification object, tell engine to remove it.
@@ -42,18 +42,18 @@ FHoudiniTaskCookAssetInstance::RemoveNotification()
 }
 
 
-uint32 
+uint32
 FHoudiniTaskCookAssetInstance::RunErrorCleanUp(HAPI_Result Result)
 {
 	// Notify callback that a certain error occurred during cooking.
 	HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFailed(HoudiniAssetInstance, Result);
 	RemoveNotification();
-	
+
 	return 0;
 }
 
 
-void 
+void
 FHoudiniTaskCookAssetInstance::UpdateNotification(const FString& StatusString)
 {
 	if(NotificationInfo.IsValid())
@@ -70,7 +70,7 @@ FHoudiniTaskCookAssetInstance::UpdateNotification(const FString& StatusString)
 }
 
 
-uint32 
+uint32
 FHoudiniTaskCookAssetInstance::Run()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("HoudiniTaskCookAssetInstance Asynchronous Cooking Started."));

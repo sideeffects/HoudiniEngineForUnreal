@@ -37,7 +37,7 @@ UHoudiniAssetActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText
 }
 
 
-UObject* 
+UObject*
 UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor* Instance)
 {
 	check(Instance->IsA(NewActorClass));
@@ -48,7 +48,7 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor* Instance)
 }
 
 
-void 
+void
 UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor, supplied Asset = 0x%0.8p"), Asset);
@@ -72,7 +72,7 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 }
 
 
-void 
+void
 UHoudiniAssetActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("PostCreateBlueprint, supplied Asset = 0x%0.8p"), Asset);

@@ -91,7 +91,7 @@ FHoudiniMeshSceneProxy::~FHoudiniMeshSceneProxy()
 }
 
 
-void 
+void
 FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_HoudiniMeshSceneProxy_DrawDynamicElements);
@@ -131,7 +131,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const F
 }
 
 
-FPrimitiveViewRelevance 
+FPrimitiveViewRelevance
 FHoudiniMeshSceneProxy::GetViewRelevance(const FSceneView* View)
 {
 	FPrimitiveViewRelevance Result;
@@ -145,21 +145,21 @@ FHoudiniMeshSceneProxy::GetViewRelevance(const FSceneView* View)
 }
 
 
-bool 
+bool
 FHoudiniMeshSceneProxy::CanBeOccluded() const
 {
 	return !MaterialRelevance.bDisableDepthTest;
 }
 
 
-uint32 
+uint32
 FHoudiniMeshSceneProxy::GetMemoryFootprint() const
 {
 	return(sizeof(*this) + GetAllocatedSize());
 }
 
 
-uint32 
+uint32
 FHoudiniMeshSceneProxy::GetAllocatedSize() const
 {
 	return(FPrimitiveSceneProxy::GetAllocatedSize());

@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-const float 
-FHoudiniLogo::Vertices[2790] = 
+const float
+FHoudiniLogo::Vertices[2790] =
 {
 	1.538330f, -0.545945f, 1.266676f,
 	1.366139f, -0.026616f, 1.266676f,
@@ -953,7 +953,7 @@ FHoudiniLogo::Vertices[2790] =
 
 
 const int
-FHoudiniLogo::VertexIndices[3312] = 
+FHoudiniLogo::VertexIndices[3312] =
 {
 	91, 92, 1,
 	1, 92, 2,
