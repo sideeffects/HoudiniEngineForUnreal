@@ -120,7 +120,7 @@ FHoudiniTaskCookAssetInstance::Run()
 		while(true)
 		{
 			int Status = HAPI_STATE_STARTING_COOK;
-			HOUDINI_CHECK_ERROR(HAPI_GetStatus(HAPI_STATUS_STATE, &Status));
+			HOUDINI_CHECK_ERROR(HAPI_GetStatus(HAPI_STATUS_COOK_STATE, &Status));
 
 			if(HAPI_STATE_READY == Status)
 			{
