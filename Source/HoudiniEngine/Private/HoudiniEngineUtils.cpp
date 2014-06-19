@@ -98,10 +98,10 @@ FHoudiniEngineUtils::GetErrorDescription()
 {
 	int StatusBufferLength = 0;
 	HAPI_GetStatusStringBufLength(
-		HAPI_STATUS_RESULT, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
+		HAPI_STATUS_CALL_RESULT, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
 
 	std::vector<char> StatusStringBuffer(StatusBufferLength, 0);
-	HAPI_GetStatusString(HAPI_STATUS_RESULT, &StatusStringBuffer[0]);
+	HAPI_GetStatusString(HAPI_STATUS_CALL_RESULT, &StatusStringBuffer[0]);
 
 	return FString(ANSI_TO_TCHAR(&StatusStringBuffer[0]));
 }
