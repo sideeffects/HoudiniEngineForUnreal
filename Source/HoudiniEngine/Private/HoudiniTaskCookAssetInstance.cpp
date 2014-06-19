@@ -150,9 +150,9 @@ FHoudiniTaskCookAssetInstance::Run()
 
 				// Retrieve status string.
 				int StatusStringBufferLength = 0;
-				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusStringBufLength(HAPI_STATUS_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), RunErrorCleanUp(Result));
+				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), RunErrorCleanUp(Result));
 				std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
-				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusString(HAPI_STATUS_STATE, &StatusStringBuffer[0]), RunErrorCleanUp(Result));
+				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), RunErrorCleanUp(Result));
 				FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
 
 				UpdateNotification(StatusString);
