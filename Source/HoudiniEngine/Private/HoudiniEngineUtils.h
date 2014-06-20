@@ -40,6 +40,14 @@ public:
 
 	/** Compute bounding volume information from triangle data. **/
 	static void GetBoundingVolume(const TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
+
+	/** Convert Houdini color to Unreal FColor and return number of channels. **/
+	static int ConvertHoudiniColorRGB(const float* HoudiniColorRGB, FColor& UnrealColor);
+	static int ConvertHoudiniColorRGBA(const float* HoudiniColorRGBA, FColor& UnrealColor);
+
+	/** Convert Unreal FColor to Houdini color and return number of channels. **/
+	static int ConvertUnrealColorRGB(const FColor& UnrealColor, float* HoudiniColorRGB);
+	static int ConvertUnrealColorRGBA(const FColor& UnrealColor, float* HoudiniColorRGBA);
 	
 protected:
 	

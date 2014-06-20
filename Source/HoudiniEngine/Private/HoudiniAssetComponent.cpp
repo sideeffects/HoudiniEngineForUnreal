@@ -36,6 +36,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 
 	// Create temporary geometry.
 	FHoudiniEngineUtils::GetHoudiniLogoGeometry(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
+
+	//static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/HoudiniEngine/DefaultHoudiniEngineMaterial"));
+	//Material = DefaultMaterial.Object;
 }
 
 
@@ -401,11 +404,11 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			case HAPI_PARMTYPE_INT:
 			case HAPI_PARMTYPE_FLOAT:
 			case HAPI_PARMTYPE_TOGGLE:
+			case HAPI_PARMTYPE_COLOR:
 			{
 				break;
 			}
 
-			case HAPI_PARMTYPE_COLOR:
 			case HAPI_PARMTYPE_STRING:
 			default:
 			{
@@ -485,6 +488,10 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			}
 
 			case HAPI_PARMTYPE_COLOR:
+			{
+				Property = CreatePropertyColor(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
+				break;
+			}
 			case HAPI_PARMTYPE_STRING:
 			default:
 			{
@@ -570,6 +577,68 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 }
 
 
+UProperty* 
+UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset)
+{
+	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient | RF_Native;
+	static const uint64 PropertyFlags = UINT64_C(69793219077);
+
+	// Color must have 3 or 4 fields.
+	if(Count < 3)
+	{
+		return nullptr;
+	}
+
+	static UScriptStruct* ReturnStruct = nullptr;
+	if(!ReturnStruct)
+	{
+		ReturnStruct = new(UHoudiniAssetComponent::StaticClass(), TEXT("Color"), RF_Public | RF_Transient | RF_Native) UScriptStruct(FPostConstructInitializeProperties(), NULL, NULL, EStructFlags(0x00000030), sizeof(FColor), ALIGNOF(FColor));
+		
+		UProperty* NewProp_A = new(ReturnStruct, TEXT("A"), RF_Public | RF_Transient | RF_Native) UByteProperty(CPP_PROPERTY_BASE(A, FColor), 0x0000000001000005);
+		UProperty* NewProp_R = new(ReturnStruct, TEXT("R"), RF_Public | RF_Transient | RF_Native) UByteProperty(CPP_PROPERTY_BASE(R, FColor), 0x0000000001000005);
+		UProperty* NewProp_G = new(ReturnStruct, TEXT("G"), RF_Public | RF_Transient | RF_Native) UByteProperty(CPP_PROPERTY_BASE(G, FColor), 0x0000000001000005);
+		UProperty* NewProp_B = new(ReturnStruct, TEXT("B"), RF_Public | RF_Transient | RF_Native) UByteProperty(CPP_PROPERTY_BASE(B, FColor), 0x0000000001000005);
+		
+		ReturnStruct->StaticLink();
+	}
+
+	// Construct property.
+	UProperty* Property = new(ClassInstance, Name, PropertyObjectFlags) UStructProperty(FPostConstructInitializeProperties(), EC_CppProperty, Offset, 0x0, ReturnStruct);
+
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->PropertyFlags = PropertyFlags;
+
+	FColor ConvertedColor;
+
+	if(Count < 4)
+	{
+		// Disable alpha channel if our color does not have it.
+		Property->SetMetaData(TEXT("HideAlphaChannel"), TEXT("0"));
+
+		// Convert Houdini float RGB color to Unreal int RGB color (this will set alpha to 255).
+		FHoudiniEngineUtils::ConvertHoudiniColorRGB(Value, ConvertedColor);
+	}
+	else
+	{
+		// Convert Houdini float RGBA color to Unreal int RGBA color.
+		FHoudiniEngineUtils::ConvertHoudiniColorRGBA(Value, ConvertedColor);
+	}
+
+	// We need to compute proper alignment for this type.
+	FColor* Boundary = Align<FColor*>((FColor*)(((char*) this) + Offset), ALIGNOF(FColor));
+	Offset = (const char*)Boundary - (const char*) this;
+	
+	// Write property data to which it refers by offset.
+	*Boundary = ConvertedColor;
+	
+	// Increment offset for next property.
+	Offset = Offset + sizeof(FColor);
+
+	return Property;
+}
+
+
 UProperty*
 UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset)
 {
@@ -597,9 +666,6 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 	// We need to compute proper alignment for this type.
 	int* Boundary = Align<int*>((int*) (((char*) this) + Offset), ALIGNOF(int));
 	Offset = (const char*) Boundary - (const char*) this;
-
-	// Write property data to which it refers by offset.
-	*Boundary = *Value;
 
 	// Write property data to which it refers by offset.
 	for(int Index = 0; Index < Count; ++Index)

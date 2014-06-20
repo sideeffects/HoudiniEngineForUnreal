@@ -393,3 +393,50 @@ FHoudiniEngineUtils::GetHoudiniLogoGeometry(TArray<FHoudiniMeshTriangle>& Geomet
 	// Create bounding volume information.
 	SphereBounds = FBoxSphereBounds(FBox(ExtentMin, ExtentMax));
 }
+
+
+int
+FHoudiniEngineUtils::ConvertHoudiniColorRGB(const float* HoudiniColorRGB, FColor& UnrealColor)
+{
+	UnrealColor.B = FPlatformMath::FloorToInt(HoudiniColorRGB[2] == 1.0f ? 255 : HoudiniColorRGB[2] * 256.0f);
+	UnrealColor.G = FPlatformMath::FloorToInt(HoudiniColorRGB[1] == 1.0f ? 255 : HoudiniColorRGB[1] * 256.0f);
+	UnrealColor.R = FPlatformMath::FloorToInt(HoudiniColorRGB[0] == 1.0f ? 255 : HoudiniColorRGB[0] * 256.0f);
+	UnrealColor.A = 255;
+
+	return 3;
+}
+
+
+int
+FHoudiniEngineUtils::ConvertHoudiniColorRGBA(const float* HoudiniColorRGBA, FColor& UnrealColor)
+{
+	UnrealColor.B = FPlatformMath::FloorToInt(HoudiniColorRGBA[2] == 1.0f ? 255 : HoudiniColorRGBA[2] * 256.0f);
+	UnrealColor.G = FPlatformMath::FloorToInt(HoudiniColorRGBA[1] == 1.0f ? 255 : HoudiniColorRGBA[1] * 256.0f);
+	UnrealColor.R = FPlatformMath::FloorToInt(HoudiniColorRGBA[0] == 1.0f ? 255 : HoudiniColorRGBA[0] * 256.0f);
+	UnrealColor.A = FPlatformMath::FloorToInt(HoudiniColorRGBA[3] == 1.0f ? 255 : HoudiniColorRGBA[3] * 256.0f);
+
+	return 4;
+}
+
+
+int
+FHoudiniEngineUtils::ConvertUnrealColorRGB(const FColor& UnrealColor, float* HoudiniColorRGB)
+{
+	HoudiniColorRGB[0] = UnrealColor.R / 255.0f;
+	HoudiniColorRGB[1] = UnrealColor.G / 255.0f;
+	HoudiniColorRGB[2] = UnrealColor.B / 255.0f;
+
+	return 3;
+}
+
+
+int
+FHoudiniEngineUtils::ConvertUnrealColorRGBA(const FColor& UnrealColor, float* HoudiniColorRGBA)
+{
+	HoudiniColorRGBA[0] = UnrealColor.R / 255.0f;
+	HoudiniColorRGBA[1] = UnrealColor.G / 255.0f;
+	HoudiniColorRGBA[2] = UnrealColor.B / 255.0f;
+	HoudiniColorRGBA[3] = UnrealColor.A / 255.0f;
+
+	return 4;
+}
