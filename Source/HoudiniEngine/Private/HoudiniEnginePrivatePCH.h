@@ -78,35 +78,55 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #endif // HOUDINI_ENGINE_LOGGING
 
 
-/** Error checking. **/
-#define HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HAPI_LOG_ROUTINE)				\
-	do																										\
-	{																										\
-		HAPI_Result Result = HAPI_PARAM_CALL;																\
-		if(HAPI_RESULT_SUCCESS != Result)																	\
-		{																									\
-			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());			\
-			return HAPI_PARAM_RETURN;																		\
-		}																									\
-	}																										\
+/** Error checking - this macro will check the status and return specified parameter. **/
+#define HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HAPI_LOG_ROUTINE)						\
+	do																												\
+	{																												\
+		HAPI_Result Result = HAPI_PARAM_CALL;																		\
+		if(HAPI_RESULT_SUCCESS != Result)																			\
+		{																											\
+			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());					\
+			return HAPI_PARAM_RETURN;																				\
+		}																											\
+	}																												\
 	while(0)
 
-#define HOUDINI_CHECK_ERROR_RETURN(HAPI_PARAM_CALL, HAPI_PARAM_RETURN)										\
+#define HOUDINI_CHECK_ERROR_RETURN(HAPI_PARAM_CALL, HAPI_PARAM_RETURN)												\
 	HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HOUDINI_LOG_ERROR)
 
-#define HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_CALL, HAPI_LOG_ROUTINE)										\
-	do																										\
-	{																										\
-		HAPI_Result Result = HAPI_PARAM_CALL;																\
-		if(HAPI_RESULT_SUCCESS != Result)																	\
-		{																									\
-			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());			\
-		}																									\
-	}																										\
+
+/** Error checking - this macro will check the status, execute specified parameter and return. **/
+#define HOUDINI_CHECK_ERROR_EXECUTE_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN, HAPI_LOG_ROUTINE)		\
+	do																												\
+	{																												\
+		HAPI_Result Result = HAPI_PARAM_CALL;																		\
+		if(HAPI_RESULT_SUCCESS != Result)																			\
+		{																											\
+			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());					\
+			HAPI_PARAM_EXECUTE_RETURN;																				\
+			return;																									\
+		}																											\
+	}																												\
 	while(0)
 
-#define HOUDINI_CHECK_ERROR(HAPI_PARAM_CALL)																\
-	HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
+#define HOUDINI_CHECK_ERROR_EXECUTE_RETURN(HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN)								\
+	HOUDINI_CHECK_ERROR_EXECUTE_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN, HOUDINI_LOG_ERROR)
+
+
+/* Error checking - this macro will check the status. **/
+#define HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HAPI_LOG_ROUTINE)							\
+	do																												\
+	{																												\
+		HAPI_PARAM_RESULT = HAPI_PARAM_CALL;																		\
+		if(HAPI_RESULT_SUCCESS != HAPI_PARAM_RESULT)																\
+		{																											\
+			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());					\
+		}																											\
+	}																												\
+	while(0)
+
+#define HOUDINI_CHECK_ERROR(HAPI_PARAM_RESULT, HAPI_PARAM_CALL)														\
+	HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
 
 
 /** HoudiniEngine Class headers. **/

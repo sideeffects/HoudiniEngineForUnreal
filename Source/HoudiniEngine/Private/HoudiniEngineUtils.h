@@ -48,7 +48,7 @@ public:
 	/** Convert Unreal FColor to Houdini color and return number of channels. **/
 	static int ConvertUnrealColorRGB(const FColor& UnrealColor, float* HoudiniColorRGB);
 	static int ConvertUnrealColorRGBA(const FColor& UnrealColor, float* HoudiniColorRGBA);
-	
+
 protected:
 	
 	/** Given current min and max extent vectors, update them from given position if necessary. **/
