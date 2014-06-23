@@ -71,6 +71,8 @@ UHoudiniAssetThumbnailRenderer::BeginDestroy()
 		delete ThumbnailScene;
 	}
 
+	ThumbnailScenes.Empty();
+
 	Super::BeginDestroy();
 }
 
