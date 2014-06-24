@@ -24,13 +24,14 @@ class FHoudiniEngine : public IHoudiniEngine, public FTickableEditorObject
 {
 
 public: /** IModuleInterface methods. **/
-	
+
 	virtual void StartupModule() OVERRIDE;
 	virtual void ShutdownModule() OVERRIDE;
 
 public: /** IHoudiniEngine methods. **/
 
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const OVERRIDE;
+
 	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
@@ -58,7 +59,7 @@ private:
 
 private:
 
-	/** Singleton instnace of Houdini Engine. **/
+	/** Singleton instance of Houdini Engine. **/
 	static FHoudiniEngine* HoudiniEngineInstance;
 
 private:

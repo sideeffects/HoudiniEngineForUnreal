@@ -117,8 +117,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HAPI_LOG_ROUTINE)							\
 	do																												\
 	{																												\
-		HAPI_PARAM_RESULT = HAPI_PARAM_CALL;																		\
-		if(HAPI_RESULT_SUCCESS != HAPI_PARAM_RESULT)																\
+		*HAPI_PARAM_RESULT = HAPI_PARAM_CALL;																		\
+		if(HAPI_RESULT_SUCCESS != *HAPI_PARAM_RESULT)																\
 		{																											\
 			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());					\
 		}																											\
@@ -151,4 +151,5 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniMeshVertexFactory.h"
 #include "HoudiniMeshSceneProxy.h"
 #include "HoudiniAssetThumbnailScene.h"
-#include "HoudiniTaskCookAssetInstance.h"
+#include "HoudiniTaskInstantiateAsset.h"
+#include "HoudiniTaskCookAsset.h"

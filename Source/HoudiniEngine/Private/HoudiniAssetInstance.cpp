@@ -28,6 +28,20 @@ UHoudiniAssetInstance::UHoudiniAssetInstance(const FPostConstructInitializePrope
 }
 
 
+const FString
+UHoudiniAssetInstance::GetAssetName() const
+{
+	return AssetName;
+}
+
+
+void
+UHoudiniAssetInstance::SetAssetName(const FString& Name)
+{
+	AssetName = Name;
+}
+
+
 bool
 UHoudiniAssetInstance::IsInitialized() const
 {

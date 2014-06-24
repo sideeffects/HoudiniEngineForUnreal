@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-FHoudiniTaskCookAssetInstance::FHoudiniTaskCookAssetInstance(IHoudiniTaskCookAssetInstanceCallback* InHoudiniTaskCookAssetInstanceCallback, UHoudiniAssetInstance* InHoudiniAssetInstance) :
-	HoudiniTaskCookAssetInstanceCallback(InHoudiniTaskCookAssetInstanceCallback),
+FHoudiniTaskInstantiateAsset::FHoudiniTaskInstantiateAsset(IHoudiniTaskInstantiateAssetCallback* InHoudiniTaskInstantiateAssetCallback, UHoudiniAssetInstance* InHoudiniAssetInstance) :
+	HoudiniTaskInstantiateAssetCallback(InHoudiniTaskInstantiateAssetCallback),
 	HoudiniAssetInstance(InHoudiniAssetInstance),
 	LastUpdateTime(0.0)
 {
@@ -25,14 +25,14 @@ FHoudiniTaskCookAssetInstance::FHoudiniTaskCookAssetInstance(IHoudiniTaskCookAss
 }
 
 
-FHoudiniTaskCookAssetInstance::~FHoudiniTaskCookAssetInstance()
+FHoudiniTaskInstantiateAsset::~FHoudiniTaskInstantiateAsset()
 {
 
 }
 
 
 void
-FHoudiniTaskCookAssetInstance::RemoveNotification()
+FHoudiniTaskInstantiateAsset::RemoveNotification()
 {
 	// If we have a notification object, tell engine to remove it.
 	if(NotificationInfo.IsValid())
@@ -43,10 +43,10 @@ FHoudiniTaskCookAssetInstance::RemoveNotification()
 
 
 uint32
-FHoudiniTaskCookAssetInstance::RunErrorCleanUp(HAPI_Result Result)
+FHoudiniTaskInstantiateAsset::RunErrorCleanUp(HAPI_Result Result)
 {
 	// Notify callback that a certain error occurred during cooking.
-	HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFailed(HoudiniAssetInstance, Result);
+	HoudiniTaskInstantiateAssetCallback->NotifyAssetInstantiationFailed(HoudiniAssetInstance, Result);
 	RemoveNotification();
 
 	return 0;
@@ -54,15 +54,15 @@ FHoudiniTaskCookAssetInstance::RunErrorCleanUp(HAPI_Result Result)
 
 
 void
-FHoudiniTaskCookAssetInstance::UpdateNotification(const FString& StatusString)
+FHoudiniTaskInstantiateAsset::UpdateNotification(const FString& StatusString)
 {
 	if(NotificationInfo.IsValid())
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("AssetName"), FText::FromString(AssetName));
+		Args.Add(TEXT("AssetName"), FText::FromString(HoudiniAssetInstance->GetAssetName()));
 		Args.Add(TEXT("AssetStatus"), FText::FromString(StatusString));
 
-		NotificationInfo->Text = FText::Format(NSLOCTEXT("AssetBaking", "AssetBakingInProgress", "({AssetName}) : ({AssetStatus})"), Args);
+		NotificationInfo->Text = FText::Format(NSLOCTEXT("AssetInstantiation", "AssetInstantiationProgress", "({AssetName}) : ({AssetStatus})"), Args);
 
 		// Ask engine to update notification.
 		FHoudiniEngine::Get().UpdateNotification(NotificationInfo.Get());
@@ -71,13 +71,13 @@ FHoudiniTaskCookAssetInstance::UpdateNotification(const FString& StatusString)
 
 
 uint32
-FHoudiniTaskCookAssetInstance::Run()
+FHoudiniTaskInstantiateAsset::Run()
 {
-	HOUDINI_LOG_MESSAGE(TEXT("HoudiniTaskCookAssetInstance Asynchronous Cooking Started."));
+	HOUDINI_LOG_MESSAGE(TEXT("HoudiniTaskInstantiateAsset Asynchronous Instantiation Started."));
 
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
-		HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAssetInstance failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
+		HOUDINI_LOG_ERROR(TEXT("HoudiniTaskInstantiateAsset failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
 		return RunErrorCleanUp(HAPI_RESULT_NOT_INITIALIZED);
 	}
 
@@ -102,12 +102,15 @@ FHoudiniTaskCookAssetInstance::Run()
 	if(AssetCount && FHoudiniEngineUtils::GetAssetName(AssetNames[0], AssetNameString))
 	{
 		// Translate asset name into Unreal string.
-		AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());
+		FString AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());
+
+		// Set asset name for the asset instance we are processing.
+		HoudiniAssetInstance->SetAssetName(AssetName);
 
 		// Construct initial notification message.
 		NotificationInfo = MakeShareable(new FHoudiniEngineNotificationInfo());
 		HoudiniEngine.AddNotification(NotificationInfo.Get());
-		UpdateNotification(TEXT("Cook started"));
+		UpdateNotification(TEXT("Instantiation started"));
 
 		// Initialize last update time.
 		LastUpdateTime = FPlatformTime::Seconds();
@@ -116,11 +119,11 @@ FHoudiniTaskCookAssetInstance::Run()
 		bool CookOnLoad = true;
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetNameString[0], CookOnLoad, &AssetId), RunErrorCleanUp(Result));
 
-		// We need to spin until cooking is finished.
+		// We need to spin until instantiation is finished.
 		while(true)
 		{
 			int Status = HAPI_STATE_STARTING_COOK;
-			HOUDINI_CHECK_ERROR(Result, HAPI_GetStatus(HAPI_STATUS_COOK_STATE, &Status));
+			HOUDINI_CHECK_ERROR(&Result, HAPI_GetStatus(HAPI_STATUS_COOK_STATE, &Status));
 
 			if(HAPI_STATE_READY == Status)
 			{
@@ -129,16 +132,16 @@ FHoudiniTaskCookAssetInstance::Run()
 				HoudiniAssetInstance->SetAssetId(AssetId);
 
 				// Cooking has been successful.
-				UpdateNotification(TEXT("Cook finished"));
-				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFinished(HoudiniAssetInstance, AssetId, AssetNameString);
+				UpdateNotification(TEXT("Instantiation finished"));
+				HoudiniTaskInstantiateAssetCallback->NotifyAssetInstantiationFinished(HoudiniAssetInstance, AssetId);
 				break;
 			}
 			else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status || HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
 			{
-				// There was an error while cooking.
-				HOUDINI_LOG_ERROR(TEXT("HoudiniTaskCookAsset failed: Asset cooked with errors."));
-				UpdateNotification(TEXT("Cook finished with errors"));
-				HoudiniTaskCookAssetInstanceCallback->NotifyAssetInstanceCookingFailed(HoudiniAssetInstance, HAPI_RESULT_FAILURE);
+				// There was an error while instantiating.
+				HOUDINI_LOG_ERROR(TEXT("HoudiniTaskInstantiateAsset failed: Asset instantiated with errors."));
+				UpdateNotification(TEXT("Instantiation finished with errors"));
+				HoudiniTaskInstantiateAssetCallback->NotifyAssetInstantiationFailed(HoudiniAssetInstance, HAPI_RESULT_FAILURE);
 				break;
 			}
 

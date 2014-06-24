@@ -56,10 +56,19 @@ public:
 	/** Return Houdini asset. **/
 	UHoudiniAsset* GetHoudiniAsset() const;
 
+	/** Return asset name. **/
+	const FString GetAssetName() const;
+
+	/** Set asset name. **/
+	void SetAssetName(const FString& Name);
+
 protected:
 
 	/** Holds Houdini asset we are instantiating. **/
 	UHoudiniAsset* HoudiniAsset;
+
+	/** Holds asset name. **/
+	FString AssetName;
 
 	/** Holds internal asset name. **/
 	std::string AssetInternalName;
