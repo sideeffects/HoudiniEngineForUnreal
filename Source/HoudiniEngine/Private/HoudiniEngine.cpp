@@ -18,11 +18,12 @@
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
 
+
 IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngine);
 DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 
 
-FHoudiniEngine* 
+FHoudiniEngine*
 FHoudiniEngine::HoudiniEngineInstance = nullptr;
 
 
@@ -45,7 +46,7 @@ void
 FHoudiniEngine::StartupModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
-	
+
 	// Create and register asset type actions for Houdini asset.
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	RegisterAssetTypeAction(AssetTools, MakeShareable(new FHoudiniAssetTypeActions()));

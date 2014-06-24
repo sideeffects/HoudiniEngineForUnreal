@@ -52,10 +52,12 @@
 
 #pragma once
 #include "HAPI.h"
-#include "IHoudiniTaskCookAssetInstanceCallback.h"
+#include "IHoudiniTaskCookAssetCallback.h"
+#include "IHoudiniTaskInstantiateAssetCallback.h"
 #include "HoudiniAssetComponent.generated.h"
 
 class UClass;
+class UProperty;
 class UMaterial;
 class FTransform;
 class UHoudiniAsset;
@@ -66,7 +68,7 @@ class FComponentInstanceDataCache;
 struct FPropertyChangedEvent;
 
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
-class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public IHoudiniTaskCookAssetInstanceCallback
+class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public IHoudiniTaskCookAssetCallback, public IHoudiniTaskInstantiateAssetCallback
 {
 	GENERATED_UCLASS_BODY()
 
@@ -92,11 +94,13 @@ public:
 
 	/** Return tris data associated with this component. **/
 	const TArray<FHoudiniMeshTriangle>& GetMeshTriangles() const;
-	
-public: /** IHoudiniTaskCookAssetInstanceCallback methods. **/
 
-	void NotifyAssetInstanceCookingFailed(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_Result Result);
-	void NotifyAssetInstanceCookingFinished(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_AssetId AssetId, const std::string& AssetInternalName);
+public: /** IHoudiniTaskCookAssetCallback and IHoudiniTaskInstantiateAssetCallback methods. **/
+
+	void NotifyAssetCookingFailed(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_Result Result) OVERRIDE;
+	void NotifyAssetCookingFinished(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_AssetId AssetId) OVERRIDE;
+	void NotifyAssetInstantiationFailed(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_Result Result) OVERRIDE;
+	void NotifyAssetInstantiationFinished(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_AssetId AssetId) OVERRIDE;
 
 public: /** UObject methods. **/
 
@@ -136,22 +140,42 @@ private:
 	/** Patch RTTI : translate asset parameters to class properties and insert them into a given class instance. **/
 	bool ReplaceClassProperties(UClass* ClassInstance);
 
+	/** Patch RTTI: remove generated properties from class information object. **/
+	void RemoveClassProperties(UClass* ClassInstance);
+
 	/** Patch RTTI : patch class object. **/
 	void ReplaceClassObject(UClass* ClassObjectOriginal, UClass* ClassObjectNew);
 
-	/** Patch RTTI : Create integer property. **/
+	/** Patch RTTI : replace property offset data. **/
+	void ReplacePropertyOffset(UProperty* Property, int Offset);
+
+	/** Patch RTTI : Create various properties. **/
 	UProperty* CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset);
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
-	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, bool bValue, uint32& Offset);
+	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, const int32* bValue, uint32& Offset);
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
 
 	/** Set preview asset used by this component. **/
 	void SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset);
 
+	/** Set parameter values which have changed. **/
+	void SetChangedParameterValues();
+
+	/** Helper function to compute proper alignment boundary at a given offset for a specified type. **/
+	template <typename TType> TType* ComputeOffsetAlignmentBoundary(uint32 Offset) const;
+
+public:
+
+	/** Some RTTI classes which are used during property construction. **/
+	static UScriptStruct* ScriptStructColor;
+
 protected:
 
 	/** Triangle data used for rendering in viewport / preview window. **/
 	TArray<FHoudiniMeshTriangle> HoudiniMeshTriangles;
+
+	/** Array of properties that have changed. Will force object recook. **/
+	TSet<UProperty*> ChangedProperties;
 
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
@@ -182,3 +206,12 @@ private:
 	/** Scratch space buffer ~ used to store data for each property. **/
 	char ScratchSpaceBuffer[HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE];
 };
+
+
+template <typename TType>
+TType*
+UHoudiniAssetComponent::ComputeOffsetAlignmentBoundary(uint32 Offset) const
+{
+	 return Align<TType*>((TType*)(((char*) this) + Offset), ALIGNOF(TType));
+}
+

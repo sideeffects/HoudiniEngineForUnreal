@@ -15,18 +15,18 @@
 
 #pragma once
 
-class IHoudiniTaskCookAssetInstanceCallback;
+class IHoudiniTaskCookAssetCallback;
 struct FHoudiniEngineNotificationInfo;
 
-class FHoudiniTaskCookAssetInstance : public FRunnable
+class FHoudiniTaskCookAsset : public FRunnable
 {
 public:
 
-	FHoudiniTaskCookAssetInstance(IHoudiniTaskCookAssetInstanceCallback* InHoudiniTaskCookAssetInstanceCallback, UHoudiniAssetInstance* InHoudiniAssetInstance);
-	virtual ~FHoudiniTaskCookAssetInstance();
+	FHoudiniTaskCookAsset(IHoudiniTaskCookAssetCallback* InHoudiniTaskCookAssetCallback, UHoudiniAssetInstance* InHoudiniAssetInstance);
+	virtual ~FHoudiniTaskCookAsset();
 
 public: /** FRunnable methods. **/
-	
+
 	virtual uint32 Run() OVERRIDE;
 
 private:
@@ -46,14 +46,11 @@ protected:
 	TSharedPtr<FHoudiniEngineNotificationInfo> NotificationInfo;
 
 	/** Callback for completion / status report. **/
-	IHoudiniTaskCookAssetInstanceCallback* HoudiniTaskCookAssetInstanceCallback;
+	IHoudiniTaskCookAssetCallback* HoudiniTaskCookAssetCallback;
 
 	/** Houdini asset instance we are cooking. **/
 	UHoudiniAssetInstance* HoudiniAssetInstance;
 
 	/** Tracks the last time notification has been used to avoid spamming. **/
 	double LastUpdateTime;
-
-	/** Name of the asset being processed. **/
-	FString AssetName;
 };
