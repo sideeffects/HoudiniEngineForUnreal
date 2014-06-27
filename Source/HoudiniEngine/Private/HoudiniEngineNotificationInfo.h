@@ -24,8 +24,8 @@ struct FHoudiniEngineNotificationInfo : public FNotificationInfo
 	FHoudiniEngineNotificationInfo(const FText& InText);
 
 	/** Whether this notification is being removed. **/
-	bool bScheduledRemoved;
+	int32 volatile bScheduledRemoved;
 
 	/** Whether this notification needs update. **/
-	bool bScheduledUpdate;
+	int32 volatile bScheduledUpdate;
 };

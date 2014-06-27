@@ -16,6 +16,7 @@
 #pragma once
 
 struct FHoudiniEngineNotificationInfo;
+struct FHoudiniEngineTask;
 
 class IHoudiniEngine : public IModuleInterface
 {
@@ -24,6 +25,9 @@ public:
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
 
+	/** Register task for execution. **/
+	virtual void AddTask(const FHoudiniEngineTask& Task) = 0;
+	
 	/** Add new notification item. **/
 	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
 

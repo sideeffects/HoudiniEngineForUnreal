@@ -19,6 +19,8 @@
 class IAssetTools;
 class IAssetTypeActions;
 class IComponentAssetBroker;
+class FHoudiniEngineScheduler;
+class FRunnableThread;
 
 class FHoudiniEngine : public IHoudiniEngine, public FTickableEditorObject
 {
@@ -31,6 +33,7 @@ public: /** IModuleInterface methods. **/
 public: /** IHoudiniEngine methods. **/
 
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const OVERRIDE;
+	virtual void AddTask(const FHoudiniEngineTask& Task) OVERRIDE;
 
 	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
@@ -72,13 +75,19 @@ private:
 
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
-	
+
+	/** Scheduler used to schedule HAPI instantiation and cook tasks. **/
+	TSharedPtr<FHoudiniEngineScheduler> HoudiniEngineScheduler;
+
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 
 	/** Houdini logo brush. **/
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;
 
-	/* Synchronization primitive used to control access to notifications. **/
+	/** Synchronization primitive used to control access to notifications. **/
 	FCriticalSection CriticalSection;
+
+	/** Thread used to execute the scheduler. **/
+	FRunnableThread* HoudiniEngineSchedulerThread;
 };

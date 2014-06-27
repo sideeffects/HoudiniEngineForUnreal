@@ -14,7 +14,7 @@
  */
 
 #pragma once
-
+#if 0
 class IHoudiniTaskCookAssetCallback;
 struct FHoudiniEngineNotificationInfo;
 
@@ -54,3 +54,4 @@ protected:
 	/** Tracks the last time notification has been used to avoid spamming. **/
 	double LastUpdateTime;
 };
+#endif

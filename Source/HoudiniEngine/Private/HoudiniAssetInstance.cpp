@@ -16,84 +16,19 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetInstance::UHoudiniAssetInstance(const FPostConstructInitializeProperties& PCIP) : 
+UHoudiniAssetInstance::UHoudiniAssetInstance(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAsset(nullptr),
-	AssetInternalName(""),
-	AssetId(-1),
-	bIsCooking(false),
-	bHasBeenCooked(false)
+	AssetId(-1)
 {
 
 }
 
 
-const FString
-UHoudiniAssetInstance::GetAssetName() const
-{
-	return AssetName;
-}
-
-
-void
-UHoudiniAssetInstance::SetAssetName(const FString& Name)
-{
-	AssetName = Name;
-}
-
-
-bool
-UHoudiniAssetInstance::IsInitialized() const
-{
-	return(-1 != AssetId);
-}
-
-
-void
-UHoudiniAssetInstance::SetCooking(bool bCooking)
-{
-	bIsCooking = bCooking;
-}
-
-
-bool
-UHoudiniAssetInstance::IsCooking() const
-{
-	return bIsCooking;
-}
-
-
-void
-UHoudiniAssetInstance::SetCooked(bool bCooked)
-{
-	bHasBeenCooked = bCooked;
-}
-
-
-bool
-UHoudiniAssetInstance::HasBeenCooked() const
-{
-	return bHasBeenCooked;
-}
-
-
-HAPI_AssetId
-UHoudiniAssetInstance::GetAssetId() const
-{
-	return(AssetId);
-}
-
-
-void
-UHoudiniAssetInstance::SetAssetId(HAPI_AssetId InAssetId)
-{
-	AssetId = InAssetId;
-}
-
-
-UHoudiniAsset* 
+UHoudiniAsset*
 UHoudiniAssetInstance::GetHoudiniAsset() const
 {
+	FPlatformMisc::MemoryBarrier();
 	return HoudiniAsset;
 }
 
@@ -101,5 +36,43 @@ UHoudiniAssetInstance::GetHoudiniAsset() const
 void
 UHoudiniAssetInstance::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
-	HoudiniAsset = InHoudiniAsset;
+	FPlatformAtomics::InterlockedExchangePtr((void**) &HoudiniAsset, InHoudiniAsset);
+}
+
+
+const FString
+UHoudiniAssetInstance::GetAssetName() const
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	return AssetName;
+}
+
+
+void
+UHoudiniAssetInstance::SetAssetName(const FString& Name)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	AssetName = Name;
+}
+
+
+bool
+UHoudiniAssetInstance::IsInitialized() const
+{
+	return(-1 != FPlatformAtomics::InterlockedCompareExchange((volatile int32*) &AssetId, -1, -1));
+}
+
+
+HAPI_AssetId
+UHoudiniAssetInstance::GetAssetId() const
+{
+	FPlatformMisc::MemoryBarrier();
+	return(AssetId);
+}
+
+
+void
+UHoudiniAssetInstance::SetAssetId(HAPI_AssetId InAssetId)
+{
+	FPlatformAtomics::InterlockedExchange(&AssetId, InAssetId);
 }
