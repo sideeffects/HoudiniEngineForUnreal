@@ -16,7 +16,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) : 
+UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	AssetBytes(nullptr),
 	AssetBytesCount(0)
@@ -25,8 +25,8 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 }
 
 
-UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, 
-							 const uint8*& BufferStart, 
+UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
+							 const uint8*& BufferStart,
 							 const uint8* BufferEnd,
 							 const FString& InFileName) : 
 	Super(PCIP),
@@ -65,24 +65,36 @@ UHoudiniAsset::GetAssetBytesCount() const
 }
 
 
+void 
+UHoudiniAsset::CopyPreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	Triangles = TArray<FHoudiniMeshTriangle>(PreviewHoudiniMeshTriangles);
+}
+
+
 bool
 UHoudiniAsset::ContainsPreviewTriangles() const
 {
+	FScopeLock ScopeLock(&CriticalSection);
 	return PreviewHoudiniMeshTriangles.Num() > 0;
 }
 
 
+/*
 const TArray<FHoudiniMeshTriangle>&
 UHoudiniAsset::GetPreviewTriangles() const
 {
 	return PreviewHoudiniMeshTriangles;
 }
+*/
 
 
-void 
-UHoudiniAsset::SetPreviewTriangles(const TArray<FHoudiniMeshTriangle>& triangles)
+void
+UHoudiniAsset::SetPreviewTriangles(const TArray<FHoudiniMeshTriangle>& Triangles)
 {
-	PreviewHoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(triangles);
+	FScopeLock ScopeLock(&CriticalSection);
+	PreviewHoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(Triangles);
 }
 
 
@@ -144,6 +156,8 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 	}
 
 	{
+		FScopeLock ScopeLock(&CriticalSection);
+
 		if(Ar.IsSaving())
 		{
 			int PreviewTriangleCount = PreviewHoudiniMeshTriangles.Num();

@@ -16,6 +16,7 @@
 #pragma once
 #include "HoudiniMeshTriangle.generated.h"
 
+
 USTRUCT(BlueprintType)
 struct FHoudiniMeshTriangle
 {

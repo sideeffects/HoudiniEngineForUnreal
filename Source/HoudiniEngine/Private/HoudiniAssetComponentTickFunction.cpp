@@ -16,18 +16,11 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-FHoudiniEngineNotificationInfo::FHoudiniEngineNotificationInfo() :
-	FNotificationInfo(FText()),
-	bScheduledRemoved(0),
-	bScheduledUpdate(0)
+void
+FHoudiniAssetComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-
-}
-
-FHoudiniEngineNotificationInfo::FHoudiniEngineNotificationInfo(const FText& InText) :
-	FNotificationInfo(InText),
-	bScheduledRemoved(0),
-	bScheduledUpdate(0)
-{
-
+	if(Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
+	{
+		Target->TickHoudiniComponent(DeltaTime);
+	}
 }

@@ -21,28 +21,53 @@ UScriptStruct*
 UHoudiniAssetComponent::ScriptStructColor = nullptr;
 
 
-UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) : 
+UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAssetInstance(nullptr),
-	PreviewHoudiniAsset(nullptr),
+	//PreviewHoudiniAsset(nullptr),
 	Material(nullptr),
 	bIsNativeComponent(false),
-	bUsePreviewGeometry(false)
+	GeometryState(HoudiniAssetComponentGeometryState::None)
 {
 	// Create generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
-	// This component can tick.
-	PrimaryComponentTick.bCanEverTick = true;
+	// Set up component tick function parameters.
+	HoudiniAssetComponentTickFunction.bCanEverTick = true;
+	HoudiniAssetComponentTickFunction.TickGroup = ETickingGroup::TG_PrePhysics;
+	HoudiniAssetComponentTickFunction.bStartWithTickEnabled = true;
 
 	// Zero scratch space.
 	FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
 
 	// Create temporary geometry.
 	FHoudiniEngineUtils::GetHoudiniLogoGeometry(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
+	GeometryState = HoudiniAssetComponentGeometryState::UseDefaultGeometry;
 
 	//static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/HoudiniEngine/DefaultHoudiniEngineMaterial"));
 	//Material = DefaultMaterial.Object;
+}
+
+
+void
+UHoudiniAssetComponent::RegisterComponentTickFunctions(bool bRegister)
+{
+	Super::RegisterComponentTickFunctions(bRegister);
+
+	if(bRegister)
+	{
+		if(SetupActorComponentTickFunction(&HoudiniAssetComponentTickFunction))
+		{
+			HoudiniAssetComponentTickFunction.Target = this;
+		}
+	}
+	else
+	{
+		if(HoudiniAssetComponentTickFunction.IsTickFunctionRegistered())
+		{
+			HoudiniAssetComponentTickFunction.UnRegisterTickFunction();
+		}
+	}
 }
 
 
@@ -77,6 +102,7 @@ UHoudiniAssetComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 }
 
 
+/*
 void 
 UHoudiniAssetComponent::NotifyAssetCookingFailed(UHoudiniAssetInstance* InHoudiniAssetInstance, HAPI_Result Result)
 {
@@ -128,6 +154,22 @@ UHoudiniAssetComponent::NotifyAssetCookingFinished(UHoudiniAssetInstance* InHoud
 
 		// Since we have new asset, we need to update bounds.
 		UpdateBounds();
+	}
+
+	// See if we have queued changes - if we do, we need to recook.
+	if(ChangedProperties.Num() > 0)
+	{
+		// We need to set all parameter values which have changed.
+		SetChangedParameterValues();
+
+		// Remove all processed parameters.
+		ChangedProperties.Empty();
+
+		// Start asynchronous task to perform the cooking from the referenced asset instance.
+		FHoudiniTaskCookAsset* HoudiniTaskCookAsset = new FHoudiniTaskCookAsset(this, HoudiniAssetInstance);
+
+		// Create a new thread to execute our runnable.
+		FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAsset, TEXT("HoudiniTaskCookAsset"), true, true, 0, TPri_Normal);
 	}
 }
 
@@ -185,15 +227,19 @@ UHoudiniAssetComponent::NotifyAssetInstantiationFinished(UHoudiniAssetInstance* 
 		UpdateBounds();
 	}
 }
+*/
 
 
+/*
 UHoudiniAsset*
 UHoudiniAssetComponent::GetPreviewHoudiniAsset() const
 {
 	return PreviewHoudiniAsset;
 }
+*/
 
 
+/*
 void
 UHoudiniAssetComponent::SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset)
 {
@@ -251,17 +297,52 @@ UHoudiniAssetComponent::SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAs
 		}
 	}
 }
+*/
 
 
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
+	
+	if(NewHoudiniAsset == HoudiniAsset)
+	{
+		return;
+	}
+
+	HoudiniAsset = NewHoudiniAsset;
 
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-	if(HoudiniAssetActor && HoudiniAssetActor->IsUsedForPreview())
+	if(HoudiniAssetActor->IsUsedForPreview())
 	{
-		SetPreviewHoudiniAsset(NewHoudiniAsset);
+		// If we do not have an instance object, create it.
+		if(!HoudiniAssetInstance)
+		{
+			HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
+			HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
+		}
+
+		if(HoudiniAsset->ContainsPreviewTriangles())
+		{
+			FScopeLock ScopeLock(&CriticalSectionTriangles);
+
+			HoudiniAsset->CopyPreviewGeometry(HoudiniMeshTriangles);
+			GeometryState = HoudiniAssetComponentGeometryState::UsePreviewGeometry;
+		}
+		else
+		{
+			GeometryState = HoudiniAssetComponentGeometryState::UseDefaultGeometry;
+		}
+
+		if(HoudiniAssetComponentGeometryState::UseDefaultGeometry == GeometryState)
+		{
+			// If we are using preview geometry, we need to instantiate the asset.
+			FHoudiniEngineTask Task(HoudiniEngineTaskType::AssetInstantiation, HoudiniAssetInstance);
+			GeometryState = HoudiniAssetComponentGeometryState::WaitForAssetInstantiation;
+
+			// Submit this task for execution.
+			FHoudiniEngine::Get().AddTask(Task);
+		}
 	}
 }
 
@@ -295,7 +376,7 @@ UHoudiniAssetComponent::CreateSceneProxy()
 	
 	if(HoudiniMeshTriangles.Num() > 0)
 	{
-		FScopeLock ScopeLock(&CriticalSection);
+		FScopeLock ScopeLock(&CriticalSectionTriangles);
 		Proxy = new FHoudiniMeshSceneProxy(this);
 	}
 	
@@ -401,7 +482,7 @@ UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
 
 	UProperty* IterProperty = ClassInstance->PropertyLink;
-	while(IterProperty != ClassOfUHoudiniAssetComponent->PropertyLink)
+	while(IterProperty && IterProperty != ClassOfUHoudiniAssetComponent->PropertyLink)
 	{
 		UProperty* Property = IterProperty;
 		IterProperty = IterProperty->PropertyLinkNext;
@@ -1005,6 +1086,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	// Add changed property to the set of changes.
 	ChangedProperties.Add(Property);
 
+	/*
 	// If our asset is not already cooking, we can cook right away.
 	if(!HoudiniAssetInstance->IsCooking())
 	{
@@ -1015,10 +1097,70 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		ChangedProperties.Empty();
 
 		// Start asynchronous task to perform the cooking from the referenced asset instance.
-		FHoudiniTaskCookAsset* HoudiniTaskCookAsset = new FHoudiniTaskCookAsset(this, HoudiniAssetInstance);
+		//FHoudiniTaskCookAsset* HoudiniTaskCookAsset = new FHoudiniTaskCookAsset(this, HoudiniAssetInstance);
 
 		// Create a new thread to execute our runnable.
-		FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAsset, TEXT("HoudiniTaskCookAsset"), true, true, 0, TPri_Normal);
+		//FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAsset, TEXT("HoudiniTaskCookAsset"), true, true, 0, TPri_Normal);
+	}
+	*/
+}
+
+
+void
+UHoudiniAssetComponent::TickHoudiniComponent(float DeltaTime)
+{
+	if(!HoudiniAsset || !HoudiniAssetInstance)
+	{
+		return;
+	}
+
+	switch(GeometryState)
+	{
+		case HoudiniAssetComponentGeometryState::WaitForAssetInstantiation:
+		{
+			if(HoudiniAssetInstance->IsInitialized())
+			{
+				// Asset initialization has finished, we can recreate geometry.
+				FScopeLock ScopeLock(&CriticalSectionTriangles);
+
+				if(!FHoudiniEngineUtils::GetAssetGeometry(HoudiniAssetInstance->GetAssetId(), HoudiniMeshTriangles, HoudiniMeshSphereBounds))
+				{
+					HOUDINI_LOG_MESSAGE(TEXT("Failed geometry extraction after asset instantiation."));
+				}
+
+				// If asset does not have preview geometry, copy it.
+				if(HoudiniAsset->ContainsPreviewTriangles())
+				{
+					HoudiniAsset->SetPreviewTriangles(HoudiniMeshTriangles);
+				}
+
+				// Since this is not a preview actor, we need to patch component RTTI to reflect properties for this asset.
+				ReplaceClassInformation();
+
+				// Need to send this to render thread at some point.
+				MarkRenderStateDirty();
+
+				// Update physics representation right away.
+				RecreatePhysicsState();
+
+				// Since we have new asset, we need to update bounds.
+				UpdateBounds();
+
+				GeometryState = HoudiniAssetComponentGeometryState::None;
+			}
+
+			break;
+		}
+
+		case HoudiniAssetComponentGeometryState::WaitForAssetCooking:
+		{
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
 	}
 }
 
@@ -1029,6 +1171,68 @@ UHoudiniAssetComponent::OnRegister()
 	Super::OnRegister();
 	HOUDINI_LOG_MESSAGE(TEXT("Registering component, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
+	// Make sure we have a Houdini asset to operate with.
+	if(!HoudiniAsset)
+	{
+		return;
+	}
+
+	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	if(!HoudiniAssetActor)
+	{
+		return;
+	}
+
+	// If we do not have an instance object, create it.
+	if(!HoudiniAssetInstance)
+	{
+		HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
+		HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
+	}
+
+	if(bIsNativeComponent)
+	{
+		// This is a native component ~ belonging to a c++ actor.
+
+		if(HoudiniAssetActor->IsUsedForPreview())
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Native::OnRegister, Preview actor"));
+		}
+		else
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Native::OnRegister, Non-preview actor"));
+		}
+
+		if(HoudiniAssetComponentGeometryState::UseDefaultGeometry == GeometryState)
+		{
+			// If we are using preview geometry, see if asset contains preview geometry and if it does, copy it.
+			if(HoudiniAsset->ContainsPreviewTriangles())
+			{
+				FScopeLock ScopeLock(&CriticalSectionTriangles);
+
+				HoudiniAsset->CopyPreviewGeometry(HoudiniMeshTriangles);
+				GeometryState = HoudiniAssetComponentGeometryState::UsePreviewGeometry;
+			}
+		}
+
+		if(HoudiniAssetComponentGeometryState::UsePreviewGeometry == GeometryState)
+		{
+			// If we are using preview geometry, we need to instantiate the asset.
+			FHoudiniEngineTask Task(HoudiniEngineTaskType::AssetInstantiation, HoudiniAssetInstance);
+			GeometryState = HoudiniAssetComponentGeometryState::WaitForAssetInstantiation;
+
+			// Submit this task for execution.
+			FHoudiniEngine::Get().AddTask(Task);
+		}
+	}
+	else
+	{
+		// This is a dynamic component ~ part of blueprint.
+		HOUDINI_LOG_MESSAGE(TEXT("Dynamic::OnRegister"));
+	}
+
+
+	/*
 	// Make sure we have a Houdini asset to operate with.
 	if(!HoudiniAsset)
 	{
@@ -1112,6 +1316,7 @@ UHoudiniAssetComponent::OnRegister()
 		// This is a dynamic component ~ part of blueprint.
 		HOUDINI_LOG_MESSAGE(TEXT("Dynamic::OnRegister"));
 	}
+	*/
 }
 
 

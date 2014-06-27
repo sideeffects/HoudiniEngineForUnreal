@@ -69,9 +69,7 @@ FHoudiniAssetThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, F
 	const float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
 	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-	UHoudiniAsset* PreviewHoudiniAsset = PreviewHoudiniAssetActor->HoudiniAssetComponent->GetPreviewHoudiniAsset();
-	check(PreviewHoudiniAsset);
-
+	UHoudiniAsset* PreviewHoudiniAsset = PreviewHoudiniAssetActor->HoudiniAssetComponent->HoudiniAsset;
 	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewHoudiniAsset->ThumbnailInfo);
 
 	if(ThumbnailInfo)

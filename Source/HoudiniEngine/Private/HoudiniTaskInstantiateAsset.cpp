@@ -14,7 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-
+#if 0
 
 FHoudiniTaskInstantiateAsset::FHoudiniTaskInstantiateAsset(IHoudiniTaskInstantiateAssetCallback* InHoudiniTaskInstantiateAssetCallback, UHoudiniAssetInstance* InHoudiniAssetInstance) :
 	HoudiniTaskInstantiateAssetCallback(InHoudiniTaskInstantiateAssetCallback),
@@ -170,3 +170,4 @@ FHoudiniTaskInstantiateAsset::Run()
 	RemoveNotification();
 	return 0;
 }
+#endif

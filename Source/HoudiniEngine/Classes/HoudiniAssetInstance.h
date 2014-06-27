@@ -23,26 +23,12 @@ class UHoudiniAsset;
 UCLASS(Blueprintable, BlueprintType, EditInlineNew, config=Editor)
 class HOUDINIENGINE_API UHoudiniAssetInstance : public UObject
 {
-	friend class UHoudiniAssetInstanceManager;
-
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Return true if this asset is initialized. **/
 	bool IsInitialized() const;
-
-	/** Set cooking status - that is, the asset is in the process of being cooked. **/
-	void SetCooking(bool bCooking);
-
-	/** Return cooking status. **/
-	bool IsCooking() const;
-
-	/** Set this asset as cooked. **/
-	void SetCooked(bool bCooked);
-
-	/** Return true if this asset has been cooked. */
-	bool HasBeenCooked() const;
 
 	/** Return internal asset id. **/
 	HAPI_AssetId GetAssetId() const;
@@ -67,18 +53,12 @@ protected:
 	/** Holds Houdini asset we are instantiating. **/
 	UHoudiniAsset* HoudiniAsset;
 
+	/* Synchronization primitive used to control access. **/
+	mutable FCriticalSection CriticalSection;
+
 	/** Holds asset name. **/
 	FString AssetName;
 
-	/** Holds internal asset name. **/
-	std::string AssetInternalName;
-
 	/** Holds internal asset handle. **/
-	HAPI_AssetId AssetId;
-
-	/** Is set to true if this asset is being cooked. **/
-	bool bIsCooking;
-
-	/** Is set to true if this asset has been cooked. **/
-	bool bHasBeenCooked;
+	HAPI_AssetId volatile AssetId;
 };

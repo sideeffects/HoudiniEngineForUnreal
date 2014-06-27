@@ -16,18 +16,17 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-FHoudiniEngineNotificationInfo::FHoudiniEngineNotificationInfo() :
-	FNotificationInfo(FText()),
-	bScheduledRemoved(0),
-	bScheduledUpdate(0)
+FHoudiniEngineTask::FHoudiniEngineTask() :
+	TaskType(HoudiniEngineTaskType::None),
+	AssetInstance(nullptr)
 {
 
 }
 
-FHoudiniEngineNotificationInfo::FHoudiniEngineNotificationInfo(const FText& InText) :
-	FNotificationInfo(InText),
-	bScheduledRemoved(0),
-	bScheduledUpdate(0)
+
+FHoudiniEngineTask::FHoudiniEngineTask(HoudiniEngineTaskType::Type InTaskType, UHoudiniAssetInstance* InAssetInstance) :
+	TaskType(InTaskType),
+	AssetInstance(InAssetInstance)
 {
 
 }

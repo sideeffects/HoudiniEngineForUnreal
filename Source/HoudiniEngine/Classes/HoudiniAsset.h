@@ -28,9 +28,9 @@ class HOUDINIENGINE_API UHoudiniAsset : public UObject
 
 public:
 
-	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP, 
-				  const uint8*& BufferStart, 
-				  const uint8* BufferEnd, 
+	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
+				  const uint8*& BufferStart,
+				  const uint8* BufferEnd,
 				  const FString& InFileName);
 
 public: /** UObject methods. **/
@@ -50,10 +50,13 @@ public:
 	void SetPreviewTriangles(const TArray<FHoudiniMeshTriangle>& triangles);
 
 	/** Return preview geometry. **/
-	const TArray<FHoudiniMeshTriangle>& GetPreviewTriangles() const;
+	//const TArray<FHoudiniMeshTriangle>& GetPreviewTriangles() const;
 
 	/** Return true if preview geometry has been set. **/
 	bool ContainsPreviewTriangles() const;
+
+	/** Copy preview geometry. **/
+	void CopyPreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles);
 
 public:
 
@@ -70,9 +73,12 @@ public:
 	UThumbnailInfo* ThumbnailInfo;
 
 protected:
-	
+
 	/** Triangle data used for preview window. **/
 	TArray<FHoudiniMeshTriangle> PreviewHoudiniMeshTriangles;
+
+	/** Synchronization primitive. **/
+	mutable FCriticalSection CriticalSection;
 
 	/** Buffer containing raw Houdini OTL data. **/
 	uint8* AssetBytes;

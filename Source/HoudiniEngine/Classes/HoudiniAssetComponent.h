@@ -56,6 +56,7 @@
 #include "IHoudiniTaskInstantiateAssetCallback.h"
 #include "HoudiniAssetComponent.generated.h"
 
+
 class UClass;
 class UProperty;
 class UMaterial;
@@ -63,12 +64,28 @@ class FTransform;
 class UHoudiniAsset;
 class UHoudiniAssetInstance;
 class FPrimitiveSceneProxy;
+class UHoudiniAssetComponent;
 class FComponentInstanceDataCache;
 
 struct FPropertyChangedEvent;
 
+
+namespace HoudiniAssetComponentGeometryState
+{
+	enum Type
+	{
+		None,
+
+		UseDefaultGeometry,
+		UsePreviewGeometry,
+		WaitForAssetInstantiation,
+		WaitForAssetCooking
+	};
+}
+
+
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
-class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public IHoudiniTaskCookAssetCallback, public IHoudiniTaskInstantiateAssetCallback
+class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent//, public IHoudiniTaskCookAssetCallback, public IHoudiniTaskInstantiateAssetCallback
 {
 	GENERATED_UCLASS_BODY()
 
@@ -86,21 +103,14 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent, public I
 
 public:
 
+	/** Custom function to receive tick notifications. **/
+	virtual void TickHoudiniComponent(float DeltaTime);
+
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
-	/** Return preview asset associated with this component. **/
-	UHoudiniAsset* GetPreviewHoudiniAsset() const;
-
 	/** Return tris data associated with this component. **/
 	const TArray<FHoudiniMeshTriangle>& GetMeshTriangles() const;
-
-public: /** IHoudiniTaskCookAssetCallback and IHoudiniTaskInstantiateAssetCallback methods. **/
-
-	void NotifyAssetCookingFailed(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_Result Result) OVERRIDE;
-	void NotifyAssetCookingFinished(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_AssetId AssetId) OVERRIDE;
-	void NotifyAssetInstantiationFailed(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_Result Result) OVERRIDE;
-	void NotifyAssetInstantiationFinished(UHoudiniAssetInstance* HoudiniAssetInstance, HAPI_AssetId AssetId) OVERRIDE;
 
 public: /** UObject methods. **/
 
@@ -108,6 +118,8 @@ public: /** UObject methods. **/
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 
 protected: /** UActorComponent methods. **/
+
+	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
 
 	virtual void OnComponentCreated() OVERRIDE;
 	virtual void OnComponentDestroyed() OVERRIDE;
@@ -154,15 +166,17 @@ private:
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, const int32* bValue, uint32& Offset);
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
-
-	/** Set preview asset used by this component. **/
-	void SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset);
-
+	
 	/** Set parameter values which have changed. **/
 	void SetChangedParameterValues();
 
 	/** Helper function to compute proper alignment boundary at a given offset for a specified type. **/
 	template <typename TType> TType* ComputeOffsetAlignmentBoundary(uint32 Offset) const;
+
+private:
+
+	/** Set preview asset used by this component. **/
+	//void SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset);
 
 public:
 
@@ -177,17 +191,17 @@ protected:
 	/** Array of properties that have changed. Will force object recook. **/
 	TSet<UProperty*> ChangedProperties;
 
+	/** Tick function for this component. **/
+	FHoudiniAssetComponentTickFunction HoudiniAssetComponentTickFunction;
+
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
 
-	/* Synchronization primitive used to control cooking access. **/
-	FCriticalSection CriticalSection;
+	/* Synchronization primitive used to control access to geometry. **/
+	FCriticalSection CriticalSectionTriangles;
 
 	/** Instance of Houdini Asset created by this component. **/
 	UHoudiniAssetInstance* HoudiniAssetInstance;
-
-	/** Houdini Asset used for preview. This is only used by components attached to preview actors. **/
-	UHoudiniAsset* PreviewHoudiniAsset;
 
 	/** **/
 	UMaterial* Material;
@@ -195,8 +209,8 @@ protected:
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;
 
-	/** Used to track whether component is using preview geometry. **/
-	bool bUsePreviewGeometry;
+	/** This enum is used to track the current state of geometry of component. **/
+	HoudiniAssetComponentGeometryState::Type GeometryState;
 
 private:
 
@@ -212,6 +226,5 @@ template <typename TType>
 TType*
 UHoudiniAssetComponent::ComputeOffsetAlignmentBoundary(uint32 Offset) const
 {
-	 return Align<TType*>((TType*)(((char*) this) + Offset), ALIGNOF(TType));
+	return Align<TType*>((TType*)(((char*) this) + Offset), ALIGNOF(TType));
 }
-
