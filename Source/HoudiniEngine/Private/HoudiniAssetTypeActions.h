@@ -39,6 +39,6 @@ protected:
 	/** Handler for reimport option. **/
 	void ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
 
-	/** Handler for when find in explorer is selected */
+	/** Handler for when find in explorer is selected. */
 	void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
 };

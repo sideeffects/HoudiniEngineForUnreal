@@ -96,8 +96,8 @@ FHoudiniEngine::StartupModule()
 	}
 
 	// Create HAPI scheduler and processing thread.
-	HoudiniEngineScheduler = MakeShareable(new FHoudiniEngineScheduler());
-	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler.Get(), TEXT("HoudiniTaskCookAsset"), false, true, 0, TPri_Normal);
+	HoudiniEngineScheduler = new FHoudiniEngineScheduler();
+	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniTaskCookAsset"), false, false, 0, TPri_Normal);
 
 	// Store the instance.
 	FHoudiniEngine::HoudiniEngineInstance = this;
@@ -134,11 +134,25 @@ FHoudiniEngine::ShutdownModule()
 	// Perform HAPI finalization.
 	HAPI_Cleanup();
 
-	// Delete processing thread.
+	// Do scheduler and thread clean up.
+	if(HoudiniEngineScheduler)
+	{
+		HoudiniEngineScheduler->Stop();
+	}
+
 	if(HoudiniEngineSchedulerThread)
 	{
-		HoudiniEngineSchedulerThread->Kill(true);
+		//HoudiniEngineSchedulerThread->Kill(true);
+		HoudiniEngineSchedulerThread->WaitForCompletion();
+
 		delete HoudiniEngineSchedulerThread;
+		HoudiniEngineSchedulerThread = nullptr;
+	}
+
+	if(HoudiniEngineScheduler)
+	{
+		delete HoudiniEngineScheduler;
+		HoudiniEngineScheduler = nullptr;
 	}
 }
 

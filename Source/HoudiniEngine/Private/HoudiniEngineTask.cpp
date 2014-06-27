@@ -17,16 +17,15 @@
 
 
 FHoudiniEngineTask::FHoudiniEngineTask() :
-	TaskType(HoudiniEngineTaskType::None),
-	AssetInstance(nullptr)
+	TaskType(HoudiniEngineTaskType::None)
 {
 
 }
 
 
-FHoudiniEngineTask::FHoudiniEngineTask(HoudiniEngineTaskType::Type InTaskType, UHoudiniAssetInstance* InAssetInstance) :
+FHoudiniEngineTask::FHoudiniEngineTask(HoudiniEngineTaskType::Type InTaskType, TWeakObjectPtr<UHoudiniAssetComponent> InAssetComponent) :
 	TaskType(InTaskType),
-	AssetInstance(InAssetInstance)
+	AssetComponent(InAssetComponent)
 {
 
 }

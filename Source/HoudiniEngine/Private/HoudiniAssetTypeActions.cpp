@@ -143,7 +143,7 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAs
 			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->OTLFileName, Object);
 			if(INDEX_NONE != SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath))
 			{
-				FPlatformProcess::ExploreFolder(*FPaths::GetPath(SourceFilePath));
+				FPlatformProcess::ExploreFolder(*SourceFilePath);
 			}
 		}
 	}

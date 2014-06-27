@@ -52,13 +52,16 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		return;
 	}
 
-	if(!Task.AssetInstance)
+	if(!Task.AssetComponent.IsValid())
 	{
+		// The component which requested instantiation is no longer valid.
 		return;
 	}
 
-	// Get asset associated with this instance.
-	UHoudiniAsset* HoudiniAsset = Task.AssetInstance->GetHoudiniAsset();
+	// Get the asset component, asset instance and asset itself.
+	UHoudiniAssetComponent* HoudiniAssetComponent = Task.AssetComponent.Get();
+	UHoudiniAssetInstance* HoudiniAssetInstance = HoudiniAssetComponent->HoudiniAssetInstance;
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	HAPI_AssetLibraryId AssetLibraryId = 0;
@@ -80,7 +83,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		FString AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());
 
 		// Set asset name for the asset instance we are processing.
-		Task.AssetInstance->SetAssetName(AssetName);
+		HoudiniAssetInstance->SetAssetName(AssetName);
 
 		// Initialize last update time.
 		LastUpdateTime = FPlatformTime::Seconds();
@@ -98,8 +101,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 			if(HAPI_STATE_READY == Status)
 			{
 				// Cooking has been successful.
-				Task.AssetInstance->SetAssetId(AssetId);
-
+				HoudiniAssetInstance->SetAssetId(AssetId);
 				break;
 			}
 			else if (HAPI_STATE_READY_WITH_FATAL_ERRORS == Status || HAPI_STATE_READY_WITH_COOK_ERRORS == Status)

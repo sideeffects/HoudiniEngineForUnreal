@@ -93,6 +93,10 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent//, public
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HoudiniAsset, ReplicatedUsing = OnRep_HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
+	/** Instance of Houdini Asset created by this component. **/
+	UPROPERTY()
+	UHoudiniAssetInstance* HoudiniAssetInstance;
+
 	/** **/
 	UFUNCTION()
 	void OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset);
@@ -199,10 +203,7 @@ protected:
 
 	/* Synchronization primitive used to control access to geometry. **/
 	FCriticalSection CriticalSectionTriangles;
-
-	/** Instance of Houdini Asset created by this component. **/
-	UHoudiniAssetInstance* HoudiniAssetInstance;
-
+	
 	/** **/
 	UMaterial* Material;
 
