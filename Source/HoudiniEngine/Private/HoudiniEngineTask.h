@@ -32,11 +32,11 @@ struct FHoudiniEngineTask
 {
 	/** Constructors. **/
 	FHoudiniEngineTask();
-	FHoudiniEngineTask(HoudiniEngineTaskType::Type InTaskType, UHoudiniAssetInstance* InAssetInstance);
+	FHoudiniEngineTask(HoudiniEngineTaskType::Type InTaskType, TWeakObjectPtr<UHoudiniAssetComponent> InAssetComponent);
 
 	/** Type of this task. **/
 	HoudiniEngineTaskType::Type TaskType;
 
-	/** Corresponding Houdini asset instance. **/
-	UHoudiniAssetInstance* AssetInstance;
+	/** Corresponding Houdini asset component. **/
+	TWeakObjectPtr<UHoudiniAssetComponent> AssetComponent;
 };

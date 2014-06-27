@@ -76,9 +76,6 @@ private:
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
 
-	/** Scheduler used to schedule HAPI instantiation and cook tasks. **/
-	TSharedPtr<FHoudiniEngineScheduler> HoudiniEngineScheduler;
-
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 
@@ -90,4 +87,7 @@ private:
 
 	/** Thread used to execute the scheduler. **/
 	FRunnableThread* HoudiniEngineSchedulerThread;
+
+	/** Scheduler used to schedule HAPI instantiation and cook tasks. **/
+	FHoudiniEngineScheduler* HoudiniEngineScheduler;
 };

@@ -337,7 +337,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 		if(HoudiniAssetComponentGeometryState::UseDefaultGeometry == GeometryState)
 		{
 			// If we are using preview geometry, we need to instantiate the asset.
-			FHoudiniEngineTask Task(HoudiniEngineTaskType::AssetInstantiation, HoudiniAssetInstance);
+			FHoudiniEngineTask Task(HoudiniEngineTaskType::AssetInstantiation, this);
 			GeometryState = HoudiniAssetComponentGeometryState::WaitForAssetInstantiation;
 
 			// Submit this task for execution.
@@ -1218,7 +1218,7 @@ UHoudiniAssetComponent::OnRegister()
 		if(HoudiniAssetComponentGeometryState::UsePreviewGeometry == GeometryState)
 		{
 			// If we are using preview geometry, we need to instantiate the asset.
-			FHoudiniEngineTask Task(HoudiniEngineTaskType::AssetInstantiation, HoudiniAssetInstance);
+			FHoudiniEngineTask Task(HoudiniEngineTaskType::AssetInstantiation, this);
 			GeometryState = HoudiniAssetComponentGeometryState::WaitForAssetInstantiation;
 
 			// Submit this task for execution.
