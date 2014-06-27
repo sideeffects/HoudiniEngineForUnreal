@@ -78,6 +78,7 @@ namespace HoudiniAssetComponentGeometryState
 
 		UseDefaultGeometry,
 		UsePreviewGeometry,
+
 		WaitForAssetInstantiation,
 		WaitForAssetCooking
 	};
@@ -109,6 +110,9 @@ public:
 
 	/** Custom function to receive tick notifications. **/
 	virtual void TickHoudiniComponent(float DeltaTime);
+
+	/** Timer callback used by preview components to receive update notifications. **/
+	void TickHoudiniPreviewComponent();
 
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
@@ -177,7 +181,7 @@ private:
 	/** Helper function to compute proper alignment boundary at a given offset for a specified type. **/
 	template <typename TType> TType* ComputeOffsetAlignmentBoundary(uint32 Offset) const;
 
-private:
+public:
 
 	/** Set preview asset used by this component. **/
 	//void SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset);
@@ -201,9 +205,12 @@ protected:
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
 
-	/* Synchronization primitive used to control access to geometry. **/
+	/** Synchronization primitive used to control access to geometry. **/
 	FCriticalSection CriticalSectionTriangles;
-	
+
+	/** Timer delegate, used to simulate ticks by preview components. **/
+	FTimerDelegate TimerDelegate;
+
 	/** **/
 	UMaterial* Material;
 
