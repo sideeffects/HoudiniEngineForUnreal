@@ -304,17 +304,26 @@ void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
-	
+
 	if(NewHoudiniAsset == HoudiniAsset)
 	{
 		return;
 	}
-
+	
 	HoudiniAsset = NewHoudiniAsset;
 
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
 	if(HoudiniAssetActor->IsUsedForPreview())
 	{
+		// If we have no timer delegate spawned for this component, spawn one.
+		if(!TimerDelegate.IsBound())
+		{
+			TimerDelegate = FTimerDelegate::CreateUObject(this, &UHoudiniAssetComponent::TickHoudiniPreviewComponent);
+
+			// We need to register delegate with the timer system.
+			GEditor->GetTimerManager()->SetTimer(TimerDelegate, 1.0f, true);
+		}
+
 		// If we do not have an instance object, create it.
 		if(!HoudiniAssetInstance)
 		{
@@ -400,7 +409,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 }
 
 
-void 
+void
 UHoudiniAssetComponent::ReplacePropertyOffset(UProperty* Property, int Offset)
 {
 	// We need this bit of magic in order to replace the private field.
@@ -1103,6 +1112,15 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		//FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAsset, TEXT("HoudiniTaskCookAsset"), true, true, 0, TPri_Normal);
 	}
 	*/
+}
+
+
+void 
+UHoudiniAssetComponent::TickHoudiniPreviewComponent()
+{
+	// check status..
+	// // We need to register delegate with the timer system.
+	//GEditor->GetTimerManager()->ClearTimer(TimerDelegate);
 }
 
 
