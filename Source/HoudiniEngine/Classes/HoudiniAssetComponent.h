@@ -69,6 +69,8 @@ struct FPropertyChangedEvent;
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 {
+	friend class FHoudiniMeshSceneProxy;
+
 	GENERATED_UCLASS_BODY()
 
 public:
@@ -101,9 +103,6 @@ public:
 
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
-
-	/** Return tris data associated with this component. **/
-	const TArray<FHoudiniMeshTriangle>& GetMeshTriangles() const;
 
 public: /** UObject methods. **/
 
@@ -167,6 +166,9 @@ private:
 
 	/** Update rendering information. **/
 	void UpdateRenderingInformation();
+
+	/** Refresh editor's detail panel and update properties. **/
+	void UpdateEditorProperties();
 
 	/** Start ticking. **/
 	void StartHoudiniTicking();
