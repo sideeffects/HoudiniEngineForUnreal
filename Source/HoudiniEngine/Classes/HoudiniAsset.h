@@ -46,17 +46,14 @@ public:
 	/** Return the size in bytes of raw Houdini OTL data. **/
 	uint32 GetAssetBytesCount() const;
 
+	/** Return true if preview geometry contains Houdini logo data. **/
+	bool DoesPreviewGeometryContainHoudiniLogo() const;
+
+	/** Retrieve preview geometry. **/
+	void RetrievePreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles);
+
 	/** Set preview geometry. **/
-	void SetPreviewTriangles(const TArray<FHoudiniMeshTriangle>& triangles);
-
-	/** Return preview geometry. **/
-	//const TArray<FHoudiniMeshTriangle>& GetPreviewTriangles() const;
-
-	/** Return true if preview geometry has been set. **/
-	bool ContainsPreviewTriangles() const;
-
-	/** Copy preview geometry. **/
-	void CopyPreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles);
+	void SetPreviewGeometry(const TArray<FHoudiniMeshTriangle>& Triangles);
 
 public:
 
@@ -85,4 +82,7 @@ protected:
 
 	/** Field containing the size of raw Houdini OTL data in bytes. **/
 	uint32 AssetBytesCount;
+
+	/** Flag which is set to true when preview geometry contains Houdini logo. **/
+	bool bPreviewHoudiniLogo;
 };

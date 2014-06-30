@@ -13,20 +13,11 @@
  *
  */
 
-#include "HoudiniEnginePrivatePCH.h"
+#pragma once
 
-
-FHoudiniEngineTask::FHoudiniEngineTask() :
-	TaskType(EHoudiniEngineTaskType::None)
+struct FHoudiniEngineTaskInfo
 {
-	HapiGUID.Invalidate();
-}
+	/** Constructors. **/
+	FHoudiniEngineTaskInfo();
 
-
-FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID, TWeakObjectPtr<UHoudiniAsset> InAsset) :
-	TaskType(InTaskType),
-	HapiGUID(InHapiGUID),
-	Asset(InAsset)
-{
-
-}
+};

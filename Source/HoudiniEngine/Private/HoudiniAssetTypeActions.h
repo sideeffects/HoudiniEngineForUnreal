@@ -41,4 +41,7 @@ protected:
 
 	/** Handler for when find in explorer is selected. */
 	void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
+
+	/** Handler to cook the asset. **/
+	void ExecuteCook(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
 };

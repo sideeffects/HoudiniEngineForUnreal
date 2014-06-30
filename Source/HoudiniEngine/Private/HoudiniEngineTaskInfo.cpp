@@ -16,11 +16,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-void
-FHoudiniAssetComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo()
 {
-	if(Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
-	{
-		Target->TickHoudiniComponent(DeltaTime);
-	}
+
 }
