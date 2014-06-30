@@ -27,7 +27,16 @@ public:
 
 	/** Register task for execution. **/
 	virtual void AddTask(const FHoudiniEngineTask& Task) = 0;
-	
+
+	/** Register task info. **/
+	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) = 0;
+
+	/** Remove task info. **/
+	virtual void RemoveTaskInfo(const FGuid HapIGUID) = 0;
+
+	/** Retrieve task info. **/
+	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) = 0;
+
 	/** Add new notification item. **/
 	//virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
 

@@ -99,14 +99,6 @@ public:
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
 
-#if 0
-	/** Custom function to receive tick notifications. **/
-	void TickHoudiniComponent(float DeltaTime);
-
-	/** Timer callback used by preview components to receive update notifications. **/
-	void TickHoudiniPreviewComponent();
-#endif
-
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
@@ -117,10 +109,9 @@ public: /** UObject methods. **/
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void BeginDestroy() OVERRIDE;
 
 protected: /** UActorComponent methods. **/
-
-	//virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
 
 	virtual void OnComponentCreated() OVERRIDE;
 	virtual void OnComponentDestroyed() OVERRIDE;

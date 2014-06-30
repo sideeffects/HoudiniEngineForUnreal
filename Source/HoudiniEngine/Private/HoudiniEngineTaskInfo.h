@@ -15,9 +15,38 @@
 
 #pragma once
 
+namespace EHoudiniEngineTaskState
+{
+	enum Type
+	{
+		None,
+
+		Processing,
+		Finished,
+		FinishedWithErrors,
+		Aborted
+	};
+}
+
 struct FHoudiniEngineTaskInfo
 {
 	/** Constructors. **/
 	FHoudiniEngineTaskInfo();
+	FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetId InAssetId, EHoudiniEngineTaskType::Type InTaskType,
+							EHoudiniEngineTaskState::Type InTaskState);
 
+	/** Current HAPI result. **/
+	HAPI_Result Result;
+
+	/** Current Asset Id. **/
+	HAPI_AssetId AssetId;
+
+	/** Type of task. **/
+	EHoudiniEngineTaskType::Type TaskType;
+
+	/** Current status. **/
+	EHoudiniEngineTaskState::Type TaskState;
+
+	/** String used for status / progress bar. **/
+	FText StatusText;
 };
