@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Damian Campeanu
+ *      Damian Campeanu, Mykola Konyk
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -131,7 +131,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** HoudiniEngine Class headers. **/
 #include "HoudiniMeshTriangle.h"
-#include "HoudiniAssetComponentTickFunction.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetInstance.h"
@@ -142,6 +141,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** HoudiniEngine Private headers. **/
 #include "HoudiniEngineNotificationInfo.h"
+#include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineScheduler.h"

@@ -15,7 +15,7 @@
 
 #pragma once
 
-namespace HoudiniEngineTaskType
+namespace EHoudiniEngineTaskType
 {
 	enum Type
 	{
@@ -32,11 +32,14 @@ struct FHoudiniEngineTask
 {
 	/** Constructors. **/
 	FHoudiniEngineTask();
-	FHoudiniEngineTask(HoudiniEngineTaskType::Type InTaskType, TWeakObjectPtr<UHoudiniAssetComponent> InAssetComponent);
+	FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID, TWeakObjectPtr<UHoudiniAsset> InAsset);
+
+	/** GUID of this request. **/
+	FGuid HapiGUID;
 
 	/** Type of this task. **/
-	HoudiniEngineTaskType::Type TaskType;
+	EHoudiniEngineTaskType::Type TaskType;
 
-	/** Corresponding Houdini asset component. **/
-	TWeakObjectPtr<UHoudiniAssetComponent> AssetComponent;
+	/** Corresponding Houdini asset. **/
+	TWeakObjectPtr<UHoudiniAsset> Asset;
 };

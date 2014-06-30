@@ -41,7 +41,7 @@
  * HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE definition, which is defined in Plugin Build.cs file.
  *
  * Produced by:
- *      Damian Campeanu
+ *      Damian Campeanu, Mykola Konyk
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -52,10 +52,7 @@
 
 #pragma once
 #include "HAPI.h"
-#include "IHoudiniTaskCookAssetCallback.h"
-#include "IHoudiniTaskInstantiateAssetCallback.h"
 #include "HoudiniAssetComponent.generated.h"
-
 
 class UClass;
 class UProperty;
@@ -69,26 +66,12 @@ class FComponentInstanceDataCache;
 
 struct FPropertyChangedEvent;
 
-
-namespace HoudiniAssetComponentGeometryState
-{
-	enum Type
-	{
-		None,
-
-		UseDefaultGeometry,
-		UsePreviewGeometry,
-
-		WaitForAssetInstantiation,
-		WaitForAssetCooking
-	};
-}
-
-
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
-class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent//, public IHoudiniTaskCookAssetCallback, public IHoudiniTaskInstantiateAssetCallback
+class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 
 	/** Houdini Asset associated with this component (except preview). Preview component will use PreviewHoudiniAsset instead. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HoudiniAsset, ReplicatedUsing = OnRep_HoudiniAsset)
@@ -97,6 +80,11 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent//, public
 	/** Instance of Houdini Asset created by this component. **/
 	UPROPERTY()
 	UHoudiniAssetInstance* HoudiniAssetInstance;
+
+	/** Preview asset used by preview components only. We do not expose this as property. **/
+	UHoudiniAsset* HoudiniPreviewAsset;
+
+public:
 
 	/** **/
 	UFUNCTION()
@@ -108,11 +96,16 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent//, public
 
 public:
 
+	/** Ticking function to check cooking / instatiation status. **/
+	void TickHoudiniComponent();
+
+#if 0
 	/** Custom function to receive tick notifications. **/
-	virtual void TickHoudiniComponent(float DeltaTime);
+	void TickHoudiniComponent(float DeltaTime);
 
 	/** Timer callback used by preview components to receive update notifications. **/
 	void TickHoudiniPreviewComponent();
+#endif
 
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
@@ -127,7 +120,7 @@ public: /** UObject methods. **/
 
 protected: /** UActorComponent methods. **/
 
-	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
+	//virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
 
 	virtual void OnComponentCreated() OVERRIDE;
 	virtual void OnComponentDestroyed() OVERRIDE;
@@ -174,17 +167,21 @@ private:
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, const int32* bValue, uint32& Offset);
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
-	
+
 	/** Set parameter values which have changed. **/
 	void SetChangedParameterValues();
 
 	/** Helper function to compute proper alignment boundary at a given offset for a specified type. **/
 	template <typename TType> TType* ComputeOffsetAlignmentBoundary(uint32 Offset) const;
 
-public:
+	/** Update rendering information. **/
+	void UpdateRenderingInformation();
 
-	/** Set preview asset used by this component. **/
-	//void SetPreviewHoudiniAsset(UHoudiniAsset* InPreviewHoudiniAsset);
+	/** Start ticking. **/
+	void StartHoudiniTicking();
+
+	/** Stop ticking. **/
+	void StopHoudiniTicking();
 
 public:
 
@@ -199,16 +196,16 @@ protected:
 	/** Array of properties that have changed. Will force object recook. **/
 	TSet<UProperty*> ChangedProperties;
 
-	/** Tick function for this component. **/
-	FHoudiniAssetComponentTickFunction HoudiniAssetComponentTickFunction;
-
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
 
 	/** Synchronization primitive used to control access to geometry. **/
 	FCriticalSection CriticalSectionTriangles;
 
-	/** Timer delegate, used to simulate ticks by preview components. **/
+	/** GUID used to track asynchronous cooking requests. **/
+	FGuid HapiGUID;
+
+	/** Timer delegate, used to simulate ticks. **/
 	FTimerDelegate TimerDelegate;
 
 	/** **/
@@ -216,9 +213,6 @@ protected:
 
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;
-
-	/** This enum is used to track the current state of geometry of component. **/
-	HoudiniAssetComponentGeometryState::Type GeometryState;
 
 private:
 

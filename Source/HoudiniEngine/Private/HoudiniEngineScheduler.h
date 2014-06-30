@@ -50,13 +50,25 @@ protected:
 
 protected:
 
-	/** Maximum number of tasks in our circular queue. **/
-	static const uint32 MaximumTaskSize;
+	/** Initial number of tasks in our circular queue. **/
+	static const uint32 InitialTaskSize;
 
 protected:
 
+	/** Synchronization primitive. **/
+	FCriticalSection CriticalSection;
+
 	/** List of scheduled tasks. **/
-	TCircularQueue<FHoudiniEngineTask> Tasks;
+	FHoudiniEngineTask* Tasks;
+
+	/** Head of the circular queue. **/
+	uint32 PositionWrite;
+
+	/** Tail of the circular queue. **/
+	uint32 PositionRead;
+
+	/** Size of the circular queue. **/
+	uint32 TaskCount;
 
 	/** Stopping flag. **/
 	bool bStopping;

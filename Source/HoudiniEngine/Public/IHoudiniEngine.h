@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Damian Campeanu
+ *      Damian Campeanu, Mykola Konyk
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -29,11 +29,11 @@ public:
 	virtual void AddTask(const FHoudiniEngineTask& Task) = 0;
 	
 	/** Add new notification item. **/
-	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
+	//virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
 
 	/** Remove existing notification item. **/
-	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
+	//virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
 
 	/** Update notification. **/
-	virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
+	//virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
 };

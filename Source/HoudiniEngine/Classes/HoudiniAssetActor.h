@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Damian Campeanu
+ *      Damian Campeanu, Mykola Konyk
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario

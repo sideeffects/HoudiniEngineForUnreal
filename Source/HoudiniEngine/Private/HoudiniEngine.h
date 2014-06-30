@@ -35,9 +35,11 @@ public: /** IHoudiniEngine methods. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const OVERRIDE;
 	virtual void AddTask(const FHoudiniEngineTask& Task) OVERRIDE;
 
+	/*
 	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
+	*/
 
 public: /** FTickableEditorObject methods. **/
 
@@ -68,10 +70,10 @@ private:
 private:
 
 	/** Map of currently active notifications. **/
-	TMap<FHoudiniEngineNotificationInfo*, TWeakPtr<SNotificationItem> > Notifications;
+	//TMap<FHoudiniEngineNotificationInfo*, TWeakPtr<SNotificationItem> > Notifications;
 
 	/** Queue of notifications we need to process and submit to Slate. **/
-	TArray<FHoudiniEngineNotificationInfo*> QueuedNotifications;
+	//TArray<FHoudiniEngineNotificationInfo*> QueuedNotifications;
 
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
@@ -82,8 +84,11 @@ private:
 	/** Houdini logo brush. **/
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;
 
-	/** Synchronization primitive used to control access to notifications. **/
+	/** Synchronization primitive. **/
 	FCriticalSection CriticalSection;
+
+	/** Map of task statuses. **/
+	TMap<FGuid, FHoudiniEngineTaskInfo> TaskInfos;
 
 	/** Thread used to execute the scheduler. **/
 	FRunnableThread* HoudiniEngineSchedulerThread;

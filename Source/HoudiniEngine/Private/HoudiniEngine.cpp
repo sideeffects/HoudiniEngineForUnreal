@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Damian Campeanu
+ *      Damian Campeanu, Mykola Konyk
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -174,6 +174,7 @@ FHoudiniEngine::Tick(float DeltaTime)
 		return;
 	}
 
+	/*
 	// We need to record notifications which are being removed.
 	TArray<FHoudiniEngineNotificationInfo*> RemovedNotifications;
 
@@ -222,6 +223,7 @@ FHoudiniEngine::Tick(float DeltaTime)
 		// We processed all notifications.
 		QueuedNotifications.Reset();
 	}
+	*/
 }
 
 
@@ -246,6 +248,7 @@ FHoudiniEngine::AddTask(const FHoudiniEngineTask& Task)
 }
 
 
+/*
 void
 FHoudiniEngine::AddNotification(FHoudiniEngineNotificationInfo* Notification)
 {
@@ -288,3 +291,4 @@ FHoudiniEngine::UpdateNotification(FHoudiniEngineNotificationInfo* Notification)
 	// Flag notification for update.
 	FPlatformAtomics::InterlockedExchange(&Notification->bScheduledUpdate, 1);
 }
+*/

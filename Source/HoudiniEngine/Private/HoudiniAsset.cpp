@@ -19,7 +19,8 @@
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	AssetBytes(nullptr),
-	AssetBytesCount(0)
+	AssetBytesCount(0),
+	bPreviewHoudiniLogo(false)
 {
 
 }
@@ -28,11 +29,12 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
 							 const uint8*& BufferStart,
 							 const uint8* BufferEnd,
-							 const FString& InFileName) : 
+							 const FString& InFileName) :
 	Super(PCIP),
 	OTLFileName(InFileName),
 	AssetBytes(nullptr),
-	AssetBytesCount(0)
+	AssetBytesCount(0),
+	bPreviewHoudiniLogo(false)
 {
 	// Calculate buffer size.
 	AssetBytesCount = BufferEnd - BufferStart;
@@ -47,6 +49,13 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
 			// Copy data into a newly allocated buffer.
 			FMemory::Memcpy(AssetBytes, BufferStart, AssetBytesCount);
 		}
+	}
+
+	// Use Houdini logo for geometry.
+	{
+		FBoxSphereBounds SphereBounds;
+		FHoudiniEngineUtils::GetHoudiniLogoGeometry(PreviewHoudiniMeshTriangles, SphereBounds);
+		bPreviewHoudiniLogo = true;
 	}
 }
 
@@ -65,36 +74,28 @@ UHoudiniAsset::GetAssetBytesCount() const
 }
 
 
-void 
-UHoudiniAsset::CopyPreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles)
+bool
+UHoudiniAsset::DoesPreviewGeometryContainHoudiniLogo() const
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	return bPreviewHoudiniLogo;
+}
+
+
+void
+UHoudiniAsset::RetrievePreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles)
 {
 	FScopeLock ScopeLock(&CriticalSection);
 	Triangles = TArray<FHoudiniMeshTriangle>(PreviewHoudiniMeshTriangles);
 }
 
 
-bool
-UHoudiniAsset::ContainsPreviewTriangles() const
-{
-	FScopeLock ScopeLock(&CriticalSection);
-	return PreviewHoudiniMeshTriangles.Num() > 0;
-}
-
-
-/*
-const TArray<FHoudiniMeshTriangle>&
-UHoudiniAsset::GetPreviewTriangles() const
-{
-	return PreviewHoudiniMeshTriangles;
-}
-*/
-
-
 void
-UHoudiniAsset::SetPreviewTriangles(const TArray<FHoudiniMeshTriangle>& Triangles)
+UHoudiniAsset::SetPreviewGeometry(const TArray<FHoudiniMeshTriangle>& Triangles)
 {
 	FScopeLock ScopeLock(&CriticalSection);
 	PreviewHoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(Triangles);
+	bPreviewHoudiniLogo = false;
 }
 
 
@@ -157,6 +158,8 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 
 	{
 		FScopeLock ScopeLock(&CriticalSection);
+
+		Ar << bPreviewHoudiniLogo;
 
 		if(Ar.IsSaving())
 		{
