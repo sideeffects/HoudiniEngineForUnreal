@@ -23,7 +23,7 @@ FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component
 	int32 VIndex;
 	const FColor VertexColor(255, 255, 255);
 
-	const TArray<FHoudiniMeshTriangle>& HoudiniMeshTris = Component->GetMeshTriangles();
+	const TArray<FHoudiniMeshTriangle>& HoudiniMeshTris = Component->HoudiniMeshTriangles;
 
 	// Add each triangle to the vertex / index buffer.
 	for(int TriIdx = 0; TriIdx < HoudiniMeshTris.Num(); TriIdx++)

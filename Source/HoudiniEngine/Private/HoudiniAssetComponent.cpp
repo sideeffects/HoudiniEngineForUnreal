@@ -200,6 +200,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								}
 							}
 						}
+
+						// Update properties panel.
+						UpdateEditorProperties();
 					}
 					else
 					{
@@ -236,6 +239,17 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 }
 
 
+void 
+UHoudiniAssetComponent::UpdateEditorProperties()
+{
+	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	if(HoudiniAssetActor)
+	{
+		GEditor->SelectActor(HoudiniAssetActor, true, true);
+	}
+}
+
+
 void
 UHoudiniAssetComponent::UpdateRenderingInformation()
 {
@@ -262,14 +276,6 @@ UHoudiniAssetComponent::GetNumMaterials() const
 {
 	return 1;
 }
-
-
-const TArray<FHoudiniMeshTriangle>&
-UHoudiniAssetComponent::GetMeshTriangles() const
-{
-	return HoudiniMeshTriangles;
-}
-
 
 
 FPrimitiveSceneProxy*
