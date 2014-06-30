@@ -22,7 +22,7 @@ class IComponentAssetBroker;
 class FHoudiniEngineScheduler;
 class FRunnableThread;
 
-class FHoudiniEngine : public IHoudiniEngine, public FTickableEditorObject
+class FHoudiniEngine : public IHoudiniEngine
 {
 
 public: /** IModuleInterface methods. **/
@@ -34,18 +34,15 @@ public: /** IHoudiniEngine methods. **/
 
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const OVERRIDE;
 	virtual void AddTask(const FHoudiniEngineTask& Task) OVERRIDE;
+	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) OVERRIDE;
+	virtual void RemoveTaskInfo(const FGuid HapIGUID) OVERRIDE;
+	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) OVERRIDE;
 
 	/*
 	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
 	*/
-
-public: /** FTickableEditorObject methods. **/
-
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual bool IsTickable() const OVERRIDE;
-	virtual TStatId GetStatId() const OVERRIDE;
 
 public:
 

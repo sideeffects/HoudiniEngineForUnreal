@@ -66,7 +66,7 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 		HoudiniAssetComponent->SetNative(true);
 
 		HoudiniAssetComponent->UnregisterComponent();
-		HoudiniAssetComponent->HoudiniAsset = HoudiniAsset;
+		HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
 		HoudiniAssetComponent->RegisterComponent();
 	}
 }

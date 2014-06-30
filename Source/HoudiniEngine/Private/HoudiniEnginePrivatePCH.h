@@ -141,9 +141,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** HoudiniEngine Private headers. **/
 #include "HoudiniEngineNotificationInfo.h"
+#include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngine.h"
-#include "HoudiniEngineTask.h"
 #include "HoudiniEngineScheduler.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniLogo.h"

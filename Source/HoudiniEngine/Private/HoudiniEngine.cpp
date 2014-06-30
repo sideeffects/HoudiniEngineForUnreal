@@ -165,6 +165,7 @@ FHoudiniEngine::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAss
 }
 
 
+#if 0
 void 
 FHoudiniEngine::Tick(float DeltaTime)
 {
@@ -225,26 +226,48 @@ FHoudiniEngine::Tick(float DeltaTime)
 	}
 	*/
 }
-
-
-bool
-FHoudiniEngine::IsTickable() const
-{
-	return true;
-}
-
-
-TStatId
-FHoudiniEngine::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FHoudiniEngine, STATGROUP_Tickables);
-}
+#endif
 
 
 void
 FHoudiniEngine::AddTask(const FHoudiniEngineTask& Task)
 {
 	HoudiniEngineScheduler->AddTask(Task);
+
+	FScopeLock ScopeLock(&CriticalSection);
+	FHoudiniEngineTaskInfo TaskInfo;
+	TaskInfos.Add(Task.HapiGUID, TaskInfo);
+}
+
+
+void 
+FHoudiniEngine::AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	TaskInfos.Add(HapIGUID, TaskInfo);
+}
+
+
+void 
+FHoudiniEngine::RemoveTaskInfo(const FGuid HapIGUID)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	TaskInfos.Remove(HapIGUID);
+}
+
+
+bool 
+FHoudiniEngine::RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	
+	if(TaskInfos.Contains(HapIGUID))
+	{
+		TaskInfo = TaskInfos[HapIGUID];
+		return true;
+	}
+
+	return false;
 }
 
 

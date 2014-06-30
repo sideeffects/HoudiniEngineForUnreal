@@ -70,28 +70,19 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		return;
 	}
 
-	/*
-	if(!Task.AssetComponent.IsValid())
-	{
-		// The component which requested instantiation is no longer valid.
-		return;
-	}
-
-	// Get the asset component, asset instance and asset itself.
-	UHoudiniAssetComponent* HoudiniAssetComponent = Task.AssetComponent.Get();
-	UHoudiniAssetInstance* HoudiniAssetInstance = HoudiniAssetComponent->HoudiniAssetInstance;
-	UHoudiniAsset* HoudiniAsset = HoudiniAssetInstance->GetHoudiniAsset();
-
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	UHoudiniAsset* HoudiniAsset = Task.Asset.Get();
 	HAPI_AssetLibraryId AssetLibraryId = 0;
 	int32 AssetCount = 0;
 	std::vector<int> AssetNames;
 	std::string AssetNameString;
-	//double LastUpdateTime;
+	double LastUpdateTime;
 
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()), 
-								HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), void());
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
+																HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), void());
+
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssetCount(AssetLibraryId, &AssetCount), void());
+	
 	AssetNames.resize(AssetCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), void());
 
@@ -105,7 +96,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		//HoudiniAssetInstance->SetAssetName(AssetName);
 
 		// Initialize last update time.
-		//LastUpdateTime = FPlatformTime::Seconds();
+		LastUpdateTime = FPlatformTime::Seconds();
 
 		HAPI_AssetId AssetId = -1;
 		bool CookOnLoad = true;
@@ -120,7 +111,8 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 			if(HAPI_STATE_READY == Status)
 			{
 				// Cooking has been successful.
-				
+				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::Finished);
+				FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
 				break;
 			}
@@ -150,7 +142,6 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 			FPlatformProcess::Sleep(0.0f);
 		}
 	}
-	*/
 }
 
 
@@ -186,7 +177,7 @@ FHoudiniEngineScheduler::ProcessQueuedTasks()
 				PositionRead++;
 
 				// Wrap around if required.
-				PositionRead &= (PositionRead - 1);
+				PositionRead &= (TaskCount - 1);
 			}
 
 			switch(Task.TaskType)

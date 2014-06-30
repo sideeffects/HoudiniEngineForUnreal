@@ -16,7 +16,23 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo()
+FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo() :
+	Result(HAPI_RESULT_SUCCESS),
+	AssetId(-1),
+	TaskType(EHoudiniEngineTaskType::None),
+	TaskState(EHoudiniEngineTaskState::None)
+{
+
+}
+
+
+FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetId InAssetId,
+												EHoudiniEngineTaskType::Type InTaskType,
+												EHoudiniEngineTaskState::Type InTaskState) :
+	Result(InResult),
+	AssetId(InAssetId),
+	TaskType(InTaskType),
+	TaskState(InTaskState)
 {
 
 }
