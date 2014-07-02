@@ -23,10 +23,9 @@ FHoudiniEngineTask::FHoudiniEngineTask() :
 }
 
 
-FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID, TWeakObjectPtr<UHoudiniAsset> InAsset) :
+FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID) :
 	TaskType(InTaskType),
-	HapiGUID(InHapiGUID),
-	Asset(InAsset)
+	HapiGUID(InHapiGUID)
 {
 
 }

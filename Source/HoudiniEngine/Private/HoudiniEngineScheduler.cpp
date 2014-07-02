@@ -111,9 +111,6 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		// Translate asset name into Unreal string.
 		FString AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());
 
-		// Set asset name for the asset instance we are processing.
-		//HoudiniAssetInstance->SetAssetName(AssetName);
-
 		// Initialize last update time.
 		LastUpdateTime = FPlatformTime::Seconds();
 
@@ -179,7 +176,87 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 void
 FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 {
+	HOUDINI_LOG_MESSAGE(TEXT("HAPI Asynchronous Cooking Started."));
 
+	if(!FHoudiniEngineUtils::IsInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("TaskCookAsset failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
+		return;
+	}
+
+	if(!Task.AssetComponent.IsValid())
+	{
+		// Asset instance is no longer valid, return.
+		return;
+	}
+
+	// Retrieve asset id.
+	HAPI_AssetId AssetId = Task.AssetComponent->GetAssetId();
+
+	if(-1 == AssetId)
+	{
+		// We have an invalid asset id.
+		HOUDINI_LOG_ERROR(TEXT("TaskCookAsset failed: Invalid Asset Id."));
+		return;
+	}
+
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_CookAsset(AssetId, nullptr), void());
+
+	// Add processing notification.
+	FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, EHoudiniEngineTaskState::Processing);
+	TaskDescription(TaskInfo, Task.ActorName, TEXT("Started Cooking"));
+	FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+
+	// Initialize last update time.
+	double LastUpdateTime = FPlatformTime::Seconds();
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// We need to spin until cooking is finished.
+	while(true)
+	{
+		int Status = HAPI_STATE_STARTING_COOK;
+		HOUDINI_CHECK_ERROR(&Result, HAPI_GetStatus(HAPI_STATUS_COOK_STATE, &Status));
+
+		if(HAPI_STATE_READY == Status)
+		{
+			// Cooking has been successful.
+			FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, EHoudiniEngineTaskState::Finished);
+			TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Cooking"));
+			FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+
+			break;
+		}
+		else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status || HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
+		{
+			// There was an error while instantiating.
+			FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, EHoudiniEngineTaskState::FinishedWithErrors);
+			TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Cooking with Errors"));
+			FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+
+			break;
+		}
+
+		static const double NotificationUpdateFrequency = 0.5;
+		if((FPlatformTime::Seconds() - LastUpdateTime) >= NotificationUpdateFrequency)
+		{
+			// Reset update time.
+			LastUpdateTime = FPlatformTime::Seconds();
+
+			// Retrieve status string.
+			int StatusStringBufferLength = 0;
+			HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
+			std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
+			HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
+			FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
+
+			FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, EHoudiniEngineTaskState::Processing);
+			TaskDescription(TaskInfo, Task.ActorName, StatusString);
+			FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+		}
+
+		// We want to yield.
+		FPlatformProcess::Sleep(0.0f);
+	}
 }
 
 
