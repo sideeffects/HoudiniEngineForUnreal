@@ -38,12 +38,6 @@ public: /** IHoudiniEngine methods. **/
 	virtual void RemoveTaskInfo(const FGuid HapIGUID) OVERRIDE;
 	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) OVERRIDE;
 
-	/*
-	virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
-	virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
-	virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) OVERRIDE;
-	*/
-
 public:
 
 	/** App identifier string. **/
@@ -65,12 +59,6 @@ private:
 	static FHoudiniEngine* HoudiniEngineInstance;
 
 private:
-
-	/** Map of currently active notifications. **/
-	//TMap<FHoudiniEngineNotificationInfo*, TWeakPtr<SNotificationItem> > Notifications;
-
-	/** Queue of notifications we need to process and submit to Slate. **/
-	//TArray<FHoudiniEngineNotificationInfo*> QueuedNotifications;
 
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;

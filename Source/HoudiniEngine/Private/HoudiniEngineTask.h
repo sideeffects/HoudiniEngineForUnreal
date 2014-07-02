@@ -42,4 +42,7 @@ struct FHoudiniEngineTask
 
 	/** Corresponding Houdini asset. **/
 	TWeakObjectPtr<UHoudiniAsset> Asset;
+
+	/** Name of the actor requesting this task. **/
+	FString ActorName;
 };
