@@ -26,13 +26,14 @@ namespace EHoudiniEngineTaskType
 	};
 }
 
-class UHoudiniAssetInstance;
+class UHoudiniAsset;
+class UHoudiniAssetComponent;
 
 struct FHoudiniEngineTask
 {
 	/** Constructors. **/
 	FHoudiniEngineTask();
-	FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID, TWeakObjectPtr<UHoudiniAsset> InAsset);
+	FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID);
 
 	/** GUID of this request. **/
 	FGuid HapiGUID;
@@ -40,8 +41,11 @@ struct FHoudiniEngineTask
 	/** Type of this task. **/
 	EHoudiniEngineTaskType::Type TaskType;
 
-	/** Corresponding Houdini asset. **/
+	/** Houdini asset for instantiation. **/
 	TWeakObjectPtr<UHoudiniAsset> Asset;
+
+	/** Houdini asset component for cooking. **/
+	TWeakObjectPtr<UHoudiniAssetComponent> AssetComponent;
 
 	/** Name of the actor requesting this task. **/
 	FString ActorName;

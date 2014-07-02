@@ -23,9 +23,9 @@ UHoudiniAssetComponent::ScriptStructColor = nullptr;
 
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
-	HoudiniAssetInstance(nullptr),
 	HoudiniPreviewAsset(nullptr),
 	Material(nullptr),
+	AssetId(-1),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false)
 {
@@ -47,6 +47,36 @@ void
 UHoudiniAssetComponent::SetNative(bool InbIsNativeComponent)
 {
 	bIsNativeComponent = InbIsNativeComponent;
+}
+
+
+HAPI_AssetId
+UHoudiniAssetComponent::GetAssetId() const
+{
+	return AssetId;
+}
+
+
+void
+UHoudiniAssetComponent::SetAssetId(HAPI_AssetId InAssetId)
+{
+	AssetId = InAssetId;
+}
+
+
+UHoudiniAsset* 
+UHoudiniAssetComponent::GetHoudiniAsset() const
+{
+	if(HoudiniAsset)
+	{
+		return HoudiniAsset;
+	}
+	else if(HoudiniPreviewAsset)
+	{
+		return HoudiniPreviewAsset;
+	}
+
+	return nullptr;
 }
 
 
@@ -81,6 +111,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 	UHoudiniAsset* Asset = nullptr;
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	check(HoudiniAssetActor);
 
 	if(HoudiniAssetActor->IsUsedForPreview())
 	{
@@ -104,13 +135,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		HoudiniAsset = InHoudiniAsset;
 	}
 
-	// If we do not have an instance object, create it.
-	if(!HoudiniAssetInstance)
-	{
-		HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
-		HoudiniAssetInstance->SetHoudiniAsset(InHoudiniAsset);
-	}
-
 	if(!InHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
 	{
 		// If asset contains non logo geometry, retrieve it and use it.
@@ -126,7 +150,8 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		HapiGUID = FGuid::NewGuid();
 
 		// Create asset instantiation task object and submit it for processing.
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID, InHoudiniAsset);
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
+		Task.Asset = InHoudiniAsset;
 		Task.ActorName = HoudiniAssetActor->GetActorLabel();
 		FHoudiniEngine::Get().AddTask(Task);
 
@@ -194,7 +219,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			{
 				if(-1 != TaskInfo.AssetId)
 				{
-					HoudiniAssetInstance->SetAssetId(TaskInfo.AssetId);
+					// Set new asset id.
+					SetAssetId(TaskInfo.AssetId);
 
 					if(FHoudiniEngineUtils::GetAssetGeometry(TaskInfo.AssetId, HoudiniMeshTriangles, HoudiniMeshSphereBounds))
 					{
@@ -205,7 +231,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						UpdateRenderingInformation();
 
 						// See if asset contains Houdini logo geometry, if it does we can update it.
-						UHoudiniAsset* CurrentHoudiniAsset = HoudiniAssetInstance->GetHoudiniAsset();
+						UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
 						if(CurrentHoudiniAsset && CurrentHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
 						{
 							CurrentHoudiniAsset->SetPreviewGeometry(HoudiniMeshTriangles);
@@ -400,7 +426,7 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 	if(GetClass() == ClassOfUHoudiniAssetComponent)
 	{
 		// Construct unique name for this class.
-		FString PatchedClassName = FString::Printf(TEXT("%s_%d"), *GetClass()->GetName(), HoudiniAssetInstance->GetAssetId());
+		FString PatchedClassName = FString::Printf(TEXT("%s_%d"), *GetClass()->GetName(), AssetId);
 
 		// Create new class instance.
 		//static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
@@ -440,7 +466,7 @@ void
 UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectOriginal, UClass* ClassObjectNew)
 {
 	UClass** Address = (UClass**) this;
-	UClass** EndAddress = (UClass**) ((const char*) this + sizeof(UHoudiniAssetComponent));
+	UClass** EndAddress = (UClass**) &this->ScratchSpaceMarker;
 
 	while((*Address != ClassObjectOriginal) && (Address < EndAddress))
 	{
@@ -481,7 +507,6 @@ UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 bool
 UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 {
-	HAPI_AssetId AssetId = HoudiniAssetInstance->GetAssetId();
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	HAPI_AssetInfo AssetInfo;
 	HAPI_NodeInfo NodeInfo;
@@ -941,7 +966,6 @@ void
 UHoudiniAssetComponent::SetChangedParameterValues()
 {
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
-	HAPI_AssetId AssetId = HoudiniAssetInstance->GetAssetId();
 	HAPI_AssetInfo AssetInfo;
 
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), void());
@@ -1076,9 +1100,9 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	// Add changed property to the set of changes.
 	ChangedProperties.Add(Property);
 
+	// If our asset is not already instantiating or cooking, we can cook right away.
 	/*
-	// If our asset is not already cooking, we can cook right away.
-	if(!HoudiniAssetInstance->IsCooking())
+	if(!HapiGUID.IsValid() && !HoudiniAssetInstance->IsCooking())
 	{
 		// We need to set all parameter values which have changed.
 		SetChangedParameterValues();
@@ -1086,11 +1110,21 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		// Remove all processed parameters.
 		ChangedProperties.Empty();
 
-		// Start asynchronous task to perform the cooking from the referenced asset instance.
-		//FHoudiniTaskCookAsset* HoudiniTaskCookAsset = new FHoudiniTaskCookAsset(this, HoudiniAssetInstance);
+		// Get the parent actor.
+		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+		check(HoudiniAssetActor);
 
-		// Create a new thread to execute our runnable.
-		//FRunnableThread* Thread = FRunnableThread::Create(HoudiniTaskCookAsset, TEXT("HoudiniTaskCookAsset"), true, true, 0, TPri_Normal);
+		// Create new GUID to identify this request.
+		HapiGUID = FGuid::NewGuid();
+
+		// Create asset instantiation task object and submit it for processing.
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+		Task.AssetInstance = HoudiniAssetInstance;
+		Task.ActorName = HoudiniAssetActor->GetActorLabel();
+		FHoudiniEngine::Get().AddTask(Task);
+
+		// Start ticking - this will poll the cooking system for completion.
+		StartHoudiniTicking();
 	}
 	*/
 }
@@ -1112,13 +1146,6 @@ UHoudiniAssetComponent::OnRegister()
 	if(!HoudiniAssetActor)
 	{
 		return;
-	}
-
-	// If we do not have an instance object, create it.
-	if(!HoudiniAssetInstance)
-	{
-		HoudiniAssetInstance = NewObject<UHoudiniAssetInstance>();
-		HoudiniAssetInstance->SetHoudiniAsset(HoudiniAsset);
 	}
 
 	if(bIsNativeComponent)

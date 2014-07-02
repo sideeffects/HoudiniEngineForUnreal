@@ -59,7 +59,6 @@ class UProperty;
 class UMaterial;
 class FTransform;
 class UHoudiniAsset;
-class UHoudiniAssetInstance;
 class FPrimitiveSceneProxy;
 class UHoudiniAssetComponent;
 class FComponentInstanceDataCache;
@@ -70,7 +69,6 @@ UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Compon
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 {
 	friend class FHoudiniMeshSceneProxy;
-
 	GENERATED_UCLASS_BODY()
 
 public:
@@ -78,10 +76,6 @@ public:
 	/** Houdini Asset associated with this component (except preview). Preview component will use PreviewHoudiniAsset instead. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HoudiniAsset, ReplicatedUsing = OnRep_HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
-
-	/** Instance of Houdini Asset created by this component. **/
-	UPROPERTY()
-	UHoudiniAssetInstance* HoudiniAssetInstance;
 
 	/** Preview asset used by preview components only. We do not expose this as property. **/
 	UHoudiniAsset* HoudiniPreviewAsset;
@@ -103,6 +97,12 @@ public:
 
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
+
+	/** Return id of a Houdini asset. **/
+	HAPI_AssetId GetAssetId() const;
+
+	/** Set id of a Houdini asset. **/
+	void SetAssetId(HAPI_AssetId InAssetId);
 
 public: /** UObject methods. **/
 
@@ -176,6 +176,9 @@ private:
 	/** Stop ticking. **/
 	void StopHoudiniTicking();
 
+	/** Return current referenced Houdini asset. **/
+	UHoudiniAsset* GetHoudiniAsset() const;
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -206,6 +209,9 @@ protected:
 
 	/** Material of this asset component. **/
 	UMaterial* Material;
+
+	/** Id of corresponding Houdini asset. **/
+	HAPI_AssetId AssetId;
 
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;

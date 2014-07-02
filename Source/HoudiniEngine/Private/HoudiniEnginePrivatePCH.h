@@ -133,7 +133,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniMeshTriangle.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
-#include "HoudiniAssetInstance.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniAssetFactory.h"
@@ -153,5 +152,3 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniMeshVertexFactory.h"
 #include "HoudiniMeshSceneProxy.h"
 #include "HoudiniAssetThumbnailScene.h"
-#include "HoudiniTaskInstantiateAsset.h"
-#include "HoudiniTaskCookAsset.h"
