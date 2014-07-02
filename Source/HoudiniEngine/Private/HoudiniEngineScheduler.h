@@ -48,6 +48,9 @@ protected:
 	/** Task : cook an asset. **/
 	void TaskCookAsset(const FHoudiniEngineTask& Task);
 
+	/** Create description of task's state. **/
+	void TaskDescription(FHoudiniEngineTaskInfo& Task, const FString& ActorName, const FString& StatusString);
+
 protected:
 
 	/** Initial number of tasks in our circular queue. **/

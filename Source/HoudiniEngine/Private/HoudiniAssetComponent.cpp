@@ -26,7 +26,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	HoudiniAssetInstance(nullptr),
 	HoudiniPreviewAsset(nullptr),
 	Material(nullptr),
-	bIsNativeComponent(false)
+	bIsNativeComponent(false),
+	bIsPreviewComponent(false)
 {
 	// Create a generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -90,6 +91,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		}
 
 		HoudiniPreviewAsset = InHoudiniAsset;
+		bIsPreviewComponent = true;
 	}
 	else
 	{
@@ -125,6 +127,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 		// Create asset instantiation task object and submit it for processing.
 		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID, InHoudiniAsset);
+		Task.ActorName = HoudiniAssetActor->GetActorLabel();
 		FHoudiniEngine::Get().AddTask(Task);
 
 		// Start ticking - this will poll the cooking system for completion.
@@ -142,7 +145,7 @@ UHoudiniAssetComponent::StartHoudiniTicking()
 		TimerDelegate = FTimerDelegate::CreateUObject(this, &UHoudiniAssetComponent::TickHoudiniComponent);
 
 		// We need to register delegate with the timer system.
-		static const float TickTimerDelay = 1.0f;
+		static const float TickTimerDelay = 0.25f;
 		GEditor->GetTimerManager()->SetTimer(TimerDelegate, TickTimerDelay, true);
 	}
 }
@@ -165,6 +168,26 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	
 	if(FHoudiniEngine::Get().RetrieveTaskInfo(HapiGUID, TaskInfo))
 	{
+		if(EHoudiniEngineTaskState::None != TaskInfo.TaskState)
+		{
+			if(!NotificationPtr.IsValid())
+			{
+				FNotificationInfo Info(TaskInfo.StatusText);
+
+				Info.bFireAndForget = false;
+				Info.FadeOutDuration = 2.0f;
+				Info.ExpireDuration = 2.0f;
+
+				TSharedPtr<FSlateDynamicImageBrush> HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
+				if (HoudiniBrush.IsValid())
+				{
+					Info.Image = HoudiniBrush.Get();
+				}
+
+				NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+			}
+		}
+
 		switch(TaskInfo.TaskState)
 		{
 			case EHoudiniEngineTaskState::Finished:
@@ -214,15 +237,52 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					HOUDINI_LOG_MESSAGE(TEXT("Received invalid asset id."));
 				}
 
+				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+				if(NotificationItem.IsValid())
+				{
+					NotificationItem->SetText(TaskInfo.StatusText);
+					NotificationItem->ExpireAndFadeout();
+
+					NotificationPtr.Reset();
+				}
+
 				FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 				HapiGUID.Invalidate();
 				StopHoudiniTicking();
 				break;
 			}
 
-			case EHoudiniEngineTaskState::FinishedWithErrors:
-			case EHoudiniEngineTaskState::Processing:
 			case EHoudiniEngineTaskState::Aborted:
+			case EHoudiniEngineTaskState::FinishedWithErrors:
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Failed asset instantiation."));
+
+				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+				if(NotificationItem.IsValid())
+				{
+					NotificationItem->SetText(TaskInfo.StatusText);
+					NotificationItem->ExpireAndFadeout();
+
+					NotificationPtr.Reset();
+				}
+
+				FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
+				HapiGUID.Invalidate();
+				StopHoudiniTicking();
+				break;
+			}
+
+			case EHoudiniEngineTaskState::Processing:
+			{
+				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+				if(NotificationItem.IsValid())
+				{
+					NotificationItem->SetText(TaskInfo.StatusText);
+				}
+
+				break;
+			}
+
 			case EHoudiniEngineTaskState::None:
 			default:
 			{
@@ -380,14 +440,14 @@ void
 UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectOriginal, UClass* ClassObjectNew)
 {
 	UClass** Address = (UClass**) this;
-	UClass** EndAddress = (UClass**) this + sizeof(UHoudiniAssetComponent);
+	UClass** EndAddress = (UClass**) ((const char*) this + sizeof(UHoudiniAssetComponent));
 
-	while(*Address != ClassObjectOriginal && Address < EndAddress)
+	while((*Address != ClassObjectOriginal) && (Address < EndAddress))
 	{
 		Address++;
 	}
 
-	if(*Address == ClassObjectOriginal)
+	if((Address < EndAddress) && (*Address == ClassObjectOriginal))
 	{
 		*Address = ClassObjectNew;
 	}
@@ -1065,7 +1125,7 @@ UHoudiniAssetComponent::OnRegister()
 	{
 		// This is a native component ~ belonging to a c++ actor.
 
-		if(HoudiniAssetActor->IsUsedForPreview())
+		if(bIsPreviewComponent)
 		{
 			HOUDINI_LOG_MESSAGE(TEXT("Native::OnRegister, Preview actor"));
 		}

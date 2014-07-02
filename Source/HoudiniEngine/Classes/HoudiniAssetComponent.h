@@ -189,6 +189,9 @@ protected:
 	/** Array of properties that have changed. Will force object recook. **/
 	TSet<UProperty*> ChangedProperties;
 
+	/** Notification used by this component. **/
+	TWeakPtr<SNotificationItem> NotificationPtr;
+
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
 
@@ -201,11 +204,14 @@ protected:
 	/** Timer delegate, used to simulate ticks. **/
 	FTimerDelegate TimerDelegate;
 
-	/** **/
+	/** Material of this asset component. **/
 	UMaterial* Material;
 
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;
+
+	/** Is set to true when this component belongs to a preview actor. **/
+	bool bIsPreviewComponent;
 
 private:
 
