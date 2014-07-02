@@ -186,7 +186,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 
 	if(!Task.AssetComponent.IsValid())
 	{
-		// Asset instance is no longer valid, return.
+		// Asset component is no longer valid, return.
 		return;
 	}
 

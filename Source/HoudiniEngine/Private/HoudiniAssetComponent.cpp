@@ -182,6 +182,7 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 	if(TimerDelegate.IsBound())
 	{
 		GEditor->GetTimerManager()->ClearTimer(TimerDelegate);
+		TimerDelegate.Unbind();
 	}
 }
 
@@ -190,136 +191,175 @@ void
 UHoudiniAssetComponent::TickHoudiniComponent()
 {
 	FHoudiniEngineTaskInfo TaskInfo;
-	
-	if(FHoudiniEngine::Get().RetrieveTaskInfo(HapiGUID, TaskInfo))
+	bool bStopTicking = false;
+
+	if(HapiGUID.IsValid())
 	{
-		if(EHoudiniEngineTaskState::None != TaskInfo.TaskState)
+		// If we have a valid task GUID.
+
+		if(FHoudiniEngine::Get().RetrieveTaskInfo(HapiGUID, TaskInfo))
 		{
-			if(!NotificationPtr.IsValid())
+			if(EHoudiniEngineTaskState::None != TaskInfo.TaskState)
 			{
-				FNotificationInfo Info(TaskInfo.StatusText);
-
-				Info.bFireAndForget = false;
-				Info.FadeOutDuration = 2.0f;
-				Info.ExpireDuration = 2.0f;
-
-				TSharedPtr<FSlateDynamicImageBrush> HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
-				if (HoudiniBrush.IsValid())
+				if(!NotificationPtr.IsValid())
 				{
-					Info.Image = HoudiniBrush.Get();
-				}
+					FNotificationInfo Info(TaskInfo.StatusText);
 
-				NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-			}
-		}
+					Info.bFireAndForget = false;
+					Info.FadeOutDuration = 2.0f;
+					Info.ExpireDuration = 2.0f;
 
-		switch(TaskInfo.TaskState)
-		{
-			case EHoudiniEngineTaskState::Finished:
-			{
-				if(-1 != TaskInfo.AssetId)
-				{
-					// Set new asset id.
-					SetAssetId(TaskInfo.AssetId);
-
-					if(FHoudiniEngineUtils::GetAssetGeometry(TaskInfo.AssetId, HoudiniMeshTriangles, HoudiniMeshSphereBounds))
+					TSharedPtr<FSlateDynamicImageBrush> HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
+					if (HoudiniBrush.IsValid())
 					{
-						// We need to patch component RTTI to reflect properties for this component.
-						ReplaceClassInformation();
+						Info.Image = HoudiniBrush.Get();
+					}
 
-						// Need to update rendering information.
-						UpdateRenderingInformation();
+					NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+				}
+			}
 
-						// See if asset contains Houdini logo geometry, if it does we can update it.
-						UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
-						if(CurrentHoudiniAsset && CurrentHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
+			switch(TaskInfo.TaskState)
+			{
+				case EHoudiniEngineTaskState::Finished:
+				{
+					if(-1 != TaskInfo.AssetId)
+					{
+						// Set new asset id.
+						SetAssetId(TaskInfo.AssetId);
+
+						if(FHoudiniEngineUtils::GetAssetGeometry(TaskInfo.AssetId, HoudiniMeshTriangles, HoudiniMeshSphereBounds))
 						{
-							CurrentHoudiniAsset->SetPreviewGeometry(HoudiniMeshTriangles);
+							// We need to patch component RTTI to reflect properties for this component.
+							ReplaceClassInformation();
 
-							// We need to find corresponding preview component.
-							for(TObjectIterator<UHoudiniAssetComponent> It; It; ++It)
+							// Need to update rendering information.
+							UpdateRenderingInformation();
+
+							// See if asset contains Houdini logo geometry, if it does we can update it.
+							UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
+							if(CurrentHoudiniAsset && CurrentHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
 							{
-								UHoudiniAssetComponent* HoudiniAssetComponent = *It;
-								if(HoudiniAssetComponent->HoudiniPreviewAsset && 
-										HoudiniAssetComponent->HoudiniPreviewAsset == CurrentHoudiniAsset)
+								CurrentHoudiniAsset->SetPreviewGeometry(HoudiniMeshTriangles);
+
+								// We need to find corresponding preview component.
+								for(TObjectIterator<UHoudiniAssetComponent> It; It; ++It)
 								{
-									HoudiniAssetComponent->HoudiniMeshTriangles = HoudiniMeshTriangles;
-									HoudiniAssetComponent->UpdateRenderingInformation();
-									break;
+									UHoudiniAssetComponent* HoudiniAssetComponent = *It;
+									if(HoudiniAssetComponent->HoudiniPreviewAsset && 
+											HoudiniAssetComponent->HoudiniPreviewAsset == CurrentHoudiniAsset)
+									{
+										HoudiniAssetComponent->HoudiniMeshTriangles = HoudiniMeshTriangles;
+										HoudiniAssetComponent->UpdateRenderingInformation();
+										break;
+									}
 								}
 							}
-						}
 
-						// Update properties panel.
-						UpdateEditorProperties();
+							// Update properties panel.
+							UpdateEditorProperties();
+						}
+						else
+						{
+							HOUDINI_LOG_MESSAGE(TEXT("Failed geometry extraction after asset instantiation."));
+						}
 					}
 					else
 					{
-						HOUDINI_LOG_MESSAGE(TEXT("Failed geometry extraction after asset instantiation."));
+						HOUDINI_LOG_MESSAGE(TEXT("Received invalid asset id."));
 					}
+
+					TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+					if(NotificationItem.IsValid())
+					{
+						NotificationItem->SetText(TaskInfo.StatusText);
+						NotificationItem->ExpireAndFadeout();
+
+						NotificationPtr.Reset();
+					}
+
+					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
+					HapiGUID.Invalidate();
+
+					bStopTicking = true;
+					break;
 				}
-				else
+
+				case EHoudiniEngineTaskState::Aborted:
+				case EHoudiniEngineTaskState::FinishedWithErrors:
 				{
-					HOUDINI_LOG_MESSAGE(TEXT("Received invalid asset id."));
+					HOUDINI_LOG_MESSAGE(TEXT("Failed asset instantiation."));
+
+					TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+					if(NotificationItem.IsValid())
+					{
+						NotificationItem->SetText(TaskInfo.StatusText);
+						NotificationItem->ExpireAndFadeout();
+
+						NotificationPtr.Reset();
+					}
+
+					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
+					HapiGUID.Invalidate();
+
+					bStopTicking = true;					
+					break;
 				}
 
-				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
-				if(NotificationItem.IsValid())
+				case EHoudiniEngineTaskState::Processing:
 				{
-					NotificationItem->SetText(TaskInfo.StatusText);
-					NotificationItem->ExpireAndFadeout();
+					TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+					if(NotificationItem.IsValid())
+					{
+						NotificationItem->SetText(TaskInfo.StatusText);
+					}
 
-					NotificationPtr.Reset();
+					break;
 				}
 
-				FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
-				HapiGUID.Invalidate();
-				StopHoudiniTicking();
-				break;
-			}
-
-			case EHoudiniEngineTaskState::Aborted:
-			case EHoudiniEngineTaskState::FinishedWithErrors:
-			{
-				HOUDINI_LOG_MESSAGE(TEXT("Failed asset instantiation."));
-
-				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
-				if(NotificationItem.IsValid())
+				case EHoudiniEngineTaskState::None:
+				default:
 				{
-					NotificationItem->SetText(TaskInfo.StatusText);
-					NotificationItem->ExpireAndFadeout();
-
-					NotificationPtr.Reset();
+					break;
 				}
-
-				FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
-				HapiGUID.Invalidate();
-				StopHoudiniTicking();
-				break;
-			}
-
-			case EHoudiniEngineTaskState::Processing:
-			{
-				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
-				if(NotificationItem.IsValid())
-				{
-					NotificationItem->SetText(TaskInfo.StatusText);
-				}
-
-				break;
-			}
-
-			case EHoudiniEngineTaskState::None:
-			default:
-			{
-				break;
 			}
 		}
+		else
+		{
+			// Task information does not exist, we can stop ticking.
+			HapiGUID.Invalidate();
+			bStopTicking = true;
+		}
 	}
-	else
+	
+	if(!HapiGUID.IsValid() && (ChangedProperties.Num() > 0))
 	{
-		// Task information does not exist, we can stop ticking.
-		HapiGUID.Invalidate();
+		// If we are not cooking and we have property changes queued up.
+
+		// We need to set all parameter values which have changed.
+		SetChangedParameterValues();
+
+		// Remove all processed parameters.
+		ChangedProperties.Empty();
+
+		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+		check(HoudiniAssetActor);
+
+		// Create new GUID to identify this request.
+		HapiGUID = FGuid::NewGuid();
+
+		// Create asset instantiation task object and submit it for processing.
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+		Task.ActorName = HoudiniAssetActor->GetActorLabel();
+		Task.AssetComponent = this;
+		FHoudiniEngine::Get().AddTask(Task);
+
+		// We do not want to stop ticking system.
+		bStopTicking = false;
+	}
+
+	if(bStopTicking)
+	{
 		StopHoudiniTicking();
 	}
 }
@@ -1100,33 +1140,8 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	// Add changed property to the set of changes.
 	ChangedProperties.Add(Property);
 
-	// If our asset is not already instantiating or cooking, we can cook right away.
-	/*
-	if(!HapiGUID.IsValid() && !HoudiniAssetInstance->IsCooking())
-	{
-		// We need to set all parameter values which have changed.
-		SetChangedParameterValues();
-
-		// Remove all processed parameters.
-		ChangedProperties.Empty();
-
-		// Get the parent actor.
-		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-		check(HoudiniAssetActor);
-
-		// Create new GUID to identify this request.
-		HapiGUID = FGuid::NewGuid();
-
-		// Create asset instantiation task object and submit it for processing.
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-		Task.AssetInstance = HoudiniAssetInstance;
-		Task.ActorName = HoudiniAssetActor->GetActorLabel();
-		FHoudiniEngine::Get().AddTask(Task);
-
-		// Start ticking - this will poll the cooking system for completion.
-		StartHoudiniTicking();
-	}
-	*/
+	// Start ticking (if we are ticking already, this will be ignored).
+	StartHoudiniTicking();
 }
 
 
