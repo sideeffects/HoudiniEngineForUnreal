@@ -11,6 +11,8 @@
  *      Canada   M5J 2M2
  *      416-504-9876
  *
+ * Based on http://bloglitb.blogspot.ca/2010/07/access-to-private-members-thats-easy.html
+ *
  */
 
 #pragma once
@@ -27,7 +29,7 @@ namespace PrivatePatch
 	template<typename Tag> typename Result<Tag>::type Result<Tag>::ptr;
 
 	template<typename Tag, typename Tag::type p>
-	struct Patcher : Result < Tag >
+	struct Patcher : Result<Tag>
 	{
 		struct Filler
 		{

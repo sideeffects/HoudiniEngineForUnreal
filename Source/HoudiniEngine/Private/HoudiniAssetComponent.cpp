@@ -34,7 +34,6 @@ HOUDINI_PRIVATE_PATCH(FObjectBaseAccess, UObjectBase::SetClass);
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniPreviewAsset(nullptr),
-	Material(nullptr),
 	AssetId(-1),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false)

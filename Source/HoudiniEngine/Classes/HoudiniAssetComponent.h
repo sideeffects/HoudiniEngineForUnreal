@@ -207,9 +207,6 @@ protected:
 	/** Timer delegate, used to simulate ticks. **/
 	FTimerDelegate TimerDelegate;
 
-	/** Material of this asset component. **/
-	UMaterial* Material;
-
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
 
