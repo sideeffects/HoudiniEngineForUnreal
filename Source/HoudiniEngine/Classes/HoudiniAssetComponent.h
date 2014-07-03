@@ -147,7 +147,7 @@ private:
 	void RemoveClassProperties(UClass* ClassInstance);
 
 	/** Patch RTTI : patch class object. **/
-	void ReplaceClassObject(UClass* ClassObjectOriginal, UClass* ClassObjectNew);
+	void ReplaceClassObject(UClass* ClassObjectNew);
 
 	/** Patch RTTI : replace property offset data. **/
 	void ReplacePropertyOffset(UProperty* Property, int Offset);
