@@ -21,6 +21,16 @@ UScriptStruct*
 UHoudiniAssetComponent::ScriptStructColor = nullptr;
 
 
+// Define accessor for UObjectBase::SetClass private method.
+struct FObjectBaseAccess
+{
+	typedef void (UObjectBase::*type)(UClass*);
+};
+
+HOUDINI_PRIVATE_PATCH(FObjectBaseAccess, UObjectBase::SetClass);
+
+
+
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniPreviewAsset(nullptr),
@@ -422,12 +432,6 @@ UHoudiniAssetComponent::CreateSceneProxy()
 void
 UHoudiniAssetComponent::BeginDestroy()
 {
-	UClass* CurrentClass = GetClass();
-	UClass* OriginalClass = UHoudiniAssetComponent::StaticClass();
-
-	// We need to restore original class information.
-	ReplaceClassObject(CurrentClass, OriginalClass);
-
 	Super::BeginDestroy();
 }
 
@@ -435,16 +439,7 @@ UHoudiniAssetComponent::BeginDestroy()
 void
 UHoudiniAssetComponent::Serialize(FArchive& Ar)
 {
-	UClass* CurrentClass = GetClass();
-	UClass* OriginalClass = UHoudiniAssetComponent::StaticClass();
-
-	// We need to restore original class information.
-	ReplaceClassObject(CurrentClass, OriginalClass);
-
 	Super::Serialize(Ar);
-
-	// Restore patched class back.
-	ReplaceClassObject(OriginalClass, CurrentClass);
 }
 
 
@@ -488,7 +483,7 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 		PatchedClass->NativeFunctionLookupTable = ClassOfUHoudiniAssetComponent->NativeFunctionLookupTable;
 
 		// Patch class information.
-		ReplaceClassObject(GetClass(), PatchedClass);
+		ReplaceClassObject(PatchedClass);
 	}
 	else
 	{
@@ -503,24 +498,9 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 
 
 void
-UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectOriginal, UClass* ClassObjectNew)
+UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 {
-	UClass** Address = (UClass**) this;
-	UClass** EndAddress = (UClass**) &this->ScratchSpaceMarker;
-
-	while((*Address != ClassObjectOriginal) && (Address < EndAddress))
-	{
-		Address++;
-	}
-
-	if((Address < EndAddress) && (*Address == ClassObjectOriginal))
-	{
-		*Address = ClassObjectNew;
-	}
-	else
-	{
-		HOUDINI_LOG_MESSAGE(TEXT("Failed class patching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
-	}
+	HOUDINI_PRIVATE_CALL(FObjectBaseAccess, UObjectBase, ClassObjectNew);
 }
 
 
