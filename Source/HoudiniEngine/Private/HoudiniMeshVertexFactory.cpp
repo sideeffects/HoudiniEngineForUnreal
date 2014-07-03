@@ -25,8 +25,6 @@ FHoudiniMeshVertexFactory::FHoudiniMeshVertexFactory()
 void
 FHoudiniMeshVertexFactory::Init(const FHoudiniMeshVertexBuffer* VertexBuffer)
 {
-	check(!IsInRenderingThread());
-
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		InitHoudiniMeshVertexFactory,
 		FHoudiniMeshVertexFactory*,
