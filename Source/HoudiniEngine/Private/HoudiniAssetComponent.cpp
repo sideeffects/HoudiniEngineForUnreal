@@ -41,6 +41,12 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	// Create a generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
+	// Set component properties.
+	Mobility = EComponentMobility::Movable;
+	PrimaryComponentTick.bCanEverTick = true;
+	bTickInEditor = true;
+	bGenerateOverlapEvents = false;
+
 	// Make an invalid GUID, since we do not have any cooking requests.
 	HapiGUID.Invalidate();
 
