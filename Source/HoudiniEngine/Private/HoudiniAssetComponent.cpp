@@ -417,6 +417,7 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	if(HoudiniAssetActor)
 	{
 		GEditor->SelectActor(HoudiniAssetActor, true, true);
+		GEditor->NoteSelectionChange();
 	}
 }
 
