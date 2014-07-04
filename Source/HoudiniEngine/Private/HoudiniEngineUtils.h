@@ -27,7 +27,10 @@ public:
 
 	/** Return true if module has been properly initialized. **/
 	static bool IsInitialized();
-	
+
+	/** Return true if asset is valid. **/
+	static bool IsAssetValid(HAPI_AssetId AssetId);
+
 	/** Return name for a given asset. */
 	static bool GetAssetName(int AssetName, std::string& AssetNameString);
 	static bool GetAssetName(int AssetName, FString& AssetNameString);
@@ -50,7 +53,7 @@ public:
 	static int ConvertUnrealColorRGBA(const FColor& UnrealColor, float* HoudiniColorRGBA);
 
 protected:
-	
+
 	/** Given current min and max extent vectors, update them from given position if necessary. **/
 	static void UpdateBoundingVolumeExtent(const FVector& Vector, FVector& ExtentMin, FVector& ExtentMax);
 };

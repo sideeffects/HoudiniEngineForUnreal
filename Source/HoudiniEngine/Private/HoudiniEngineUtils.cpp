@@ -115,6 +115,19 @@ FHoudiniEngineUtils::IsInitialized()
 
 
 bool
+FHoudiniEngineUtils::IsAssetValid(HAPI_AssetId AssetId)
+{
+	HAPI_AssetInfo AssetInfo;
+	int ValidationAnswer = 0;
+
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_IsAssetValid(AssetId, AssetInfo.validationId, &ValidationAnswer), false);
+
+	return (0 != ValidationAnswer);
+}
+
+
+bool
 FHoudiniEngineUtils::GetAssetName(int AssetName, std::string& AssetNameString)
 {
 	if(AssetName < 0)
