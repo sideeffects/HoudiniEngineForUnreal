@@ -33,7 +33,6 @@ HOUDINI_PRIVATE_PATCH(FObjectBaseAccess, UObjectBase::SetClass);
 
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
-	HoudiniPreviewAsset(nullptr),
 	AssetId(-1),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false)
@@ -82,16 +81,7 @@ UHoudiniAssetComponent::SetAssetId(HAPI_AssetId InAssetId)
 UHoudiniAsset*
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {
-	if(HoudiniAsset)
-	{
-		return HoudiniAsset;
-	}
-	else if(HoudiniPreviewAsset)
-	{
-		return HoudiniPreviewAsset;
-	}
-
-	return nullptr;
+	return HoudiniAsset;
 }
 
 
@@ -128,26 +118,17 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
 	check(HoudiniAssetActor);
 
+	// If it is the same asset, do nothing.
+	if(InHoudiniAsset == HoudiniAsset)
+	{
+		return;
+	}
+
+	HoudiniAsset = InHoudiniAsset;
+
 	if(HoudiniAssetActor->IsUsedForPreview())
 	{
-		// If it is the same asset, do nothing.
-		if(InHoudiniAsset == HoudiniPreviewAsset)
-		{
-			return;
-		}
-
-		HoudiniPreviewAsset = InHoudiniAsset;
 		bIsPreviewComponent = true;
-	}
-	else
-	{
-		// If it is the same asset, do nothing.
-		if(InHoudiniAsset == HoudiniAsset)
-		{
-			return;
-		}
-
-		HoudiniAsset = InHoudiniAsset;
 	}
 
 	if(!InHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
@@ -159,7 +140,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		UpdateRenderingInformation();
 	}
 
-	if(!HoudiniAssetActor->IsUsedForPreview())
+	if(!bIsPreviewComponent)
 	{
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
@@ -251,8 +232,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 							// Need to update rendering information.
 							UpdateRenderingInformation();
 
-							// See if asset contains Houdini logo geometry, if it does we can update it.
+							// Get current asset.
 							UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
+
+							// See if asset contains Houdini logo geometry, if it does we can update it.
 							if(CurrentHoudiniAsset && CurrentHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
 							{
 								CurrentHoudiniAsset->SetPreviewGeometry(HoudiniMeshTriangles);
@@ -261,8 +244,14 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								for(TObjectIterator<UHoudiniAssetComponent> It; It; ++It)
 								{
 									UHoudiniAssetComponent* HoudiniAssetComponent = *It;
-									if(HoudiniAssetComponent->HoudiniPreviewAsset && 
-											HoudiniAssetComponent->HoudiniPreviewAsset == CurrentHoudiniAsset)
+
+									// Skip ourselves.
+									if(HoudiniAssetComponent == this)
+									{
+										continue;
+									}
+
+									if(HoudiniAssetComponent->HoudiniAsset && HoudiniAssetComponent->HoudiniAsset == CurrentHoudiniAsset)
 									{
 										HoudiniAssetComponent->HoudiniMeshTriangles = HoudiniMeshTriangles;
 										HoudiniAssetComponent->UpdateRenderingInformation();
@@ -273,6 +262,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 							// Update properties panel.
 							UpdateEditorProperties();
+
+							HoudiniAsset = nullptr;
+							HoudiniAsset = CurrentHoudiniAsset;
 						}
 						else
 						{
@@ -386,6 +378,35 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	{
 		StopHoudiniTicking();
 	}
+}
+
+
+void 
+UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	// We need to make sure the component class has been patched.
+	UClass* ObjectClass = InThis->GetClass();
+
+	if(UHoudiniAssetComponent::StaticClass() != ObjectClass)
+	{
+		if(ObjectClass->ClassAddReferencedObjects == UHoudiniAssetComponent::AddReferencedObjects)
+		{
+			// This is a safe cast since our component is the only type registered for this callback.
+			UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*) InThis;
+			if(HoudiniAssetComponent)
+			{
+				// Retrieve asset associated with this component.
+				UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+				if(HoudiniAsset)
+				{
+					Collector.AddReferencedObject(HoudiniAsset);
+				}
+			}
+		}
+	}
+	
+	// Call base implementation.
+	UMeshComponent::AddReferencedObjects(InThis, Collector);
 }
 
 
@@ -531,7 +552,7 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 		PatchedClass->ClassConfigName = UHoudiniAssetComponent::StaticConfigName();
 		PatchedClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
 		PatchedClass->ClassConstructor = ClassOfUHoudiniAssetComponent->ClassConstructor;
-		PatchedClass->ClassAddReferencedObjects = ClassOfUHoudiniAssetComponent->ClassAddReferencedObjects;
+		PatchedClass->ClassAddReferencedObjects = UHoudiniAssetComponent::AddReferencedObjects;
 		PatchedClass->MinAlignment = ClassOfUHoudiniAssetComponent->MinAlignment;
 		PatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
 		PatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());

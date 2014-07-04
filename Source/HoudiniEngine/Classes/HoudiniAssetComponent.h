@@ -77,9 +77,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HoudiniAsset, ReplicatedUsing = OnRep_HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
-	/** Preview asset used by preview components only. We do not expose this as property. **/
-	UHoudiniAsset* HoudiniPreviewAsset;
-
 public:
 
 	/** **/
@@ -112,6 +109,7 @@ public: /** UObject methods. **/
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 protected: /** UActorComponent methods. **/
 
