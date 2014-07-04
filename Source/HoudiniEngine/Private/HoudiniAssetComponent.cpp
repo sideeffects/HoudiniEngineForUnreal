@@ -471,6 +471,18 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 		}
 	}
 
+	// If we have an asset.
+	if(-1 != AssetId)
+	{
+		// Check if asset is still valid.
+		if(FHoudiniEngineUtils::IsAssetValid(AssetId))
+		{
+			// Destroy the asset.
+			FHoudiniEngineUtils::DestroyAsset(AssetId);
+			AssetId = -1;
+		}
+	}
+
 	Super::OnComponentDestroyed();
 }
 
