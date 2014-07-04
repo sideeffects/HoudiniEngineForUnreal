@@ -79,7 +79,7 @@ UHoudiniAssetComponent::SetAssetId(HAPI_AssetId InAssetId)
 }
 
 
-UHoudiniAsset* 
+UHoudiniAsset*
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {
 	if(HoudiniAsset)
@@ -225,7 +225,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					Info.ExpireDuration = 2.0f;
 
 					TSharedPtr<FSlateDynamicImageBrush> HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
-					if (HoudiniBrush.IsValid())
+					if(HoudiniBrush.IsValid())
 					{
 						Info.Image = HoudiniBrush.Get();
 					}
@@ -284,13 +284,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						HOUDINI_LOG_MESSAGE(TEXT("Received invalid asset id."));
 					}
 
-					TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
-					if(NotificationItem.IsValid())
+					if(NotificationPtr.IsValid())
 					{
-						NotificationItem->SetText(TaskInfo.StatusText);
-						NotificationItem->ExpireAndFadeout();
+						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+						if(NotificationItem.IsValid())
+						{
+							NotificationItem->SetText(TaskInfo.StatusText);
+							NotificationItem->ExpireAndFadeout();
 
-						NotificationPtr.Reset();
+							NotificationPtr.Reset();
+						}
 					}
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
@@ -305,13 +308,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				{
 					HOUDINI_LOG_MESSAGE(TEXT("Failed asset instantiation."));
 
-					TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
-					if(NotificationItem.IsValid())
+					if(NotificationPtr.IsValid())
 					{
-						NotificationItem->SetText(TaskInfo.StatusText);
-						NotificationItem->ExpireAndFadeout();
+						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+						if(NotificationItem.IsValid())
+						{
+							NotificationItem->SetText(TaskInfo.StatusText);
+							NotificationItem->ExpireAndFadeout();
 
-						NotificationPtr.Reset();
+							NotificationPtr.Reset();
+						}
 					}
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
@@ -323,10 +329,13 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 				case EHoudiniEngineTaskState::Processing:
 				{
-					TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
-					if(NotificationItem.IsValid())
+					if(NotificationPtr.IsValid())
 					{
-						NotificationItem->SetText(TaskInfo.StatusText);
+						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+						if(NotificationItem.IsValid())
+						{
+							NotificationItem->SetText(TaskInfo.StatusText);
+						}
 					}
 
 					break;
@@ -431,6 +440,38 @@ UHoudiniAssetComponent::CreateSceneProxy()
 	}
 	
 	return Proxy;
+}
+
+
+void
+UHoudiniAssetComponent::OnComponentDestroyed()
+{
+	HOUDINI_LOG_MESSAGE(TEXT("Destroying component, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
+
+	if(HapiGUID.IsValid())
+	{
+		// If we have a valid task GUID.
+		FHoudiniEngineTaskInfo TaskInfo;
+
+		if(FHoudiniEngine::Get().RetrieveTaskInfo(HapiGUID, TaskInfo))
+		{
+			FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
+			HapiGUID.Invalidate();
+			StopHoudiniTicking();
+
+			if(NotificationPtr.IsValid())
+			{
+				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+				if(NotificationItem.IsValid())
+				{
+					NotificationItem->ExpireAndFadeout();
+					NotificationPtr.Reset();
+				}
+			}
+		}
+	}
+
+	Super::OnComponentDestroyed();
 }
 
 
@@ -812,7 +853,7 @@ UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FName& 
 	}
 
 	Property->PropertyLinkNext = nullptr;
-	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
 
 	FColor ConvertedColor;
@@ -868,7 +909,7 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 	}
 
 	Property->PropertyLinkNext = nullptr;
-	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
 
 	// Set property size. Larger than one indicates array.
@@ -914,7 +955,7 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 	}
 
 	Property->PropertyLinkNext = nullptr;
-	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
 
 	// Set property size. Larger than one indicates array.
@@ -960,7 +1001,7 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 	}
 
 	Property->PropertyLinkNext = nullptr;
-	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniAsset"));
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
 	Property->SetBoolSize(sizeof(bool), true);
 
@@ -1097,7 +1138,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	UProperty* PropertyChild = PropertyChangedEvent.Property;
 
 	// Retrieve property category.
-	static const FString CategoryHoudiniAsset = TEXT("HoudiniAsset");
+	static const FString CategoryHoudiniAsset = TEXT("HoudiniProperties");
 	const FString& Category = Property->GetMetaData(TEXT("Category"));
 
 	if(Category != CategoryHoudiniAsset)
@@ -1183,14 +1224,6 @@ UHoudiniAssetComponent::OnComponentCreated()
 	// This event will only be fired for native Actor and native Component.
 	Super::OnComponentCreated();
 	HOUDINI_LOG_MESSAGE(TEXT("Creating component, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
-}
-
-
-void
-UHoudiniAssetComponent::OnComponentDestroyed()
-{
-	Super::OnComponentDestroyed();
-	HOUDINI_LOG_MESSAGE(TEXT("Destroying component, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);	
 }
 
 
