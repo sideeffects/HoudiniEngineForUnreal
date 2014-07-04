@@ -30,4 +30,8 @@ public:
 
 	/** Return true if this actor is used for preview. **/
 	bool IsUsedForPreview() const;
+
+public: /** AActor methods. **/
+
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
 };
