@@ -104,6 +104,9 @@ public:
 	/** Set id of a Houdini asset. **/
 	void SetAssetId(HAPI_AssetId InAssetId);
 
+	/** Return current referenced Houdini asset. **/
+	UHoudiniAsset* GetHoudiniAsset() const;
+
 public: /** UObject methods. **/
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
@@ -175,9 +178,6 @@ private:
 
 	/** Stop ticking. **/
 	void StopHoudiniTicking();
-
-	/** Return current referenced Houdini asset. **/
-	UHoudiniAsset* GetHoudiniAsset() const;
 
 public:
 
