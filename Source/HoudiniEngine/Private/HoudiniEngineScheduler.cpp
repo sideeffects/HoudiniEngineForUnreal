@@ -217,6 +217,11 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 		int Status = HAPI_STATE_STARTING_COOK;
 		HOUDINI_CHECK_ERROR(&Result, HAPI_GetStatus(HAPI_STATUS_COOK_STATE, &Status));
 
+		if(!Task.AssetComponent.IsValid())
+		{
+			break;
+		}
+
 		if(HAPI_STATE_READY == Status)
 		{
 			// Cooking has been successful.
