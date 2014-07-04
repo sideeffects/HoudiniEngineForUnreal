@@ -323,7 +323,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
 
-					bStopTicking = true;					
+					bStopTicking = true;
 					break;
 				}
 
