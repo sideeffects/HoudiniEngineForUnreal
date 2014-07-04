@@ -128,6 +128,13 @@ FHoudiniEngineUtils::IsAssetValid(HAPI_AssetId AssetId)
 
 
 bool
+FHoudiniEngineUtils::DestroyAsset(HAPI_AssetId AssetId)
+{
+	return(HAPI_RESULT_SUCCESS == HAPI_DestroyAsset(AssetId));
+}
+
+
+bool
 FHoudiniEngineUtils::GetAssetName(int AssetName, std::string& AssetNameString)
 {
 	if(AssetName < 0)

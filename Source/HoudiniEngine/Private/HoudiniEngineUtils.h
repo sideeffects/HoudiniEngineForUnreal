@@ -31,6 +31,9 @@ public:
 	/** Return true if asset is valid. **/
 	static bool IsAssetValid(HAPI_AssetId AssetId);
 
+	/** Destroy asset, returns the status. **/
+	static bool DestroyAsset(HAPI_AssetId AssetId);
+
 	/** Return name for a given asset. */
 	static bool GetAssetName(int AssetName, std::string& AssetNameString);
 	static bool GetAssetName(int AssetName, FString& AssetNameString);
