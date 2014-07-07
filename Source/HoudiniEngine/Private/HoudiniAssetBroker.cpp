@@ -16,7 +16,13 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UClass* 
+FHoudiniAssetBroker::~FHoudiniAssetBroker()
+{
+
+}
+
+
+UClass*
 FHoudiniAssetBroker::GetSupportedAssetClass()
 {
 	return UHoudiniAsset::StaticClass();
@@ -46,7 +52,7 @@ FHoudiniAssetBroker::GetAssetFromComponent(UActorComponent* InComponent)
 {
 	if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
 	{
-		return HoudiniAssetComponent->HoudiniAsset;
+		return HoudiniAssetComponent->GetHoudiniAsset();
 	}
 
 	return NULL;

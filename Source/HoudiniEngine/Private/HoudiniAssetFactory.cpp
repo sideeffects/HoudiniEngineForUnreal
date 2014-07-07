@@ -31,8 +31,18 @@ UHoudiniAssetFactory::UHoudiniAssetFactory(const class FPostConstructInitializeP
 	// This factory will import objects from files.
 	bEditorImport = true;
 
+	// Factory does not import objects from text.
+	bText = false;
+
 	// Add supported formats.
 	Formats.Add(TEXT("otl;Houdini Engine Asset"));
+}
+
+
+bool
+UHoudiniAssetFactory::DoesSupportClass(UClass* Class)
+{
+	return Class == SupportedClass;
 }
 
 

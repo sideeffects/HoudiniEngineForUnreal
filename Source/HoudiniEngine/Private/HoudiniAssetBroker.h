@@ -23,6 +23,10 @@ class UActorComponent;
 
 class FHoudiniAssetBroker : public IComponentAssetBroker
 {
+public:
+
+	virtual ~FHoudiniAssetBroker();
+
 public: /** IComponentAssetBroker methods. **/
 
 	/** Reports the asset class this broker knows how to handle. **/

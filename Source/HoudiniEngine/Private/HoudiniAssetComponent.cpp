@@ -324,7 +324,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			bStopTicking = true;
 		}
 	}
-	
+
 	if(!HapiGUID.IsValid() && (ChangedProperties.Num() > 0))
 	{
 		// If we are not cooking and we have property changes queued up.
@@ -347,7 +347,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		Task.AssetComponent = this;
 		FHoudiniEngine::Get().AddTask(Task);
 
-		// We do not want to stop ticking system.
+		// We do not want to stop ticking system as we have just submitted a task.
 		bStopTicking = false;
 	}
 
@@ -370,12 +370,13 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 		{
 			// This is a safe cast since our component is the only type registered for this callback.
 			UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*) InThis;
-			if(HoudiniAssetComponent)
+			if(HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
 			{
 				// Retrieve asset associated with this component.
 				UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
 				if(HoudiniAsset)
 				{
+					// Manually add a reference to Houdini asset from this component.
 					Collector.AddReferencedObject(HoudiniAsset, InThis);
 				}
 			}
@@ -393,7 +394,11 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
 	if(HoudiniAssetActor)
 	{
+		// Manually reselect the actor - this will cause details panel to be updated and force our 
+		// property changes to be picked up by the UI.
 		GEditor->SelectActor(HoudiniAssetActor, true, true);
+
+		// Notify the editor about selection change.
 		GEditor->NoteSelectionChange();
 	}
 }
@@ -522,7 +527,7 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 
 		// Create new class instance.
 		//static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
-		static const EObjectFlags PatchedClassFlags = RF_Public;
+		static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone;
 
 		// Construct the new class instance.
 		PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), GetOutermost(), FName(*PatchedClassName), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
@@ -536,14 +541,22 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 		// Use same class configuration name.
 		PatchedClass->ClassConfigName = UHoudiniAssetComponent::StaticConfigName();
 
-		// Reuse class default object.
+		// Reuse class default object (this is essentially a template object used for construction).
 		PatchedClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
+
+		// We will reuse the same constructor as nothing has really changed.
 		PatchedClass->ClassConstructor = ClassOfUHoudiniAssetComponent->ClassConstructor;
+
+		// Register our own reference counting registration.
 		PatchedClass->ClassAddReferencedObjects = UHoudiniAssetComponent::AddReferencedObjects;
+
+		// Minimum class alignment does not change.
 		PatchedClass->MinAlignment = ClassOfUHoudiniAssetComponent->MinAlignment;
 
 		// Properties size does not change as we use the same fixed size buffer.
 		PatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
+
+		//PatchedClass->SetSuperStruct(UMeshComponent::StaticClass()->GetSuperStruct());
 		PatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
 
 		// List of replication records.

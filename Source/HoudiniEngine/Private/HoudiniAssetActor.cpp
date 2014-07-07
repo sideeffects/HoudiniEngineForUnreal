@@ -52,3 +52,24 @@ AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 
 	return true;
 }
+
+
+/*
+void
+AHoudiniAssetActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	AHoudiniAssetActor* ThisActor = CastChecked<AHoudiniAssetActor>(InThis);
+	if(ThisActor && !ThisActor->IsPendingKill() && ThisActor->HoudiniAssetComponent.IsValid())
+	{
+		// Retrieve the asset associated with this component.
+		UHoudiniAsset* HoudiniAsset = ThisActor->HoudiniAssetComponent->GetHoudiniAsset();
+		if(HoudiniAsset)
+		{
+			Collector.AddReferencedObject(HoudiniAsset, InThis);
+		}
+	}
+
+	// Call base implementation.
+	Super::AddReferencedObjects(InThis, Collector);
+}
+*/

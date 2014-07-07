@@ -34,4 +34,8 @@ public:
 public: /** AActor methods. **/
 
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
+
+public: /** UObject methods. **/
+
+	//static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 };
