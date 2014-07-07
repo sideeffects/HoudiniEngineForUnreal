@@ -33,6 +33,7 @@ HOUDINI_PRIVATE_PATCH(FObjectBaseAccess, UObjectBase::SetClass);
 
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
+	HoudiniAsset(nullptr),
 	AssetId(-1),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false)
@@ -82,30 +83,6 @@ UHoudiniAsset*
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {
 	return HoudiniAsset;
-}
-
-
-void
-UHoudiniAssetComponent::OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset)
-{
-	HOUDINI_LOG_MESSAGE(TEXT("OnRep_HoudiniAsset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
-
-	if(OldHoudiniAsset != HoudiniAsset)
-	{
-		// We have to force a call to SetHoudiniAsset with a new HoudiniAsset.
-		UHoudiniAsset* NewHoudiniAsset = HoudiniAsset;
-		HoudiniAsset = nullptr;
-
-		SetHoudiniAsset(NewHoudiniAsset);
-	}
-}
-
-
-void
-UHoudiniAssetComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UHoudiniAssetComponent, HoudiniAsset);
 }
 
 
@@ -399,14 +376,14 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 				UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
 				if(HoudiniAsset)
 				{
-					Collector.AddReferencedObject(HoudiniAsset);
+					Collector.AddReferencedObject(HoudiniAsset, InThis);
 				}
 			}
 		}
 	}
-	
+
 	// Call base implementation.
-	UMeshComponent::AddReferencedObjects(InThis, Collector);
+	Super::AddReferencedObjects(InThis, Collector);
 }
 
 
@@ -547,22 +524,41 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 		//static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
 		static const EObjectFlags PatchedClassFlags = RF_Public;
 
+		// Construct the new class instance.
 		PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), GetOutermost(), FName(*PatchedClassName), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
+
+		// Use same class flags as the original class.
 		PatchedClass->ClassFlags = UHoudiniAssetComponent::StaticClassFlags;
+
+		// Use same class cast flags as the original class (these are used for quick casting between common types).
 		PatchedClass->ClassCastFlags = UHoudiniAssetComponent::StaticClassCastFlags();
+
+		// Use same class configuration name.
 		PatchedClass->ClassConfigName = UHoudiniAssetComponent::StaticConfigName();
+
+		// Reuse class default object.
 		PatchedClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
 		PatchedClass->ClassConstructor = ClassOfUHoudiniAssetComponent->ClassConstructor;
 		PatchedClass->ClassAddReferencedObjects = UHoudiniAssetComponent::AddReferencedObjects;
 		PatchedClass->MinAlignment = ClassOfUHoudiniAssetComponent->MinAlignment;
+
+		// Properties size does not change as we use the same fixed size buffer.
 		PatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
 		PatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
+
+		// List of replication records.
 		PatchedClass->ClassReps = ClassOfUHoudiniAssetComponent->ClassReps;
+
+		// List of network relevant fields (properties and functions).
 		PatchedClass->NetFields = ClassOfUHoudiniAssetComponent->NetFields;
+
+		// Reference token stream used by real time garbage collector.
 		PatchedClass->ReferenceTokenStream = ClassOfUHoudiniAssetComponent->ReferenceTokenStream;
+
+		// This class's native functions.
 		PatchedClass->NativeFunctionLookupTable = ClassOfUHoudiniAssetComponent->NativeFunctionLookupTable;
 
-		// Patch class information.
+		// Now that we've filled all necessary fields, patch class information.
 		ReplaceClassObject(PatchedClass);
 	}
 	else

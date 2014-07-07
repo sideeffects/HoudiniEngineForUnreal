@@ -73,15 +73,10 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 
 public:
 
-	/** Houdini Asset associated with this component (except preview). Preview component will use PreviewHoudiniAsset instead. **/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = HoudiniAsset, ReplicatedUsing = OnRep_HoudiniAsset)
+	/** Houdini Asset associated with this component. **/
 	UHoudiniAsset* HoudiniAsset;
 
 public:
-
-	/** **/
-	UFUNCTION()
-	void OnRep_HoudiniAsset(UHoudiniAsset* OldHoudiniAsset);
 
 	/** Change the Houdini Asset used by this component. **/
 	UFUNCTION(BlueprintCallable, Category = "Components|HoudiniAsset")
