@@ -24,10 +24,10 @@ UHoudiniAssetActorFactory::UHoudiniAssetActorFactory(const FPostConstructInitial
 }
 
 
-bool 
+bool
 UHoudiniAssetActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
 {
-	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UHoudiniAsset::StaticClass()))
+	if(!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UHoudiniAsset::StaticClass()))
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoHoudiniAsset", "A valid Houdini Engine asset must be specified.");
 		return false;
@@ -56,9 +56,16 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	UHoudiniAsset* HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
 	if(HoudiniAsset)
 	{
-		GEditor->SetActorLabelUnique(NewActor, HoudiniAsset->GetName());
-
 		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
+
+		// Create unique actor label if this is not a preview actor.
+		if(!HoudiniAssetActor->IsUsedForPreview())
+		{
+			FString ActorLabel = FString::Printf(TEXT("%s_%d"), *HoudiniAsset->GetName(), HoudiniAsset->GetNameReferenceCount());
+			HoudiniAsset->IncrementNameReferenceCount();
+			GEditor->SetActorLabelUnique(NewActor, ActorLabel);
+		}
+
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
 		check(HoudiniAssetComponent);
 

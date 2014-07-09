@@ -33,7 +33,7 @@ public: /** UActorFactory inherited methods. **/
 
 	/** Given an instance of an actor pertaining to this factory, find the asset that should be used to create a new actor. **/
 	virtual UObject* GetAssetFromActorInstance(AActor* Instance) OVERRIDE;
-	
+
 	/** Subclasses may implement this to modify the actor after it has been spawned. **/
 	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) OVERRIDE;
 

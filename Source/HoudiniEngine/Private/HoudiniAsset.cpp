@@ -20,6 +20,7 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
+	NameReferenceCount(0),
 	bPreviewHoudiniLogo(false)
 {
 
@@ -34,6 +35,7 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
 	OTLFileName(InFileName),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
+	NameReferenceCount(0),
 	bPreviewHoudiniLogo(false)
 {
 	// Calculate buffer size.
@@ -186,4 +188,18 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 			}
 		}
 	}
+}
+
+
+uint32
+UHoudiniAsset::GetNameReferenceCount() const
+{
+	return NameReferenceCount;
+}
+
+
+void
+UHoudiniAsset::IncrementNameReferenceCount()
+{
+	NameReferenceCount++;
 }

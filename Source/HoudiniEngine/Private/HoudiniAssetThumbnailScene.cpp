@@ -25,6 +25,8 @@ FHoudiniAssetThumbnailScene::FHoudiniAssetThumbnailScene()
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.bNoCollisionFail = true;
 	SpawnInfo.bNoFail = true;
+
+	// Preview actor should be marked as transient.
 	SpawnInfo.ObjectFlags = RF_Transient;
 
 	// Create spawn actor.
@@ -44,12 +46,12 @@ FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 	{
 		FTransform MeshTransform = FTransform::Identity;
 
-		PreviewHoudiniAssetActor->SetActorLocation(FVector(0, 0, 0), false);
+		PreviewHoudiniAssetActor->SetActorLocation(FVector(0.0f, 0.0f, 0.0f), false);
 		PreviewHoudiniAssetActor->HoudiniAssetComponent->UpdateBounds();
 
 		// Center the mesh at the world origin then offset to put it on top of the plane
-		const float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
-		PreviewHoudiniAssetActor->SetActorLocation(-PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds.Origin + FVector(0, 0, BoundsZOffset), false);
+		float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
+		PreviewHoudiniAssetActor->SetActorLocation(-PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds.Origin + FVector(0.0f, 0.0f, BoundsZOffset), false);
 		PreviewHoudiniAssetActor->HoudiniAssetComponent->RecreateRenderState_Concurrent();
 	}
 }
@@ -64,7 +66,7 @@ FHoudiniAssetThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, F
 	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
 
 	// Add extra size to view slightly outside of the sphere to compensate for perspective
-	const float HalfMeshSize = PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds.SphereRadius * 1.15;
+	const float HalfMeshSize = PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds.SphereRadius * 1.15f;
 	const float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
 	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
