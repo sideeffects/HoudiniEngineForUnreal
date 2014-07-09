@@ -86,7 +86,7 @@ FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 
 			default:
 			{
-				ASSUME(0);
+				return kResultStringFailure;
 			}
 		};
 	}
