@@ -106,7 +106,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), void());
 
 	// If we have assets, instantiate first one.
-	if(AssetCount && FHoudiniEngineUtils::GetAssetName(AssetNames[0], AssetNameString))
+	if(AssetCount && FHoudiniEngineUtils::GetHoudiniString(AssetNames[0], AssetNameString))
 	{
 		// Translate asset name into Unreal string.
 		FString AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());

@@ -89,9 +89,6 @@ protected:
 	/** Field containing the size of raw Houdini OTL data in bytes. **/
 	uint32 AssetBytesCount;
 
-	/** Number of current references to this asset. This is kept for naming purposes. **/
-	uint32 NameReferenceCount;
-
 	/** Flag which is set to true when preview geometry contains Houdini logo. **/
 	bool bPreviewHoudiniLogo;
 };

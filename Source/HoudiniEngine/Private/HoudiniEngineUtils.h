@@ -29,14 +29,17 @@ public:
 	static bool IsInitialized();
 
 	/** Return true if asset is valid. **/
-	static bool IsAssetValid(HAPI_AssetId AssetId);
+	static bool IsHoudiniAssetValid(HAPI_AssetId AssetId);
 
 	/** Destroy asset, returns the status. **/
-	static bool DestroyAsset(HAPI_AssetId AssetId);
+	static bool DestroyHoudiniAsset(HAPI_AssetId AssetId);
 
-	/** Return name for a given asset. */
-	static bool GetAssetName(int AssetName, std::string& AssetNameString);
-	static bool GetAssetName(int AssetName, FString& AssetNameString);
+	/** Return specified string. **/
+	static bool GetHoudiniString(int Name, std::string& NameString);
+	static bool GetHoudiniString(int Name, FString& NameString);
+
+	/** Return name of houdini asset. **/
+	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
 	/** Extract geometry information for a given asset. **/
 	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);

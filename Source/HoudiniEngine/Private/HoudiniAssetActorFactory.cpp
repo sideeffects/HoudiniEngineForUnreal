@@ -57,15 +57,6 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	if(HoudiniAsset)
 	{
 		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
-
-		// Create unique actor label if this is not a preview actor.
-		if(!HoudiniAssetActor->IsUsedForPreview())
-		{
-			FString ActorLabel = FString::Printf(TEXT("%s_%d"), *HoudiniAsset->GetName(), HoudiniAsset->GetNameReferenceCount());
-			HoudiniAsset->IncrementNameReferenceCount();
-			GEditor->SetActorLabelUnique(NewActor, ActorLabel);
-		}
-
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
 		check(HoudiniAssetComponent);
 
