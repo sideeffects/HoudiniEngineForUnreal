@@ -172,6 +172,12 @@ private:
 	/** Stop ticking. **/
 	void StopHoudiniTicking();
 
+	/** Assign actor label based on asset instance name. **/
+	void AssignUniqueActorLabel();
+
+	/** Create materials for this component. **/
+	void CreateComponentMaterials();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/

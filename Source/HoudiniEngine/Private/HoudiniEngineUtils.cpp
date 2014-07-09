@@ -115,7 +115,7 @@ FHoudiniEngineUtils::IsInitialized()
 
 
 bool
-FHoudiniEngineUtils::IsAssetValid(HAPI_AssetId AssetId)
+FHoudiniEngineUtils::IsHoudiniAssetValid(HAPI_AssetId AssetId)
 {
 	HAPI_AssetInfo AssetInfo;
 	int ValidationAnswer = 0;
@@ -128,32 +128,31 @@ FHoudiniEngineUtils::IsAssetValid(HAPI_AssetId AssetId)
 
 
 bool
-FHoudiniEngineUtils::DestroyAsset(HAPI_AssetId AssetId)
+FHoudiniEngineUtils::DestroyHoudiniAsset(HAPI_AssetId AssetId)
 {
 	return(HAPI_RESULT_SUCCESS == HAPI_DestroyAsset(AssetId));
 }
 
 
 bool
-FHoudiniEngineUtils::GetAssetName(int AssetName, std::string& AssetNameString)
+FHoudiniEngineUtils::GetHoudiniString(int Name, std::string& NameString)
 {
-	if(AssetName < 0)
+	if(Name < 0)
 	{
 		return false;
 	}
 
 	// For now we will load first asset only.
-	int AssetNameLength = 0;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStringBufLength(AssetName, &AssetNameLength), false);
+	int NameLength = 0;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStringBufLength(Name, &NameLength), false);
 
-	if(AssetNameLength)
+	if(NameLength)
 	{
-		// Retrieve name of first asset.
-		std::vector<char> AssetNameBuffer(AssetNameLength, '\0');
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetString(AssetName, &AssetNameBuffer[0], AssetNameLength), false);
+		std::vector<char> NameBuffer(NameLength, '\0');
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetString(Name, &NameBuffer[0], NameLength), false);
 
 		// Create and return string.
-		AssetNameString = std::string(AssetNameBuffer.begin(), AssetNameBuffer.end());
+		NameString = std::string(NameBuffer.begin(), NameBuffer.end());
 	}
 
 	return true;
@@ -161,17 +160,27 @@ FHoudiniEngineUtils::GetAssetName(int AssetName, std::string& AssetNameString)
 
 
 bool
-FHoudiniEngineUtils::GetAssetName(int AssetName, FString& AssetNameString)
+FHoudiniEngineUtils::GetHoudiniString(int Name, FString& NameString)
 {
-	std::string AssetNamePlain;
+	std::string NamePlain;
 
-	if(FHoudiniEngineUtils::GetAssetName(AssetName, AssetNamePlain))
+	if(FHoudiniEngineUtils::GetHoudiniString(Name, NamePlain))
 	{
-		AssetNameString = ANSI_TO_TCHAR(AssetNamePlain.c_str());
+		NameString = ANSI_TO_TCHAR(NamePlain.c_str());
 		return true;
 	}
 
 	return false;
+}
+
+
+bool
+FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString)
+{
+	HAPI_AssetInfo AssetInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+
+	return(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.nameSH, NameString));
 }
 
 

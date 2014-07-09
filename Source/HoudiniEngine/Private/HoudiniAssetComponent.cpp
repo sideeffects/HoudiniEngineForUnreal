@@ -102,11 +102,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	}
 
 	HoudiniAsset = InHoudiniAsset;
-
-	if(HoudiniAssetActor->IsUsedForPreview())
-	{
-		bIsPreviewComponent = true;
-	}
+	bIsPreviewComponent = HoudiniAssetActor->IsUsedForPreview();
 
 	if(!InHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
 	{
@@ -130,6 +126,24 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 		// Start ticking - this will poll the cooking system for completion.
 		StartHoudiniTicking();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::AssignUniqueActorLabel()
+{
+	if(-1 != AssetId)
+	{
+		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+		if(HoudiniAssetActor)
+		{
+			FString UniqueName;
+			if(FHoudiniEngineUtils::GetHoudiniAssetName(AssetId, UniqueName))
+			{
+				GEditor->SetActorLabelUnique(HoudiniAssetActor, UniqueName);
+			}
+		}
 	}
 }
 
@@ -166,6 +180,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	FHoudiniEngineTaskInfo TaskInfo;
 	bool bStopTicking = false;
 
+	// Retrieve the owner actor of this component.
+	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	check(HoudiniAssetActor);
+
 	if(HapiGUID.IsValid())
 	{
 		// If we have a valid task GUID.
@@ -201,6 +219,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Set new asset id.
 						SetAssetId(TaskInfo.AssetId);
 
+						// Assign unique actor label based on asset name.
+						AssignUniqueActorLabel();
+
 						if(FHoudiniEngineUtils::GetAssetGeometry(TaskInfo.AssetId, HoudiniMeshTriangles, HoudiniMeshSphereBounds))
 						{
 							// We need to patch component RTTI to reflect properties for this component.
@@ -230,18 +251,20 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 									if(HoudiniAssetComponent->HoudiniAsset && HoudiniAssetComponent->HoudiniAsset == CurrentHoudiniAsset)
 									{
+										// Update preview actor geometry with new data.
 										HoudiniAssetComponent->HoudiniMeshTriangles = HoudiniMeshTriangles;
 										HoudiniAssetComponent->UpdateRenderingInformation();
+
 										break;
 									}
 								}
 							}
 
+							// Generate necessary materials.
+							CreateComponentMaterials();
+
 							// Update properties panel.
 							UpdateEditorProperties();
-
-							HoudiniAsset = nullptr;
-							HoudiniAsset = CurrentHoudiniAsset;
 						}
 						else
 						{
@@ -335,9 +358,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		// Remove all processed parameters.
 		ChangedProperties.Empty();
 
-		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-		check(HoudiniAssetActor);
-
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
 
@@ -358,7 +378,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 }
 
 
-void 
+void
 UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	// We need to make sure the component class has been patched.
@@ -388,7 +408,7 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 }
 
 
-void 
+void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
@@ -429,6 +449,53 @@ int32
 UHoudiniAssetComponent::GetNumMaterials() const
 {
 	return 1;
+}
+
+
+void 
+UHoudiniAssetComponent::CreateComponentMaterials()
+{
+	// Get the label of the owner actor.
+	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	const FString& HoudiniAssetActorLabel = HoudiniAssetActor->GetActorLabel();
+
+	// Get the outermost package of the asset.
+	UPackage* HoudiniAssetPackage = HoudiniAsset->GetOutermost();
+
+	// Create a sub-folder name based on actor.
+	FString SubfolderName = FString::Printf(TEXT("%s_data"), *HoudiniAssetActorLabel);
+
+	// Create generated material name based on actor.
+	FString MaterialName = FString::Printf(TEXT("%s_material"), *HoudiniAssetActorLabel);
+
+	// Create package name for material.
+	FString NewPackageName = FPackageName::GetLongPackagePath(HoudiniAssetPackage->GetName()) + TEXT("/") + SubfolderName + TEXT("/") + MaterialName;
+
+	// Make sure package name is valid.
+	NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
+
+	// Create the package.
+	UPackage* Package = CreatePackage(NULL, *NewPackageName);
+
+	// Create a new material factory to create our material asset.
+	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+
+	// Create a new generated material asset.
+	UMaterial* HoudiniGeneratedMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Standalone | RF_Public, NULL, GWarn);
+	if(HoudiniGeneratedMaterial)
+	{
+		// Notify asset registry about creation of a new material asset.
+		FAssetRegistryModule::AssetCreated(HoudiniGeneratedMaterial);
+
+		// Set the dirty flag so this package will get saved later.
+		Package->SetDirtyFlag(true);
+
+		// Perform notifications regarding material changes.
+		HoudiniGeneratedMaterial->PreEditChange(nullptr);
+		HoudiniGeneratedMaterial->PostEditChange();
+
+		SetMaterial(0, HoudiniGeneratedMaterial);
+	}
 }
 
 
@@ -479,10 +546,10 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	if(-1 != AssetId)
 	{
 		// Check if asset is still valid.
-		if(FHoudiniEngineUtils::IsAssetValid(AssetId))
+		if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 		{
 			// Destroy the asset.
-			FHoudiniEngineUtils::DestroyAsset(AssetId);
+			FHoudiniEngineUtils::DestroyHoudiniAsset(AssetId);
 			AssetId = -1;
 		}
 	}
@@ -593,7 +660,7 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 }
 
 
-void 
+void
 UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 {
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
@@ -814,7 +881,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		{
 			Property->SetMetaData(TEXT("ClampMin"), *FString::SanitizeFloat(ParmInfoIter.min));
 		}
-		
+
 		if(ParmInfoIter.hasMax)
 		{
 			Property->SetMetaData(TEXT("ClampMax"), *FString::SanitizeFloat(ParmInfoIter.max));
@@ -863,7 +930,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 }
 
 
-UProperty* 
+UProperty*
 UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
@@ -1071,7 +1138,7 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 }
 
 
-void 
+void
 UHoudiniAssetComponent::SetChangedParameterValues()
 {
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;

@@ -30,6 +30,7 @@
 #include "ImageUtils.h"
 #include "PackageTools.h"
 #include "ThumbnailHelpers.h"
+#include "AssetRegistryModule.h"
 
 
 /** Houdini Engine headers. **/
