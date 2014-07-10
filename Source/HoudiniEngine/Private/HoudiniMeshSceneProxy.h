@@ -29,6 +29,7 @@ public:
 
 public: /** FPrimitiveSceneProxy methods. **/
 
+	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
 	virtual bool CanBeOccluded() const OVERRIDE;
@@ -38,11 +39,18 @@ public: /** FPrimitiveSceneProxy methods. **/
 
 private:
 
+	/** Vertex factory simply transforms explicit vertex attributes from local to world space. **/
 	FHoudiniMeshVertexFactory VertexFactory;
+
+	/** Vertex buffer. **/
 	FHoudiniMeshVertexBuffer VertexBuffer;
+
+	/** Index buffer. **/
 	FHoudiniMeshIndexBuffer IndexBuffer;
 
+	/** View relevance for all Houdini mesh materials. **/
 	FMaterialRelevance MaterialRelevance;
+
 
 	UMaterialInterface* Material;
 };

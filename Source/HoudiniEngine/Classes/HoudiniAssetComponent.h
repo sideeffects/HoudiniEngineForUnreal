@@ -69,6 +69,7 @@ UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Compon
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
 {
 	friend class FHoudiniMeshSceneProxy;
+	friend class AHoudiniAssetActor;
 	GENERATED_UCLASS_BODY()
 
 public:
@@ -98,6 +99,9 @@ public:
 
 	/** Return current referenced Houdini asset. **/
 	UHoudiniAsset* GetHoudiniAsset() const;
+
+	/** Return owner Houdini actor. **/
+	TWeakObjectPtr<AHoudiniAssetActor> GetHoudiniAssetActorOwner() const;
 
 public: /** UObject methods. **/
 
@@ -193,6 +197,9 @@ protected:
 
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
+
+	/** Owner Houdini actor. **/
+	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActorOwner;
 
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;

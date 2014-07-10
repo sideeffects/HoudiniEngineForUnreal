@@ -86,14 +86,21 @@ UHoudiniAssetComponent::GetHoudiniAsset() const
 }
 
 
+TWeakObjectPtr<AHoudiniAssetActor>
+UHoudiniAssetComponent::GetHoudiniAssetActorOwner() const
+{
+	return HoudiniAssetActorOwner;
+}
+
+
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
 	UHoudiniAsset* Asset = nullptr;
-	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-	check(HoudiniAssetActor);
+	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
+	check(HoudiniAssetActor.Get());
 
 	// If it is the same asset, do nothing.
 	if(InHoudiniAsset == HoudiniAsset)
@@ -135,13 +142,13 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 {
 	if(-1 != AssetId)
 	{
-		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-		if(HoudiniAssetActor)
+		TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
+		if(HoudiniAssetActor.Get())
 		{
 			FString UniqueName;
 			if(FHoudiniEngineUtils::GetHoudiniAssetName(AssetId, UniqueName))
 			{
-				GEditor->SetActorLabelUnique(HoudiniAssetActor, UniqueName);
+				GEditor->SetActorLabelUnique(HoudiniAssetActor.Get(), UniqueName);
 			}
 		}
 	}
@@ -181,8 +188,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	bool bStopTicking = false;
 
 	// Retrieve the owner actor of this component.
-	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-	check(HoudiniAssetActor);
+	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
+	check(HoudiniAssetActor.Get());
 
 	if(HapiGUID.IsValid())
 	{
@@ -411,12 +418,12 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
-	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-	if(HoudiniAssetActor)
+	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
+	if(HoudiniAssetActor.Get())
 	{
 		// Manually reselect the actor - this will cause details panel to be updated and force our 
 		// property changes to be picked up by the UI.
-		GEditor->SelectActor(HoudiniAssetActor, true, true);
+		GEditor->SelectActor(HoudiniAssetActor.Get(), true, true);
 
 		// Notify the editor about selection change.
 		GEditor->NoteSelectionChange();
@@ -456,7 +463,9 @@ void
 UHoudiniAssetComponent::CreateComponentMaterials()
 {
 	// Get the label of the owner actor.
-	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
+	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
+	check(HoudiniAssetActor.Get());
+
 	const FString& HoudiniAssetActorLabel = HoudiniAssetActor->GetActorLabel();
 
 	// Get the outermost package of the asset.
@@ -1293,8 +1302,8 @@ UHoudiniAssetComponent::OnRegister()
 		return;
 	}
 
-	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(GetOwner());
-	if(!HoudiniAssetActor)
+	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
+	if(!HoudiniAssetActor.Get())
 	{
 		return;
 	}
