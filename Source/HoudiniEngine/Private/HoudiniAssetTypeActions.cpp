@@ -111,30 +111,6 @@ FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FM
 			FCanExecuteAction()
 		)
 	);
-
-	/*
-	MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
-		LOCTEXT("Delete", "Delete"),
-		LOCTEXT("DeleteTooltip", "Delete the selected assets.")
-		);
-
-
-	void FAssetContextMenu::BindCommands(TSharedPtr< FUICommandList > InCommandList) ->
-	InCommandList->MapAction(FGenericCommands::Get().Delete, FUIAction(
-		FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteDelete),
-		FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteDelete)
-		));
-
-		MenuBuilder.AddMenuEntry(
-		LOCTEXT("FindAssetInWorld", "Select Actors Using This Asset"),
-		LOCTEXT("FindAssetInWorldTooltip", "Selects all actors referencing this asset."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteFindAssetInWorld ),
-		FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteFindAssetInWorld )
-		)
-		);
-	*/
 }
 
 

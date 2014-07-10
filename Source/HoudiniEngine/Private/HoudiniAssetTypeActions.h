@@ -44,7 +44,4 @@ protected:
 
 	/** Handler to cook the asset. **/
 	void ExecuteCook(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
-
-	/** Handler to delete selected assets. **/
-	void ExecuteDelete(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
 };
