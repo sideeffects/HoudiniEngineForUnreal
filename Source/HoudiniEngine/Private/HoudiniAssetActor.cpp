@@ -22,23 +22,11 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties&
 	bWantsInitialize = false;
 	bCanBeDamaged = false;
 
-	// Create our root component.
-	TSubobjectPtr<USceneComponent> HoudiniRootComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("HoudiniRootComponent"));
-	RootComponent = HoudiniRootComponent;
-
-	/*
 	// Create Houdini component and attach it to a root component.
 	HoudiniAssetComponent = PCIP.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	HoudiniAssetComponent->AttachParent = RootComponent;
-	*/
-
-	HoudiniAssetComponent = ConstructObject<UHoudiniAssetComponent>(UHoudiniAssetComponent::StaticClass(), this);
+	RootComponent = HoudiniAssetComponent;
 	HoudiniAssetComponent->HoudiniAssetActorOwner = this;
-	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	HoudiniAssetComponent->AttachParent = RootComponent;
-
-	HoudiniAssetComponents.Add(HoudiniAssetComponent);
 }
 
 
@@ -52,8 +40,7 @@ AHoudiniAssetActor::IsUsedForPreview() const
 bool
 AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
-	//if(HoudiniAssetComponent.IsValid())
-	if(HoudiniAssetComponent)
+	if(HoudiniAssetComponent.IsValid())
 	{
 		// Retrieve the asset associated with this component.
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
@@ -65,24 +52,3 @@ AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 
 	return true;
 }
-
-
-/*
-void
-AHoudiniAssetActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	AHoudiniAssetActor* ThisActor = CastChecked<AHoudiniAssetActor>(InThis);
-	if(ThisActor && !ThisActor->IsPendingKill() && ThisActor->HoudiniAssetComponent.IsValid())
-	{
-		// Retrieve the asset associated with this component.
-		UHoudiniAsset* HoudiniAsset = ThisActor->HoudiniAssetComponent->GetHoudiniAsset();
-		if(HoudiniAsset)
-		{
-			Collector.AddReferencedObject(HoudiniAsset, InThis);
-		}
-	}
-
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-*/

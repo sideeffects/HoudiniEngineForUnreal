@@ -198,7 +198,7 @@ protected:
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
 
-	/** Owner Houdini actor. **/
+	/** Owner Houdini actor, if there's one. **/
 	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActorOwner;
 
 	/** Bounding volume information for current geometry. **/

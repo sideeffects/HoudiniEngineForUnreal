@@ -19,6 +19,7 @@ class FSceneView;
 class UMaterialInterface;
 class UHoudiniAssetComponent;
 class FPrimitiveDrawInterface;
+class FStaticPrimitiveDrawInterface;
 
 class FHoudiniMeshSceneProxy : public FPrimitiveSceneProxy
 {

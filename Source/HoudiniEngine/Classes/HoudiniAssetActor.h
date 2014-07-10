@@ -24,11 +24,7 @@ class HOUDINIENGINE_API AHoudiniAssetActor : public AActor
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
-	//TSubobjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
-	UHoudiniAssetComponent* HoudiniAssetComponent;
-
-	UPROPERTY(Category = HoudiniAssetActors, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
-	TArray<UHoudiniAssetComponent*> HoudiniAssetComponents;
+	TSubobjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
 
 public:
 
@@ -38,8 +34,4 @@ public:
 public: /** AActor methods. **/
 
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
-
-public: /** UObject methods. **/
-
-	//static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 };
