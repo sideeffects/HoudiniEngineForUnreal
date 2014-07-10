@@ -94,8 +94,6 @@ FHoudiniMeshSceneProxy::~FHoudiniMeshSceneProxy()
 void
 FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_HoudiniMeshSceneProxy_DrawDynamicElements);
-
 	bool bWireframe = View->Family->EngineShowFlags.Wireframe;
 
 	FColoredMaterialRenderProxy WireframeMaterialInstance(GEngine->WireframeMaterial->GetRenderProxy(IsSelected()), FLinearColor(0, 0.5f, 1.f));
@@ -131,6 +129,13 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const F
 }
 
 
+void
+FHoudiniMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
+{
+	FPrimitiveSceneProxy::DrawStaticElements(PDI);
+}
+
+
 FPrimitiveViewRelevance
 FHoudiniMeshSceneProxy::GetViewRelevance(const FSceneView* View)
 {
@@ -139,8 +144,9 @@ FHoudiniMeshSceneProxy::GetViewRelevance(const FSceneView* View)
 	Result.bDrawRelevance = IsShown(View);
 	Result.bShadowRelevance = IsShadowCast(View);
 	Result.bDynamicRelevance = true;
-	MaterialRelevance.SetPrimitiveViewRelevance(Result);
+	Result.bStaticRelevance = false;
 
+	MaterialRelevance.SetPrimitiveViewRelevance(Result);
 	return Result;
 }
 

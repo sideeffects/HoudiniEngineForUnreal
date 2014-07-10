@@ -22,11 +22,23 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties&
 	bWantsInitialize = false;
 	bCanBeDamaged = false;
 
+	// Create our root component.
+	TSubobjectPtr<USceneComponent> HoudiniRootComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("HoudiniRootComponent"));
+	RootComponent = HoudiniRootComponent;
+
+	/*
+	// Create Houdini component and attach it to a root component.
 	HoudiniAssetComponent = PCIP.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	HoudiniAssetComponent->AttachParent = RootComponent;
+	*/
 
-	// Our component is a root component.
-	RootComponent = HoudiniAssetComponent;
+	HoudiniAssetComponent = ConstructObject<UHoudiniAssetComponent>(UHoudiniAssetComponent::StaticClass(), this);
+	HoudiniAssetComponent->HoudiniAssetActorOwner = this;
+	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	HoudiniAssetComponent->AttachParent = RootComponent;
+
+	HoudiniAssetComponents.Add(HoudiniAssetComponent);
 }
 
 
@@ -40,7 +52,8 @@ AHoudiniAssetActor::IsUsedForPreview() const
 bool
 AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
-	if(HoudiniAssetComponent.IsValid())
+	//if(HoudiniAssetComponent.IsValid())
+	if(HoudiniAssetComponent)
 	{
 		// Retrieve the asset associated with this component.
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
