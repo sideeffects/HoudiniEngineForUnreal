@@ -77,6 +77,11 @@ public:
 
 protected:
 
+	/** Current version of the asset. **/
+	static const int32 PersistenceFormatVersion;
+
+protected:
+
 	/** Triangle data used for preview window. **/
 	TArray<FHoudiniMeshTriangle> PreviewHoudiniMeshTriangles;
 

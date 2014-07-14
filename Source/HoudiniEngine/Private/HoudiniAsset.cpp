@@ -16,6 +16,10 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+const int32 
+UHoudiniAsset::PersistenceFormatVersion = 0;
+
+
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	AssetBytes(nullptr),
@@ -130,6 +134,16 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	// Properties will get serialized.
+
+	// Read persistence format version.
+	int32 FormatVersion = UHoudiniAsset::PersistenceFormatVersion;
+	Ar << FormatVersion;
+
+	// Make sure persistence format version matches.
+	if(FormatVersion != UHoudiniAsset::PersistenceFormatVersion)
+	{
+		return;
+	}
 
 	{
 		Ar << AssetBytesCount;
