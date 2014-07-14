@@ -59,6 +59,7 @@ class UProperty;
 class UMaterial;
 class FTransform;
 class UHoudiniAsset;
+class UHoudiniAssetObject;
 class FPrimitiveSceneProxy;
 class UHoudiniAssetComponent;
 class FComponentInstanceDataCache;
@@ -191,6 +192,9 @@ protected:
 
 	/** Triangle data used for rendering in viewport / preview window. **/
 	TArray<FHoudiniMeshTriangle> HoudiniMeshTriangles;
+
+	/** Array of asset objects ~ these correspond to submeshes / parts. **/
+	TArray<UHoudiniAssetObject*> HoudiniAssetObjects;
 
 	/** Array of properties that have changed. Will force object recook. **/
 	TSet<UProperty*> ChangedProperties;
