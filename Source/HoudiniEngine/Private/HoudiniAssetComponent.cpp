@@ -59,6 +59,50 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 
 
 void
+UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	// We need to make sure the component class has been patched.
+	UClass* ObjectClass = InThis->GetClass();
+
+	if(UHoudiniAssetComponent::StaticClass() != ObjectClass)
+	{
+		if(ObjectClass->ClassAddReferencedObjects == UHoudiniAssetComponent::AddReferencedObjects)
+		{
+			// This is a safe cast since our component is the only type registered for this callback.
+			UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*)InThis;
+			if(HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
+			{
+				// Retrieve asset associated with this component.
+				UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+				if(HoudiniAsset)
+				{
+					// Manually add a reference to Houdini asset from this component.
+					Collector.AddReferencedObject(HoudiniAsset, InThis);
+				}
+
+				// Add all asset objects as referenced.
+				for(TArray<UHoudiniAssetObject*>::TIterator Iter = HoudiniAssetComponent->HoudiniAssetObjects.CreateIterator(); Iter; ++Iter)
+				{
+					// Manually add reference for each asset object.
+					Collector.AddReferencedObject(*Iter, InThis);
+				}
+			}
+		}
+	}
+
+	// Call base implementation.
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
+
+void
+UHoudiniAssetComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+}
+
+
+void
 UHoudiniAssetComponent::SetNative(bool InbIsNativeComponent)
 {
 	bIsNativeComponent = InbIsNativeComponent;
@@ -386,36 +430,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 
 void
-UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// We need to make sure the component class has been patched.
-	UClass* ObjectClass = InThis->GetClass();
-
-	if(UHoudiniAssetComponent::StaticClass() != ObjectClass)
-	{
-		if(ObjectClass->ClassAddReferencedObjects == UHoudiniAssetComponent::AddReferencedObjects)
-		{
-			// This is a safe cast since our component is the only type registered for this callback.
-			UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*) InThis;
-			if(HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
-			{
-				// Retrieve asset associated with this component.
-				UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-				if(HoudiniAsset)
-				{
-					// Manually add a reference to Houdini asset from this component.
-					Collector.AddReferencedObject(HoudiniAsset, InThis);
-				}
-			}
-		}
-	}
-
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-
-
-void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
 	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
@@ -471,39 +485,45 @@ UHoudiniAssetComponent::CreateComponentMaterials()
 	// Get the outermost package of the asset.
 	UPackage* HoudiniAssetPackage = HoudiniAsset->GetOutermost();
 
-	// Create a sub-folder name based on actor.
-	FString SubfolderName = FString::Printf(TEXT("%s_data"), *HoudiniAssetActorLabel);
-
 	// Create generated material name based on actor.
 	FString MaterialName = FString::Printf(TEXT("%s_material"), *HoudiniAssetActorLabel);
 
 	// Create package name for material.
-	FString NewPackageName = FPackageName::GetLongPackagePath(HoudiniAssetPackage->GetName()) + TEXT("/") + SubfolderName + TEXT("/") + MaterialName;
+	FString PackageName = FPackageName::GetLongPackagePath(HoudiniAssetPackage->GetName()) + TEXT("/") + MaterialName;
 
 	// Make sure package name is valid.
-	NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
+	PackageName = PackageTools::SanitizePackageName(PackageName);
 
-	// Create the package.
-	UPackage* Package = CreatePackage(NULL, *NewPackageName);
+	// Check if package exists already.
+	UPackage* Package = FindPackage(NULL, *PackageName);
+	if(!Package)
+	{
+		// Create the package if it does not exist.
+		Package = CreatePackage(NULL, *PackageName);
+	}
 
 	// Create a new material factory to create our material asset.
 	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
 
-	// Create a new generated material asset.
-	UMaterial* HoudiniGeneratedMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Standalone | RF_Public, NULL, GWarn);
-	if(HoudiniGeneratedMaterial)
+	// Check if we need to create a new material object.
+	if(!GetMaterial(0))
 	{
-		// Notify asset registry about creation of a new material asset.
-		FAssetRegistryModule::AssetCreated(HoudiniGeneratedMaterial);
+		// Create a new generated material asset.
+		UMaterial* HoudiniGeneratedMaterial = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Standalone | RF_Public, NULL, GWarn);
+		if(HoudiniGeneratedMaterial)
+		{
+			// Notify asset registry about creation of a new material asset.
+			FAssetRegistryModule::AssetCreated(HoudiniGeneratedMaterial);
 
-		// Set the dirty flag so this package will get saved later.
-		Package->SetDirtyFlag(true);
+			// Set the dirty flag so this package will get saved later.
+			Package->SetDirtyFlag(true);
 
-		// Perform notifications regarding material changes.
-		HoudiniGeneratedMaterial->PreEditChange(nullptr);
-		HoudiniGeneratedMaterial->PostEditChange();
+			// Perform notifications regarding material changes.
+			HoudiniGeneratedMaterial->PreEditChange(nullptr);
+			HoudiniGeneratedMaterial->PostEditChange();
 
-		SetMaterial(0, HoudiniGeneratedMaterial);
+			SetMaterial(0, HoudiniGeneratedMaterial);
+		}
 	}
 }
 
@@ -571,13 +591,6 @@ void
 UHoudiniAssetComponent::BeginDestroy()
 {
 	Super::BeginDestroy();
-}
-
-
-void
-UHoudiniAssetComponent::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
 }
 
 
