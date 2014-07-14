@@ -35,11 +35,13 @@ public:
 	static bool DestroyHoudiniAsset(HAPI_AssetId AssetId);
 
 	/** Return specified string. **/
-	static bool GetHoudiniString(int Name, std::string& NameString);
 	static bool GetHoudiniString(int Name, FString& NameString);
 
-	/** Return name of houdini asset. **/
+	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
+
+	/** Construct Houdini asset objects from a specified asset. **/
+	static bool ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudiniAssetObject*>& HoudiniAssetObjects);
 
 	/** Extract geometry information for a given asset. **/
 	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
@@ -57,6 +59,37 @@ public:
 	/** Convert Unreal FColor to Houdini color and return number of channels. **/
 	static int ConvertUnrealColorRGB(const FColor& UnrealColor, float* HoudiniColorRGB);
 	static int ConvertUnrealColorRGBA(const FColor& UnrealColor, float* HoudiniColorRGBA);
+
+public:
+
+	/** HAPI : Return all group names for a given Geo. **/
+	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
+								  std::vector<std::string>& GroupNames);
+
+	/** HAPI : Get string name for a given handle. **/
+	static bool HapiGetString(int Name, std::string& NameString);
+
+	/** HAPI : **/
+	static bool HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+									   HAPI_GroupType GroupType, std::string GroupName, std::vector<int>& GroupMembership);
+
+	/** HAPI : Get group count by type. **/
+	static int HapiGetGroupCountByType(HAPI_GroupType GroupType, HAPI_GeoInfo& GeoInfo);
+
+	/** HAPI : Get element count by group type. **/
+	static int HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HAPI_PartInfo& PartInfo);
+
+	/** HAPI : Return group membership count. **/
+	static int HapiCheckGroupMembership(const std::vector<int>& GroupMembership);
+
+	/** HAPI : Check if given attribute exists. **/
+	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+										 const char* Name, HAPI_AttributeOwner Owner);
+
+	/** HAPI : Get attribute data as float. **/
+	static bool HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+											std::vector<float>& Data, int TupleSize = 0);
 
 protected:
 

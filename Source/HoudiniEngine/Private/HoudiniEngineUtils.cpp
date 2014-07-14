@@ -135,36 +135,11 @@ FHoudiniEngineUtils::DestroyHoudiniAsset(HAPI_AssetId AssetId)
 
 
 bool
-FHoudiniEngineUtils::GetHoudiniString(int Name, std::string& NameString)
-{
-	if(Name < 0)
-	{
-		return false;
-	}
-
-	// For now we will load first asset only.
-	int NameLength = 0;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStringBufLength(Name, &NameLength), false);
-
-	if(NameLength)
-	{
-		std::vector<char> NameBuffer(NameLength, '\0');
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetString(Name, &NameBuffer[0], NameLength), false);
-
-		// Create and return string.
-		NameString = std::string(NameBuffer.begin(), NameBuffer.end());
-	}
-
-	return true;
-}
-
-
-bool
 FHoudiniEngineUtils::GetHoudiniString(int Name, FString& NameString)
 {
 	std::string NamePlain;
 
-	if(FHoudiniEngineUtils::GetHoudiniString(Name, NamePlain))
+	if(FHoudiniEngineUtils::HapiGetString(Name, NamePlain))
 	{
 		NameString = ANSI_TO_TCHAR(NamePlain.c_str());
 		return true;
@@ -468,4 +443,354 @@ FHoudiniEngineUtils::ConvertUnrealColorRGBA(const FColor& UnrealColor, float* Ho
 	HoudiniColorRGBA[3] = UnrealColor.A / 255.0f;
 
 	return 4;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetString(int Name, std::string& NameString)
+{
+	if(Name < 0)
+	{
+		return false;
+	}
+
+	// For now we will load first asset only.
+	int NameLength = 0;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStringBufLength(Name, &NameLength), false);
+
+	if(NameLength)
+	{
+		std::vector<char> NameBuffer(NameLength, '\0');
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetString(Name, &NameBuffer[0], NameLength), false);
+
+		// Create and return string.
+		NameString = std::string(NameBuffer.begin(), NameBuffer.end());
+	}
+
+	return true;
+}
+
+
+int
+FHoudiniEngineUtils::HapiGetGroupCountByType(HAPI_GroupType GroupType, HAPI_GeoInfo& GeoInfo)
+{
+	switch(GroupType)
+	{
+		case HAPI_GROUPTYPE_POINT:
+		{
+			return GeoInfo.pointGroupCount;
+		}
+
+		case HAPI_GROUPTYPE_PRIM:
+		{
+			return GeoInfo.primitiveGroupCount;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	return 0;
+}
+
+
+int 
+FHoudiniEngineUtils::HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HAPI_PartInfo& PartInfo)
+{
+	switch(GroupType)
+	{
+		case HAPI_GROUPTYPE_POINT:
+		{
+			return PartInfo.pointCount;
+		}
+
+		case HAPI_GROUPTYPE_PRIM:
+		{
+			return PartInfo.faceCount;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	return 0;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType, 
+									   std::vector<std::string>& GroupNames)
+{
+	HAPI_GeoInfo GeoInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetGeoInfo(AssetId, ObjectId, GeoId, &GeoInfo), false);
+
+	int GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);	
+
+	std::vector<int> GroupNameHandles(GroupCount, 0);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetGroupNames(AssetId, ObjectId, GeoId, GroupType, &GroupNameHandles[0], GroupCount), false);
+
+	for(int NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
+	{
+		std::string GroupName;
+		if(FHoudiniEngineUtils::HapiGetString(GroupNameHandles[NameIdx], GroupName))
+		{
+			GroupNames.push_back(GroupName);
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, 
+											HAPI_GroupType GroupType, std::string GroupName, std::vector<int>& GroupMembership)
+{
+	HAPI_PartInfo PartInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetPartInfo(AssetId, ObjectId, GeoId, PartId, &PartInfo), false);
+
+	int ElementCount = FHoudiniEngineUtils::HapiGetElementCountByGroupType(GroupType, PartInfo);
+
+	GroupMembership.resize(ElementCount);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetGroupMembership(AssetId, ObjectId, GeoId, PartId, GroupType, GroupName.c_str(), 
+													   &GroupMembership[0], 0, ElementCount), false);
+
+	return true;
+}
+
+
+int
+FHoudiniEngineUtils::HapiCheckGroupMembership(const std::vector<int>& GroupMembership)
+{
+	int GroupMembershipCount = 0;
+	for(int Idx = 0; Idx < GroupMembership.size(); ++Idx)
+	{
+		if(GroupMembership[Idx] > 0)
+		{
+			++GroupMembershipCount;
+		}
+	}
+
+	return GroupMembershipCount;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+											  HAPI_PartId PartId, const char* Name, HAPI_AttributeOwner Owner)
+{
+	HAPI_AttributeInfo AttribInfo;
+	if(HAPI_RESULT_SUCCESS != HAPI_GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, Owner, &AttribInfo))
+	{
+		return false;
+	}
+
+	return AttribInfo.exists;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+												 const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+												 std::vector<float>& Data, int TupleSize)
+{
+	ResultAttributeInfo.exists = false;
+
+	int OriginalTupleSize = TupleSize;
+	HAPI_AttributeInfo AttributeInfo;
+	for(int AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
+
+		if(AttributeInfo.exists)
+		{
+			break;
+		}
+	}
+
+	if(!AttributeInfo.exists)
+	{
+		return false;
+	}
+
+	if(OriginalTupleSize > 0)
+	{
+		AttributeInfo.tupleSize = OriginalTupleSize;
+	}
+
+	// Allocate sufficient buffer for data.
+	Data.resize(AttributeInfo.count * AttributeInfo.tupleSize);
+	
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo,
+		&Data[0], 0, AttributeInfo.count), false);
+
+	// Store the retrieved attribute information.
+	ResultAttributeInfo = AttributeInfo;
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudiniAssetObject*>& HoudiniAssetObjects)
+{
+	// Make sure asset id is valid.
+	if(AssetId < 0)
+	{
+		return false;
+	}
+
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	HAPI_AssetInfo AssetInfo;
+	std::vector<HAPI_ObjectInfo> ObjectInfos;
+
+	std::vector<int> VertexList;
+
+	std::vector<float> Positions;
+	std::vector<float> UVs;
+	std::vector<float> Normals;
+	std::vector<float> Colors;
+	std::vector<float> Tangents;
+
+	std::vector<int> GroupMembership;
+	std::vector<int> GroupTriangles;
+
+	// Get asset information.
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+
+	// Retrieve information about each object contained within our asset.
+	ObjectInfos.resize(AssetInfo.objectCount);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetObjects(AssetId, &ObjectInfos[0], 0, AssetInfo.objectCount), false);
+
+	// Iterate through all objects.
+	for(int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.size(); ++ObjectIdx)
+	{
+		// Retrieve object at this index.
+		const HAPI_ObjectInfo& ObjectInfo = ObjectInfos[ObjectIdx];
+
+		// Iterate through all Geo informations within this object.
+		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
+		{
+			// Get Geo information.
+			HAPI_GeoInfo GeoInfo;
+			if(HAPI_RESULT_SUCCESS != HAPI_GetGeoInfo(AssetId, ObjectInfo.id, GeoIdx, &GeoInfo))
+			{
+				continue;
+			}
+
+			// Right now only care about display SOPs.
+			if(!GeoInfo.isDisplayGeo)
+			{
+				continue;
+			}
+
+			// Get group names per Geo.
+			std::vector<std::string> GroupNames;
+			if(!FHoudiniEngineUtils::HapiGetGroupNames(AssetId, ObjectInfo.id, GeoInfo.id, HAPI_GROUPTYPE_PRIM, GroupNames))
+			{
+				continue;
+			}
+
+			bool bGeoError = false;
+
+			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
+			{
+				// Get part information.
+				HAPI_PartInfo PartInfo;
+
+				if(HAPI_RESULT_SUCCESS != HAPI_GetPartInfo(AssetId, ObjectInfo.id, GeoInfo.id, PartIdx, &PartInfo))
+				{
+					// Error retrieving part info.
+					bGeoError = true;
+					break;
+				}
+
+				// We need to create a vertex buffer for each part.
+				VertexList.resize(PartInfo.vertexCount);
+				if(HAPI_RESULT_SUCCESS != HAPI_GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &VertexList[0], 0, PartInfo.vertexCount))
+				{
+					// Error getting the vertex list.
+					bGeoError = true;
+					break;
+				}
+
+				// Retrieve position data.
+				HAPI_AttributeInfo AttribInfoPositions;
+				if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+					HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
+				{
+					// Error retrieving positions.
+					bGeoError = true;
+					break;
+				}
+
+				// Retrieve UV data.
+				HAPI_AttributeInfo AttribInfoUVs;
+				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_UV, AttribInfoUVs, UVs, 2);
+
+				// Retrieve normal data.
+				HAPI_AttributeInfo AttribInfoNormals;
+				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
+
+				// Retrieve tangent data.
+				HAPI_AttributeInfo AttribInfoTangents;
+				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_TANGENT, AttribInfoTangents, Tangents);
+
+				// Retrieve color data.
+				HAPI_AttributeInfo AttribInfoColors;
+				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
+
+				// Retrieve group memberships for this part.
+				for(int GroupIdx = 0; GroupIdx < GroupNames.size(); ++GroupIdx)
+				{
+					GroupMembership.clear();
+					if(!FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM, 
+						GroupNames[GroupIdx], GroupMembership))
+					{
+						continue;
+					}
+
+					int GroupMembershipCount = FHoudiniEngineUtils::HapiCheckGroupMembership(GroupMembership);
+					if(!GroupMembershipCount)
+					{
+						// No group membership, skip to next group.
+						continue;
+					}
+
+					GroupTriangles.resize(GroupMembershipCount * 3);
+					int CurrentTriangle = 0;
+
+					for(int FaceIdx = 0; FaceIdx < PartInfo.faceCount; ++FaceIdx)
+					{
+						if(GroupMembership[FaceIdx])
+						{
+							GroupTriangles[CurrentTriangle * 3 + 0] = FaceIdx * 3 + 0;
+							GroupTriangles[CurrentTriangle * 3 + 1] = FaceIdx * 3 + 1;
+							GroupTriangles[CurrentTriangle * 3 + 2] = FaceIdx * 3 + 2;
+
+							CurrentTriangle++;
+						}
+					}
+
+					if(GroupTriangles.size())
+					{
+
+					}
+				}
+				
+			}
+
+			// There has been an error, continue onto next Geo.
+			if(bGeoError)
+			{
+				continue;
+			}
+		}
+	}
+
+
+	return true;
 }
