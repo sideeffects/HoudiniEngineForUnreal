@@ -38,7 +38,10 @@ UHoudiniAssetObject::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 	if(HoudiniAssetObject)
 	{
 		// Manually add material reference.
-		Collector.AddReferencedObject(HoudiniAssetObject->Material, InThis);
+		if(HoudiniAssetObject->Material)
+		{
+			Collector.AddReferencedObject(HoudiniAssetObject->Material, InThis);
+		}
 	}
 
 	// Call base implementation.
