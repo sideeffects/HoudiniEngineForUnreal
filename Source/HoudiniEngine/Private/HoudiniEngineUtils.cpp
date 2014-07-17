@@ -237,7 +237,7 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 	// Used for computation of bounding volume.
 	FVector ExtentMin(TNumericLimits<float>::Max(), TNumericLimits<float>::Max(), TNumericLimits<float>::Max());
 	FVector ExtentMax(TNumericLimits<float>::Min(), TNumericLimits<float>::Min(), TNumericLimits<float>::Min());
-	
+
 	// Storage for extracted raw vertex attributes.
 	std::vector<int> VertexList;
 	std::vector<float> Positions;
@@ -249,7 +249,7 @@ FHoudiniEngineUtils::GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshT
 
 	VertexList.resize(PartInfo.vertexCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetVertexList(AssetId, 0, 0, 0, &VertexList[0], 0, PartInfo.vertexCount), false);
-	
+
 	// Retrieve positions (they are always on a point).
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, 0, 0, 0, "P", HAPI_ATTROWNER_POINT, &AttribInfo), false);
 	Positions.resize(AttribInfo.count * AttribInfo.tupleSize);
@@ -635,7 +635,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 
 
 bool
-FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudiniAssetObject*>& HoudiniAssetObjects)
+FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& HoudiniAssetObjectGeos)
 {
 	// Make sure asset id is valid.
 	if(AssetId < 0)
@@ -645,9 +645,12 @@ FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudi
 
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	HAPI_AssetInfo AssetInfo;
+	
 	std::vector<HAPI_ObjectInfo> ObjectInfos;
+	std::vector<HAPI_Transform> ObjectTransforms;
 
 	std::vector<int> VertexList;
+	std::vector<int> GroupMembership;
 
 	std::vector<float> Positions;
 	std::vector<float> UVs;
@@ -655,8 +658,9 @@ FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudi
 	std::vector<float> Colors;
 	std::vector<float> Tangents;
 
-	std::vector<int> GroupMembership;
-	std::vector<int> GroupTriangles;
+	// Geometry scale factors.
+	static const float ScaleFactorPosition = 75.0f;
+	static const float ScaleFactorTranslate = 50.0f;
 
 	// Get asset information.
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
@@ -665,11 +669,27 @@ FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudi
 	ObjectInfos.resize(AssetInfo.objectCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetObjects(AssetId, &ObjectInfos[0], 0, AssetInfo.objectCount), false);
 
+	// Retrieve transforms for each object in this asset.
+	ObjectTransforms.resize(AssetInfo.objectCount);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetObjectTransforms(AssetId, HAPI_SRT, &ObjectTransforms[0], 0, AssetInfo.objectCount), false);
+
 	// Iterate through all objects.
 	for(int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.size(); ++ObjectIdx)
 	{
 		// Retrieve object at this index.
 		const HAPI_ObjectInfo& ObjectInfo = ObjectInfos[ObjectIdx];
+
+		// Convert HAPI transform to a matrix form.
+		FMatrix TransformMatrix;
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_ConvertTransformQuatToMatrix(&ObjectTransforms[ObjectIdx], &TransformMatrix.M[0][0]), false);
+		TransformMatrix.ScaleTranslation(FVector(ScaleFactorTranslate, ScaleFactorTranslate, ScaleFactorTranslate));
+
+		// We need to swap transforms for Z and Y.
+		float TransformSwapY = TransformMatrix.M[3][1];
+		float TransformSwapZ = TransformMatrix.M[3][2];
+		
+		TransformMatrix.M[3][1] = TransformSwapZ;
+		TransformMatrix.M[3][2] = TransformSwapY;
 
 		// Iterate through all Geo informations within this object.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
@@ -743,6 +763,155 @@ FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudi
 				HAPI_AttributeInfo AttribInfoColors;
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
 
+				// At this point we can create a new geo object.
+				FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo(TransformMatrix);
+				HoudiniAssetObjectGeos.Add(HoudiniAssetObjectGeo);
+
+				// Transfer vertex data into vertex buffer for this geo object.
+				for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
+				{
+					FHoudiniMeshTriangle Triangle;
+
+					// Process position information.
+					// Need to flip the Y with the Z since UE4 is Z-up.
+					// Need to flip winding order also.
+
+					Triangle.Vertex0.X = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 0] * ScaleFactorPosition;
+					Triangle.Vertex0.Z = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 1] * ScaleFactorPosition;
+					Triangle.Vertex0.Y = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 2] * ScaleFactorPosition;
+					//UpdateBoundingVolumeExtent(Triangle.Vertex0, ExtentMin, ExtentMax);
+
+					Triangle.Vertex2.X = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 0] * ScaleFactorPosition;
+					Triangle.Vertex2.Z = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 1] * ScaleFactorPosition;
+					Triangle.Vertex2.Y = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 2] * ScaleFactorPosition;
+					//UpdateBoundingVolumeExtent(Triangle.Vertex2, ExtentMin, ExtentMax);
+
+					Triangle.Vertex1.X = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 0] * ScaleFactorPosition;
+					Triangle.Vertex1.Z = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 1] * ScaleFactorPosition;
+					Triangle.Vertex1.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * ScaleFactorPosition;
+					//UpdateBoundingVolumeExtent(Triangle.Vertex1, ExtentMin, ExtentMax);
+
+					// Process texture information.
+					// Need to flip the U coordinate.
+					if(AttribInfoUVs.exists)
+					{
+						Triangle.TextureCoordinate0.X = UVs[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
+						Triangle.TextureCoordinate0.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+
+						Triangle.TextureCoordinate2.X = UVs[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
+						Triangle.TextureCoordinate2.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+
+						Triangle.TextureCoordinate1.X = UVs[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
+						Triangle.TextureCoordinate1.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+					}
+					else
+					{
+						Triangle.TextureCoordinate0.X = 0.0f;
+						Triangle.TextureCoordinate0.Y = 0.0f;
+
+						Triangle.TextureCoordinate2.X = 0.0f;
+						Triangle.TextureCoordinate2.Y = 0.0f;
+
+						Triangle.TextureCoordinate1.X = 0.0f;
+						Triangle.TextureCoordinate1.Y = 0.0f;
+					}
+
+					// Process normals.
+					if(AttribInfoNormals.exists)
+					{
+						Triangle.Normal0.X = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
+						Triangle.Normal0.Z = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+						Triangle.Normal0.Y = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
+
+						Triangle.Normal2.X = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
+						Triangle.Normal2.Z = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+						Triangle.Normal2.Y = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
+
+						Triangle.Normal1.X = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
+						Triangle.Normal1.Z = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+						Triangle.Normal1.Y = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
+					}
+					else
+					{
+						Triangle.Normal0.X = 0.0f;
+						Triangle.Normal0.Z = 0.0f;
+						Triangle.Normal0.Y = 0.0f;
+
+						Triangle.Normal2.X = 0.0f;
+						Triangle.Normal2.Z = 0.0f;
+						Triangle.Normal2.Y = 0.0f;
+
+						Triangle.Normal1.X = 0.0f;
+						Triangle.Normal1.Z = 0.0f;
+						Triangle.Normal1.Y = 0.0f;
+					}
+
+					// Process tangents.
+					if(AttribInfoTangents.exists)
+					{
+						Triangle.Tangent0.X = 0.0f;
+						Triangle.Tangent0.Z = 0.0f;
+						Triangle.Tangent0.Y = 0.0f;
+
+						Triangle.Tangent2.X = 0.0f;
+						Triangle.Tangent2.Z = 0.0f;
+						Triangle.Tangent2.Y = 0.0f;
+
+						Triangle.Tangent1.X = 0.0f;
+						Triangle.Tangent1.Z = 0.0f;
+						Triangle.Tangent1.Y = 0.0f;
+					}
+
+					// Process colors.
+					if(AttribInfoColors.exists)
+					{
+						Triangle.Color0.R = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
+						Triangle.Color0.G = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+						Triangle.Color0.B = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
+
+						Triangle.Color2.R = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
+						Triangle.Color2.G = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+						Triangle.Color2.B = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
+
+						Triangle.Color1.R = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
+						Triangle.Color1.G = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+						Triangle.Color1.B = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
+
+						if(4 == AttribInfoColors.tupleSize)
+						{
+							Triangle.Color0.A = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 3];
+							Triangle.Color2.A = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 3];
+							Triangle.Color1.A = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 3];
+						}
+						else
+						{
+							Triangle.Color0.A = 1.0f;
+							Triangle.Color2.A = 1.0f;
+							Triangle.Color1.A = 1.0f;
+						}
+					}
+					else
+					{
+						Triangle.Color0.R = 0.0f;
+						Triangle.Color0.G = 0.0f;
+						Triangle.Color0.B = 0.0f;
+						Triangle.Color0.A = 1.0f;
+
+						Triangle.Color2.R = 0.0f;
+						Triangle.Color2.G = 0.0f;
+						Triangle.Color2.B = 0.0f;
+						Triangle.Color2.A = 1.0f;
+
+						Triangle.Color1.R = 0.0f;
+						Triangle.Color1.G = 0.0f;
+						Triangle.Color1.B = 0.0f;
+						Triangle.Color1.A = 1.0f;
+					}
+
+					// Add triangle vertices to list of vertices for given geo.
+					HoudiniAssetObjectGeo->AddTriangleVertices(Triangle);
+				}
+
 				// Retrieve group memberships for this part.
 				for(int GroupIdx = 0; GroupIdx < GroupNames.size(); ++GroupIdx)
 				{
@@ -760,27 +929,23 @@ FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudi
 						continue;
 					}
 
-					GroupTriangles.resize(GroupMembershipCount * 3);
-					int CurrentTriangle = 0;
+					TArray<int32> GroupTriangles;
+					GroupTriangles.Reserve(GroupMembershipCount * 3);
 
 					for(int FaceIdx = 0; FaceIdx < PartInfo.faceCount; ++FaceIdx)
 					{
 						if(GroupMembership[FaceIdx])
 						{
-							GroupTriangles[CurrentTriangle * 3 + 0] = FaceIdx * 3 + 0;
-							GroupTriangles[CurrentTriangle * 3 + 1] = FaceIdx * 3 + 1;
-							GroupTriangles[CurrentTriangle * 3 + 2] = FaceIdx * 3 + 2;
-
-							CurrentTriangle++;
+							GroupTriangles.Add(FaceIdx * 3 + 0);
+							GroupTriangles.Add(FaceIdx * 3 + 1);
+							GroupTriangles.Add(FaceIdx * 3 + 2);
 						}
 					}
 
-					if(GroupTriangles.size())
-					{
-
-					}
+					// We need to construct a new geo part with indexing information.
+					FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart(GroupTriangles);
+					HoudiniAssetObjectGeo->AddGeoPart(HoudiniAssetObjectGeoPart);
 				}
-				
 			}
 
 			// There has been an error, continue onto next Geo.
@@ -790,7 +955,6 @@ FHoudiniEngineUtils::ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudi
 			}
 		}
 	}
-
 
 	return true;
 }

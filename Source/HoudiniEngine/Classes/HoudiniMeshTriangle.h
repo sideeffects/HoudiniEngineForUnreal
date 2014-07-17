@@ -42,6 +42,16 @@ struct FHoudiniMeshTriangle
 	UPROPERTY(EditAnywhere, Category = Triangle)
 	FVector Normal2;
 
+	/** Tangent information. **/
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Tangent0;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Tangent1;
+
+	UPROPERTY(EditAnywhere, Category = Triangle)
+	FVector Tangent2;
+
 	/** Texture coordinates information. **/
 	UPROPERTY(EditAnywhere, Category = Triangle)
 	FVector2D TextureCoordinate0;

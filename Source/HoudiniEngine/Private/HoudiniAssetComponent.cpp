@@ -36,7 +36,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	HoudiniAsset(nullptr),
 	AssetId(-1),
 	bIsNativeComponent(false),
-	bIsPreviewComponent(false)
+	bIsPreviewComponent(false),
+	bAsyncResourceReleaseHasBeenStarted(false)
 {
 	// Create a generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -46,6 +47,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
 	bGenerateOverlapEvents = false;
+
+	// This component requires render update.
+	bNeverNeedsRenderUpdate = false;
 
 	// Make an invalid GUID, since we do not have any cooking requests.
 	HapiGUID.Invalidate();
@@ -80,11 +84,11 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 					Collector.AddReferencedObject(HoudiniAsset, InThis);
 				}
 
-				// Add all asset objects as referenced.
-				for(TArray<UHoudiniAssetObject*>::TIterator Iter = HoudiniAssetComponent->HoudiniAssetObjects.CreateIterator(); Iter; ++Iter)
+				// Propagate referencing request to all geos.
+				for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetComponent->HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 				{
-					// Manually add reference for each asset object.
-					Collector.AddReferencedObject(*Iter, InThis);
+					FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
+					HoudiniAssetObjectGeo->AddReferencedObjects(Collector);
 				}
 			}
 		}
@@ -200,6 +204,25 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 
 
 void
+UHoudiniAssetComponent::ClearGeos()
+{
+	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
+	{
+		delete(*Iter);
+	}
+
+	HoudiniAssetObjectGeos.Empty();
+}
+
+
+bool
+UHoudiniAssetComponent::ContainsGeos() const
+{
+	return (HoudiniAssetObjectGeos.Num() > 0);
+}
+
+
+void
 UHoudiniAssetComponent::StartHoudiniTicking()
 {
 	// If we have no timer delegate spawned for this preview component, spawn one.
@@ -278,9 +301,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 							// We need to patch component RTTI to reflect properties for this component.
 							ReplaceClassInformation();
 
-							// Need to update rendering information.
-							UpdateRenderingInformation();
-
 							// Get current asset.
 							UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
 
@@ -311,11 +331,26 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								}
 							}
 
+							// Update properties panel.
+							UpdateEditorProperties();
+
+							// Clear rendering resources used by geos.
+							ReleaseRenderingResources();
+
+							// Delete all existing geo objects (this will also delete their geo parts).
+							ClearGeos();
+
+							// Construct new objects (asset objects and asset object parts).
+							FHoudiniEngineUtils::ConstructGeos(AssetId, HoudiniAssetObjectGeos);
+
+							// Create all rendering resources.
+							CreateRenderingResources();
+
 							// Generate necessary materials.
 							CreateComponentMaterials();
 
-							// Update properties panel.
-							UpdateEditorProperties();
+							// Need to update rendering information.
+							UpdateRenderingInformation();
 						}
 						else
 						{
@@ -445,20 +480,6 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 }
 
 
-void
-UHoudiniAssetComponent::UpdateRenderingInformation()
-{
-	// Need to send this to render thread at some point.
-	MarkRenderStateDirty();
-
-	// Update physics representation right away.
-	RecreatePhysicsState();
-
-	// Since we have new asset, we need to update bounds.
-	UpdateBounds();
-}
-
-
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
@@ -473,7 +494,37 @@ UHoudiniAssetComponent::GetNumMaterials() const
 }
 
 
-void 
+void
+UHoudiniAssetComponent::CreateRenderingResources()
+{
+	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
+	{
+		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
+		HoudiniAssetObjectGeo->CreateRenderingResources();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::ReleaseRenderingResources()
+{
+	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
+	{
+		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
+		HoudiniAssetObjectGeo->ReleaseRenderingResources();
+	}
+
+	// Insert a fence to signal when these commands completed.
+	ReleaseResourcesFence.BeginFence();
+	bAsyncResourceReleaseHasBeenStarted = true;
+
+	// Wait for fence to complete.
+	ReleaseResourcesFence.Wait();
+	bAsyncResourceReleaseHasBeenStarted = false;
+}
+
+
+void
 UHoudiniAssetComponent::CreateComponentMaterials()
 {
 	// Get the label of the owner actor.
@@ -528,17 +579,30 @@ UHoudiniAssetComponent::CreateComponentMaterials()
 }
 
 
+void
+UHoudiniAssetComponent::UpdateRenderingInformation()
+{
+	// Need to send this to render thread at some point.
+	MarkRenderStateDirty();
+
+	// Update physics representation right away.
+	RecreatePhysicsState();
+
+	// Since we have new asset, we need to update bounds.
+	UpdateBounds();
+}
+
+
 FPrimitiveSceneProxy*
 UHoudiniAssetComponent::CreateSceneProxy()
 {
 	FPrimitiveSceneProxy* Proxy = nullptr;
-	
-	if(HoudiniMeshTriangles.Num() > 0)
+
+	if(ContainsGeos())
 	{
-		FScopeLock ScopeLock(&CriticalSectionTriangles);
 		Proxy = new FHoudiniMeshSceneProxy(this);
 	}
-	
+
 	return Proxy;
 }
 
@@ -591,6 +655,31 @@ void
 UHoudiniAssetComponent::BeginDestroy()
 {
 	Super::BeginDestroy();
+
+	// Before releasing resources make sure we do not have scene proxy active.
+	check(!SceneProxy);
+
+	// Now we can release rendering resources.
+	ReleaseRenderingResources();
+}
+
+
+void
+UHoudiniAssetComponent::FinishDestroy()
+{
+	Super::FinishDestroy();
+
+	{
+		check(ReleaseResourcesFence.IsFenceComplete());
+		ClearGeos();
+	}
+}
+
+
+bool
+UHoudiniAssetComponent::IsReadyForFinishDestroy()
+{
+	return Super::IsReadyForFinishDestroy() && ReleaseResourcesFence.IsFenceComplete();
 }
 
 
