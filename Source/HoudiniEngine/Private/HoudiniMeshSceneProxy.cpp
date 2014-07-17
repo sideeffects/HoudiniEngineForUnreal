@@ -56,39 +56,47 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		// Get number of parts in this geo.
 		int32 GeoPartCount = HoudiniAssetObjectGeo->HoudiniAssetObjectGeoParts.Num();
 
-		// Create mesh for drawing submission. By default it contains one part already.
+		// Create mesh for drawing submission. 
 		FMeshBatch Mesh;
-		Mesh.Elements.RemoveAtSwap(0, 1, false);
 		Mesh.Elements.Reserve(GeoPartCount);
 
+		// Create sub-mesh for each geo part. By default it contains one part already.
+		for(int32 PartIdx = 1; PartIdx < GeoPartCount; ++PartIdx)
+		{
+			FMeshBatchElement* NextElement = new(Mesh.Elements) FMeshBatchElement();
+		}
+
+		Mesh.UseDynamicData = false;
+		Mesh.bDisableBackfaceCulling = true;
 		Mesh.bWireframe = bWireframe;
+		Mesh.DynamicVertexData = nullptr;
+		Mesh.DynamicVertexStride = 0;
 		Mesh.VertexFactory = HoudiniAssetObjectGeo->HoudiniMeshVertexFactory;
 		Mesh.MaterialRenderProxy = MaterialProxy;
 		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+		Mesh.CastShadow = false;
 		Mesh.Type = PT_TriangleList;
 		Mesh.DepthPriorityGroup = SDPG_World;
+		Mesh.bUseAsOccluder = true;
 
 		for(int32 PartIdx = 0; PartIdx < GeoPartCount; ++PartIdx)
 		{
 			FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = HoudiniAssetObjectGeo->HoudiniAssetObjectGeoParts[PartIdx];
 
-			FMeshBatchElement BatchElement;
+			FMeshBatchElement& BatchElement = Mesh.Elements[PartIdx];
 
 			BatchElement.IndexBuffer = HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer;
 			BatchElement.FirstIndex = 0;
 			BatchElement.NumPrimitives = HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer->Indices.Num() / 3;
+			BatchElement.NumInstances = 1;
 			BatchElement.MinVertexIndex = 0;
 			BatchElement.MaxVertexIndex = HoudiniAssetObjectGeo->HoudiniMeshVertexBuffer->Vertices.Num() - 1;
 
 			// Compute proper transformation for this element.
-			//FMatrix TransformMatrix = GetLocalToWorld() * HoudiniAssetObjectGeo->GetTransform();
 			FMatrix TransformMatrix = HoudiniAssetObjectGeo->GetTransform() * GetLocalToWorld();
 
 			// Store necessary matrices and bounds in uniform buffer.
 			BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(TransformMatrix, GetBounds(), GetLocalBounds(), true);
-
-			// Add this sub-mesh to our mesh.
-			Mesh.Elements.Add(BatchElement);
 		}
 
 		PDI->DrawMesh(Mesh);

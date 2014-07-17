@@ -16,7 +16,7 @@
 #pragma once
 
 class FArchive;
-class FReferenceCollector; 
+class FReferenceCollector;
 class FHoudiniMeshVertexBuffer;
 class FHoudiniMeshVertexFactory;
 class FHoudiniAssetObjectGeoPart;
