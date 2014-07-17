@@ -22,13 +22,13 @@ namespace UnrealBuildTool.Rules
 		{
 			Definitions.Add("HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE=65536");
 
-			PublicLibraryPaths.Add("C:/Program Files/Side Effects Software/Houdini 14.0.34/custom/houdini/dsolib");
-			PublicAdditionalLibraries.Add("C:/Program Files/Side Effects Software/Houdini 14.0.34/custom/houdini/dsolib/libHAPI.a");
+			PublicLibraryPaths.Add("C:/cygwin/home/mykola/dev/hfs/custom/houdini/dsolib");
+			PublicAdditionalLibraries.Add("C:/cygwin/home/mykola/dev/hfs/custom/houdini/dsolib/libHAPI.a");
 
 			PublicIncludePaths.AddRange(
 				new string[] {
 					// ... add public include paths required here ...
-					"C:/Program Files/Side Effects Software/Houdini 14.0.34/toolkit/include/HAPI"
+					"C:/cygwin/home/mykola/dev/hfs/toolkit/include/HAPI"
 				}
 				);
 

@@ -132,7 +132,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** HoudiniEngine Class headers. **/
 #include "HoudiniMeshTriangle.h"
-#include "HoudiniAssetObject.h"
+#include "HoudiniAssetObjectGeoPart.h"
+#include "HoudiniAssetObjectGeo.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"

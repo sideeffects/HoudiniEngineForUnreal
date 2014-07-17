@@ -25,33 +25,25 @@ class FHoudiniMeshSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 
+	/** Constructor. **/
 	FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component, FName ResourceName = NAME_None);
+
+	/** Destructor. **/
 	virtual ~FHoudiniMeshSceneProxy();
 
 public: /** FPrimitiveSceneProxy methods. **/
 
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) OVERRIDE;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
 	virtual bool CanBeOccluded() const OVERRIDE;
-
 	virtual uint32 GetMemoryFootprint() const OVERRIDE;
-	uint32 GetAllocatedSize() const;
 
 private:
 
-	/** Vertex factory simply transforms explicit vertex attributes from local to world space. **/
-	FHoudiniMeshVertexFactory VertexFactory;
+	/** Owner component. Unsafe to use as this object will live in a render thread. Used here for debugging. **/
+	UHoudiniAssetComponent* HoudiniAssetComponent;
 
-	/** Vertex buffer. **/
-	FHoudiniMeshVertexBuffer VertexBuffer;
-
-	/** Index buffer. **/
-	FHoudiniMeshIndexBuffer IndexBuffer;
-
-	/** View relevance for all Houdini mesh materials. **/
+	/** View relevance for all involved materials. **/
 	FMaterialRelevance MaterialRelevance;
-
-
-	UMaterialInterface* Material;
 };

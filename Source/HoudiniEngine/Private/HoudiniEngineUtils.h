@@ -15,6 +15,8 @@
 
 #pragma once
 
+class UHoudiniAssetObjectGeo;
+
 struct FHoudiniEngineUtils
 {
 public:
@@ -40,8 +42,8 @@ public:
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
-	/** Construct Houdini asset objects from a specified asset. **/
-	static bool ConstructHoudiniObjects(HAPI_AssetId AssetId, TArray<UHoudiniAssetObject*>& HoudiniAssetObjects);
+	/** Construct Houdini geos from a specified asset. **/
+	static bool ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& HoudiniAssetObjectGeos);
 
 	/** Extract geometry information for a given asset. **/
 	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
@@ -69,7 +71,7 @@ public:
 	/** HAPI : Get string name for a given handle. **/
 	static bool HapiGetString(int Name, std::string& NameString);
 
-	/** HAPI : **/
+	/** HAPI : Retrieve group membership. **/
 	static bool HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 									   HAPI_GroupType GroupType, std::string GroupName, std::vector<int>& GroupMembership);
 

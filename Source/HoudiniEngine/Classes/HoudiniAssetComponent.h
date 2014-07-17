@@ -61,7 +61,7 @@ class FTransform;
 class UHoudiniAsset;
 class UHoudiniAssetObject;
 class FPrimitiveSceneProxy;
-class UHoudiniAssetComponent;
+class FHoudiniAssetObjectGeo;
 class FComponentInstanceDataCache;
 
 struct FPropertyChangedEvent;
@@ -109,6 +109,9 @@ public: /** UObject methods. **/
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
+	virtual void FinishDestroy() OVERRIDE;
+	virtual bool IsReadyForFinishDestroy() OVERRIDE;
+
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 protected: /** UActorComponent methods. **/
@@ -183,6 +186,18 @@ private:
 	/** Create materials for this component. **/
 	void CreateComponentMaterials();
 
+	/** Clear all existing geos (and their parts). This is called during geometry recreation. **/
+	void ClearGeos();
+
+	/** Create necessary rendering resources for each geo. **/
+	void CreateRenderingResources();
+
+	/** Release rendering resources used by each geo. **/
+	void ReleaseRenderingResources();
+
+	/** Return true if this component contains geometry. **/
+	bool ContainsGeos() const;
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -193,8 +208,8 @@ protected:
 	/** Triangle data used for rendering in viewport / preview window. **/
 	TArray<FHoudiniMeshTriangle> HoudiniMeshTriangles;
 
-	/** Array of asset objects ~ these correspond to submeshes / parts. **/
-	TArray<UHoudiniAssetObject*> HoudiniAssetObjects;
+	/** Array of asset objects geos. **/
+	TArray<FHoudiniAssetObjectGeo*> HoudiniAssetObjectGeos;
 
 	/** Array of properties that have changed. Will force object recook. **/
 	TSet<UProperty*> ChangedProperties;
@@ -211,10 +226,13 @@ protected:
 	/** Synchronization primitive used to control access to geometry. **/
 	FCriticalSection CriticalSectionTriangles;
 
+	/** A fence which is used to keep track of the rendering thread releasing rendering resources. **/
+	FRenderCommandFence ReleaseResourcesFence;
+
 	/** GUID used to track asynchronous cooking requests. **/
 	FGuid HapiGUID;
 
-	/** Timer delegate, used to simulate ticks. **/
+	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
 	FTimerDelegate TimerDelegate;
 
 	/** Id of corresponding Houdini asset. **/
@@ -225,6 +243,9 @@ protected:
 
 	/** Is set to true when this component belongs to a preview actor. **/
 	bool bIsPreviewComponent;
+
+	/** Is set to true when asynchronous rendering resources release has been started. Kept for debugging purposes. **/
+	bool bAsyncResourceReleaseHasBeenStarted;
 
 private:
 

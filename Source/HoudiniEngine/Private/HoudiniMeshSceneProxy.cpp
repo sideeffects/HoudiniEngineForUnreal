@@ -18,81 +18,21 @@
 
 FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component, FName ResourceName) :
 	FPrimitiveSceneProxy(Component, ResourceName),
+	HoudiniAssetComponent(Component),
 	MaterialRelevance(Component->GetMaterialRelevance())
 {
-	int32 VIndex;
-	const FColor VertexColor(255, 255, 255);
-
-	const TArray<FHoudiniMeshTriangle>& HoudiniMeshTris = Component->HoudiniMeshTriangles;
-
-	// Add each triangle to the vertex / index buffer.
-	for(int TriIdx = 0; TriIdx < HoudiniMeshTris.Num(); TriIdx++)
-	{
-		const FHoudiniMeshTriangle& Tri = HoudiniMeshTris[TriIdx];
-
-		const FVector Edge01 = Tri.Vertex1 - Tri.Vertex0;
-		const FVector Edge02 = Tri.Vertex2 - Tri.Vertex0;
-
-		const FVector TangentX = Edge01.SafeNormal();
-		const FVector TangentZ = (Edge02 ^ Edge01).SafeNormal();
-		const FVector TangentY = (TangentX ^ TangentZ).SafeNormal();
-
-		FDynamicMeshVertex Vert0;
-		Vert0.Position = Tri.Vertex0;
-		Vert0.Color = Tri.Color0;
-		Vert0.TextureCoordinate = Tri.TextureCoordinate0;
-		Vert0.SetTangents(TangentX, TangentY, TangentZ);
-
-		VIndex = VertexBuffer.Vertices.Add(Vert0);
-		IndexBuffer.Indices.Add(VIndex);
-
-		FDynamicMeshVertex Vert1;
-		Vert1.Position = Tri.Vertex1;
-		Vert1.Color = Tri.Color1;
-		Vert1.TextureCoordinate = Tri.TextureCoordinate1;
-		Vert1.SetTangents(TangentX, TangentY, TangentZ);
-
-		VIndex = VertexBuffer.Vertices.Add(Vert1);
-		IndexBuffer.Indices.Add(VIndex);
-
-		FDynamicMeshVertex Vert2;
-		Vert2.Position = Tri.Vertex2;
-		Vert2.Color = Tri.Color2;
-		Vert2.TextureCoordinate = Tri.TextureCoordinate2;
-		Vert2.SetTangents(TangentX, TangentY, TangentZ);
-
-		VIndex = VertexBuffer.Vertices.Add(Vert2);
-		IndexBuffer.Indices.Add(VIndex);
-	}
-
-	// Init vertex factory.
-	VertexFactory.Init(&VertexBuffer);
-
-	// Enqueue initialization of render resource.
-	BeginInitResource(&VertexBuffer);
-	BeginInitResource(&IndexBuffer);
-	BeginInitResource(&VertexFactory);
-
-	// Grab material.
-	Material = Component->GetMaterial(0);
-	if(!Material)
-	{
-		Material = UMaterial::GetDefaultMaterial(MD_Surface);
-	}
+	// This constructor will be executing on a game thread.
 }
 
 
 FHoudiniMeshSceneProxy::~FHoudiniMeshSceneProxy()
 {
-	VertexFactory.ReleaseResource();
 
-	VertexBuffer.ReleaseResource();
-	IndexBuffer.ReleaseResource();
 }
 
 
 void
-FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
+FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
 {
 	bool bWireframe = View->Family->EngineShowFlags.Wireframe;
 
@@ -105,27 +45,54 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const F
 	}
 	else
 	{
+		UMaterial* Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		MaterialProxy = Material->GetRenderProxy(IsSelected(), IsHovered());
 	}
 
-	// Draw the mesh.
-	FMeshBatch Mesh;
-	Mesh.bWireframe = bWireframe;
-	Mesh.VertexFactory = &VertexFactory;
-	Mesh.MaterialRenderProxy = MaterialProxy;
-	Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
-	Mesh.Type = PT_TriangleList;
-	Mesh.DepthPriorityGroup = SDPG_World;
+	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetComponent->HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
+	{
+		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
 
-	FMeshBatchElement& BatchElement = Mesh.Elements[0];
-	BatchElement.IndexBuffer = &IndexBuffer;
-	BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), true);
-	BatchElement.FirstIndex = 0;
-	BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
-	BatchElement.MinVertexIndex = 0;
-	BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
+		// Get number of parts in this geo.
+		int32 GeoPartCount = HoudiniAssetObjectGeo->HoudiniAssetObjectGeoParts.Num();
 
-	PDI->DrawMesh(Mesh);
+		// Create mesh for drawing submission. By default it contains one part already.
+		FMeshBatch Mesh;
+		Mesh.Elements.RemoveAtSwap(0, 1, false);
+		Mesh.Elements.Reserve(GeoPartCount);
+
+		Mesh.bWireframe = bWireframe;
+		Mesh.VertexFactory = HoudiniAssetObjectGeo->HoudiniMeshVertexFactory;
+		Mesh.MaterialRenderProxy = MaterialProxy;
+		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+		Mesh.Type = PT_TriangleList;
+		Mesh.DepthPriorityGroup = SDPG_World;
+
+		for(int32 PartIdx = 0; PartIdx < GeoPartCount; ++PartIdx)
+		{
+			FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = HoudiniAssetObjectGeo->HoudiniAssetObjectGeoParts[PartIdx];
+
+			FMeshBatchElement BatchElement;
+
+			BatchElement.IndexBuffer = HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer;
+			BatchElement.FirstIndex = 0;
+			BatchElement.NumPrimitives = HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer->Indices.Num() / 3;
+			BatchElement.MinVertexIndex = 0;
+			BatchElement.MaxVertexIndex = HoudiniAssetObjectGeo->HoudiniMeshVertexBuffer->Vertices.Num() - 1;
+
+			// Compute proper transformation for this element.
+			//FMatrix TransformMatrix = GetLocalToWorld() * HoudiniAssetObjectGeo->GetTransform();
+			FMatrix TransformMatrix = HoudiniAssetObjectGeo->GetTransform() * GetLocalToWorld();
+
+			// Store necessary matrices and bounds in uniform buffer.
+			BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(TransformMatrix, GetBounds(), GetLocalBounds(), true);
+
+			// Add this sub-mesh to our mesh.
+			Mesh.Elements.Add(BatchElement);
+		}
+
+		PDI->DrawMesh(Mesh);
+	}
 }
 
 
@@ -162,11 +129,4 @@ uint32
 FHoudiniMeshSceneProxy::GetMemoryFootprint() const
 {
 	return(sizeof(*this) + GetAllocatedSize());
-}
-
-
-uint32
-FHoudiniMeshSceneProxy::GetAllocatedSize() const
-{
-	return(FPrimitiveSceneProxy::GetAllocatedSize());
 }
