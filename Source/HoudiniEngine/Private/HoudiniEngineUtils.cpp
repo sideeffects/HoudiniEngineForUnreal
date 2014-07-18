@@ -795,14 +795,57 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 					// Need to flip the U coordinate.
 					if(AttribInfoUVs.exists)
 					{
-						Triangle.TextureCoordinate0.X = UVs[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
-						Triangle.TextureCoordinate0.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+						switch(AttribInfoUVs.owner)
+						{
+							case HAPI_ATTROWNER_VERTEX:
+							{
+								// If the UVs are per vertex just query directly into the UV array we filled above.
 
-						Triangle.TextureCoordinate2.X = UVs[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
-						Triangle.TextureCoordinate2.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+								Triangle.TextureCoordinate0.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + 0];
+								Triangle.TextureCoordinate0.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + 1];
 
-						Triangle.TextureCoordinate1.X = UVs[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
-						Triangle.TextureCoordinate1.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+								Triangle.TextureCoordinate2.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize];
+								Triangle.TextureCoordinate2.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize + 1];
+
+								Triangle.TextureCoordinate1.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize * 2];
+								Triangle.TextureCoordinate1.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize * 2 + 1];
+
+								break;
+							}
+
+							case HAPI_ATTROWNER_POINT:
+							{
+								// If the UVs are per point use the vertex list array point indices to query into
+								// the UV array we filled above.
+
+								Triangle.TextureCoordinate0.X = UVs[VertexList[TriangleIdx * 3 + 0] * AttribInfoUVs.tupleSize + 0];
+								Triangle.TextureCoordinate0.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 0] * AttribInfoUVs.tupleSize + 1];
+
+								Triangle.TextureCoordinate2.X = UVs[VertexList[TriangleIdx * 3 + 1] * AttribInfoUVs.tupleSize + 0];
+								Triangle.TextureCoordinate2.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 1] * AttribInfoUVs.tupleSize + 1];
+
+								Triangle.TextureCoordinate1.X = UVs[VertexList[TriangleIdx * 3 + 2] * AttribInfoUVs.tupleSize + 0];
+								Triangle.TextureCoordinate1.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 2] * AttribInfoUVs.tupleSize + 1];
+
+								break;
+							}
+
+							default:
+							{
+								// UV coords were found on unknown attribute.
+
+								Triangle.TextureCoordinate0.X = 0.0f;
+								Triangle.TextureCoordinate0.Y = 0.0f;
+
+								Triangle.TextureCoordinate2.X = 0.0f;
+								Triangle.TextureCoordinate2.Y = 0.0f;
+
+								Triangle.TextureCoordinate1.X = 0.0f;
+								Triangle.TextureCoordinate1.Y = 0.0f;
+
+								break;
+							}
+						}
 					}
 					else
 					{

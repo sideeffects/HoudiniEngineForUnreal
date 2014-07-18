@@ -22,8 +22,10 @@ namespace EHoudiniEngineTaskState
 		None,
 
 		Processing,
-		Finished,
-		FinishedWithErrors,
+		FinishedInstantiation,
+		FinishedInstantiationWithErrors,
+		FinishedCooking,
+		FinishedCookingWithErrors,
 		Aborted
 	};
 }

@@ -22,7 +22,8 @@ namespace EHoudiniEngineTaskType
 		None,
 
 		AssetInstantiation,
-		AssetCooking
+		AssetCooking,
+		AssetDeletion
 	};
 }
 
@@ -49,4 +50,7 @@ struct FHoudiniEngineTask
 
 	/** Name of the actor requesting this task. **/
 	FString ActorName;
+
+	/** Asset Id. **/
+	HAPI_AssetId AssetId;
 };

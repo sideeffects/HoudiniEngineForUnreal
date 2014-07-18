@@ -21,6 +21,7 @@ class FHoudiniMeshIndexBuffer;
 class FHoudiniAssetObjectGeoPart
 {
 	friend class FHoudiniMeshSceneProxy;
+	friend class UHoudiniAssetComponent;
 
 public:
 
@@ -50,7 +51,7 @@ protected:
 	TArray<int32> Indices;
 
 	/** Material for this part. **/
-	UMaterial* Material;
+	//UMaterial* Material;
 
 	/** Corresponding Index buffer used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshIndexBuffer* HoudiniMeshIndexBuffer;

@@ -17,7 +17,7 @@
 
 
 FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices) :
-	Material(nullptr),
+	//Material(nullptr),
 	HoudiniMeshIndexBuffer(nullptr)
 {
 	Indices = InIndices;
@@ -45,10 +45,10 @@ void
 FHoudiniAssetObjectGeoPart::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	// Add reference to material.
-	if(Material)
-	{
-		Collector.AddReferencedObject(Material);
-	}
+	//if(Material)
+	//{
+	//	Collector.AddReferencedObject(Material);
+	//}
 }
 
 

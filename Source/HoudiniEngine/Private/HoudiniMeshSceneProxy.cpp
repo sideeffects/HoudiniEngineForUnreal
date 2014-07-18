@@ -22,6 +22,7 @@ FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component
 	MaterialRelevance(Component->GetMaterialRelevance())
 {
 	// This constructor will be executing on a game thread.
+
 }
 
 
@@ -37,17 +38,6 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 	bool bWireframe = View->Family->EngineShowFlags.Wireframe;
 
 	FColoredMaterialRenderProxy WireframeMaterialInstance(GEngine->WireframeMaterial->GetRenderProxy(IsSelected()), FLinearColor(0, 0.5f, 1.f));
-	FMaterialRenderProxy* MaterialProxy = NULL;
-
-	if(bWireframe)
-	{
-		MaterialProxy = &WireframeMaterialInstance;
-	}
-	else
-	{
-		UMaterial* Material = UMaterial::GetDefaultMaterial(MD_Surface);
-		MaterialProxy = Material->GetRenderProxy(IsSelected(), IsHovered());
-	}
 
 	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetComponent->HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 	{
@@ -64,6 +54,26 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		for(int32 PartIdx = 1; PartIdx < GeoPartCount; ++PartIdx)
 		{
 			FMeshBatchElement* NextElement = new(Mesh.Elements) FMeshBatchElement();
+		}
+
+		// Get material for this mesh.
+		FMaterialRenderProxy* MaterialProxy = nullptr;
+
+		UMaterial* MaterialDefault = UMaterial::GetDefaultMaterial(MD_Surface);
+		MaterialProxy = MaterialDefault->GetRenderProxy(IsSelected(), IsHovered());
+
+		if(bWireframe)
+		{
+			MaterialProxy = &WireframeMaterialInstance;
+		}
+		else if(HoudiniAssetObjectGeo->Material)
+		{
+			MaterialProxy = HoudiniAssetObjectGeo->Material->GetRenderProxy(IsSelected(), IsHovered());
+		}
+		else
+		{
+			UMaterial* Material = UMaterial::GetDefaultMaterial(MD_Surface);
+			MaterialProxy = Material->GetRenderProxy(IsSelected(), IsHovered());
 		}
 
 		Mesh.UseDynamicData = false;
@@ -96,7 +106,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 			FMatrix TransformMatrix = HoudiniAssetObjectGeo->GetTransform() * GetLocalToWorld();
 
 			// Store necessary matrices and bounds in uniform buffer.
-			BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(TransformMatrix, GetBounds(), GetLocalBounds(), true);
+			BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(TransformMatrix, GetBounds(), GetLocalBounds(), false);
 		}
 
 		PDI->DrawMesh(Mesh);
