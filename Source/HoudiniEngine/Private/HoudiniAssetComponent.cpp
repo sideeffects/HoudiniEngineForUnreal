@@ -179,6 +179,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		Task.ActorName = HoudiniAssetActor->GetActorLabel();
 		FHoudiniEngine::Get().AddTask(Task);
 
+		// Reset asset id.
+		AssetId = -1;
+
 		// Start ticking - this will poll the cooking system for completion.
 		StartHoudiniTicking();
 	}
@@ -286,7 +289,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 			switch(TaskInfo.TaskState)
 			{
-				case EHoudiniEngineTaskState::Finished:
+				case EHoudiniEngineTaskState::FinishedInstantiation:
+				case EHoudiniEngineTaskState::FinishedCooking:
 				{
 					if(-1 != TaskInfo.AssetId)
 					{
@@ -382,7 +386,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				}
 
 				case EHoudiniEngineTaskState::Aborted:
-				case EHoudiniEngineTaskState::FinishedWithErrors:
+				case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
+				case EHoudiniEngineTaskState::FinishedCookingWithErrors:
 				{
 					HOUDINI_LOG_MESSAGE(TEXT("Failed asset instantiation."));
 
@@ -553,12 +558,207 @@ UHoudiniAssetComponent::CreateComponentMaterials()
 		Package = CreatePackage(NULL, *PackageName);
 	}
 
-	// Create a new material factory to create our material asset.
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+	UMaterial* HoudiniGeneratedMaterial = nullptr;
 
 	// Check if we need to create a new material object.
 	if(!GetMaterial(0))
 	{
+		// Create a new material factory to create our material asset.
+		UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+
+
+
+
+
+
+
+
+
+
+
+		HAPI_AssetInfo AssetInfo;
+		HAPI_GetAssetInfo(AssetId, &AssetInfo);
+
+		HAPI_PartInfo PartInfo;
+		HAPI_GetPartInfo(AssetId, 0, 0, 0, &PartInfo);
+
+		// Load textures.
+		HAPI_MaterialInfo MaterialInfo;
+		HAPI_GetMaterialOnPart(AssetId, 0, 0, 0, &MaterialInfo);
+
+		HAPI_NodeInfo NodeInfo;
+		HAPI_GetNodeInfo(MaterialInfo.nodeId, &NodeInfo);
+
+		std::vector<HAPI_ParmInfo> NodeParams;
+		NodeParams.resize(NodeInfo.parmCount);
+		HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+
+		int TexturesLoaded = 0;
+
+		HAPI_Result Result;
+
+
+		for(int ParmIdx = 0; ParmIdx < NodeInfo.parmCount; ++ParmIdx)
+		{
+			HAPI_ParmInfo& NodeParmInfo = NodeParams[ParmIdx];
+			HAPI_StringHandle NodeParmHandle = NodeParmInfo.nameSH;
+
+			int NodeParmNameLength = 0;
+			HAPI_GetStringBufLength(NodeParmHandle, &NodeParmNameLength);
+
+			std::vector<char> NodeParmName;
+			NodeParmName.reserve(NodeParmNameLength + 1);
+			NodeParmName[NodeParmNameLength] = '\0';
+			HAPI_GetString(NodeParmHandle, &NodeParmName[0], NodeParmNameLength);
+
+			if(!strncmp(&NodeParmName[0], "map", 3) || !strncmp(&NodeParmName[0], "ogl_tex1", 8) || !strncmp(&NodeParmName[0], "baseColorMap", 12))
+			{
+				Result = HAPI_RenderTextureToImage(AssetInfo.id, MaterialInfo.id, NodeParmInfo.id);
+
+				if(Result != HAPI_RESULT_SUCCESS) 
+				{
+					continue;
+				}
+
+				//extractHoudiniImageToTexture( material_info, folder_path, "C A" );
+				HAPI_ImageInfo ImageInfo;
+				Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+
+				ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
+				ImageInfo.interleaved = true;
+				ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;
+
+				HAPI_SetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+
+				int ImageBufferSize = 0;
+				HAPI_ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, "C A", &ImageBufferSize);
+
+				std::vector<char> ImageBuffer;
+				ImageBuffer.reserve(ImageBufferSize);
+				HAPI_GetImageMemoryBuffer(MaterialInfo.assetId, MaterialInfo.id, &ImageBuffer[0], ImageBufferSize);
+
+				// Create a new generated material asset.
+				HoudiniGeneratedMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Standalone | RF_Public, NULL, GWarn);
+				if(HoudiniGeneratedMaterial)
+				{
+					// Notify asset registry about creation of a new material asset.
+					FAssetRegistryModule::AssetCreated(HoudiniGeneratedMaterial);
+
+					// Set the dirty flag so this package will get saved later.
+					Package->SetDirtyFlag(true);
+
+					// Perform notifications regarding material changes.
+					//HoudiniGeneratedMaterial->PreEditChange(nullptr);
+					//HoudiniGeneratedMaterial->PostEditChange();
+
+					//SetMaterial(0, HoudiniGeneratedMaterial);
+
+					HoudiniGeneratedMaterial->TwoSided = false;
+					HoudiniGeneratedMaterial->SetLightingModel(MLM_DefaultLit);
+				}
+
+
+				// Create diffuse texture.
+				UTexture2D* DiffuseTexture = UTexture2D::CreateTransient(ImageInfo.xRes, ImageInfo.yRes, PF_B8G8R8A8);
+
+				// Lock texture for modification.
+				uint8* MipData = static_cast<uint8*>(DiffuseTexture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
+
+				// Create base map.
+				uint8* DestPtr = NULL;
+				const FColor* SrcPtr = NULL;
+				uint32 SrcWidth = ImageInfo.xRes;
+				uint32 SrcHeight = ImageInfo.yRes;
+				const char* SrcData = &ImageBuffer[0];
+
+				for(uint32 y = 0; y < SrcHeight; y++)
+				{
+					DestPtr = &MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(FColor)];
+
+					for(uint32 x = 0; x < SrcWidth; x++)
+					{
+						uint32 DataOffset = y * SrcWidth * 4 + x * 4;
+
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //B
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //R
+						*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
+						//*DestPtr++ = 0xFF; //A
+					}
+				}
+
+				// Unlock the texture.
+				DiffuseTexture->PlatformData->Mips[0].BulkData.Unlock();
+				DiffuseTexture->UpdateResource();
+
+
+
+
+				// Assign texture to material.
+				UMaterialExpressionTextureSample* Expression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), HoudiniGeneratedMaterial);
+				HoudiniGeneratedMaterial->Expressions.Add(Expression);
+				HoudiniGeneratedMaterial->DiffuseColor.Expression = Expression;
+				Expression->Texture = DiffuseTexture;
+
+
+				// Perform notifications regarding material changes.
+				HoudiniGeneratedMaterial->PreEditChange(nullptr);
+				HoudiniGeneratedMaterial->PostEditChange();
+
+				SetMaterial(0, HoudiniGeneratedMaterial);
+
+				for (TArray<FHoudiniAssetObjectGeo*>::TIterator IterGeo = HoudiniAssetObjectGeos.CreateIterator(); IterGeo; ++IterGeo)
+				{
+					FHoudiniAssetObjectGeo* Geo = *IterGeo;
+					Geo->Material = HoudiniGeneratedMaterial;
+
+					/*
+					for (TArray<FHoudiniAssetObjectGeoPart*>::TIterator IterGeoPart = Geo->HoudiniAssetObjectGeoParts.CreateIterator(); IterGeoPart; ++IterGeoPart)
+					{
+						FHoudiniAssetObjectGeoPart* Part = *IterGeoPart;
+						Part->Material = HoudiniGeneratedMaterial;
+					}
+					*/
+				}
+			}
+		}
+	}
+	else
+	{
+		HoudiniGeneratedMaterial = (UMaterial*) GetMaterial(0);
+	}
+
+
+	if(HoudiniGeneratedMaterial)
+	{
+		for (TArray<FHoudiniAssetObjectGeo*>::TIterator IterGeo = HoudiniAssetObjectGeos.CreateIterator(); IterGeo; ++IterGeo)
+		{
+			FHoudiniAssetObjectGeo* Geo = *IterGeo;
+			Geo->Material = HoudiniGeneratedMaterial;
+
+			/*
+			for (TArray<FHoudiniAssetObjectGeoPart*>::TIterator IterGeoPart = Geo->HoudiniAssetObjectGeoParts.CreateIterator(); IterGeoPart; ++IterGeoPart)
+			{
+				FHoudiniAssetObjectGeoPart* Part = *IterGeoPart;
+				Part->Material = HoudiniGeneratedMaterial;
+			}
+			*/
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+		/*
 		// Create a new generated material asset.
 		UMaterial* HoudiniGeneratedMaterial = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Standalone | RF_Public, NULL, GWarn);
 		if(HoudiniGeneratedMaterial)
@@ -575,7 +775,7 @@ UHoudiniAssetComponent::CreateComponentMaterials()
 
 			SetMaterial(0, HoudiniGeneratedMaterial);
 		}
-	}
+		*/
 }
 
 
@@ -638,6 +838,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	// If we have an asset.
 	if(-1 != AssetId)
 	{
+		/*
 		// Check if asset is still valid.
 		if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 		{
@@ -645,6 +846,14 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 			FHoudiniEngineUtils::DestroyHoudiniAsset(AssetId);
 			AssetId = -1;
 		}
+		*/
+
+		HapiGUID = FGuid::NewGuid();
+
+		// Create asset instantiation task object and submit it for processing.
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetDeletion, HapiGUID);
+		Task.AssetId = AssetId;
+		FHoudiniEngine::Get().AddTask(Task);
 	}
 
 	Super::OnComponentDestroyed();

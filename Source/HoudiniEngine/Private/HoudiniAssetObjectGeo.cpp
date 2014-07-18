@@ -19,7 +19,8 @@
 FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform) :
 	Transform(InTransform),
 	HoudiniMeshVertexBuffer(nullptr),
-	HoudiniMeshVertexFactory(nullptr)
+	HoudiniMeshVertexFactory(nullptr),
+	Material(nullptr)
 {
 	//Transform.SetIdentity();
 }
@@ -113,6 +114,12 @@ FHoudiniAssetObjectGeo::AddReferencedObjects(FReferenceCollector& Collector)
 	{
 		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = *Iter;
 		HoudiniAssetObjectGeoPart->AddReferencedObjects(Collector);
+	}
+
+	// Add reference to material.
+	if (Material)
+	{
+		Collector.AddReferencedObject(Material);
 	}
 }
 

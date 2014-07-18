@@ -51,6 +51,9 @@ protected:
 	/** Create description of task's state. **/
 	void TaskDescription(FHoudiniEngineTaskInfo& Task, const FString& ActorName, const FString& StatusString);
 
+	/** Delete an asset. **/
+	void TaskDeleteAsset(const FHoudiniEngineTask& Task);
+
 protected:
 
 	/** Initial number of tasks in our circular queue. **/

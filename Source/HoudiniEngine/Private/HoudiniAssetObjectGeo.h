@@ -24,6 +24,7 @@ class FHoudiniAssetObjectGeoPart;
 class FHoudiniAssetObjectGeo
 {
 	friend class FHoudiniMeshSceneProxy;
+	friend class UHoudiniAssetComponent;
 
 public:
 
@@ -75,4 +76,7 @@ protected:
 
 	/** Corresponding Vertex factory used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshVertexFactory* HoudiniMeshVertexFactory;
+
+	/** Material for this part. **/
+	UMaterial* Material;
 };
