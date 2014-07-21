@@ -19,7 +19,7 @@ class FHoudiniMeshVertexBuffer : public FVertexBuffer
 {
 public: /** FRenderResource methods. **/
 
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 
 public:
 

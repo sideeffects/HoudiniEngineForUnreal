@@ -19,7 +19,6 @@
 AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP)
 {
-	bWantsInitialize = false;
 	bCanBeDamaged = false;
 
 	// Create Houdini component and attach it to a root component.

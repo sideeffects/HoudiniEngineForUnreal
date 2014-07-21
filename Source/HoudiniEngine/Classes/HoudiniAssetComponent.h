@@ -106,36 +106,36 @@ public:
 
 public: /** UObject methods. **/
 
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 protected: /** UActorComponent methods. **/
 
-	virtual void OnComponentCreated() OVERRIDE;
-	virtual void OnComponentDestroyed() OVERRIDE;
+	virtual void OnComponentCreated() override;
+	virtual void OnComponentDestroyed() override;
 
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData) override;
 
 private: /** UPrimitiveComponent methods. **/
 
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 
 private: /** UMeshComponent methods. **/
 
-	virtual int32 GetNumMaterials() const OVERRIDE;
+	virtual int32 GetNumMaterials() const override;
 
 private: /** USceneComponent methods. **/
 
-	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
 protected:
 

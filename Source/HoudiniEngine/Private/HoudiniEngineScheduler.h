@@ -25,13 +25,13 @@ public:
 
 public: /** FRunnable methods. **/
 
-	virtual uint32 Run() OVERRIDE;
-	virtual void Stop() OVERRIDE;
-	FSingleThreadRunnable* GetSingleThreadInterface() OVERRIDE;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	FSingleThreadRunnable* GetSingleThreadInterface() override;
 
 public: /** FSingleThreadRunnable methods. **/
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
 public:
 

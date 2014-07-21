@@ -179,9 +179,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		Task.ActorName = HoudiniAssetActor->GetActorLabel();
 		FHoudiniEngine::Get().AddTask(Task);
 
-		// Reset asset id.
-		AssetId = -1;
-
 		// Start ticking - this will poll the cooking system for completion.
 		StartHoudiniTicking();
 	}
@@ -654,7 +651,7 @@ UHoudiniAssetComponent::CreateComponentMaterials()
 					//SetMaterial(0, HoudiniGeneratedMaterial);
 
 					HoudiniGeneratedMaterial->TwoSided = false;
-					HoudiniGeneratedMaterial->SetLightingModel(MLM_DefaultLit);
+					HoudiniGeneratedMaterial->SetShadingModel(MSM_DefaultLit);
 				}
 
 
@@ -838,22 +835,16 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	// If we have an asset.
 	if(-1 != AssetId)
 	{
-		/*
-		// Check if asset is still valid.
-		if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
-		{
-			// Destroy the asset.
-			FHoudiniEngineUtils::DestroyHoudiniAsset(AssetId);
-			AssetId = -1;
-		}
-		*/
-
+		// Generate GUID for our new task.
 		HapiGUID = FGuid::NewGuid();
 
-		// Create asset instantiation task object and submit it for processing.
+		// Create asset deletion task object and submit it for processing.
 		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetDeletion, HapiGUID);
 		Task.AssetId = AssetId;
 		FHoudiniEngine::Get().AddTask(Task);
+
+		// Reset asset id.
+		AssetId = -1;
 	}
 
 	Super::OnComponentDestroyed();
@@ -1657,19 +1648,21 @@ UHoudiniAssetComponent::OnComponentCreated()
 }
 
 
-void
-UHoudiniAssetComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+FName
+UHoudiniAssetComponent::GetComponentInstanceDataType() const
 {
 	// Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation.
-	Super::GetComponentInstanceData(Cache);
+
+	return Super::GetComponentInstanceDataType();
 	HOUDINI_LOG_MESSAGE(TEXT("Requesting data for caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 }
 
 
 void
-UHoudiniAssetComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData)
 {
 	// Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData.
-	Super::ApplyComponentInstanceData(Cache);
+
+	Super::ApplyComponentInstanceData(ComponentInstanceData);
 	HOUDINI_LOG_MESSAGE(TEXT("Restoring data from caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 }

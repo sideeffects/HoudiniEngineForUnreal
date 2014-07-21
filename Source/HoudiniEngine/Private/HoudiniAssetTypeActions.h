@@ -23,13 +23,13 @@ class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
 {
 public: /** FAssetTypeActions_Base methods. **/
 
-	virtual FText GetName() const OVERRIDE;
-	virtual FColor GetTypeColor() const OVERRIDE;
-	virtual UClass* GetSupportedClass() const OVERRIDE;
-	virtual uint32 GetCategories() OVERRIDE;
-	virtual UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const OVERRIDE;
-	virtual bool HasActions(const TArray<UObject*>& InObjects) const OVERRIDE;
-	virtual void GetActions(const TArray<UObject*>& InObjects, class FMenuBuilder& MenuBuilder) OVERRIDE;
+	virtual FText GetName() const override;
+	virtual FColor GetTypeColor() const override;
+	virtual UClass* GetSupportedClass() const override;
+	virtual uint32 GetCategories() override;
+	virtual UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
+	virtual bool HasActions(const TArray<UObject*>& InObjects) const override;
+	virtual void GetActions(const TArray<UObject*>& InObjects, class FMenuBuilder& MenuBuilder) override;
 
 protected:
 

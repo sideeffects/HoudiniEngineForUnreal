@@ -30,11 +30,11 @@ public:
 public: /** IComponentAssetBroker methods. **/
 
 	/** Reports the asset class this broker knows how to handle. **/
-	UClass* GetSupportedAssetClass() OVERRIDE;
+	UClass* GetSupportedAssetClass() override;
 
 	/** Assign the assigned asset to the supplied component. **/
-	bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE;
+	bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override;
 
 	/** Get the currently assigned asset from the component. **/
-	UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE;
+	UObject* GetAssetFromComponent(UActorComponent* InComponent) override;
 };
