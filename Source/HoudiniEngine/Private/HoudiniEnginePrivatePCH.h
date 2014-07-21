@@ -31,7 +31,9 @@
 #include "PackageTools.h"
 #include "ThumbnailHelpers.h"
 #include "AssetRegistryModule.h"
+#include "DynamicMeshBuilder.h"
 
+#include "Materials/MaterialExpressionTextureSample.h"
 
 /** Houdini Engine headers. **/
 #include <vector>

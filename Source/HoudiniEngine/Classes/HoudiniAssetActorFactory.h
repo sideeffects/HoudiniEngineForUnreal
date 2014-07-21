@@ -29,15 +29,15 @@ class HOUDINIENGINE_API UHoudiniAssetActorFactory : public UActorFactory
 public: /** UActorFactory inherited methods. **/
 
 	/** Return true if Actor can be created from a given asset. **/
-	virtual bool CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg) OVERRIDE;
+	virtual bool CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg) override;
 
 	/** Given an instance of an actor pertaining to this factory, find the asset that should be used to create a new actor. **/
-	virtual UObject* GetAssetFromActorInstance(AActor* Instance) OVERRIDE;
+	virtual UObject* GetAssetFromActorInstance(AActor* Instance) override;
 
 	/** Subclasses may implement this to modify the actor after it has been spawned. **/
-	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) OVERRIDE;
+	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) override;
 
 	/** Override this in derived factory classes if needed.  This is called after a blueprint is created by this factory to **/
 	/** update the blueprint's CDO properties with state from the asset for this factory.									**/
-	virtual void PostCreateBlueprint(UObject* Asset, AActor* CDO) OVERRIDE;
+	virtual void PostCreateBlueprint(UObject* Asset, AActor* CDO) override;
 };

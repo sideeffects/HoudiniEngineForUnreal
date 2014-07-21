@@ -29,11 +29,11 @@ class HOUDINIENGINE_API UHoudiniAssetThumbnailRenderer : public UDefaultSizedThu
 
 public: /** ThumbnailRenderer methods. **/
 
-	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas) OVERRIDE;
+	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas) override;
 
 public: /** UObject methods. **/
 
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 
 public:
 

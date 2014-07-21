@@ -27,9 +27,9 @@ class HOUDINIENGINE_API UHoudiniAssetFactory : public UFactory
 
 private: /** UFactory methods. **/
 
-	virtual bool DoesSupportClass(UClass* Class) OVERRIDE;
-	virtual FText GetDisplayName() const OVERRIDE;
-	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, 
-										 UObject* Context, const TCHAR* Type, const uint8*& Buffer, 
-										 const uint8* BufferEnd, FFeedbackContext* Warn) OVERRIDE;
+	virtual bool DoesSupportClass(UClass* Class) override;
+	virtual FText GetDisplayName() const override;
+	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags,
+										 UObject* Context, const TCHAR* Type, const uint8*& Buffer,
+										 const uint8* BufferEnd, FFeedbackContext* Warn) override;
 };

@@ -27,16 +27,16 @@ class FHoudiniEngine : public IHoudiniEngine
 
 public: /** IModuleInterface methods. **/
 
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 public: /** IHoudiniEngine methods. **/
 
-	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const OVERRIDE;
-	virtual void AddTask(const FHoudiniEngineTask& Task) OVERRIDE;
-	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) OVERRIDE;
-	virtual void RemoveTaskInfo(const FGuid HapIGUID) OVERRIDE;
-	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) OVERRIDE;
+	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
+	virtual void AddTask(const FHoudiniEngineTask& Task) override;
+	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) override;
+	virtual void RemoveTaskInfo(const FGuid HapIGUID) override;
+	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) override;
 
 public:
 

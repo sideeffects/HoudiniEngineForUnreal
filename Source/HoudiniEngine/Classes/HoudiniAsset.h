@@ -35,8 +35,8 @@ public:
 
 public: /** UObject methods. **/
 
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void FinishDestroy() override;
+	virtual void Serialize(FArchive& Ar) override;
 
 public:
 

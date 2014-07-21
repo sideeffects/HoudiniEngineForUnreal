@@ -33,5 +33,5 @@ public:
 
 public: /** AActor methods. **/
 
-	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 };

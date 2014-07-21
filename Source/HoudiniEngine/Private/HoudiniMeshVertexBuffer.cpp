@@ -16,10 +16,11 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-void 
+void
 FHoudiniMeshVertexBuffer::InitRHI()
 {
-	VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), NULL, BUF_Static);
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo);
 
 	// Copy the vertex data into the vertex buffer.
 	void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
