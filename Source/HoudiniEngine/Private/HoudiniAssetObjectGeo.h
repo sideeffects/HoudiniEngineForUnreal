@@ -60,6 +60,12 @@ public:
 	/** Return transform of this geo. **/
 	const FMatrix& GetTransform() const;
 
+	/** Compute whether this geo uses multiple materials. **/
+	void ComputeMultipleMaterialUsage();
+
+	/** Returns true if this geo uses multiple materials, false otherwise. **/
+	bool UsesMultipleMaterials() const;
+
 protected:
 
 	/** List of geo parts (these correspond to submeshes). Will always have at least one. **/
@@ -77,6 +83,6 @@ protected:
 	/** Corresponding Vertex factory used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshVertexFactory* HoudiniMeshVertexFactory;
 
-	/** Material for this part. **/
-	UMaterial* Material;
+	/** Is set to true when submeshes use different materials. **/
+	bool bMultipleMaterials;
 };

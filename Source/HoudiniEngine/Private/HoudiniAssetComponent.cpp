@@ -704,18 +704,16 @@ UHoudiniAssetComponent::CreateComponentMaterials()
 
 				SetMaterial(0, HoudiniGeneratedMaterial);
 
-				for (TArray<FHoudiniAssetObjectGeo*>::TIterator IterGeo = HoudiniAssetObjectGeos.CreateIterator(); IterGeo; ++IterGeo)
+				for(TArray<FHoudiniAssetObjectGeo*>::TIterator IterGeo = HoudiniAssetObjectGeos.CreateIterator(); IterGeo; ++IterGeo)
 				{
 					FHoudiniAssetObjectGeo* Geo = *IterGeo;
-					Geo->Material = HoudiniGeneratedMaterial;
+					//Geo->Material = HoudiniGeneratedMaterial;
 
-					/*
-					for (TArray<FHoudiniAssetObjectGeoPart*>::TIterator IterGeoPart = Geo->HoudiniAssetObjectGeoParts.CreateIterator(); IterGeoPart; ++IterGeoPart)
+					for(TArray<FHoudiniAssetObjectGeoPart*>::TIterator IterGeoPart = Geo->HoudiniAssetObjectGeoParts.CreateIterator(); IterGeoPart; ++IterGeoPart)
 					{
 						FHoudiniAssetObjectGeoPart* Part = *IterGeoPart;
 						Part->Material = HoudiniGeneratedMaterial;
 					}
-					*/
 				}
 			}
 		}
@@ -731,15 +729,13 @@ UHoudiniAssetComponent::CreateComponentMaterials()
 		for (TArray<FHoudiniAssetObjectGeo*>::TIterator IterGeo = HoudiniAssetObjectGeos.CreateIterator(); IterGeo; ++IterGeo)
 		{
 			FHoudiniAssetObjectGeo* Geo = *IterGeo;
-			Geo->Material = HoudiniGeneratedMaterial;
+			//Geo->Material = HoudiniGeneratedMaterial;
 
-			/*
-			for (TArray<FHoudiniAssetObjectGeoPart*>::TIterator IterGeoPart = Geo->HoudiniAssetObjectGeoParts.CreateIterator(); IterGeoPart; ++IterGeoPart)
+			for(TArray<FHoudiniAssetObjectGeoPart*>::TIterator IterGeoPart = Geo->HoudiniAssetObjectGeoParts.CreateIterator(); IterGeoPart; ++IterGeoPart)
 			{
 				FHoudiniAssetObjectGeoPart* Part = *IterGeoPart;
 				Part->Material = HoudiniGeneratedMaterial;
 			}
-			*/
 		}
 	}
 
