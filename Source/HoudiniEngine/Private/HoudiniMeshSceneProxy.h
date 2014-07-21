@@ -41,6 +41,11 @@ public: /** FPrimitiveSceneProxy methods. **/
 
 private:
 
+	/** Return material proxy used by the given geo part. **/
+	const FMaterialRenderProxy* ComputeMaterialProxy(bool bWireframe, const FColoredMaterialRenderProxy* WireframeProxy, FHoudiniAssetObjectGeoPart* GeoPart);
+
+private:
+
 	/** Owner component. Unsafe to use as this object will live in a render thread. Used here for debugging. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;
 

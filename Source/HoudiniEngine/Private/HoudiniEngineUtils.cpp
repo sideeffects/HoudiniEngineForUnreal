@@ -992,6 +992,9 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 					FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart(GroupTriangles);
 					HoudiniAssetObjectGeo->AddGeoPart(HoudiniAssetObjectGeoPart);
 				}
+
+				// Compute whether this geo uses multiple materials.
+				HoudiniAssetObjectGeo->ComputeMultipleMaterialUsage();
 			}
 
 			// There has been an error, continue onto next Geo.

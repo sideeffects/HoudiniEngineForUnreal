@@ -20,9 +20,9 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform) :
 	Transform(InTransform),
 	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
-	Material(nullptr)
+	bMultipleMaterials(false)
 {
-	//Transform.SetIdentity();
+
 }
 
 
@@ -115,12 +115,6 @@ FHoudiniAssetObjectGeo::AddReferencedObjects(FReferenceCollector& Collector)
 		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = *Iter;
 		HoudiniAssetObjectGeoPart->AddReferencedObjects(Collector);
 	}
-
-	// Add reference to material.
-	if (Material)
-	{
-		Collector.AddReferencedObject(Material);
-	}
 }
 
 
@@ -135,6 +129,32 @@ TArray<FDynamicMeshVertex>&
 FHoudiniAssetObjectGeo::GetVertices()
 {
 	return Vertices;
+}
+
+
+void
+FHoudiniAssetObjectGeo::ComputeMultipleMaterialUsage()
+{
+	if(HoudiniAssetObjectGeoParts.Num() > 1)
+	{
+		UMaterial* FirstMaterial = HoudiniAssetObjectGeoParts[0]->Material;
+
+		for(int32 Idx = 1; Idx < HoudiniAssetObjectGeoParts.Num(); ++Idx)
+		{
+			if(HoudiniAssetObjectGeoParts[Idx]->Material != FirstMaterial)
+			{
+				bMultipleMaterials = true;
+				break;
+			}
+		}
+	}
+}
+
+
+bool
+FHoudiniAssetObjectGeo::UsesMultipleMaterials() const
+{
+	return bMultipleMaterials;
 }
 
 
