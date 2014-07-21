@@ -97,4 +97,7 @@ protected:
 
 	/** Given current min and max extent vectors, update them from given position if necessary. **/
 	static void UpdateBoundingVolumeExtent(const FVector& Vector, FVector& ExtentMin, FVector& ExtentMax);
+
+	/** Transform position of a given triangle using a given transformation matrix. **/
+	static void TransformPosition(const FMatrix& TransformMatrix, FHoudiniMeshTriangle& Triangle);
 };

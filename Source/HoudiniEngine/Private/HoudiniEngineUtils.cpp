@@ -951,6 +951,9 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 						Triangle.Color1.A = 1.0f;
 					}
 
+					// Bake vertex transformation.
+					FHoudiniEngineUtils::TransformPosition(TransformMatrix, Triangle);
+
 					// Add triangle vertices to list of vertices for given geo.
 					HoudiniAssetObjectGeo->AddTriangleVertices(Triangle);
 				}
@@ -1000,4 +1003,53 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 	}
 
 	return true;
+}
+
+
+void
+FHoudiniEngineUtils::TransformPosition(const FMatrix& TransformMatrix, FHoudiniMeshTriangle& Triangle)
+{
+	FVector4 Position;
+
+	// Transform position of first vertex.
+	{
+		Position.X = Triangle.Vertex0.X;
+		Position.Z = Triangle.Vertex0.Z;
+		Position.Y = Triangle.Vertex0.Y;
+		Position.W = 1.0f;
+
+		Position = TransformMatrix.TransformFVector4(Position);
+
+		Triangle.Vertex0.X = Position.X;
+		Triangle.Vertex0.Z = Position.Z;
+		Triangle.Vertex0.Y = Position.Y;
+	}
+
+	// Transform position of second vertex.
+	{
+		Position.X = Triangle.Vertex2.X;
+		Position.Z = Triangle.Vertex2.Z;
+		Position.Y = Triangle.Vertex2.Y;
+		Position.W = 1.0f;
+
+		Position = TransformMatrix.TransformFVector4(Position);
+
+		Triangle.Vertex2.X = Position.X;
+		Triangle.Vertex2.Z = Position.Z;
+		Triangle.Vertex2.Y = Position.Y;
+	}
+
+	// Transform position of third vertex.
+	{
+		Position.X = Triangle.Vertex1.X;
+		Position.Z = Triangle.Vertex1.Z;
+		Position.Y = Triangle.Vertex1.Y;
+		Position.W = 1.0f;
+
+		Position = TransformMatrix.TransformFVector4(Position);
+
+		Triangle.Vertex1.X = Position.X;
+		Triangle.Vertex1.Z = Position.Z;
+		Triangle.Vertex1.Y = Position.Y;
+	}
 }

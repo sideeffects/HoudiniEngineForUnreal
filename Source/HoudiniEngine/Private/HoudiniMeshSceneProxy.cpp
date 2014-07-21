@@ -103,10 +103,11 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 			BatchElement.MaxVertexIndex = HoudiniAssetObjectGeo->HoudiniMeshVertexBuffer->Vertices.Num() - 1;
 
 			// Compute proper transformation for this element.
-			FMatrix TransformMatrix = HoudiniAssetObjectGeo->GetTransform() * GetLocalToWorld();
+			//FMatrix TransformMatrix = HoudiniAssetObjectGeo->GetTransform() * GetLocalToWorld();
 
 			// Store necessary matrices and bounds in uniform buffer.
-			BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(TransformMatrix, GetBounds(), GetLocalBounds(), false);
+			//BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(TransformMatrix, GetBounds(), GetLocalBounds(), false);
+			BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), false);
 		}
 
 		PDI->DrawMesh(Mesh);

@@ -98,7 +98,7 @@ FHoudiniEngine::StartupModule()
 
 	// Create HAPI scheduler and processing thread.
 	HoudiniEngineScheduler = new FHoudiniEngineScheduler();
-	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniTaskCookAsset"), false, false, 0, TPri_Normal);
+	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniTaskCookAsset"), 0, TPri_Normal);
 
 	// Store the instance.
 	FHoudiniEngine::HoudiniEngineInstance = this;
