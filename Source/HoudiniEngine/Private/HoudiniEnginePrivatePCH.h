@@ -17,10 +17,10 @@
 
 /** Unreal headers. **/
 #include "CoreUObject.h"
-#include "Engine.h"
+#include "UnrealEd.h"
+#include "EditorSupportDelegates.h"
 #include "AssetTypeActions_Base.h"
 #include "ModuleManager.h"
-#include "UnrealEd.h"
 #include "Core.h"
 #include "AssetData.h"
 #include "MessageLog.h"
@@ -32,6 +32,7 @@
 #include "ThumbnailHelpers.h"
 #include "AssetRegistryModule.h"
 #include "DynamicMeshBuilder.h"
+#include "ContentStreaming.h"
 
 #include "Materials/MaterialExpressionTextureSample.h"
 
@@ -134,6 +135,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** HoudiniEngine Class headers. **/
 #include "HoudiniMeshTriangle.h"
+#include "HoudiniAssetMaterial.h"
 #include "HoudiniAssetObjectGeoPart.h"
 #include "HoudiniAssetObjectGeo.h"
 #include "HoudiniAssetComponent.h"

@@ -67,16 +67,21 @@ class FComponentInstanceDataCache;
 struct FPropertyChangedEvent;
 
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
-class HOUDINIENGINE_API UHoudiniAssetComponent : public UMeshComponent
+class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 {
 	friend class FHoudiniMeshSceneProxy;
 	friend class AHoudiniAssetActor;
+
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Houdini Asset associated with this component. **/
 	UHoudiniAsset* HoudiniAsset;
+
+	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
+	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=Textures)
+	TArray<UTexture2D*> HoudiniTextures;
 
 public:
 
@@ -183,8 +188,8 @@ private:
 	/** Assign actor label based on asset instance name. **/
 	void AssignUniqueActorLabel();
 
-	/** Create materials for this component. **/
-	void CreateComponentMaterials();
+	/** Release materials for this component. **/
+	void ReleaseComponentMaterials();
 
 	/** Clear all existing geos (and their parts). This is called during geometry recreation. **/
 	void ClearGeos();
