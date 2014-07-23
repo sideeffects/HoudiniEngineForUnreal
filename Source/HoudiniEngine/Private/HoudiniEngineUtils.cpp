@@ -579,6 +579,43 @@ FHoudiniEngineUtils::HapiCheckGroupMembership(const std::vector<int>& GroupMembe
 }
 
 
+void
+FHoudiniEngineUtils::HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names)
+{
+	static const std::string InvalidParameterName("Invalid Parameter Name");
+
+	Names.resize(ParmInfos.size());
+
+	for(int ParmIdx = 0; ParmIdx < ParmInfos.size(); ++ParmIdx)
+	{
+		const HAPI_ParmInfo& NodeParmInfo = ParmInfos[ParmIdx];
+		HAPI_StringHandle NodeParmHandle = NodeParmInfo.nameSH;
+
+		int NodeParmNameLength = 0;
+		HAPI_GetStringBufLength(NodeParmHandle, &NodeParmNameLength);
+
+		if(NodeParmNameLength)
+		{
+			std::vector<char> NodeParmName(NodeParmNameLength, '\0');
+
+			HAPI_Result Result = HAPI_GetString(NodeParmHandle, &NodeParmName[0], NodeParmNameLength);
+			if(HAPI_RESULT_SUCCESS == Result)
+			{
+				Names[ParmIdx] = std::string(NodeParmName.begin(), NodeParmName.end() - 1);
+			}
+			else
+			{
+				Names[ParmIdx] = InvalidParameterName;
+			}
+		}
+		else
+		{
+			Names[ParmIdx] = InvalidParameterName;
+		}
+	}
+}
+
+
 bool
 FHoudiniEngineUtils::HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 											  HAPI_PartId PartId, const char* Name, HAPI_AttributeOwner Owner)
@@ -590,6 +627,28 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectI
 	}
 
 	return AttribInfo.exists;
+}
+
+
+int
+FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names)
+{
+	for(int Idx = 0; Idx < Names.size(); ++Idx)
+	{
+		const std::string& foo = Names[Idx];
+
+		if(Idx == 53)
+		{
+			int z = 2;
+		}
+
+		if(!ParmName.compare(0, ParmName.length(), Names[Idx]))
+		{
+			return Idx;
+		}
+	}
+
+	return -1;
 }
 
 
@@ -661,6 +720,13 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 	// Geometry scale factors.
 	static const float ScaleFactorPosition = 75.0f;
 	static const float ScaleFactorTranslate = 50.0f;
+
+	// Retrieve asset name for material and texture name generation.
+	FString AssetName;
+	FHoudiniEngineUtils::GetHoudiniAssetName(AssetId, AssetName);
+
+	// Update context for generated materials (will trigger when object goes out of scope).
+	FMaterialUpdateContext MaterialUpdateContext;
 
 	// Get asset information.
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
@@ -958,6 +1024,97 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 					HoudiniAssetObjectGeo->AddTriangleVertices(Triangle);
 				}
 
+				// Generated material.
+				UHoudiniAssetMaterial* Material = nullptr;
+
+				// Retrieve material information for this part.
+				HAPI_MaterialInfo MaterialInfo;
+				if(HAPI_RESULT_SUCCESS == HAPI_GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo))
+				{
+					// Get node information.
+					HAPI_NodeInfo NodeInfo;
+					HAPI_GetNodeInfo(MaterialInfo.nodeId, &NodeInfo);
+
+					// Get node parameters.
+					std::vector<HAPI_ParmInfo> NodeParams;
+					NodeParams.resize(NodeInfo.parmCount);
+					HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+
+					// Get names of parameters.
+					std::vector<std::string> NodeParamNames;
+					NodeParamNames.resize(NodeInfo.parmCount);
+					FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
+
+					// See if texture is available.
+					int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("ogl_tex1", NodeParamNames);
+					
+					if(-1 == ParmNameIdx)
+					{
+						ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("baseColorMap", NodeParamNames);
+					}
+
+					if(-1 == ParmNameIdx)
+					{
+						ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("map", NodeParamNames);
+					}
+
+					if(ParmNameIdx >= 0)
+					{
+						// Create a new material factory to create our material asset.
+						UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+						UPackage* Package = GetTransientPackage();
+						FString MaterialName = FString::Printf(TEXT("%s_material"), *AssetName);
+						Material = (UHoudiniAssetMaterial*) MaterialFactory->FactoryCreateNew(UHoudiniAssetMaterial::StaticClass(), Package, *MaterialName, RF_Transient, NULL, GWarn);
+
+						std::vector<char> ImageBuffer;
+
+						// Retrieve color data.
+						if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameIdx].id, MaterialInfo, ImageBuffer, "C A"))
+						{
+							HAPI_ImageInfo ImageInfo;
+							Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+							
+							if(ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+							{
+								// Create texture.
+								UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, PF_B8G8R8A8, ImageBuffer);
+
+								// Create sampling expression and add it to material.
+								UMaterialExpressionTextureSample* Expression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+								Expression->Texture = Texture;
+								Expression->SamplerType = SAMPLERTYPE_Color;
+
+								Material->Expressions.Add(Expression);
+
+								Material->BaseColor.Expression = Expression;
+								Material->OpacityMask.Expression = Expression;
+								Material->OpacityMask.Mask = Material->OpacityMask.Expression->GetOutputs()[0].Mask;
+								Material->OpacityMask.MaskR = 0;
+								Material->OpacityMask.MaskG = 0;
+								Material->OpacityMask.MaskB = 0;
+								Material->OpacityMask.MaskA = 1;
+
+								Material->PreEditChange(nullptr);
+								Material->PostEditChange();
+								Material->MarkPackageDirty();
+
+								// Schedule this material for update.
+								MaterialUpdateContext.AddMaterial(Material);
+							}
+						}
+
+						/*
+						// Retrieve normal data.
+						if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameIdx].id, MaterialInfo, ImageBuffer, "N"))
+						{
+							HAPI_ImageInfo ImageInfo;
+							Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+							int i = 2;
+						}
+						*/
+					}
+				}
+
 				// Retrieve group memberships for this part.
 				for(int GroupIdx = 0; GroupIdx < GroupNames.size(); ++GroupIdx)
 				{
@@ -989,7 +1146,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 					}
 
 					// We need to construct a new geo part with indexing information.
-					FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart(GroupTriangles);
+					FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart(GroupTriangles, Material);
 					HoudiniAssetObjectGeo->AddGeoPart(HoudiniAssetObjectGeoPart);
 				}
 
@@ -1055,4 +1212,93 @@ FHoudiniEngineUtils::TransformPosition(const FMatrix& TransformMatrix, FHoudiniM
 		Triangle.Vertex1.Z = Position.Z;
 		Triangle.Vertex1.Y = Position.Y;
 	}
+}
+
+
+bool
+FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type)
+{
+	HAPI_Result Result = HAPI_RenderTextureToImage(MaterialInfo.assetId, MaterialInfo.id, NodeParmId);
+	if(HAPI_RESULT_SUCCESS != Result)
+	{
+		return false;
+	}
+
+	HAPI_ImageInfo ImageInfo;
+	Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+	if(HAPI_RESULT_SUCCESS != Result)
+	{
+		return false;
+	}
+
+	ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
+	ImageInfo.interleaved = true;
+	ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;
+
+	Result = HAPI_SetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+	if(HAPI_RESULT_SUCCESS != Result)
+	{
+		return false;
+	}
+
+	int ImageBufferSize = 0;
+	Result = HAPI_ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, Type.c_str(), &ImageBufferSize);
+	if(HAPI_RESULT_SUCCESS != Result)
+	{
+		return false;
+	}
+
+	if(!ImageBufferSize)
+	{
+		return false;
+	}
+
+	ImageBuffer.resize(ImageBufferSize);
+	Result = HAPI_GetImageMemoryBuffer(MaterialInfo.assetId, MaterialInfo.id, &ImageBuffer[0], ImageBufferSize);
+	if(HAPI_RESULT_SUCCESS != Result)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+UTexture2D*
+FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer)
+{
+	UTexture2D* Texture = UTexture2D::CreateTransient(ImageInfo.xRes, ImageInfo.yRes, PixelFormat);
+	Texture->AddToRoot();
+
+	// Lock texture for modification.
+	uint8* MipData = static_cast<uint8*>(Texture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
+
+	// Create base map.
+	uint8* DestPtr = NULL;
+	const FColor* SrcPtr = NULL;
+	uint32 SrcWidth = ImageInfo.xRes;
+	uint32 SrcHeight = ImageInfo.yRes;
+	const char* SrcData = &ImageBuffer[0];
+
+	for(uint32 y = 0; y < SrcHeight; y++)
+	{
+		DestPtr = &MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(FColor)];
+
+		for(uint32 x = 0; x < SrcWidth; x++)
+		{
+			uint32 DataOffset = y * SrcWidth * 4 + x * 4;
+
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //B
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //R
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
+			//*DestPtr++ = 0xFF; //A
+		}
+	}
+
+	// Unlock the texture.
+	Texture->PlatformData->Mips[0].BulkData.Unlock();
+	Texture->UpdateResource();
+
+	return Texture;
 }

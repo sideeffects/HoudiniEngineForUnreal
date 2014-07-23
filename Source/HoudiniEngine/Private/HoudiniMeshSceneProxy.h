@@ -48,7 +48,4 @@ private:
 
 	/** Owner component. Unsafe to use as this object will live in a render thread. Used here for debugging. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;
-
-	/** View relevance for all involved materials. **/
-	FMaterialRelevance MaterialRelevance;
 };

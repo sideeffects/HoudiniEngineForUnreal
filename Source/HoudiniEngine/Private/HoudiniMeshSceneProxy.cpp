@@ -18,8 +18,7 @@
 
 FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component, FName ResourceName) :
 	FPrimitiveSceneProxy(Component, ResourceName),
-	HoudiniAssetComponent(Component),
-	MaterialRelevance(Component->GetMaterialRelevance())
+	HoudiniAssetComponent(Component)
 {
 	// This constructor will be executing on a game thread.
 
@@ -88,8 +87,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		}
 		else
 		{
-			// All parts of this geo use same material or no material at all.
-
+			// All parts of this geo use same material or no material at all (or default wireframe material).
 			Mesh.Elements.Reserve(GeoPartCount);
 
 			// Create sub-mesh for each geo part. By default it contains one part already.
@@ -145,7 +143,7 @@ FHoudiniMeshSceneProxy::GetViewRelevance(const FSceneView* View)
 	Result.bDynamicRelevance = true;
 	Result.bStaticRelevance = false;
 
-	MaterialRelevance.SetPrimitiveViewRelevance(Result);
+	//MaterialRelevance.SetPrimitiveViewRelevance(Result);
 	return Result;
 }
 
@@ -153,7 +151,8 @@ FHoudiniMeshSceneProxy::GetViewRelevance(const FSceneView* View)
 bool
 FHoudiniMeshSceneProxy::CanBeOccluded() const
 {
-	return !MaterialRelevance.bDisableDepthTest;
+	//return !MaterialRelevance.bDisableDepthTest;
+	return true;
 }
 
 

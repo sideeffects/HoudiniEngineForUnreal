@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices) :
-	Material(nullptr),
+FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices, UHoudiniAssetMaterial* InMaterial) :
+	Material(InMaterial),
 	HoudiniMeshIndexBuffer(nullptr)
 {
 	Indices = InIndices;
@@ -30,6 +30,11 @@ FHoudiniAssetObjectGeoPart::~FHoudiniAssetObjectGeoPart()
 	{
 		check(!HoudiniMeshIndexBuffer->IsInitialized());
 		delete(HoudiniMeshIndexBuffer);
+	}
+
+	if(Material)
+	{
+		Material->RemoveFromRoot();
 	}
 }
 

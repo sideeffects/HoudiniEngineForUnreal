@@ -15,6 +15,8 @@
 
 #pragma once
 
+class UTexture2D;
+class UHoudiniAssetMaterial;
 class UHoudiniAssetObjectGeo;
 
 struct FHoudiniEngineUtils
@@ -93,6 +95,15 @@ public:
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											std::vector<float>& Data, int TupleSize = 0);
 
+	/** HAPI : Retrieve names of all parameters. **/
+	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names);
+
+	/** HAPI : Look for parameter by name and return its index. Return -1 if not found. **/
+	static int HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names);
+
+	/** HAPI : Extract image data. **/
+	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type = "C A");
+
 protected:
 
 	/** Given current min and max extent vectors, update them from given position if necessary. **/
@@ -100,4 +111,7 @@ protected:
 
 	/** Transform position of a given triangle using a given transformation matrix. **/
 	static void TransformPosition(const FMatrix& TransformMatrix, FHoudiniMeshTriangle& Triangle);
+
+	/** Create a texture from given information. **/
+	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer);
 };
