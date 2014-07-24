@@ -46,6 +46,9 @@ public:
 	/** Release rendering resources used by this part. **/
 	void ReleaseRenderingResources();
 
+	/** Collect textures used by material assigned to this part. **/
+	void CollectTextures(TArray<UTexture2D*>& InTextures);
+
 protected:
 
 	/** Array of stored indices for this part. **/

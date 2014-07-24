@@ -1078,6 +1078,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 							{
 								// Create texture.
 								UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, PF_B8G8R8A8, ImageBuffer);
+								Material->AddGeneratedTexture(Texture);
 
 								// Create sampling expression and add it to material.
 								UMaterialExpressionTextureSample* Expression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
