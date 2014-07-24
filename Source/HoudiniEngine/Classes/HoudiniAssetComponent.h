@@ -166,6 +166,7 @@ private:
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, const int32* bValue, uint32& Offset);
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
+	UProperty* CreatePropertyString(UClass* ClassInstance, const FName& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
 
 	/** Set parameter values which have changed. **/
 	void SetChangedParameterValues();
