@@ -349,6 +349,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 							// Construct new objects (asset objects and asset object parts).
 							FHoudiniEngineUtils::ConstructGeos(AssetId, HoudiniAssetObjectGeos);
 
+							// Collect all textures (for debugging purposes).
+							CollectTextures();
+
 							// Create all rendering resources.
 							CreateRenderingResources();
 
@@ -499,6 +502,19 @@ UHoudiniAssetComponent::GetNumMaterials() const
 
 
 void
+UHoudiniAssetComponent::CollectTextures()
+{
+	HoudiniTextures.Reset();
+
+	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
+	{
+		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
+		HoudiniAssetObjectGeo->CollectTextures(HoudiniTextures);
+	}
+}
+
+
+void
 UHoudiniAssetComponent::CreateRenderingResources()
 {
 	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
@@ -587,6 +603,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 			}
 		}
 	}
+
+	// Clear collected textures.
+	HoudiniTextures.Reset();
 
 	// Before releasing resources make sure we do not have scene proxy active.
 	//check(!SceneProxy);

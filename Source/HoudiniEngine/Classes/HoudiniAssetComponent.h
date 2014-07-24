@@ -203,6 +203,9 @@ private:
 	/** Return true if this component contains geometry. **/
 	bool ContainsGeos() const;
 
+	/** Collect textures from geometry. **/
+	void CollectTextures();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/

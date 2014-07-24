@@ -25,6 +25,9 @@ class FReferenceCollector;
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetMaterial : public UMaterial
 {
+	friend class FHoudiniAssetObjectGeo;
+	friend class FHoudiniAssetObjectGeoPart;
+
 	GENERATED_UCLASS_BODY()
 
 public:

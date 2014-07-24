@@ -243,3 +243,14 @@ FHoudiniAssetObjectGeo::ReleaseRenderingResources()
 		HoudiniAssetObjectGeoPart->ReleaseRenderingResources();
 	}
 }
+
+
+void
+FHoudiniAssetObjectGeo::CollectTextures(TArray<UTexture2D*>& Textures)
+{
+	for(TArray<FHoudiniAssetObjectGeoPart*>::TIterator Iter = HoudiniAssetObjectGeoParts.CreateIterator(); Iter; ++Iter)
+	{
+		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = *Iter;
+		HoudiniAssetObjectGeoPart->CollectTextures(Textures);
+	}
+}

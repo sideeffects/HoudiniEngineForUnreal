@@ -66,6 +66,9 @@ public:
 	/** Returns true if this geo uses multiple materials, false otherwise. **/
 	bool UsesMultipleMaterials() const;
 
+	/** Collect textures used by parts. **/
+	void CollectTextures(TArray<UTexture2D*>& Textures);
+
 protected:
 
 	/** List of geo parts (these correspond to submeshes). Will always have at least one. **/

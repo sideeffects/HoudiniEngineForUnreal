@@ -71,6 +71,7 @@ FHoudiniAssetObjectGeoPart::CreateRenderingResources()
 	BeginInitResource(HoudiniMeshIndexBuffer);
 }
 
+
 void
 FHoudiniAssetObjectGeoPart::ReleaseRenderingResources()
 {
@@ -78,5 +79,15 @@ FHoudiniAssetObjectGeoPart::ReleaseRenderingResources()
 	if(HoudiniMeshIndexBuffer)
 	{
 		BeginReleaseResource(HoudiniMeshIndexBuffer);
+	}
+}
+
+
+void
+FHoudiniAssetObjectGeoPart::CollectTextures(TArray<UTexture2D*>& InTextures)
+{
+	if(Material)
+	{
+		InTextures.Append(Material->GeneratedTextures);
 	}
 }
