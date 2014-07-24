@@ -95,6 +95,9 @@ public:
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											std::vector<float>& Data, int TupleSize = 0);
 
+	/** HAPI : Get parameter data as float. **/
+	static float HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue);
+
 	/** HAPI : Retrieve names of all parameters. **/
 	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names);
 
@@ -103,6 +106,9 @@ public:
 
 	/** HAPI : Extract image data. **/
 	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type = "C A");
+
+	/** HAPI : Return true if given material is transparent. **/
+	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
 
 protected:
 

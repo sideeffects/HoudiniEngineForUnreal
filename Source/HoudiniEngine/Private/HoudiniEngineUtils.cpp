@@ -635,13 +635,6 @@ FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const 
 {
 	for(int Idx = 0; Idx < Names.size(); ++Idx)
 	{
-		const std::string& foo = Names[Idx];
-
-		if(Idx == 53)
-		{
-			int z = 2;
-		}
-
 		if(!ParmName.compare(0, ParmName.length(), Names[Idx]))
 		{
 			return Idx;
@@ -1077,7 +1070,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 							if(ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
 							{
 								// Create texture.
-								UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, PF_B8G8R8A8, ImageBuffer);
+								UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, PF_R8G8B8A8, ImageBuffer);
 								Material->AddGeneratedTexture(Texture);
 
 								// Create sampling expression and add it to material.
@@ -1088,13 +1081,33 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 								Material->Expressions.Add(Expression);
 
 								Material->BaseColor.Expression = Expression;
-								Material->OpacityMask.Expression = Expression;
-								Material->OpacityMask.Mask = Material->OpacityMask.Expression->GetOutputs()[0].Mask;
-								Material->OpacityMask.MaskR = 0;
-								Material->OpacityMask.MaskG = 0;
-								Material->OpacityMask.MaskB = 0;
-								Material->OpacityMask.MaskA = 1;
 
+								if(FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo))
+								{
+									// This material contains transparency.
+									Material->BlendMode = BLEND_Masked;
+
+									TArray<FExpressionOutput> Outputs = Expression->GetOutputs();
+									FExpressionOutput* Output = Outputs.GetTypedData();
+
+									Material->OpacityMask.Expression = Expression;
+									Material->OpacityMask.Mask = Output->Mask;
+									Material->OpacityMask.MaskR = 0;
+									Material->OpacityMask.MaskG = 0;
+									Material->OpacityMask.MaskB = 0;
+									Material->OpacityMask.MaskA = 1;
+								}
+								else
+								{
+									// Material is opaque.
+									Material->BlendMode = BLEND_Opaque;
+								}
+
+								// Set other material properties.
+								Material->TwoSided = true;
+								Material->SetShadingModel(MSM_DefaultLit);
+
+								// Propagate and trigger material updates.
 								Material->PreEditChange(nullptr);
 								Material->PostEditChange();
 								Material->MarkPackageDirty();
@@ -1289,11 +1302,10 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixel
 		{
 			uint32 DataOffset = y * SrcWidth * 4 + x * 4;
 
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //B
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //R
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //R
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //B
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
-			//*DestPtr++ = 0xFF; //A
 		}
 	}
 
@@ -1302,4 +1314,42 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixel
 	Texture->UpdateResource();
 
 	return Texture;
+}
+
+
+float
+FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue)
+{
+	float Value = DefaultValue;
+
+	HAPI_NodeInfo NodeInfo;
+	HAPI_GetNodeInfo(NodeId, &NodeInfo);
+
+	std::vector<HAPI_ParmInfo> NodeParams;
+	NodeParams.resize(NodeInfo.parmCount);
+	HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+
+	// Get names of parameters.
+	std::vector<std::string> NodeParamNames;
+	NodeParamNames.resize(NodeInfo.parmCount);
+	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
+
+	// See if parameter is present.
+	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
+
+	if(-1 != ParmNameIdx)
+	{
+		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
+		HAPI_Result Result = HAPI_GetParmFloatValues(NodeId, &Value, ParmInfo.floatValuesIndex, 1);
+	}
+
+	return Value;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo)
+{
+	float Alpha = FHoudiniEngineUtils::HapiGetParameterDataAsFloat(MaterialInfo.nodeId, "ogl_alpha", 1.0f);
+	return Alpha < 0.95f;
 }
