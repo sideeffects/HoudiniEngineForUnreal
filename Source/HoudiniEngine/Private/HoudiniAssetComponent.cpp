@@ -780,7 +780,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	std::vector<HAPI_ParmInfo> ParmInfo;
 	std::vector<int> ParmValuesIntegers;
 	std::vector<float> ParmValuesFloats;
-	std::vector<HAPI_StringHandle> ParmStringFloats;
+	std::vector<HAPI_StringHandle> ParmValuesStrings;
 	std::vector<char> ParmName;
 	std::vector<char> ParmLabel;
 
@@ -806,10 +806,10 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	}
 
 	// Retrieve string values for this asset.
-	ParmStringFloats.resize(NodeInfo.parmStringValueCount);
+	ParmValuesStrings.resize(NodeInfo.parmStringValueCount);
 	if(NodeInfo.parmStringValueCount > 0)
 	{
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmStringFloats[0], 0, NodeInfo.parmStringValueCount), false);
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmValuesStrings[0], 0, NodeInfo.parmStringValueCount), false);
 	}
 
 	// We need to insert new properties and new children in the beginning of single link list.
@@ -842,11 +842,11 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			case HAPI_PARMTYPE_FLOAT:
 			case HAPI_PARMTYPE_TOGGLE:
 			case HAPI_PARMTYPE_COLOR:
+			case HAPI_PARMTYPE_STRING:
 			{
 				break;
 			}
 
-			case HAPI_PARMTYPE_STRING:
 			default:
 			{
 				// Just ignore unsupported types for now.
@@ -930,6 +930,11 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 				break;
 			}
 			case HAPI_PARMTYPE_STRING:
+			{
+				Property = CreatePropertyString(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesStrings[ParmInfoIter.stringValuesIndex], ValuesOffsetEnd);
+				break;
+			}
+
 			default:
 			{
 				continue;
@@ -1016,6 +1021,59 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	}
 
 	return true;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FName& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset)
+{
+	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
+	static const uint64 PropertyFlags = UINT64_C(69793219077);
+
+	// Ignore parameters with size zero.
+	if(!Count)
+	{
+		return nullptr;
+	}
+
+	UStrProperty* Property = FindObject<UStrProperty>(ClassInstance, *Name.ToString(), false);
+	if(!Property)
+	{
+		Property = NewNamedObject<UStrProperty>(ClassInstance, Name, PropertyObjectFlags);
+	}
+	
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
+	Property->PropertyFlags = PropertyFlags;
+
+	// Set property size. Larger than one indicates array.
+	Property->ArrayDim = Count;
+
+	// We need to compute proper alignment for this type.
+	FString* Boundary = ComputeOffsetAlignmentBoundary<FString>(Offset);
+	Offset = (const char*) Boundary - (const char*) this;
+
+	// Need to patch offset for this property.
+	ReplacePropertyOffset(Property, Offset);
+
+	// Write property data to which it refers by offset.
+	for(int Index = 0; Index < Count; ++Index)
+	{
+		FString NameString;
+
+		if(FHoudiniEngineUtils::GetHoudiniString(*(Value + Index), NameString))
+		{
+			new(Boundary) FString(NameString);
+		}
+		else
+		{
+			new(Boundary) FString(TEXT("Invalid"));
+		}
+
+		Offset += sizeof(FString);
+	}
+
+	return Property;
 }
 
 
@@ -1297,6 +1355,22 @@ UHoudiniAssetComponent::SetChangedParameterValues()
 			}
 
 			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmFloatValues(AssetInfo.nodeId, &Values[0], ParamInfo.floatValuesIndex, ParamInfo.size));
+		}
+		else if(UStrProperty::StaticClass() == Property->GetClass())
+		{
+			check(ParamInfo.size == Property->ArrayDim);
+
+			for(int Index = 0; Index < Property->ArrayDim; ++Index)
+			{
+				// Get string at this index.
+				FString* UnrealString = (FString*) ((const char*) this + ValueOffset);
+				std::string String = TCHAR_TO_ANSI(*(*UnrealString));
+
+				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, Index));
+
+				// Continue onto next offset.
+				ValueOffset += sizeof(FString);
+			}
 		}
 		else if(UStructProperty::StaticClass() == Property->GetClass())
 		{
