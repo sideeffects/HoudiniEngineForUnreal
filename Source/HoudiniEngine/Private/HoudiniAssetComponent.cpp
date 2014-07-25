@@ -305,7 +305,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						if(FHoudiniEngineUtils::GetAssetGeometry(TaskInfo.AssetId, HoudiniMeshTriangles, HoudiniMeshSphereBounds))
 						{
 							// We need to patch component RTTI to reflect properties for this component.
-							ReplaceClassInformation();
+							ReplaceClassInformation(HoudiniAssetActor->GetActorLabel());
 
 							// Get current asset.
 							UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
@@ -671,7 +671,7 @@ UHoudiniAssetComponent::ReplacePropertyOffset(UProperty* Property, int Offset)
 
 
 void
-UHoudiniAssetComponent::ReplaceClassInformation()
+UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel)
 {
 	UClass* PatchedClass = nullptr;
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
@@ -680,7 +680,7 @@ UHoudiniAssetComponent::ReplaceClassInformation()
 	if(GetClass() == ClassOfUHoudiniAssetComponent)
 	{
 		// Construct unique name for this class.
-		FString PatchedClassName = FString::Printf(TEXT("%s_%d"), *GetClass()->GetName(), AssetId);
+		FString PatchedClassName = FString::Printf(TEXT("%s_%s"), *GetClass()->GetName(), *ActorLabel);
 
 		// Create new class instance.
 		//static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
@@ -882,6 +882,9 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		FUTF8ToTCHAR ParamNameStringConverter(&ParmName[0]);
 		FName ParmNameConverted = ParamNameStringConverter.Get();
 
+		// Create unique property name to avoid collisions.
+		FString UniquePropertyName = FString::Printf(TEXT("%s_%s"), *ClassInstance->GetName(), *ParmNameConverted.ToString());
+
 		// Retrieve length of this parameter's label.
 		int32 ParmLabelLength = 0;
 		HOUDINI_CHECK_ERROR(&Result, HAPI_GetStringBufLength(ParmInfoIter.labelSH, &ParmLabelLength));
@@ -908,30 +911,30 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		{
 			case HAPI_PARMTYPE_INT:
 			{
-				Property = CreatePropertyInt(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyInt(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
 			case HAPI_PARMTYPE_FLOAT:
 			{
-				Property = CreatePropertyFloat(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyFloat(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
 			case HAPI_PARMTYPE_TOGGLE:
 			{
-				Property = CreatePropertyToggle(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyToggle(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
 			case HAPI_PARMTYPE_COLOR:
 			{
-				Property = CreatePropertyColor(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyColor(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 			case HAPI_PARMTYPE_STRING:
 			{
-				Property = CreatePropertyString(ClassInstance, ParmNameConverted, ParmInfoIter.size, &ParmValuesStrings[ParmInfoIter.stringValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyString(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesStrings[ParmInfoIter.stringValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
@@ -1025,7 +1028,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FName& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
@@ -1036,10 +1039,10 @@ UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FName&
 		return nullptr;
 	}
 
-	UStrProperty* Property = FindObject<UStrProperty>(ClassInstance, *Name.ToString(), false);
+	UStrProperty* Property = FindObject<UStrProperty>(ClassInstance, *Name, false);
 	if(!Property)
 	{
-		Property = NewNamedObject<UStrProperty>(ClassInstance, Name, PropertyObjectFlags);
+		Property = NewNamedObject<UStrProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
 	}
 	
 	Property->PropertyLinkNext = nullptr;
@@ -1078,7 +1081,7 @@ UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FName&
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
@@ -1102,10 +1105,10 @@ UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FName& 
 		UHoudiniAssetComponent::ScriptStructColor->StaticLink();
 	}
 
-	UStructProperty* Property = FindObject<UStructProperty>(ClassInstance, *Name.ToString(), false);
+	UStructProperty* Property = FindObject<UStructProperty>(ClassInstance, *Name, false);
 	if(!Property)
 	{
-		Property = NewNamedObject<UStructProperty>(ClassInstance, Name, PropertyObjectFlags);
+		Property = NewNamedObject<UStructProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
 		Property->Struct = UHoudiniAssetComponent::ScriptStructColor;
 	}
 
@@ -1147,7 +1150,7 @@ UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FName& 
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
@@ -1158,11 +1161,11 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 		return nullptr;
 	}
 
-	UIntProperty* Property = FindObject<UIntProperty>(ClassInstance, *Name.ToString(), false);
+	UIntProperty* Property = FindObject<UIntProperty>(ClassInstance, *Name, false);
 	if(!Property)
 	{
 		// Property does not exist, we need to create it.
-		Property = NewNamedObject<UIntProperty>(ClassInstance, Name, PropertyObjectFlags);
+		Property = NewNamedObject<UIntProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
 	}
 
 	Property->PropertyLinkNext = nullptr;
@@ -1193,7 +1196,7 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FName& Na
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
@@ -1204,11 +1207,11 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 		return nullptr;
 	}
 
-	UFloatProperty* Property = FindObject<UFloatProperty>(ClassInstance, *Name.ToString(), false);
+	UFloatProperty* Property = FindObject<UFloatProperty>(ClassInstance, *Name, false);
 	if(!Property)
 	{
 		// Property does not exist, we need to create it.
-		Property = NewNamedObject<UFloatProperty>(ClassInstance, Name, PropertyObjectFlags);
+		Property = NewNamedObject<UFloatProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
 	}
 
 	Property->PropertyLinkNext = nullptr;
@@ -1239,7 +1242,7 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FName& 
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, const int32* bValue, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
@@ -1250,11 +1253,11 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FName&
 		return nullptr;
 	}
 
-	UBoolProperty* Property = FindObject<UBoolProperty>(ClassInstance, *Name.ToString(), false);
+	UBoolProperty* Property = FindObject<UBoolProperty>(ClassInstance, *Name, false);
 	if(!Property)
 	{
 		// Property does not exist, we need to create it.
-		Property = NewNamedObject<UBoolProperty>(ClassInstance, Name, PropertyObjectFlags);
+		Property = NewNamedObject<UBoolProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
 	}
 
 	Property->PropertyLinkNext = nullptr;

@@ -145,7 +145,7 @@ private: /** USceneComponent methods. **/
 protected:
 
 	/** Patch RTTI : patch class information for this component's class based on given Houdini Asset. **/
-	void ReplaceClassInformation();
+	void ReplaceClassInformation(const FString& ActorLabel);
 
 private:
 
@@ -162,11 +162,11 @@ private:
 	void ReplacePropertyOffset(UProperty* Property, int Offset);
 
 	/** Patch RTTI : Create various properties. **/
-	UProperty* CreatePropertyInt(UClass* ClassInstance, const FName& Name, int Count, const int32* Value, uint32& Offset);
-	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
-	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FName& Name, int Count, const int32* bValue, uint32& Offset);
-	UProperty* CreatePropertyColor(UClass* ClassInstance, const FName& Name, int Count, const float* Value, uint32& Offset);
-	UProperty* CreatePropertyString(UClass* ClassInstance, const FName& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
+	UProperty* CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset);
+	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
+	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset);
+	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
+	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
 
 	/** Set parameter values which have changed. **/
 	void SetChangedParameterValues();
