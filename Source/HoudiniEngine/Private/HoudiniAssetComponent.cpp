@@ -663,6 +663,24 @@ UHoudiniAssetComponent::IsReadyForFinishDestroy()
 
 
 void
+UHoudiniAssetComponent::RemoveMetaDataFromEnum(UEnum* EnumObject)
+{
+	for(int Idx = 0; Idx < EnumObject->NumEnums(); ++Idx)
+	{
+		if(EnumObject->HasMetaData(TEXT("DisplayName"), Idx))
+		{
+			EnumObject->RemoveMetaData(TEXT("DisplayName"), Idx);
+		}
+
+		if(EnumObject->HasMetaData(TEXT("HoudiniName"), Idx))
+		{
+			EnumObject->RemoveMetaData(TEXT("HoudiniName"), Idx);
+		}
+	}
+}
+
+
+void
 UHoudiniAssetComponent::ReplacePropertyOffset(UProperty* Property, int Offset)
 {
 	// We need this bit of magic in order to replace the private field.
@@ -680,7 +698,7 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel)
 	if(GetClass() == ClassOfUHoudiniAssetComponent)
 	{
 		// Construct unique name for this class.
-		FString PatchedClassName = FString::Printf(TEXT("%s_%s"), *GetClass()->GetName(), *ActorLabel);
+		FString PatchedClassName = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("%s_%s"), *GetClass()->GetName(), *ActorLabel));
 
 		// Create new class instance.
 		//static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
@@ -883,7 +901,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		FName ParmNameConverted = ParamNameStringConverter.Get();
 
 		// Create unique property name to avoid collisions.
-		FString UniquePropertyName = FString::Printf(TEXT("%s_%s"), *ClassInstance->GetName(), *ParmNameConverted.ToString());
+		FString UniquePropertyName = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("%s_%s"), *ClassInstance->GetName(), *ParmNameConverted.ToString()));
 
 		// Retrieve length of this parameter's label.
 		int32 ParmLabelLength = 0;
@@ -907,11 +925,73 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		FUTF8ToTCHAR ParamLabelStringConverter(&ParmLabel[0]);
 
 		UProperty* Property = nullptr;
+
 		switch(ParmInfoIter.type)
 		{
 			case HAPI_PARMTYPE_INT:
 			{
-				Property = CreatePropertyInt(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
+				if(!ParmInfoIter.choiceCount)
+				{
+					Property = CreatePropertyInt(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
+				}
+				else if(ParmInfoIter.choiceIndex >= 0)
+				{
+					// This parameter is an integer choice list.
+
+					// Get relevant choices.
+					std::vector<HAPI_ParmChoiceInfo> ChoiceInfos;
+					ChoiceInfos.resize(ParmInfoIter.choiceCount);
+					HOUDINI_CHECK_ERROR(&Result, HAPI_GetParmChoiceLists(NodeInfo.id, &ChoiceInfos[0], ParmInfoIter.choiceIndex, ParmInfoIter.choiceCount));
+					if(HAPI_RESULT_SUCCESS != Result)
+					{
+						continue;
+					}
+
+					// Retrieve enum value from HAPI.
+					int EnumIndex = 0;
+					HOUDINI_CHECK_ERROR(&Result, HAPI_GetParmIntValues(NodeInfo.id, &EnumIndex, ParmInfoIter.intValuesIndex, ParmInfoIter.size));
+
+					// Create enum property.
+					Property = CreatePropertyEnum(ClassInstance, UniquePropertyName, ChoiceInfos, EnumIndex, ValuesOffsetEnd);
+				}
+
+				break;
+			}
+
+			case HAPI_PARMTYPE_STRING:
+			{
+				if(!ParmInfoIter.choiceCount)
+				{
+					Property = CreatePropertyString(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesStrings[ParmInfoIter.stringValuesIndex], ValuesOffsetEnd);
+				}
+				else if(ParmInfoIter.choiceIndex >= 0)
+				{
+					// This parameter is a string choice list.
+
+					// Get relevant choices.
+					std::vector<HAPI_ParmChoiceInfo> ChoiceInfos;
+					ChoiceInfos.resize(ParmInfoIter.choiceCount);
+					HOUDINI_CHECK_ERROR(&Result, HAPI_GetParmChoiceLists(NodeInfo.id, &ChoiceInfos[0], ParmInfoIter.choiceIndex, ParmInfoIter.choiceCount));
+					if(HAPI_RESULT_SUCCESS != Result)
+					{
+						continue;
+					}
+					
+					// Retrieve enum value from HAPI.
+					int EnumValue = 0;
+					HOUDINI_CHECK_ERROR(&Result, HAPI_GetParmStringValues(NodeInfo.id, false, &EnumValue, ParmInfoIter.stringValuesIndex, ParmInfoIter.size));
+
+					// Retrieve string value.
+					FString EnumStringValue;
+					if(!FHoudiniEngineUtils::GetHoudiniString(EnumValue, EnumStringValue))
+					{
+						continue;
+					}
+
+					// Create enum property.
+					Property = CreatePropertyEnum(ClassInstance, UniquePropertyName, ChoiceInfos, EnumStringValue, ValuesOffsetEnd);
+				}
+
 				break;
 			}
 
@@ -930,11 +1010,6 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			case HAPI_PARMTYPE_COLOR:
 			{
 				Property = CreatePropertyColor(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
-				break;
-			}
-			case HAPI_PARMTYPE_STRING:
-			{
-				Property = CreatePropertyString(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesStrings[ParmInfoIter.stringValuesIndex], ValuesOffsetEnd);
 				break;
 			}
 
@@ -1024,6 +1099,177 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	}
 
 	return true;
+}
+
+
+UField*
+UHoudiniAssetComponent::CreateEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices)
+{
+	// Create label for this enum.
+	FString UniqueEnumName = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("enum_%s"), *Name));
+
+	// See if enum has already been created.
+	UEnum* ChoiceEnum = FindObject<UEnum>(ClassInstance, *UniqueEnumName, false);
+	if(!ChoiceEnum)
+	{
+		// Enum does not exist, we need to create a corresponding enum.
+		static const EObjectFlags EnumObjectFlags = RF_Public | RF_Transient;
+		ChoiceEnum = NewNamedObject<UEnum>(ClassInstance, FName(*UniqueEnumName), EnumObjectFlags);
+	}
+
+	// Remove all previous meta data.
+	RemoveMetaDataFromEnum(ChoiceEnum);
+
+	FString EnumValueName, EnumFinalValue;
+	TArray<FName> EnumValues;
+	TArray<FString> EnumValueNames;
+	TArray<FString> EnumValueLabels;
+
+	// Retrieve string values for these parameters.
+	for(int ChoiceIdx = 0; ChoiceIdx < Choices.size(); ++ChoiceIdx)
+	{
+		// Process labels.
+		if(FHoudiniEngineUtils::GetHoudiniString(Choices[ChoiceIdx].labelSH, EnumValueName))
+		{
+			EnumValueLabels.Add(EnumValueName);
+
+			EnumFinalValue = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("enum_value_%s"), *EnumValueName));
+			EnumValues.Add(FName(*EnumFinalValue));
+			
+		}
+		else
+		{
+			break;
+		}
+
+		// Process names.
+		if(FHoudiniEngineUtils::GetHoudiniString(Choices[ChoiceIdx].valueSH, EnumValueName))
+		{
+			EnumValueNames.Add(EnumValueName);
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	// Make sure strings have been properly retrieved.
+	if(EnumValues.Num() != Choices.size())
+	{
+		ChoiceEnum->MarkPendingKill();
+		ChoiceEnum = nullptr;
+	}
+	else
+	{
+		// Set enum entries (this will also remove previous entries).
+		ChoiceEnum->SetEnums(EnumValues, false);
+
+		// We need to set meta data in a separate pass (as meta data requires enum being initialized).
+		for(int ChoiceIdx = 0; ChoiceIdx < Choices.size(); ++ChoiceIdx)
+		{
+			ChoiceEnum->SetMetaData(TEXT("DisplayName"), *(EnumValueLabels[ChoiceIdx]), ChoiceIdx);
+			ChoiceEnum->SetMetaData(TEXT("HoudiniName"), *(EnumValueNames[ChoiceIdx]), ChoiceIdx);
+		}
+	}
+
+	return ChoiceEnum;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset)
+{
+	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
+	static const uint64 PropertyFlags = UINT64_C(69793219077);
+
+	// We need to create or reuse an enum for this property.
+	UEnum* EnumType = Cast<UEnum>(CreateEnum(ClassInstance, Name, Choices));
+	if(!EnumType)
+	{
+		return nullptr;
+	}
+
+	UByteProperty* Property = FindObject<UByteProperty>(ClassInstance, *Name, false);
+	if(!Property)
+	{
+		Property = NewNamedObject<UByteProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
+	}
+
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
+	Property->PropertyFlags = PropertyFlags;
+
+	// Set the enum for this property.
+	Property->Enum = EnumType;
+
+	// Set property size. Larger than one indicates array.
+	Property->ArrayDim = 1;
+
+	// Enum uses unsigned byte.
+	uint8* Boundary = ComputeOffsetAlignmentBoundary<uint8>(Offset);
+	Offset = (const char*) Boundary - (const char*) this;
+
+	// Need to patch offset for this property.
+	ReplacePropertyOffset(Property, Offset);
+
+	// Write property data to which it refers by offset.
+	*Boundary = (uint8) Value;
+
+	// Increment offset for next property.
+	Offset = Offset + sizeof(uint8);
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset)
+{
+	// Store initial offset.
+	uint32 OffsetStored = Offset;
+
+	// Create enum property with default 0 value.
+	UByteProperty* Property = Cast<UByteProperty>(CreatePropertyEnum(ClassInstance, Name, Choices, 0, Offset));
+	if(Property)
+	{
+		// Get enum for this property.
+		UEnum* Enum = Property->Enum;
+
+		// Empty string means index 0 (comes from Houdini) and we created property with 0 index by default.
+		if(!ValueString.IsEmpty())
+		{
+			for(int Idx = 0; Idx < Enum->NumEnums(); ++Idx)
+			{
+				if(Enum->HasMetaData(TEXT("HoudiniName"), Idx))
+				{
+					const FString& HoudiniName = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
+
+					if(!HoudiniName.Compare(ValueString, ESearchCase::IgnoreCase))
+					{
+						// We need to repatch the value.
+						uint8* Boundary = ComputeOffsetAlignmentBoundary<uint8>(OffsetStored);
+						OffsetStored = (const char*)Boundary - (const char*) this;
+
+						// Need to patch offset for this property.
+						ReplacePropertyOffset(Property, OffsetStored);
+
+						// Write property data to which it refers by offset.
+						*Boundary = (uint8) Idx;
+
+						// Increment offset for next property.
+						Offset = OffsetStored + sizeof(uint8);
+
+						break;
+					}
+				}
+			}
+		}
+
+		// We will use meta information to mark this property as one corresponding to a string choice list.
+		Property->SetMetaData(TEXT("HoudiniStringChoiceList"), TEXT("1"));
+	}
+
+	return Property;
 }
 
 
@@ -1374,6 +1620,30 @@ UHoudiniAssetComponent::SetChangedParameterValues()
 				// Continue onto next offset.
 				ValueOffset += sizeof(FString);
 			}
+		}
+		else if(UByteProperty::StaticClass() == Property->GetClass())
+		{
+			UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
+
+			// Get index value at this offset.
+			int EnumValue = (int)(*(uint8*)((const char*) this + ValueOffset));
+
+			if(ByteProperty->HasMetaData(TEXT("HoudiniStringChoiceList")))
+			{
+				// This property corresponds to a string choice list.
+				FText EnumText = ByteProperty->Enum->GetEnumText(EnumValue);
+				std::string String = TCHAR_TO_ANSI(*EnumText.ToString());
+
+				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, 0));
+			}
+			else
+			{
+				// This property corresponds to an integer choice list.
+				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &EnumValue, ParamInfo.intValuesIndex, ParamInfo.size));
+			}
+
+			// Continue onto next offset.
+			ValueOffset += sizeof(uint8);
 		}
 		else if(UStructProperty::StaticClass() == Property->GetClass())
 		{

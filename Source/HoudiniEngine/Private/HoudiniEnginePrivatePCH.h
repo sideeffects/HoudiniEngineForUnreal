@@ -18,6 +18,7 @@
 /** Unreal headers. **/
 #include "CoreUObject.h"
 #include "UnrealEd.h"
+#include "ObjectTools.h"
 #include "EditorSupportDelegates.h"
 #include "AssetTypeActions_Base.h"
 #include "ModuleManager.h"

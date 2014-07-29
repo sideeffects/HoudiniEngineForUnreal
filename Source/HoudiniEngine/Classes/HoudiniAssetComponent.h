@@ -167,6 +167,14 @@ private:
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset);
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
 	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
+	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset);
+	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset);
+
+	/** Patch RTTI : Create an enum object. **/
+	UField* CreateEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices);
+
+	/** Patch RTTI : Remove all meta information from given enum object. **/
+	void RemoveMetaDataFromEnum(UEnum* EnumObject);
 
 	/** Set parameter values which have changed. **/
 	void SetChangedParameterValues();
