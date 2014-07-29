@@ -11,7 +11,7 @@ available right inside Unreal Engine.
 ## Supported Unreal Engine versions
 Currently, the supported Unreal Engine versions are:
 
-* 4.2
+* 4.3
 
 ## Installing from Source
 1. Have a local copy of Unreal Engine 4.2 checked out. Inside Unreal Engine copy navigate to Engine/Plugins/Runtime .

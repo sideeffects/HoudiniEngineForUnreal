@@ -494,13 +494,6 @@ UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 }
 
 
-int32
-UHoudiniAssetComponent::GetNumMaterials() const
-{
-	return 0;
-}
-
-
 void
 UHoudiniAssetComponent::CollectTextures()
 {
@@ -1644,9 +1637,6 @@ UHoudiniAssetComponent::SetChangedParameterValues()
 				// This property corresponds to an integer choice list.
 				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &EnumValue, ParamInfo.intValuesIndex, ParamInfo.size));
 			}
-
-			// Continue onto next offset.
-			ValueOffset += sizeof(uint8);
 		}
 		else if(UStructProperty::StaticClass() == Property->GetClass())
 		{
