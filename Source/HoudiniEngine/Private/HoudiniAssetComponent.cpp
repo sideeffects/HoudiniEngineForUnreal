@@ -105,13 +105,6 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 
 
 void
-UHoudiniAssetComponent::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-}
-
-
-void
 UHoudiniAssetComponent::SetNative(bool InbIsNativeComponent)
 {
 	bIsNativeComponent = InbIsNativeComponent;
@@ -823,6 +816,9 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmValuesStrings[0], 0, NodeInfo.parmStringValueCount), false);
 	}
 
+	// Reset list which keeps track of properties we have created.
+	CreatedProperties.Reset();
+
 	// We need to insert new properties and new children in the beginning of single link list.
 	// This way properties and children from the original class can be reused and will not have
 	// their next pointers altered.
@@ -1051,6 +1047,9 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		{
 			Property->SetMetaData(TEXT("ClampMax"), *FString::SanitizeFloat(ParmInfoIter.max));
 		}
+
+		// Store this property in a list of created properties.
+		CreatedProperties.Add(Property);
 
 		// Insert this newly created property in link list of properties.
 		if(!PropertyFirst)
@@ -1783,4 +1782,214 @@ UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentIn
 
 	Super::ApplyComponentInstanceData(ComponentInstanceData);
 	HOUDINI_LOG_MESSAGE(TEXT("Restoring data from caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
+}
+
+
+void
+UHoudiniAssetComponent::Serialize(FArchive& Ar)
+{
+	// Get patched class of this component.
+	UClass* ClassPatched = GetClass();
+
+	// Get original class of pre-patched component.
+	UClass* ClassOriginal = UHoudiniAssetComponent::StaticClass();
+
+	// We need to restore original class information.
+	ReplaceClassObject(ClassOriginal);
+
+	// Perform super class serialization.
+	Super::Serialize(Ar);
+
+	// Restore back the patched class.
+	ReplaceClassObject(ClassPatched);
+
+	if(!Ar.IsSaving() || !Ar.IsLoading())
+	{
+		return;
+	}
+
+	// Temporary termination.
+	return;
+
+	// Serialize asset information (package and name).
+	FString HoudiniAssetPackage;
+	FString HoudiniAssetName;
+
+	if(Ar.IsSaving())
+	{
+		check(HoudiniAsset);
+		
+		// Retrieve package and its name.
+		UPackage* Package = Cast<UPackage>(HoudiniAsset->GetOuter());
+		check(Package);
+		HoudiniAssetPackage = Package->FileName.ToString();
+
+		// Retrieve name of asset.
+		HoudiniAssetName = HoudiniAsset->GetName();
+	}
+
+	// Serialize package name and object name - we will need those to reconstruct / locate the asset.
+	Ar << HoudiniAssetPackage;
+	Ar << HoudiniAssetName;
+
+	// Loaded / looked up Houdini asset. Used during loading.
+	UHoudiniAsset* HoudiniAssetLookup = nullptr;
+
+	if(Ar.IsLoading())
+	{
+		// We need to locate corresponding package and load it if it is not loaded.
+		UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
+		if(!Package)
+		{
+			// Package was not loaded previously, we will try to load it.
+			Package = PackageTools::LoadPackage(HoudiniAssetPackage);
+		}
+
+		if(!Package)
+		{
+			// Package does not exist - this is a problem, we cannot continue.
+			check(Package);
+			return;
+		}
+
+		// At this point we can locate the asset, since package exists.
+		HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
+		if(!HoudiniAssetLookup)
+		{
+			// Asset by this name does not exist in package - this is a problem, we cannot continue.
+			check(HoudiniAssetLookup);
+			return;
+		}
+	}
+
+	// State of this component.
+	EHoudiniAssetComponentState::Type ComponentState = EHoudiniAssetComponentState::None;
+
+	if(Ar.IsSaving())
+	{
+		if(-1 != AssetId)
+		{
+			// Asset has been previously instantiated.
+		
+			if(HapiGUID.IsValid())
+			{
+				// Asset is being re-cooked asynchronously.
+				ComponentState = EHoudiniAssetComponentState::BeingCooked;
+			}
+			else
+			{
+				// We have no pending asynchronous cook requests.
+				ComponentState = EHoudiniAssetComponentState::Instantiated;
+			}
+		}
+		else
+		{
+			check(HapiGUID.IsValid());
+
+			// Asset has not been instantiated and therefore must have asynchronous instantiation request in progress.
+			ComponentState = EHoudiniAssetComponentState::None;
+		}
+	}
+
+	// Serialize component state.
+	Ar << ComponentState;
+
+	if(Ar.IsLoading() && (EHoudiniAssetComponentState::None == ComponentState))
+	{
+		// This is the simplest of all cases - component was saved during asset instantiation. We still need to instantiate.
+
+		check(!HapiGUID.IsValid());
+
+		// Set asset for this component. This will trigger asynchronous instantiation.
+		SetHoudiniAsset(HoudiniAssetLookup);
+
+		// Nothing left to be done for this path. Asynchronous instantiation will take care of everything else.
+		return;
+	}
+
+	// Serialize scratch space size.
+	int64 ScratchSpaceSize = HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE;
+	Ar << ScratchSpaceSize;
+
+	if(Ar.IsLoading())
+	{
+		// Make sure scratch space size is suitable. We need to check this because size is defined by compile time constant.
+		check(ScratchSpaceSize <= HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
+	}
+
+	// Serialize scratch space itself.
+	Ar.Serialize(&ScratchSpaceBuffer[0], ScratchSpaceSize);
+
+	// Serialize created properties.
+	if(Ar.IsSaving())
+	{
+		// Save number of properties.
+		int PropertyCount = CreatedProperties.Num();
+		Ar << PropertyCount;
+
+		for(int PropertyIdx = 0; PropertyIdx < CreatedProperties.Num(); ++PropertyIdx)
+		{
+			// Get property at this index.
+			UProperty* Property = CreatedProperties[PropertyIdx];
+
+			// Type of property.
+			EHoudiniEngineProperty::Type PropertyType = EHoudiniEngineProperty::None;
+
+			if(UIntProperty::StaticClass() == Property->GetClass())
+			{
+				PropertyType = EHoudiniEngineProperty::Integer;
+			}
+			else if(UBoolProperty::StaticClass() == Property->GetClass())
+			{
+				PropertyType = EHoudiniEngineProperty::Boolean;
+			}
+			else if(UFloatProperty::StaticClass() == Property->GetClass())
+			{
+				PropertyType = EHoudiniEngineProperty::Float;
+			}
+			else if(UStrProperty::StaticClass() == Property->GetClass())
+			{
+				PropertyType = EHoudiniEngineProperty::String;
+			}
+			else if(UByteProperty::StaticClass() == Property->GetClass())
+			{
+				PropertyType = EHoudiniEngineProperty::Enumeration;
+			}
+			else if(UStructProperty::StaticClass() == Property->GetClass())
+			{
+				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+
+				if(UHoudiniAssetComponent::ScriptStructColor == StructProperty->Struct)
+				{
+					PropertyType = EHoudiniEngineProperty::Color;
+				}
+			}
+
+			// Save property type.
+			Ar << PropertyType;
+
+			// Save dimensionality of this property.
+			Ar << Property->ArrayDim;
+
+			// Save property flags.
+			Ar << Property->PropertyFlags;
+
+			// Save property offset.
+			int PropertyOffset = Property->GetOffset_ForDebug();
+			Ar << PropertyOffset;
+
+			if(EHoudiniEngineProperty::None == PropertyType)
+			{
+				// We have encountered an unsupported property type, nothing else to do.
+				check(false);
+				continue;
+			}
+
+			// Need to serialize enum, color.
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+	
+	}
 }

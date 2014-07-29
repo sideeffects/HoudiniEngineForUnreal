@@ -56,11 +56,13 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
 	}
 
 	// Use Houdini logo for geometry.
+	/*
 	{
 		FBoxSphereBounds SphereBounds;
 		FHoudiniEngineUtils::GetHoudiniLogoGeometry(PreviewHoudiniMeshTriangles, SphereBounds);
 		bPreviewHoudiniLogo = true;
 	}
+	*/
 }
 
 
@@ -169,7 +171,7 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 			Ar.Serialize(AssetBytes, AssetBytesCount);
 		}
 	}
-
+	/*
 	{
 		FScopeLock ScopeLock(&CriticalSection);
 
@@ -200,4 +202,5 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 			}
 		}
 	}
+	*/
 }
