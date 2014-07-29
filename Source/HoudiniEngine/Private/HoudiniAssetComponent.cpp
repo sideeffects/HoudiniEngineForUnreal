@@ -1235,6 +1235,9 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 		// Get enum for this property.
 		UEnum* Enum = Property->Enum;
 
+		// Sanitize name for comparison.
+		FString ValueStringCompare = ObjectTools::SanitizeObjectName(ValueString);
+
 		// Empty string means index 0 (comes from Houdini) and we created property with 0 index by default.
 		if(!ValueString.IsEmpty())
 		{
@@ -1244,7 +1247,7 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 				{
 					const FString& HoudiniName = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
 
-					if(!HoudiniName.Compare(ValueString, ESearchCase::IgnoreCase))
+					if(!HoudiniName.Compare(ValueStringCompare, ESearchCase::IgnoreCase))
 					{
 						// We need to repatch the value.
 						uint8* Boundary = ComputeOffsetAlignmentBoundary<uint8>(OffsetStored);
