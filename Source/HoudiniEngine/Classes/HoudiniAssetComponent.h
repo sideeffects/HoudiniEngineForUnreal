@@ -134,10 +134,6 @@ private: /** UPrimitiveComponent methods. **/
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 
-private: /** UMeshComponent methods. **/
-
-	virtual int32 GetNumMaterials() const override;
-
 private: /** USceneComponent methods. **/
 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;

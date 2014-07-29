@@ -41,7 +41,7 @@ AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	if(HoudiniAssetComponent.IsValid())
 	{
-		// Retrieve the asset associated with this component.
+		// Retrieve asset associated with this component.
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
 		if(HoudiniAsset)
 		{
