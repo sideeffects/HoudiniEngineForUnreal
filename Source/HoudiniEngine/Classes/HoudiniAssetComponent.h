@@ -224,8 +224,11 @@ protected:
 	/** Array of asset objects geos. **/
 	TArray<FHoudiniAssetObjectGeo*> HoudiniAssetObjectGeos;
 
-	/** Array of properties that have changed. Will force object recook. **/
+	/** Set of properties that have changed. Will force object recook. **/
 	TSet<UProperty*> ChangedProperties;
+
+	/** Array of properties we have created. We keep these for serialization purposes. **/
+	TArray<UProperty*> CreatedProperties;
 
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
