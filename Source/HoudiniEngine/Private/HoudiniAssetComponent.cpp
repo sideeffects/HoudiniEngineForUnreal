@@ -1920,7 +1920,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize scratch space itself.
 	Ar.Serialize(&ScratchSpaceBuffer[0], ScratchSpaceSize);
 
-	// Serialize created properties.
+	// Serialize generated properties.
 	if(Ar.IsSaving())
 	{
 		// Save number of properties.
@@ -2034,4 +2034,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	{
 	
 	}
+
+	// Serialize geos.
+
 }
