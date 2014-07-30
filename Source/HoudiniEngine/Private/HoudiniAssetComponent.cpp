@@ -1803,7 +1803,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Restore back the patched class.
 	ReplaceClassObject(ClassPatched);
 
-	if(!Ar.IsSaving() || !Ar.IsLoading())
+	if(!Ar.IsSaving() || !Ar.IsLoading() || Ar.IsTransacting())
 	{
 		return;
 	}
@@ -1985,7 +1985,49 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				continue;
 			}
 
-			// Need to serialize enum, color.
+			// Serialize any meta information for this property.
+			{
+				TMap<FName, FString>* PropertyMeta = UMetaData::GetMapForObject(Property);
+				bool PropertyMetaFound = (PropertyMeta != nullptr);
+				Ar << PropertyMetaFound;
+			
+				if(PropertyMetaFound)
+				{
+					Ar << *PropertyMeta;
+				}
+			}
+
+			// If this is an enum property, we need to serialize its associated enum.
+			if(EHoudiniEngineProperty::Enumeration == PropertyType)
+			{
+				UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
+				UEnum* Enum = EnumProperty->Enum;
+
+				// Retrieve name of this enum and store it.
+				FString EnumName = Enum->GetName();
+				Ar << EnumName;
+
+				// Get number of enum entries (skip one because of auto generated MAX entry).
+				int32 EnumEntryCount = Enum->NumEnums() - 1;
+				Ar << EnumEntryCount;
+
+				for(int EnumEntryIdx = 0; EnumEntryIdx < EnumEntryCount; ++EnumEntryIdx)
+				{
+					// Get name for this entry and store it.
+					FString EnumEntryName = Enum->GetEnumName(EnumEntryIdx);
+					Ar << EnumEntryName;
+
+					// We also need to serialize meta data for this entry.
+					{
+						FString EnumEntryMeta = Enum->GetMetaData(TEXT("DisplayName"), EnumEntryIdx);
+						Ar << EnumEntryMeta;
+					}
+					{
+						FString EnumEntryMeta = Enum->GetMetaData(TEXT("HoudiniName"), EnumEntryIdx);
+						Ar << EnumEntryMeta;
+					}
+				}
+			}
 		}
 	}
 	else if(Ar.IsLoading())
