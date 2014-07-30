@@ -42,7 +42,37 @@ FHoudiniAssetObjectGeoPart::~FHoudiniAssetObjectGeoPart()
 void
 FHoudiniAssetObjectGeoPart::Serialize(FArchive& Ar)
 {
+	// Serialize number of indices.
+	int32 NumIndices = Indices.Num();
+	Ar << NumIndices;
 
+	if(NumIndices)
+	{
+		for(int32 Idx = 0; Idx < NumIndices; ++Idx)
+		{
+			int32 Index = -1;
+
+			if(Ar.IsSaving())
+			{
+				Index = Indices[Idx];
+			}
+
+			Ar << Index;
+
+			if(Ar.IsLoading())
+			{
+				Indices.Add(Index);
+			}
+		}
+	}
+
+	// Serialize bounding volume.
+	Ar << BoundingVolume;
+
+	// Serialize Material information.
+	//bool MaterialPresent = (Material != nullptr);
+	bool MaterialPresent = false;
+	Ar << MaterialPresent;
 }
 
 

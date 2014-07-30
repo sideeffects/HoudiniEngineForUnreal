@@ -97,6 +97,12 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 		}
 	}
 
+	// Serialize transform.
+	Ar << Transform;
+
+	// Serialize multiple materials flag.
+	Ar << bMultipleMaterials;
+
 	// Serialize parts.
 	for(TArray<FHoudiniAssetObjectGeoPart*>::TIterator Iter = HoudiniAssetObjectGeoParts.CreateIterator(); Iter; ++Iter)
 	{
