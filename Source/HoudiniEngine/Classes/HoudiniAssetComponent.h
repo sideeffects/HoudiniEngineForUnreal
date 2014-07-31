@@ -140,6 +140,11 @@ private: /** USceneComponent methods. **/
 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
+private: /** FEditorDelegates delegates. **/
+
+	void OnPreSaveWorld(uint32 SaveFlags, class UWorld* World);
+	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
+
 protected:
 
 	/** Patch RTTI : patch class information for this component's class based on given Houdini Asset. **/
@@ -173,6 +178,12 @@ private:
 
 	/** Patch RTTI : Remove all meta information from given enum object. **/
 	void RemoveMetaDataFromEnum(UEnum* EnumObject);
+
+	/** Subscribe to World Save events. **/
+	void SubscribeSaveWorldDelegates();
+
+	/** Unsubscribe from World Save events. **/
+	void UnsubscribeSaveWorldDelegates();
 
 	/** Set parameter values which have changed. **/
 	void SetChangedParameterValues();
@@ -252,6 +263,9 @@ protected:
 
 	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
 	FTimerDelegate TimerDelegate;
+
+	/** Patched class information. We store this here because we need sometimes to unroll back to original class information. **/
+	UClass* PatchedClass;
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
