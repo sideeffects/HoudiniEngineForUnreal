@@ -31,6 +31,9 @@ public:
 	/** Return true if this actor is used for preview. **/
 	bool IsUsedForPreview() const;
 
+	/** Return actor component. **/
+	UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
+
 public: /** AActor methods. **/
 
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;

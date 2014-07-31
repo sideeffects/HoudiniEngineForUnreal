@@ -44,7 +44,7 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor* Instance)
 	AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(Instance);
 
 	check(HoudiniAssetActor->HoudiniAssetComponent);
-	return HoudiniAssetActor->HoudiniAssetComponent->HoudiniAsset;
+	return HoudiniAssetActor->GetHoudiniAssetComponent()->HoudiniAsset;
 }
 
 
@@ -57,7 +57,7 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	if(HoudiniAsset)
 	{
 		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
-		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 		check(HoudiniAssetComponent);
 
 		// Mark this component as native.
@@ -79,7 +79,7 @@ UHoudiniAssetActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 	if(HoudiniAsset)
 	{
 		AHoudiniAssetActor* HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(CDO);
-		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->HoudiniAssetComponent;
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 		HoudiniAssetComponent->HoudiniAsset = HoudiniAsset;
 	}
 }
