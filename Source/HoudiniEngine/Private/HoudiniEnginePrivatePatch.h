@@ -56,3 +56,11 @@ namespace PrivatePatch
 		(b.*PrivatePatch::Result<PATCH_ACCESSOR>::ptr)(PATCH_PARAM);			\
 	}																			\
 	while(0)
+
+#define HOUDINI_PRIVATE_CALL_EXT(PATCH_ACCESSOR, PATCH_BASECLASS, PATCH_INSTANCE, PATCH_PARAM)		\
+	do																								\
+	{																								\
+		PATCH_BASECLASS& b = *PATCH_INSTANCE;														\
+		(b.*PrivatePatch::Result<PATCH_ACCESSOR>::ptr)(PATCH_PARAM);								\
+	}																								\
+	while(0)

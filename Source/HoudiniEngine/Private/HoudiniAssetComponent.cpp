@@ -686,24 +686,25 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel)
 		// Construct unique name for this class.
 		FString PatchedClassName = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("%s_%s"), *GetClass()->GetName(), *ActorLabel));
 
+		// We need to rename this component.
+		Rename(*PatchedClassName, GetOuter(), REN_DoNotDirty);
+
 		// Create new class instance.
 		//static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet;
-		static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone;
+		//static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_ClassDefaultObject;
+		static const EObjectFlags PatchedClassFlags = RF_Public | RF_Standalone | RF_NeedLoad | RF_NeedPostLoad;
 
 		// Construct the new class instance.
 		PatchedClass = ConstructObject<UClass>(UClass::StaticClass(), GetOutermost(), FName(*PatchedClassName), PatchedClassFlags, ClassOfUHoudiniAssetComponent, true);
 
-		// Use same class flags as the original class.
-		PatchedClass->ClassFlags = UHoudiniAssetComponent::StaticClassFlags;
+		// Use same class flags as the original class. Also make sure we remove intrinsic flag.
+		PatchedClass->ClassFlags = UHoudiniAssetComponent::StaticClassFlags & ~CLASS_Intrinsic;
 
 		// Use same class cast flags as the original class (these are used for quick casting between common types).
 		PatchedClass->ClassCastFlags = UHoudiniAssetComponent::StaticClassCastFlags();
 
 		// Use same class configuration name.
 		PatchedClass->ClassConfigName = UHoudiniAssetComponent::StaticConfigName();
-
-		// Reuse class default object (this is essentially a template object used for construction).
-		PatchedClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
 
 		// We will reuse the same constructor as nothing has really changed.
 		PatchedClass->ClassConstructor = ClassOfUHoudiniAssetComponent->ClassConstructor;
@@ -717,8 +718,11 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel)
 		// Properties size does not change as we use the same fixed size buffer.
 		PatchedClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
 
-		//PatchedClass->SetSuperStruct(UMeshComponent::StaticClass()->GetSuperStruct());
-		PatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
+		// Set super class (we are deriving from UHoudiniAssetComponent).
+		PatchedClass->SetSuperStruct(ClassOfUHoudiniAssetComponent);
+
+		// Create Class default object.
+		PatchedClass->GetDefaultObject(true);
 
 		// List of replication records.
 		PatchedClass->ClassReps = ClassOfUHoudiniAssetComponent->ClassReps;
@@ -1786,8 +1790,25 @@ UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentIn
 
 
 void
+UHoudiniAssetComponent::PreSave()
+{
+	Super::PreSave();
+}
+
+
+void
+UHoudiniAssetComponent::PostLoad()
+{
+	Super::PostLoad();
+}
+
+
+void
 UHoudiniAssetComponent::Serialize(FArchive& Ar)
 {
+	Super::Serialize(Ar);
+
+	/*
 	// Get patched class of this component.
 	UClass* ClassPatched = GetClass();
 
@@ -1802,14 +1823,51 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Restore back the patched class.
 	ReplaceClassObject(ClassPatched);
+	*/
 
-	if(!Ar.IsSaving() || !Ar.IsLoading() || Ar.IsTransacting())
+	/*
+	if(Ar.IsTransacting())
+	{
+		// We have no support for transactions (undo system) right now.
+		return;
+	}
+
+	if(!Ar.IsSaving() && !Ar.IsLoading())
 	{
 		return;
 	}
 
-	// Temporary termination.
-	return;
+	// State of this component.
+	EHoudiniAssetComponentState::Type ComponentState = EHoudiniAssetComponentState::None;
+
+	if(Ar.IsSaving())
+	{
+		if(-1 != AssetId)
+		{
+			// Asset has been previously instantiated.
+
+			if(HapiGUID.IsValid())
+			{
+				// Asset is being re-cooked asynchronously.
+				ComponentState = EHoudiniAssetComponentState::BeingCooked;
+			}
+			else
+			{
+				// We have no pending asynchronous cook requests.
+				ComponentState = EHoudiniAssetComponentState::Instantiated;
+			}
+		}
+		else
+		{
+			check(!HapiGUID.IsValid());
+
+			// Asset has not been instantiated and therefore must have asynchronous instantiation request in progress.
+			ComponentState = EHoudiniAssetComponentState::None;
+		}
+	}
+
+	// Serialize component state.
+	Ar << ComponentState;
 
 	// Serialize asset information (package and name).
 	FString HoudiniAssetPackage;
@@ -1861,38 +1919,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			return;
 		}
 	}
-
-	// State of this component.
-	EHoudiniAssetComponentState::Type ComponentState = EHoudiniAssetComponentState::None;
-
-	if(Ar.IsSaving())
-	{
-		if(-1 != AssetId)
-		{
-			// Asset has been previously instantiated.
-		
-			if(HapiGUID.IsValid())
-			{
-				// Asset is being re-cooked asynchronously.
-				ComponentState = EHoudiniAssetComponentState::BeingCooked;
-			}
-			else
-			{
-				// We have no pending asynchronous cook requests.
-				ComponentState = EHoudiniAssetComponentState::Instantiated;
-			}
-		}
-		else
-		{
-			check(HapiGUID.IsValid());
-
-			// Asset has not been instantiated and therefore must have asynchronous instantiation request in progress.
-			ComponentState = EHoudiniAssetComponentState::None;
-		}
-	}
-
-	// Serialize component state.
-	Ar << ComponentState;
 
 	if(Ar.IsLoading() && (EHoudiniAssetComponentState::None == ComponentState))
 	{
@@ -2036,5 +2062,17 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	// Serialize geos.
-
+	if(Ar.IsSaving())
+	{
+		for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
+		{
+			FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
+			HoudiniAssetObjectGeo->Serialize(Ar);
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+	
+	}
+*/
 }

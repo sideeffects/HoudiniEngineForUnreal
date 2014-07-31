@@ -25,7 +25,15 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties&
 	HoudiniAssetComponent = PCIP.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	RootComponent = HoudiniAssetComponent;
+
 	HoudiniAssetComponent->HoudiniAssetActorOwner = this;
+}
+
+
+UHoudiniAssetComponent*
+AHoudiniAssetActor::GetHoudiniAssetComponent() const
+{
+	return HoudiniAssetComponent.Get();
 }
 
 
@@ -42,7 +50,7 @@ AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 	if(HoudiniAssetComponent.IsValid())
 	{
 		// Retrieve asset associated with this component.
-		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+		UHoudiniAsset* HoudiniAsset = GetHoudiniAssetComponent()->GetHoudiniAsset();
 		if(HoudiniAsset)
 		{
 			Objects.Add(HoudiniAsset);
