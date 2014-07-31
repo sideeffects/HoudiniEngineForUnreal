@@ -55,6 +55,11 @@ namespace EHoudiniAssetComponentState
 
 	enum Type
 	{
+		/** Invalid type corresponds to state when component has been created, but is in invalid state. It had no **/
+		/** Houdini asset assigned. Typically this will be the case when component instance is a default class    **/
+		/** object or belongs to an actor instance which is a default class object also.                          **/
+		Invalid,
+
 		/** None type corresponds to state when component has been created, but corresponding Houdini asset has not **/
 		/** been instantiated.                                                                                      **/
 		None,

@@ -52,6 +52,7 @@
 
 #pragma once
 #include "HAPI.h"
+#include "HoudiniEngineSerialization.h"
 #include "HoudiniAssetComponent.generated.h"
 
 class UClass;
@@ -80,7 +81,7 @@ public:
 	UHoudiniAsset* HoudiniAsset;
 
 	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
-	//UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=Textures)
+	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=Textures)
 	TArray<UTexture2D*> HoudiniTextures;
 
 public:
@@ -148,7 +149,7 @@ private: /** FEditorDelegates delegates. **/
 protected:
 
 	/** Patch RTTI : patch class information for this component's class based on given Houdini Asset. **/
-	void ReplaceClassInformation(const FString& ActorLabel);
+	void ReplaceClassInformation(const FString& ActorLabel, bool bReplace = true);
 
 private:
 
@@ -164,12 +165,26 @@ private:
 	/** Patch RTTI : replace property offset data. **/
 	void ReplacePropertyOffset(UProperty* Property, int Offset);
 
-	/** Patch RTTI : Create various properties. **/
+	/** Patch RTTI : Create property based on given type. **/
+	UProperty* CreateProperty(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags, EHoudiniEngineProperty::Type PropertyType);
+
+	/** Patch RTTI : Create Integer property. **/
 	UProperty* CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset);
+
+	/** Patch RTTI : Create Float property. **/
+	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
+
+	/** Patch RTTI : Create Toggle property. **/
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset);
+
+	/** Patch RTTI : Create Color property. **/
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
+
+	/** Patch RTTI: Create String property. **/
 	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
+
+	/** Patch RTTI: Create Enumeration property. **/
 	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset);
 	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset);
 
@@ -190,6 +205,9 @@ private:
 
 	/** Helper function to compute proper alignment boundary at a given offset for a specified type. **/
 	template <typename TType> TType* ComputeOffsetAlignmentBoundary(uint32 Offset) const;
+
+	/** Return property type for a given property. **/
+	EHoudiniEngineProperty::Type GetPropertyType(UProperty* Property) const;
 
 	/** Update rendering information. **/
 	void UpdateRenderingInformation();
@@ -228,6 +246,11 @@ public:
 
 	/** Some RTTI classes which are used during property construction. **/
 	static UScriptStruct* ScriptStructColor;
+
+private:
+
+	/** Patch class counter, we need this to generate unique ids. **/
+	static uint32 ComponentPatchedClassCounter;
 
 protected:
 
@@ -278,6 +301,9 @@ protected:
 
 	/** Is set to true when asynchronous rendering resources release has been started. Kept for debugging purposes. **/
 	bool bAsyncResourceReleaseHasBeenStarted;
+
+	/** Is set to true when PreSave has been triggered. **/
+	bool bPreSaveTriggered;
 
 private:
 
