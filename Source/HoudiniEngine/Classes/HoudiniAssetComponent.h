@@ -178,6 +178,7 @@ private:
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset);
 
 	/** Patch RTTI : Create Color property. **/
+	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
 
 	/** Patch RTTI: Create String property. **/
