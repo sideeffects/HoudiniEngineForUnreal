@@ -16,6 +16,14 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart() :
+	Material(nullptr),
+	HoudiniMeshIndexBuffer(nullptr)
+{
+
+}
+
+
 FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices, UHoudiniAssetMaterial* InMaterial) :
 	Material(InMaterial),
 	HoudiniMeshIndexBuffer(nullptr)

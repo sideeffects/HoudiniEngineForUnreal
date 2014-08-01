@@ -16,6 +16,15 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
+	HoudiniMeshVertexBuffer(nullptr),
+	HoudiniMeshVertexFactory(nullptr),
+	bMultipleMaterials(false)
+{
+	Transform = FMatrix::Identity;
+}
+
+
 FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform) :
 	Transform(InTransform),
 	HoudiniMeshVertexBuffer(nullptr),
@@ -104,10 +113,29 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 	Ar << bMultipleMaterials;
 
 	// Serialize parts.
-	for(TArray<FHoudiniAssetObjectGeoPart*>::TIterator Iter = HoudiniAssetObjectGeoParts.CreateIterator(); Iter; ++Iter)
+	int32 NumParts = HoudiniAssetObjectGeoParts.Num();
+	Ar << NumParts;
+
+	for(int32 PartIdx = 0; PartIdx < NumParts; ++PartIdx)
 	{
-		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = *Iter;
+		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = nullptr;
+
+		if(Ar.IsSaving())
+		{
+			HoudiniAssetObjectGeoPart = HoudiniAssetObjectGeoParts[PartIdx];
+		}
+		else if(Ar.IsLoading())
+		{
+			HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart();
+		}
+
+		check(HoudiniAssetObjectGeoPart);
 		HoudiniAssetObjectGeoPart->Serialize(Ar);
+
+		if(Ar.IsLoading())
+		{
+			HoudiniAssetObjectGeoParts.Add(HoudiniAssetObjectGeoPart);
+		}
 	}
 }
 
