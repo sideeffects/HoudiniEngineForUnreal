@@ -1320,8 +1320,13 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 			break;
 		}
 
-		case EHoudiniEngineProperty::Color:
 		case EHoudiniEngineProperty::String:
+		{
+			Property = CreatePropertyString(ClassInstance, Name, PropertyFlags);
+			break;
+		}
+
+		case EHoudiniEngineProperty::Color:
 		case EHoudiniEngineProperty::Enumeration:
 		default:
 		{
@@ -1439,9 +1444,28 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
+
+	UStrProperty* Property = FindObject<UStrProperty>(ClassInstance, *Name, false);
+	if(!Property)
+	{
+		// Property does not exist, we need to create it.
+		Property = NewNamedObject<UStrProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
+	}
+
+	Property->PropertyFlags = PropertyFlags;
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset)
+{
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
 
 	// Ignore parameters with size zero.
@@ -1450,15 +1474,8 @@ UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FStrin
 		return nullptr;
 	}
 
-	UStrProperty* Property = FindObject<UStrProperty>(ClassInstance, *Name, false);
-	if(!Property)
-	{
-		Property = NewNamedObject<UStrProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
-	}
-	
-	Property->PropertyLinkNext = nullptr;
-	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
-	Property->PropertyFlags = PropertyFlags;
+	// Create property or locate existing.
+	UProperty* Property = CreatePropertyString(ClassInstance, Name, PropertyFlags);
 
 	// Set property size. Larger than one indicates array.
 	Property->ArrayDim = Count;
@@ -2097,6 +2114,9 @@ UHoudiniAssetComponent::PostLoad()
 				ChildLast->Next = Property;
 				ChildLast = Property;
 			}
+
+			// We also need to add this property to a set of changed properties.
+			ChangedProperties.Add(Property);
 		}
 
 		// We can remove all serialized stored properties.

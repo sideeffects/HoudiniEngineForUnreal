@@ -181,6 +181,7 @@ private:
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
 
 	/** Patch RTTI: Create String property. **/
+	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
 	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
 
 	/** Patch RTTI: Create Enumeration property. **/
