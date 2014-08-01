@@ -2155,7 +2155,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		// Retrieve package and its name.
 		UPackage* Package = Cast<UPackage>(HoudiniAsset->GetOuter());
 		check(Package);
-		HoudiniAssetPackage = Package->FileName.ToString();
+		Package->GetName(HoudiniAssetPackage);
 
 		// Retrieve name of asset.
 		HoudiniAssetName = HoudiniAsset->GetName();
