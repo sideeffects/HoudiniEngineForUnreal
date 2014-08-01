@@ -43,7 +43,7 @@ protected:
 	void ProcessQueuedTasks();
 
 	/** Task : instantiate an asset. **/
-	void TaskInstantiateAsset(const FHoudiniEngineTask& Task);
+	void TaskInstantiateAsset(const FHoudiniEngineTask& Task, bool bCook = true);
 
 	/** Task : cook an asset. **/
 	void TaskCookAsset(const FHoudiniEngineTask& Task);

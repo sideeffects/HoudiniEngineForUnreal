@@ -181,13 +181,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset, bool bLoa
 
 	if(!bIsPreviewComponent)
 	{
-		
-
-		if(bLoadedComponent)
-		{
-			// This is a new component created by loading during serialization.
-		}
-		else
+		if(!bLoadedComponent)
 		{
 			// This is a new component which was created by dragging asset.
 
@@ -307,6 +301,26 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 			switch(TaskInfo.TaskState)
 			{
+				case EHoudiniEngineTaskState::FinishedInstantiationWithoutCooking:
+				{
+					// Set new asset id.
+					SetAssetId(TaskInfo.AssetId);
+
+					if(-1 == TaskInfo.AssetId)
+					{
+						bStopTicking = true;
+						HOUDINI_LOG_MESSAGE(TEXT("Received invalid asset id."));
+					}
+
+					// Otherwise we do not stop ticking, as we want to schedule a cook task right away (after submitting
+					// all changed parameters).
+
+					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
+					HapiGUID.Invalidate();
+
+					break;
+				}
+
 				case EHoudiniEngineTaskState::FinishedInstantiation:
 				case EHoudiniEngineTaskState::FinishedCooking:
 				{
@@ -406,6 +420,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				case EHoudiniEngineTaskState::Aborted:
 				case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
 				case EHoudiniEngineTaskState::FinishedCookingWithErrors:
+				case EHoudiniEngineTaskState::FinishedInstantiationWithoutCookingWithErrors:
 				{
 					HOUDINI_LOG_MESSAGE(TEXT("Failed asset instantiation."));
 
@@ -461,20 +476,34 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	{
 		// If we are not cooking and we have property changes queued up.
 
-		// We need to set all parameter values which have changed.
-		SetChangedParameterValues();
-
-		// Remove all processed parameters.
-		ChangedProperties.Empty();
-
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
 
-		// Create asset instantiation task object and submit it for processing.
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-		Task.ActorName = HoudiniAssetActor->GetActorLabel();
-		Task.AssetComponent = this;
-		FHoudiniEngine::Get().AddTask(Task);
+		if(-1 == AssetId)
+		{
+			// We have property changes, but no asset. This can only happen when user changes a property on a
+			// component which has been loaded. In this case we need to start Houdini asset instantiation.
+
+			// Create asset instantiation task object and submit it for processing.
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiationWithoutCooking, HapiGUID);
+			Task.ActorName = HoudiniAssetActor->GetActorLabel();
+			Task.Asset = HoudiniAsset;
+			FHoudiniEngine::Get().AddTask(Task);
+		}
+		else
+		{
+			// We need to set all parameter values which have changed.
+			SetChangedParameterValues();
+
+			// Remove all processed parameters.
+			ChangedProperties.Empty();
+
+			// Create asset instantiation task object and submit it for processing.
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+			Task.ActorName = HoudiniAssetActor->GetActorLabel();
+			Task.AssetComponent = this;
+			FHoudiniEngine::Get().AddTask(Task);
+		}
 
 		// We do not want to stop ticking system as we have just submitted a task.
 		bStopTicking = false;
@@ -1280,9 +1309,19 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 			break;
 		}
 
-		case EHoudiniEngineProperty::Color:
 		case EHoudiniEngineProperty::Integer:
+		{
+			Property = CreatePropertyInt(ClassInstance, Name, PropertyFlags);
+			break;
+		}
+
 		case EHoudiniEngineProperty::Boolean:
+		{
+			Property = CreatePropertyToggle(ClassInstance, Name, PropertyFlags);
+			break;
+		}
+
+		case EHoudiniEngineProperty::Color:
 		case EHoudiniEngineProperty::String:
 		case EHoudiniEngineProperty::Enumeration:
 		default:
@@ -1523,16 +1562,9 @@ UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
-	static const uint64 PropertyFlags =  UINT64_C(69793219077);
-
-	// Ignore parameters with size zero.
-	if(!Count)
-	{
-		return nullptr;
-	}
 
 	UIntProperty* Property = FindObject<UIntProperty>(ClassInstance, *Name, false);
 	if(!Property)
@@ -1541,9 +1573,27 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& 
 		Property = NewNamedObject<UIntProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
 	}
 
+	Property->PropertyFlags = PropertyFlags;
 	Property->PropertyLinkNext = nullptr;
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
-	Property->PropertyFlags = PropertyFlags;
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset)
+{
+	static const uint64 PropertyFlags =  UINT64_C(69793219077);
+
+	// Ignore parameters with size zero.
+	if(!Count)
+	{
+		return nullptr;
+	}
+
+	// Create property or locate existing.
+	UProperty* Property = CreatePropertyInt(ClassInstance, Name, PropertyFlags);
 
 	// Set property size. Larger than one indicates array.
 	Property->ArrayDim = Count;
@@ -1626,16 +1676,9 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FString
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
-	static const uint64 PropertyFlags = UINT64_C(69793219077);
-
-	// Ignore parameters with size zero.
-	if(!Count)
-	{
-		return nullptr;
-	}
 
 	UBoolProperty* Property = FindObject<UBoolProperty>(ClassInstance, *Name, false);
 	if(!Property)
@@ -1644,10 +1687,28 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FStrin
 		Property = NewNamedObject<UBoolProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
 	}
 
+	Property->SetBoolSize(sizeof(bool), true);
+	Property->PropertyFlags = PropertyFlags;
 	Property->PropertyLinkNext = nullptr;
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
-	Property->PropertyFlags = PropertyFlags;
-	Property->SetBoolSize(sizeof(bool), true);
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset)
+{
+	static const uint64 PropertyFlags = UINT64_C(69793219077);
+
+	// Ignore parameters with size zero.
+	if(!Count)
+	{
+		return nullptr;
+	}
+
+	// Create property or locate existing.
+	UProperty* Property = CreatePropertyToggle(ClassInstance, Name, PropertyFlags);
 
 	// Set property size. Larger than one indicates array.
 	Property->ArrayDim = Count;
