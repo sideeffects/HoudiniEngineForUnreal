@@ -1327,6 +1327,11 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 		}
 
 		case EHoudiniEngineProperty::Color:
+		{
+			Property = CreatePropertyColor(ClassInstance, Name, PropertyFlags);
+			break;
+		}
+
 		case EHoudiniEngineProperty::Enumeration:
 		default:
 		{
@@ -1509,16 +1514,9 @@ UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FStrin
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
-	static const uint64 PropertyFlags = UINT64_C(69793219077);
-
-	// Color must have 3 or 4 fields.
-	if(Count < 3)
-	{
-		return nullptr;
-	}
 
 	if(!UHoudiniAssetComponent::ScriptStructColor)
 	{
@@ -1543,6 +1541,23 @@ UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString
 	Property->PropertyLinkNext = nullptr;
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset)
+{
+	static const uint64 PropertyFlags = UINT64_C(69793219077);
+
+	// Color must have 3 or 4 fields.
+	if(Count < 3)
+	{
+		return nullptr;
+	}
+
+	UProperty* Property = CreatePropertyColor(ClassInstance, Name, PropertyFlags);
 
 	FColor ConvertedColor;
 
