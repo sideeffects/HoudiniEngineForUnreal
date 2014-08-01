@@ -181,21 +181,22 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset, bool bLoa
 
 	if(!bIsPreviewComponent)
 	{
-		if(!bLoadedComponent)
+		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
+		if(bLoadedComponent)
 		{
-			// This is a new component which was created by dragging asset.
-
-			// Create new GUID to identify this request.
-			HapiGUID = FGuid::NewGuid();
-
-			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
-			Task.Asset = InHoudiniAsset;
-			Task.ActorName = HoudiniAssetActor->GetActorLabel();
-			FHoudiniEngine::Get().AddTask(Task);
-
-			// Start ticking - this will poll the cooking system for completion.
-			StartHoudiniTicking();
+			HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiationWithoutCooking;
 		}
+
+		// Create new GUID to identify this request.
+		HapiGUID = FGuid::NewGuid();
+
+		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
+		Task.Asset = InHoudiniAsset;
+		Task.ActorName = HoudiniAssetActor->GetActorLabel();
+		FHoudiniEngine::Get().AddTask(Task);
+
+		// Start ticking - this will poll the cooking system for completion.
+		StartHoudiniTicking();
 	}
 }
 
@@ -314,6 +315,18 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					// Otherwise we do not stop ticking, as we want to schedule a cook task right away (after submitting
 					// all changed parameters).
+
+					if(NotificationPtr.IsValid())
+					{
+						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+						if(NotificationItem.IsValid())
+						{
+							NotificationItem->SetText(TaskInfo.StatusText);
+							NotificationItem->ExpireAndFadeout();
+
+							NotificationPtr.Reset();
+						}
+					}
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
@@ -479,31 +492,17 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
 
-		if(-1 == AssetId)
-		{
-			// We have property changes, but no asset. This can only happen when user changes a property on a
-			// component which has been loaded. In this case we need to start Houdini asset instantiation.
+		// We need to set all parameter values which have changed.
+		SetChangedParameterValues();
 
-			// Create asset instantiation task object and submit it for processing.
-			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiationWithoutCooking, HapiGUID);
-			Task.ActorName = HoudiniAssetActor->GetActorLabel();
-			Task.Asset = HoudiniAsset;
-			FHoudiniEngine::Get().AddTask(Task);
-		}
-		else
-		{
-			// We need to set all parameter values which have changed.
-			SetChangedParameterValues();
+		// Remove all processed parameters.
+		ChangedProperties.Empty();
 
-			// Remove all processed parameters.
-			ChangedProperties.Empty();
-
-			// Create asset instantiation task object and submit it for processing.
-			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-			Task.ActorName = HoudiniAssetActor->GetActorLabel();
-			Task.AssetComponent = this;
-			FHoudiniEngine::Get().AddTask(Task);
-		}
+		// Create asset instantiation task object and submit it for processing.
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+		Task.ActorName = HoudiniAssetActor->GetActorLabel();
+		Task.AssetComponent = this;
+		FHoudiniEngine::Get().AddTask(Task);
 
 		// We do not want to stop ticking system as we have just submitted a task.
 		bStopTicking = false;
