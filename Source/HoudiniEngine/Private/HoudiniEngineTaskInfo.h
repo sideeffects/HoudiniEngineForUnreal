@@ -23,7 +23,9 @@ namespace EHoudiniEngineTaskState
 
 		Processing,
 		FinishedInstantiation,
+		FinishedInstantiationWithoutCooking,
 		FinishedInstantiationWithErrors,
+		FinishedInstantiationWithoutCookingWithErrors,
 		FinishedCooking,
 		FinishedCookingWithErrors,
 		Aborted

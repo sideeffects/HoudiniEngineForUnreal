@@ -166,6 +166,7 @@ private:
 	UProperty* CreateProperty(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags, EHoudiniEngineProperty::Type PropertyType);
 
 	/** Patch RTTI : Create Integer property. **/
+	UProperty* CreatePropertyInt(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
 	UProperty* CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset);
 
 	/** Patch RTTI : Create Float property. **/
@@ -173,6 +174,7 @@ private:
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
 
 	/** Patch RTTI : Create Toggle property. **/
+	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset);
 
 	/** Patch RTTI : Create Color property. **/
