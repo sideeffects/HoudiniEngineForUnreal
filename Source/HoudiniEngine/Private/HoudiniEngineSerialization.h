@@ -89,3 +89,32 @@ operator<<(FArchive& Ar, EHoudiniAssetComponentState::Type& E)
 
 	return Ar;
 }
+
+struct FHoudiniEngineSerializedProperty
+{
+	/** Constructors. **/
+	FHoudiniEngineSerializedProperty(EHoudiniEngineProperty::Type InType);
+	FHoudiniEngineSerializedProperty(EHoudiniEngineProperty::Type InType, const FString& InName, uint64 InFlags,
+									 int32 InArrayDim, int32 InElementSize, int32 InOffset);
+
+	/** Meta information for this property. **/
+	TMap<FName, FString> Meta;
+
+	/** Name of this property. **/
+	FString Name;
+
+	/** Type of this property. **/
+	EHoudiniEngineProperty::Type Type;
+
+	/** Property flags. **/
+	uint64 Flags;
+
+	/** Dimensions of this property, anything larger than 1 is an array. **/
+	int32 ArrayDim;
+
+	/** Size of each element. **/
+	int32 ElementSize;
+
+	/** Offset of this property. **/
+	int32 Offset;
+};

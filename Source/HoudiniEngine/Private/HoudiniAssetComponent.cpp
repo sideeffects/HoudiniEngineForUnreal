@@ -87,6 +87,13 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*)InThis;
 			if(HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
 			{
+				// If we have patched class object, add it as referenced.
+				UClass* PatchedClass = HoudiniAssetComponent->PatchedClass;
+				if(PatchedClass)
+				{
+					Collector.AddReferencedObject(PatchedClass, InThis);
+				}
+
 				// Retrieve asset associated with this component.
 				UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
 				if(HoudiniAsset)
@@ -146,7 +153,7 @@ UHoudiniAssetComponent::GetHoudiniAssetActorOwner() const
 
 
 void
-UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
+UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset, bool bLoadedComponent)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
@@ -174,17 +181,27 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 	if(!bIsPreviewComponent)
 	{
-		// Create new GUID to identify this request.
-		HapiGUID = FGuid::NewGuid();
+		
 
-		// Create asset instantiation task object and submit it for processing.
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
-		Task.Asset = InHoudiniAsset;
-		Task.ActorName = HoudiniAssetActor->GetActorLabel();
-		FHoudiniEngine::Get().AddTask(Task);
+		if(bLoadedComponent)
+		{
+			// This is a new component created by loading during serialization.
+		}
+		else
+		{
+			// This is a new component which was created by dragging asset.
 
-		// Start ticking - this will poll the cooking system for completion.
-		StartHoudiniTicking();
+			// Create new GUID to identify this request.
+			HapiGUID = FGuid::NewGuid();
+
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
+			Task.Asset = InHoudiniAsset;
+			Task.ActorName = HoudiniAssetActor->GetActorLabel();
+			FHoudiniEngine::Get().AddTask(Task);
+
+			// Start ticking - this will poll the cooking system for completion.
+			StartHoudiniTicking();
+		}
 	}
 }
 
@@ -863,6 +880,12 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	std::vector<HAPI_StringHandle> ParmValuesStrings;
 	std::vector<char> ParmName;
 	std::vector<char> ParmLabel;
+
+	if(-1 == AssetId)
+	{
+		// There's no Houdini asset, we can return. This is typically hit when component is being loaded during serialization.
+		return true;
+	}
 
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetNodeInfo(AssetInfo.nodeId, &NodeInfo), false);
@@ -1914,6 +1937,9 @@ UHoudiniAssetComponent::OnPreSaveWorld(uint32 SaveFlags, class UWorld* World)
 		return;
 	}
 
+	// We need to add our patched class to root in order to avoid its clean up by GC.
+	PatchedClass->AddToRoot();
+
 	// We need to restore original class information.
 	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
 }
@@ -1924,12 +1950,14 @@ UHoudiniAssetComponent::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, b
 {
 	if(!PatchedClass)
 	{
-		// If class information has not been patched, do nothing.
 		return;
 	}
 
 	// We need to restore patched class information.
 	ReplaceClassObject(PatchedClass);
+
+	// We can put our patched class back, and remove it from root as it no longer under threat of being cleaned up by GC.
+	PatchedClass->RemoveFromRoot();
 }
 
 
@@ -1946,13 +1974,100 @@ UHoudiniAssetComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if(PatchedClass && (UHoudiniAssetComponent::StaticClass() != PatchedClass))
+	if(!PatchedClass && (UHoudiniAssetComponent::StaticClass() == GetClass()))
 	{
-		ReplaceClassObject(PatchedClass);
+		ReplaceClassInformation(HoudiniAssetActorOwner->GetActorLabel());
 
-		// Now that RTTI has been patched, we need to subscribe to World save delegates. This is necessary in order to
-		// patch old RTTI information back for saving. Once save completes, we restore the patched RTTI back.
-		SubscribeSaveWorldDelegates();
+		// These are used to track and insert properties into new class object.
+		UProperty* PropertyFirst = nullptr;
+		UProperty* PropertyLast = PropertyFirst;
+
+		UField* ChildFirst = nullptr;
+		UField* ChildLast = ChildFirst;
+
+		// We can start reconstructing properties.
+		for(TArray<FHoudiniEngineSerializedProperty>::TIterator Iter = SerializedProperties.CreateIterator(); Iter; ++Iter)
+		{
+			FHoudiniEngineSerializedProperty& SerializedProperty = *Iter;
+
+			// Create unique property name to avoid collisions.
+			FString UniquePropertyName = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("%s_%s"), *PatchedClass->GetName(), *SerializedProperty.Name));
+
+			// Create property.
+			UProperty* Property = CreateProperty(PatchedClass, UniquePropertyName, SerializedProperty.Flags, SerializedProperty.Type);
+
+			if(!Property) continue;
+
+			// Set rest of property flags.
+			Property->ArrayDim = SerializedProperty.ArrayDim;
+			Property->ElementSize = SerializedProperty.ElementSize;
+
+			// Set any meta information.
+			if(SerializedProperty.Meta.Num())
+			{
+				for(TMap<FName, FString>::TConstIterator ParamIter(SerializedProperty.Meta); ParamIter; ++ParamIter)
+				{
+					Property->SetMetaData(ParamIter.Key(), *(ParamIter.Value()));
+				}
+			}
+
+			// Replace offset value for this property.
+			ReplacePropertyOffset(Property, SerializedProperty.Offset);
+
+			// Insert this newly created property in link list of properties.
+			if(!PropertyFirst)
+			{
+				PropertyFirst = Property;
+				PropertyLast = Property;
+			}
+			else
+			{
+				PropertyLast->PropertyLinkNext = Property;
+				PropertyLast = Property;
+			}
+
+			// Insert this newly created property into link list of children.
+			if(!ChildFirst)
+			{
+				ChildFirst = Property;
+				ChildLast = Property;
+			}
+			else
+			{
+				ChildLast->Next = Property;
+				ChildLast = Property;
+			}
+		}
+
+		// We can remove all serialized stored properties.
+		SerializedProperties.Reset();
+
+		// And add new created properties to our newly created class.
+		UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
+
+		if(PropertyFirst)
+		{
+			PatchedClass->PropertyLink = PropertyFirst;
+			PropertyLast->PropertyLinkNext = ClassOfUHoudiniAssetComponent->PropertyLink;
+		}
+
+		if(ChildFirst)
+		{
+			PatchedClass->Children = ChildFirst;
+			ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
+		}
+
+		// Update properties panel.
+		//UpdateEditorProperties();
+
+		// Collect all textures (for debugging purposes).
+		//CollectTextures();
+
+		// Create all rendering resources.
+		CreateRenderingResources();
+
+		// Need to update rendering information.
+		UpdateRenderingInformation();
 	}
 }
 
@@ -2050,36 +2165,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	Ar << HoudiniAssetPackage;
 	Ar << HoudiniAssetName;
 
-	// Loaded / looked up Houdini asset. Used during loading.
-	UHoudiniAsset* HoudiniAssetLookup = nullptr;
-
-	if(Ar.IsLoading())
-	{
-		// We need to locate corresponding package and load it if it is not loaded.
-		UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
-		if(!Package)
-		{
-			// Package was not loaded previously, we will try to load it.
-			Package = PackageTools::LoadPackage(HoudiniAssetPackage);
-		}
-
-		if(!Package)
-		{
-			// Package does not exist - this is a problem, we cannot continue.
-			check(Package);
-			return;
-		}
-
-		// At this point we can locate the asset, since package exists.
-		HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
-		if(!HoudiniAssetLookup)
-		{
-			// Asset by this name does not exist in package - this is a problem, we cannot continue.
-			check(HoudiniAssetLookup);
-			return;
-		}
-	}
-
 	// Serialize scratch space size.
 	int64 ScratchSpaceSize = HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE;
 	Ar << ScratchSpaceSize;
@@ -2092,28 +2177,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize scratch space itself.
 	Ar.Serialize(&ScratchSpaceBuffer[0], ScratchSpaceSize);
-
-	// This is the simplest of all cases - component was saved during asset instantiation. We still need to instantiate.
-	if(EHoudiniAssetComponentState::None == ComponentState)
-	{
-		if(Ar.IsLoading())
-		{
-			// Set asset for this component. This will trigger asynchronous instantiation.
-			SetHoudiniAsset(HoudiniAssetLookup);
-		}
-
-		return;
-	}
-
-	if(Ar.IsLoading())
-	{
-		check(HoudiniAssetActorOwner.IsValid());
-
-		// If we are loading, we can create new patched RTTI object. But because original object is still loading,
-		// we need to wait and delay RTTI patching.
-		ReplaceClassInformation(HoudiniAssetActorOwner->GetActorLabel(), false);
-		check(PatchedClass);
-	}
 
 	// Number of properties.
 	int PropertyCount = CreatedProperties.Num();
@@ -2195,71 +2258,15 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		// At this point we can reconstruct properties from serialized data.
 		if(Ar.IsLoading())
 		{
-			// Create unique property name to avoid collisions.
-			FString UniquePropertyName = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("%s_%s"), *PatchedClass->GetName(), *PropertyName));
-
-			// Create property.
-			Property = CreateProperty(PatchedClass, UniquePropertyName, PropertyFlags, PropertyType);
-
-			if(!Property) continue;
-
-			// Set rest of property flags.
-			Property->ArrayDim = PropertyArrayDim;
-			Property->ElementSize = PropertyElementSize;
-
-			// Set any meta information.
+			FHoudiniEngineSerializedProperty SerializedProperty(PropertyType, PropertyName, PropertyFlags,
+																PropertyArrayDim, PropertyElementSize, PropertyOffset);
 			if(PropertyMeta.Num())
 			{
-				for(TMap<FName, FString>::TConstIterator ParamIter(PropertyMeta); ParamIter; ++ParamIter)
-				{
-					Property->SetMetaData(ParamIter.Key(), *(ParamIter.Value()));
-				}
+				SerializedProperty.Meta = PropertyMeta;
 			}
 
-			// Replace offset value for this property.
-			ReplacePropertyOffset(Property, PropertyOffset);
-
-			// Insert this newly created property in link list of properties.
-			if(!PropertyFirst)
-			{
-				PropertyFirst = Property;
-				PropertyLast = Property;
-			}
-			else
-			{
-				PropertyLast->PropertyLinkNext = Property;
-				PropertyLast = Property;
-			}
-
-			// Insert this newly created property into link list of children.
-			if(!ChildFirst)
-			{
-				ChildFirst = Property;
-				ChildLast = Property;
-			}
-			else
-			{
-				ChildLast->Next = Property;
-				ChildLast = Property;
-			}
-		}
-	}
-
-	// Now we can patch property information.
-	if(Ar.IsLoading())
-	{
-		UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
-
-		if(PropertyFirst)
-		{
-			PatchedClass->PropertyLink = PropertyFirst;
-			PropertyLast->PropertyLinkNext = ClassOfUHoudiniAssetComponent->PropertyLink;
-		}
-
-		if(ChildFirst)
-		{
-			PatchedClass->Children = ChildFirst;
-			ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
+			// Store property in a list.
+			SerializedProperties.Add(SerializedProperty);
 		}
 	}
 
@@ -2297,19 +2304,60 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 	*/
 
-	/*
 	// Serialize geos.
-	if(Ar.IsSaving())
+	int32 NumGeos = HoudiniAssetObjectGeos.Num();
+	Ar << NumGeos;
+
+	for(int32 GeoIdx = 0; GeoIdx < NumGeos; ++GeoIdx)
 	{
-		for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
+		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = nullptr;
+
+		if(Ar.IsSaving())
 		{
-			FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
-			HoudiniAssetObjectGeo->Serialize(Ar);
+			HoudiniAssetObjectGeo = HoudiniAssetObjectGeos[GeoIdx];
+		}
+		else if(Ar.IsLoading())
+		{
+			HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo();
+		}
+
+		check(HoudiniAssetObjectGeo);
+		HoudiniAssetObjectGeo->Serialize(Ar);
+
+		if(Ar.IsLoading())
+		{
+			HoudiniAssetObjectGeos.Add(HoudiniAssetObjectGeo);
 		}
 	}
-	else if(Ar.IsLoading())
+
+	if(Ar.IsLoading())
 	{
-	
+		// We need to locate corresponding package and load it if it is not loaded.
+		UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
+		if(!Package)
+		{
+			// Package was not loaded previously, we will try to load it.
+			Package = PackageTools::LoadPackage(HoudiniAssetPackage);
+		}
+
+		if(!Package)
+		{
+			// Package does not exist - this is a problem, we cannot continue.
+			check(Package);
+			return;
+		}
+
+		// At this point we can locate the asset, since package exists.
+		UHoudiniAsset* HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
+		if(HoudiniAssetLookup)
+		{
+			// Set asset for this component. This will trigger asynchronous instantiation.
+			SetHoudiniAsset(HoudiniAssetLookup, true);
+		}
+		else
+		{
+			// Asset by this name does not exist in package - this is a problem, we cannot continue.
+			check(HoudiniAssetLookup);
+		}
 	}
-	*/
 }

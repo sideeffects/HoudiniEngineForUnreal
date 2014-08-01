@@ -27,6 +27,7 @@ class FHoudiniAssetObjectGeoPart
 public:
 
 	/** Constructor. **/
+	FHoudiniAssetObjectGeoPart();
 	FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices, UHoudiniAssetMaterial* InMaterial = nullptr);
 
 	/** Destructor. **/

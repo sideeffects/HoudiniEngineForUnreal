@@ -29,6 +29,7 @@ class FHoudiniAssetObjectGeo
 public:
 
 	/** Constructor. **/
+	FHoudiniAssetObjectGeo();
 	FHoudiniAssetObjectGeo(const FMatrix& InTransform);
 
 	/** Destructor. **/

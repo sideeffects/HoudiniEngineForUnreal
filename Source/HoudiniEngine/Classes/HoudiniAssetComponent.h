@@ -87,10 +87,7 @@ public:
 public:
 
 	/** Change the Houdini Asset used by this component. **/
-	UFUNCTION(BlueprintCallable, Category = "Components|HoudiniAsset")
-	virtual void SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset);
-
-public:
+	virtual void SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset, bool bLoadedComponent = false);
 
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
@@ -260,11 +257,14 @@ protected:
 	/** Array of asset objects geos. **/
 	TArray<FHoudiniAssetObjectGeo*> HoudiniAssetObjectGeos;
 
-	/** Set of properties that have changed. Will force object recook. **/
+	/** Set of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TSet<UProperty*> ChangedProperties;
 
 	/** Array of properties we have created. We keep these for serialization purposes. **/
 	TArray<UProperty*> CreatedProperties;
+
+	/** Array of data containing serialized properties. Used during loading. **/
+	TArray<FHoudiniEngineSerializedProperty> SerializedProperties;
 
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
