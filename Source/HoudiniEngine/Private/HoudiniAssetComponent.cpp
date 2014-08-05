@@ -313,7 +313,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					// Otherwise we do not stop ticking, as we want to schedule a cook task right away (after submitting
 					// all changed parameters).
-
 					if(NotificationPtr.IsValid())
 					{
 						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
@@ -325,7 +324,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 							NotificationPtr.Reset();
 						}
 					}
-
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
 
@@ -456,6 +454,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 				case EHoudiniEngineTaskState::Processing:
 				{
+
 					if(NotificationPtr.IsValid())
 					{
 						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
@@ -533,10 +532,10 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	{
 		// Manually reselect the actor - this will cause details panel to be updated and force our 
 		// property changes to be picked up by the UI.
-		GEditor->SelectActor(HoudiniAssetActor.Get(), true, true);
+		//GEditor->SelectActor(HoudiniAssetActor.Get(), true, true);
 
 		// Notify the editor about selection change.
-		GEditor->NoteSelectionChange();
+		//GEditor->NoteSelectionChange();
 	}
 }
 
@@ -1331,7 +1330,7 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 
 		case EHoudiniEngineProperty::String:
 		{
-			//Property = CreatePropertyString(ClassInstance, Name, PropertyFlags);
+			Property = CreatePropertyString(ClassInstance, Name, PropertyFlags);
 			break;
 		}
 
@@ -2399,7 +2398,24 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			PropertyMeta.Remove(TEXT("HoudiniPropertyChanged"));
 		}
 
-		// At this point we can reconstruct properties from serialized data.
+		if(EHoudiniEngineProperty::String == PropertyType)
+		{
+			// If it is a string property, we need to reconstruct string in case of loading.
+			FString* UnrealString = (FString*) ((const char*) this + PropertyOffset);
+
+			if(Ar.IsSaving())
+			{
+				Ar << *UnrealString;
+			}
+			else if(Ar.IsLoading())
+			{
+				FString StoredString;
+				Ar << StoredString;
+				new(UnrealString) FString(StoredString);
+			}
+		}
+
+		// At this point if we are loading, we can construct intermediate object.
 		if(Ar.IsLoading())
 		{
 			FHoudiniEngineSerializedProperty SerializedProperty(PropertyType, PropertyName, PropertyFlags,
