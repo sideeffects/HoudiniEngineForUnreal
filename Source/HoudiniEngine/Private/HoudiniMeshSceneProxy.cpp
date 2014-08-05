@@ -172,11 +172,11 @@ FHoudiniMeshSceneProxy::ComputeMaterialProxy(bool bWireframe, const FColoredMate
 	if(bWireframe)
 	{
 		return WireframeProxy;
-	}
+	}/*
 	else if(GeoPart->Material)
 	{
 		return GeoPart->Material->GetRenderProxy(IsSelected(), IsHovered());
-	}
+	}*/
 
 	UMaterial* Material = UMaterial::GetDefaultMaterial(MD_Surface);
 	return Material->GetRenderProxy(IsSelected(), IsHovered());

@@ -20,7 +20,8 @@ FHoudiniEngineSerializedProperty::FHoudiniEngineSerializedProperty(EHoudiniEngin
 	Flags(0u),
 	ArrayDim(1),
 	ElementSize(4),
-	Offset(0)
+	Offset(0),
+	bChanged(false)
 {
 
 }
@@ -28,13 +29,14 @@ FHoudiniEngineSerializedProperty::FHoudiniEngineSerializedProperty(EHoudiniEngin
 
 FHoudiniEngineSerializedProperty::FHoudiniEngineSerializedProperty(EHoudiniEngineProperty::Type InType, 
 																   const FString& InName, uint64 InFlags, int32 InArrayDim,
-																   int32 InElementSize, int32 InOffset) :
+																   int32 InElementSize, int32 InOffset, bool bInChanged) :
 	Name(InName),
 	Type(InType),
 	Flags(InFlags),
 	ArrayDim(InArrayDim),
 	ElementSize(InElementSize),
-	Offset(InOffset)
+	Offset(InOffset),
+	bChanged(bInChanged)
 {
 
 }
