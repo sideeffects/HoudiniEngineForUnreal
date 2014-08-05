@@ -19,16 +19,22 @@
 FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
+	ObjectId(-1),
+	GeoId(-1),
+	PartId(-1),
 	bMultipleMaterials(false)
 {
 	Transform = FMatrix::Identity;
 }
 
 
-FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform) :
+FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
 	Transform(InTransform),
 	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
+	ObjectId(InObjectId),
+	GeoId(InGeoId),
+	PartId(InPartId),
 	bMultipleMaterials(false)
 {
 
@@ -232,8 +238,11 @@ void
 FHoudiniAssetObjectGeo::CreateRenderingResources()
 {
 	// Check to make sure we are not running this twice.
-	check(!HoudiniMeshVertexBuffer);
-	check(!HoudiniMeshVertexFactory);
+	if(HoudiniMeshVertexBuffer && HoudiniMeshVertexFactory)
+	{
+		// Resources have been initialized, we can skip. This will happen when geos are reused between the cooks.
+		return;
+	}
 
 	// Create new vertex buffer.
 	HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer();
