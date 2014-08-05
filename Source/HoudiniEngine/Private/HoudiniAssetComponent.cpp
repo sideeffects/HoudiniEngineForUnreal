@@ -379,14 +379,18 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 							// Update properties panel.
 							UpdateEditorProperties();
 
+							// Construct new objects (asset objects and asset object parts).
+							TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
+							FHoudiniEngineUtils::ConstructGeos(AssetId, HoudiniAssetObjectGeos, NewObjectGeos);
+
 							// Clear rendering resources used by geos.
 							ReleaseRenderingResources();
 
 							// Delete all existing geo objects (this will also delete their geo parts).
 							ClearGeos();
 
-							// Construct new objects (asset objects and asset object parts).
-							FHoudiniEngineUtils::ConstructGeos(AssetId, HoudiniAssetObjectGeos);
+							// Set new geo objects.
+							HoudiniAssetObjectGeos = NewObjectGeos;
 
 							// Collect all textures (for debugging purposes).
 							CollectTextures();

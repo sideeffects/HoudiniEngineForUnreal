@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "HAPI.h"
+
 class FArchive;
 class FReferenceCollector;
 class FHoudiniMeshVertexBuffer;
@@ -25,12 +27,13 @@ class FHoudiniAssetObjectGeo
 {
 	friend class FHoudiniMeshSceneProxy;
 	friend class UHoudiniAssetComponent;
+	friend struct FHoudiniEngineUtils;
 
 public:
 
 	/** Constructor. **/
 	FHoudiniAssetObjectGeo();
-	FHoudiniAssetObjectGeo(const FMatrix& InTransform);
+	FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
 	/** Destructor. **/
 	virtual ~FHoudiniAssetObjectGeo();
@@ -86,6 +89,15 @@ protected:
 
 	/** Corresponding Vertex factory used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshVertexFactory* HoudiniMeshVertexFactory;
+
+	/** HAPI Object Id for this geometry. **/
+	HAPI_ObjectId ObjectId;
+
+	/** HAPI Geo Id for this geometry. **/
+	HAPI_GeoId GeoId;
+	
+	/** HAPI Part Id for this geometry. **/
+	HAPI_PartId PartId;
 
 	/** Is set to true when submeshes use different materials. **/
 	bool bMultipleMaterials;

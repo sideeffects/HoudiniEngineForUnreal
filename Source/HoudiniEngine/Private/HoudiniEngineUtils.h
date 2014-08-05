@@ -45,7 +45,7 @@ public:
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
 	/** Construct Houdini geos from a specified asset. **/
-	static bool ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& HoudiniAssetObjectGeos);
+	static bool ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos, TArray<FHoudiniAssetObjectGeo*>& NewObjectGeos);
 
 	/** Extract geometry information for a given asset. **/
 	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
@@ -120,4 +120,13 @@ protected:
 
 	/** Create a texture from given information. **/
 	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer);
+
+	/** Create cache maps. These are used to avoid geometry and material reconstruction when nothing has changed **/
+	/** between the cooks.                                                                                       **/
+	static void CreateCachedMaps(const TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos,
+								 TMap<HAPI_ObjectId, TMap<HAPI_GeoId, TMap<HAPI_PartId, FHoudiniAssetObjectGeo*> > >& CachedObjectMap);
+
+	/** Look up cached Houdini geo object based on HAPI object id, geo id and part id. **/
+	static FHoudiniAssetObjectGeo* RetrieveCachedHoudiniObjectGeo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+																  const TMap<HAPI_ObjectId, TMap<HAPI_GeoId, TMap<HAPI_PartId, FHoudiniAssetObjectGeo*> > >& CMap);
 };

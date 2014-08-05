@@ -686,14 +686,61 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 }
 
 
+void
+FHoudiniEngineUtils::CreateCachedMaps(const TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos,
+									  TMap<HAPI_ObjectId, TMap<HAPI_GeoId, TMap<HAPI_PartId, FHoudiniAssetObjectGeo*> > >& CachedObjectMap)
+{
+	for(int32 Idx = 0; Idx < PreviousObjectGeos.Num(); ++Idx)
+	{
+		FHoudiniAssetObjectGeo* Geo = PreviousObjectGeos[Idx];
+
+		// We need to add Object -> mapping.
+		TMap<HAPI_GeoId, TMap<HAPI_PartId, FHoudiniAssetObjectGeo*> >& ObjectMap = CachedObjectMap.FindOrAdd(Geo->ObjectId);
+
+		// We need to add Geo -> mapping.
+		TMap<HAPI_PartId, FHoudiniAssetObjectGeo*>& PartMap = ObjectMap.FindOrAdd(Geo->GeoId);
+
+		// Insert Part -> Houdini geo mapping.
+		PartMap.Add(Geo->PartId, Geo);
+	}
+}
+
+
+FHoudiniAssetObjectGeo*
+FHoudiniEngineUtils::RetrieveCachedHoudiniObjectGeo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+													const TMap<HAPI_ObjectId, TMap<HAPI_GeoId, TMap<HAPI_PartId, FHoudiniAssetObjectGeo*> > >& CachedMap)
+{
+	FHoudiniAssetObjectGeo* Geo = nullptr;
+
+	if(CachedMap.Contains(ObjectId))
+	{
+		const TMap<HAPI_GeoId, TMap<HAPI_PartId, FHoudiniAssetObjectGeo*> >& ObjectMap = CachedMap[ObjectId];
+		if(ObjectMap.Contains(GeoId))
+		{
+			const TMap<HAPI_PartId, FHoudiniAssetObjectGeo*>& PartMap = ObjectMap[GeoId];
+			if(PartMap.Contains(PartId))
+			{
+				Geo = PartMap[PartId];
+			}
+		}
+	}
+
+	return Geo;
+}
+
+
 bool
-FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& HoudiniAssetObjectGeos)
+FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos, TArray<FHoudiniAssetObjectGeo*>& NewObjectGeos)
 {
 	// Make sure asset id is valid.
 	if(AssetId < 0)
 	{
 		return false;
 	}
+
+	// Caching map.
+	TMap<HAPI_ObjectId, TMap<HAPI_GeoId, TMap<HAPI_PartId, FHoudiniAssetObjectGeo*> > > CachedObjectMap;
+	FHoudiniEngineUtils::CreateCachedMaps(PreviousObjectGeos, CachedObjectMap);
 
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	HAPI_AssetInfo AssetInfo;
@@ -787,6 +834,20 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 					break;
 				}
 
+				if(!GeoInfo.hasGeoChanged)
+				{
+					// Geo has not changed from previous cook, no need to recreate it, we can reuse previous object.
+					FHoudiniAssetObjectGeo* PreviousGeo = FHoudiniEngineUtils::RetrieveCachedHoudiniObjectGeo(ObjectInfo.id, GeoInfo.id,
+																											  PartInfo.id, CachedObjectMap);
+
+					if(PreviousGeo)
+					{
+						PreviousObjectGeos.RemoveSingleSwap(PreviousGeo);
+						NewObjectGeos.Add(PreviousGeo);
+						continue;
+					}
+				}
+
 				// We need to create a vertex buffer for each part.
 				VertexList.resize(PartInfo.vertexCount);
 				if(HAPI_RESULT_SUCCESS != HAPI_GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &VertexList[0], 0, PartInfo.vertexCount))
@@ -823,8 +884,8 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
 
 				// At this point we can create a new geo object.
-				FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo(TransformMatrix);
-				HoudiniAssetObjectGeos.Add(HoudiniAssetObjectGeo);
+				FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
+				NewObjectGeos.Add(HoudiniAssetObjectGeo);
 
 				// Transfer vertex data into vertex buffer for this geo object.
 				for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
@@ -1021,6 +1082,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 				UHoudiniAssetMaterial* Material = nullptr;
 
 				// Retrieve material information for this part.
+#if 0
 				HAPI_MaterialInfo MaterialInfo;
 				if(HAPI_RESULT_SUCCESS == HAPI_GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo))
 				{
@@ -1127,6 +1189,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 						*/
 					}
 				}
+#endif
 
 				// Retrieve group memberships for this part.
 				for(int GroupIdx = 0; GroupIdx < GroupNames.size(); ++GroupIdx)
