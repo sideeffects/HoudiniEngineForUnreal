@@ -325,6 +325,8 @@ FHoudiniEngineScheduler::ProcessQueuedTasks()
 				PositionRead &= (TaskCount - 1);
 			}
 
+			bool bTaskProcessed = true;
+
 			switch(Task.TaskType)
 			{
 				case EHoudiniEngineTaskType::AssetInstantiation:
@@ -353,20 +355,26 @@ FHoudiniEngineScheduler::ProcessQueuedTasks()
 
 				default:
 				{
+					bTaskProcessed = false;
 					break;
 				}
 			}
 
-			if(FPlatformProcess::SupportsMultithreading())
+			if(!bTaskProcessed)
 			{
-				// We want to yield for a bit.
-				FPlatformProcess::Sleep(0.0f);
+				break;
 			}
-			else
-			{
-				// If we are running in single threaded mode, return so we don't block everything else.
-				return;
-			}
+		}
+
+		if(FPlatformProcess::SupportsMultithreading())
+		{
+			// We want to yield for a bit.
+			FPlatformProcess::Sleep(0.0f);
+		}
+		else
+		{
+			// If we are running in single threaded mode, return so we don't block everything else.
+			return;
 		}
 	}
 }
