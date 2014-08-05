@@ -95,7 +95,7 @@ struct FHoudiniEngineSerializedProperty
 	/** Constructors. **/
 	FHoudiniEngineSerializedProperty(EHoudiniEngineProperty::Type InType);
 	FHoudiniEngineSerializedProperty(EHoudiniEngineProperty::Type InType, const FString& InName, uint64 InFlags,
-									 int32 InArrayDim, int32 InElementSize, int32 InOffset);
+									 int32 InArrayDim, int32 InElementSize, int32 InOffset, bool bInChanged);
 
 	/** Meta information for this property. **/
 	TMap<FName, FString> Meta;
@@ -117,4 +117,7 @@ struct FHoudiniEngineSerializedProperty
 
 	/** Offset of this property. **/
 	int32 Offset;
+
+	/** Whether this property has been changed and requires reupload back to Houdini. **/
+	bool bChanged;
 };

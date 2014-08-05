@@ -87,7 +87,7 @@ public:
 public:
 
 	/** Change the Houdini Asset used by this component. **/
-	virtual void SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset, bool bLoadedComponent = false);
+	virtual void SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset);
 
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
@@ -186,6 +186,7 @@ private:
 	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
 
 	/** Patch RTTI: Create Enumeration property. **/
+	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
 	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset);
 	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset);
 
@@ -308,6 +309,12 @@ protected:
 
 	/** Is set to true when PreSave has been triggered. **/
 	bool bPreSaveTriggered;
+
+	/** Is set to true if this component has been loaded. **/
+	bool bLoadedComponent;
+
+	/** Is set to true when component is loaded and no instantiation / cooking is necessary. **/
+	bool bLoadedComponentRequiresInstantiation;
 
 private:
 

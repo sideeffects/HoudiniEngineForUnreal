@@ -43,7 +43,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false),
 	bAsyncResourceReleaseHasBeenStarted(false),
-	bPreSaveTriggered(false)
+	bPreSaveTriggered(false),
+	bLoadedComponent(false),
+	bLoadedComponentRequiresInstantiation(false)
 {
 	// Create a generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -153,7 +155,7 @@ UHoudiniAssetComponent::GetHoudiniAssetActorOwner() const
 
 
 void
-UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset, bool bLoadedComponent)
+UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
@@ -179,13 +181,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset, bool bLoa
 		UpdateRenderingInformation();
 	}
 
-	if(!bIsPreviewComponent)
+	if(!bIsPreviewComponent && !bLoadedComponent)
 	{
 		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
-		if(bLoadedComponent)
-		{
-			HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiationWithoutCooking;
-		}
 
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
@@ -492,17 +490,29 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
 
-		// We need to set all parameter values which have changed.
-		SetChangedParameterValues();
+		if(bLoadedComponentRequiresInstantiation)
+		{
+			bLoadedComponentRequiresInstantiation = false;
 
-		// Remove all processed parameters.
-		ChangedProperties.Empty();
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiationWithoutCooking, HapiGUID);
+			Task.Asset = HoudiniAsset;
+			Task.ActorName = HoudiniAssetActor->GetActorLabel();
+			FHoudiniEngine::Get().AddTask(Task);
+		}
+		else
+		{
+			// We need to set all parameter values which have changed.
+			SetChangedParameterValues();
 
-		// Create asset instantiation task object and submit it for processing.
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-		Task.ActorName = HoudiniAssetActor->GetActorLabel();
-		Task.AssetComponent = this;
-		FHoudiniEngine::Get().AddTask(Task);
+			// Remove all processed parameters.
+			ChangedProperties.Empty();
+
+			// Create asset instantiation task object and submit it for processing.
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+			Task.ActorName = HoudiniAssetActor->GetActorLabel();
+			Task.AssetComponent = this;
+			FHoudiniEngine::Get().AddTask(Task);
+		}
 
 		// We do not want to stop ticking system as we have just submitted a task.
 		bStopTicking = false;
@@ -1252,9 +1262,8 @@ UHoudiniAssetComponent::CreateEnum(UClass* ClassInstance, const FString& Name, c
 		{
 			EnumValueLabels.Add(EnumValueName);
 
-			EnumFinalValue = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("enum_value_%s"), *EnumValueName));
+			EnumFinalValue = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("%s_value_%s"), *UniqueEnumName, *EnumValueName));
 			EnumValues.Add(FName(*EnumFinalValue));
-			
 		}
 		else
 		{
@@ -1322,7 +1331,7 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 
 		case EHoudiniEngineProperty::String:
 		{
-			Property = CreatePropertyString(ClassInstance, Name, PropertyFlags);
+			//Property = CreatePropertyString(ClassInstance, Name, PropertyFlags);
 			break;
 		}
 
@@ -1333,6 +1342,11 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 		}
 
 		case EHoudiniEngineProperty::Enumeration:
+		{
+			//Property = CreatePropertyEnum(ClassInstance, Name, PropertyFlags);
+			break;
+		}
+
 		default:
 		{
 			break;
@@ -1349,17 +1363,9 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags)
 {
 	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
-	static const uint64 PropertyFlags = UINT64_C(69793219077);
-
-	// We need to create or reuse an enum for this property.
-	UEnum* EnumType = Cast<UEnum>(CreateEnum(ClassInstance, Name, Choices));
-	if(!EnumType)
-	{
-		return nullptr;
-	}
 
 	UByteProperty* Property = FindObject<UByteProperty>(ClassInstance, *Name, false);
 	if(!Property)
@@ -1370,6 +1376,24 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 	Property->PropertyLinkNext = nullptr;
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset)
+{
+	static const uint64 PropertyFlags = UINT64_C(69793219077);
+
+	// We need to create or reuse an enum for this property.
+	UEnum* EnumType = Cast<UEnum>(CreateEnum(ClassInstance, Name, Choices));
+	if(!EnumType)
+	{
+		return nullptr;
+	}
+
+	UByteProperty* Property = Cast<UByteProperty>(CreatePropertyEnum(ClassInstance, Name, PropertyFlags));
 
 	// Set the enum for this property.
 	Property->Enum = EnumType;
@@ -1936,6 +1960,15 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		}
 	}
 
+	// If this is a loaded component, we need instantiation.
+	if(bLoadedComponent && (-1 == AssetId) && !bLoadedComponentRequiresInstantiation)
+	{
+		bLoadedComponentRequiresInstantiation = true;
+	}
+
+	// Mark this property as changed.
+	Property->SetMetaData(TEXT("HoudiniPropertyChanged"), TEXT("1"));
+
 	// Add changed property to the set of changes.
 	ChangedProperties.Add(Property);
 
@@ -2068,6 +2101,7 @@ UHoudiniAssetComponent::PostLoad()
 
 	if(!PatchedClass && (UHoudiniAssetComponent::StaticClass() == GetClass()))
 	{
+		// Replace class information.
 		ReplaceClassInformation(HoudiniAssetActorOwner->GetActorLabel());
 
 		// These are used to track and insert properties into new class object.
@@ -2131,7 +2165,10 @@ UHoudiniAssetComponent::PostLoad()
 			}
 
 			// We also need to add this property to a set of changed properties.
-			ChangedProperties.Add(Property);
+			if(SerializedProperty.bChanged)
+			{
+				ChangedProperties.Add(Property);
+			}
 		}
 
 		// We can remove all serialized stored properties.
@@ -2296,6 +2333,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		uint64 PropertyFlags = 0u;
 		int32 PropertyOffset = 0;
 		FString PropertyName;
+		bool PropertyChanged = false;
 		TMap<FName, FString> PropertyMeta;
 		TMap<FName, FString>* LookupPropertyMeta = nullptr;
 
@@ -2313,6 +2351,13 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			check(Property->HasMetaData(TEXT("HoudiniParmName")));
 			PropertyName = Property->GetMetaData(TEXT("HoudiniParmName"));
 
+			// Retrieve changed status of this property, this is optimization to avoid uploading back all properties
+			// to Houdini upon loading.
+			if(Property->HasMetaData(TEXT("HoudiniPropertyChanged")))
+			{
+				PropertyChanged = true;
+			}
+
 			if(EHoudiniEngineProperty::None == PropertyType)
 			{
 				// We have encountered an unsupported property type.
@@ -2327,6 +2372,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		Ar << PropertyElementSize;
 		Ar << PropertyFlags;
 		Ar << PropertyOffset;
+		Ar << PropertyChanged;
 
 		// Serialize any meta information for this property.
 		bool PropertyMetaFound = false;
@@ -2348,13 +2394,17 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		{
 			// Load meta information for this property.
 			Ar << PropertyMeta;
+
+			// Make sure changed meta flag does not get serialized back.
+			PropertyMeta.Remove(TEXT("HoudiniPropertyChanged"));
 		}
 
 		// At this point we can reconstruct properties from serialized data.
 		if(Ar.IsLoading())
 		{
 			FHoudiniEngineSerializedProperty SerializedProperty(PropertyType, PropertyName, PropertyFlags,
-																PropertyArrayDim, PropertyElementSize, PropertyOffset);
+																PropertyArrayDim, PropertyElementSize, PropertyOffset, 
+																PropertyChanged);
 			if(PropertyMeta.Num())
 			{
 				SerializedProperty.Meta = PropertyMeta;
@@ -2427,6 +2477,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	if(Ar.IsLoading())
 	{
+		// This component has been loaded.
+		bLoadedComponent = true;
+
 		// We need to locate corresponding package and load it if it is not loaded.
 		UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
 		if(!Package)
@@ -2447,7 +2500,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		if(HoudiniAssetLookup)
 		{
 			// Set asset for this component. This will trigger asynchronous instantiation.
-			SetHoudiniAsset(HoudiniAssetLookup, true);
+			SetHoudiniAsset(HoudiniAssetLookup);
 		}
 		else
 		{

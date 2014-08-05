@@ -1123,7 +1123,6 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 						{
 							HAPI_ImageInfo ImageInfo;
 							Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
-							int i = 2;
 						}
 						*/
 					}
