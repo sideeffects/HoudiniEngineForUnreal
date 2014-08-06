@@ -45,7 +45,7 @@ public:
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
 	/** Construct Houdini geos from a specified asset. **/
-	static bool ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos, TArray<FHoudiniAssetObjectGeo*>& NewObjectGeos);
+	static bool ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos, TArray<FHoudiniAssetObjectGeo*>& NewObjectGeos);
 
 	/** Extract geometry information for a given asset. **/
 	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);

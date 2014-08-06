@@ -730,7 +730,7 @@ FHoudiniEngineUtils::RetrieveCachedHoudiniObjectGeo(HAPI_ObjectId ObjectId, HAPI
 
 
 bool
-FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos, TArray<FHoudiniAssetObjectGeo*>& NewObjectGeos)
+FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos, TArray<FHoudiniAssetObjectGeo*>& NewObjectGeos)
 {
 	// Make sure asset id is valid.
 	if(AssetId < 0)
@@ -834,257 +834,273 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 					break;
 				}
 
-				if(!GeoInfo.hasGeoChanged)
-				{
-					// Geo has not changed from previous cook, no need to recreate it, we can reuse previous object.
-					FHoudiniAssetObjectGeo* PreviousGeo = FHoudiniEngineUtils::RetrieveCachedHoudiniObjectGeo(ObjectInfo.id, GeoInfo.id,
-																											  PartInfo.id, CachedObjectMap);
+				// Look up Houdini geo from previous cook.
+				FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = FHoudiniEngineUtils::RetrieveCachedHoudiniObjectGeo(ObjectInfo.id, GeoInfo.id, PartInfo.id, CachedObjectMap);;
+				UHoudiniAssetMaterial* Material = nullptr;
 
-					if(PreviousGeo)
+				if(GeoInfo.hasGeoChanged)
+				{
+					if(HoudiniAssetObjectGeo && !HoudiniAssetObjectGeo->UsesMultipleMaterials())
 					{
-						PreviousObjectGeos.RemoveSingleSwap(PreviousGeo);
-						NewObjectGeos.Add(PreviousGeo);
-						continue;
+						// Geometry has changed, but see if we have material.
+						Material = HoudiniAssetObjectGeo->GetSingleMaterial();
+					}
+
+					// If geo has changed, we need to create a new object as we cannot reuse a previous one.
+					HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
+				}
+				else
+				{
+					// Geo has not changed, we can reuse it.
+
+					if(HoudiniAssetObjectGeo)
+					{
+						PreviousObjectGeos.RemoveSingleSwap(HoudiniAssetObjectGeo);
+					}
+					else
+					{
+						// We failed to look up geo from previous cook, this should not happen in theory. Create new one.
+						HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
 					}
 				}
 
-				// We need to create a vertex buffer for each part.
-				VertexList.resize(PartInfo.vertexCount);
-				if(HAPI_RESULT_SUCCESS != HAPI_GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &VertexList[0], 0, PartInfo.vertexCount))
-				{
-					// Error getting the vertex list.
-					bGeoError = true;
-					break;
-				}
-
-				// Retrieve position data.
-				HAPI_AttributeInfo AttribInfoPositions;
-				if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
-				{
-					// Error retrieving positions.
-					bGeoError = true;
-					break;
-				}
-
-				// Retrieve UV data.
-				HAPI_AttributeInfo AttribInfoUVs;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_UV, AttribInfoUVs, UVs, 2);
-
-				// Retrieve normal data.
-				HAPI_AttributeInfo AttribInfoNormals;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
-
-				// Retrieve tangent data.
-				HAPI_AttributeInfo AttribInfoTangents;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_TANGENT, AttribInfoTangents, Tangents);
-
-				// Retrieve color data.
-				HAPI_AttributeInfo AttribInfoColors;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
-
-				// At this point we can create a new geo object.
-				FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
+				// Add geo to list of output geos.
 				NewObjectGeos.Add(HoudiniAssetObjectGeo);
 
-				// Transfer vertex data into vertex buffer for this geo object.
-				for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
+				if(GeoInfo.hasGeoChanged)
 				{
-					FHoudiniMeshTriangle Triangle;
-
-					// Process position information.
-					// Need to flip the Y with the Z since UE4 is Z-up.
-					// Need to flip winding order also.
-
-					Triangle.Vertex0.X = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 0] * ScaleFactorPosition;
-					Triangle.Vertex0.Z = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 1] * ScaleFactorPosition;
-					Triangle.Vertex0.Y = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 2] * ScaleFactorPosition;
-					//UpdateBoundingVolumeExtent(Triangle.Vertex0, ExtentMin, ExtentMax);
-
-					Triangle.Vertex2.X = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 0] * ScaleFactorPosition;
-					Triangle.Vertex2.Z = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 1] * ScaleFactorPosition;
-					Triangle.Vertex2.Y = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 2] * ScaleFactorPosition;
-					//UpdateBoundingVolumeExtent(Triangle.Vertex2, ExtentMin, ExtentMax);
-
-					Triangle.Vertex1.X = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 0] * ScaleFactorPosition;
-					Triangle.Vertex1.Z = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 1] * ScaleFactorPosition;
-					Triangle.Vertex1.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * ScaleFactorPosition;
-					//UpdateBoundingVolumeExtent(Triangle.Vertex1, ExtentMin, ExtentMax);
-
-					// Process texture information.
-					// Need to flip the U coordinate.
-					if(AttribInfoUVs.exists)
+					// We need to create a vertex buffer for each part.
+					VertexList.resize(PartInfo.vertexCount);
+					if(HAPI_RESULT_SUCCESS != HAPI_GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &VertexList[0], 0, PartInfo.vertexCount))
 					{
-						switch(AttribInfoUVs.owner)
+						// Error getting the vertex list.
+						bGeoError = true;
+						break;
+					}
+
+					// Retrieve position data.
+					HAPI_AttributeInfo AttribInfoPositions;
+					if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+						HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
+					{
+						// Error retrieving positions.
+						bGeoError = true;
+						break;
+					}
+
+					// Retrieve UV data.
+					HAPI_AttributeInfo AttribInfoUVs;
+					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_UV, AttribInfoUVs, UVs, 2);
+
+					// Retrieve normal data.
+					HAPI_AttributeInfo AttribInfoNormals;
+					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
+
+					// Retrieve tangent data.
+					HAPI_AttributeInfo AttribInfoTangents;
+					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_TANGENT, AttribInfoTangents, Tangents);
+
+					// Retrieve color data.
+					HAPI_AttributeInfo AttribInfoColors;
+					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
+
+
+					// Transfer vertex data into vertex buffer for this geo object.
+					for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
+					{
+						FHoudiniMeshTriangle Triangle;
+
+						// Process position information.
+						// Need to flip the Y with the Z since UE4 is Z-up.
+						// Need to flip winding order also.
+
+						Triangle.Vertex0.X = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 0] * ScaleFactorPosition;
+						Triangle.Vertex0.Z = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 1] * ScaleFactorPosition;
+						Triangle.Vertex0.Y = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 2] * ScaleFactorPosition;
+						//UpdateBoundingVolumeExtent(Triangle.Vertex0, ExtentMin, ExtentMax);
+
+						Triangle.Vertex2.X = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 0] * ScaleFactorPosition;
+						Triangle.Vertex2.Z = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 1] * ScaleFactorPosition;
+						Triangle.Vertex2.Y = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 2] * ScaleFactorPosition;
+						//UpdateBoundingVolumeExtent(Triangle.Vertex2, ExtentMin, ExtentMax);
+
+						Triangle.Vertex1.X = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 0] * ScaleFactorPosition;
+						Triangle.Vertex1.Z = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 1] * ScaleFactorPosition;
+						Triangle.Vertex1.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * ScaleFactorPosition;
+						//UpdateBoundingVolumeExtent(Triangle.Vertex1, ExtentMin, ExtentMax);
+
+						// Process texture information.
+						// Need to flip the U coordinate.
+						if(AttribInfoUVs.exists)
 						{
-							case HAPI_ATTROWNER_VERTEX:
+							switch(AttribInfoUVs.owner)
 							{
-								// If the UVs are per vertex just query directly into the UV array we filled above.
+								case HAPI_ATTROWNER_VERTEX:
+								{
+									// If the UVs are per vertex just query directly into the UV array we filled above.
 
-								Triangle.TextureCoordinate0.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + 0];
-								Triangle.TextureCoordinate0.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + 1];
+									Triangle.TextureCoordinate0.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + 0];
+									Triangle.TextureCoordinate0.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + 1];
 
-								Triangle.TextureCoordinate2.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize];
-								Triangle.TextureCoordinate2.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize + 1];
+									Triangle.TextureCoordinate2.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize];
+									Triangle.TextureCoordinate2.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize + 1];
 
-								Triangle.TextureCoordinate1.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize * 2];
-								Triangle.TextureCoordinate1.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize * 2 + 1];
+									Triangle.TextureCoordinate1.X = UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize * 2];
+									Triangle.TextureCoordinate1.Y = 1.0f - UVs[TriangleIdx * 3 * AttribInfoUVs.tupleSize + AttribInfoUVs.tupleSize * 2 + 1];
 
-								break;
+									break;
+								}
+
+								case HAPI_ATTROWNER_POINT:
+								{
+									// If the UVs are per point use the vertex list array point indices to query into
+									// the UV array we filled above.
+
+									Triangle.TextureCoordinate0.X = UVs[VertexList[TriangleIdx * 3 + 0] * AttribInfoUVs.tupleSize + 0];
+									Triangle.TextureCoordinate0.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 0] * AttribInfoUVs.tupleSize + 1];
+
+									Triangle.TextureCoordinate2.X = UVs[VertexList[TriangleIdx * 3 + 1] * AttribInfoUVs.tupleSize + 0];
+									Triangle.TextureCoordinate2.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 1] * AttribInfoUVs.tupleSize + 1];
+
+									Triangle.TextureCoordinate1.X = UVs[VertexList[TriangleIdx * 3 + 2] * AttribInfoUVs.tupleSize + 0];
+									Triangle.TextureCoordinate1.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 2] * AttribInfoUVs.tupleSize + 1];
+
+									break;
+								}
+
+								default:
+								{
+									// UV coords were found on unknown attribute.
+
+									Triangle.TextureCoordinate0.X = 0.0f;
+									Triangle.TextureCoordinate0.Y = 0.0f;
+
+									Triangle.TextureCoordinate2.X = 0.0f;
+									Triangle.TextureCoordinate2.Y = 0.0f;
+
+									Triangle.TextureCoordinate1.X = 0.0f;
+									Triangle.TextureCoordinate1.Y = 0.0f;
+
+									break;
+								}
 							}
-
-							case HAPI_ATTROWNER_POINT:
-							{
-								// If the UVs are per point use the vertex list array point indices to query into
-								// the UV array we filled above.
-
-								Triangle.TextureCoordinate0.X = UVs[VertexList[TriangleIdx * 3 + 0] * AttribInfoUVs.tupleSize + 0];
-								Triangle.TextureCoordinate0.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 0] * AttribInfoUVs.tupleSize + 1];
-
-								Triangle.TextureCoordinate2.X = UVs[VertexList[TriangleIdx * 3 + 1] * AttribInfoUVs.tupleSize + 0];
-								Triangle.TextureCoordinate2.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 1] * AttribInfoUVs.tupleSize + 1];
-
-								Triangle.TextureCoordinate1.X = UVs[VertexList[TriangleIdx * 3 + 2] * AttribInfoUVs.tupleSize + 0];
-								Triangle.TextureCoordinate1.Y = 1.0f - UVs[VertexList[TriangleIdx * 3 + 2] * AttribInfoUVs.tupleSize + 1];
-
-								break;
-							}
-
-							default:
-							{
-								// UV coords were found on unknown attribute.
-
-								Triangle.TextureCoordinate0.X = 0.0f;
-								Triangle.TextureCoordinate0.Y = 0.0f;
-
-								Triangle.TextureCoordinate2.X = 0.0f;
-								Triangle.TextureCoordinate2.Y = 0.0f;
-
-								Triangle.TextureCoordinate1.X = 0.0f;
-								Triangle.TextureCoordinate1.Y = 0.0f;
-
-								break;
-							}
-						}
-					}
-					else
-					{
-						Triangle.TextureCoordinate0.X = 0.0f;
-						Triangle.TextureCoordinate0.Y = 0.0f;
-
-						Triangle.TextureCoordinate2.X = 0.0f;
-						Triangle.TextureCoordinate2.Y = 0.0f;
-
-						Triangle.TextureCoordinate1.X = 0.0f;
-						Triangle.TextureCoordinate1.Y = 0.0f;
-					}
-
-					// Process normals.
-					if(AttribInfoNormals.exists)
-					{
-						Triangle.Normal0.X = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
-						Triangle.Normal0.Z = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
-						Triangle.Normal0.Y = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
-
-						Triangle.Normal2.X = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
-						Triangle.Normal2.Z = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
-						Triangle.Normal2.Y = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
-
-						Triangle.Normal1.X = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
-						Triangle.Normal1.Z = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
-						Triangle.Normal1.Y = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
-					}
-					else
-					{
-						Triangle.Normal0.X = 0.0f;
-						Triangle.Normal0.Z = 0.0f;
-						Triangle.Normal0.Y = 0.0f;
-
-						Triangle.Normal2.X = 0.0f;
-						Triangle.Normal2.Z = 0.0f;
-						Triangle.Normal2.Y = 0.0f;
-
-						Triangle.Normal1.X = 0.0f;
-						Triangle.Normal1.Z = 0.0f;
-						Triangle.Normal1.Y = 0.0f;
-					}
-
-					// Process tangents.
-					if(AttribInfoTangents.exists)
-					{
-						Triangle.Tangent0.X = 0.0f;
-						Triangle.Tangent0.Z = 0.0f;
-						Triangle.Tangent0.Y = 0.0f;
-
-						Triangle.Tangent2.X = 0.0f;
-						Triangle.Tangent2.Z = 0.0f;
-						Triangle.Tangent2.Y = 0.0f;
-
-						Triangle.Tangent1.X = 0.0f;
-						Triangle.Tangent1.Z = 0.0f;
-						Triangle.Tangent1.Y = 0.0f;
-					}
-
-					// Process colors.
-					if(AttribInfoColors.exists)
-					{
-						Triangle.Color0.R = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
-						Triangle.Color0.G = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
-						Triangle.Color0.B = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
-
-						Triangle.Color2.R = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
-						Triangle.Color2.G = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
-						Triangle.Color2.B = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
-
-						Triangle.Color1.R = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
-						Triangle.Color1.G = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
-						Triangle.Color1.B = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
-
-						if(4 == AttribInfoColors.tupleSize)
-						{
-							Triangle.Color0.A = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 3];
-							Triangle.Color2.A = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 3];
-							Triangle.Color1.A = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 3];
 						}
 						else
 						{
+							Triangle.TextureCoordinate0.X = 0.0f;
+							Triangle.TextureCoordinate0.Y = 0.0f;
+
+							Triangle.TextureCoordinate2.X = 0.0f;
+							Triangle.TextureCoordinate2.Y = 0.0f;
+
+							Triangle.TextureCoordinate1.X = 0.0f;
+							Triangle.TextureCoordinate1.Y = 0.0f;
+						}
+
+						// Process normals.
+						if(AttribInfoNormals.exists)
+						{
+							Triangle.Normal0.X = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
+							Triangle.Normal0.Z = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+							Triangle.Normal0.Y = Normals[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
+
+							Triangle.Normal2.X = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
+							Triangle.Normal2.Z = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+							Triangle.Normal2.Y = Normals[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
+
+							Triangle.Normal1.X = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
+							Triangle.Normal1.Z = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+							Triangle.Normal1.Y = Normals[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
+						}
+						else
+						{
+							Triangle.Normal0.X = 0.0f;
+							Triangle.Normal0.Z = 0.0f;
+							Triangle.Normal0.Y = 0.0f;
+
+							Triangle.Normal2.X = 0.0f;
+							Triangle.Normal2.Z = 0.0f;
+							Triangle.Normal2.Y = 0.0f;
+
+							Triangle.Normal1.X = 0.0f;
+							Triangle.Normal1.Z = 0.0f;
+							Triangle.Normal1.Y = 0.0f;
+						}
+
+						// Process tangents.
+						if(AttribInfoTangents.exists)
+						{
+							Triangle.Tangent0.X = 0.0f;
+							Triangle.Tangent0.Z = 0.0f;
+							Triangle.Tangent0.Y = 0.0f;
+
+							Triangle.Tangent2.X = 0.0f;
+							Triangle.Tangent2.Z = 0.0f;
+							Triangle.Tangent2.Y = 0.0f;
+
+							Triangle.Tangent1.X = 0.0f;
+							Triangle.Tangent1.Z = 0.0f;
+							Triangle.Tangent1.Y = 0.0f;
+						}
+
+						// Process colors.
+						if(AttribInfoColors.exists)
+						{
+							Triangle.Color0.R = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
+							Triangle.Color0.G = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+							Triangle.Color0.B = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
+
+							Triangle.Color2.R = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
+							Triangle.Color2.G = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+							Triangle.Color2.B = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
+
+							Triangle.Color1.R = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
+							Triangle.Color1.G = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+							Triangle.Color1.B = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
+
+							if(4 == AttribInfoColors.tupleSize)
+							{
+								Triangle.Color0.A = Colors[VertexList[TriangleIdx * 3 + 0] * 3 + 3];
+								Triangle.Color2.A = Colors[VertexList[TriangleIdx * 3 + 1] * 3 + 3];
+								Triangle.Color1.A = Colors[VertexList[TriangleIdx * 3 + 2] * 3 + 3];
+							}
+							else
+							{
+								Triangle.Color0.A = 1.0f;
+								Triangle.Color2.A = 1.0f;
+								Triangle.Color1.A = 1.0f;
+							}
+						}
+						else
+						{
+							Triangle.Color0.R = 0.0f;
+							Triangle.Color0.G = 0.0f;
+							Triangle.Color0.B = 0.0f;
 							Triangle.Color0.A = 1.0f;
+
+							Triangle.Color2.R = 0.0f;
+							Triangle.Color2.G = 0.0f;
+							Triangle.Color2.B = 0.0f;
 							Triangle.Color2.A = 1.0f;
+
+							Triangle.Color1.R = 0.0f;
+							Triangle.Color1.G = 0.0f;
+							Triangle.Color1.B = 0.0f;
 							Triangle.Color1.A = 1.0f;
 						}
-					}
-					else
-					{
-						Triangle.Color0.R = 0.0f;
-						Triangle.Color0.G = 0.0f;
-						Triangle.Color0.B = 0.0f;
-						Triangle.Color0.A = 1.0f;
 
-						Triangle.Color2.R = 0.0f;
-						Triangle.Color2.G = 0.0f;
-						Triangle.Color2.B = 0.0f;
-						Triangle.Color2.A = 1.0f;
+						// Bake vertex transformation.
+						FHoudiniEngineUtils::TransformPosition(TransformMatrix, Triangle);
 
-						Triangle.Color1.R = 0.0f;
-						Triangle.Color1.G = 0.0f;
-						Triangle.Color1.B = 0.0f;
-						Triangle.Color1.A = 1.0f;
-					}
-
-					// Bake vertex transformation.
-					FHoudiniEngineUtils::TransformPosition(TransformMatrix, Triangle);
-
-					// Add triangle vertices to list of vertices for given geo.
-					HoudiniAssetObjectGeo->AddTriangleVertices(Triangle);
-				}
-
-				// Generated material.
-				UHoudiniAssetMaterial* Material = nullptr;
+						// Add triangle vertices to list of vertices for given geo.
+						HoudiniAssetObjectGeo->AddTriangleVertices(Triangle);
+					} // for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
+				} // if(GeoInfo.hasGeoChanged)
 
 				// Retrieve material information for this part.
-#if 0
 				HAPI_MaterialInfo MaterialInfo;
-				if(HAPI_RESULT_SUCCESS == HAPI_GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo))
+				Result = HAPI_GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo);
+				if(HAPI_RESULT_SUCCESS == Result && (MaterialInfo.hasChanged || !Material))
 				{
 					// Get node information.
 					HAPI_NodeInfo NodeInfo;
@@ -1117,9 +1133,8 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 					{
 						// Create a new material factory to create our material asset.
 						UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
-						UPackage* Package = GetTransientPackage();
 						FString MaterialName = FString::Printf(TEXT("%s_material"), *AssetName);
-						Material = (UHoudiniAssetMaterial*) MaterialFactory->FactoryCreateNew(UHoudiniAssetMaterial::StaticClass(), Package, *MaterialName, RF_Transient, NULL, GWarn);
+						Material = (UHoudiniAssetMaterial*) MaterialFactory->FactoryCreateNew(UHoudiniAssetMaterial::StaticClass(), Package, *MaterialName, RF_Transient | RF_Public | RF_Standalone, NULL, GWarn);
 
 						std::vector<char> ImageBuffer;
 
@@ -1189,46 +1204,59 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, TArray<FHoudiniAssetObj
 						*/
 					}
 				}
-#endif
 
-				// Retrieve group memberships for this part.
-				for(int GroupIdx = 0; GroupIdx < GroupNames.size(); ++GroupIdx)
+				if(GeoInfo.hasGeoChanged)
 				{
-					GroupMembership.clear();
-					if(!FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM, 
-						GroupNames[GroupIdx], GroupMembership))
+					// Retrieve group memberships for this part.
+					for(int GroupIdx = 0; GroupIdx < GroupNames.size(); ++GroupIdx)
 					{
-						continue;
-					}
-
-					int GroupMembershipCount = FHoudiniEngineUtils::HapiCheckGroupMembership(GroupMembership);
-					if(!GroupMembershipCount)
-					{
-						// No group membership, skip to next group.
-						continue;
-					}
-
-					TArray<int32> GroupTriangles;
-					GroupTriangles.Reserve(GroupMembershipCount * 3);
-
-					for(int FaceIdx = 0; FaceIdx < PartInfo.faceCount; ++FaceIdx)
-					{
-						if(GroupMembership[FaceIdx])
+						GroupMembership.clear();
+						if(!FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM, 
+							GroupNames[GroupIdx], GroupMembership))
 						{
-							GroupTriangles.Add(FaceIdx * 3 + 0);
-							GroupTriangles.Add(FaceIdx * 3 + 1);
-							GroupTriangles.Add(FaceIdx * 3 + 2);
+							continue;
 						}
+
+						int GroupMembershipCount = FHoudiniEngineUtils::HapiCheckGroupMembership(GroupMembership);
+						if(!GroupMembershipCount)
+						{
+							// No group membership, skip to next group.
+							continue;
+						}
+
+						TArray<int32> GroupTriangles;
+						GroupTriangles.Reserve(GroupMembershipCount * 3);
+
+						for(int FaceIdx = 0; FaceIdx < PartInfo.faceCount; ++FaceIdx)
+						{
+							if(GroupMembership[FaceIdx])
+							{
+								GroupTriangles.Add(FaceIdx * 3 + 0);
+								GroupTriangles.Add(FaceIdx * 3 + 1);
+								GroupTriangles.Add(FaceIdx * 3 + 2);
+							}
+						}
+
+						// We need to construct a new geo part with indexing information.
+						FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart(GroupTriangles, Material);
+						HoudiniAssetObjectGeo->AddGeoPart(HoudiniAssetObjectGeoPart);
 					}
 
-					// We need to construct a new geo part with indexing information.
-					FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart(GroupTriangles, Material);
-					HoudiniAssetObjectGeo->AddGeoPart(HoudiniAssetObjectGeoPart);
+					// Compute whether this geo uses multiple materials.
+					HoudiniAssetObjectGeo->ComputeMultipleMaterialUsage();
+				} // if(GeoInfo.hasGeoChanged)
+				else
+				{
+					// Geometry has not changed. Check if material has changed and needs replacing.
+					if(MaterialInfo.hasChanged)
+					{
+						HoudiniAssetObjectGeo->ReplaceMaterial(Material);
+						
+						// Compute whether this geo uses multiple materials.
+						HoudiniAssetObjectGeo->ComputeMultipleMaterialUsage();
+					}
 				}
-
-				// Compute whether this geo uses multiple materials.
-				HoudiniAssetObjectGeo->ComputeMultipleMaterialUsage();
-			}
+			} // for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
 
 			// There has been an error, continue onto next Geo.
 			if(bGeoError)
@@ -1344,7 +1372,6 @@ UTexture2D*
 FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer)
 {
 	UTexture2D* Texture = UTexture2D::CreateTransient(ImageInfo.xRes, ImageInfo.yRes, PixelFormat);
-	Texture->AddToRoot();
 
 	// Lock texture for modification.
 	uint8* MipData = static_cast<uint8*>(Texture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
