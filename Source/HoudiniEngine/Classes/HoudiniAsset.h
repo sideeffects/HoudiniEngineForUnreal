@@ -46,21 +46,6 @@ public:
 	/** Return the size in bytes of raw Houdini OTL data. **/
 	uint32 GetAssetBytesCount() const;
 
-	/** Return true if preview geometry contains Houdini logo data. **/
-	bool DoesPreviewGeometryContainHoudiniLogo() const;
-
-	/** Retrieve preview geometry. **/
-	void RetrievePreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles);
-
-	/** Set preview geometry. **/
-	void SetPreviewGeometry(const TArray<FHoudiniMeshTriangle>& Triangles);
-
-	/** Return number of name references. **/
-	uint32 GetNameReferenceCount() const;
-
-	/** Increment name reference count. **/
-	void IncrementNameReferenceCount();
-
 public:
 
 	/** Filename of the OTL. **/
@@ -81,12 +66,6 @@ protected:
 	static const int32 PersistenceFormatVersion;
 
 protected:
-
-	/** Triangle data used for preview window. **/
-	TArray<FHoudiniMeshTriangle> PreviewHoudiniMeshTriangles;
-
-	/** Synchronization primitive. **/
-	mutable FCriticalSection CriticalSection;
 
 	/** Buffer containing raw Houdini OTL data. **/
 	uint8* AssetBytes;

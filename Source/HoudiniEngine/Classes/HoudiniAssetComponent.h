@@ -258,9 +258,6 @@ private:
 
 protected:
 
-	/** Triangle data used for rendering in viewport / preview window. **/
-	TArray<FHoudiniMeshTriangle> HoudiniMeshTriangles;
-
 	/** Array of asset objects geos. **/
 	TArray<FHoudiniAssetObjectGeo*> HoudiniAssetObjectGeos;
 
@@ -276,14 +273,8 @@ protected:
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
 
-	/** Owner Houdini actor, if there's one. **/
-	//TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActorOwner;
-
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
-
-	/** Synchronization primitive used to control access to geometry. **/
-	FCriticalSection CriticalSectionTriangles;
 
 	/** A fence which is used to keep track of the rendering thread releasing rendering resources. **/
 	FRenderCommandFence ReleaseResourcesFence;

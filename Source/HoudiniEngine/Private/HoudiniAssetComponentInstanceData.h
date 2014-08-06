@@ -15,21 +15,25 @@
 
 #pragma once
 
-/** Component Instance Data Cache */
-class FHoudiniAssetComponentInstanceData : public FComponentInstanceDataBase
+class UActorComponent;
+class UHoudiniAssetComponent;
+
+class FHoudiniAssetComponentInstanceData/* : public FComponentInstanceDataBase*/
 {
 public:
-	FHoudiniAssetComponentInstanceData( const UHoudiniAssetComponent* SourceComponent )
-		: FComponentInstanceDataBase( SourceComponent )
-	{}
 
-	virtual ~FHoudiniAssetComponentInstanceData()
-	{}
+	/** Constructor. **/
+	FHoudiniAssetComponentInstanceData(const UHoudiniAssetComponent* SourceComponent);
 
+	/** Destructor. **/
+	virtual ~FHoudiniAssetComponentInstanceData();
+
+public:
+
+	//virtual bool MatchesComponent(const UActorComponent* Component) const override;
+
+	/** **/
 	HAPI_AssetId AssetId;
 	FGuid HapiGUID;
 };
-
-
-
 

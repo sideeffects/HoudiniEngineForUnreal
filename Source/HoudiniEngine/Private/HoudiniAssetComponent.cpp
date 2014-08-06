@@ -70,9 +70,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 
 	// Zero scratch space.
 	FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
-
-	// Create temporary geometry.
-	FHoudiniEngineUtils::GetHoudiniLogoGeometry(HoudiniMeshTriangles, HoudiniMeshSphereBounds);
 }
 
 
@@ -182,7 +179,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		bIsPreviewComponent = HoudiniAssetActor->IsUsedForPreview();
 	}
 
-	bLoadedComponent = false;
+	//bLoadedComponent = false;
 	if(!bIsPreviewComponent && !bLoadedComponent)
 	{
 		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
@@ -339,73 +336,36 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Assign unique actor label based on asset name.
 						AssignUniqueActorLabel();
 
-						if(FHoudiniEngineUtils::GetAssetGeometry(TaskInfo.AssetId, HoudiniMeshTriangles, HoudiniMeshSphereBounds))
-						{
-							// We need to patch component RTTI to reflect properties for this component.
-							ReplaceClassInformation(GetOuter()->GetName());
+						// We need to patch component RTTI to reflect properties for this component.
+						ReplaceClassInformation(GetOuter()->GetName());
 
-							// Get current asset.
-							UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
+						// Update properties panel.
+						UpdateEditorProperties();
 
-							// See if asset contains Houdini logo geometry, if it does we can update it.
-							if(CurrentHoudiniAsset && CurrentHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
-							{
-								CurrentHoudiniAsset->SetPreviewGeometry(HoudiniMeshTriangles);
+						// Construct new objects (asset objects and asset object parts).
+						TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
+						FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
 
-								// We need to find corresponding preview component.
-								for(TObjectIterator<UHoudiniAssetComponent> It; It; ++It)
-								{
-									UHoudiniAssetComponent* HoudiniAssetComponent = *It;
+						// Clear rendering resources used by geos.
+						ReleaseRenderingResources();
 
-									// Skip ourselves.
-									if(HoudiniAssetComponent == this)
-									{
-										continue;
-									}
+						// Delete all existing geo objects (this will also delete their geo parts).
+						ClearGeos();
 
-									if(HoudiniAssetComponent->HoudiniAsset && HoudiniAssetComponent->HoudiniAsset == CurrentHoudiniAsset)
-									{
-										// Update preview actor geometry with new data.
-										HoudiniAssetComponent->HoudiniMeshTriangles = HoudiniMeshTriangles;
-										HoudiniAssetComponent->UpdateRenderingInformation();
+						// Set new geo objects.
+						HoudiniAssetObjectGeos = NewObjectGeos;
 
-										break;
-									}
-								}
-							}
+						// Collect all textures (for debugging purposes).
+						CollectTextures();
 
-							// Update properties panel.
-							UpdateEditorProperties();
+						// Manually tick GC to propagate reference counts.
+						//GetWorld()->ForceGarbageCollection(false);
 
-							// Construct new objects (asset objects and asset object parts).
-							TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
-							FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
+						// Create all rendering resources.
+						CreateRenderingResources();
 
-							// Clear rendering resources used by geos.
-							ReleaseRenderingResources();
-
-							// Delete all existing geo objects (this will also delete their geo parts).
-							ClearGeos();
-
-							// Set new geo objects.
-							HoudiniAssetObjectGeos = NewObjectGeos;
-
-							// Collect all textures (for debugging purposes).
-							CollectTextures();
-
-							// Manually tick GC to propagate reference counts.
-							//GetWorld()->ForceGarbageCollection(false);
-
-							// Create all rendering resources.
-							CreateRenderingResources();
-
-							// Need to update rendering information.
-							UpdateRenderingInformation();
-						}
-						else
-						{
-							HOUDINI_LOG_MESSAGE(TEXT("Failed geometry extraction after asset instantiation."));
-						}
+						// Need to update rendering information.
+						UpdateRenderingInformation();
 					}
 					else
 					{
@@ -2055,11 +2015,15 @@ UHoudiniAssetComponent::GetComponentInstanceData() const
 
 	//bIsRealDestroy = true;
 
+	/*
 	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData = MakeShareable(new FHoudiniAssetComponentInstanceData(this));
 	InstanceData->AssetId = AssetId;
 	InstanceData->HapiGUID = HapiGUID;
-
 	return InstanceData;
+	*/
+
+	// Temporary.
+	return Super::GetComponentInstanceData();
 }
 
 
@@ -2071,12 +2035,14 @@ UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentIn
 
 	Super::ApplyComponentInstanceData(ComponentInstanceData);
 
-	check( ComponentInstanceData.IsValid() );
+	/*
+	check(ComponentInstanceData.IsValid());
 	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData =
-		StaticCastSharedPtr<FHoudiniAssetComponentInstanceData>( ComponentInstanceData );
+		StaticCastSharedPtr<FHoudiniAssetComponentInstanceData>(ComponentInstanceData);
 
 	AssetId = InstanceData->AssetId;
 	HapiGUID = InstanceData->HapiGUID;
+	*/
 }
 
 

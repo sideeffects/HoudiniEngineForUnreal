@@ -23,8 +23,7 @@ UHoudiniAsset::PersistenceFormatVersion = 0;
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	AssetBytes(nullptr),
-	AssetBytesCount(0),
-	bPreviewHoudiniLogo(false)
+	AssetBytesCount(0)
 {
 
 }
@@ -37,8 +36,7 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
 	Super(PCIP),
 	OTLFileName(InFileName),
 	AssetBytes(nullptr),
-	AssetBytesCount(0),
-	bPreviewHoudiniLogo(false)
+	AssetBytesCount(0)
 {
 	// Calculate buffer size.
 	AssetBytesCount = BufferEnd - BufferStart;
@@ -54,15 +52,6 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
 			FMemory::Memcpy(AssetBytes, BufferStart, AssetBytesCount);
 		}
 	}
-
-	// Use Houdini logo for geometry.
-	/*
-	{
-		FBoxSphereBounds SphereBounds;
-		FHoudiniEngineUtils::GetHoudiniLogoGeometry(PreviewHoudiniMeshTriangles, SphereBounds);
-		bPreviewHoudiniLogo = true;
-	}
-	*/
 }
 
 
@@ -77,31 +66,6 @@ uint32
 UHoudiniAsset::GetAssetBytesCount() const
 {
 	return AssetBytesCount;
-}
-
-
-bool
-UHoudiniAsset::DoesPreviewGeometryContainHoudiniLogo() const
-{
-	FScopeLock ScopeLock(&CriticalSection);
-	return bPreviewHoudiniLogo;
-}
-
-
-void
-UHoudiniAsset::RetrievePreviewGeometry(TArray<FHoudiniMeshTriangle>& Triangles)
-{
-	FScopeLock ScopeLock(&CriticalSection);
-	Triangles = TArray<FHoudiniMeshTriangle>(PreviewHoudiniMeshTriangles);
-}
-
-
-void
-UHoudiniAsset::SetPreviewGeometry(const TArray<FHoudiniMeshTriangle>& Triangles)
-{
-	FScopeLock ScopeLock(&CriticalSection);
-	PreviewHoudiniMeshTriangles = TArray<FHoudiniMeshTriangle>(Triangles);
-	bPreviewHoudiniLogo = false;
 }
 
 
@@ -171,36 +135,4 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 			Ar.Serialize(AssetBytes, AssetBytesCount);
 		}
 	}
-	/*
-	{
-		FScopeLock ScopeLock(&CriticalSection);
-
-		Ar << bPreviewHoudiniLogo;
-
-		if(Ar.IsSaving())
-		{
-			int PreviewTriangleCount = PreviewHoudiniMeshTriangles.Num();
-			Ar << PreviewTriangleCount;
-
-			for(int TriIndex = 0; TriIndex < PreviewHoudiniMeshTriangles.Num(); ++TriIndex)
-			{
-				FHoudiniMeshTriangle& Triangle = PreviewHoudiniMeshTriangles[TriIndex];
-				Ar << Triangle;
-			}
-		}
-		else if(Ar.IsLoading())
-		{
-			int PreviewTriangleCount = 0;
-			Ar << PreviewTriangleCount;
-
-			for(int TriIndex = 0; TriIndex < PreviewTriangleCount; ++TriIndex)
-			{
-				FHoudiniMeshTriangle Triangle;
-				Ar << Triangle;
-
-				PreviewHoudiniMeshTriangles.Add(Triangle);
-			}
-		}
-	}
-	*/
 }
