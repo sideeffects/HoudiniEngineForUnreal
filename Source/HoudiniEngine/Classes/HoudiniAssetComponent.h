@@ -78,7 +78,7 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 public:
 
 	/** Houdini Asset associated with this component. **/
-	//UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient, Category=HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
 	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
@@ -106,7 +106,7 @@ public:
 	UHoudiniAsset* GetHoudiniAsset() const;
 
 	/** Return owner Houdini actor. **/
-	TWeakObjectPtr<AHoudiniAssetActor> GetHoudiniAssetActorOwner() const;
+	AHoudiniAssetActor* GetHoudiniAssetActorOwner() const;
 
 public: /** UObject methods. **/
 
@@ -129,6 +129,7 @@ protected: /** UActorComponent methods. **/
 	virtual void OnUnregister() override;
 
 	virtual FName GetComponentInstanceDataType() const override;
+	virtual TSharedPtr<class FComponentInstanceDataBase> GetComponentInstanceData() const override;
 	virtual void ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData) override;
 
 private: /** UPrimitiveComponent methods. **/
@@ -276,7 +277,7 @@ protected:
 	TWeakPtr<SNotificationItem> NotificationPtr;
 
 	/** Owner Houdini actor, if there's one. **/
-	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActorOwner;
+	//TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActorOwner;
 
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds HoudiniMeshSphereBounds;
@@ -316,6 +317,10 @@ protected:
 
 	/** Is set to true when component is loaded and no instantiation / cooking is necessary. **/
 	bool bLoadedComponentRequiresInstantiation;
+
+	/** Is set to true when blueprint component is being destroyed outside the regular		**/
+	/** blueprint create/destroy cycle.														**/
+	bool bIsRealDestroy;
 
 private:
 

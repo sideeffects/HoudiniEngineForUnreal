@@ -45,7 +45,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bAsyncResourceReleaseHasBeenStarted(false),
 	bPreSaveTriggered(false),
 	bLoadedComponent(false),
-	bLoadedComponentRequiresInstantiation(false)
+	bLoadedComponentRequiresInstantiation(false),
+	bIsRealDestroy(false)
 {
 	// Create a generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -97,12 +98,12 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 				}
 
 				// Retrieve asset associated with this component.
-				UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+				/*UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
 				if(HoudiniAsset)
 				{
 					// Manually add a reference to Houdini asset from this component.
 					Collector.AddReferencedObject(HoudiniAsset, InThis);
-				}
+				}*/
 
 				// Propagate referencing request to all geos.
 				for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetComponent->HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
@@ -147,10 +148,10 @@ UHoudiniAssetComponent::GetHoudiniAsset() const
 }
 
 
-TWeakObjectPtr<AHoudiniAssetActor>
+AHoudiniAssetActor*
 UHoudiniAssetComponent::GetHoudiniAssetActorOwner() const
 {
-	return HoudiniAssetActorOwner;
+	return Cast<AHoudiniAssetActor>(GetOwner());
 }
 
 
@@ -159,28 +160,29 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
-	UHoudiniAsset* Asset = nullptr;
-	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	check(HoudiniAssetActor.IsValid());
-
 	// If it is the same asset, do nothing.
-	if(InHoudiniAsset == HoudiniAsset)
+	if (InHoudiniAsset == HoudiniAsset)
 	{
 		return;
 	}
 
+	UHoudiniAsset* Asset = nullptr;
+	AHoudiniAssetActor* HoudiniAssetActor = Cast<AHoudiniAssetActor>(GetOwner());
+
 	HoudiniAsset = InHoudiniAsset;
-	bIsPreviewComponent = HoudiniAssetActor->IsUsedForPreview();
 
-	if(!InHoudiniAsset->DoesPreviewGeometryContainHoudiniLogo())
+	bIsPreviewComponent = false;
+	if(!InHoudiniAsset)
 	{
-		// If asset contains non logo geometry, retrieve it and use it.
-		InHoudiniAsset->RetrievePreviewGeometry(HoudiniMeshTriangles);
-
-		// Update rendering information.
-		UpdateRenderingInformation();
+		return;
+	}
+	
+	if(HoudiniAssetActor)
+	{
+		bIsPreviewComponent = HoudiniAssetActor->IsUsedForPreview();
 	}
 
+	bLoadedComponent = false;
 	if(!bIsPreviewComponent && !bLoadedComponent)
 	{
 		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
@@ -190,7 +192,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
 		Task.Asset = InHoudiniAsset;
-		Task.ActorName = HoudiniAssetActor->GetActorLabel();
+		Task.ActorName = GetOuter()->GetName();
 		FHoudiniEngine::Get().AddTask(Task);
 
 		// Start ticking - this will poll the cooking system for completion.
@@ -204,13 +206,13 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 {
 	if(-1 != AssetId)
 	{
-		TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
-		if(HoudiniAssetActor.IsValid())
+		AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
+		if(HoudiniAssetActor)
 		{
 			FString UniqueName;
 			if(FHoudiniEngineUtils::GetHoudiniAssetName(AssetId, UniqueName))
 			{
-				GEditor->SetActorLabelUnique(HoudiniAssetActor.Get(), UniqueName);
+				GEditor->SetActorLabelUnique(HoudiniAssetActor, UniqueName);
 			}
 		}
 	}
@@ -267,10 +269,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 {
 	FHoudiniEngineTaskInfo TaskInfo;
 	bool bStopTicking = false;
-
-	// Retrieve the owner actor of this component.
-	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	check(HoudiniAssetActor.IsValid());
 
 	if(HapiGUID.IsValid())
 	{
@@ -344,7 +342,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						if(FHoudiniEngineUtils::GetAssetGeometry(TaskInfo.AssetId, HoudiniMeshTriangles, HoudiniMeshSphereBounds))
 						{
 							// We need to patch component RTTI to reflect properties for this component.
-							ReplaceClassInformation(HoudiniAssetActor->GetActorLabel());
+							ReplaceClassInformation(GetOuter()->GetName());
 
 							// Get current asset.
 							UHoudiniAsset* CurrentHoudiniAsset = GetHoudiniAsset();
@@ -502,7 +500,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiationWithoutCooking, HapiGUID);
 			Task.Asset = HoudiniAsset;
-			Task.ActorName = HoudiniAssetActor->GetActorLabel();
+			Task.ActorName = GetOuter()->GetName();
 			FHoudiniEngine::Get().AddTask(Task);
 		}
 		else
@@ -515,7 +513,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 			// Create asset instantiation task object and submit it for processing.
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-			Task.ActorName = HoudiniAssetActor->GetActorLabel();
+			Task.ActorName = GetOuter()->GetName();
 			Task.AssetComponent = this;
 			FHoudiniEngine::Get().AddTask(Task);
 		}
@@ -534,8 +532,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
-	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	if(HoudiniAssetActor.IsValid())
+	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
+	if(HoudiniAssetActor)
 	{
 		// Manually reselect the actor - this will cause details panel to be updated and force our 
 		// property changes to be picked up by the UI.
@@ -673,7 +671,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	ClearGeos();
 
 	// If we have an asset.
-	if(-1 != AssetId)
+	if(-1 != AssetId && bIsRealDestroy)
 	{
 		// Generate GUID for our new task.
 		HapiGUID = FGuid::NewGuid();
@@ -1995,8 +1993,8 @@ UHoudiniAssetComponent::OnRegister()
 		return;
 	}
 
-	TWeakObjectPtr<AHoudiniAssetActor> HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	if(!HoudiniAssetActor.IsValid())
+	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
+	if(!HoudiniAssetActor)
 	{
 		return;
 	}
@@ -2044,8 +2042,24 @@ UHoudiniAssetComponent::GetComponentInstanceDataType() const
 {
 	// Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation.
 
+	HOUDINI_LOG_MESSAGE(TEXT("Requesting data type for caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
+
 	return Super::GetComponentInstanceDataType();
-	HOUDINI_LOG_MESSAGE(TEXT("Requesting data for caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
+}
+
+
+TSharedPtr<class FComponentInstanceDataBase>
+UHoudiniAssetComponent::GetComponentInstanceData() const
+{
+	HOUDINI_LOG_MESSAGE( TEXT( "Requesting data for caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p" ), this, HoudiniAsset );
+
+	//bIsRealDestroy = true;
+
+	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData = MakeShareable(new FHoudiniAssetComponentInstanceData(this));
+	InstanceData->AssetId = AssetId;
+	InstanceData->HapiGUID = HapiGUID;
+
+	return InstanceData;
 }
 
 
@@ -2053,9 +2067,16 @@ void
 UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData)
 {
 	// Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData.
+	HOUDINI_LOG_MESSAGE(TEXT("Restoring data from caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
 	Super::ApplyComponentInstanceData(ComponentInstanceData);
-	HOUDINI_LOG_MESSAGE(TEXT("Restoring data from caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
+
+	check( ComponentInstanceData.IsValid() );
+	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData =
+		StaticCastSharedPtr<FHoudiniAssetComponentInstanceData>( ComponentInstanceData );
+
+	AssetId = InstanceData->AssetId;
+	HapiGUID = InstanceData->HapiGUID;
 }
 
 
@@ -2108,7 +2129,7 @@ UHoudiniAssetComponent::PostLoad()
 	if(!PatchedClass && (UHoudiniAssetComponent::StaticClass() == GetClass()))
 	{
 		// Replace class information.
-		ReplaceClassInformation(HoudiniAssetActorOwner->GetActorLabel());
+		ReplaceClassInformation(GetOuter()->GetName());
 
 		// These are used to track and insert properties into new class object.
 		UProperty* PropertyFirst = nullptr;

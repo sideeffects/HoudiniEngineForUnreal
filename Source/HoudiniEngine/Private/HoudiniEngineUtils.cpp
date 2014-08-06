@@ -861,6 +861,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 					{
 						// We failed to look up geo from previous cook, this should not happen in theory. Create new one.
 						HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
+						check(false);
 					}
 				}
 
