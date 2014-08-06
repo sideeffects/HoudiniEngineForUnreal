@@ -78,6 +78,7 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 public:
 
 	/** Houdini Asset associated with this component. **/
+	//UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
 	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
