@@ -25,8 +25,6 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties&
 	HoudiniAssetComponent = PCIP.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	RootComponent = HoudiniAssetComponent;
-
-	HoudiniAssetComponent->HoudiniAssetActorOwner = this;
 }
 
 
