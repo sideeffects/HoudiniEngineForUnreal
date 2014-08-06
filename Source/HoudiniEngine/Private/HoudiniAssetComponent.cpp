@@ -2226,19 +2226,14 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		return;
 	}
 
-	/*
 	if(Ar.IsSaving())
 	{
-		if(!bPreSaveTriggered)
+		if(bPreSaveTriggered)
 		{
-			// Save is triggered multiple times, we want to avoid unnecessary serialization. Only save when PreSave has been called.
-			Super::Serialize(Ar);
-			return;
+			// Save is triggered multiple times, but there's only one presave. Can add one time save logic here.
+			bPreSaveTriggered = false;
 		}
-
-		bPreSaveTriggered = false;
 	}
-	*/
 
 	// State of this component.
 	EHoudiniAssetComponentState::Type ComponentState = EHoudiniAssetComponentState::Invalid;
