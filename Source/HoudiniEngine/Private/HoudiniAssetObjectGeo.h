@@ -22,6 +22,7 @@ class FReferenceCollector;
 class FHoudiniMeshVertexBuffer;
 class FHoudiniMeshVertexFactory;
 class FHoudiniAssetObjectGeoPart;
+class UHoudiniAssetMaterial;
 
 class FHoudiniAssetObjectGeo
 {
@@ -72,6 +73,12 @@ public:
 
 	/** Collect textures used by parts. **/
 	void CollectTextures(TArray<UTexture2D*>& Textures);
+
+	/** Retrieve single material. **/
+	UHoudiniAssetMaterial* GetSingleMaterial() const;
+
+	/** Replace material on al parts with given material. **/
+	void ReplaceMaterial(UHoudiniAssetMaterial* Material);
 
 protected:
 

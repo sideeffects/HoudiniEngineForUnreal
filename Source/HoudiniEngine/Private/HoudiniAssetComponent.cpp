@@ -381,7 +381,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 							// Construct new objects (asset objects and asset object parts).
 							TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
-							FHoudiniEngineUtils::ConstructGeos(AssetId, HoudiniAssetObjectGeos, NewObjectGeos);
+							FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
 
 							// Clear rendering resources used by geos.
 							ReleaseRenderingResources();
@@ -394,6 +394,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 							// Collect all textures (for debugging purposes).
 							CollectTextures();
+
+							// Manually tick GC to propagate reference counts.
+							//GetWorld()->ForceGarbageCollection(false);
 
 							// Create all rendering resources.
 							CreateRenderingResources();
