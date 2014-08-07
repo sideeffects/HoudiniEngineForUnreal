@@ -2096,6 +2096,17 @@ UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
 {
 	// We are now in PIE mode.
 	bIsPIEActive = true;
+
+	if(!PatchedClass)
+	{
+		return;
+	}
+
+	// We need to add our patched class to root in order to avoid its clean up by GC.
+	PatchedClass->AddToRoot();
+
+	// We need to restore original class information.
+	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
 }
 
 
@@ -2104,6 +2115,17 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 {
 	// We are no longer in PIE mode.
 	bIsPIEActive = false;
+
+	if(!PatchedClass)
+	{
+		return;
+	}
+
+	// We need to restore patched class information.
+	ReplaceClassObject(PatchedClass);
+
+	// We can put our patched class back, and remove it from root as it no longer under threat of being cleaned up by GC.
+	PatchedClass->RemoveFromRoot();
 }
 
 
