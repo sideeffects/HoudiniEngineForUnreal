@@ -166,6 +166,12 @@ private:
 	/** Patch RTTI : replace property offset data. **/
 	void ReplacePropertyOffset(UProperty* Property, int Offset);
 
+	/** Patch RTTI : Restore original class information. **/
+	void RestoreOriginalClassInformation();
+
+	/** Patch RTTI : Restore patched class information. **/
+	void RestorePatchedClassInformation();
+
 	/** Patch RTTI : Create property based on given type. **/
 	UProperty* CreateProperty(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags, EHoudiniEngineProperty::Type PropertyType);
 
