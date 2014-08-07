@@ -46,7 +46,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bPreSaveTriggered(false),
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
-	bIsRealDestroy(false)
+	bIsRealDestroy(true),
+	bIsPIEActive(false)
 {
 	// Create a generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -645,8 +646,8 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 		AssetId = -1;
 	}
 
-	// Unsubscribe from World save events.
-	UnsubscribeSaveWorldDelegates();
+	// Unsubscribe from Editor events.
+	UnsubscribeEditorDelegates();
 
 	// Call super class implementation.
 	Super::OnComponentDestroyed();
@@ -741,18 +742,28 @@ UHoudiniAssetComponent::GetPropertyType(UProperty* Property) const
 
 
 void
-UHoudiniAssetComponent::SubscribeSaveWorldDelegates()
+UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
+	// Add pre and post save delegates.
 	FEditorDelegates::PreSaveWorld.AddUObject(this, &UHoudiniAssetComponent::OnPreSaveWorld);
 	FEditorDelegates::PostSaveWorld.AddUObject(this, &UHoudiniAssetComponent::OnPostSaveWorld);
+
+	// Add begin and end delegates for play-in-editor.
+	FEditorDelegates::BeginPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
+	FEditorDelegates::EndPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
 }
 
 
 void
-UHoudiniAssetComponent::UnsubscribeSaveWorldDelegates()
+UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
+	// Remove pre and post save delegates.
 	FEditorDelegates::PreSaveWorld.RemoveUObject(this, &UHoudiniAssetComponent::OnPreSaveWorld);
 	FEditorDelegates::PostSaveWorld.RemoveUObject(this, &UHoudiniAssetComponent::OnPostSaveWorld);
+
+	// Remove begin and end delegates for play-in-editor.
+	FEditorDelegates::BeginPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
+	FEditorDelegates::EndPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
 }
 
 
@@ -825,9 +836,10 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 		{
 			ReplaceClassObject(NewClass);
 
-			// Now that RTTI has been patched, we need to subscribe to World save delegates. This is necessary in order to
-			// patch old RTTI information back for saving. Once save completes, we restore the patched RTTI back.
-			SubscribeSaveWorldDelegates();
+			// Now that RTTI has been patched, we need to subscribe to Editor delegates. This is necessary in order to
+			// patch old RTTI information back for saving and other operations. Once save completes, we restore the 
+			// patched RTTI back.
+			SubscribeEditorDelegates();
 		}
 	}
 	else
@@ -2013,7 +2025,7 @@ UHoudiniAssetComponent::GetComponentInstanceData() const
 {
 	HOUDINI_LOG_MESSAGE( TEXT( "Requesting data for caching, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p" ), this, HoudiniAsset );
 
-	//bIsRealDestroy = true;
+	bIsRealDestroy = false;
 
 	/*
 	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData = MakeShareable(new FHoudiniAssetComponentInstanceData(this));
@@ -2076,6 +2088,22 @@ UHoudiniAssetComponent::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, b
 
 	// We can put our patched class back, and remove it from root as it no longer under threat of being cleaned up by GC.
 	PatchedClass->RemoveFromRoot();
+}
+
+
+void
+UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
+{
+	// We are now in PIE mode.
+	bIsPIEActive = true;
+}
+
+
+void
+UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
+{
+	// We are no longer in PIE mode.
+	bIsPIEActive = false;
 }
 
 
