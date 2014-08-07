@@ -322,7 +322,7 @@ protected:
 	mutable bool bIsRealDestroy;
 
 	/** Is set to true when PIE mode is on (either play or simulate.) **/
-	bool bIsPIEActive;
+	bool bIsPlayModeActive;
 
 private:
 
