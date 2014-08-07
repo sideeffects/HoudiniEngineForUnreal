@@ -47,7 +47,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
 	bIsRealDestroy(true),
-	bIsPIEActive(false)
+	bIsPlayModeActive(false)
 {
 	// Create a generic bounding volume.
 	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -2110,7 +2110,7 @@ void
 UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
 {
 	// We are now in PIE mode.
-	bIsPIEActive = true;
+	bIsPlayModeActive = true;
 
 	// We need to restore original class information.
 	RestoreOriginalClassInformation();
@@ -2121,7 +2121,7 @@ void
 UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 {
 	// We are no longer in PIE mode.
-	bIsPIEActive = false;
+	bIsPlayModeActive = false;
 
 	// We need to restore patched class information.
 	RestorePatchedClassInformation();
