@@ -15,8 +15,8 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 
-FHoudiniAssetComponentInstanceData::FHoudiniAssetComponentInstanceData(const UHoudiniAssetComponent* SourceComponent)/* :
-	FComponentInstanceDataBase(SourceComponent)*/
+FHoudiniAssetComponentInstanceData::FHoudiniAssetComponentInstanceData(const UHoudiniAssetComponent* SourceComponent) :
+	FComponentInstanceDataBase(SourceComponent)
 {
 
 }
@@ -28,10 +28,8 @@ FHoudiniAssetComponentInstanceData::~FHoudiniAssetComponentInstanceData()
 }
 
 
-/*
 bool
 FHoudiniAssetComponentInstanceData::MatchesComponent(const UActorComponent* Component) const
 {
 	return true;
 }
-*/
