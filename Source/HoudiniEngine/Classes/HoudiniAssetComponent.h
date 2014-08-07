@@ -144,6 +144,8 @@ private: /** FEditorDelegates delegates. **/
 
 	void OnPreSaveWorld(uint32 SaveFlags, class UWorld* World);
 	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
+	void OnPIEEventBegin(const bool bIsSimulating);
+	void OnPIEEventEnd(const bool bIsSimulating);
 
 protected:
 
@@ -198,11 +200,11 @@ private:
 	/** Patch RTTI : Remove all meta information from given enum object. **/
 	void RemoveMetaDataFromEnum(UEnum* EnumObject);
 
-	/** Subscribe to World Save events. **/
-	void SubscribeSaveWorldDelegates();
+	/** Subscribe to Editor events. **/
+	void SubscribeEditorDelegates();
 
-	/** Unsubscribe from World Save events. **/
-	void UnsubscribeSaveWorldDelegates();
+	/** Unsubscribe from Editor events. **/
+	void UnsubscribeEditorDelegates();
 
 	/** Set parameter values which have changed. **/
 	void SetChangedParameterValues();
@@ -311,7 +313,10 @@ protected:
 
 	/** Is set to true when blueprint component is being destroyed outside the regular		**/
 	/** blueprint create/destroy cycle.														**/
-	bool bIsRealDestroy;
+	mutable bool bIsRealDestroy;
+
+	/** Is set to true when PIE mode is on (either play or simulate.) **/
+	bool bIsPIEActive;
 
 private:
 
