@@ -187,7 +187,11 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		bIsPreviewComponent = HoudiniAssetActor->IsUsedForPreview();
 	}
 
-	//bLoadedComponent = false;
+	if(!bIsNativeComponent)
+	{
+		bLoadedComponent = false;
+	}
+
 	if(!bIsPreviewComponent && !bLoadedComponent)
 	{
 		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;

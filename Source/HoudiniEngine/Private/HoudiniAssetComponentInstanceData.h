@@ -18,7 +18,7 @@
 class UActorComponent;
 class UHoudiniAssetComponent;
 
-class FHoudiniAssetComponentInstanceData/* : public FComponentInstanceDataBase*/
+class FHoudiniAssetComponentInstanceData : public FComponentInstanceDataBase
 {
 public:
 
@@ -30,9 +30,10 @@ public:
 
 public:
 
-	//virtual bool MatchesComponent(const UActorComponent* Component) const override;
+	virtual bool MatchesComponent(const UActorComponent* Component) const override;
 
 	/** **/
+
 	HAPI_AssetId AssetId;
 	FGuid HapiGUID;
 };
