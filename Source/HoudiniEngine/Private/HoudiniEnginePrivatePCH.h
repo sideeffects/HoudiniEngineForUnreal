@@ -22,6 +22,7 @@
 #include "EditorSupportDelegates.h"
 #include "AssetTypeActions_Base.h"
 #include "ModuleManager.h"
+#include "EngineModule.h"
 #include "Core.h"
 #include "AssetData.h"
 #include "MessageLog.h"

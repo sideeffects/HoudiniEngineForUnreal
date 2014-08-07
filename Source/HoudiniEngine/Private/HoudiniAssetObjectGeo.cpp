@@ -22,7 +22,8 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
-	bMultipleMaterials(false)
+	bMultipleMaterials(false),
+	bHoudiniLogo(false)
 {
 	Transform = FMatrix::Identity;
 }
@@ -35,7 +36,8 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
-	bMultipleMaterials(false)
+	bMultipleMaterials(false),
+	bHoudiniLogo(false)
 {
 
 }
@@ -329,4 +331,18 @@ FHoudiniAssetObjectGeo::CollectTextures(TArray<UTexture2D*>& Textures)
 		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = *Iter;
 		HoudiniAssetObjectGeoPart->CollectTextures(Textures);
 	}
+}
+
+
+void
+FHoudiniAssetObjectGeo::SetHoudiniLogo()
+{
+	bHoudiniLogo = true;
+}
+
+
+bool
+FHoudiniAssetObjectGeo::IsHoudiniLogo() const
+{
+	return bHoudiniLogo;
 }

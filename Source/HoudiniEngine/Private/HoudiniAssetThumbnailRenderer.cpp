@@ -26,7 +26,6 @@ UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const class FPost
 void
 UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas)
 {
-	/*
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Object);
 	if(HoudiniAsset && !HoudiniAsset->IsPendingKill())
 	{
@@ -60,8 +59,8 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
 		GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
 	}
-	*/
 
+	/*
 	UTexture2D* Texture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Game/Other/Icon128.Icon128")));
 	if(Texture)
 	{
@@ -69,7 +68,7 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 		Canvas->DrawTile((float) X, (float) Y, (float) Width, (float) Height, 0.0f, 0.0f, 1.0f, 1.0f,
 		FLinearColor::White, Texture->Resource, bAlphaBlend);
 	}
-
+	*/
 }
 
 

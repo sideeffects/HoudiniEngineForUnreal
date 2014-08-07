@@ -17,7 +17,7 @@
 
 class UTexture2D;
 class UHoudiniAssetMaterial;
-class UHoudiniAssetObjectGeo;
+class FHoudiniAssetObjectGeo;
 
 struct FHoudiniEngineUtils
 {
@@ -44,17 +44,11 @@ public:
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
+	/** Construct Houdini Logo geo. **/
+	static FHoudiniAssetObjectGeo* ConstructLogoGeo();
+
 	/** Construct Houdini geos from a specified asset. **/
 	static bool ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArray<FHoudiniAssetObjectGeo*>& PreviousObjectGeos, TArray<FHoudiniAssetObjectGeo*>& NewObjectGeos);
-
-	/** Extract geometry information for a given asset. **/
-	static bool GetAssetGeometry(HAPI_AssetId AssetId, TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
-
-	/** Extract Houdini logo temporary geometry. **/
-	static void GetHoudiniLogoGeometry(TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
-
-	/** Compute bounding volume information from triangle data. **/
-	static void GetBoundingVolume(const TArray<FHoudiniMeshTriangle>& Geometry, FBoxSphereBounds& SphereBounds);
 
 	/** Convert Houdini color to Unreal FColor and return number of channels. **/
 	static int ConvertHoudiniColorRGB(const float* HoudiniColorRGB, FColor& UnrealColor);

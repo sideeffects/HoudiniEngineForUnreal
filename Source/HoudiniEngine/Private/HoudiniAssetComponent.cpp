@@ -159,7 +159,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	HOUDINI_LOG_MESSAGE(TEXT("Setting asset, Component = 0x%0.8p, HoudiniAsset = 0x%0.8p"), this, HoudiniAsset);
 
 	// If it is the same asset, do nothing.
-	if (InHoudiniAsset == HoudiniAsset)
+	if(InHoudiniAsset == HoudiniAsset)
 	{
 		return;
 	}
@@ -168,6 +168,13 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	AHoudiniAssetActor* HoudiniAssetActor = Cast<AHoudiniAssetActor>(GetOwner());
 
 	HoudiniAsset = InHoudiniAsset;
+
+	// Set Houdini logo to be default geometry.
+	if(FHoudiniEngine::IsInitialized() && !ContainsGeos())
+	{
+		TSharedPtr<FHoudiniAssetObjectGeo> Geo = FHoudiniEngine::Get().GetHoudiniLogoGeo();
+		HoudiniAssetObjectGeos.Add(Geo.Get());
+	}
 
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
@@ -222,7 +229,13 @@ UHoudiniAssetComponent::ClearGeos()
 {
 	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 	{
-		delete(*Iter);
+		FHoudiniAssetObjectGeo* Geo = *Iter;
+		
+		// Delete this geo, except for when it is a logo geo. Logo is managed by engine and is shared.
+		if(!Geo->IsHoudiniLogo())
+		{
+			delete(Geo);
+		}
 	}
 
 	HoudiniAssetObjectGeos.Empty();
@@ -532,7 +545,11 @@ UHoudiniAssetComponent::CreateRenderingResources()
 	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 	{
 		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
-		HoudiniAssetObjectGeo->CreateRenderingResources();
+		
+		if(!HoudiniAssetObjectGeo->IsHoudiniLogo())
+		{
+			HoudiniAssetObjectGeo->CreateRenderingResources();
+		}
 	}
 }
 
@@ -545,7 +562,11 @@ UHoudiniAssetComponent::ReleaseRenderingResources()
 		for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 		{
 			FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
-			HoudiniAssetObjectGeo->ReleaseRenderingResources();
+
+			if(!HoudiniAssetObjectGeo->IsHoudiniLogo())
+			{
+				HoudiniAssetObjectGeo->ReleaseRenderingResources();
+			}
 		}
 
 		// Insert a fence to signal when these commands completed.

@@ -25,6 +25,9 @@ public:
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
 
+	/** Return Houdini logo geometry. **/
+	virtual TSharedPtr<FHoudiniAssetObjectGeo> GetHoudiniLogoGeo() const = 0;
+
 	/** Register task for execution. **/
 	virtual void AddTask(const FHoudiniEngineTask& Task) = 0;
 
@@ -36,13 +39,4 @@ public:
 
 	/** Retrieve task info. **/
 	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) = 0;
-
-	/** Add new notification item. **/
-	//virtual void AddNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
-
-	/** Remove existing notification item. **/
-	//virtual void RemoveNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
-
-	/** Update notification. **/
-	//virtual void UpdateNotification(FHoudiniEngineNotificationInfo* Notification) = 0;
 };

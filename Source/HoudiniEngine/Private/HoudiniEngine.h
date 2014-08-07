@@ -21,6 +21,7 @@ class IAssetTypeActions;
 class IComponentAssetBroker;
 class FHoudiniEngineScheduler;
 class FRunnableThread;
+class FHoudiniAssetObjectGeo;
 
 class FHoudiniEngine : public IHoudiniEngine
 {
@@ -33,6 +34,7 @@ public: /** IModuleInterface methods. **/
 public: /** IHoudiniEngine methods. **/
 
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
+	virtual TSharedPtr<FHoudiniAssetObjectGeo> GetHoudiniLogoGeo() const override;
 	virtual void AddTask(const FHoudiniEngineTask& Task) override;
 	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) override;
 	virtual void RemoveTaskInfo(const FGuid HapIGUID) override;
@@ -48,6 +50,9 @@ public:
 	/** Return singleton instance of Houdini Engine, used internally. **/
 	static FHoudiniEngine& Get();
 
+	/** Return true if singleton instance has been created. **/
+	static bool IsInitialized();
+
 private:
 
 	/** Register AssetType action. **/
@@ -62,6 +67,9 @@ private:
 
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
+
+	/** Logo geometry. **/
+	TSharedPtr<FHoudiniAssetObjectGeo> HoudiniLogoGeo;
 
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
