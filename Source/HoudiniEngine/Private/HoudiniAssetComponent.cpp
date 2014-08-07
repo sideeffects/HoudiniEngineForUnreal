@@ -862,6 +862,38 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 
 
 void
+UHoudiniAssetComponent::RestoreOriginalClassInformation()
+{
+	if(!PatchedClass)
+	{
+		// If class information has not been patched, do nothing.
+		return;
+	}
+
+	// We need to add our patched class to root in order to avoid its clean up by GC.
+	PatchedClass->AddToRoot();
+
+	// We need to restore original class information.
+	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
+}
+
+void
+UHoudiniAssetComponent::RestorePatchedClassInformation()
+{
+	if(!PatchedClass)
+	{
+		return;
+	}
+
+	// We need to restore patched class information.
+	ReplaceClassObject(PatchedClass);
+
+	// We can put our patched class back, and remove it from root as it no longer under threat of being cleaned up by GC.
+	PatchedClass->RemoveFromRoot();
+}
+
+
+void
 UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 {
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
@@ -2061,33 +2093,16 @@ UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentIn
 void
 UHoudiniAssetComponent::OnPreSaveWorld(uint32 SaveFlags, class UWorld* World)
 {
-	if(!PatchedClass)
-	{
-		// If class information has not been patched, do nothing.
-		return;
-	}
-
-	// We need to add our patched class to root in order to avoid its clean up by GC.
-	PatchedClass->AddToRoot();
-
 	// We need to restore original class information.
-	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
+	RestoreOriginalClassInformation();
 }
 
 
 void
 UHoudiniAssetComponent::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess)
 {
-	if(!PatchedClass)
-	{
-		return;
-	}
-
 	// We need to restore patched class information.
-	ReplaceClassObject(PatchedClass);
-
-	// We can put our patched class back, and remove it from root as it no longer under threat of being cleaned up by GC.
-	PatchedClass->RemoveFromRoot();
+	RestorePatchedClassInformation();
 }
 
 
@@ -2097,16 +2112,8 @@ UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
 	// We are now in PIE mode.
 	bIsPIEActive = true;
 
-	if(!PatchedClass)
-	{
-		return;
-	}
-
-	// We need to add our patched class to root in order to avoid its clean up by GC.
-	PatchedClass->AddToRoot();
-
 	// We need to restore original class information.
-	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
+	RestoreOriginalClassInformation();
 }
 
 
@@ -2116,16 +2123,8 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 	// We are no longer in PIE mode.
 	bIsPIEActive = false;
 
-	if(!PatchedClass)
-	{
-		return;
-	}
-
 	// We need to restore patched class information.
-	ReplaceClassObject(PatchedClass);
-
-	// We can put our patched class back, and remove it from root as it no longer under threat of being cleaned up by GC.
-	PatchedClass->RemoveFromRoot();
+	RestorePatchedClassInformation();
 }
 
 
