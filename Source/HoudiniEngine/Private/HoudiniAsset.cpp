@@ -23,7 +23,8 @@ UHoudiniAsset::PersistenceFormatVersion = 0;
 UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	AssetBytes(nullptr),
-	AssetBytesCount(0)
+	AssetBytesCount(0),
+	bPreviewHoudiniLogo(false)
 {
 
 }
@@ -36,7 +37,8 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
 	Super(PCIP),
 	OTLFileName(InFileName),
 	AssetBytes(nullptr),
-	AssetBytesCount(0)
+	AssetBytesCount(0),
+	bPreviewHoudiniLogo(false)
 {
 	// Calculate buffer size.
 	AssetBytesCount = BufferEnd - BufferStart;
@@ -90,6 +92,14 @@ UHoudiniAsset::FinishDestroy()
 		AssetBytesCount = 0;
 	}
 
+	// Delete preview geometry.
+	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = PreviewObjectGeos.CreateIterator(); Iter; ++Iter)
+	{
+		delete(*Iter);
+	}
+
+	PreviewObjectGeos.Empty();
+
 	Super::FinishDestroy();
 }
 
@@ -134,5 +144,13 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 		{
 			Ar.Serialize(AssetBytes, AssetBytesCount);
 		}
+	}
+
+	// Serialize whether we are storing logo preview or not.
+	Ar << bPreviewHoudiniLogo;
+
+	if(!bPreviewHoudiniLogo)
+	{
+		
 	}
 }

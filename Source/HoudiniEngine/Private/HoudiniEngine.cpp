@@ -34,11 +34,25 @@ FHoudiniEngine::GetHoudiniLogoBrush() const
 }
 
 
+TSharedPtr<FHoudiniAssetObjectGeo>
+FHoudiniEngine::GetHoudiniLogoGeo() const
+{
+	return HoudiniLogoGeo;
+}
+
+
 FHoudiniEngine&
 FHoudiniEngine::Get()
 {
 	check(FHoudiniEngine::HoudiniEngineInstance);
 	return *FHoudiniEngine::HoudiniEngineInstance;
+}
+
+
+bool
+FHoudiniEngine::IsInitialized()
+{
+	return FHoudiniEngine::HoudiniEngineInstance != nullptr;
 }
 
 
@@ -79,6 +93,13 @@ FHoudiniEngine::StartupModule()
 
 			break;
 		}
+	}
+
+	// Construct Houdini logo geometry.
+	{
+		HoudiniLogoGeo = MakeShareable(FHoudiniEngineUtils::ConstructLogoGeo());
+		HoudiniLogoGeo->SetHoudiniLogo();
+		HoudiniLogoGeo->CreateRenderingResources();
 	}
 
 	// Perform HAPI initialization.
@@ -131,6 +152,9 @@ FHoudiniEngine::ShutdownModule()
 
 		AssetTypeActions.Empty();
 	}
+
+	// Deconstruct Houdini logo geometry.
+	HoudiniLogoGeo->ReleaseRenderingResources();
 
 	// Perform HAPI finalization.
 	HAPI_Cleanup();

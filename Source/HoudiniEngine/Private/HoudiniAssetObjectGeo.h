@@ -26,9 +26,10 @@ class UHoudiniAssetMaterial;
 
 class FHoudiniAssetObjectGeo
 {
-	friend class FHoudiniMeshSceneProxy;
-	friend class UHoudiniAssetComponent;
+	friend class FHoudiniEngine;
 	friend struct FHoudiniEngineUtils;
+	friend class UHoudiniAssetComponent;
+	friend class FHoudiniMeshSceneProxy;
 
 public:
 
@@ -80,6 +81,14 @@ public:
 	/** Replace material on al parts with given material. **/
 	void ReplaceMaterial(UHoudiniAssetMaterial* Material);
 
+	/** Return true if this geometry is Houdini logo geometry. **/
+	bool IsHoudiniLogo() const;
+
+protected:
+
+	/** Set this geometry as Houdini logo geometry. **/
+	void SetHoudiniLogo();
+
 protected:
 
 	/** List of geo parts (these correspond to submeshes). Will always have at least one. **/
@@ -108,4 +117,7 @@ protected:
 
 	/** Is set to true when submeshes use different materials. **/
 	bool bMultipleMaterials;
+	
+	/** Is set to true when this geometry is a Houdini logo geometry. **/
+	bool bHoudiniLogo;
 };
