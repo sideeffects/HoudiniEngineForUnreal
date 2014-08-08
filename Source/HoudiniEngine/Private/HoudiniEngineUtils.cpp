@@ -534,6 +534,9 @@ FHoudiniEngineUtils::ConstructLogoGeo()
 	FVector ExtentMin(TNumericLimits<float>::Max(), TNumericLimits<float>::Max(), TNumericLimits<float>::Max());
 	FVector ExtentMax(TNumericLimits<float>::Min(), TNumericLimits<float>::Min(), TNumericLimits<float>::Min());
 
+	// Bounding volume.
+	FBoxSphereBounds SphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+
 	// Compute number of triangles in Houdini logo.
 	int VertexIndexCount = sizeof(FHoudiniLogo::VertexIndices) / sizeof(int);
 	
@@ -623,9 +626,16 @@ FHoudiniEngineUtils::ConstructLogoGeo()
 		ObjectGeo->AddTriangleVertices(Triangle);
 	}
 
+	// Compute bounding volume.
+	SphereBounds = FBoxSphereBounds(FBox(ExtentMin, ExtentMax));
+
 	// Create single geo part.
 	FHoudiniAssetObjectGeoPart* ObjectGeoPart = new FHoudiniAssetObjectGeoPart(TriangleIndices, nullptr);
+	ObjectGeoPart->SetBoundingVolume(SphereBounds);
 	ObjectGeo->AddGeoPart(ObjectGeoPart);
+
+	// Compute aggregate bounding volume for this geo.
+	ObjectGeo->ComputeAggregateBoundingVolume();
 
 	return ObjectGeo;
 }
@@ -1140,10 +1150,17 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 							}
 						}
 
+						// Bounding volume.
+						FBoxSphereBounds SphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+
 						// We need to construct a new geo part with indexing information.
 						FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = new FHoudiniAssetObjectGeoPart(GroupTriangles, Material);
+						HoudiniAssetObjectGeoPart->SetBoundingVolume(SphereBounds);
 						HoudiniAssetObjectGeo->AddGeoPart(HoudiniAssetObjectGeoPart);
 					}
+
+					// Compute aggregate bounding volume for this geo.
+					HoudiniAssetObjectGeo->ComputeAggregateBoundingVolume();
 
 					// Compute whether this geo uses multiple materials.
 					HoudiniAssetObjectGeo->ComputeMultipleMaterialUsage();
