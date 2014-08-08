@@ -20,7 +20,7 @@ FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart() :
 	Material(nullptr),
 	HoudiniMeshIndexBuffer(nullptr)
 {
-
+	BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 }
 
 
@@ -29,6 +29,7 @@ FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart(const TArray<int32>& InIn
 	HoudiniMeshIndexBuffer(nullptr)
 {
 	Indices = InIndices;
+	BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 }
 
 
@@ -128,4 +129,18 @@ FHoudiniAssetObjectGeoPart::CollectTextures(TArray<UTexture2D*>& InTextures)
 	{
 		InTextures.Append(Material->GeneratedTextures);
 	}
+}
+
+
+void
+FHoudiniAssetObjectGeoPart::SetBoundingVolume(const FBoxSphereBounds& Bounds)
+{
+	BoundingVolume = Bounds;
+}
+
+
+const FBoxSphereBounds&
+FHoudiniAssetObjectGeoPart::GetBoundingVolume() const
+{
+	return BoundingVolume;
 }

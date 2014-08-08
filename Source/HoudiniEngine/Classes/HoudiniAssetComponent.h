@@ -254,6 +254,9 @@ private:
 	/** Collect textures from geometry. **/
 	void CollectTextures();
 
+	/** Compute bounding volume for all geometry of this component. **/
+	void ComputeComponentBoundingVolume();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -282,7 +285,7 @@ protected:
 	TWeakPtr<SNotificationItem> NotificationPtr;
 
 	/** Bounding volume information for current geometry. **/
-	FBoxSphereBounds HoudiniMeshSphereBounds;
+	FBoxSphereBounds BoundingVolume;
 
 	/** A fence which is used to keep track of the rendering thread releasing rendering resources. **/
 	FRenderCommandFence ReleaseResourcesFence;

@@ -18,6 +18,7 @@
 #include "HAPI.h"
 
 class FArchive;
+struct FBoxSphereBounds;
 class FReferenceCollector;
 class FHoudiniMeshVertexBuffer;
 class FHoudiniMeshVertexFactory;
@@ -84,6 +85,12 @@ public:
 	/** Return true if this geometry is Houdini logo geometry. **/
 	bool IsHoudiniLogo() const;
 
+	/** Return aggegate bounding volume for this geo. **/
+	const FBoxSphereBounds& GetAggregateBoundingVolume() const;
+
+	/** Compute aggregate bounding volume from all parts. **/
+	void ComputeAggregateBoundingVolume();
+
 protected:
 
 	/** Set this geometry as Houdini logo geometry. **/
@@ -99,6 +106,9 @@ protected:
 
 	/** Transform for this part. **/
 	FMatrix Transform;
+
+	/** Bounding volume information for this geo - aggregate of all part bounding volumes. **/
+	FBoxSphereBounds AggregateBoundingVolume;
 
 	/** Corresponding Vertex buffer used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer;

@@ -16,6 +16,7 @@
 #pragma once
 #include "HoudiniMeshIndexBuffer.h"
 
+struct FBoxSphereBounds;
 class FHoudiniMeshIndexBuffer;
 
 class FHoudiniAssetObjectGeoPart
@@ -49,6 +50,12 @@ public:
 
 	/** Collect textures used by material assigned to this part. **/
 	void CollectTextures(TArray<UTexture2D*>& InTextures);
+
+	/** Set bounding volume for this part. **/
+	void SetBoundingVolume(const FBoxSphereBounds& Bounds);
+
+	/** Return bounding volume for this part. **/
+	const FBoxSphereBounds& GetBoundingVolume() const;
 
 protected:
 

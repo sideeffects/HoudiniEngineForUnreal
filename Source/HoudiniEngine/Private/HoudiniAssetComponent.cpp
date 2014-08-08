@@ -50,7 +50,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bIsPlayModeActive(false)
 {
 	// Create a generic bounding volume.
-	HoudiniMeshSphereBounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+	BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
 	// Set component properties.
 	Mobility = EComponentMobility::Movable;
@@ -174,6 +174,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	{
 		TSharedPtr<FHoudiniAssetObjectGeo> Geo = FHoudiniEngine::Get().GetHoudiniLogoGeo();
 		HoudiniAssetObjectGeos.Add(Geo.Get());
+		ComputeComponentBoundingVolume();
 	}
 
 	bIsPreviewComponent = false;
@@ -373,6 +374,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Set new geo objects.
 						HoudiniAssetObjectGeos = NewObjectGeos;
 
+						// Recompute bounding volume.
+						ComputeComponentBoundingVolume();
+
 						// Collect all textures (for debugging purposes).
 						CollectTextures();
 
@@ -526,7 +530,26 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	return HoudiniMeshSphereBounds;
+	return BoundingVolume;
+}
+
+
+void
+UHoudiniAssetComponent::ComputeComponentBoundingVolume()
+{
+	if(HoudiniAssetObjectGeos.Num() == 0)
+	{
+		BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+	}
+	else
+	{
+		BoundingVolume = HoudiniAssetObjectGeos[0]->GetAggregateBoundingVolume();
+	}
+
+	for(int Idx = 1; Idx < HoudiniAssetObjectGeos.Num(); ++Idx)
+	{
+		BoundingVolume = BoundingVolume + HoudiniAssetObjectGeos[Idx]->GetAggregateBoundingVolume();
+	}
 }
 
 
@@ -2552,6 +2575,12 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		{
 			HoudiniAssetObjectGeos.Add(HoudiniAssetObjectGeo);
 		}
+	}
+
+	if(Ar.IsLoading())
+	{
+		// We need to recompute bounding volume.
+		ComputeComponentBoundingVolume();
 	}
 
 	if(Ar.IsLoading())

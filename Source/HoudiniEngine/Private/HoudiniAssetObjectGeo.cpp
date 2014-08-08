@@ -26,6 +26,7 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 	bHoudiniLogo(false)
 {
 	Transform = FMatrix::Identity;
+	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 }
 
 
@@ -39,7 +40,7 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_
 	bMultipleMaterials(false),
 	bHoudiniLogo(false)
 {
-
+	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 }
 
 
@@ -116,6 +117,9 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 
 	// Serialize transform.
 	Ar << Transform;
+
+	// Serialize aggregate bounding volume.
+	Ar << AggregateBoundingVolume;
 
 	// Serialize multiple materials flag.
 	Ar << bMultipleMaterials;
@@ -345,4 +349,30 @@ bool
 FHoudiniAssetObjectGeo::IsHoudiniLogo() const
 {
 	return bHoudiniLogo;
+}
+
+
+const FBoxSphereBounds&
+FHoudiniAssetObjectGeo::GetAggregateBoundingVolume() const
+{
+	return AggregateBoundingVolume;
+}
+
+
+void
+FHoudiniAssetObjectGeo::ComputeAggregateBoundingVolume()
+{
+	if(HoudiniAssetObjectGeoParts.Num() == 0)
+	{
+		AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+	}
+	else
+	{
+		AggregateBoundingVolume = HoudiniAssetObjectGeoParts[0]->GetBoundingVolume();
+	}
+
+	for(int Idx = 1; Idx < HoudiniAssetObjectGeoParts.Num(); ++Idx)
+	{
+		AggregateBoundingVolume = AggregateBoundingVolume + HoudiniAssetObjectGeoParts[Idx]->GetBoundingVolume();
+	}
 }
