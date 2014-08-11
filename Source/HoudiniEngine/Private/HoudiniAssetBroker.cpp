@@ -32,6 +32,10 @@ FHoudiniAssetBroker::GetSupportedAssetClass()
 bool
 FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset)
 {
+	HOUDINI_LOG_MESSAGE(
+		TEXT( "  AssignAssetToComponent,             Component = 0x%x, HoudiniAsset = 0x%x, " ),
+		InComponent, InAsset );
+
 	if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
 	{
 		UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(InAsset);

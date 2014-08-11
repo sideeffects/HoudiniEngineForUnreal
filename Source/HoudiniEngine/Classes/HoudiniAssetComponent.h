@@ -75,6 +75,8 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 
 	GENERATED_UCLASS_BODY()
 
+	virtual ~UHoudiniAssetComponent();
+
 public:
 
 	/** Houdini Asset associated with this component. **/
@@ -97,7 +99,8 @@ public:
 	void SetNative(bool InbIsNativeComponent);
 
 	/** Return id of a Houdini asset. **/
-	HAPI_AssetId GetAssetId() const;
+	UFUNCTION(BlueprintCallable, Category=HoudiniAsset)
+	int32 GetAssetId() const;
 
 	/** Set id of a Houdini asset. **/
 	void SetAssetId(HAPI_AssetId InAssetId);
@@ -292,6 +295,9 @@ protected:
 
 	/** GUID used to track asynchronous cooking requests. **/
 	FGuid HapiGUID;
+
+	/** The asset retrieved from the package must be delay-set in the case of blueprints. **/
+	UHoudiniAsset* HoudiniAssetLookup;
 
 	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
 	FTimerDelegate TimerDelegate;
