@@ -87,6 +87,8 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		}
 		else
 		{
+			check(GeoPartCount > 0)
+
 			// All parts of this geo use same material or no material at all (or default wireframe material).
 			Mesh.Elements.Reserve(GeoPartCount);
 

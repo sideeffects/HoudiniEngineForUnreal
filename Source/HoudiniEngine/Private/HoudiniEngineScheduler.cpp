@@ -75,7 +75,10 @@ FHoudiniEngineScheduler::TaskDescription(FHoudiniEngineTaskInfo& TaskInfo, const
 void
 FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bool bCook)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("HAPI Asynchronous Instantiation Started."));
+	HOUDINI_LOG_MESSAGE(
+		TEXT("HAPI Asynchronous Instantiation Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
+		TEXT("AssetId = %d, HapiGUID = %s"),
+		Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString() );
 
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
@@ -194,7 +197,10 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bo
 void
 FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("HAPI Asynchronous Cooking Started."));
+	HOUDINI_LOG_MESSAGE(
+		TEXT("HAPI Asynchronous Cooking Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
+		TEXT("AssetId = %d, HapiGUID = %s"),
+		Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString());
 
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
@@ -286,7 +292,10 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 void
 FHoudiniEngineScheduler::TaskDeleteAsset(const FHoudiniEngineTask& Task)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("HAPI Asynchronous Asset deletion Started."));
+	HOUDINI_LOG_MESSAGE(
+		TEXT("HAPI Asynchronous Destruction Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
+		TEXT("AssetId = %d, HapiGUID = %s"),
+		Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString() );
 
 	if(FHoudiniEngineUtils::IsHoudiniAssetValid(Task.AssetId))
 	{
