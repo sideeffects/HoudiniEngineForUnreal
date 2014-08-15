@@ -17,6 +17,17 @@
 #include <stdint.h>
 
 
+#define HOUDINI_TEST_LOG_MESSAGE( NameWithSpaces ) \
+	do \
+	{ \
+		HOUDINI_LOG_MESSAGE( \
+			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, C = %d, T = %d" ), \
+			this, HoudiniAsset, AssetId, *HapiGUID.ToString(), \
+			bIsDefaultClass, bIsBlueprintGeneratedClass, \
+			bIsBlueprintConstructionScriptClass, bIsBlueprintThumbnailSceneClass ); \
+	} while(false)
+
+
 UScriptStruct*
 UHoudiniAssetComponent::ScriptStructColor = nullptr;
 
@@ -48,12 +59,32 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
 	bIsRealDestroy(true),
-	bIsPlayModeActive(false)
+	bIsPlayModeActive(false),
+	bIsDefaultClass(false),
+	bIsBlueprintGeneratedClass(false),
+	bIsBlueprintConstructionScriptClass(false),
+	bIsBlueprintThumbnailSceneClass(false)
 {
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "Constructor,                          Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	UObject* Archetype = PCIP.GetArchetype();
+	UObject* Obj = PCIP.GetObject();
+
+	if(Obj->GetOuter() && Obj->GetOuter()->GetName().StartsWith(TEXT("/Script")))
+	{
+		bIsDefaultClass = true;
+	}
+	else if(!Archetype && Obj->GetOuter() && Obj->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass()))
+	{
+		bIsBlueprintGeneratedClass = true;
+	}
+	else if(Obj->GetOuter() && Obj->GetOuter()->IsA(AActor::StaticClass()))
+	{
+		bIsBlueprintConstructionScriptClass = true;
+	}
+	else if(Obj->GetOuter() && Obj->GetOuter()->IsA(UPackage::StaticClass())
+		&& Obj->GetOuter()->GetName().StartsWith(TEXT("/Engine/Transient")))
+	{
+		bIsBlueprintThumbnailSceneClass = true;
+	}
 
 	// Create a generic bounding volume.
 	BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -77,15 +108,14 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 
 	// Zero scratch space.
 	FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
+
+	HOUDINI_TEST_LOG_MESSAGE( "Constructor,                          C" );
 }
 
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
 {
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "Destructor,                           Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	HOUDINI_TEST_LOG_MESSAGE( "Destructor,                           C" );
 }
 
 
@@ -171,14 +201,12 @@ UHoudiniAssetComponent::GetHoudiniAssetActorOwner() const
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  SetHoudiniAsset,                    Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(Before),            C" );
 
 	// If it is the same asset, do nothing.
 	if(InHoudiniAsset == HoudiniAsset)
 	{
+		HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(After),             C" );
 		return;
 	}
 
@@ -198,6 +226,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
 	{
+		HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(After),             C" );
 		return;
 	}
 	
@@ -217,10 +246,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
-		HOUDINI_LOG_MESSAGE(
-			TEXT( "    NewGUID,                  Component = 0x%x, HoudiniAsset = 0x%x, " )
-			TEXT( "AssetId = %d, HapiGUID = %s" ),
-			this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
 
 		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
 		Task.Asset = InHoudiniAsset;
@@ -230,6 +255,8 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		// Start ticking - this will poll the cooking system for completion.
 		StartHoudiniTicking();
 	}
+
+	HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(After),             C" );
 }
 
 
@@ -661,10 +688,7 @@ UHoudiniAssetComponent::CreateSceneProxy()
 void
 UHoudiniAssetComponent::OnComponentDestroyed()
 {
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  OnComponentDestroyed,               Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
 
 	if(HapiGUID.IsValid())
 	{
@@ -705,7 +729,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	ClearGeos();
 
 	// If we have an asset.
-	if(-1 != AssetId && bIsRealDestroy)
+	if(-1 != AssetId && bIsNativeComponent)
 	{
 		// Generate GUID for our new task.
 		HapiGUID = FGuid::NewGuid();
@@ -715,7 +739,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 		Task.AssetId = AssetId;
 		FHoudiniEngine::Get().AddTask(Task);
 
-		// Reset asset id.
+		// Reset asset id.CreateSceneProxy
 		AssetId = -1;
 	}
 
@@ -2011,7 +2035,16 @@ UHoudiniAssetComponent::SetChangedParameterValues()
 void
 UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(Before),     C" );
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset"))
+	{
+		SetHoudiniAsset(HoudiniAsset);
+		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
+		return;
+	}
 
 	// Retrieve property which changed. Property field is a property which is being modified. MemberProperty
 	// field is a property which contains the modified property (for example if modified property is a member of a
@@ -2026,10 +2059,11 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	if(Category != CategoryHoudiniAsset)
 	{
 		// This property is not in category we are interested in, just jump out.
+		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
 		return;
 	}
 
-	HOUDINI_LOG_MESSAGE(TEXT("  PostEditChangeProperty, Property = 0x%x, PropertyChild = 0x%x"), Property, PropertyChild);
+	//HOUDINI_LOG_MESSAGE(TEXT("  PostEditChangeProperty, Property = 0x%x, PropertyChild = 0x%x"), Property, PropertyChild);
 
 	if(EPropertyChangeType::Interactive == PropertyChangedEvent.ChangeType)
 	{
@@ -2040,6 +2074,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			if(UHoudiniAssetComponent::ScriptStructColor == StructProperty->Struct)
 			{
 				// Ignore interactive events for color properties.
+				HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
 				return;
 			}
 		}
@@ -2059,6 +2094,8 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	// Start ticking (if we are ticking already, this will be ignored).
 	StartHoudiniTicking();
+
+	HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
 }
 
 
@@ -2066,10 +2103,7 @@ void
 UHoudiniAssetComponent::OnRegister()
 {
 	Super::OnRegister();
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  OnRegister,                         Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	//HOUDINI_TEST_LOG_MESSAGE( "  OnRegister,                         C" );
 
 	// Make sure we have a Houdini asset to operate with.
 	if(!HoudiniAsset)
@@ -2108,10 +2142,7 @@ void
 UHoudiniAssetComponent::OnUnregister()
 {
 	Super::OnUnregister();
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  OnUnregister,                       Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	HOUDINI_TEST_LOG_MESSAGE( "  OnUnregister,                       C" );
 }
 
 
@@ -2120,10 +2151,7 @@ UHoudiniAssetComponent::OnComponentCreated()
 {
 	// This event will only be fired for native Actor and native Component.
 	Super::OnComponentCreated();
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  OnComponentCreated,                 Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentCreated,                 C" );
 }
 
 
@@ -2131,7 +2159,6 @@ FName
 UHoudiniAssetComponent::GetComponentInstanceDataType() const
 {
 	// Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation.
-	//HOUDINI_LOG_MESSAGE(TEXT("Requesting data type for caching, Component = 0x%x, HoudiniAsset = 0x%x"), this, HoudiniAsset);
 
 	//return Super::GetComponentInstanceDataType();
 	return FName(TEXT("HoudiniAssetComponent"));
@@ -2141,91 +2168,28 @@ UHoudiniAssetComponent::GetComponentInstanceDataType() const
 TSharedPtr<class FComponentInstanceDataBase>
 UHoudiniAssetComponent::GetComponentInstanceData() const
 {
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  GetComponentInstanceData,           Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
-
+	HOUDINI_TEST_LOG_MESSAGE( "  GetComponentInstanceData,           C" );
+	/*
 	bIsRealDestroy = false;
 
 	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData = MakeShareable(new FHoudiniAssetComponentInstanceData(this));
 	InstanceData->AssetId = AssetId;
 	InstanceData->HapiGUID = HapiGUID;
 	return InstanceData;
-	
+	*/
 	// Temporary.
-	//return Super::GetComponentInstanceData();
+	return Super::GetComponentInstanceData();
 }
 
 
 void
 UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData)
 {
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  ApplyComponentInstanceData(Before), Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(Before), C" );
 
 	Super::ApplyComponentInstanceData(ComponentInstanceData);
 
-	check(ComponentInstanceData.IsValid());
-	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData =
-		StaticCastSharedPtr<FHoudiniAssetComponentInstanceData>(ComponentInstanceData);
-
-	if(InstanceData->AssetId >= 0)
-	{
-		AssetId = InstanceData->AssetId;
-		// Assign unique actor label based on asset name.
-		AssignUniqueActorLabel();
-
-		// We need to patch component RTTI to reflect properties for this component.
-		ReplaceClassInformation(GetOuter()->GetName());
-
-		// Update properties panel.
-		UpdateEditorProperties();
-
-		// Construct new objects (asset objects and asset object parts).
-		TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
-		FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
-
-		// Clear rendering resources used by geos.
-		ReleaseRenderingResources();
-
-		// Delete all existing geo objects (this will also delete their geo parts).
-		ClearGeos();
-
-		// Set new geo objects.
-		HoudiniAssetObjectGeos = NewObjectGeos;
-
-		// Recompute bounding volume.
-		ComputeComponentBoundingVolume();
-
-		// Collect all textures (for debugging purposes).
-		CollectTextures();
-
-		// Manually tick GC to propagate reference counts.
-		//GetWorld()->ForceGarbageCollection(false);
-
-		// Create all rendering resources.
-		CreateRenderingResources();
-
-		// Need to update rendering information.
-		UpdateRenderingInformation();
-	}
-	else if(InstanceData->HapiGUID.IsValid())
-	{
-		HapiGUID = InstanceData->HapiGUID;
-		StartHoudiniTicking();
-	}
-	else if(!bIsNativeComponent && HoudiniAssetLookup)
-	{
-		SetHoudiniAsset(HoudiniAssetLookup);
-	}
-
-	HOUDINI_LOG_MESSAGE(
-		TEXT( "  ApplyComponentInstanceData(After),  Component = 0x%x, HoudiniAsset = 0x%x, " )
-		TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+	HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(After),  C" );
 }
 
 
@@ -2392,27 +2356,23 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	if(Ar.IsSaving())
 	{
-		HOUDINI_LOG_MESSAGE(
-			TEXT( "  Serialize(Saving),                  Component = 0x%x, HoudiniAsset = 0x%x, " )
-			TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Saving),                  C" );
 	}
 	else if(Ar.IsLoading())
 	{
-		HOUDINI_LOG_MESSAGE(
-			TEXT( "  Serialize(Loading),                 Component = 0x%x, HoudiniAsset = 0x%x, " )
-			TEXT( "AssetId = %d, HapiGUID = %s" ),
-		this, HoudiniAsset, AssetId, *HapiGUID.ToString() );
+		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - Before),        C" );
 	}
 
 	if(Ar.IsTransacting())
 	{
 		// We have no support for transactions (undo system) right now.
+		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
 
 	if(!Ar.IsSaving() && !Ar.IsLoading())
 	{
+		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
 
@@ -2423,6 +2383,13 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			// Save is triggered multiple times, but there's only one presave. Can add one time save logic here.
 			bPreSaveTriggered = false;
 		}
+	}
+
+	// Save/Load Asset Id.
+	if(!bIsNativeComponent)
+	{
+		Ar << AssetId;
+		Ar << HapiGUID;
 	}
 
 	// State of this component.
@@ -2466,6 +2433,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
 	{
+		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
 
@@ -2689,6 +2657,56 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		ComputeComponentBoundingVolume();
 	}
 
+	if(Ar.IsLoading() && HapiGUID.IsValid())
+	{
+		StartHoudiniTicking();
+		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
+		return;
+	}
+
+	/*
+	if(Ar.IsLoading() && AssetId >= 0)
+	{
+		// Assign unique actor label based on asset name.
+		AssignUniqueActorLabel();
+
+		// We need to patch component RTTI to reflect properties for this component.
+		ReplaceClassInformation(GetOuter()->GetName());
+
+		// Update properties panel.
+		UpdateEditorProperties();
+
+		// Construct new objects (asset objects and asset object parts).
+		TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
+		FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
+
+		// Clear rendering resources used by geos.
+		ReleaseRenderingResources();
+
+		// Delete all existing geo objects (this will also delete their geo parts).
+		ClearGeos();
+
+		// Set new geo objects.
+		HoudiniAssetObjectGeos = NewObjectGeos;
+
+		// Recompute bounding volume.
+		ComputeComponentBoundingVolume();
+
+		// Collect all textures (for debugging purposes).
+		CollectTextures();
+
+		// Manually tick GC to propagate reference counts.
+		//GetWorld()->ForceGarbageCollection(false);
+
+		// Create all rendering resources.
+		CreateRenderingResources();
+
+		// Need to update rendering information.
+		UpdateRenderingInformation();
+		return;
+	}
+	*/
+
 	if(Ar.IsLoading())
 	{
 		// This component has been loaded.
@@ -2714,10 +2732,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		if(HoudiniAssetLookup)
 		{
 			// Set asset for this component. This will trigger asynchronous instantiation.
-			if(bIsNativeComponent)
-			{
-				SetHoudiniAsset(HoudiniAssetLookup);
-			}
+			SetHoudiniAsset(HoudiniAssetLookup);
 		}
 		else
 		{
@@ -2725,4 +2740,8 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			check(HoudiniAssetLookup);
 		}
 	}
+
+	HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 }
+
+#undef HOUDINI_TEST_LOG_MESSAGE

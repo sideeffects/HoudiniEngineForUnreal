@@ -333,6 +333,11 @@ protected:
 	/** Is set to true when PIE mode is on (either play or simulate.) **/
 	bool bIsPlayModeActive;
 
+	bool bIsDefaultClass;
+	bool bIsBlueprintGeneratedClass;
+	bool bIsBlueprintConstructionScriptClass;
+	bool bIsBlueprintThumbnailSceneClass;
+
 private:
 
 	/** Marker ~ beginning of scratch space. **/
