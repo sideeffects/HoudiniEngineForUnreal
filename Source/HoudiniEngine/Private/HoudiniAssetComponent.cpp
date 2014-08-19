@@ -21,8 +21,11 @@
 	do \
 	{ \
 		HOUDINI_LOG_MESSAGE( \
-			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, C = %d, T = %d" ), \
-			this, GetClass(), HoudiniAsset, AssetId, *HapiGUID.ToString(), \
+			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, GenName = %s, PatchedName = %s, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, C = %d, T = %d" ), \
+			this, GetClass(), \
+			*FString::Printf(TEXT("%s_%s"), *GetClass()->GetName(), *GetOuter()->GetName()), \
+			*GetClass()->GetName(), \
+			HoudiniAsset, AssetId, *HapiGUID.ToString(), \
 			bIsDefaultClass, bIsBlueprintGeneratedClass, \
 			bIsBlueprintConstructionScriptClass, bIsBlueprintThumbnailSceneClass ); \
 	} while(false)
@@ -73,10 +76,26 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		if(Outer->GetName().StartsWith(TEXT("/Script")))
 		{
 			bIsDefaultClass = true;
+			SetFlags(RF_ClassDefaultObject);
 		}
 		else if(!Archetype && Outer->IsA(UBlueprintGeneratedClass::StaticClass()))
 		{
 			bIsBlueprintGeneratedClass = true;
+			SetFlags(RF_ClassDefaultObject);
+
+			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
+			UBlueprint* Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
+			if (Blueprint)
+			{
+				Blueprint->OnChanged().AddUObject(this, &UHoudiniAssetComponent::OnBluprintChanged);
+
+				GEditor->OnHotReload().AddUObject(this, &UHoudiniAssetComponent::OnHotLoad);
+				GEditor->OnBlueprintCompiled().AddUObject(this, &UHoudiniAssetComponent::OnBlueprintCompiled);
+
+				FModuleManager::Get().OnModulesChanged().AddUObject(this, &UHoudiniAssetComponent::OnModulesChanged);
+
+				HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Blueprint->GetName()) );
+			}
 
 			/*
 			FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
@@ -146,7 +165,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "Destructor,                           C" );
+	//HOUDINI_TEST_LOG_MESSAGE( "Destructor,                           C" );
 }
 
 
@@ -926,9 +945,43 @@ UHoudiniAssetComponent::OnBlueprintContextMenuCreated(FBlueprintGraphActionListB
 
 
 void
+UHoudiniAssetComponent::OnBluprintChanged(UBlueprint* Blueprint)
+{
+	//HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Blueprint->GetName()) );
+}
+
+
+void
+UHoudiniAssetComponent::OnHotLoad()
+{
+	//HOUDINI_LOG_MESSAGE( TEXT("as") );
+}
+
+
+void
+UHoudiniAssetComponent::OnBlueprintCompiled()
+{
+	//HOUDINI_LOG_MESSAGE( TEXT("asd") );
+}
+
+
+void
+UHoudiniAssetComponent::OnModulesChanged(FName Name, EModuleChangeReason Reason)
+{
+	//bool hurray = GCompilingBlueprint;
+	//HOUDINI_LOG_MESSAGE( TEXT("asd") );
+}
+
+
+void
 UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool bReplace)
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  ReplaceClassInformation,            C" );
+
+	if(bIsBlueprintConstructionScriptClass)
+	{
+		return;
+	}
 
 	UClass* NewClass = nullptr;
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
@@ -1017,6 +1070,8 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 void
 UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  ReplaceClassObject,                 C" );
+
 	HOUDINI_PRIVATE_CALL(FObjectBaseAccess, UObjectBase, ClassObjectNew);
 }
 
@@ -1041,6 +1096,8 @@ UHoudiniAssetComponent::RestoreOriginalClassInformation()
 void
 UHoudiniAssetComponent::RestorePatchedClassInformation()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  RestorePatchedClassInformation,     C" );
+
 	if(!PatchedClass)
 	{
 		return;
@@ -2273,6 +2330,17 @@ UHoudiniAssetComponent::PostLoad()
 	HOUDINI_TEST_LOG_MESSAGE( "  PostLoad,                           C" );
 
 	Super::PostLoad();
+
+	if(bIsBlueprintConstructionScriptClass)
+	{
+		// Create all rendering resources.
+		CreateRenderingResources();
+
+		// Need to update rendering information.
+		UpdateRenderingInformation();
+
+		return;
+	}
 
 	if(!PatchedClass)
 	{
