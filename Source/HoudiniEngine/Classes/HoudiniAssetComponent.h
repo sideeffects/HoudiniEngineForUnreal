@@ -150,6 +150,19 @@ private: /** FEditorDelegates delegates. **/
 	void OnFinishPickingBlueprintClass(UClass* Class);
 	void OnBlueprintContextMenuCreated(FBlueprintGraphActionListBuilder& ContextMenuBuilder);
 
+private: /** UBlueprint delegates. **/
+
+	void OnBluprintChanged(UBlueprint* Blueprint);
+
+private: /** UEditorEngine delegates. **/
+
+	void OnHotLoad();
+	void OnBlueprintCompiled();
+
+private: /** FModuleManager delegates. **/
+
+	void OnModulesChanged(FName Name, EModuleChangeReason Reason);
+
 protected:
 
 	/** Patch RTTI : patch class information for this component's class based on given Houdini Asset. **/
