@@ -58,6 +58,10 @@ UHoudiniTestComponent::UHoudiniTestComponent(const FPostConstructInitializePrope
 	{
 		bIsBlueprintThumbnailSceneClass = true;
 	}
+	else
+	{
+		bIsBlueprintThumbnailSceneClass = false;
+	}
 
 	HOUDINI_TEST_LOG_MESSAGE( "Constructor,                          C" );
 }

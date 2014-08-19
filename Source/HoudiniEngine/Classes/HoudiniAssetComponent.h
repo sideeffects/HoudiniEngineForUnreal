@@ -128,9 +128,6 @@ protected: /** UActorComponent methods. **/
 	virtual void OnComponentCreated() override;
 	virtual void OnComponentDestroyed() override;
 
-	virtual void OnRegister() override;
-	virtual void OnUnregister() override;
-
 	virtual FName GetComponentInstanceDataType() const override;
 	virtual TSharedPtr<class FComponentInstanceDataBase> GetComponentInstanceData() const override;
 	virtual void ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData) override;
@@ -149,6 +146,9 @@ private: /** FEditorDelegates delegates. **/
 	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
 	void OnPIEEventBegin(const bool bIsSimulating);
 	void OnPIEEventEnd(const bool bIsSimulating);
+	void OnModeChange(FEditorModeID NewMode);
+	void OnFinishPickingBlueprintClass(UClass* Class);
+	void OnBlueprintContextMenuCreated(FBlueprintGraphActionListBuilder& ContextMenuBuilder);
 
 protected:
 
@@ -295,9 +295,6 @@ protected:
 
 	/** GUID used to track asynchronous cooking requests. **/
 	FGuid HapiGUID;
-
-	/** The asset retrieved from the package must be delay-set in the case of blueprints. **/
-	UHoudiniAsset* HoudiniAssetLookup;
 
 	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
 	FTimerDelegate TimerDelegate;
