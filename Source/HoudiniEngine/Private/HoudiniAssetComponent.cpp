@@ -21,8 +21,8 @@
 	do \
 	{ \
 		HOUDINI_LOG_MESSAGE( \
-			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, C = %d, T = %d" ), \
-			this, HoudiniAsset, AssetId, *HapiGUID.ToString(), \
+			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, C = %d, T = %d" ), \
+			this, GetClass(), HoudiniAsset, AssetId, *HapiGUID.ToString(), \
 			bIsDefaultClass, bIsBlueprintGeneratedClass, \
 			bIsBlueprintConstructionScriptClass, bIsBlueprintThumbnailSceneClass ); \
 	} while(false)
@@ -51,7 +51,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	HoudiniAsset(nullptr),
 	PatchedClass(nullptr),
 	AssetId(-1),
-	HoudiniAssetLookup(nullptr),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false),
 	bAsyncResourceReleaseHasBeenStarted(false),
@@ -67,23 +66,55 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 {
 	UObject* Archetype = PCIP.GetArchetype();
 	UObject* Obj = PCIP.GetObject();
+	UObject* Outer = Obj->GetOuter();
 
-	if(Obj->GetOuter() && Obj->GetOuter()->GetName().StartsWith(TEXT("/Script")))
+	if(Outer)
 	{
-		bIsDefaultClass = true;
-	}
-	else if(!Archetype && Obj->GetOuter() && Obj->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass()))
-	{
-		bIsBlueprintGeneratedClass = true;
-	}
-	else if(Obj->GetOuter() && Obj->GetOuter()->IsA(AActor::StaticClass()))
-	{
-		bIsBlueprintConstructionScriptClass = true;
-	}
-	else if(Obj->GetOuter() && Obj->GetOuter()->IsA(UPackage::StaticClass())
-		&& Obj->GetOuter()->GetName().StartsWith(TEXT("/Engine/Transient")))
-	{
-		bIsBlueprintThumbnailSceneClass = true;
+		if(Outer->GetName().StartsWith(TEXT("/Script")))
+		{
+			bIsDefaultClass = true;
+		}
+		else if(!Archetype && Outer->IsA(UBlueprintGeneratedClass::StaticClass()))
+		{
+			bIsBlueprintGeneratedClass = true;
+
+			/*
+			FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
+
+			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
+
+			FBlueprintEditor* Editor = static_cast<FBlueprintEditor*>(
+				AssetEditorManager.FindEditorForAsset(OuterClassGeneratedBy, false));
+			if(Editor)
+			{
+				class EditorPublicator : public FBlueprintEditor
+				{
+				public:
+					TSharedRef< FUICommandList >& GetToolkitCommands() { return ToolkitCommands; }
+				};
+
+				EditorPublicator* Publicator = static_cast<EditorPublicator*>(Editor);
+				TSharedRef< FUICommandList >& ToolkitCommands = Publicator->GetToolkitCommands();
+
+				FFullBlueprintEditorCommands::Register();
+
+				ToolkitCommands->MapAction(
+					FFullBlueprintEditorCommands::Get().Compile,
+					FExecuteAction::CreateUObject(this, &UHoudiniAssetComponent::Compile),
+					FCanExecuteAction::CreateUObject(this, &UHoudiniAssetComponent::IsCompilingEnabled));
+
+				HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Editor->GetEditorName().ToString()) );
+			}*/
+		}
+		else if(Outer->IsA(AActor::StaticClass()))
+		{
+			bIsBlueprintConstructionScriptClass = true;
+		}
+		else if(Outer->IsA(UPackage::StaticClass())
+			&& Outer->GetName().StartsWith(TEXT("/Engine/Transient")))
+		{
+			bIsBlueprintThumbnailSceneClass = true;
+		}
 	}
 
 	// Create a generic bounding volume.
@@ -306,6 +337,8 @@ UHoudiniAssetComponent::ContainsGeos() const
 void
 UHoudiniAssetComponent::StartHoudiniTicking()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  StartHoudiniTicking,                C" );
+
 	// If we have no timer delegate spawned for this preview component, spawn one.
 	if(!TimerDelegate.IsBound())
 	{
@@ -321,6 +354,8 @@ UHoudiniAssetComponent::StartHoudiniTicking()
 void
 UHoudiniAssetComponent::StopHoudiniTicking()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  StopHoudiniTicking,                 C" );
+
 	if(TimerDelegate.IsBound())
 	{
 		GEditor->GetTimerManager()->ClearTimer(TimerDelegate);
@@ -848,6 +883,10 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
 	// Add begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
+
+	FEditorDelegates::ChangeEditorMode.AddUObject(this, &UHoudiniAssetComponent::OnModeChange);
+	FEditorDelegates::OnFinishPickingBlueprintClass.AddUObject(this, &UHoudiniAssetComponent::OnFinishPickingBlueprintClass);
+	FEditorDelegates::OnBlueprintContextMenuCreated.AddUObject(this, &UHoudiniAssetComponent::OnBlueprintContextMenuCreated);
 }
 
 
@@ -861,12 +900,36 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 	// Remove begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
+
+	FEditorDelegates::ChangeEditorMode.RemoveUObject(this, &UHoudiniAssetComponent::OnModeChange);
+	FEditorDelegates::OnFinishPickingBlueprintClass.RemoveUObject(this, &UHoudiniAssetComponent::OnFinishPickingBlueprintClass);
+	FEditorDelegates::OnBlueprintContextMenuCreated.RemoveUObject(this, &UHoudiniAssetComponent::OnBlueprintContextMenuCreated);
+}
+
+
+void
+UHoudiniAssetComponent::OnModeChange(FEditorModeID NewMode)
+{
+}
+
+
+void
+UHoudiniAssetComponent::OnFinishPickingBlueprintClass(UClass* Class)
+{
+}
+
+
+void
+UHoudiniAssetComponent::OnBlueprintContextMenuCreated(FBlueprintGraphActionListBuilder& /*ContextMenuBuilder*/)
+{
 }
 
 
 void
 UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool bReplace)
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  ReplaceClassInformation,            C" );
+
 	UClass* NewClass = nullptr;
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
 
@@ -961,6 +1024,7 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 void
 UHoudiniAssetComponent::RestoreOriginalClassInformation()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  RestoreOriginalClassInformation,    C" );
 	if(!PatchedClass)
 	{
 		// If class information has not been patched, do nothing.
@@ -2039,9 +2103,20 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset"))
+	if(HoudiniAsset && PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset"))
 	{
-		SetHoudiniAsset(HoudiniAsset);
+		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
+
+		// Create new GUID to identify this request.
+		HapiGUID = FGuid::NewGuid();
+
+		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
+		Task.Asset = HoudiniAsset;
+		Task.ActorName = GetOuter()->GetName();
+		FHoudiniEngine::Get().AddTask(Task);
+
+		// Start ticking - this will poll the cooking system for completion.
+		StartHoudiniTicking();
 		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
 		return;
 	}
@@ -2100,53 +2175,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 
 void
-UHoudiniAssetComponent::OnRegister()
-{
-	Super::OnRegister();
-	//HOUDINI_TEST_LOG_MESSAGE( "  OnRegister,                         C" );
-
-	// Make sure we have a Houdini asset to operate with.
-	if(!HoudiniAsset)
-	{
-		return;
-	}
-
-	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	if(!HoudiniAssetActor)
-	{
-		return;
-	}
-
-	if(bIsNativeComponent)
-	{
-		// This is a native component ~ belonging to a c++ actor.
-
-		if(bIsPreviewComponent)
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("    Native::OnRegister, Preview actor"));
-		}
-		else
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("    Native::OnRegister, Non-preview actor"));
-		}
-	}
-	else
-	{
-		// This is a dynamic component ~ part of blueprint.
-		HOUDINI_LOG_MESSAGE(TEXT("    Dynamic::OnRegister"));
-	}
-}
-
-
-void
-UHoudiniAssetComponent::OnUnregister()
-{
-	Super::OnUnregister();
-	HOUDINI_TEST_LOG_MESSAGE( "  OnUnregister,                       C" );
-}
-
-
-void
 UHoudiniAssetComponent::OnComponentCreated()
 {
 	// This event will only be fired for native Actor and native Component.
@@ -2168,7 +2196,7 @@ UHoudiniAssetComponent::GetComponentInstanceDataType() const
 TSharedPtr<class FComponentInstanceDataBase>
 UHoudiniAssetComponent::GetComponentInstanceData() const
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  GetComponentInstanceData,           C" );
+	//HOUDINI_TEST_LOG_MESSAGE( "  GetComponentInstanceData,           C" );
 	/*
 	bIsRealDestroy = false;
 
@@ -2185,11 +2213,11 @@ UHoudiniAssetComponent::GetComponentInstanceData() const
 void
 UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData)
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(Before), C" );
+	//HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(Before), C" );
 
 	Super::ApplyComponentInstanceData(ComponentInstanceData);
 
-	HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(After),  C" );
+	//HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(After),  C" );
 }
 
 
@@ -2242,9 +2270,11 @@ UHoudiniAssetComponent::PreSave()
 void
 UHoudiniAssetComponent::PostLoad()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  PostLoad,                           C" );
+
 	Super::PostLoad();
 
-	if(!PatchedClass && (UHoudiniAssetComponent::StaticClass() == GetClass()))
+	if(!PatchedClass)
 	{
 		// Replace class information.
 		ReplaceClassInformation(GetOuter()->GetName());
@@ -2383,13 +2413,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			// Save is triggered multiple times, but there's only one presave. Can add one time save logic here.
 			bPreSaveTriggered = false;
 		}
-	}
-
-	// Save/Load Asset Id.
-	if(!bIsNativeComponent)
-	{
-		Ar << AssetId;
-		Ar << HapiGUID;
 	}
 
 	// State of this component.
@@ -2657,57 +2680,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		ComputeComponentBoundingVolume();
 	}
 
-	if(Ar.IsLoading() && HapiGUID.IsValid())
-	{
-		StartHoudiniTicking();
-		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
-		return;
-	}
-
-	/*
-	if(Ar.IsLoading() && AssetId >= 0)
-	{
-		// Assign unique actor label based on asset name.
-		AssignUniqueActorLabel();
-
-		// We need to patch component RTTI to reflect properties for this component.
-		ReplaceClassInformation(GetOuter()->GetName());
-
-		// Update properties panel.
-		UpdateEditorProperties();
-
-		// Construct new objects (asset objects and asset object parts).
-		TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
-		FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
-
-		// Clear rendering resources used by geos.
-		ReleaseRenderingResources();
-
-		// Delete all existing geo objects (this will also delete their geo parts).
-		ClearGeos();
-
-		// Set new geo objects.
-		HoudiniAssetObjectGeos = NewObjectGeos;
-
-		// Recompute bounding volume.
-		ComputeComponentBoundingVolume();
-
-		// Collect all textures (for debugging purposes).
-		CollectTextures();
-
-		// Manually tick GC to propagate reference counts.
-		//GetWorld()->ForceGarbageCollection(false);
-
-		// Create all rendering resources.
-		CreateRenderingResources();
-
-		// Need to update rendering information.
-		UpdateRenderingInformation();
-		return;
-	}
-	*/
-
-	if(Ar.IsLoading())
+	if(HoudiniAsset && ( bIsNativeComponent || bIsBlueprintGeneratedClass ) && Ar.IsLoading())
 	{
 		// This component has been loaded.
 		bLoadedComponent = true;
@@ -2728,7 +2701,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 
 		// At this point we can locate the asset, since package exists.
-		HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
+		UHoudiniAsset* HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
 		if(HoudiniAssetLookup)
 		{
 			// Set asset for this component. This will trigger asynchronous instantiation.
