@@ -1593,7 +1593,7 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 
 		case EHoudiniEngineProperty::Enumeration:
 		{
-			//Property = CreatePropertyEnum(ClassInstance, Name, PropertyFlags);
+			Property = CreatePropertyEnum(ClassInstance, Name, PropertyFlags);
 			break;
 		}
 
@@ -2398,6 +2398,14 @@ UHoudiniAssetComponent::PostLoad()
 
 			if(!Property) continue;
 
+			if(EHoudiniEngineProperty::Enumeration == SerializedProperty.Type)
+			{
+				check(SerializedProperty.Enum);
+
+				UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
+				EnumProperty->Enum = SerializedProperty.Enum;
+			}
+
 			// Set rest of property flags.
 			Property->ArrayDim = SerializedProperty.ArrayDim;
 			Property->ElementSize = SerializedProperty.ElementSize;
@@ -2617,6 +2625,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		bool PropertyChanged = false;
 		TMap<FName, FString> PropertyMeta;
 		TMap<FName, FString>* LookupPropertyMeta = nullptr;
+		UEnum* Enum = nullptr;
 
 		if(Ar.IsSaving())
 		{
@@ -2696,6 +2705,58 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				new(UnrealString) FString(StoredString);
 			}
 		}
+		else if(EHoudiniEngineProperty::Enumeration == PropertyType)
+		{
+			if(Ar.IsSaving())
+			{
+				UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
+				Enum = EnumProperty->Enum;
+
+				// Store the enum object.
+				Enum->ClearFlags(RF_Transient);
+				Ar << Enum;
+				Enum->SetFlags(RF_Transient);
+
+				// Meta properties for enum entries are not serialized automatically, we need to save them manually.
+				int EnumEntries = Enum->NumEnums() - 1;
+
+				for(int Idx = 0; Idx < EnumEntries; ++Idx)
+				{
+					{
+						FString EnumEntryMeta = Enum->GetMetaData(TEXT("DisplayName"), Idx);
+						Ar << EnumEntryMeta;
+					}
+					{
+						FString EnumEntryMeta = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
+						Ar << EnumEntryMeta;
+					}
+				}
+			}
+			else if(Ar.IsLoading())
+			{
+				// Load enum object.
+				Ar << Enum;
+
+				// Meta properties for enum entries are not serialized automatically, we need to load them manually.
+				int EnumEntries = Enum->NumEnums() - 1;
+
+				for(int Idx = 0; Idx < EnumEntries; ++Idx)
+				{
+					{
+						FString EnumEntryMetaDisplayName;
+						Ar << EnumEntryMetaDisplayName;
+
+						Enum->SetMetaData(TEXT("DisplayName"), *EnumEntryMetaDisplayName);
+					}
+					{
+						FString EnumEntryMetaHoudiniName;
+						Ar << EnumEntryMetaHoudiniName;
+
+						Enum->SetMetaData(TEXT("HoudiniName"), *EnumEntryMetaHoudiniName);
+					}
+				}
+			}
+		}
 
 		// At this point if we are loading, we can construct intermediate object.
 		if(Ar.IsLoading())
@@ -2706,6 +2767,13 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			if(PropertyMeta.Num())
 			{
 				SerializedProperty.Meta = PropertyMeta;
+			}
+
+			// If this is enum property, store corresponding enum.
+			if(EHoudiniEngineProperty::Enumeration == PropertyType)
+			{
+				check(Enum);
+				SerializedProperty.Enum = Enum;
 			}
 
 			// Store property in a list.

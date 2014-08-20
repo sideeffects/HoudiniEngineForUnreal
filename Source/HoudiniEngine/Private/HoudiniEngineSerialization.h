@@ -15,6 +15,8 @@
 
 #pragma once
 
+class UEnum;
+
 namespace EHoudiniEngineProperty
 {
 	/** This enumeration represents property types supported by our serialization system. **/
@@ -102,6 +104,9 @@ struct FHoudiniEngineSerializedProperty
 
 	/** Name of this property. **/
 	FString Name;
+
+	/** Enum object used by this property, if it's an enum property.**/
+	UEnum* Enum;
 
 	/** Type of this property. **/
 	EHoudiniEngineProperty::Type Type;
