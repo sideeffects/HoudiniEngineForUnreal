@@ -2727,9 +2727,19 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 				// Meta properties for enum entries are not serialized automatically, we need to save them manually.
 				int EnumEntries = Enum->NumEnums() - 1;
+				Ar << EnumEntries;
+
+				// Store all entry names.
+				for(int Idx = 0; Idx < EnumEntries; ++Idx)
+				{
+					// Store entry name.
+					FString EnumEntryName = Enum->GetEnumName(Idx);
+					Ar << EnumEntryName;
+				}
 
 				for(int Idx = 0; Idx < EnumEntries; ++Idx)
 				{
+					// Store entry meta information.
 					{
 						FString EnumEntryMetaDisplayName = Enum->GetMetaData(TEXT("DisplayName"), Idx);
 						Ar << EnumEntryMetaDisplayName;
@@ -2746,8 +2756,25 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				Ar << Enum;
 
 				// Meta properties for enum entries are not serialized automatically, we need to load them manually.
-				int EnumEntries = Enum->NumEnums() - 1;
+				int EnumEntries = 0;
+				Ar << EnumEntries;
 
+				TArray<FName> EnumValues;
+
+				// Load enum entries.
+				for(int Idx = 0; Idx < EnumEntries; ++Idx)
+				{
+					// Get entry name;
+					FString EnumEntryName;
+					Ar << EnumEntryName;
+
+					EnumValues.Add(FName(*EnumEntryName));
+				}
+
+				// Set entries for this enum.
+				Enum->SetEnums(EnumValues, false);
+
+				// Load meta information for each entry.
 				for(int Idx = 0; Idx < EnumEntries; ++Idx)
 				{
 					{
