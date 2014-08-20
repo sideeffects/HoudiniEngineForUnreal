@@ -77,12 +77,16 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		if(Outer->GetName().StartsWith(TEXT("/Script")))
 		{
 			bIsDefaultClass = true;
-			SetFlags(RF_ClassDefaultObject);
+			//SetFlags(RF_ClassDefaultObject);
 		}
-		else if(!Archetype && Outer->IsA(UBlueprintGeneratedClass::StaticClass()))
+		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetName().StartsWith(TEXT("REINST_")))
+		{
+			bIsBlueprintReinstanceClass = true;
+		}
+		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetOuter() && Outer->GetOuter()->IsA(UPackage::StaticClass()))
 		{
 			bIsBlueprintGeneratedClass = true;
-			SetFlags(RF_ClassDefaultObject);
+			//SetFlags(RF_ClassDefaultObject);
 
 			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
 			UBlueprint* Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
@@ -125,10 +129,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 
 				HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Editor->GetEditorName().ToString()) );
 			}*/
-		}
-		else if(Archetype && Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetName().StartsWith(TEXT("REINST_")))
-		{
-			bIsBlueprintReinstanceClass = true;
 		}
 		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
 		{
@@ -2596,7 +2596,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	FString HoudiniAssetPackage;
 	FString HoudiniAssetName;
 
-	if(Ar.IsSaving())
+	if(Ar.IsSaving() && HoudiniAsset)
 	{
 		// Retrieve package and its name.
 		UPackage* Package = Cast<UPackage>(HoudiniAsset->GetOuter());
