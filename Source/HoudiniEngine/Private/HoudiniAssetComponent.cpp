@@ -2723,12 +2723,12 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				for(int Idx = 0; Idx < EnumEntries; ++Idx)
 				{
 					{
-						FString EnumEntryMeta = Enum->GetMetaData(TEXT("DisplayName"), Idx);
-						Ar << EnumEntryMeta;
+						FString EnumEntryMetaDisplayName = Enum->GetMetaData(TEXT("DisplayName"), Idx);
+						Ar << EnumEntryMetaDisplayName;
 					}
 					{
-						FString EnumEntryMeta = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
-						Ar << EnumEntryMeta;
+						FString EnumEntryMetaHoudiniName = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
+						Ar << EnumEntryMetaHoudiniName;
 					}
 				}
 			}
@@ -2746,13 +2746,13 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 						FString EnumEntryMetaDisplayName;
 						Ar << EnumEntryMetaDisplayName;
 
-						Enum->SetMetaData(TEXT("DisplayName"), *EnumEntryMetaDisplayName);
+						Enum->SetMetaData(TEXT("DisplayName"), *EnumEntryMetaDisplayName, Idx);
 					}
 					{
 						FString EnumEntryMetaHoudiniName;
 						Ar << EnumEntryMetaHoudiniName;
 
-						Enum->SetMetaData(TEXT("HoudiniName"), *EnumEntryMetaHoudiniName);
+						Enum->SetMetaData(TEXT("HoudiniName"), *EnumEntryMetaHoudiniName, Idx);
 					}
 				}
 			}
