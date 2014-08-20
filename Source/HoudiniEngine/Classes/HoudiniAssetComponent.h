@@ -318,6 +318,9 @@ protected:
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
 
+	/** Used to delay notification updates for HAPI asynchronous work. **/
+	double HapiNotificationStarted;
+
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;
 
