@@ -16,6 +16,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 FHoudiniEngineSerializedProperty::FHoudiniEngineSerializedProperty(EHoudiniEngineProperty::Type InType) :
+	Enum(nullptr),
 	Type(InType),
 	Flags(0u),
 	ArrayDim(1),
@@ -31,6 +32,7 @@ FHoudiniEngineSerializedProperty::FHoudiniEngineSerializedProperty(EHoudiniEngin
 																   const FString& InName, uint64 InFlags, int32 InArrayDim,
 																   int32 InElementSize, int32 InOffset, bool bInChanged) :
 	Name(InName),
+	Enum(nullptr),
 	Type(InType),
 	Flags(InFlags),
 	ArrayDim(InArrayDim),
