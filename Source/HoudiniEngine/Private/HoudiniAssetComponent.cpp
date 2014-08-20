@@ -2816,40 +2816,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 
-	/*
-	// If this is an enum property, we need to serialize its associated enum.
-	if(EHoudiniEngineProperty::Enumeration == PropertyType)
-	{
-		UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
-		UEnum* Enum = EnumProperty->Enum;
-
-		// Retrieve name of this enum and store it.
-		FString EnumName = Enum->GetName();
-		Ar << EnumName;
-
-		// Get number of enum entries (skip one because of auto generated MAX entry).
-		int32 EnumEntryCount = Enum->NumEnums() - 1;
-		Ar << EnumEntryCount;
-
-		for(int EnumEntryIdx = 0; EnumEntryIdx < EnumEntryCount; ++EnumEntryIdx)
-		{
-			// Get name for this entry and store it.
-			FString EnumEntryName = Enum->GetEnumName(EnumEntryIdx);
-			Ar << EnumEntryName;
-
-			// We also need to serialize meta data for this entry.
-			{
-				FString EnumEntryMeta = Enum->GetMetaData(TEXT("DisplayName"), EnumEntryIdx);
-				Ar << EnumEntryMeta;
-			}
-			{
-				FString EnumEntryMeta = Enum->GetMetaData(TEXT("HoudiniName"), EnumEntryIdx);
-				Ar << EnumEntryMeta;
-			}
-		}
-	}
-	*/
-
 	// Serialize geos.
 	int32 NumGeos = HoudiniAssetObjectGeos.Num();
 	Ar << NumGeos;
