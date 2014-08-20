@@ -21,12 +21,11 @@
 	do \
 	{ \
 		HOUDINI_LOG_MESSAGE( \
-			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, GenName = %s, PatchedName = %s, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, C = %d, T = %d" ), \
+			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, PatchedName = %s, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, R = %d, C = %d, T = %d" ), \
 			this, GetClass(), \
-			*FString::Printf(TEXT("%s_%s"), *GetClass()->GetName(), *GetOuter()->GetName()), \
 			*GetClass()->GetName(), \
 			HoudiniAsset, AssetId, *HapiGUID.ToString(), \
-			bIsDefaultClass, bIsBlueprintGeneratedClass, \
+			bIsDefaultClass, bIsBlueprintGeneratedClass, bIsBlueprintReinstanceClass, \
 			bIsBlueprintConstructionScriptClass, bIsBlueprintThumbnailSceneClass ); \
 	} while(false)
 
@@ -64,6 +63,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bIsPlayModeActive(false),
 	bIsDefaultClass(false),
 	bIsBlueprintGeneratedClass(false),
+	bIsBlueprintReinstanceClass(false),
 	bIsBlueprintConstructionScriptClass(false),
 	bIsBlueprintThumbnailSceneClass(false)
 {
@@ -125,14 +125,30 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 				HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Editor->GetEditorName().ToString()) );
 			}*/
 		}
-		else if(Outer->IsA(AActor::StaticClass()))
+		else if(Archetype && Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetName().StartsWith(TEXT("REINST_")))
+		{
+			bIsBlueprintReinstanceClass = true;
+		}
+		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
 		{
 			bIsBlueprintConstructionScriptClass = true;
+		}
+		else if(Outer->IsA(AHoudiniAssetActor::StaticClass()))
+		{
+			bIsNativeComponent = true;
+			if(Outer->GetOuter()->GetName().StartsWith(TEXT("/Script")))
+			{
+				bIsDefaultClass = true;
+			}
 		}
 		else if(Outer->IsA(UPackage::StaticClass())
 			&& Outer->GetName().StartsWith(TEXT("/Engine/Transient")))
 		{
 			bIsBlueprintThumbnailSceneClass = true;
+		}
+		else
+		{
+			bIsBlueprintThumbnailSceneClass = false;
 		}
 	}
 
@@ -978,7 +994,15 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  ReplaceClassInformation,            C" );
 
+	// We don't need to patch the construction script generated component because it is
+	// being duplicated from the Blueprint Generated component.
 	if(bIsBlueprintConstructionScriptClass)
+	{
+		return;
+	}
+
+	// We don't need to patch the thumbnail component because it does not care about properties.
+	if(bIsBlueprintThumbnailSceneClass)
 	{
 		return;
 	}
@@ -2319,8 +2343,13 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 void
 UHoudiniAssetComponent::PreSave()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  PreSave,                            C" );
+
 	Super::PreSave();
 	bPreSaveTriggered = true;
+
+	// We need to restore original class information.
+	RestoreOriginalClassInformation();
 }
 
 
@@ -2331,7 +2360,9 @@ UHoudiniAssetComponent::PostLoad()
 
 	Super::PostLoad();
 
-	if(bIsBlueprintConstructionScriptClass)
+	// Since these types of components don't patch their class there's nothing to
+	// be done post load except re-create the rendering resources.
+	if(bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass)
 	{
 		// Create all rendering resources.
 		CreateRenderingResources();
