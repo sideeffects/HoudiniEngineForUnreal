@@ -53,6 +53,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	HoudiniAsset(nullptr),
 	PatchedClass(nullptr),
 	AssetId(-1),
+	HapiNotificationStarted(0.0),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false),
 	bAsyncResourceReleaseHasBeenStarted(false),
@@ -382,6 +383,9 @@ UHoudiniAssetComponent::StartHoudiniTicking()
 		// We need to register delegate with the timer system.
 		static const float TickTimerDelay = 0.25f;
 		GEditor->GetTimerManager()->SetTimer(TimerDelegate, TickTimerDelay, true);
+
+		// Grab current time for delayed notification.
+		HapiNotificationStarted = FPlatformTime::Seconds();
 	}
 }
 
@@ -395,6 +399,9 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 	{
 		GEditor->GetTimerManager()->ClearTimer(TimerDelegate);
 		TimerDelegate.Unbind();
+
+		// Reset time for delayed notification.
+		HapiNotificationStarted = 0.0;
 	}
 }
 
@@ -404,6 +411,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 {
 	FHoudiniEngineTaskInfo TaskInfo;
 	bool bStopTicking = false;
+
+	static float NotificationFadeOutDuration = 2.0f;
+	static float NotificationExpireDuration = 2.0f;
+	static double NotificationUpdateFrequency = 2.0f;
 
 	if(HapiGUID.IsValid())
 	{
@@ -418,8 +429,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					FNotificationInfo Info(TaskInfo.StatusText);
 
 					Info.bFireAndForget = false;
-					Info.FadeOutDuration = 2.0f;
-					Info.ExpireDuration = 2.0f;
+					Info.FadeOutDuration = NotificationFadeOutDuration;
+					Info.ExpireDuration = NotificationExpireDuration;
 
 					TSharedPtr<FSlateDynamicImageBrush> HoudiniBrush = FHoudiniEngine::Get().GetHoudiniLogoBrush();
 					if(HoudiniBrush.IsValid())
@@ -427,7 +438,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						Info.Image = HoudiniBrush.Get();
 					}
 
-					NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+					if((FPlatformTime::Seconds() - HapiNotificationStarted) >= NotificationUpdateFrequency)
+					{
+						NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+					}
 				}
 			}
 
@@ -527,8 +541,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
-
 					bStopTicking = true;
+
 					break;
 				}
 
@@ -553,8 +567,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
-
 					bStopTicking = true;
+
 					break;
 				}
 
@@ -591,6 +605,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	if(!HapiGUID.IsValid() && (ChangedProperties.Num() > 0))
 	{
 		// If we are not cooking and we have property changes queued up.
+
+		// Grab current time for delayed notification.
+		HapiNotificationStarted = FPlatformTime::Seconds();
 
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
