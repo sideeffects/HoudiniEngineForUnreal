@@ -2847,7 +2847,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		ComputeComponentBoundingVolume();
 	}
 
-	if(HoudiniAsset && ( bIsNativeComponent || bIsBlueprintGeneratedClass ) && Ar.IsLoading())
+	if(Ar.IsLoading() && (bIsNativeComponent || (bIsBlueprintGeneratedClass && HoudiniAsset)))
 	{
 		// This component has been loaded.
 		bLoadedComponent = true;
