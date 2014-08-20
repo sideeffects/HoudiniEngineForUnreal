@@ -1104,14 +1104,21 @@ void
 UHoudiniAssetComponent::RestoreOriginalClassInformation()
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  RestoreOriginalClassInformation,    C" );
-	if(!PatchedClass)
+
+	// Blueprint construction script is special because it is duplicated from the blueprint component and therefore
+	// comes prepatched. However it does not have a patched class of its own. Note that we are not restored the patched
+	// class at the moment.
+	if(!PatchedClass && !bIsBlueprintConstructionScriptClass)
 	{
 		// If class information has not been patched, do nothing.
 		return;
 	}
 
 	// We need to add our patched class to root in order to avoid its clean up by GC.
-	PatchedClass->AddToRoot();
+	if(!bIsBlueprintConstructionScriptClass)
+	{
+		PatchedClass->AddToRoot();
+	}
 
 	// We need to restore original class information.
 	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
