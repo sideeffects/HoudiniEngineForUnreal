@@ -1107,7 +1107,8 @@ UHoudiniAssetComponent::RestoreOriginalClassInformation()
 
 	// Blueprint construction script is special because it is duplicated from the blueprint component and therefore
 	// comes prepatched. However it does not have a patched class of its own. Note that we are not restored the patched
-	// class at the moment.
+	// class at the moment in RestorePatchedClassInformation and this causes certain update problems during first update
+	// cycle.
 	if(!PatchedClass && !bIsBlueprintConstructionScriptClass)
 	{
 		// If class information has not been patched, do nothing.
