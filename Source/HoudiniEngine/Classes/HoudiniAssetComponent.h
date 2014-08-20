@@ -345,6 +345,7 @@ protected:
 
 	bool bIsDefaultClass;
 	bool bIsBlueprintGeneratedClass;
+	bool bIsBlueprintReinstanceClass;
 	bool bIsBlueprintConstructionScriptClass;
 	bool bIsBlueprintThumbnailSceneClass;
 
