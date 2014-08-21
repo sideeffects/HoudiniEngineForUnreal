@@ -277,8 +277,8 @@ private:
 	void ComputeComponentBoundingVolume();
 
 	/** Check if value for property has been changed and property is queued up to participate in subsequent cook. If it **/
-	/** has been changed, then we do not want to update the value coming from current cook as it will cause Proprety's  **/
-	/** slider to flicker. **/
+	/** has been changed, then we do not want to update the current value with value coming from current cook as it     **/
+	/** will cause property's slider to jitter and possibly discard a valid value. **/
 	bool CanPropertyValueBeUpdated(HAPI_ParmType PropertyType, int ChoiceCount, const FString& PropertyName) const;
 
 public:

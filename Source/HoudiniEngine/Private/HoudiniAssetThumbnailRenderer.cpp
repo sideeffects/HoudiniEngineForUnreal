@@ -59,16 +59,6 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
 		GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
 	}
-
-	/*
-	UTexture2D* Texture = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Game/Other/Icon128.Icon128")));
-	if(Texture)
-	{
-		const bool bAlphaBlend = false;
-		Canvas->DrawTile((float) X, (float) Y, (float) Width, (float) Height, 0.0f, 0.0f, 1.0f, 1.0f,
-		FLinearColor::White, Texture->Resource, bAlphaBlend);
-	}
-	*/
 }
 
 
