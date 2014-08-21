@@ -193,28 +193,28 @@ private:
 
 	/** Patch RTTI : Create Integer property. **/
 	UProperty* CreatePropertyInt(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
-	UProperty* CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset);
+	UProperty* CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset, bool bUpdateValue);
 
 	/** Patch RTTI : Create Float property. **/
 	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
-	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
+	UProperty* CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset, bool bUpdateValue);
 
 	/** Patch RTTI : Create Toggle property. **/
 	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
-	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset);
+	UProperty* CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset, bool bUpdateValue);
 
 	/** Patch RTTI : Create Color property. **/
 	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
-	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset);
+	UProperty* CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset, bool bUpdateValue);
 
 	/** Patch RTTI: Create String property. **/
 	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
-	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset);
+	UProperty* CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset, bool bUpdateValue);
 
 	/** Patch RTTI: Create Enumeration property. **/
 	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
-	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset);
-	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset);
+	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset, bool bUpdateValue);
+	UProperty* CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset, bool bUpdateValue);
 
 	/** Patch RTTI : Create an enum object. **/
 	UField* CreateEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices);
@@ -236,6 +236,9 @@ private:
 
 	/** Return property type for a given property. **/
 	EHoudiniEngineProperty::Type GetPropertyType(UProperty* Property) const;
+
+	/** Return Unreal Class corresponding to a Hapi property type. **/
+	UClass* GetPropertyType(HAPI_ParmType PropertyType, int ChoiceCount) const;
 
 	/** Update rendering information. **/
 	void UpdateRenderingInformation();
@@ -273,6 +276,11 @@ private:
 	/** Compute bounding volume for all geometry of this component. **/
 	void ComputeComponentBoundingVolume();
 
+	/** Check if value for property has been changed and property is queued up to participate in subsequent cook. If it **/
+	/** has been changed, then we do not want to update the value coming from current cook as it will cause Proprety's  **/
+	/** slider to flicker. **/
+	bool CanPropertyValueBeUpdated(HAPI_ParmType PropertyType, int ChoiceCount, const FString& PropertyName) const;
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -288,8 +296,8 @@ protected:
 	/** Array of asset objects geos. **/
 	TArray<FHoudiniAssetObjectGeo*> HoudiniAssetObjectGeos;
 
-	/** Set of properties that have changed. Will force object recook. Cleared after each recook. **/
-	TSet<UProperty*> ChangedProperties;
+	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
+	TMap<FString, UProperty*> ChangedProperties;
 
 	/** Array of properties we have created. We keep these for serialization purposes. **/
 	TArray<UProperty*> CreatedProperties;

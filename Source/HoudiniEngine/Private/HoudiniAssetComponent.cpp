@@ -925,6 +925,69 @@ UHoudiniAssetComponent::GetPropertyType(UProperty* Property) const
 }
 
 
+UClass*
+UHoudiniAssetComponent::GetPropertyType(HAPI_ParmType PropertyType, int ChoiceCount) const
+{
+	UClass* PropertyClass = nullptr;
+
+	switch(PropertyType)
+	{
+		case HAPI_PARMTYPE_INT:
+		{
+			if(!ChoiceCount)
+			{
+				PropertyClass = UIntProperty::StaticClass();
+			}
+			else if(ChoiceCount >= 0)
+			{
+				PropertyClass = UByteProperty::StaticClass();
+			}
+
+			break;
+		}
+
+		case HAPI_PARMTYPE_STRING:
+		{
+			if(!ChoiceCount)
+			{
+				PropertyClass = UStrProperty::StaticClass();
+			}
+			else if(ChoiceCount >= 0)
+			{
+				PropertyClass = UByteProperty::StaticClass();
+			}
+
+			break;
+		}
+
+		case HAPI_PARMTYPE_FLOAT:
+		{
+			PropertyClass = UFloatProperty::StaticClass();
+			break;
+		}
+
+		case HAPI_PARMTYPE_TOGGLE:
+		{
+			PropertyClass = UBoolProperty::StaticClass();
+			break;
+		}
+
+		case HAPI_PARMTYPE_COLOR:
+		{
+			PropertyClass = UStructProperty::StaticClass();
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	return PropertyClass;
+}
+
+
 void
 UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
@@ -1327,13 +1390,16 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 		UProperty* Property = nullptr;
 
+		// Check if this property has already changed and will be used in next cook update.
+		bool bPropertyChanged = CanPropertyValueBeUpdated(ParmInfoIter.type, ParmInfoIter.choiceCount, UniquePropertyName);
+
 		switch(ParmInfoIter.type)
 		{
 			case HAPI_PARMTYPE_INT:
 			{
 				if(!ParmInfoIter.choiceCount)
 				{
-					Property = CreatePropertyInt(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
+					Property = CreatePropertyInt(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd, bPropertyChanged);
 				}
 				else if(ParmInfoIter.choiceIndex >= 0)
 				{
@@ -1353,7 +1419,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 					HOUDINI_CHECK_ERROR(&Result, HAPI_GetParmIntValues(NodeInfo.id, &EnumIndex, ParmInfoIter.intValuesIndex, ParmInfoIter.size));
 
 					// Create enum property.
-					Property = CreatePropertyEnum(ClassInstance, UniquePropertyName, ChoiceInfos, EnumIndex, ValuesOffsetEnd);
+					Property = CreatePropertyEnum(ClassInstance, UniquePropertyName, ChoiceInfos, EnumIndex, ValuesOffsetEnd, bPropertyChanged);
 				}
 
 				break;
@@ -1363,7 +1429,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			{
 				if(!ParmInfoIter.choiceCount)
 				{
-					Property = CreatePropertyString(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesStrings[ParmInfoIter.stringValuesIndex], ValuesOffsetEnd);
+					Property = CreatePropertyString(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesStrings[ParmInfoIter.stringValuesIndex], ValuesOffsetEnd, bPropertyChanged);
 				}
 				else if(ParmInfoIter.choiceIndex >= 0)
 				{
@@ -1390,7 +1456,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 					}
 
 					// Create enum property.
-					Property = CreatePropertyEnum(ClassInstance, UniquePropertyName, ChoiceInfos, EnumStringValue, ValuesOffsetEnd);
+					Property = CreatePropertyEnum(ClassInstance, UniquePropertyName, ChoiceInfos, EnumStringValue, ValuesOffsetEnd, bPropertyChanged);
 				}
 
 				break;
@@ -1398,19 +1464,19 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 			case HAPI_PARMTYPE_FLOAT:
 			{
-				Property = CreatePropertyFloat(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyFloat(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd, bPropertyChanged);
 				break;
 			}
 
 			case HAPI_PARMTYPE_TOGGLE:
 			{
-				Property = CreatePropertyToggle(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyToggle(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesIntegers[ParmInfoIter.intValuesIndex], ValuesOffsetEnd, bPropertyChanged);
 				break;
 			}
 
 			case HAPI_PARMTYPE_COLOR:
 			{
-				Property = CreatePropertyColor(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd);
+				Property = CreatePropertyColor(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd, bPropertyChanged);
 				break;
 			}
 
@@ -1503,6 +1569,42 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	}
 
 	return true;
+}
+
+
+bool
+UHoudiniAssetComponent::CanPropertyValueBeUpdated(HAPI_ParmType PropertyType, int ChoiceCount, const FString& PropertyName) const
+{
+	UProperty* const* Property = ChangedProperties.Find(PropertyName);
+	bool bCanBeUpdated = true;
+
+	if(Property)
+	{
+		// Get class of property we are trying to look up and see if they match.
+		UClass* PropertyClass = GetPropertyType(PropertyType, ChoiceCount);
+		if(PropertyClass == (*Property)->GetClass())
+		{
+			if(UStructProperty::StaticClass() == PropertyClass)
+			{
+				const UStructProperty* StructProperty = Cast<const UStructProperty>(*Property);
+
+				// Make sure both are color properties.
+				if(HAPI_PARMTYPE_COLOR == PropertyType && UHoudiniAssetComponent::ScriptStructColor == StructProperty->Struct)
+				{
+					// Property is of the same type, we do not need to update the value.
+					bCanBeUpdated = false;
+				}
+			}
+			else
+			{
+				// Property is of the same type, we do not need to update the value.
+				bCanBeUpdated = false;
+			}
+		}
+	}
+
+	// Property is not marked as changed and its value can be updated.
+	return bCanBeUpdated;
 }
 
 
@@ -1657,7 +1759,7 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, int32 Value, uint32& Offset, bool bUpdateValue)
 {
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
 
@@ -1684,7 +1786,10 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 	ReplacePropertyOffset(Property, Offset);
 
 	// Write property data to which it refers by offset.
-	*Boundary = (uint8) Value;
+	if(bUpdateValue)
+	{
+		*Boundary = (uint8) Value;
+	}
 
 	// Increment offset for next property.
 	Offset = Offset + sizeof(uint8);
@@ -1694,13 +1799,13 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices, const FString& ValueString, uint32& Offset, bool bUpdateValue)
 {
 	// Store initial offset.
 	uint32 OffsetStored = Offset;
 
 	// Create enum property with default 0 value.
-	UByteProperty* Property = Cast<UByteProperty>(CreatePropertyEnum(ClassInstance, Name, Choices, 0, Offset));
+	UByteProperty* Property = Cast<UByteProperty>(CreatePropertyEnum(ClassInstance, Name, Choices, 0, Offset, bUpdateValue));
 	if(Property)
 	{
 		// Get enum for this property.
@@ -1728,7 +1833,10 @@ UHoudiniAssetComponent::CreatePropertyEnum(UClass* ClassInstance, const FString&
 						ReplacePropertyOffset(Property, OffsetStored);
 
 						// Write property data to which it refers by offset.
-						*Boundary = (uint8) Idx;
+						if(bUpdateValue)
+						{
+							*Boundary = (uint8) Idx;
+						}
 
 						// Increment offset for next property.
 						Offset = OffsetStored + sizeof(uint8);
@@ -1768,7 +1876,7 @@ UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FStrin
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FString& Name, int Count, const HAPI_StringHandle* Value, uint32& Offset, bool bUpdateValue)
 {
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
 
@@ -1796,13 +1904,16 @@ UHoudiniAssetComponent::CreatePropertyString(UClass* ClassInstance, const FStrin
 	{
 		FString NameString;
 
-		if(FHoudiniEngineUtils::GetHoudiniString(*(Value + Index), NameString))
+		if(bUpdateValue)
 		{
-			new(Boundary) FString(NameString);
-		}
-		else
-		{
-			new(Boundary) FString(TEXT("Invalid"));
+			if(FHoudiniEngineUtils::GetHoudiniString(*(Value + Index), NameString))
+			{
+				new(Boundary) FString(NameString);
+			}
+			else
+			{
+				new(Boundary) FString(TEXT("Invalid"));
+			}
 		}
 
 		Offset += sizeof(FString);
@@ -1846,7 +1957,7 @@ UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset, bool bUpdateValue)
 {
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
 
@@ -1882,7 +1993,10 @@ UHoudiniAssetComponent::CreatePropertyColor(UClass* ClassInstance, const FString
 	ReplacePropertyOffset(Property, Offset);
 	
 	// Write property data to which it refers by offset.
-	*Boundary = ConvertedColor;
+	if(bUpdateValue)
+	{
+		*Boundary = ConvertedColor;
+	}
 	
 	// Increment offset for next property.
 	Offset = Offset + sizeof(FColor);
@@ -1914,7 +2028,7 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& 
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& Name, int Count, const int32* Value, uint32& Offset, bool bUpdateValue)
 {
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
@@ -1938,9 +2052,12 @@ UHoudiniAssetComponent::CreatePropertyInt(UClass* ClassInstance, const FString& 
 	ReplacePropertyOffset(Property, Offset);
 
 	// Write property data to which it refers by offset.
-	for(int Index = 0; Index < Count; ++Index)
+	if(bUpdateValue)
 	{
-		*Boundary = *(Value + Index);
+		for(int Index = 0; Index < Count; ++Index)
+		{
+			*Boundary = *(Value + Index);
+		}
 	}
 
 	// Increment offset for next property.
@@ -1973,7 +2090,7 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FString
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FString& Name, int Count, const float* Value, uint32& Offset, bool bUpdateValue)
 {
 	static const uint64 PropertyFlags =  UINT64_C(69793219077);
 
@@ -1997,9 +2114,12 @@ UHoudiniAssetComponent::CreatePropertyFloat(UClass* ClassInstance, const FString
 	ReplacePropertyOffset(Property, Offset);
 
 	// Write property data to which it refers by offset.
-	for(int Index = 0; Index < Count; ++Index)
+	if(bUpdateValue)
 	{
-		*Boundary = *(Value + Index);
+		for(int Index = 0; Index < Count; ++Index)
+		{
+			*Boundary = *(Value + Index);
+		}
 	}
 
 	// Increment offset for next property.
@@ -2031,7 +2151,7 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FStrin
 
 
 UProperty*
-UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset)
+UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FString& Name, int Count, const int32* bValue, uint32& Offset, bool bUpdateValue)
 {
 	static const uint64 PropertyFlags = UINT64_C(69793219077);
 
@@ -2055,9 +2175,12 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FStrin
 	ReplacePropertyOffset(Property, Offset);
 
 	// Write property data to which it refers by offset.
-	for(int Index = 0; Index < Count; ++Index)
+	if(bUpdateValue)
 	{
-		*Boundary = (*(bValue + Index) != 0);
+		for(int Index = 0; Index < Count; ++Index)
+		{
+			*Boundary = (*(bValue + Index) != 0);
+		}
 	}
 
 	// Increment offset for next property.
@@ -2075,9 +2198,9 @@ UHoudiniAssetComponent::SetChangedParameterValues()
 
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), void());
 
-	for(TSet<UProperty*>::TIterator Iter(ChangedProperties); Iter; ++Iter)
+	for(TMap<FString, UProperty*>::TIterator Iter(ChangedProperties); Iter; ++Iter)
 	{
-		UProperty* Property = *Iter;
+		UProperty* Property = Iter.Value();
 
 		// Retrieve offset into scratch space for this property.
 		uint32 ValueOffset = Property->GetOffset_ForDebug();
@@ -2271,7 +2394,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	Property->SetMetaData(TEXT("HoudiniPropertyChanged"), TEXT("1"));
 
 	// Add changed property to the set of changes.
-	ChangedProperties.Add(Property);
+	ChangedProperties.Add(Property->GetName(), Property);
 
 	// Start ticking (if we are ticking already, this will be ignored).
 	StartHoudiniTicking();
@@ -2474,7 +2597,7 @@ UHoudiniAssetComponent::PostLoad()
 			// We also need to add this property to a set of changed properties.
 			if(SerializedProperty.bChanged)
 			{
-				ChangedProperties.Add(Property);
+				ChangedProperties.Add(Property->GetName(), Property);
 			}
 		}
 
