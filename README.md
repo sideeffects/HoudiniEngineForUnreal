@@ -11,7 +11,7 @@ available right inside Unreal Engine.
 ## Supported Unreal Engine versions
 Currently, the supported Unreal Engine versions are:
 
-* 4.4
+* 4.4 (note that the 4.4 release is missing some libraries - in addition to the Required zip packages, you must also download and unzip on top of Engine: http://static.oculusvr.com/sdk-downloads/ovr_ue4_4.4_github_prereq_0.4.1a.zip)
 
 ## Installing from Source
 1. Have a local copy of Unreal Engine 4.4 checked out. Inside Unreal Engine copy navigate to Engine/Plugins/Runtime .
