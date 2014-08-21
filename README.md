@@ -14,7 +14,7 @@ Currently, the supported Unreal Engine versions are:
 * 4.3
 
 ## Installing from Source
-1. Have a local copy of Unreal Engine 4.2 checked out. Inside Unreal Engine copy navigate to Engine/Plugins/Runtime .
+1. Have a local copy of Unreal Engine 4.3 checked out. Inside Unreal Engine copy navigate to Engine/Plugins/Runtime .
 2. Clone the Houdini Engine Unreal plugin into this folder. Make sure the checked out folder is named HoudiniEngine .
 3. Download and install the correct build of 64-bit Houdini.
 4. Verify you have Houdini installed and it matches the version Plugin is using. Easiest way is to look in commit history or look inside Source/HoudiniEngine/HoudiniEngine.Build.cs file.
