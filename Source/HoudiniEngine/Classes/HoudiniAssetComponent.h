@@ -295,6 +295,20 @@ private:
 	/** Patch class counter, we need this to generate unique ids. **/
 	static uint32 ComponentPatchedClassCounter;
 
+private:
+
+	/** Used to back up the global delage for package backup so we can call it after we're done our stuff. **/
+	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
+
+	/** Used to be able to call multiple Houdini components in the same blueprint using a single callback. **/
+	static TMap<UPackage*, TArray<UHoudiniAssetComponent*>> BlueprintPerPackageComponents;
+
+	/** The static callback that will call each component's PrePackageSave() function. **/
+	static bool OnPackageBackup(const UPackage& Package);
+
+	/** Used for early detection of saving inside blueprints. **/
+	void PrePackageSave();
+
 protected:
 
 	/** Array of asset objects geos. **/

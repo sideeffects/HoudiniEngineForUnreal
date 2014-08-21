@@ -77,7 +77,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		if(Outer->GetName().StartsWith(TEXT("/Script")))
 		{
 			bIsDefaultClass = true;
-			//SetFlags(RF_ClassDefaultObject);
 		}
 		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetName().StartsWith(TEXT("REINST_")))
 		{
@@ -86,9 +85,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetOuter() && Outer->GetOuter()->IsA(UPackage::StaticClass()))
 		{
 			bIsBlueprintGeneratedClass = true;
-			//SetFlags(RF_ClassDefaultObject);
 
-			UPackage::PackageSavedEvent.AddUObject(this, &UHoudiniAssetComponent::OnPackageSaved);
+			// Must set this flag so that compilation works.
+			SetFlags(RF_ClassDefaultObject);
 
 			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
 			UBlueprint* Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
@@ -104,33 +103,30 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 				HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Blueprint->GetName()) );
 			}
 
-			/*
-			FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
+			// Set post-package saved callback.
+			UPackage::PackageSavedEvent.AddUObject(this, &UHoudiniAssetComponent::OnPackageSaved);
 
-			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
-
-			FBlueprintEditor* Editor = static_cast<FBlueprintEditor*>(
-				AssetEditorManager.FindEditorForAsset(OuterClassGeneratedBy, false));
-			if(Editor)
+			// Set pre-package saved callback.
 			{
-				class EditorPublicator : public FBlueprintEditor
+				UPackage* OuterPackage = Cast<UPackage>(GetOuter()->GetOutermost());
+
+				// Back up the existing global delegate so we can call it after we've done our stuff.
+				if(!AutoPackageBackupDelegate.IsBound())
 				{
-				public:
-					TSharedRef< FUICommandList >& GetToolkitCommands() { return ToolkitCommands; }
-				};
+					AutoPackageBackupDelegate = GAutoPackageBackupDelegate;
+					GAutoPackageBackupDelegate.BindStatic(&UHoudiniAssetComponent::OnPackageBackup);
+				}
 
-				EditorPublicator* Publicator = static_cast<EditorPublicator*>(Editor);
-				TSharedRef< FUICommandList >& ToolkitCommands = Publicator->GetToolkitCommands();
+				// If first Houdini component in this blueprint, add new this Blueprint package to static map.
+				if(!BlueprintPerPackageComponents.Contains(OuterPackage))
+				{
+					BlueprintPerPackageComponents.Add(OuterPackage);
+				}
 
-				FFullBlueprintEditorCommands::Register();
-
-				ToolkitCommands->MapAction(
-					FFullBlueprintEditorCommands::Get().Compile,
-					FExecuteAction::CreateUObject(this, &UHoudiniAssetComponent::Compile),
-					FCanExecuteAction::CreateUObject(this, &UHoudiniAssetComponent::IsCompilingEnabled));
-
-				HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Editor->GetEditorName().ToString()) );
-			}*/
+				// Add ourselves to the static package/components map.
+				TArray<UHoudiniAssetComponent*>& Components = *BlueprintPerPackageComponents.Find(OuterPackage);
+				Components.Add(this);
+			}
 		}
 		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
 		{
@@ -1087,6 +1083,9 @@ UHoudiniAssetComponent::OnPackageSaved(const FString& PackageFileName, UObject* 
 
 		// We need to restore patched class information.
 		RestorePatchedClassInformation();
+
+		// Must restore this flag so that compilatin works.
+		SetFlags(RF_ClassDefaultObject);
 	}
 }
 
@@ -3053,5 +3052,39 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 }
+
+
+FAutoPackageBackupDelegate UHoudiniAssetComponent::AutoPackageBackupDelegate;
+TMap<UPackage*, TArray<UHoudiniAssetComponent*>> UHoudiniAssetComponent::BlueprintPerPackageComponents;
+
+
+bool
+UHoudiniAssetComponent::OnPackageBackup(const UPackage& Package)
+{
+	TArray<UHoudiniAssetComponent*>* Components = BlueprintPerPackageComponents.Find(&Package);
+	if(Components)
+	{
+		TArray<UHoudiniAssetComponent*>& ComponentsRef = *Components;
+		for(int i = 0; i < ComponentsRef.Num(); ++i)
+		{
+			UHoudiniAssetComponent* Component = ComponentsRef[i];
+			Component->PrePackageSave();
+		}
+	}
+
+	check(AutoPackageBackupDelegate.IsBound());
+	return AutoPackageBackupDelegate.Execute(Package);
+}
+
+
+void
+UHoudiniAssetComponent::PrePackageSave()
+{
+	HOUDINI_TEST_LOG_MESSAGE( "  PrePackageSave,                     C" );
+
+	// Must clear this flag used to fix compilation so that saving works.
+	ClearFlags(RF_ClassDefaultObject);
+}
+
 
 #undef HOUDINI_TEST_LOG_MESSAGE
