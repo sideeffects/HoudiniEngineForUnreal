@@ -2737,10 +2737,17 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
 				Enum = EnumProperty->Enum;
 
+				// Store flags of the enum object and patch them to flags we need.
+				EObjectFlags EnumFlags = Enum->GetFlags();
+				Enum->ClearFlags(RF_AllFlags);
+				Enum->SetFlags(RF_Public);
+
 				// Store the enum object.
-				Enum->ClearFlags(RF_Transient);
 				Ar << Enum;
-				Enum->SetFlags(RF_Transient);
+
+				// Restore enum flags.
+				Enum->ClearFlags(RF_AllFlags);
+				Enum->SetFlags(EnumFlags);
 
 				// Meta properties for enum entries are not serialized automatically, we need to save them manually.
 				int EnumEntries = Enum->NumEnums() - 1;
