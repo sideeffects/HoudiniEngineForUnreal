@@ -163,6 +163,10 @@ private: /** FModuleManager delegates. **/
 
 	void OnModulesChanged(FName Name, EModuleChangeReason Reason);
 
+private: /** UPackage delegates. **/
+
+	void OnPackageSaved(const FString& PackageFileName, UObject* Outer);
+
 protected:
 
 	/** Patch RTTI : patch class information for this component's class based on given Houdini Asset. **/

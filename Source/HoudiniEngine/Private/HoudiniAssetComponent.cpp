@@ -88,6 +88,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 			bIsBlueprintGeneratedClass = true;
 			//SetFlags(RF_ClassDefaultObject);
 
+			UPackage::PackageSavedEvent.AddUObject(this, &UHoudiniAssetComponent::OnPackageSaved);
+
 			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
 			UBlueprint* Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
 			if (Blueprint)
@@ -1066,6 +1068,26 @@ UHoudiniAssetComponent::OnModulesChanged(FName Name, EModuleChangeReason Reason)
 {
 	//bool hurray = GCompilingBlueprint;
 	//HOUDINI_LOG_MESSAGE( TEXT("asd") );
+}
+
+
+void
+UHoudiniAssetComponent::OnPackageSaved(const FString& PackageFileName, UObject* Outer)
+{
+	if(!GetOuter())
+	{
+		return;
+	}
+
+	UObject* Package = GetOuter()->GetOuter();
+
+	if(Outer == Package)
+	{
+		HOUDINI_TEST_LOG_MESSAGE( "  OnPackageSaved,                     C" );
+
+		// We need to restore patched class information.
+		RestorePatchedClassInformation();
+	}
 }
 
 
