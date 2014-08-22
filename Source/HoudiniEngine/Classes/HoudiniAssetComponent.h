@@ -285,6 +285,9 @@ private:
 	/** will cause property's slider to jitter and possibly discard a valid value. **/
 	bool CanPropertyValueBeUpdated(HAPI_ParmType PropertyType, int ChoiceCount, const FString& PropertyName) const;
 
+	/** Reset all Houdini related information, the asset, cooking trackers, generated geometry, related state, etc. **/
+	void ResetHoudiniResources();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -297,7 +300,7 @@ private:
 
 private:
 
-	/** Used to back up the global delage for package backup so we can call it after we're done our stuff. **/
+	/** Used to back up the global delegate for package backup so we can call it after we're done our stuff. **/
 	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
 
 	/** Used to be able to call multiple Houdini components in the same blueprint using a single callback. **/
