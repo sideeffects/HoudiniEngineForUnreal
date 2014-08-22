@@ -499,7 +499,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						ReplaceClassInformation(GetOuter()->GetName());
 
 						// Update properties panel.
-						UpdateEditorProperties();
+						//UpdateEditorProperties();
 
 						// Construct new objects (asset objects and asset object parts).
 						TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
@@ -662,10 +662,10 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	{
 		// Manually reselect the actor - this will cause details panel to be updated and force our 
 		// property changes to be picked up by the UI.
-		//GEditor->SelectActor(HoudiniAssetActor.Get(), true, true);
+		GEditor->SelectActor(HoudiniAssetActor, true, true);
 
 		// Notify the editor about selection change.
-		//GEditor->NoteSelectionChange();
+		GEditor->NoteSelectionChange();
 	}
 }
 
@@ -2403,6 +2403,9 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			SetHoudiniLogoGeometry();
 
 			ChangedHoudiniAsset = nullptr;
+
+			// We also need to update properties in detail panel.
+			UpdateEditorProperties();
 		}
 
 		if(HoudiniAsset)
@@ -2592,6 +2595,15 @@ UHoudiniAssetComponent::PostLoad()
 
 		// Need to update rendering information.
 		UpdateRenderingInformation();
+
+		return;
+	}
+
+	// We loaded a component which has no asset associated with it.
+	if(!HoudiniAsset)
+	{
+		// Set geometry to be Houdini logo geometry, since we have no other geometry.
+		SetHoudiniLogoGeometry();
 
 		return;
 	}
