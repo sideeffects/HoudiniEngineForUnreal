@@ -797,6 +797,9 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 		// Reset asset id.CreateSceneProxy
 		AssetId = -1;
 	}
+
+	// Unsubscribe from Editor events.
+	UnsubscribeEditorDelegates();
 }
 
 
@@ -835,9 +838,6 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Release all Houdini related resources.
 	ResetHoudiniResources();
-
-	// Unsubscribe from Editor events.
-	UnsubscribeEditorDelegates();
 
 	// Call super class implementation.
 	Super::OnComponentDestroyed();
@@ -2382,6 +2382,15 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		{
 			// This will occur when user resets the current asset through reset button on asset property.
 			ResetHoudiniResources();
+
+			// We need to remove properties from generated class and restore original component information.
+			if(PatchedClass)
+			{
+				RemoveClassProperties(PatchedClass);
+				PatchedClass = nullptr;
+			}
+
+			ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
 		}
 			
 		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
