@@ -113,6 +113,7 @@ public:
 
 public: /** UObject methods. **/
 
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PreSave() override;
 	virtual void PostLoad() override;
@@ -288,6 +289,9 @@ private:
 	/** Reset all Houdini related information, the asset, cooking trackers, generated geometry, related state, etc. **/
 	void ResetHoudiniResources();
 
+	/** Set geometry to be Houdini logo. Used when no asset geometry is present. **/
+	void SetHoudiniLogoGeometry();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -343,6 +347,9 @@ protected:
 
 	/** Patched class information. We store this here because we need sometimes to unroll back to original class information. **/
 	UClass* PatchedClass;
+
+	/** Used to store Houdini Asset when it is changing through a property action. **/
+	UHoudiniAsset* ChangedHoudiniAsset;
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;

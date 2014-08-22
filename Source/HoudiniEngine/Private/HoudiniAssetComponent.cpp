@@ -51,6 +51,7 @@ HOUDINI_PRIVATE_PATCH(FObjectBaseAccess, UObjectBase::SetClass);
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAsset(nullptr),
+	ChangedHoudiniAsset(nullptr),
 	PatchedClass(nullptr),
 	AssetId(-1),
 	HapiNotificationStarted(0.0),
@@ -264,6 +265,19 @@ UHoudiniAssetComponent::GetHoudiniAssetActorOwner() const
 
 
 void
+UHoudiniAssetComponent::SetHoudiniLogoGeometry()
+{
+	// Set Houdini logo to be default geometry.
+	if(FHoudiniEngine::IsInitialized() && !ContainsGeos())
+	{
+		TSharedPtr<FHoudiniAssetObjectGeo> Geo = FHoudiniEngine::Get().GetHoudiniLogoGeo();
+		HoudiniAssetObjectGeos.Add(Geo.Get());
+		ComputeComponentBoundingVolume();
+	}
+}
+
+
+void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(Before),            C" );
@@ -281,12 +295,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	HoudiniAsset = InHoudiniAsset;
 
 	// Set Houdini logo to be default geometry.
-	if(FHoudiniEngine::IsInitialized() && !ContainsGeos())
-	{
-		TSharedPtr<FHoudiniAssetObjectGeo> Geo = FHoudiniEngine::Get().GetHoudiniLogoGeo();
-		HoudiniAssetObjectGeos.Add(Geo.Get());
-		ComputeComponentBoundingVolume();
-	}
+	SetHoudiniLogoGeometry();
 
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
@@ -2355,6 +2364,18 @@ UHoudiniAssetComponent::SetChangedParameterValues()
 
 
 void
+UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	if(PropertyAboutToChange && PropertyAboutToChange->GetName() == TEXT("HoudiniAsset"))
+	{
+		// Memorize current Houdini Asset, since it is about to change.
+		ChangedHoudiniAsset = HoudiniAsset;
+	}
+
+	Super::PreEditChange(PropertyAboutToChange);
+}
+
+void
 UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(Before),     C" );
@@ -2363,6 +2384,27 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset"))
 	{
+		if(ChangedHoudiniAsset && ChangedHoudiniAsset != HoudiniAsset)
+		{
+			// Houdini Asset has been changed, we need to reset corresponding HDA and relevant resources.
+			ResetHoudiniResources();
+
+			// We need to remove properties from generated class and restore original component information.
+			if(PatchedClass)
+			{
+				RemoveClassProperties(PatchedClass);
+				PatchedClass = nullptr;
+			}
+
+			// Restore component class to be the default Houdini component class.
+			ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
+
+			// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
+			SetHoudiniLogoGeometry();
+
+			ChangedHoudiniAsset = nullptr;
+		}
+
 		if(HoudiniAsset)
 		{
 			EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
@@ -2377,20 +2419,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 			// Start ticking - this will poll the cooking system for completion.
 			StartHoudiniTicking();
-		}
-		else
-		{
-			// This will occur when user resets the current asset through reset button on asset property.
-			ResetHoudiniResources();
-
-			// We need to remove properties from generated class and restore original component information.
-			if(PatchedClass)
-			{
-				RemoveClassProperties(PatchedClass);
-				PatchedClass = nullptr;
-			}
-
-			ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
 		}
 			
 		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
