@@ -82,6 +82,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetName().StartsWith(TEXT("REINST_")))
 		{
 			bIsBlueprintReinstanceClass = true;
+
+			// Must clear this flag because it is being inherited from the Blueprint Generated class.
+			ClearFlags(RF_ClassDefaultObject);
 		}
 		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetOuter() && Outer->GetOuter()->IsA(UPackage::StaticClass()))
 		{
@@ -132,6 +135,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
 		{
 			bIsBlueprintConstructionScriptClass = true;
+
+			// Must clear this flag because it is being inherited from the Blueprint Generated class.
+			ClearFlags(RF_ClassDefaultObject);
 		}
 		else if(Outer->IsA(AHoudiniAssetActor::StaticClass()))
 		{
@@ -148,7 +154,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		}
 		else
 		{
-			bIsBlueprintThumbnailSceneClass = false;
+			check(false);
 		}
 	}
 
@@ -1114,7 +1120,7 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 
 	// We don't need to patch the construction script generated component because it is
 	// being duplicated from the Blueprint Generated component.
-	if(bIsBlueprintConstructionScriptClass)
+	if(bIsBlueprintConstructionScriptClass && bIsBlueprintReinstanceClass)
 	{
 		return;
 	}
@@ -1227,14 +1233,14 @@ UHoudiniAssetComponent::RestoreOriginalClassInformation()
 	// comes prepatched. However it does not have a patched class of its own. Note that we are not restored the patched
 	// class at the moment in RestorePatchedClassInformation and this causes certain update problems during first update
 	// cycle.
-	if(!PatchedClass && !bIsBlueprintConstructionScriptClass)
+	if(!PatchedClass && !bIsBlueprintConstructionScriptClass && !bIsBlueprintReinstanceClass)
 	{
 		// If class information has not been patched, do nothing.
 		return;
 	}
 
 	// We need to add our patched class to root in order to avoid its clean up by GC.
-	if(!bIsBlueprintConstructionScriptClass)
+	if(!bIsBlueprintConstructionScriptClass && !bIsBlueprintReinstanceClass)
 	{
 		PatchedClass->AddToRoot();
 	}
@@ -2588,7 +2594,7 @@ UHoudiniAssetComponent::PostLoad()
 
 	// Since these types of components don't patch their class there's nothing to
 	// be done post load except re-create the rendering resources.
-	if(bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass)
+	if(bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass || bIsBlueprintReinstanceClass)
 	{
 		// Create all rendering resources.
 		CreateRenderingResources();
@@ -2724,8 +2730,6 @@ UHoudiniAssetComponent::PostLoad()
 void
 UHoudiniAssetComponent::Serialize(FArchive& Ar)
 {
-	Super::Serialize(Ar);
-
 	if(Ar.IsSaving())
 	{
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Saving),                  C" );
@@ -2733,6 +2737,30 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	else if(Ar.IsLoading())
 	{
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - Before),        C" );
+	}
+
+	bool bWasFakeDefaultClass = false;
+	if(!bIsBlueprintGeneratedClass && HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ClearFlags(RF_ClassDefaultObject);
+		bWasFakeDefaultClass = true;
+	}
+
+	// StaticConstructObject will first duplicate the Blueprint Generated component and to make
+	// the Reinstance component and then use the scoped FPostConstructInitializeProperties to
+	// re-initialize the property values. This is NOT what we want because they are initialized
+	// wrong and the serialization load process fails when trying to load strings properties.
+	// String properties are constructed in-place in the scratch space.
+	if(Ar.IsLoading() && bIsBlueprintReinstanceClass)
+	{
+		FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
+	}
+
+	Super::Serialize(Ar);
+
+	if(bWasFakeDefaultClass)
+	{
+		SetFlags(RF_ClassDefaultObject);
 	}
 
 	if(Ar.IsTransacting())
