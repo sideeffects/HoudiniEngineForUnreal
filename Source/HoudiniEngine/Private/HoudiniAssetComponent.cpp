@@ -743,38 +743,8 @@ UHoudiniAssetComponent::ReleaseRenderingResources()
 
 
 void
-UHoudiniAssetComponent::UpdateRenderingInformation()
+UHoudiniAssetComponent::ResetHoudiniResources()
 {
-	// Need to send this to render thread at some point.
-	MarkRenderStateDirty();
-
-	// Update physics representation right away.
-	RecreatePhysicsState();
-
-	// Since we have new asset, we need to update bounds.
-	UpdateBounds();
-}
-
-
-FPrimitiveSceneProxy*
-UHoudiniAssetComponent::CreateSceneProxy()
-{
-	FPrimitiveSceneProxy* Proxy = nullptr;
-
-	if(ContainsGeos())
-	{
-		Proxy = new FHoudiniMeshSceneProxy(this);
-	}
-
-	return Proxy;
-}
-
-
-void
-UHoudiniAssetComponent::OnComponentDestroyed()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
-
 	if(HapiGUID.IsValid())
 	{
 		// If we have a valid task GUID.
@@ -827,6 +797,44 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 		// Reset asset id.CreateSceneProxy
 		AssetId = -1;
 	}
+}
+
+
+void
+UHoudiniAssetComponent::UpdateRenderingInformation()
+{
+	// Need to send this to render thread at some point.
+	MarkRenderStateDirty();
+
+	// Update physics representation right away.
+	RecreatePhysicsState();
+
+	// Since we have new asset, we need to update bounds.
+	UpdateBounds();
+}
+
+
+FPrimitiveSceneProxy*
+UHoudiniAssetComponent::CreateSceneProxy()
+{
+	FPrimitiveSceneProxy* Proxy = nullptr;
+
+	if(ContainsGeos())
+	{
+		Proxy = new FHoudiniMeshSceneProxy(this);
+	}
+
+	return Proxy;
+}
+
+
+void
+UHoudiniAssetComponent::OnComponentDestroyed()
+{
+	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
+
+	// Release all Houdini related resources.
+	ResetHoudiniResources();
 
 	// Unsubscribe from Editor events.
 	UnsubscribeEditorDelegates();
@@ -2353,20 +2361,29 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if(HoudiniAsset && PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset"))
+	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset"))
 	{
-		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
+		if(HoudiniAsset)
+		{
+			EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
 
-		// Create new GUID to identify this request.
-		HapiGUID = FGuid::NewGuid();
+			// Create new GUID to identify this request.
+			HapiGUID = FGuid::NewGuid();
 
-		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
-		Task.Asset = HoudiniAsset;
-		Task.ActorName = GetOuter()->GetName();
-		FHoudiniEngine::Get().AddTask(Task);
+			FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
+			Task.Asset = HoudiniAsset;
+			Task.ActorName = GetOuter()->GetName();
+			FHoudiniEngine::Get().AddTask(Task);
 
-		// Start ticking - this will poll the cooking system for completion.
-		StartHoudiniTicking();
+			// Start ticking - this will poll the cooking system for completion.
+			StartHoudiniTicking();
+		}
+		else
+		{
+			// This will occur when user resets the current asset through reset button on asset property.
+			ResetHoudiniResources();
+		}
+			
 		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
 		return;
 	}
