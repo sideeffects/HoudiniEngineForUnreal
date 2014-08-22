@@ -429,6 +429,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	static float NotificationExpireDuration = 2.0f;
 	static double NotificationUpdateFrequency = 2.0f;
 
+	// Check if Houdini Asset has changed, if it did we need to 
+
 	if(HapiGUID.IsValid())
 	{
 		// If we have a valid task GUID.
@@ -1189,6 +1191,10 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 		// This class's native functions.
 		NewClass->NativeFunctionLookupTable = ClassOfUHoudiniAssetComponent->NativeFunctionLookupTable;
 
+		// We will reuse existing properties (these are auto generated).
+		NewClass->PropertyLink = ClassOfUHoudiniAssetComponent->PropertyLink;
+		NewClass->Children = ClassOfUHoudiniAssetComponent->PropertyLink;
+
 		// Store patched class.
 		PatchedClass = NewClass;
 
@@ -1271,6 +1277,7 @@ void
 UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 {
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
+	static const FString CategoryHoudiniAsset = TEXT("HoudiniProperties");
 
 	UProperty* IterProperty = ClassInstance->PropertyLink;
 	while(IterProperty && IterProperty != ClassOfUHoudiniAssetComponent->PropertyLink)
@@ -1278,10 +1285,20 @@ UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 		UProperty* Property = IterProperty;
 		IterProperty = IterProperty->PropertyLinkNext;
 
-		//Property->ClearFlags(RF_Native | RF_RootSet);
-		Property->Next = nullptr;
-		Property->PropertyLinkNext = nullptr;
+		if(Property->HasMetaData(TEXT("Category")))
+		{
+			const FString& Category = Property->GetMetaData(TEXT("Category"));
+			if(Category == CategoryHoudiniAsset)
+			{
+				Property->Next = nullptr;
+				Property->PropertyLinkNext = nullptr;
+			}
+		}
 	}
+
+	// We need to insert back the original properties that were auto generated.
+	ClassInstance->PropertyLink = ClassOfUHoudiniAssetComponent->PropertyLink;
+	ClassInstance->Children = ClassOfUHoudiniAssetComponent->Children;
 
 	// Do not need to update / remove / delete children as those will be by construction same as properties.
 }
@@ -1600,16 +1617,26 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
 
+	// We insert properties of original component class at the end.
 	if(PropertyFirst)
 	{
 		ClassInstance->PropertyLink = PropertyFirst;
 		PropertyLast->PropertyLinkNext = ClassOfUHoudiniAssetComponent->PropertyLink;
 	}
+	else
+	{
+		ClassInstance->PropertyLink = ClassOfUHoudiniAssetComponent->PropertyLink;
+	}
 
+	// Similarly, we insert children of the original component class at the end.
 	if(ChildFirst)
 	{
 		ClassInstance->Children = ChildFirst;
 		ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
+	}
+	else
+	{
+		ClassInstance->Children= ClassOfUHoudiniAssetComponent->Children;
 	}
 
 	return true;
@@ -2388,30 +2415,41 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset"))
+	// If Houdini Asset is being changed and has actually changed.
+	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset") && ChangedHoudiniAsset != HoudiniAsset)
 	{
-		if(ChangedHoudiniAsset && ChangedHoudiniAsset != HoudiniAsset)
+		if(ChangedHoudiniAsset)
 		{
 			// Houdini Asset has been changed, we need to reset corresponding HDA and relevant resources.
 			ResetHoudiniResources();
 
-			// We need to remove properties from generated class and restore original component information.
-			if(PatchedClass)
+			// If we are replacing Houdini asset with null (resetting it), then we need to unpatch.
+			if(!HoudiniAsset)
+			{
+				// We need to remove properties from generated class and restore original component information.
+				if(PatchedClass)
+				{
+					RemoveClassProperties(PatchedClass);
+					PatchedClass = nullptr;
+				}
+
+				// Restore component class to be the default Houdini component class.
+				ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
+
+				// We also need to update properties in detail panel.
+				//UpdateEditorProperties();
+			}
+			else
 			{
 				RemoveClassProperties(PatchedClass);
-				PatchedClass = nullptr;
 			}
 
-			// Restore component class to be the default Houdini component class.
-			ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
+			//UpdateEditorProperties();
 
 			// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
 			SetHoudiniLogoGeometry();
 
-			ChangedHoudiniAsset = nullptr;
-
-			// We also need to update properties in detail panel.
-			UpdateEditorProperties();
+			ChangedHoudiniAsset = nullptr;	
 		}
 
 		if(HoudiniAsset)
