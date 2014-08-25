@@ -3201,8 +3201,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 		if(!Package)
 		{
-			// Package does not exist - this is a problem, we cannot continue.
-			check(Package);
+			// Package does not exist - this is a problem, we cannot continue. Component will have no asset.
 			return;
 		}
 
@@ -3212,11 +3211,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		{
 			// Set asset for this component. This will trigger asynchronous instantiation.
 			SetHoudiniAsset(HoudiniAssetLookup);
-		}
-		else
-		{
-			// Asset by this name does not exist in package - this is a problem, we cannot continue.
-			check(HoudiniAssetLookup);
 		}
 	}
 
