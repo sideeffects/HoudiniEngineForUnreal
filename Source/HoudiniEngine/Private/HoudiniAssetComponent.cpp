@@ -538,7 +538,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						ReplaceClassInformation(GetOuter()->GetName());
 
 						// Update properties panel.
-						//UpdateEditorProperties();
+						if(EHoudiniEngineTaskState::FinishedInstantiation == TaskInfo.TaskState)
+						{
+							UpdateEditorProperties();
+						}
 
 						// Construct new objects (asset objects and asset object parts).
 						TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
@@ -705,6 +708,9 @@ UHoudiniAssetComponent::TickHoudiniAssetChange()
 
 	// Restore component class to be the default Houdini component class.
 	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
+
+	// We need to update editor properties.
+	UpdateEditorProperties();
 
 	if(HoudiniAsset)
 	{
@@ -955,10 +961,12 @@ UHoudiniAssetComponent::RemoveMetaDataFromEnum(UEnum* EnumObject)
 {
 	for(int Idx = 0; Idx < EnumObject->NumEnums(); ++Idx)
 	{
+		/*
 		if(EnumObject->HasMetaData(TEXT("DisplayName"), Idx))
 		{
 			EnumObject->RemoveMetaData(TEXT("DisplayName"), Idx);
 		}
+		*/
 
 		if(EnumObject->HasMetaData(TEXT("HoudiniName"), Idx))
 		{
