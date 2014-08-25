@@ -95,6 +95,9 @@ public:
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
 
+	/** Ticking function used when asset is changed through proprety selection. **/
+	void TickHoudiniAssetChange();
+
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
@@ -292,6 +295,12 @@ private:
 	/** Set geometry to be Houdini logo. Used when no asset geometry is present. **/
 	void SetHoudiniLogoGeometry();
 
+	/** Start delegate which is responsible for asset change. **/
+	void StartHoudiniAssetChange();
+
+	/** Stop delegate which is responsible for asset change. **/
+	void StopHoudiniAssetChange();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -343,7 +352,11 @@ protected:
 	FGuid HapiGUID;
 
 	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
-	FTimerDelegate TimerDelegate;
+	FTimerDelegate TimerDelegateCooking;
+
+	/** Timer delegate, used during asset change. This is necessary when asset is changed through properties. In this **/
+	/** case we cannot update right away as it would require changing properties on which update was fired.			  **/
+	FTimerDelegate TimerDelegateAssetChange;
 
 	/** Patched class information. We store this here because we need sometimes to unroll back to original class information. **/
 	UClass* PatchedClass;
