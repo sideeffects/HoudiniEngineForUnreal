@@ -71,6 +71,9 @@ private:
 	/** Logo geometry. **/
 	TSharedPtr<FHoudiniAssetObjectGeo> HoudiniLogoGeo;
 
+	/** Material used by houdini logo geometry. **/
+	TWeakObjectPtr<UMaterial> HoudiniLogoMaterial;
+
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 

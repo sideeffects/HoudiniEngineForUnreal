@@ -755,7 +755,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 					if(HoudiniAssetObjectGeo && !HoudiniAssetObjectGeo->UsesMultipleMaterials())
 					{
 						// Geometry has changed, but see if we have material.
-						Material = HoudiniAssetObjectGeo->GetSingleMaterial();
+						Material = Cast<UHoudiniAssetMaterial>(HoudiniAssetObjectGeo->GetSingleMaterial());
 					}
 
 					// If geo has changed, we need to create a new object as we cannot reuse a previous one.

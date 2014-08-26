@@ -197,16 +197,16 @@ FHoudiniAssetObjectGeo::ComputeMultipleMaterialUsage()
 }
 
 
-UHoudiniAssetMaterial*
+UMaterial*
 FHoudiniAssetObjectGeo::GetSingleMaterial() const
 {
-	UHoudiniAssetMaterial* Material = nullptr;
+	UMaterial* Material = nullptr;
 
 	if(HoudiniAssetObjectGeoParts.Num() > 0)
 	{
 		for(int32 Idx = 0; Idx < HoudiniAssetObjectGeoParts.Num(); ++Idx)
 		{
-			UHoudiniAssetMaterial* FirstMaterial = HoudiniAssetObjectGeoParts[Idx]->Material;
+			UMaterial* FirstMaterial = HoudiniAssetObjectGeoParts[Idx]->Material;
 
 			if(FirstMaterial)
 			{
@@ -221,7 +221,7 @@ FHoudiniAssetObjectGeo::GetSingleMaterial() const
 
 
 void
-FHoudiniAssetObjectGeo::ReplaceMaterial(UHoudiniAssetMaterial* Material)
+FHoudiniAssetObjectGeo::ReplaceMaterial(UMaterial* Material)
 {
 	for(int32 Idx = 0; Idx < HoudiniAssetObjectGeoParts.Num(); ++Idx)
 	{

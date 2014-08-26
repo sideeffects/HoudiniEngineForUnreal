@@ -29,7 +29,7 @@ public:
 
 	/** Constructor. **/
 	FHoudiniAssetObjectGeoPart();
-	FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices, UHoudiniAssetMaterial* InMaterial = nullptr);
+	FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices, UMaterial* InMaterial = nullptr);
 
 	/** Destructor. **/
 	virtual ~FHoudiniAssetObjectGeoPart();
@@ -63,7 +63,7 @@ protected:
 	TArray<int32> Indices;
 
 	/** Material for this part. **/
-	UHoudiniAssetMaterial* Material;
+	UMaterial* Material;
 
 	/** Corresponding Index buffer used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshIndexBuffer* HoudiniMeshIndexBuffer;

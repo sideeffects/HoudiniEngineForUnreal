@@ -23,7 +23,7 @@ class FReferenceCollector;
 class FHoudiniMeshVertexBuffer;
 class FHoudiniMeshVertexFactory;
 class FHoudiniAssetObjectGeoPart;
-class UHoudiniAssetMaterial;
+class UMaterial;
 
 class FHoudiniAssetObjectGeo
 {
@@ -77,10 +77,10 @@ public:
 	void CollectTextures(TArray<UTexture2D*>& Textures);
 
 	/** Retrieve single material. **/
-	UHoudiniAssetMaterial* GetSingleMaterial() const;
+	UMaterial* GetSingleMaterial() const;
 
-	/** Replace material on al parts with given material. **/
-	void ReplaceMaterial(UHoudiniAssetMaterial* Material);
+	/** Replace material on all parts with given material. **/
+	void ReplaceMaterial(UMaterial* Material);
 
 	/** Return true if this geometry is Houdini logo geometry. **/
 	bool IsHoudiniLogo() const;

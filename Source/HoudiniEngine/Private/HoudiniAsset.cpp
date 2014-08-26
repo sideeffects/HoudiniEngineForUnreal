@@ -71,6 +71,13 @@ UHoudiniAsset::GetAssetBytesCount() const
 }
 
 
+bool
+UHoudiniAsset::IsPreviewHoudiniLogo() const
+{
+	return bPreviewHoudiniLogo;
+}
+
+
 void
 UHoudiniAsset::FinishDestroy()
 {
