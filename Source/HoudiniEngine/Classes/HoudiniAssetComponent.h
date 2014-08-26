@@ -370,6 +370,9 @@ protected:
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;
 
+	/** Is set to true when this component contains Houdini logo geometry. **/
+	bool bContainsHoudiniLogoGeometry;
+
 	/** Is set to true when this component is native and false is when it is dynamic. **/
 	bool bIsNativeComponent;
 
