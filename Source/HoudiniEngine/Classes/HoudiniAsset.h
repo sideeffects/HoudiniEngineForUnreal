@@ -47,6 +47,9 @@ public:
 	/** Return the size in bytes of raw Houdini OTL data. **/
 	uint32 GetAssetBytesCount() const;
 
+	/** Returns true if this asset contains Houdini logo. **/
+	bool IsPreviewHoudiniLogo() const;
+
 public:
 
 	/** Filename of the OTL. **/

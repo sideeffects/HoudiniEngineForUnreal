@@ -47,6 +47,12 @@ FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 		FTransform MeshTransform = FTransform::Identity;
 
 		PreviewHoudiniAssetActor->SetActorLocation(FVector(0.0f, 0.0f, 0.0f), false);
+
+		if(HoudiniAsset->IsPreviewHoudiniLogo())
+		{
+			PreviewHoudiniAssetActor->SetActorRotation(FRotator(0.0f, 175.0f, 0.0f));
+		}
+
 		PreviewHoudiniAssetActor->HoudiniAssetComponent->UpdateBounds();
 
 		// Center the mesh at the world origin then offset to put it on top of the plane

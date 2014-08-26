@@ -95,10 +95,27 @@ FHoudiniEngine::StartupModule()
 		}
 	}
 
+	// Retrieve Material used by Houdini logo geometry.
+	{
+		// Get class of UMaterial and force CDO to be created, if it hasn't been already.
+		UClass* MaterialClass = UMaterial::StaticClass();
+		MaterialClass->GetDefaultObject();
+
+		// Attempt to load material.
+		static const FString HoudiniLogoMaterialPath(TEXT("/HoudiniEngine/HoudiniLogoMaterial.HoudiniLogoMaterial"));
+		HoudiniLogoMaterial = Cast<UMaterial>(StaticLoadObject(MaterialClass, NULL, *HoudiniLogoMaterialPath));
+	}
+
 	// Construct Houdini logo geometry.
 	{
 		HoudiniLogoGeo = MakeShareable(FHoudiniEngineUtils::ConstructLogoGeo());
 		HoudiniLogoGeo->SetHoudiniLogo();
+
+		if(HoudiniLogoMaterial.IsValid())
+		{
+			HoudiniLogoGeo->ReplaceMaterial(HoudiniLogoMaterial.Get());
+		}
+
 		HoudiniLogoGeo->CreateRenderingResources();
 	}
 

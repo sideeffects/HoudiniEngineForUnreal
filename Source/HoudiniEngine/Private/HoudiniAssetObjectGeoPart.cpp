@@ -24,7 +24,7 @@ FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart() :
 }
 
 
-FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices, UHoudiniAssetMaterial* InMaterial) :
+FHoudiniAssetObjectGeoPart::FHoudiniAssetObjectGeoPart(const TArray<int32>& InIndices, UMaterial* InMaterial) :
 	Material(InMaterial),
 	HoudiniMeshIndexBuffer(nullptr)
 {
@@ -41,7 +41,7 @@ FHoudiniAssetObjectGeoPart::~FHoudiniAssetObjectGeoPart()
 		delete(HoudiniMeshIndexBuffer);
 	}
 
-	if(Material)
+	if(Material && UHoudiniAssetMaterial::StaticClass() == Material->GetClass())
 	{
 		Material->RemoveFromRoot();
 	}
@@ -125,9 +125,10 @@ FHoudiniAssetObjectGeoPart::ReleaseRenderingResources()
 void
 FHoudiniAssetObjectGeoPart::CollectTextures(TArray<UTexture2D*>& InTextures)
 {
-	if(Material)
+	if(Material && UHoudiniAssetMaterial::StaticClass() == Material->GetClass())
 	{
-		InTextures.Append(Material->GeneratedTextures);
+		UHoudiniAssetMaterial* HoudiniMaterial = Cast<UHoudiniAssetMaterial>(Material);
+		InTextures.Append(HoudiniMaterial->GeneratedTextures);
 	}
 }
 
