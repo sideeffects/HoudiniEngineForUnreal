@@ -55,6 +55,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	PatchedClass(nullptr),
 	AssetId(-1),
 	HapiNotificationStarted(0.0),
+	bContainsHoudiniLogoGeometry(false),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false),
 	bAsyncResourceReleaseHasBeenStarted(false),
@@ -280,20 +281,21 @@ UHoudiniAssetComponent::SetHoudiniLogoGeometry()
 		HoudiniAssetObjectGeos.Add(Geo.Get());
 		ComputeComponentBoundingVolume();
 	}
+
+	bContainsHoudiniLogoGeometry = true;
 }
 
 
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(Before),            C" );
-
 	// If it is the same asset, do nothing.
 	if(InHoudiniAsset == HoudiniAsset)
 	{
-		HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(After),             C" );
 		return;
 	}
+
+	HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(Before),            C" );
 
 	UHoudiniAsset* Asset = nullptr;
 	AHoudiniAssetActor* HoudiniAssetActor = Cast<AHoudiniAssetActor>(GetOwner());
@@ -361,6 +363,8 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 void
 UHoudiniAssetComponent::ClearGeos()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  ClearGeos,                          C" );
+
 	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 	{
 		FHoudiniAssetObjectGeo* Geo = *Iter;
@@ -373,6 +377,7 @@ UHoudiniAssetComponent::ClearGeos()
 	}
 
 	HoudiniAssetObjectGeos.Empty();
+	bContainsHoudiniLogoGeometry = false;
 }
 
 
@@ -791,6 +796,8 @@ UHoudiniAssetComponent::CollectTextures()
 void
 UHoudiniAssetComponent::CreateRenderingResources()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  CreateRenderingResources,           C" );
+
 	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 	{
 		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
@@ -806,6 +813,8 @@ UHoudiniAssetComponent::CreateRenderingResources()
 void
 UHoudiniAssetComponent::ReleaseRenderingResources()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  ReleaseRenderingResources,          C" );
+
 	if(HoudiniAssetObjectGeos.Num() > 0)
 	{
 		for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
@@ -2500,6 +2509,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			SetHoudiniLogoGeometry();
 
 			ChangedHoudiniAsset = nullptr;
+			AssetId = -1;
 		}
 
 		// Start ticking which will update the asset. We cannot update it here as it involves potential property
@@ -2672,11 +2682,14 @@ UHoudiniAssetComponent::PostLoad()
 	// be done post load except re-create the rendering resources.
 	if(bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass || bIsBlueprintReinstanceClass)
 	{
-		// Create all rendering resources.
-		CreateRenderingResources();
+		if(HoudiniAsset)
+		{
+			// Create all rendering resources.
+			CreateRenderingResources();
 
-		// Need to update rendering information.
-		UpdateRenderingInformation();
+			// Need to update rendering information.
+			UpdateRenderingInformation();
+		}
 
 		return;
 	}
@@ -2902,6 +2915,11 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
 	{
+		if(Ar.IsLoading())
+		{
+			SetHoudiniLogoGeometry();
+		}
+
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
@@ -3154,8 +3172,20 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 
-	// Serialize geos.
+	// Get number of geos.
 	int32 NumGeos = HoudiniAssetObjectGeos.Num();
+
+	// Serialize geos only if they are not Houdini logo.
+	if(Ar.IsSaving() && bContainsHoudiniLogoGeometry)
+	{
+		NumGeos = 0;
+	}
+	else if(Ar.IsLoading() && NumGeos > 0)
+	{
+		bContainsHoudiniLogoGeometry = false;
+	}
+
+	// Serialize number of geos.
 	Ar << NumGeos;
 
 	for(int32 GeoIdx = 0; GeoIdx < NumGeos; ++GeoIdx)
