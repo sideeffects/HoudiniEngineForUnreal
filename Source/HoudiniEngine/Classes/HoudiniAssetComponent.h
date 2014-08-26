@@ -364,6 +364,9 @@ protected:
 	/** Used to store Houdini Asset when it is changing through a property action. **/
 	UHoudiniAsset* ChangedHoudiniAsset;
 
+	/** Pointer to original Blueprint component instance. This is only used by Construction Script components. **/
+	UHoudiniAssetComponent* OriginalBlueprintComponent;
+
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
 

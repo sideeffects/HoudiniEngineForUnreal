@@ -52,6 +52,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	Super(PCIP),
 	HoudiniAsset(nullptr),
 	ChangedHoudiniAsset(nullptr),
+	OriginalBlueprintComponent(nullptr),
 	PatchedClass(nullptr),
 	AssetId(-1),
 	HapiNotificationStarted(0.0),
@@ -2911,6 +2912,27 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize component state.
 	Ar << ComponentState;
+
+	// We need to save Blueprint component's this pointer into byte stream. Reason for this is that Blueprint thumbnail
+	// and construction scripts are loaded from that byte stream (after object duplication). And it is the easiest way
+	// to pass the original component information into them. We need this information in order to update construction
+	// script state, since at this point the original Blueprint component has still not been cooked.
+	if(bIsBlueprintGeneratedClass || bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass)
+	{
+#ifdef PLATFORM_64BITS
+		int64 ComponentPointer = reinterpret_cast<int64>(this);
+#else
+		int32 ComponentPointer = reinterpret_cast<int32>(this);
+#endif
+
+		// Serialize raw pointer.
+		Ar << ComponentPointer;
+
+		if(Ar.IsLoading() && !bIsBlueprintGeneratedClass)
+		{
+			OriginalBlueprintComponent = reinterpret_cast<UHoudiniAssetComponent*>(ComponentPointer);
+		}
+	}
 
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
