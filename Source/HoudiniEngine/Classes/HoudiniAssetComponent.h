@@ -98,6 +98,9 @@ public:
 	/** Ticking function used when asset is changed through proprety selection. **/
 	void TickHoudiniAssetChange();
 
+	/** Ticking function used when duplicated components check for update inside original Blueprint component. **/
+	void TickDuplicatedFromBlueprintUpdate();
+
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
@@ -301,6 +304,12 @@ private:
 	/** Stop delegate which is responsible for asset change. **/
 	void StopHoudiniAssetChange();
 
+	/** Start delegate which is responsible for checking update status of main Blueprint component. **/
+	void StartDuplicatedFromBlueprintUpdate();
+
+	/** Stop delegate which is responsible for checking update status of main Blueprint component. **/
+	void StopDuplicatedFromBlueprintUpdate();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -357,6 +366,10 @@ protected:
 	/** Timer delegate, used during asset change. This is necessary when asset is changed through properties. In this **/
 	/** case we cannot update right away as it would require changing properties on which update was fired.			  **/
 	FTimerDelegate TimerDelegateAssetChange;
+
+	/** Timer delegate, used by construction script and thumbnail components to check the status of original Blueprint **/
+	/** component they were cloned from and update corresponding resources. **/
+	FTimerDelegate TimerDelegateDuplicatedFromBlueprintUpdate;
 
 	/** Patched class information. We store this here because we need sometimes to unroll back to original class information. **/
 	UClass* PatchedClass;
