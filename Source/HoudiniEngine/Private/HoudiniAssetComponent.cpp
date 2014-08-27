@@ -279,6 +279,7 @@ UHoudiniAssetComponent::SetHoudiniLogoGeometry()
 	if(FHoudiniEngine::IsInitialized() && !ContainsGeos())
 	{
 		TSharedPtr<FHoudiniAssetObjectGeo> Geo = FHoudiniEngine::Get().GetHoudiniLogoGeo();
+		Geo->ComponentReferenceCount++;
 		HoudiniAssetObjectGeos.Add(Geo.Get());
 		ComputeComponentBoundingVolume();
 	}
