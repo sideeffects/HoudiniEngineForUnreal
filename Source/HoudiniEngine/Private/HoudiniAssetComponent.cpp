@@ -133,6 +133,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 				TArray<UHoudiniAssetComponent*>& Components = *BlueprintPerPackageComponents.Find(OuterPackage);
 				Components.Add(this);
 			}
+
+			// We also set default geometry for Blueprint component.
+			SetHoudiniLogoGeometry();
 		}
 		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
 		{
@@ -282,9 +285,9 @@ UHoudiniAssetComponent::SetHoudiniLogoGeometry()
 		Geo->ComponentReferenceCount++;
 		HoudiniAssetObjectGeos.Add(Geo.Get());
 		ComputeComponentBoundingVolume();
-	}
 
-	bContainsHoudiniLogoGeometry = true;
+		bContainsHoudiniLogoGeometry = true;
+	}
 }
 
 
@@ -455,6 +458,87 @@ UHoudiniAssetComponent::StopHoudiniAssetChange()
 	}
 }
 
+
+void
+UHoudiniAssetComponent::StartDuplicatedFromBlueprintUpdate()
+{
+	HOUDINI_TEST_LOG_MESSAGE( "  StartDuplicatedFromBlueprintUpdate, C" );
+
+	// If we have no timer delegate spawned for this component, spawn one.
+	if(!TimerDelegateDuplicatedFromBlueprintUpdate.IsBound())
+	{
+		TimerDelegateDuplicatedFromBlueprintUpdate = FTimerDelegate::CreateUObject(this, &UHoudiniAssetComponent::TickDuplicatedFromBlueprintUpdate);
+
+		// We need to register delegate with the timer system.
+		static const float TickTimerDelay = 0.025f;
+		GEditor->GetTimerManager()->SetTimer(TimerDelegateDuplicatedFromBlueprintUpdate, TickTimerDelay, true);
+	}
+}
+
+
+void
+UHoudiniAssetComponent::StopDuplicatedFromBlueprintUpdate()
+{
+	HOUDINI_TEST_LOG_MESSAGE( "  StopDuplicatedFromBlueprintUpdate,  C" );
+
+	if(TimerDelegateDuplicatedFromBlueprintUpdate.IsBound())
+	{
+		GEditor->GetTimerManager()->ClearTimer(TimerDelegateDuplicatedFromBlueprintUpdate);
+		TimerDelegateDuplicatedFromBlueprintUpdate.Unbind();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::TickDuplicatedFromBlueprintUpdate()
+{
+	// This delegate will be called inside construction script, reinstanced and thumbnail components. These types of
+	// components are cloned / duplicated from Blueprint component. We do all cooking and resource allocation inside
+	// Blueprint component, so duplicated ones need to check for those resources and use them. Original Blueprint
+	// component does all the resource managing.
+	
+	if(!OriginalBlueprintComponent)
+	{
+		// We have pointer to original Blueprint component.
+		check(false);
+		StopDuplicatedFromBlueprintUpdate();
+		return;
+	}
+
+	if(OriginalBlueprintComponent->TimerDelegateCooking.IsBound())
+	{
+		// Original Blueprint component is still in the process of cooking / instantiating.
+		return;
+	}
+
+	// Otherwise we can update.
+
+	if(OriginalBlueprintComponent->bContainsHoudiniLogoGeometry || !OriginalBlueprintComponent->ContainsGeos())
+	{
+		// Blueprint component contains no geometry or contains logo geometry.
+		SetHoudiniLogoGeometry();
+	}
+	else
+	{
+		// Otherwise, we copy geometry.
+		for(int GeoIdx = 0; GeoIdx < OriginalBlueprintComponent->HoudiniAssetObjectGeos.Num(); ++GeoIdx)
+		{
+			// Get geo at this index inside Blueprint component.
+			FHoudiniAssetObjectGeo* Geo = OriginalBlueprintComponent->HoudiniAssetObjectGeos[GeoIdx];
+			Geo->ComponentReferenceCount++;
+			HoudiniAssetObjectGeos.Add(Geo);
+		}
+	}
+
+	// Replace class object with Blueprint's class.
+	ReplaceClassObject(OriginalBlueprintComponent->GetClass());
+
+	// We need to force redraw for this component.
+	MarkRenderStateDirty();
+
+	// We can stop ticking, update has occurred.
+	StopDuplicatedFromBlueprintUpdate();
+}
 
 
 void
@@ -2694,6 +2778,10 @@ UHoudiniAssetComponent::PostLoad()
 			UpdateRenderingInformation();
 		}
 
+		// We need to start delegate in these components in order to check the status of original Blueprint component
+		// from which we were cloned.
+		StartDuplicatedFromBlueprintUpdate();
+
 		return;
 	}
 
@@ -2919,7 +3007,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// and construction scripts are loaded from that byte stream (after object duplication). And it is the easiest way
 	// to pass the original component information into them. We need this information in order to update construction
 	// script state, since at this point the original Blueprint component has still not been cooked.
-	if(bIsBlueprintGeneratedClass || bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass)
+	if(bIsBlueprintGeneratedClass || bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass || bIsBlueprintReinstanceClass)
 	{
 #ifdef PLATFORM_64BITS
 		int64 ComponentPointer = reinterpret_cast<int64>(this);
@@ -2939,10 +3027,12 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
 	{
-		if(Ar.IsLoading())
+		/*
+		if(Ar.IsLoading() && bIsBlueprintGeneratedClass)
 		{
 			SetHoudiniLogoGeometry();
 		}
+		*/
 
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
