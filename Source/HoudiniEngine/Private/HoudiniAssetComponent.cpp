@@ -93,7 +93,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 			bIsBlueprintGeneratedClass = true;
 
 			// Must set this flag so that compilation works.
-			SetFlags(RF_ClassDefaultObject);
+			//SetFlags(RF_ClassDefaultObject);
 
 			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
 			UBlueprint* Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
@@ -1279,7 +1279,7 @@ UHoudiniAssetComponent::OnPackageSaved(const FString& PackageFileName, UObject* 
 		RestorePatchedClassInformation();
 
 		// Must restore this flag so that compilatin works.
-		SetFlags(RF_ClassDefaultObject);
+		//SetFlags(RF_ClassDefaultObject);
 	}
 }
 
@@ -1343,7 +1343,8 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 		NewClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
 
 		// Set super class (we are deriving from UHoudiniAssetComponent).
-		NewClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
+		//NewClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
+		NewClass->SetSuperStruct(ClassOfUHoudiniAssetComponent);
 
 		// Create Class default object.
 		NewClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
@@ -1362,7 +1363,8 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 
 		// We will reuse existing properties (these are auto generated).
 		NewClass->PropertyLink = ClassOfUHoudiniAssetComponent->PropertyLink;
-		NewClass->Children = ClassOfUHoudiniAssetComponent->PropertyLink;
+		//NewClass->Children = ClassOfUHoudiniAssetComponent->PropertyLink;
+		NewClass->Children = nullptr;
 
 		// Store patched class.
 		PatchedClass = NewClass;
@@ -1467,7 +1469,8 @@ UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 
 	// We need to insert back the original properties that were auto generated.
 	ClassInstance->PropertyLink = ClassOfUHoudiniAssetComponent->PropertyLink;
-	ClassInstance->Children = ClassOfUHoudiniAssetComponent->Children;
+	//ClassInstance->Children = ClassOfUHoudiniAssetComponent->Children;
+	ClassInstance->Children = nullptr;
 
 	// Do not need to update / remove / delete children as those will be by construction same as properties.
 }
@@ -1801,11 +1804,11 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	if(ChildFirst)
 	{
 		ClassInstance->Children = ChildFirst;
-		ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
+		//ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
 	}
 	else
 	{
-		ClassInstance->Children= ClassOfUHoudiniAssetComponent->Children;
+		//ClassInstance->Children= ClassOfUHoudiniAssetComponent->Children;
 	}
 
 	return true;
@@ -2880,16 +2883,25 @@ UHoudiniAssetComponent::PostLoad()
 		// And add new created properties to our newly created class.
 		UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
 
+		if(PropertyLast)
+		{
+			PropertyLast->PropertyLinkNext = ClassOfUHoudiniAssetComponent->PropertyLink;
+		}
+		else
+		{
+			PropertyLast = ClassOfUHoudiniAssetComponent->PropertyLink;
+		}
+		/*
 		if(PropertyFirst)
 		{
 			PatchedClass->PropertyLink = PropertyFirst;
 			PropertyLast->PropertyLinkNext = ClassOfUHoudiniAssetComponent->PropertyLink;
 		}
-
+		*/
 		if(ChildFirst)
 		{
 			PatchedClass->Children = ChildFirst;
-			ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
+			//ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
 		}
 
 		// Update properties panel.
