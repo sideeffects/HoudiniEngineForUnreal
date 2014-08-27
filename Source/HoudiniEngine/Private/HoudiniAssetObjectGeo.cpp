@@ -22,6 +22,7 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
+	ComponentReferenceCount(1),
 	bMultipleMaterials(false),
 	bHoudiniLogo(false)
 {
@@ -37,6 +38,7 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
+	ComponentReferenceCount(1),
 	bMultipleMaterials(false),
 	bHoudiniLogo(false)
 {

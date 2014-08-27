@@ -371,7 +371,7 @@ UHoudiniAssetComponent::ClearGeos()
 		FHoudiniAssetObjectGeo* Geo = *Iter;
 		
 		// Delete this geo, except for when it is a logo geo. Logo is managed by engine and is shared.
-		if(!Geo->IsHoudiniLogo())
+		if(!Geo->ComponentReferenceCount && !Geo->IsHoudiniLogo())
 		{
 			delete(Geo);
 		}
@@ -821,8 +821,9 @@ UHoudiniAssetComponent::ReleaseRenderingResources()
 		for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
 		{
 			FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
+			HoudiniAssetObjectGeo->ComponentReferenceCount--;
 
-			if(!HoudiniAssetObjectGeo->IsHoudiniLogo())
+			if(!HoudiniAssetObjectGeo->ComponentReferenceCount && !HoudiniAssetObjectGeo->IsHoudiniLogo())
 			{
 				HoudiniAssetObjectGeo->ReleaseRenderingResources();
 			}
