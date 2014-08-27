@@ -125,6 +125,9 @@ protected:
 	/** HAPI Part Id for this geometry. **/
 	HAPI_PartId PartId;
 
+	/** Number of components using this geo. **/
+	uint32 ComponentReferenceCount;
+
 	/** Is set to true when submeshes use different materials. **/
 	bool bMultipleMaterials;
 	
