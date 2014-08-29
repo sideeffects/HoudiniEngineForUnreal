@@ -1375,6 +1375,10 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 
 	HOUDINI_PRIVATE_CALL(FObjectBaseAccess, UObjectBase, ClassObjectNew);
 
+	// This is an attempt to patch the Blueprint component property with our patched
+	// class so that we get the patched properties in the pin menu inside blueprints.
+	// Not quite working yet.
+	/*
 	if(ClassObjectNew != PatchedClass)
 	{
 		return;
@@ -1402,6 +1406,7 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 		}
 		Field = Field->Next;
 	}
+	*/
 }
 
 
