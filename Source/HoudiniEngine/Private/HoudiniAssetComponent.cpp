@@ -21,11 +21,11 @@
 	do \
 	{ \
 		HOUDINI_LOG_MESSAGE( \
-			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, PatchedName = %s, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, B = %d, R = %d, C = %d, T = %d" ), \
+			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, PatchedName = %s, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, N = %d, B = %d, R = %d, C = %d, T = %d" ), \
 			this, GetClass(), \
 			*GetClass()->GetName(), \
 			HoudiniAsset, AssetId, *HapiGUID.ToString(), \
-			bIsDefaultClass, bIsBlueprintGeneratedClass, bIsBlueprintReinstanceClass, \
+			bIsDefaultClass, bIsNativeComponent, bIsBlueprintGeneratedClass, bIsBlueprintReinstanceClass, \
 			bIsBlueprintConstructionScriptClass, bIsBlueprintThumbnailSceneClass ); \
 	} while(false)
 
@@ -54,6 +54,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	ChangedHoudiniAsset(nullptr),
 	OriginalBlueprintComponent(nullptr),
 	PatchedClass(nullptr),
+	Blueprint(nullptr),
 	AssetId(-1),
 	HapiNotificationStarted(0.0),
 	bContainsHoudiniLogoGeometry(false),
@@ -84,19 +85,13 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetName().StartsWith(TEXT("REINST_")))
 		{
 			bIsBlueprintReinstanceClass = true;
-
-			// Must clear this flag because it is being inherited from the Blueprint Generated class.
-			ClearFlags(RF_ClassDefaultObject);
 		}
 		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetOuter() && Outer->GetOuter()->IsA(UPackage::StaticClass()))
 		{
 			bIsBlueprintGeneratedClass = true;
 
-			// Must set this flag so that compilation works.
-			//SetFlags(RF_ClassDefaultObject);
-
 			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
-			UBlueprint* Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
+			Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
 			if (Blueprint)
 			{
 				Blueprint->OnChanged().AddUObject(this, &UHoudiniAssetComponent::OnBluprintChanged);
@@ -112,37 +107,12 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 			// Set post-package saved callback.
 			UPackage::PackageSavedEvent.AddUObject(this, &UHoudiniAssetComponent::OnPackageSaved);
 
-			// Set pre-package saved callback.
-			{
-				UPackage* OuterPackage = Cast<UPackage>(GetOuter()->GetOutermost());
-
-				// Back up the existing global delegate so we can call it after we've done our stuff.
-				if(!AutoPackageBackupDelegate.IsBound())
-				{
-					AutoPackageBackupDelegate = GAutoPackageBackupDelegate;
-					GAutoPackageBackupDelegate.BindStatic(&UHoudiniAssetComponent::OnPackageBackup);
-				}
-
-				// If first Houdini component in this blueprint, add new this Blueprint package to static map.
-				if(!BlueprintPerPackageComponents.Contains(OuterPackage))
-				{
-					BlueprintPerPackageComponents.Add(OuterPackage);
-				}
-
-				// Add ourselves to the static package/components map.
-				TArray<UHoudiniAssetComponent*>& Components = *BlueprintPerPackageComponents.Find(OuterPackage);
-				Components.Add(this);
-			}
-
 			// We also set default geometry for Blueprint component.
 			SetHoudiniLogoGeometry();
 		}
 		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
 		{
 			bIsBlueprintConstructionScriptClass = true;
-
-			// Must clear this flag because it is being inherited from the Blueprint Generated class.
-			ClearFlags(RF_ClassDefaultObject);
 		}
 		else if(Outer->IsA(AHoudiniAssetActor::StaticClass()))
 		{
@@ -828,7 +798,7 @@ void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	if(HoudiniAssetActor)
+	if(HoudiniAssetActor && bIsNativeComponent)
 	{
 		// Manually reselect the actor - this will cause details panel to be updated and force our 
 		// property changes to be picked up by the UI.
@@ -1049,6 +1019,17 @@ bool
 UHoudiniAssetComponent::IsReadyForFinishDestroy()
 {
 	return Super::IsReadyForFinishDestroy() && ReleaseResourcesFence.IsFenceComplete();
+}
+
+
+void
+UHoudiniAssetComponent::PostDuplicate(bool bDuplicateForPIE)
+{
+	HOUDINI_TEST_LOG_MESSAGE( "  PostDuplicate,                      C" );
+
+	Super::PostDuplicate(bDuplicateForPIE);
+
+
 }
 
 
@@ -1277,9 +1258,6 @@ UHoudiniAssetComponent::OnPackageSaved(const FString& PackageFileName, UObject* 
 
 		// We need to restore patched class information.
 		RestorePatchedClassInformation();
-
-		// Must restore this flag so that compilatin works.
-		//SetFlags(RF_ClassDefaultObject);
 	}
 }
 
@@ -1396,6 +1374,34 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 	HOUDINI_TEST_LOG_MESSAGE( "  ReplaceClassObject,                 C" );
 
 	HOUDINI_PRIVATE_CALL(FObjectBaseAccess, UObjectBase, ClassObjectNew);
+
+	if(ClassObjectNew != PatchedClass)
+	{
+		return;
+	}
+
+	UObject* OuterClass = static_cast<UClass*>(GetOuter());
+	if(!OuterClass)
+	{
+		return;
+	}
+
+	UBlueprintGeneratedClass* BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>(OuterClass);
+	if(!BlueprintGeneratedClass)
+	{
+		return;
+	}
+
+	UField* Field = BlueprintGeneratedClass->Children;
+	while(Field)
+	{
+		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Field);
+		if(ObjectProperty && ObjectProperty->PropertyClass == UHoudiniAssetComponent::StaticClass())
+		{
+			ObjectProperty->PropertyClass = PatchedClass;
+		}
+		Field = Field->Next;
+	}
 }
 
 
@@ -2919,13 +2925,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - Before),        C" );
 	}
 
-	bool bWasFakeDefaultClass = false;
-	if(!bIsBlueprintGeneratedClass && HasAnyFlags(RF_ClassDefaultObject))
-	{
-		ClearFlags(RF_ClassDefaultObject);
-		bWasFakeDefaultClass = true;
-	}
-
 	// StaticConstructObject will first duplicate the Blueprint Generated component and to make
 	// the Reinstance component and then use the scoped FPostConstructInitializeProperties to
 	// re-initialize the property values. This is NOT what we want because they are initialized
@@ -2937,11 +2936,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	Super::Serialize(Ar);
-
-	if(bWasFakeDefaultClass)
-	{
-		SetFlags(RF_ClassDefaultObject);
-	}
 
 	if(Ar.IsTransacting())
 	{
@@ -3360,39 +3354,5 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 }
-
-
-FAutoPackageBackupDelegate UHoudiniAssetComponent::AutoPackageBackupDelegate;
-TMap<UPackage*, TArray<UHoudiniAssetComponent*>> UHoudiniAssetComponent::BlueprintPerPackageComponents;
-
-
-bool
-UHoudiniAssetComponent::OnPackageBackup(const UPackage& Package)
-{
-	TArray<UHoudiniAssetComponent*>* Components = BlueprintPerPackageComponents.Find(&Package);
-	if(Components)
-	{
-		TArray<UHoudiniAssetComponent*>& ComponentsRef = *Components;
-		for(int i = 0; i < ComponentsRef.Num(); ++i)
-		{
-			UHoudiniAssetComponent* Component = ComponentsRef[i];
-			Component->PrePackageSave();
-		}
-	}
-
-	check(AutoPackageBackupDelegate.IsBound());
-	return AutoPackageBackupDelegate.Execute(Package);
-}
-
-
-void
-UHoudiniAssetComponent::PrePackageSave()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  PrePackageSave,                     C" );
-
-	// Must clear this flag used to fix compilation so that saving works.
-	ClearFlags(RF_ClassDefaultObject);
-}
-
 
 #undef HOUDINI_TEST_LOG_MESSAGE
