@@ -39,13 +39,20 @@ UHoudiniAssetComponent::ComponentPatchedClassCounter = 0u;
 
 
 // Define accessor for UObjectBase::SetClass private method.
-struct FObjectBaseAccess
+struct FPrivate_UObjectBase_SetClass
 {
 	typedef void (UObjectBase::*type)(UClass*);
 };
 
-HOUDINI_PRIVATE_PATCH(FObjectBaseAccess, UObjectBase::SetClass);
+HOUDINI_PRIVATE_PATCH(FPrivate_UObjectBase_SetClass, UObjectBase::SetClass);
 
+// Define accessor for UClass::CreateDefaultObject private method.
+struct FPrivate_UClass_CreateDefaultObject
+{
+	typedef UObject* (UClass::*type)();
+};
+
+HOUDINI_PRIVATE_PATCH(FPrivate_UClass_CreateDefaultObject, UClass::CreateDefaultObject);
 
 
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
@@ -129,7 +136,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		}
 		else
 		{
-			check(false);
+			//check(false);
 		}
 	}
 
@@ -1324,7 +1331,8 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 		NewClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
 
 		// Create Class default object.
-		NewClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
+		//NewClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
+		NewClass->ClassDefaultObject = nullptr;
 
 		// List of replication records.
 		NewClass->ClassReps = ClassOfUHoudiniAssetComponent->ClassReps;
@@ -1350,6 +1358,9 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 		{
 			ReplaceClassObject(NewClass);
 
+			// Now we need to create CDO for this newly created class.
+			HOUDINI_PRIVATE_CALL_EXT_NOPARM(FPrivate_UClass_CreateDefaultObject, UClass, NewClass);
+
 			// Now that RTTI has been patched, we need to subscribe to Editor delegates. This is necessary in order to
 			// patch old RTTI information back for saving and other operations. Once save completes, we restore the 
 			// patched RTTI back.
@@ -1373,7 +1384,8 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  ReplaceClassObject,                 C" );
 
-	HOUDINI_PRIVATE_CALL(FObjectBaseAccess, UObjectBase, ClassObjectNew);
+	// Invoke private UObjectBase::SetClass .
+	HOUDINI_PRIVATE_CALL_PARM1(FPrivate_UObjectBase_SetClass, UObjectBase, ClassObjectNew);
 
 	// This is an attempt to patch the Blueprint component property with our patched
 	// class so that we get the patched properties in the pin menu inside blueprints.

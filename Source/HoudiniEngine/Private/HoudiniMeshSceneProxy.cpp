@@ -59,6 +59,12 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		Mesh.DepthPriorityGroup = SDPG_World;
 		Mesh.bUseAsOccluder = true;
 
+		// If vertex buffer is invalid, skip this geo.
+		if(!HoudiniAssetObjectGeo->HoudiniMeshVertexBuffer || !HoudiniAssetObjectGeo->HoudiniMeshVertexFactory)
+		{
+			continue;
+		}
+
 		if(HoudiniAssetObjectGeo->UsesMultipleMaterials() && !bWireframe)
 		{
 			// Different parts of this geo use different materials. In this scenario one mesh will contain one submesh.
@@ -102,6 +108,12 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 			{
 				// Get part at this index.
 				FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = HoudiniAssetObjectGeo->HoudiniAssetObjectGeoParts[PartIdx];
+
+				if(!HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer)
+				{
+					// This part is missing index buffer, skip it.
+					continue;
+				}
 
 				// Set material for the whole mesh if it hasn't been set.
 				if(!Mesh.MaterialRenderProxy)
