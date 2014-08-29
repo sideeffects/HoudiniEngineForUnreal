@@ -46,21 +46,27 @@ namespace PrivatePatch
 }
 
 
-#define HOUDINI_PRIVATE_PATCH(PATCH_ACCESSOR, PATCH_METHOD)						\
+#define HOUDINI_PRIVATE_PATCH(PATCH_ACCESSOR, PATCH_METHOD)												\
 	template struct PrivatePatch::Patcher<PATCH_ACCESSOR, &PATCH_METHOD>
-	
-#define HOUDINI_PRIVATE_CALL(PATCH_ACCESSOR, PATCH_BASECLASS, PATCH_PARAM)		\
-	do																			\
-	{																			\
-		PATCH_BASECLASS& b = *this;												\
-		(b.*PrivatePatch::Result<PATCH_ACCESSOR>::ptr)(PATCH_PARAM);			\
-	}																			\
+
+#define HOUDINI_PRIVATE_CALL_EXT_PARM1(PATCH_ACCESSOR, PATCH_BASECLASS, PATCH_INSTANCE, PATCH_PARAM)	\
+	do																									\
+	{																									\
+		PATCH_BASECLASS& b = *PATCH_INSTANCE;															\
+		(b.*PrivatePatch::Result<PATCH_ACCESSOR>::ptr)(PATCH_PARAM);									\
+	}																									\
 	while(0)
 
-#define HOUDINI_PRIVATE_CALL_EXT(PATCH_ACCESSOR, PATCH_BASECLASS, PATCH_INSTANCE, PATCH_PARAM)		\
-	do																								\
-	{																								\
-		PATCH_BASECLASS& b = *PATCH_INSTANCE;														\
-		(b.*PrivatePatch::Result<PATCH_ACCESSOR>::ptr)(PATCH_PARAM);								\
-	}																								\
+#define HOUDINI_PRIVATE_CALL_EXT_NOPARM(PATCH_ACCESSOR, PATCH_BASECLASS, PATCH_INSTANCE)				\
+	do																									\
+	{																									\
+		PATCH_BASECLASS& b = *PATCH_INSTANCE;															\
+		(b.*PrivatePatch::Result<PATCH_ACCESSOR>::ptr)();												\
+	}																									\
 	while(0)
+
+#define HOUDINI_PRIVATE_CALL_PARM1(PATCH_ACCESSOR, PATCH_BASECLASS, PATCH_PARAM)						\
+	HOUDINI_PRIVATE_CALL_EXT_PARM1(PATCH_ACCESSOR, PATCH_BASECLASS, this, PATCH_PARAM)
+
+#define HOUDINI_PRIVATE_CALL_NOPARM(PATCH_ACCESSOR, PATCH_BASECLASS)									\
+	HOUDINI_PRIVATE_CALL_EXT_NOPARM(PATCH_ACCESSOR, PATCH_BASECLASS, this)
