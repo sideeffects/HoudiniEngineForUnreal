@@ -2692,44 +2692,6 @@ UHoudiniAssetComponent::OnComponentCreated()
 }
 
 
-FName
-UHoudiniAssetComponent::GetComponentInstanceDataType() const
-{
-	// Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation.
-
-	//return Super::GetComponentInstanceDataType();
-	return FName(TEXT("HoudiniAssetComponent"));
-}
-
-
-TSharedPtr<class FComponentInstanceDataBase>
-UHoudiniAssetComponent::GetComponentInstanceData() const
-{
-	//HOUDINI_TEST_LOG_MESSAGE( "  GetComponentInstanceData,           C" );
-	/*
-	bIsRealDestroy = false;
-
-	TSharedPtr<FHoudiniAssetComponentInstanceData> InstanceData = MakeShareable(new FHoudiniAssetComponentInstanceData(this));
-	InstanceData->AssetId = AssetId;
-	InstanceData->HapiGUID = HapiGUID;
-	return InstanceData;
-	*/
-	// Temporary.
-	return Super::GetComponentInstanceData();
-}
-
-
-void
-UHoudiniAssetComponent::ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData)
-{
-	//HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(Before), C" );
-
-	Super::ApplyComponentInstanceData(ComponentInstanceData);
-
-	//HOUDINI_TEST_LOG_MESSAGE( "  ApplyComponentInstanceData(After),  C" );
-}
-
-
 void
 UHoudiniAssetComponent::OnPreSaveWorld(uint32 SaveFlags, class UWorld* World)
 {

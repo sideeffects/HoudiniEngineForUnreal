@@ -155,7 +155,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniEngine.h"
 #include "HoudiniEngineScheduler.h"
 #include "HoudiniAssetTypeActions.h"
-#include "HoudiniAssetComponentInstanceData.h"
 #include "HoudiniLogo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineSerialization.h"
