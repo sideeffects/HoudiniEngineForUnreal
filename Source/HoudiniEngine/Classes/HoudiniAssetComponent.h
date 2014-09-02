@@ -63,7 +63,6 @@ class UHoudiniAsset;
 class UHoudiniAssetObject;
 class FPrimitiveSceneProxy;
 class FHoudiniAssetObjectGeo;
-class FComponentInstanceDataCache;
 
 struct FPropertyChangedEvent;
 
@@ -135,10 +134,6 @@ protected: /** UActorComponent methods. **/
 
 	virtual void OnComponentCreated() override;
 	virtual void OnComponentDestroyed() override;
-
-	virtual FName GetComponentInstanceDataType() const override;
-	virtual TSharedPtr<class FComponentInstanceDataBase> GetComponentInstanceData() const override;
-	virtual void ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData) override;
 
 private: /** UPrimitiveComponent methods. **/
 
