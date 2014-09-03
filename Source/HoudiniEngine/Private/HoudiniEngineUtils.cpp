@@ -471,7 +471,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 
 	// Allocate sufficient buffer for data.
 	Data.resize(AttributeInfo.count * AttributeInfo.tupleSize);
-	
+
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo,
 		&Data[0], 0, AttributeInfo.count), false);
 

@@ -35,6 +35,10 @@
 #include "AssetRegistryModule.h"
 #include "DynamicMeshBuilder.h"
 #include "ContentStreaming.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "IDetailPropertyRow.h"
+#include "DetailWidgetRow.h"
 
 #include "Materials/MaterialExpressionTextureSample.h"
 
@@ -152,6 +156,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniEnginePrivatePatch.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
+#include "HoudiniAssetComponentDetails.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineScheduler.h"
 #include "HoudiniAssetTypeActions.h"

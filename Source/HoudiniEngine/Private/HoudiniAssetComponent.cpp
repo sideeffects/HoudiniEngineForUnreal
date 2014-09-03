@@ -955,7 +955,7 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 		Task.AssetId = AssetId;
 		FHoudiniEngine::Get().AddTask(Task);
 
-		// Reset asset id.CreateSceneProxy
+		// Reset asset id
 		AssetId = -1;
 	}
 
@@ -1266,6 +1266,13 @@ UHoudiniAssetComponent::OnPackageSaved(const FString& PackageFileName, UObject* 
 		// We need to restore patched class information.
 		RestorePatchedClassInformation();
 	}
+}
+
+
+bool
+UHoudiniAssetComponent::HasReplacedClassInformation() const
+{
+	return PatchedClass != nullptr;
 }
 
 
@@ -3000,13 +3007,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
 	{
-		/*
-		if(Ar.IsLoading() && bIsBlueprintGeneratedClass)
-		{
-			SetHoudiniLogoGeometry();
-		}
-		*/
-
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
