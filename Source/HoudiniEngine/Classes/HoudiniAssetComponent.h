@@ -83,7 +83,7 @@ public:
 	UHoudiniAsset* HoudiniAsset;
 
 	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
-	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=Textures)
+	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniTextures)
 	TArray<UTexture2D*> HoudiniTextures;
 
 public:
@@ -169,6 +169,11 @@ private: /** FModuleManager delegates. **/
 private: /** UPackage delegates. **/
 
 	void OnPackageSaved(const FString& PackageFileName, UObject* Outer);
+
+public:
+
+	/** Return true if class of this component has been patched. **/
+	bool HasReplacedClassInformation() const;
 
 protected:
 

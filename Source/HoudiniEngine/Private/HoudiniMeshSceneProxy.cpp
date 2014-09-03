@@ -73,6 +73,12 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 				// Get part at this index.
 				FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = HoudiniAssetObjectGeo->HoudiniAssetObjectGeoParts[PartIdx];
 
+				if(!HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer)
+				{
+					// This part is missing index buffer, skip it.
+					continue;
+				}
+
 				// Set material for this part.
 				Mesh.MaterialRenderProxy = ComputeMaterialProxy(bWireframe, &WireframeMaterialInstance, HoudiniAssetObjectGeoPart);
 

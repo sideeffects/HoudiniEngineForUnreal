@@ -72,6 +72,10 @@ FHoudiniEngine::StartupModule()
 	// Register thumbnail renderer for Houdini asset.
 	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
 
+	// Register details presenter for our component type.
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
+
 	// Create Houdini logo brush.
 	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
 	for(auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
@@ -168,6 +172,13 @@ FHoudiniEngine::ShutdownModule()
 		}
 
 		AssetTypeActions.Empty();
+	}
+
+	// Unregister details presentation.
+	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 	}
 
 	// Deconstruct Houdini logo geometry.
