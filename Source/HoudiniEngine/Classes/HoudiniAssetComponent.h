@@ -71,6 +71,7 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 {
 	friend class FHoudiniMeshSceneProxy;
 	friend class AHoudiniAssetActor;
+	friend class FHoudiniAssetComponentDetails;
 
 	GENERATED_UCLASS_BODY()
 

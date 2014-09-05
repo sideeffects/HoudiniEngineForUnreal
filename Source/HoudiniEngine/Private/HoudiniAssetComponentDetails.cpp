@@ -32,6 +32,13 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 FReply
 FHoudiniAssetComponentDetails::OnButtonClickedBake()
 {
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+		UStaticMesh* StaticMesh = FHoudiniEngineUtils::CreateStaticMesh(HoudiniAssetComponent->HoudiniAsset, 
+																		HoudiniAssetComponent->HoudiniAssetObjectGeos);
+	}
+
 	return FReply::Handled();
 }
 
@@ -49,9 +56,11 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		if(ObjectsCustomized[i].IsValid())
 		{
 			UObject* Object = ObjectsCustomized[i].Get();
-			UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(Object);
-			if(HoudiniAssetComponent)
+
+			if(Object)
 			{
+				// We can't use Unreal cast here since we have patched RTTI for component.
+				UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*) Object;
 				HoudiniAssetComponents.Add(HoudiniAssetComponent);
 			}
 		}

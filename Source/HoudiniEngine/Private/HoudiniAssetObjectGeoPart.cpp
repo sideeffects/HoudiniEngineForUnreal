@@ -48,6 +48,13 @@ FHoudiniAssetObjectGeoPart::~FHoudiniAssetObjectGeoPart()
 }
 
 
+int32
+FHoudiniAssetObjectGeoPart::GetIndexCount() const
+{
+	return Indices.Num();
+}
+
+
 void
 FHoudiniAssetObjectGeoPart::Serialize(FArchive& Ar)
 {
