@@ -71,6 +71,13 @@ FHoudiniAssetObjectGeo::~FHoudiniAssetObjectGeo()
 }
 
 
+int32
+FHoudiniAssetObjectGeo::GetVertexCount() const
+{
+	return Vertices.Num();
+}
+
+
 const FMatrix&
 FHoudiniAssetObjectGeo::GetTransform() const
 {

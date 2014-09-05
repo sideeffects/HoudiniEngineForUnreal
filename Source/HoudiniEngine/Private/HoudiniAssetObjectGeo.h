@@ -91,6 +91,9 @@ public:
 	/** Compute aggregate bounding volume from all parts. **/
 	void ComputeAggregateBoundingVolume();
 
+	/** Return number of vertices in this geo. **/
+	int32 GetVertexCount() const;
+
 protected:
 
 	/** Set this geometry as Houdini logo geometry. **/

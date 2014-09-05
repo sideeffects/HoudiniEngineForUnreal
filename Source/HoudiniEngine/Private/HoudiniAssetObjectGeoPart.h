@@ -24,6 +24,7 @@ class FHoudiniAssetObjectGeoPart
 	friend class FHoudiniMeshSceneProxy;
 	friend class UHoudiniAssetComponent;
 	friend class FHoudiniAssetObjectGeo;
+	friend struct FHoudiniEngineUtils;
 
 public:
 
@@ -56,6 +57,9 @@ public:
 
 	/** Return bounding volume for this part. **/
 	const FBoxSphereBounds& GetBoundingVolume() const;
+
+	/** Return number of indices for this part. **/
+	int32 GetIndexCount() const;
 
 protected:
 

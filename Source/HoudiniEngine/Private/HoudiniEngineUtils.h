@@ -16,6 +16,7 @@
 #pragma once
 
 class UTexture2D;
+class UHoudiniAsset;
 class UHoudiniAssetMaterial;
 class FHoudiniAssetObjectGeo;
 
@@ -103,6 +104,11 @@ public:
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
+
+public:
+
+	/** Given a collection of geometry, create a static mesh. **/
+	static UStaticMesh* CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos);
 
 protected:
 
