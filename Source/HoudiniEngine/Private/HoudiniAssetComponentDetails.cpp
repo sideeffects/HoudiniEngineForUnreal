@@ -35,8 +35,8 @@ FHoudiniAssetComponentDetails::OnButtonClickedBake()
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-		UStaticMesh* StaticMesh = FHoudiniEngineUtils::CreateStaticMesh(HoudiniAssetComponent->HoudiniAsset, 
-																		HoudiniAssetComponent->HoudiniAssetObjectGeos);
+		UStaticMesh* StaticMesh = FHoudiniEngineUtils::CreateSingleStaticMesh(HoudiniAssetComponent->HoudiniAsset, 
+																			  HoudiniAssetComponent->HoudiniAssetObjectGeos);
 	}
 
 	return FReply::Handled();

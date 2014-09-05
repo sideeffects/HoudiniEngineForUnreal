@@ -108,7 +108,7 @@ public:
 public:
 
 	/** Given a collection of geometry, create a static mesh. **/
-	static UStaticMesh* CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos);
+	static UStaticMesh* CreateSingleStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos);
 
 protected:
 
