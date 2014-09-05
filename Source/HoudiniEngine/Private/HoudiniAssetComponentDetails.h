@@ -37,7 +37,8 @@ public:
 
 private:
 
-	FReply OnButtonClickedBake();
+	FReply OnButtonClickedBakeSingle();
+	FReply OnButtonClickedBakeMultiple();
 
 private:
 

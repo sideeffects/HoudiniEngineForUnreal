@@ -30,13 +30,31 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 
 
 FReply
-FHoudiniAssetComponentDetails::OnButtonClickedBake()
+FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
 {
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-		UStaticMesh* StaticMesh = FHoudiniEngineUtils::CreateSingleStaticMesh(HoudiniAssetComponent->HoudiniAsset, 
-																			  HoudiniAssetComponent->HoudiniAssetObjectGeos);
+	
+		TArray<UStaticMesh*> StaticMeshes;
+		FHoudiniEngineUtils::CreateStaticMeshes(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->HoudiniAssetObjectGeos,
+												StaticMeshes, false);
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnButtonClickedBakeMultiple()
+{
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+	
+		TArray<UStaticMesh*> StaticMeshes;
+		FHoudiniEngineUtils::CreateStaticMeshes(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->HoudiniAssetObjectGeos,
+												StaticMeshes, true);
 	}
 
 	return FReply::Handled();
@@ -86,9 +104,22 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 						SNew(SButton)
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Center)
-						.OnClicked(this, &FHoudiniAssetComponentDetails::OnButtonClickedBake)
-						.Text(LOCTEXT("BakeHoudiniActor", "Bake"))
-						.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake selected Houdini Actor"))
+						.OnClicked(this, &FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle)
+						.Text(LOCTEXT("BakeHoudiniActor", "Bake Single"))
+						.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake selected Houdini Actor into a single mesh"))
+					]
+				+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2.0f, 0.0f)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					[
+						SNew(SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.OnClicked(this, &FHoudiniAssetComponentDetails::OnButtonClickedBakeMultiple)
+						.Text(LOCTEXT("BakeHoudiniActor", "Bake Multiple"))
+						.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake selected Houdini Actor into multiple meshes"))
 					]
 			]
 		];

@@ -107,8 +107,14 @@ public:
 
 public:
 
-	/** Given a collection of geometry, create a static mesh. **/
-	static UStaticMesh* CreateSingleStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos);
+	/** Given a collection of geometry, create a single static mesh. **/
+	static void CreateStaticMeshes(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos, 
+								   TArray<UStaticMesh*>& StaticMeshes, bool bSplit = false);
+
+protected:
+
+	/** Create a package for static mesh. **/
+	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
 
 protected:
 
