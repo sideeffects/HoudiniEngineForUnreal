@@ -116,6 +116,9 @@ protected:
 	/** Create a package for static mesh. **/
 	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
 
+	/** Check presence of UVs in all geos. **/
+	static bool BakeCheckUVsPresence(const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos);
+
 protected:
 
 	/** Given current min and max extent vectors, update them from given position if necessary. **/
