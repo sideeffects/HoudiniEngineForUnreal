@@ -94,6 +94,12 @@ public:
 	/** Return number of vertices in this geo. **/
 	int32 GetVertexCount() const;
 
+	/** Return true if this geo has UVs. **/
+	bool HasUVs() const;
+
+	/** Set UVs presence status. **/
+	void SetUVsPresence(bool bInHasUVs);
+
 protected:
 
 	/** Set this geometry as Houdini logo geometry. **/
@@ -136,4 +142,7 @@ protected:
 	
 	/** Is set to true when this geometry is a Houdini logo geometry. **/
 	bool bHoudiniLogo;
+
+	/** Is set to true when this geo does not have UV information. **/
+	bool bHasUVs;
 };

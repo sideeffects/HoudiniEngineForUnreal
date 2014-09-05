@@ -820,6 +820,8 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 					HAPI_AttributeInfo AttribInfoColors;
 					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
 
+					// Keep track of whether we have UVs. 
+					bool bHaveUVs = true;
 
 					// Transfer vertex data into vertex buffer for this geo object.
 					for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
@@ -896,6 +898,8 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 
 									Triangle.TextureCoordinate1.X = 0.0f;
 									Triangle.TextureCoordinate1.Y = 0.0f;
+
+									bHaveUVs = false;
 
 									break;
 								}
@@ -1011,6 +1015,9 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 						// Add triangle vertices to list of vertices for given geo.
 						HoudiniAssetObjectGeo->AddTriangleVertices(Triangle);
 					} // for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
+
+					// We need to flag presence of UVs for this geo.
+					HoudiniAssetObjectGeo->SetUVsPresence(bHaveUVs);
 				} // if(GeoInfo.hasGeoChanged)
 
 				// Retrieve material information for this part.
@@ -1414,6 +1421,22 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset,
 }
 
 
+bool
+FHoudiniEngineUtils::BakeCheckUVsPresence(const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos)
+{
+	for(int32 GeoIdx = 0; GeoIdx < ObjectGeos.Num(); ++GeoIdx)
+	{
+		FHoudiniAssetObjectGeo* Geo = ObjectGeos[GeoIdx];
+		if(!Geo->HasUVs())
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
 void
 FHoudiniEngineUtils::CreateStaticMeshes(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos, 
 										TArray<UStaticMesh*>& StaticMeshes, bool bSplit)
@@ -1479,13 +1502,6 @@ FHoudiniEngineUtils::CreateStaticMeshes(UHoudiniAsset* HoudiniAsset, const TArra
 		// Grab base LOD level.
 		FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
 
-		// Make sure static mesh has a new lighting guid.
-		StaticMesh->LightingGuid = FGuid::NewGuid();
-
-		// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-		StaticMesh->LightMapResolution = 32;
-		StaticMesh->LightMapCoordinateIndex = 1;
-
 		// Locate default material and add it to mesh.
 		UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 		StaticMesh->Materials.Add(DefaultMaterial);
@@ -1522,6 +1538,16 @@ FHoudiniEngineUtils::CreateStaticMeshes(UHoudiniAsset* HoudiniAsset, const TArra
 				}
 			}
 		}
+
+		// Make sure static mesh has a new lighting guid.
+		StaticMesh->LightingGuid = FGuid::NewGuid();
+
+		// See if all of geos have UVs.
+		bool bHasUVs = (bSplit) ? StaticMeshGeo->HasUVs() : FHoudiniEngineUtils::BakeCheckUVsPresence(ObjectGeos);
+
+		// Set it to use textured lightmaps. We use coordinate 1 for UVs.
+		StaticMesh->LightMapResolution = 32;
+		StaticMesh->LightMapCoordinateIndex = 1;
 
 		// Calculate number of triangles.
 		int32 TriangleCount = WedgeCount / 3;

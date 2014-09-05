@@ -24,7 +24,8 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 	PartId(-1),
 	ComponentReferenceCount(1),
 	bMultipleMaterials(false),
-	bHoudiniLogo(false)
+	bHoudiniLogo(false),
+	bHasUVs(false)
 {
 	Transform = FMatrix::Identity;
 	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -40,7 +41,8 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_
 	PartId(InPartId),
 	ComponentReferenceCount(1),
 	bMultipleMaterials(false),
-	bHoudiniLogo(false)
+	bHoudiniLogo(false),
+	bHasUVs(false)
 {
 	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 }
@@ -82,6 +84,20 @@ const FMatrix&
 FHoudiniAssetObjectGeo::GetTransform() const
 {
 	return Transform;
+}
+
+
+bool
+FHoudiniAssetObjectGeo::HasUVs() const
+{
+	return bHasUVs;
+}
+
+
+void
+FHoudiniAssetObjectGeo::SetUVsPresence(bool bInHasUVs)
+{
+	bHasUVs = bInHasUVs;
 }
 
 
@@ -132,6 +148,9 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 
 	// Serialize multiple materials flag.
 	Ar << bMultipleMaterials;
+
+	// Serialize whether we have UVs.
+	Ar << bHasUVs;
 
 	// Serialize parts.
 	int32 NumParts = HoudiniAssetObjectGeoParts.Num();
