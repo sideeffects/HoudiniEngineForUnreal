@@ -1367,151 +1367,254 @@ FHoudiniEngineUtils::HapiIsMaterialTransparent(const HAPI_MaterialInfo& Material
 }
 
 
-UStaticMesh*
-FHoudiniEngineUtils::CreateSingleStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos)
+UPackage*
+FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx)
 {
-	UStaticMesh* StaticMesh = nullptr;
 	UPackage* Package = nullptr;
 	FString PackageName;
-	FString MeshName;
 
-	do 
+	while(true)
 	{
-		FGuid BakeGUID = FGuid::NewGuid();
+		if(!BakeGUID.IsValid())
+		{
+			BakeGUID = FGuid::NewGuid();
+		}
+
 		FString BakeGUIDString = BakeGUID.ToString();
 		
-		MeshName = HoudiniAsset->GetName() + TEXT("_") + BakeGUIDString;
+		if(ObjectIdx != -1)
+		{
+			MeshName = HoudiniAsset->GetName() + TEXT("_") + FString::FromInt(ObjectIdx) + TEXT("_") + BakeGUIDString;
+		}
+		else
+		{
+			MeshName = HoudiniAsset->GetName() + TEXT("_") + BakeGUIDString;
+		}
+
 		PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) + TEXT("/") + MeshName;
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
 		// See if package exists, if it does, we need to regenerate the name.
 		Package = FindPackage(nullptr, *PackageName);
-	}
-	while(Package);
 
-	// We can create package since we know it does not exist.
-	Package = CreatePackage(nullptr, *PackageName);
-
-	// Create static mesh.
-	StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) UStaticMesh(FPostConstructInitializeProperties());
-
-	// Create one LOD level.
-	new(StaticMesh->SourceModels) FStaticMeshSourceModel();
-
-	// Grab base LOD level.
-	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
-
-	// Make sure static mesh has a new lighting guid.
-	StaticMesh->LightingGuid = FGuid::NewGuid();
-
-	// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-	StaticMesh->LightMapResolution = 32;
-	StaticMesh->LightMapCoordinateIndex = 1;
-
-	// Locate default material and add it to mesh.
-	UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-	StaticMesh->Materials.Add(DefaultMaterial);
-
-	// Load the existing raw mesh.
-	FRawMesh RawMesh;
-	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
-	int32 VertexOffset = RawMesh.VertexPositions.Num();
-	int32 WedgeOffset = RawMesh.WedgeIndices.Num();
-	int32 TriangleOffset = RawMesh.FaceMaterialIndices.Num();
-
-	// Calculate number of wedges.
-	int32 WedgeCount = 0;
-	for(int32 GeoIdx = 0; GeoIdx < ObjectGeos.Num(); ++GeoIdx)
-	{
-		FHoudiniAssetObjectGeo* Geo = ObjectGeos[GeoIdx];
-		for(int32 GeoPartIdx = 0; GeoPartIdx < Geo->HoudiniAssetObjectGeoParts.Num(); ++GeoPartIdx)
+		if(Package)
 		{
-			FHoudiniAssetObjectGeoPart* GeoPart = Geo->HoudiniAssetObjectGeoParts[GeoPartIdx];
-			WedgeCount += GeoPart->GetIndexCount();
+			// Package does exist, there's a collision, we need to generate a new name.
+			BakeGUID.Invalidate();
+		}
+		else
+		{
+			// Create actual package.
+			Package = CreatePackage(nullptr, *PackageName);
+			break;
 		}
 	}
 
-	// Calculate number of triangles.
-	int32 TriangleCount = WedgeCount / 3;
+	return Package;
+}
 
-	// Reserve space for attributes.
-	RawMesh.FaceMaterialIndices.AddZeroed(TriangleCount);
-	RawMesh.FaceSmoothingMasks.AddZeroed(TriangleCount);
 
-	// We are shifting vertices since we are flattening vertex information.
-	int32 IndexShift = 0;
+void
+FHoudiniEngineUtils::CreateStaticMeshes(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos, 
+										TArray<UStaticMesh*>& StaticMeshes, bool bSplit)
+{
+	// Array of packages for each static mesh we are creating.
+	TArray<UPackage*> Packages;
+	FGuid BakeGUID;
 
-	for(int32 GeoIdx = 0; GeoIdx < ObjectGeos.Num(); ++GeoIdx)
-	{
-		FHoudiniAssetObjectGeo* Geo = ObjectGeos[GeoIdx];
-		
-		// Get vertices of this geo.
-		const TArray<FDynamicMeshVertex>& Vertices = Geo->Vertices;
-		for(int32 VertexIdx = 0; VertexIdx < Vertices.Num(); ++VertexIdx)
-		{
-			// Get vertex information at this index.
-			const FDynamicMeshVertex& MeshVertex = Vertices[VertexIdx];
+	UPackage* Package = nullptr;
+	int32 MeshCounter = 0;
+	FString MeshName;
 
-			// Add vertex to raw mesh, sequentially for all geos. We will need to reindex, depending on topology.
-			RawMesh.VertexPositions.Add(MeshVertex.Position);
-			RawMesh.WedgeColors.Add(MeshVertex.Color);
-			RawMesh.WedgeTangentX.Add(MeshVertex.TangentX);
-			RawMesh.WedgeTangentY.Add(MeshVertex.TangentZ);
+	// These maps are only used when we are baking separate meshes.
+	TMap<UStaticMesh*, FHoudiniAssetObjectGeo*> StaticMeshGeos;
+	TMap<UStaticMesh*, FHoudiniAssetObjectGeoPart*> StaticMeshGeoParts;
 
-			// First uv channel is used for diffuse/normal.
-			RawMesh.WedgeTexCoords[0].Add(MeshVertex.TextureCoordinate);
-
-			// Second uv channel is used for lightmap.
-			RawMesh.WedgeTexCoords[1].Add(MeshVertex.TextureCoordinate);
-		}
-
-		// Get index information for this geo.
-		for(int32 GeoPartIdx = 0; GeoPartIdx < Geo->HoudiniAssetObjectGeoParts.Num(); ++GeoPartIdx)
-		{
-			// Get part at this index.
-			FHoudiniAssetObjectGeoPart* GeoPart = Geo->HoudiniAssetObjectGeoParts[GeoPartIdx];
-
-			// Get indices for this part.
-			const TArray<int32>& Indices = GeoPart->Indices;
-
-			// Add index information to raw mesh.
-			for(int32 IndexIdx = 0; IndexIdx < Indices.Num(); ++IndexIdx)
-			{
-				RawMesh.WedgeIndices.Add(Indices[IndexIdx] + IndexShift);
-			}
-		}
-
-		// We shift by vertex number.
-		IndexShift += Geo->GetVertexCount();
-	}
-
-	// Some mesh generation settings.
-	SrcModel.BuildSettings.bRemoveDegenerates = true;
-	SrcModel.BuildSettings.bRecomputeNormals = true;
-	SrcModel.BuildSettings.bRecomputeTangents = true;
-
-	// Store the new raw mesh.
-	SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
-
-	// Set up default LOD settings.
+	// Get platform manager LOD specific information.
 	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 	check(CurrentPlatform);
 	const FStaticMeshLODGroup& LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(NAME_None);
 	int32 NumLODs = LODGroup.GetDefaultNumLODs();
-	while(StaticMesh->SourceModels.Num() < NumLODs)
+
+	if(bSplit)
 	{
+		for(int32 GeoIdx = 0; GeoIdx < ObjectGeos.Num(); ++GeoIdx)
+		{
+			FHoudiniAssetObjectGeo* Geo = ObjectGeos[GeoIdx];
+			for(int32 GeoPartIdx = 0; GeoPartIdx < Geo->HoudiniAssetObjectGeoParts.Num(); ++GeoPartIdx)
+			{
+				FHoudiniAssetObjectGeoPart* GeoPart = Geo->HoudiniAssetObjectGeoParts[GeoPartIdx];
+
+				// Generate packages for each geo part - we are saving everything separately.
+				Package = BakeCreatePackageForStaticMesh(HoudiniAsset, MeshName, BakeGUID, MeshCounter);
+				Packages.Add(Package);
+				MeshCounter++;
+
+				// Create static mesh.
+				UStaticMesh* StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+				StaticMeshes.Add(StaticMesh);
+
+				// Store mapping.
+				StaticMeshGeos.Add(StaticMesh, Geo);
+				StaticMeshGeoParts.Add(StaticMesh, GeoPart);
+			}
+		}
+	}
+	else
+	{
+		// Generate one package for everything - we are saving all geometry inside one mesh.
+		Package = BakeCreatePackageForStaticMesh(HoudiniAsset, MeshName, BakeGUID);
+		Packages.Add(Package);
+
+		// Create static mesh.
+		UStaticMesh* StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+		StaticMeshes.Add(StaticMesh);
+	}
+
+	for(UStaticMesh* StaticMesh : StaticMeshes)
+	{
+		// Create one LOD level.
 		new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+
+		// Grab base LOD level.
+		FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+
+		// Make sure static mesh has a new lighting guid.
+		StaticMesh->LightingGuid = FGuid::NewGuid();
+
+		// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
+		StaticMesh->LightMapResolution = 32;
+		StaticMesh->LightMapCoordinateIndex = 1;
+
+		// Locate default material and add it to mesh.
+		UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+		StaticMesh->Materials.Add(DefaultMaterial);
+
+		// Load the existing raw mesh.
+		FRawMesh RawMesh;
+		SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+		int32 VertexOffset = RawMesh.VertexPositions.Num();
+		int32 WedgeOffset = RawMesh.WedgeIndices.Num();
+		int32 TriangleOffset = RawMesh.FaceMaterialIndices.Num();
+
+		// Get geo and part mappings for each mesh.
+		FHoudiniAssetObjectGeo* StaticMeshGeo = (StaticMeshGeos.Num() > 0) ? StaticMeshGeos[StaticMesh] : nullptr;
+		FHoudiniAssetObjectGeoPart* StaticMeshGeoPart = (StaticMeshGeoParts.Num() > 0) ? StaticMeshGeoParts[StaticMesh] : nullptr;
+
+		// Calculate number of wedges.
+		int32 WedgeCount = 0;
+
+		if(bSplit)
+		{
+			// If we are splitting into multiple meshes.
+			WedgeCount = StaticMeshGeoPart->GetIndexCount();
+		}
+		else
+		{
+			// We are not splitting - baking one mesh.
+			for(int32 GeoIdx = 0; GeoIdx < ObjectGeos.Num(); ++GeoIdx)
+			{
+				FHoudiniAssetObjectGeo* Geo = ObjectGeos[GeoIdx];
+				for(int32 GeoPartIdx = 0; GeoPartIdx < Geo->HoudiniAssetObjectGeoParts.Num(); ++GeoPartIdx)
+				{
+					FHoudiniAssetObjectGeoPart* GeoPart = Geo->HoudiniAssetObjectGeoParts[GeoPartIdx];
+					WedgeCount += GeoPart->GetIndexCount();
+				}
+			}
+		}
+
+		// Calculate number of triangles.
+		int32 TriangleCount = WedgeCount / 3;
+
+		// Reserve space for attributes.
+		RawMesh.FaceMaterialIndices.AddZeroed(TriangleCount);
+		RawMesh.FaceSmoothingMasks.AddZeroed(TriangleCount);
+
+		// We are shifting vertices since if we are flattening vertex information (baking single).
+		int32 IndexShift = 0;
+		int32 GeosToProcess = (bSplit) ? 1 : ObjectGeos.Num();
+
+		for(int32 GeoIdx = 0; GeoIdx < GeosToProcess; ++GeoIdx)
+		{
+			FHoudiniAssetObjectGeo* Geo = (bSplit) ? StaticMeshGeo : ObjectGeos[GeoIdx];
+
+			// Get inverse transform for this Geo.
+			FMatrix Transform = (bSplit) ? Geo->Transform.InverseSafe() : FMatrix::Identity;
+		
+			// Get vertices of this geo.
+			const TArray<FDynamicMeshVertex>& Vertices = Geo->Vertices;
+			for(int32 VertexIdx = 0; VertexIdx < Vertices.Num(); ++VertexIdx)
+			{
+				// Get vertex information at this index.
+				const FDynamicMeshVertex& MeshVertex = Vertices[VertexIdx];
+
+				// Add vertex to raw mesh, sequentially for all geos. We will need to reindex, depending on topology.
+
+				if(bSplit)
+				{
+					// When generating geometry from HAPI, we bake transforms in, so we need to undo that if we are splitting.
+					FVector4 Position(MeshVertex.Position.X, MeshVertex.Position.Y, MeshVertex.Position.Z, 1.0f);
+					Position = Transform.TransformFVector4(Position);
+					RawMesh.VertexPositions.Add(Position);
+				}
+				else
+				{
+					RawMesh.VertexPositions.Add(MeshVertex.Position);
+				}
+
+				RawMesh.WedgeColors.Add(MeshVertex.Color);
+				RawMesh.WedgeTangentX.Add(MeshVertex.TangentX);
+				RawMesh.WedgeTangentY.Add(MeshVertex.TangentZ);
+
+				// First uv channel is used for diffuse/normal.
+				RawMesh.WedgeTexCoords[0].Add(MeshVertex.TextureCoordinate);
+
+				// Second uv channel is used for lightmap.
+				RawMesh.WedgeTexCoords[1].Add(MeshVertex.TextureCoordinate);
+			}
+
+			// Get index information for this geo.
+			int32 GeoPartsToProcess = (bSplit) ? 1 : Geo->HoudiniAssetObjectGeoParts.Num();
+			for(int32 GeoPartIdx = 0; GeoPartIdx < GeoPartsToProcess; ++GeoPartIdx)
+			{
+				// Get part at this index.
+				FHoudiniAssetObjectGeoPart* GeoPart = (bSplit) ? StaticMeshGeoPart : Geo->HoudiniAssetObjectGeoParts[GeoPartIdx];
+
+				// Get indices for this part.
+				const TArray<int32>& Indices = GeoPart->Indices;
+
+				// Add index information to raw mesh.
+				for(int32 IndexIdx = 0; IndexIdx < Indices.Num(); ++IndexIdx)
+				{
+					RawMesh.WedgeIndices.Add(Indices[IndexIdx] + IndexShift);
+				}
+			}
+
+			// We shift by vertex number.
+			IndexShift += Geo->GetVertexCount();
+		}
+
+		// Some mesh generation settings.
+		SrcModel.BuildSettings.bRemoveDegenerates = true;
+		SrcModel.BuildSettings.bRecomputeNormals = true;
+		SrcModel.BuildSettings.bRecomputeTangents = true;
+
+		// Store the new raw mesh.
+		SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
+
+		while(StaticMesh->SourceModels.Num() < NumLODs)
+		{
+			new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+		}
+		for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
+		{
+			StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
+		}
+
+		StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
+
+		// Build the static mesh - this will generate necessary data and create necessary rendering resources.
+		StaticMesh->LODGroup = NAME_None;
+		StaticMesh->Build(false);
 	}
-	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
-	{
-		StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
-	}
-
-	StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
-
-	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
-	StaticMesh->LODGroup = NAME_None;
-	StaticMesh->Build(false);
-
-	return StaticMesh;
 }
