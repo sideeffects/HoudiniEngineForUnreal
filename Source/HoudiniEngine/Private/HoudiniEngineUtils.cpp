@@ -1368,7 +1368,7 @@ FHoudiniEngineUtils::HapiIsMaterialTransparent(const HAPI_MaterialInfo& Material
 
 
 UStaticMesh*
-FHoudiniEngineUtils::CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos)
+FHoudiniEngineUtils::CreateSingleStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos)
 {
 	UStaticMesh* StaticMesh = nullptr;
 	UPackage* Package = nullptr;
@@ -1408,6 +1408,10 @@ FHoudiniEngineUtils::CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<
 	StaticMesh->LightMapResolution = 32;
 	StaticMesh->LightMapCoordinateIndex = 1;
 
+	// Locate default material and add it to mesh.
+	UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+	StaticMesh->Materials.Add(DefaultMaterial);
+
 	// Load the existing raw mesh.
 	FRawMesh RawMesh;
 	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
@@ -1433,11 +1437,6 @@ FHoudiniEngineUtils::CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<
 	// Reserve space for attributes.
 	RawMesh.FaceMaterialIndices.AddZeroed(TriangleCount);
 	RawMesh.FaceSmoothingMasks.AddZeroed(TriangleCount);
-	//RawMesh.WedgeTangentX.AddZeroed(WedgeCount);
-	//RawMesh.WedgeTangentY.AddZeroed(WedgeCount);
-
-	// One UV level.
-	//RawMesh.WedgeTexCoords[0].AddZeroed(WedgeCount);
 
 	// We are shifting vertices since we are flattening vertex information.
 	int32 IndexShift = 0;
@@ -1456,9 +1455,14 @@ FHoudiniEngineUtils::CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<
 			// Add vertex to raw mesh, sequentially for all geos. We will need to reindex, depending on topology.
 			RawMesh.VertexPositions.Add(MeshVertex.Position);
 			RawMesh.WedgeColors.Add(MeshVertex.Color);
-			RawMesh.WedgeTexCoords[0].Add(MeshVertex.TextureCoordinate);
 			RawMesh.WedgeTangentX.Add(MeshVertex.TangentX);
 			RawMesh.WedgeTangentY.Add(MeshVertex.TangentZ);
+
+			// First uv channel is used for diffuse/normal.
+			RawMesh.WedgeTexCoords[0].Add(MeshVertex.TextureCoordinate);
+
+			// Second uv channel is used for lightmap.
+			RawMesh.WedgeTexCoords[1].Add(MeshVertex.TextureCoordinate);
 		}
 
 		// Get index information for this geo.
@@ -1481,6 +1485,7 @@ FHoudiniEngineUtils::CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<
 		IndexShift += Geo->GetVertexCount();
 	}
 
+	// Some mesh generation settings.
 	SrcModel.BuildSettings.bRemoveDegenerates = true;
 	SrcModel.BuildSettings.bRecomputeNormals = true;
 	SrcModel.BuildSettings.bRecomputeTangents = true;
@@ -1504,6 +1509,7 @@ FHoudiniEngineUtils::CreateStaticMesh(UHoudiniAsset* HoudiniAsset, const TArray<
 
 	StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
 
+	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
 	StaticMesh->LODGroup = NAME_None;
 	StaticMesh->Build(false);
 
