@@ -1513,6 +1513,38 @@ UHoudiniAssetComponent::RemoveClassProperties(UClass* ClassInstance)
 }
 
 
+void
+UHoudiniAssetComponent::AddLinkedProperty(UProperty*& PropertyFirst, UProperty*& PropertyLast, UProperty* Property)
+{
+	if(!PropertyFirst)
+	{
+		PropertyFirst = Property;
+		PropertyLast = Property;
+	}
+	else
+	{
+		PropertyLast->PropertyLinkNext = Property;
+		PropertyLast = Property;
+	}
+}
+
+
+void
+UHoudiniAssetComponent::AddLinkedChild(UField*& ChildFirst, UField*& ChildLast, UProperty* Property)
+{
+	if(!ChildFirst)
+	{
+		ChildFirst = Property;
+		ChildLast = Property;
+	}
+	else
+	{
+		ChildLast->Next = Property;
+		ChildLast = Property;
+	}
+}
+
+
 bool
 UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 {
@@ -1576,10 +1608,46 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	uint32 ValuesOffsetStart = offsetof(UHoudiniAssetComponent, ScratchSpaceBuffer);
 	uint32 ValuesOffsetEnd = ValuesOffsetStart;
 
-	for(int idx = 0; idx < NodeInfo.parmCount; ++idx)
+	// Create properties for inputs.
+	for(int InputIdx = 0; InputIdx < AssetInfo.maxGeoInputCount; ++InputIdx)
+	{
+		// Get input string handle.
+		HAPI_StringHandle InputStringHandle;
+		HOUDINI_CHECK_ERROR(&Result, HAPI_GetInputName(AssetId, InputIdx, HAPI_INPUT_GEOMETRY, &InputStringHandle));
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			continue;
+		}
+
+		// Get input string from handle.
+		FString InputString;
+		if(!FHoudiniEngineUtils::GetHoudiniString(InputStringHandle, InputString))
+		{
+			continue;
+		}
+
+		// Check if this property has already changed and will be used in next cook update.
+		bool bPropertyChanged = CanPropertyValueBeUpdated(HAPI_PARMTYPE_PATH_NODE, 1, InputString);
+
+		// Create object property.
+		UProperty* Property = CreatePropertyObject(ClassInstance, InputString, nullptr, ValuesOffsetEnd, bPropertyChanged);
+		Property->SetMetaData(TEXT("Category"), TEXT("HoudiniInputs"));
+		Property->SetMetaData(TEXT("HoudiniParmName"), *InputString);
+		Property->SetMetaData(TEXT("DisplayName"), *InputString);
+
+		// Store this property in a list of created properties.
+		CreatedProperties.Add(Property);
+
+		// Insert this newly created property in link list of properties.
+		AddLinkedProperty(PropertyFirst, PropertyLast, Property);
+		AddLinkedChild(ChildFirst, ChildLast, Property);
+	}
+
+	// Create properties for parameters.
+	for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
 	{
 		// Retrieve param info at this index.
-		const HAPI_ParmInfo& ParmInfoIter = ParmInfo[idx];
+		const HAPI_ParmInfo& ParmInfoIter = ParmInfo[ParamIdx];
 
 		// If parameter is invisible, skip it.
 		if(ParmInfoIter.invisible)
@@ -1752,16 +1820,17 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			}
 
 			case HAPI_PARMTYPE_PATH_NODE:
+			/*
 			{
 				FString NameString;
 				if(ParmInfoIter.size && FHoudiniEngineUtils::GetHoudiniString(ParmInfoIter.typeInfoSH, NameString) && NameString == TEXT("SOP"))
 				{
 					Property = CreatePropertyObject(ClassInstance, UniquePropertyName, nullptr, ValuesOffsetEnd, bPropertyChanged);
-				}	
+				}
 
 				break;
 			}
-
+			*/
 			default:
 			{
 				continue;
@@ -1812,28 +1881,8 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		CreatedProperties.Add(Property);
 
 		// Insert this newly created property in link list of properties.
-		if(!PropertyFirst)
-		{
-			PropertyFirst = Property;
-			PropertyLast = Property;
-		}
-		else
-		{
-			PropertyLast->PropertyLinkNext = Property;
-			PropertyLast = Property;
-		}
-
-		// Insert this newly created property into link list of children.
-		if(!ChildFirst)
-		{
-			ChildFirst = Property;
-			ChildLast = Property;
-		}
-		else
-		{
-			ChildLast->Next = Property;
-			ChildLast = Property;
-		}
+		AddLinkedProperty(PropertyFirst, PropertyLast, Property);
+		AddLinkedChild(ChildFirst, ChildLast, Property);
 	}
 
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
@@ -1857,7 +1906,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	}
 	else
 	{
-		ClassInstance->Children= ClassOfUHoudiniAssetComponent->Children;
+		ClassInstance->Children = ClassOfUHoudiniAssetComponent->Children;
 	}
 
 	return true;
@@ -2686,6 +2735,31 @@ UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 	{
 		// Memorize current Houdini Asset, since it is about to change.
 		ChangedHoudiniAsset = HoudiniAsset;
+		Super::PreEditChange(PropertyAboutToChange);
+		return;
+	}
+	
+	// Retrieve property category and only handle those in "HoudiniInputs".
+	static const FString CategoryHoudiniInputs = TEXT("HoudiniInputs");
+	const FString& Category = PropertyAboutToChange->GetMetaData(TEXT("Category"));
+
+	if(Category == CategoryHoudiniInputs)
+	{
+		// See if we are changing input static mesh asset.
+		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(PropertyAboutToChange);
+		if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
+		{
+			/*
+			int32 Offset = ObjectProperty->GetOffset_ForDebug();
+			UObject* Boundary = *ComputeOffsetAlignmentBoundary<UObject*>(Offset);
+
+			// If we had a static mesh input set, we need to remove it.
+			if(Boundary)
+			{
+
+			}
+			*/
+		}
 	}
 
 	Super::PreEditChange(PropertyAboutToChange);
@@ -2728,31 +2802,39 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	UProperty* PropertyChild = PropertyChangedEvent.Property;
 
 	// Retrieve property category.
-	static const FString CategoryHoudiniAsset = TEXT("HoudiniProperties");
+	static const FString CategoryHoudiniProperties = TEXT("HoudiniProperties");
+	static const FString CategoryHoudiniInputs = TEXT("HoudiniInputs");
+
 	const FString& Category = Property->GetMetaData(TEXT("Category"));
 
-	if(Category != CategoryHoudiniAsset)
+	if(Category == CategoryHoudiniProperties)
 	{
-		// This property is not in category we are interested in, just jump out.
-		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
-		return;
-	}
+		// We are changing one of the Houdini properties.
 
-	//HOUDINI_LOG_MESSAGE(TEXT("  PostEditChangeProperty, Property = 0x%x, PropertyChild = 0x%x"), Property, PropertyChild);
-
-	if(EPropertyChangeType::Interactive == PropertyChangedEvent.ChangeType)
-	{
-		if(UStructProperty::StaticClass() == Property->GetClass())
+		if(EPropertyChangeType::Interactive == PropertyChangedEvent.ChangeType)
 		{
-			UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-
-			if(UHoudiniAssetComponent::ScriptStructColor == StructProperty->Struct)
+			if(UStructProperty::StaticClass() == Property->GetClass())
 			{
-				// Ignore interactive events for color properties.
-				HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
-				return;
+				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+
+				if(UHoudiniAssetComponent::ScriptStructColor == StructProperty->Struct)
+				{
+					// Ignore interactive events for color properties.
+					HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
+					return;
+				}
 			}
 		}
+	}
+	else if(Category == CategoryHoudiniInputs)
+	{
+		// We are changing one of the Houdini inputs.
+
+	}
+	else
+	{
+		HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
+		return;
 	}
 
 	// If this is a loaded component, we need instantiation.
