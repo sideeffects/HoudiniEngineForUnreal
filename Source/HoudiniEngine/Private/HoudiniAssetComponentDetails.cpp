@@ -39,6 +39,12 @@ FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
 		TArray<UStaticMesh*> StaticMeshes;
 		FHoudiniEngineUtils::CreateStaticMeshes(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->HoudiniAssetObjectGeos,
 												StaticMeshes, false);
+
+		// Notify asset registry that we have created assets. This should update the content browser.
+		for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
+		{
+			FAssetRegistryModule::AssetCreated(StaticMeshes[MeshIdx]);
+		}
 	}
 
 	return FReply::Handled();
@@ -55,6 +61,12 @@ FHoudiniAssetComponentDetails::OnButtonClickedBakeMultiple()
 		TArray<UStaticMesh*> StaticMeshes;
 		FHoudiniEngineUtils::CreateStaticMeshes(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->HoudiniAssetObjectGeos,
 												StaticMeshes, true);
+
+		// Notify asset registry that we have created assets. This should update the content browser.
+		for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
+		{
+			FAssetRegistryModule::AssetCreated(StaticMeshes[MeshIdx]);
+		}
 	}
 
 	return FReply::Handled();
