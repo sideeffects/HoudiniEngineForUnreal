@@ -30,7 +30,8 @@ namespace EHoudiniEngineProperty
 		String,
 		Enumeration,
 		Boolean,
-		Color
+		Color,
+		Object
 	};
 }
 

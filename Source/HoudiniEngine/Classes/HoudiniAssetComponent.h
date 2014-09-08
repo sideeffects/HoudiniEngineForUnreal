@@ -232,6 +232,10 @@ private:
 	/** Patch RTTI : Create an enum object. **/
 	UField* CreateEnum(UClass* ClassInstance, const FString& Name, const std::vector<HAPI_ParmChoiceInfo>& Choices);
 
+	/** Patch RTTI : Create Object property (can hold pointers to UObject derived instances). **/
+	UProperty* CreatePropertyObject(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags);
+	UProperty* CreatePropertyObject(UClass* ClassInstance, const FString& Name, UObject* Object, uint32& Offset, bool bUpdateValue);
+
 	/** Patch RTTI : Remove all meta information from given enum object. **/
 	void RemoveMetaDataFromEnum(UEnum* EnumObject);
 
