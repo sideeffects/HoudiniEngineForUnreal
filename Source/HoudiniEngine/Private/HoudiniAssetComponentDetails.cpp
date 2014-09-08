@@ -134,6 +134,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	// Create Houdini Textures category.
 	DetailBuilder.EditCategory("HoudiniTextures", TEXT(""), ECategoryPriority::Important);
 
+	// Create Houdini Inputs category.
+	DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
+
 	// Create Houdini Properties category.
 	DetailBuilder.EditCategory("HoudiniProperties", TEXT(""), ECategoryPriority::Important);
 }

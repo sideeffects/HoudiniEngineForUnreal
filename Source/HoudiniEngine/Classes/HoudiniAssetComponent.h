@@ -201,6 +201,12 @@ private:
 	/** Patch RTTI : Restore patched class information. **/
 	void RestorePatchedClassInformation();
 
+	/** Patch RTTI : Insert Property in the list of properties. **/
+	void AddLinkedProperty(UProperty*& PropertyFirst, UProperty*& PropertyLast, UProperty* Property);
+
+	/** Patch RTTI : Insert Property in the list of children. **/
+	void AddLinkedChild(UField*& ChildFirst, UField*& ChildLast, UProperty* Property);
+
 	/** Patch RTTI : Create property based on given type. **/
 	UProperty* CreateProperty(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags, EHoudiniEngineProperty::Type PropertyType);
 
@@ -333,6 +339,9 @@ protected:
 
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;
+
+	/** Map of instanced static meshes by this component. **/
+	TMap<UStaticMesh*, TPair<HAPI_AssetId, int> > InstancedStaticMeshes;
 
 	/** Array of properties we have created. We keep these for serialization purposes. **/
 	TArray<UProperty*> CreatedProperties;
