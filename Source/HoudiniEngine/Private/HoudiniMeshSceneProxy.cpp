@@ -43,6 +43,10 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 
 		// Get number of parts in this geo.
 		int32 GeoPartCount = HoudiniAssetObjectGeo->HoudiniAssetObjectGeoParts.Num();
+		if(GeoPartCount <= 0)
+		{
+			continue;
+		}
 
 		// Create mesh for drawing submission.
 		FMeshBatch Mesh;
@@ -99,7 +103,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		}
 		else
 		{
-			check(GeoPartCount > 0)
+			check(GeoPartCount > 0);
 
 			// All parts of this geo use same material or no material at all (or default wireframe material).
 			Mesh.Elements.Reserve(GeoPartCount);

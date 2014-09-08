@@ -785,6 +785,12 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 
 				if(GeoInfo.hasGeoChanged)
 				{
+					if(PartInfo.vertexCount <= 0)
+					{
+						bGeoError = true;
+						break;
+					}
+
 					// We need to create a vertex buffer for each part.
 					VertexList.resize(PartInfo.vertexCount);
 					if(HAPI_RESULT_SUCCESS != HAPI_GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &VertexList[0], 0, PartInfo.vertexCount))

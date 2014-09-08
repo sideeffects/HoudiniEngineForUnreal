@@ -19,6 +19,11 @@
 void
 FHoudiniMeshVertexBuffer::InitRHI()
 {
+	if(Vertices.Num() <= 0)
+	{
+		return;
+	}
+
 	FRHIResourceCreateInfo CreateInfo;
 	VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo);
 
