@@ -29,8 +29,8 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 }
 
 
-FReply
-FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
+void
+FHoudiniAssetComponentDetails::CreateStaticMeshes(bool bMultipleMeshes)
 {
 	if(HoudiniAssetComponents.Num() > 0)
 	{
@@ -38,7 +38,7 @@ FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
 	
 		TArray<UStaticMesh*> StaticMeshes;
 		FHoudiniEngineUtils::CreateStaticMeshes(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->HoudiniAssetObjectGeos,
-												StaticMeshes, false);
+												StaticMeshes, bMultipleMeshes);
 
 		// Notify asset registry that we have created assets. This should update the content browser.
 		for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
@@ -46,7 +46,13 @@ FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
 			FAssetRegistryModule::AssetCreated(StaticMeshes[MeshIdx]);
 		}
 	}
+}
 
+
+FReply
+FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
+{
+	CreateStaticMeshes(false);
 	return FReply::Handled();
 }
 
@@ -54,21 +60,7 @@ FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
 FReply
 FHoudiniAssetComponentDetails::OnButtonClickedBakeMultiple()
 {
-	if(HoudiniAssetComponents.Num() > 0)
-	{
-		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-	
-		TArray<UStaticMesh*> StaticMeshes;
-		FHoudiniEngineUtils::CreateStaticMeshes(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->HoudiniAssetObjectGeos,
-												StaticMeshes, true);
-
-		// Notify asset registry that we have created assets. This should update the content browser.
-		for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
-		{
-			FAssetRegistryModule::AssetCreated(StaticMeshes[MeshIdx]);
-		}
-	}
-
+	CreateStaticMeshes(true);
 	return FReply::Handled();
 }
 
