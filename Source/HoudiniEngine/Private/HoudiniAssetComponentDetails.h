@@ -37,8 +37,14 @@ public:
 
 private:
 
+	/** Button click handlers. **/
 	FReply OnButtonClickedBakeSingle();
 	FReply OnButtonClickedBakeMultiple();
+
+private:
+
+	/** Helper method used to create actual static meshes. **/
+	void CreateStaticMeshes(bool bMultipleMeshes);
 
 private:
 
