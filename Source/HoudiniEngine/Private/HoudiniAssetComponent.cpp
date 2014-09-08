@@ -1091,6 +1091,10 @@ UHoudiniAssetComponent::GetPropertyType(UProperty* Property) const
 	{
 		return EHoudiniEngineProperty::Enumeration;
 	}
+	else if(UObjectProperty::StaticClass() == Property->GetClass())
+	{
+		return EHoudiniEngineProperty::Object;
+	}
 	else if(UStructProperty::StaticClass() == Property->GetClass())
 	{
 		UStructProperty* StructProperty = Cast<UStructProperty>(Property);
@@ -1155,6 +1159,12 @@ UHoudiniAssetComponent::GetPropertyType(HAPI_ParmType PropertyType, int ChoiceCo
 		case HAPI_PARMTYPE_COLOR:
 		{
 			PropertyClass = UStructProperty::StaticClass();
+			break;
+		}
+
+		case HAPI_PARMTYPE_PATH_NODE:
+		{
+			PropertyClass = UObjectProperty::StaticClass();
 			break;
 		}
 
@@ -1585,6 +1595,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			case HAPI_PARMTYPE_TOGGLE:
 			case HAPI_PARMTYPE_COLOR:
 			case HAPI_PARMTYPE_STRING:
+			case HAPI_PARMTYPE_PATH_NODE:
 			{
 				break;
 			}
@@ -1737,6 +1748,17 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 			case HAPI_PARMTYPE_COLOR:
 			{
 				Property = CreatePropertyColor(ClassInstance, UniquePropertyName, ParmInfoIter.size, &ParmValuesFloats[ParmInfoIter.floatValuesIndex], ValuesOffsetEnd, bPropertyChanged);
+				break;
+			}
+
+			case HAPI_PARMTYPE_PATH_NODE:
+			{
+				FString NameString;
+				if(ParmInfoIter.size && FHoudiniEngineUtils::GetHoudiniString(ParmInfoIter.typeInfoSH, NameString) && NameString == TEXT("SOP"))
+				{
+					Property = CreatePropertyObject(ClassInstance, UniquePropertyName, nullptr, ValuesOffsetEnd, bPropertyChanged);
+				}	
+
 				break;
 			}
 
@@ -1994,6 +2016,12 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 			break;
 		}
 
+		case EHoudiniEngineProperty::Object:
+		{
+			Property = CreatePropertyObject(ClassInstance, Name, PropertyFlags);
+			break;
+		}
+
 		default:
 		{
 			break;
@@ -2004,6 +2032,62 @@ UHoudiniAssetComponent::CreateProperty(UClass* ClassInstance, const FString& Nam
 	{
 		CreatedProperties.Add(Property);
 	}
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyObject(UClass* ClassInstance, const FString& Name, uint64 PropertyFlags)
+{
+	static const EObjectFlags PropertyObjectFlags = RF_Public | RF_Transient;
+
+	UObjectProperty* Property = FindObject<UObjectProperty>(ClassInstance, *Name, false);
+	if(!Property)
+	{
+		Property = NewNamedObject<UObjectProperty>(ClassInstance, FName(*Name), PropertyObjectFlags);
+	}
+
+	Property->PropertyLinkNext = nullptr;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
+	Property->PropertyFlags = PropertyFlags;
+
+	return Property;
+}
+
+
+UProperty*
+UHoudiniAssetComponent::CreatePropertyObject(UClass* ClassInstance, const FString& Name, UObject* Object, uint32& Offset, bool bUpdateValue)
+{
+	static const uint64 PropertyFlags = UINT64_C(69793219077);
+
+	// Create property or locate existing.
+	UObjectProperty* Property = Cast<UObjectProperty>(CreatePropertyObject(ClassInstance, Name, PropertyFlags));
+
+	// Set property size. Larger than one indicates array.
+	Property->ArrayDim = 1;
+
+	// Set the class of this property.
+	Property->PropertyClass = UStaticMesh::StaticClass();
+
+	// We need to compute proper alignment for this type.
+	UObject** Boundary = ComputeOffsetAlignmentBoundary<UObject*>(Offset);
+	Offset = (const char*) Boundary - (const char*) this;
+
+	// Need to patch offset for this property.
+	ReplacePropertyOffset(Property, Offset);
+
+	// Write property data to which it refers by offset.
+	if(bUpdateValue)
+	{
+		if(Object)
+		{
+			*Boundary = Object;
+		}
+	}
+
+	// Increment offset for next property.
+	Offset = Offset + sizeof(UObject*);
 
 	return Property;
 }
