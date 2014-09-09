@@ -251,8 +251,14 @@ private:
 	/** Unsubscribe from Editor events. **/
 	void UnsubscribeEditorDelegates();
 
-	/** Set parameter values which have changed. **/
-	void SetChangedParameterValues();
+	/** Set changed property values. **/
+	void SetChangedPropertyValues();
+
+	/** Set parameter value which has changed. **/
+	void SetChangedParameterValue(const HAPI_AssetInfo& AssetInfo, UProperty* Property);
+
+	/** Set input value which has changed. **/
+	void SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UProperty* Property);
 
 	/** Helper function to compute proper alignment boundary at a given offset for a specified type. **/
 	template <typename TType> TType* ComputeOffsetAlignmentBoundary(uint32 Offset) const;
