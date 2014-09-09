@@ -740,8 +740,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 		else
 		{
-			// We need to set all parameter values which have changed.
-			SetChangedParameterValues();
+			// We need to set all property values which have changed.
+			SetChangedPropertyValues();
 
 			// Remove all processed parameters.
 			ChangedProperties.Empty();
@@ -1631,9 +1631,14 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 		// Create object property.
 		UProperty* Property = CreatePropertyObject(ClassInstance, InputString, nullptr, ValuesOffsetEnd, bPropertyChanged);
+		
+		// Store necessary metadata.
 		Property->SetMetaData(TEXT("Category"), TEXT("HoudiniInputs"));
 		Property->SetMetaData(TEXT("HoudiniParmName"), *InputString);
 		Property->SetMetaData(TEXT("DisplayName"), *InputString);
+
+		// Store index of this input in meta data.
+		Property->SetMetaData(TEXT("HoudiniInputIndex"), *FString::FromInt(InputIdx));
 
 		// Store this property in a list of created properties.
 		CreatedProperties.Add(Property);
@@ -2594,7 +2599,7 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FStrin
 
 
 void
-UHoudiniAssetComponent::SetChangedParameterValues()
+UHoudiniAssetComponent::SetChangedPropertyValues()
 {
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	HAPI_AssetInfo AssetInfo;
@@ -2608,121 +2613,186 @@ UHoudiniAssetComponent::SetChangedParameterValues()
 		// Retrieve offset into scratch space for this property.
 		uint32 ValueOffset = Property->GetOffset_ForDebug();
 
-		// Retrieve parameter name.
-		const FString& ParameterName = Property->GetMetaData(TEXT("HoudiniParmName"));
-		std::wstring PropertyName(*ParameterName);
-		std::string PropertyNameConverted(PropertyName.begin(), PropertyName.end());
+		static const FString CategoryHoudiniProperties = TEXT("HoudiniProperties");
+		static const FString CategoryHoudiniInputs = TEXT("HoudiniInputs");
 
-		HAPI_ParmId ParamId;
-		HAPI_ParmInfo ParamInfo;
+		const FString& Category = Property->GetMetaData(TEXT("Category"));
 
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIdFromName(AssetInfo.nodeId, PropertyNameConverted.c_str(), &ParamId), void());
-		HOUDINI_CHECK_ERROR(&Result, HAPI_GetParameters(AssetInfo.nodeId, &ParamInfo, ParamId, 1));
-
-		if(-1 == ParamId)
+		if(Category == CategoryHoudiniProperties)
 		{
-			// Parameter has not been found, skip this property.
-			continue;
+			// This is a property corresponding to parameter.
+			SetChangedParameterValue(AssetInfo, Property);
+		}
+		else if(Category == CategoryHoudiniInputs)
+		{
+			// This is a property corresponding to input.
+			SetChangedInputValue(AssetInfo, Property);
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UProperty* Property)
+{
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	if(!Property->HasMetaData(TEXT("HoudiniInputIndex")))
+	{
+		// Property corresponding to input should contain index meta information.
+		check(false);
+		return;
+	}
+
+	// Retrieve index meta information.
+	int32 InputIndex = FCString::Atoi(*Property->GetMetaData(TEXT("HoudiniInputIndex")));
+
+	// Make sure index is valid.
+	if(InputIndex >= AssetInfo.maxGeoInputCount)
+	{
+		check(false);
+		return;
+	}
+
+	// Make sure property is handling static meshes only.
+	UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
+	if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
+	{
+		// Retrieve offset into scratch space for this property and read the value (should be static mesh).
+		uint32 ValueOffset = Property->GetOffset_ForDebug();
+		UObject* Object = *(UObject**)((const char*) this + ValueOffset);
+
+		if(!Object)
+		{
+			// Assigned static mesh is not set, there's nothing we can do.
+
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::SetChangedParameterValue(const HAPI_AssetInfo& AssetInfo, UProperty* Property)
+{
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	
+	// Retrieve offset into scratch space for this property.
+	uint32 ValueOffset = Property->GetOffset_ForDebug();
+
+	// Retrieve parameter name.
+	const FString& ParameterName = Property->GetMetaData(TEXT("HoudiniParmName"));
+	std::wstring PropertyName(*ParameterName);
+	std::string PropertyNameConverted(PropertyName.begin(), PropertyName.end());
+
+	HAPI_ParmId ParamId;
+	HAPI_ParmInfo ParamInfo;
+
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIdFromName(AssetInfo.nodeId, PropertyNameConverted.c_str(), &ParamId), void());
+	HOUDINI_CHECK_ERROR(&Result, HAPI_GetParameters(AssetInfo.nodeId, &ParamInfo, ParamId, 1));
+
+	if(-1 == ParamId)
+	{
+		// Parameter has not been found, skip this property.
+		return;
+	}
+
+	if(UIntProperty::StaticClass() == Property->GetClass())
+	{
+		check(ParamInfo.size == Property->ArrayDim);
+
+		std::vector<int> Values(Property->ArrayDim, 0);
+		for(int Index = 0; Index < Property->ArrayDim; ++Index)
+		{
+			Values[Index] = *(int*)((const char*) this + ValueOffset);
+			ValueOffset += sizeof(int);
 		}
 
-		if(UIntProperty::StaticClass() == Property->GetClass())
+		HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &Values[0], ParamInfo.intValuesIndex, ParamInfo.size));
+	}
+	else if(UBoolProperty::StaticClass() == Property->GetClass())
+	{
+		check(ParamInfo.size == Property->ArrayDim);
+
+		std::vector<int> Values(Property->ArrayDim, 0);
+		for(int Index = 0; Index < Property->ArrayDim; ++Index)
 		{
-			check(ParamInfo.size == Property->ArrayDim);
-
-			std::vector<int> Values(Property->ArrayDim, 0);
-			for(int Index = 0; Index < Property->ArrayDim; ++Index)
-			{
-				Values[Index] = *(int*)((const char*) this + ValueOffset);
-				ValueOffset += sizeof(int);
-			}
-
-			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &Values[0], ParamInfo.intValuesIndex, ParamInfo.size));
+			Values[Index] = *(bool*)((const char*) this + ValueOffset);
+			ValueOffset += sizeof(bool);
 		}
-		else if(UBoolProperty::StaticClass() == Property->GetClass())
+
+		HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &Values[0], ParamInfo.intValuesIndex, ParamInfo.size));
+	}
+	else if(UFloatProperty::StaticClass() == Property->GetClass())
+	{
+		check(ParamInfo.size == Property->ArrayDim);
+
+		std::vector<float> Values(Property->ArrayDim, 0.0f);
+		for(int Index = 0; Index < Property->ArrayDim; ++Index)
 		{
-			check(ParamInfo.size == Property->ArrayDim);
-
-			std::vector<int> Values(Property->ArrayDim, 0);
-			for(int Index = 0; Index < Property->ArrayDim; ++Index)
-			{
-				Values[Index] = *(bool*)((const char*) this + ValueOffset);
-				ValueOffset += sizeof(bool);
-			}
-
-			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &Values[0], ParamInfo.intValuesIndex, ParamInfo.size));
+			Values[Index] = *(float*)((const char*) this + ValueOffset);
+			ValueOffset += sizeof(float);
 		}
-		else if(UFloatProperty::StaticClass() == Property->GetClass())
+
+		HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmFloatValues(AssetInfo.nodeId, &Values[0], ParamInfo.floatValuesIndex, ParamInfo.size));
+	}
+	else if(UStrProperty::StaticClass() == Property->GetClass())
+	{
+		check(ParamInfo.size == Property->ArrayDim);
+
+		for(int Index = 0; Index < Property->ArrayDim; ++Index)
 		{
-			check(ParamInfo.size == Property->ArrayDim);
+			// Get string at this index.
+			FString* UnrealString = (FString*) ((const char*) this + ValueOffset);
+			std::string String = TCHAR_TO_ANSI(*(*UnrealString));
 
-			std::vector<float> Values(Property->ArrayDim, 0.0f);
-			for(int Index = 0; Index < Property->ArrayDim; ++Index)
-			{
-				Values[Index] = *(float*)((const char*) this + ValueOffset);
-				ValueOffset += sizeof(float);
-			}
+			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, Index));
 
-			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmFloatValues(AssetInfo.nodeId, &Values[0], ParamInfo.floatValuesIndex, ParamInfo.size));
+			// Continue onto next offset.
+			ValueOffset += sizeof(FString);
 		}
-		else if(UStrProperty::StaticClass() == Property->GetClass())
+	}
+	else if(UByteProperty::StaticClass() == Property->GetClass())
+	{
+		UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
+
+		// Get index value at this offset.
+		int EnumValue = (int)(*(uint8*)((const char*) this + ValueOffset));
+
+		if(ByteProperty->HasMetaData(TEXT("HoudiniStringChoiceList")))
 		{
-			check(ParamInfo.size == Property->ArrayDim);
+			// This property corresponds to a string choice list.
+			FText EnumText = ByteProperty->Enum->GetEnumText(EnumValue);
+			std::string String = TCHAR_TO_ANSI(*EnumText.ToString());
 
-			for(int Index = 0; Index < Property->ArrayDim; ++Index)
-			{
-				// Get string at this index.
-				FString* UnrealString = (FString*) ((const char*) this + ValueOffset);
-				std::string String = TCHAR_TO_ANSI(*(*UnrealString));
-
-				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, Index));
-
-				// Continue onto next offset.
-				ValueOffset += sizeof(FString);
-			}
+			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, 0));
 		}
-		else if(UByteProperty::StaticClass() == Property->GetClass())
+		else
 		{
-			UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
+			// This property corresponds to an integer choice list.
+			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &EnumValue, ParamInfo.intValuesIndex, ParamInfo.size));
+		}
+	}
+	else if(UStructProperty::StaticClass() == Property->GetClass())
+	{
+		UStructProperty* StructProperty = Cast<UStructProperty>(Property);
 
-			// Get index value at this offset.
-			int EnumValue = (int)(*(uint8*)((const char*) this + ValueOffset));
+		if(UHoudiniAssetComponent::ScriptStructColor == StructProperty->Struct)
+		{
+			// Extract color information.
+			FColor UnrealColor = *(FColor*)((const char*) this + ValueOffset);
+			std::vector<float> Values(4, 0.0f);
 
-			if(ByteProperty->HasMetaData(TEXT("HoudiniStringChoiceList")))
+			if(StructProperty->HasMetaData(TEXT("HideAlphaChannel")))
 			{
-				// This property corresponds to a string choice list.
-				FText EnumText = ByteProperty->Enum->GetEnumText(EnumValue);
-				std::string String = TCHAR_TO_ANSI(*EnumText.ToString());
-
-				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, 0));
+				FHoudiniEngineUtils::ConvertUnrealColorRGB(UnrealColor, &Values[0]);
+				Values[3] = 1.0f;
 			}
 			else
 			{
-				// This property corresponds to an integer choice list.
-				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmIntValues(AssetInfo.nodeId, &EnumValue, ParamInfo.intValuesIndex, ParamInfo.size));
+				FHoudiniEngineUtils::ConvertUnrealColorRGBA(UnrealColor, &Values[0]);
 			}
-		}
-		else if(UStructProperty::StaticClass() == Property->GetClass())
-		{
-			UStructProperty* StructProperty = Cast<UStructProperty>(Property);
 
-			if(UHoudiniAssetComponent::ScriptStructColor == StructProperty->Struct)
-			{
-				// Extract color information.
-				FColor UnrealColor = *(FColor*)((const char*) this + ValueOffset);
-				std::vector<float> Values(4, 0.0f);
-
-				if(StructProperty->HasMetaData(TEXT("HideAlphaChannel")))
-				{
-					FHoudiniEngineUtils::ConvertUnrealColorRGB(UnrealColor, &Values[0]);
-					Values[3] = 1.0f;
-				}
-				else
-				{
-					FHoudiniEngineUtils::ConvertUnrealColorRGBA(UnrealColor, &Values[0]);
-				}
-
-				HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmFloatValues(AssetInfo.nodeId, &Values[0], ParamInfo.floatValuesIndex, ParamInfo.size));
-			}
+			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmFloatValues(AssetInfo.nodeId, &Values[0], ParamInfo.floatValuesIndex, ParamInfo.size));
 		}
 	}
 }
