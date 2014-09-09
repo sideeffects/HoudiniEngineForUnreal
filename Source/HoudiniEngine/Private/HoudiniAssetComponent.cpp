@@ -327,7 +327,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 void
 UHoudiniAssetComponent::AssignUniqueActorLabel()
 {
-	if(-1 != AssetId)
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
 		AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
 		if(HoudiniAssetActor)
@@ -566,7 +566,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					// Set new asset id.
 					SetAssetId(TaskInfo.AssetId);
 
-					if(-1 == TaskInfo.AssetId)
+					if(!FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
 						bStopTicking = true;
 						HOUDINI_LOG_MESSAGE(TEXT("    Received invalid asset id."));
@@ -594,7 +594,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				case EHoudiniEngineTaskState::FinishedInstantiation:
 				case EHoudiniEngineTaskState::FinishedCooking:
 				{
-					if(-1 != TaskInfo.AssetId)
+					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
 						// Set new asset id.
 						SetAssetId(TaskInfo.AssetId);
@@ -945,7 +945,7 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 	ClearGeos();
 
 	// If we have an asset.
-	if(-1 != AssetId && bIsNativeComponent)
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && bIsNativeComponent)
 	{
 		// Generate GUID for our new task.
 		HapiGUID = FGuid::NewGuid();
@@ -1559,7 +1559,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	std::vector<char> ParmName;
 	std::vector<char> ParmLabel;
 
-	if(-1 == AssetId)
+	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
 		// There's no Houdini asset, we can return. This is typically hit when component is being loaded during serialization.
 		return true;
@@ -2662,10 +2662,11 @@ UHoudiniAssetComponent::SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UP
 		uint32 ValueOffset = Property->GetOffset_ForDebug();
 		UObject* Object = *(UObject**)((const char*) this + ValueOffset);
 
-		if(!Object)
+		// If we have valid static mesh assigned, we need to marshal it into HAPI.
+		HAPI_AssetId ConnectedAssetId = -1;
+		if(FHoudiniEngineUtils::HapiCreateAndConnectAsset(AssetId, InputIndex, Cast<UStaticMesh>(Object), ConnectedAssetId))
 		{
-			// Assigned static mesh is not set, there's nothing we can do.
-
+			// We successfully created input asset, now we need to record connections for book keeping purposes.
 		}
 	}
 }
@@ -2899,7 +2900,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	else if(Category == CategoryHoudiniInputs)
 	{
 		// We are changing one of the Houdini inputs.
-
 	}
 	else
 	{
@@ -2908,7 +2908,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	}
 
 	// If this is a loaded component, we need instantiation.
-	if(bLoadedComponent && (-1 == AssetId) && !bLoadedComponentRequiresInstantiation)
+	if(bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId(AssetId) && !bLoadedComponentRequiresInstantiation)
 	{
 		bLoadedComponentRequiresInstantiation = true;
 	}
@@ -3186,7 +3186,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	if(Ar.IsSaving())
 	{
-		if(-1 != AssetId)
+		if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
 		{
 			// Asset has been previously instantiated.
 

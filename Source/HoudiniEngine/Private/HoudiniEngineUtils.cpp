@@ -31,6 +31,14 @@ const FString kResultStringCannotGeneratePreset(TEXT("Uneable to Generate Preset
 const FString kResultStringCannotLoadPreset(TEXT("Uneable to Load Preset"));
 
 
+const float
+FHoudiniEngineUtils::ScaleFactorPosition = 75.0f;
+
+
+const float
+FHoudiniEngineUtils::ScaleFactorTranslate = 50.0f;
+
+
 const FString
 FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 {
@@ -672,10 +680,6 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 	std::vector<float> Colors;
 	std::vector<float> Tangents;
 
-	// Geometry scale factors.
-	static const float ScaleFactorPosition = 75.0f;
-	static const float ScaleFactorTranslate = 50.0f;
-
 	// Retrieve asset name for material and texture name generation.
 	FString AssetName;
 	FHoudiniEngineUtils::GetHoudiniAssetName(AssetId, AssetName);
@@ -703,7 +707,8 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 		// Convert HAPI transform to a matrix form.
 		FMatrix TransformMatrix;
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_ConvertTransformQuatToMatrix(&ObjectTransforms[ObjectIdx], &TransformMatrix.M[0][0]), false);
-		TransformMatrix.ScaleTranslation(FVector(ScaleFactorTranslate, ScaleFactorTranslate, ScaleFactorTranslate));
+		TransformMatrix.ScaleTranslation(FVector(FHoudiniEngineUtils::ScaleFactorTranslate, FHoudiniEngineUtils::ScaleFactorTranslate, 
+												 FHoudiniEngineUtils::ScaleFactorTranslate));
 
 		// We need to swap transforms for Z and Y.
 		float TransformSwapY = TransformMatrix.M[3][1];
@@ -838,19 +843,19 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 						// Need to flip the Y with the Z since UE4 is Z-up.
 						// Need to flip winding order also.
 
-						Triangle.Vertex0.X = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 0] * ScaleFactorPosition;
-						Triangle.Vertex0.Z = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 1] * ScaleFactorPosition;
-						Triangle.Vertex0.Y = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 2] * ScaleFactorPosition;
+						Triangle.Vertex0.X = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 0] * FHoudiniEngineUtils::ScaleFactorPosition;
+						Triangle.Vertex0.Z = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
+						Triangle.Vertex0.Y = Positions[VertexList[TriangleIdx * 3 + 0] * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
 						//UpdateBoundingVolumeExtent(Triangle.Vertex0, ExtentMin, ExtentMax);
 
-						Triangle.Vertex2.X = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 0] * ScaleFactorPosition;
-						Triangle.Vertex2.Z = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 1] * ScaleFactorPosition;
-						Triangle.Vertex2.Y = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 2] * ScaleFactorPosition;
+						Triangle.Vertex2.X = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 0] * FHoudiniEngineUtils::ScaleFactorPosition;
+						Triangle.Vertex2.Z = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
+						Triangle.Vertex2.Y = Positions[VertexList[TriangleIdx * 3 + 1] * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
 						//UpdateBoundingVolumeExtent(Triangle.Vertex2, ExtentMin, ExtentMax);
 
-						Triangle.Vertex1.X = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 0] * ScaleFactorPosition;
-						Triangle.Vertex1.Z = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 1] * ScaleFactorPosition;
-						Triangle.Vertex1.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * ScaleFactorPosition;
+						Triangle.Vertex1.X = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 0] * FHoudiniEngineUtils::ScaleFactorPosition;
+						Triangle.Vertex1.Z = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
+						Triangle.Vertex1.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
 						//UpdateBoundingVolumeExtent(Triangle.Vertex1, ExtentMin, ExtentMax);
 
 						// Process texture information.
@@ -1377,6 +1382,102 @@ FHoudiniEngineUtils::HapiIsMaterialTransparent(const HAPI_MaterialInfo& Material
 {
 	float Alpha = FHoudiniEngineUtils::HapiGetParameterDataAsFloat(MaterialInfo.nodeId, "ogl_alpha", 1.0f);
 	return Alpha < 0.95f;
+}
+
+
+bool
+FHoudiniEngineUtils::IsValidAssetId(HAPI_AssetId AssetId)
+{
+	return -1 != AssetId;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int InputIndex, UStaticMesh* StaticMesh, HAPI_AssetId& ConnectedAssetId)
+{
+	// We return invalid asset input id by default.
+	ConnectedAssetId = -1;
+
+	// If we don't have a static mesh, or host asset is invalid, there's nothing to do.
+	if(!StaticMesh || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
+	{
+		return false;
+	}
+
+	HAPI_AssetId AssetId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_CreateInputAsset(&AssetId, nullptr), false);
+
+	// Check if we have a valid id for this new input asset.
+	if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
+	{
+		return false;
+	}
+
+	// We now have a valid id.
+	ConnectedAssetId = AssetId;
+
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_CookAsset(AssetId, nullptr), false);
+	
+	// Grab base LOD level.
+	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+
+	// Load the existing raw mesh.
+	FRawMesh RawMesh;
+	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+	// Create part.
+	HAPI_PartInfo Part = HAPI_PartInfo_Create();
+	Part.vertexCount = RawMesh.WedgeIndices.Num();
+	Part.faceCount =  RawMesh.WedgeIndices.Num() / 3;
+	Part.pointCount = RawMesh.VertexPositions.Num();
+	Part.isCurve = false;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetPartInfo(ConnectedAssetId, 0, 0, &Part), false);
+
+	// Create point attribute info.
+	HAPI_AttributeInfo AttributeInfoPoint = HAPI_AttributeInfo_Create();
+	AttributeInfoPoint.count = RawMesh.VertexPositions.Num();
+	AttributeInfoPoint.tupleSize = 3; 
+	AttributeInfoPoint.exists = true;
+	AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint), false);
+
+	// Extract vertices from static mesh.
+	std::vector<float> StaticMeshVertices;
+	for(int VertexIdx = 0; VertexIdx < RawMesh.VertexPositions.Num(); ++VertexIdx)
+	{
+		// Grab vertex at this index (we also need to swap Z and Y).
+		const FVector& PositionVector = RawMesh.VertexPositions[VertexIdx];
+		StaticMeshVertices.push_back(PositionVector.X / FHoudiniEngineUtils::ScaleFactorPosition);
+		StaticMeshVertices.push_back(PositionVector.Z / FHoudiniEngineUtils::ScaleFactorPosition);
+		StaticMeshVertices.push_back(PositionVector.Y / FHoudiniEngineUtils::ScaleFactorPosition);
+	}
+
+	// Now that we have raw positions, we can upload them for our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint, 
+														  &StaticMeshVertices[0], 0, AttributeInfoPoint.count), false);
+
+	// Extract indices from static mesh.
+	std::vector<int> StaticMeshIndices;
+	for(int IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); ++IndexIdx)
+	{
+		StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx]);
+	}
+
+	// We can now set vertex list.
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetVertexList(ConnectedAssetId, 0, 0, &StaticMeshIndices[0], 0, StaticMeshIndices.size()), false);
+
+	// We need to generate array of face counts.
+	std::vector<int> StaticMeshFaceCounts(Part.faceCount, 3);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetFaceCounts(ConnectedAssetId, 0, 0, &StaticMeshFaceCounts[0], 0, StaticMeshFaceCounts.size()), false);
+
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_CommitGeo(ConnectedAssetId, 0, 0), false);
+
+	// Now we can connect assets together.
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_ConnectAssetGeometry(ConnectedAssetId, 0, HostAssetId, InputIndex), false);
+
+	return true;
 }
 
 
