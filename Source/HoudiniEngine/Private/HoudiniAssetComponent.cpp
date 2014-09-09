@@ -1609,7 +1609,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	uint32 ValuesOffsetEnd = ValuesOffsetStart;
 
 	// Create properties for inputs.
-	for(int InputIdx = 0; InputIdx < AssetInfo.maxGeoInputCount; ++InputIdx)
+	for(int InputIdx = 0; InputIdx < AssetInfo.geoInputCount; ++InputIdx)
 	{
 		// Get input string handle.
 		HAPI_StringHandle InputStringHandle;
@@ -2648,7 +2648,7 @@ UHoudiniAssetComponent::SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UP
 	int32 InputIndex = FCString::Atoi(*Property->GetMetaData(TEXT("HoudiniInputIndex")));
 
 	// Make sure index is valid.
-	if(InputIndex >= AssetInfo.maxGeoInputCount)
+	if(InputIndex >= AssetInfo.geoInputCount)
 	{
 		check(false);
 		return;
