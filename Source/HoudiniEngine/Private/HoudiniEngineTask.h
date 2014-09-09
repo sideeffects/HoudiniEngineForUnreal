@@ -21,11 +21,8 @@ namespace EHoudiniEngineTaskType
 	{
 		None,
 
-		/** This type corresponds to Houdini asset instantiation with cooking. **/
+		/** This type corresponds to Houdini asset instantiation (without cooking). **/
 		AssetInstantiation,
-
-		/** This type corresponds to Houdini asset instantiation without cooking. **/
-		AssetInstantiationWithoutCooking,
 
 		/** This type corresponds to Houdini asset cooking request. **/
 		AssetCooking,

@@ -73,7 +73,7 @@ FHoudiniEngineScheduler::TaskDescription(FHoudiniEngineTaskInfo& TaskInfo, const
 
 
 void
-FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bool bCook)
+FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 {
 	HOUDINI_LOG_MESSAGE(
 		TEXT("HAPI Asynchronous Instantiation Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
@@ -108,13 +108,6 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bo
 	AssetNames.resize(AssetCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), void());
 
-	// Type of action we are performing.
-	EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiationWithoutCooking;
-	if(bCook)
-	{
-		HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
-	}
-
 	// If we have assets, instantiate first one.
 	if(AssetCount && FHoudiniEngineUtils::HapiGetString(AssetNames[0], AssetNameString))
 	{
@@ -125,10 +118,12 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bo
 		LastUpdateTime = FPlatformTime::Seconds();
 
 		HAPI_AssetId AssetId = -1;
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetNameString[0], bCook, &AssetId), void());
+		
+		// We instantiate without cooking.
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetNameString[0], false, &AssetId), void());
 
 		// Add processing notification.
-		FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, -1, HoudiniEngineTaskType, EHoudiniEngineTaskState::Processing);
+		FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, -1, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::Processing);
 		TaskDescription(TaskInfo, Task.ActorName, TEXT("Started Instantiation"));
 		FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
@@ -140,14 +135,8 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bo
 
 			if(HAPI_STATE_READY == Status)
 			{
-				EHoudiniEngineTaskState::Type HoudiniEngineTaskState = EHoudiniEngineTaskState::FinishedInstantiationWithoutCooking;
-				if(bCook)
-				{
-					HoudiniEngineTaskState = EHoudiniEngineTaskState::FinishedInstantiation;
-				}
-
 				// Cooking has been successful.
-				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, HoudiniEngineTaskType, HoudiniEngineTaskState);
+				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::FinishedInstantiation);
 				TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Instantiation"));
 				FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
@@ -155,14 +144,9 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bo
 			}
 			else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status || HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
 			{
-				EHoudiniEngineTaskState::Type HoudiniEngineTaskState = EHoudiniEngineTaskState::FinishedInstantiationWithoutCookingWithErrors;
-				if(bCook)
-				{
-					HoudiniEngineTaskState = EHoudiniEngineTaskState::FinishedInstantiationWithErrors;
-				}
-
 				// There was an error while instantiating.
-				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, HoudiniEngineTaskType, HoudiniEngineTaskState);
+				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, 
+												EHoudiniEngineTaskState::FinishedInstantiationWithErrors);
 				TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Instantiation with Errors"));
 				FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
@@ -182,7 +166,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task, bo
 				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
 				FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
 
-				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, HoudiniEngineTaskType, EHoudiniEngineTaskState::Processing);
+				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::Processing);
 				TaskDescription(TaskInfo, Task.ActorName, StatusString);
 				FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 			}
@@ -341,12 +325,6 @@ FHoudiniEngineScheduler::ProcessQueuedTasks()
 				case EHoudiniEngineTaskType::AssetInstantiation:
 				{
 					TaskInstantiateAsset(Task);
-					break;
-				}
-
-				case EHoudiniEngineTaskType::AssetInstantiationWithoutCooking:
-				{
-					TaskInstantiateAsset(Task, false);
 					break;
 				}
 

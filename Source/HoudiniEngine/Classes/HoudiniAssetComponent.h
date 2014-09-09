@@ -346,8 +346,8 @@ protected:
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;
 
-	/** Map of instanced static meshes by this component. **/
-	TMap<UStaticMesh*, TPair<HAPI_AssetId, int> > InstancedStaticMeshes;
+	/** List of input asset ids for this component. **/
+	TMap<UStaticMesh*, HAPI_AssetId> InputAssetIds;
 
 	/** Array of properties we have created. We keep these for serialization purposes. **/
 	TArray<UProperty*> CreatedProperties;
@@ -416,6 +416,9 @@ protected:
 
 	/** Is set to true when component is loaded and no instantiation / cooking is necessary. **/
 	bool bLoadedComponentRequiresInstantiation;
+
+	/** Is set to true when asset has been instantiated, but not cooked. **/
+	bool bInstantiated;
 
 	/** Is set to true when blueprint component is being destroyed outside the regular		**/
 	/** blueprint create/destroy cycle.														**/

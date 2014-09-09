@@ -71,6 +71,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bPreSaveTriggered(false),
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
+	bInstantiated(false),
 	bIsRealDestroy(true),
 	bIsPlayModeActive(false),
 	bIsDefaultClass(false),
@@ -561,38 +562,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 			switch(TaskInfo.TaskState)
 			{
-				case EHoudiniEngineTaskState::FinishedInstantiationWithoutCooking:
-				{
-					// Set new asset id.
-					SetAssetId(TaskInfo.AssetId);
-
-					if(!FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
-					{
-						bStopTicking = true;
-						HOUDINI_LOG_MESSAGE(TEXT("    Received invalid asset id."));
-					}
-
-					// Otherwise we do not stop ticking, as we want to schedule a cook task right away (after submitting
-					// all changed parameters).
-					if(NotificationPtr.IsValid())
-					{
-						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
-						if(NotificationItem.IsValid())
-						{
-							NotificationItem->SetText(TaskInfo.StatusText);
-							NotificationItem->ExpireAndFadeout();
-
-							NotificationPtr.Reset();
-						}
-					}
-					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
-					HapiGUID.Invalidate();
-
-					break;
-				}
-
 				case EHoudiniEngineTaskState::FinishedInstantiation:
-				case EHoudiniEngineTaskState::FinishedCooking:
 				{
 					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
@@ -602,14 +572,44 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Assign unique actor label based on asset name.
 						AssignUniqueActorLabel();
 
+						if(NotificationPtr.IsValid())
+						{
+							TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+							if(NotificationItem.IsValid())
+							{
+								NotificationItem->SetText(TaskInfo.StatusText);
+								NotificationItem->ExpireAndFadeout();
+
+								NotificationPtr.Reset();
+							}
+						}
+						FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
+						HapiGUID.Invalidate();
+
+						// We just finished instantiation, we need to schedule a cook.
+						bInstantiated = true;
+					}
+					else
+					{
+						bStopTicking = true;
+						HOUDINI_LOG_MESSAGE(TEXT("    Received invalid asset id."));
+					}
+
+					break;
+				}
+
+				case EHoudiniEngineTaskState::FinishedCooking:
+				{
+					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
+					{
+						// Set new asset id.
+						SetAssetId(TaskInfo.AssetId);
+
+						// Assign unique actor label based on asset name.
+						//AssignUniqueActorLabel();
+
 						// We need to patch component RTTI to reflect properties for this component.
 						ReplaceClassInformation(GetOuter()->GetName());
-
-						// Update properties panel.
-						if(EHoudiniEngineTaskState::FinishedInstantiation == TaskInfo.TaskState)
-						{
-							UpdateEditorProperties();
-						}
 
 						// Construct new objects (asset objects and asset object parts).
 						TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
@@ -638,6 +638,12 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						// Need to update rendering information.
 						UpdateRenderingInformation();
+
+						// Update properties panel after instantiation.
+						if(bInstantiated)
+						{
+							UpdateEditorProperties();
+						}
 					}
 					else
 					{
@@ -659,14 +665,25 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
 					bStopTicking = true;
+					bInstantiated = false;
 
 					break;
 				}
 
+				case EHoudiniEngineTaskState::FinishedCookingWithErrors:
+				{
+					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
+					{
+						// We need to patch component RTTI to reflect properties for this component.
+						ReplaceClassInformation(GetOuter()->GetName());
+
+						// Update properties panel.
+						UpdateEditorProperties();
+					}
+				}
+
 				case EHoudiniEngineTaskState::Aborted:
 				case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
-				case EHoudiniEngineTaskState::FinishedCookingWithErrors:
-				case EHoudiniEngineTaskState::FinishedInstantiationWithoutCookingWithErrors:
 				{
 					HOUDINI_LOG_MESSAGE(TEXT("    Failed asset instantiation."));
 
@@ -685,6 +702,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
 					bStopTicking = true;
+					bInstantiated = false;
 
 					break;
 				}
@@ -719,7 +737,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (ChangedProperties.Num() > 0))
+	if(bInstantiated || (!HapiGUID.IsValid() && (ChangedProperties.Num() > 0)))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -733,7 +751,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		{
 			bLoadedComponentRequiresInstantiation = false;
 
-			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiationWithoutCooking, HapiGUID);
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
 			Task.Asset = HoudiniAsset;
 			Task.ActorName = GetOuter()->GetName();
 			FHoudiniEngine::Get().AddTask(Task);
@@ -2664,9 +2682,22 @@ UHoudiniAssetComponent::SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UP
 
 		// If we have valid static mesh assigned, we need to marshal it into HAPI.
 		HAPI_AssetId ConnectedAssetId = -1;
-		if(FHoudiniEngineUtils::HapiCreateAndConnectAsset(AssetId, InputIndex, Cast<UStaticMesh>(Object), ConnectedAssetId))
+		UStaticMesh* StaticMesh = Cast<UStaticMesh>(Object);
+		if(!StaticMesh)
+		{
+			// We have no static mesh assigned, reset all geometry.
+			ClearGeos();
+			
+			// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
+			SetHoudiniLogoGeometry();
+
+			return;
+		}
+
+		if(FHoudiniEngineUtils::HapiCreateAndConnectAsset(AssetId, InputIndex, StaticMesh, ConnectedAssetId))
 		{
 			// We successfully created input asset, now we need to record connections for book keeping purposes.
+			InputAssetIds.Add(StaticMesh, ConnectedAssetId);
 		}
 	}
 }
@@ -2820,16 +2851,30 @@ UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(PropertyAboutToChange);
 		if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
 		{
-			/*
-			int32 Offset = ObjectProperty->GetOffset_ForDebug();
-			UObject* Boundary = *ComputeOffsetAlignmentBoundary<UObject*>(Offset);
+			// Get previous static mesh.
+			uint32 ValueOffset = ObjectProperty->GetOffset_ForDebug();
+			UStaticMesh* Mesh = Cast<UStaticMesh>(*(UObject**)((const char*) this + ValueOffset));
 
-			// If we had a static mesh input set, we need to remove it.
-			if(Boundary)
+			// Retrieve index meta information.
+			if(Mesh && ObjectProperty->HasMetaData(TEXT("HoudiniInputIndex")))
 			{
+				// Get input index.
+				int32 InputIndex = FCString::Atoi(*ObjectProperty->GetMetaData(TEXT("HoudiniInputIndex")));
 
+				// Disconnect what's connected to input at this index.
+				FHoudiniEngineUtils::HapiDisconnectAsset(AssetId, InputIndex);
+
+				// We also need to delete input asset created for this static mesh.
+				HAPI_AssetId const* MeshInputAssetId = InputAssetIds.Find(Mesh);
+				if(MeshInputAssetId)
+				{
+					// Schedule this asset for deletion.
+					FHoudiniEngineUtils::DestroyHoudiniAsset(*MeshInputAssetId);
+
+					// Remove input asset from our map.
+					InputAssetIds.Remove(Mesh);
+				}
 			}
-			*/
 		}
 	}
 
