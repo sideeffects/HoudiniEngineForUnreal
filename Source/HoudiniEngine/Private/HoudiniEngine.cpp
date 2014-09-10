@@ -123,6 +123,14 @@ FHoudiniEngine::StartupModule()
 		HoudiniLogoGeo->CreateRenderingResources();
 	}
 
+	// Extend main menu, we will add Houdini section to 'Window' menu tab.
+	{
+		MainMenuExtender = MakeShareable(new FExtender);
+		MainMenuExtender->AddMenuExtension("WindowLocalTabSpawners", EExtensionHook::After, NULL, FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngine::AddHoudiniMenuExtension));
+		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MainMenuExtender);
+	}
+
 	// Perform HAPI initialization.
 	HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
 	CookOptions.maxVerticesPerPrimitive = 3;
@@ -206,6 +214,58 @@ FHoudiniEngine::ShutdownModule()
 	{
 		delete HoudiniEngineScheduler;
 		HoudiniEngineScheduler = nullptr;
+	}
+}
+
+
+void
+FHoudiniEngine::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.BeginSection("Houdini", LOCTEXT("HoudiniLabel", "Houdini Engine"));
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("HoudiniMenuEntryTitle", "Save .hip file"),
+			LOCTEXT("HoudiniMenuEntryToolTip", "Saves a .hip file of the current Houdini scene."),
+			//FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tutorials"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngine::SaveHIPFile)));
+	MenuBuilder.EndSection();
+}
+
+
+void
+FHoudiniEngine::SaveHIPFile()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if(DesktopPlatform && FHoudiniEngineUtils::IsInitialized())
+	{
+		TArray<FString> SaveFilenames;
+		bool bSaved = false;
+		void* ParentWindowWindowHandle = NULL;
+
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+		if(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		{
+			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+		}
+
+		bSaved = DesktopPlatform->SaveFileDialog(ParentWindowWindowHandle,
+			NSLOCTEXT("SaveHIPFile", "SaveHIPFile", "Saves a .hip file of the current Houdini scene.").ToString(), 
+			*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)), 
+			TEXT(""), 
+			TEXT("Houdini HIP file|*.hip"),
+			EFileDialogFlags::None, 
+			SaveFilenames);
+
+		if(bSaved && SaveFilenames.Num())
+		{
+			// Get first path.
+			std::wstring HIPPath(*SaveFilenames[0]);
+			std::string HIPPathConverted(HIPPath.begin(), HIPPath.end());
+
+			// Save HIP file through Engine.
+			HAPI_SaveHIPFile(HIPPathConverted.c_str());
+		}
 	}
 }
 
