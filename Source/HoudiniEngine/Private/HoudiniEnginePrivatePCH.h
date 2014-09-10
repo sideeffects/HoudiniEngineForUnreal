@@ -39,6 +39,9 @@
 #include "DetailCategoryBuilder.h"
 #include "IDetailPropertyRow.h"
 #include "DetailWidgetRow.h"
+#include "LevelEditor.h"
+#include "IMainFrameModule.h"
+#include "DesktopPlatformModule.h"
 
 #include "Materials/MaterialExpressionTextureSample.h"
 

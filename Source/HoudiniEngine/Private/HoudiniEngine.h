@@ -58,6 +58,14 @@ private:
 	/** Register AssetType action. **/
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
 
+	/** Add menu extension for our module. **/
+	void AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder);
+
+public:
+
+	/** Menu action called to save a HIP file. **/
+	void SaveHIPFile();
+
 private:
 
 	/** Singleton instance of Houdini Engine. **/
@@ -79,6 +87,9 @@ private:
 
 	/** Houdini logo brush. **/
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;
+
+	/** The extender to pass to the level editor to extend it's window menu. **/
+	TSharedPtr<FExtender> MainMenuExtender;
 
 	/** Synchronization primitive. **/
 	FCriticalSection CriticalSection;
