@@ -63,6 +63,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	PatchedClass(nullptr),
 	Blueprint(nullptr),
 	AssetId(-1),
+	InputCount(0),
 	HapiNotificationStarted(0.0),
 	bContainsHoudiniLogoGeometry(false),
 	bIsNativeComponent(false),
@@ -564,10 +565,15 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			{
 				case EHoudiniEngineTaskState::FinishedInstantiation:
 				{
+					HOUDINI_LOG_MESSAGE(TEXT("    FinishedInstantiation."));
+
 					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
 						// Set new asset id.
 						SetAssetId(TaskInfo.AssetId);
+
+						// Compute number of inputs.
+						//ComputeInputCount();
 
 						// Assign unique actor label based on asset name.
 						AssignUniqueActorLabel();
@@ -600,10 +606,15 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 				case EHoudiniEngineTaskState::FinishedCooking:
 				{
+					HOUDINI_LOG_MESSAGE(TEXT("    FinishedCooking."));
+
 					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
 						// Set new asset id.
 						SetAssetId(TaskInfo.AssetId);
+
+						// Compute number of inputs.
+						ComputeInputCount();
 
 						// Assign unique actor label based on asset name.
 						//AssignUniqueActorLabel();
@@ -672,8 +683,13 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 				case EHoudiniEngineTaskState::FinishedCookingWithErrors:
 				{
+					HOUDINI_LOG_MESSAGE(TEXT("    FinishedCookingWithErrors."));
+
 					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
+						// Compute number of inputs.
+						ComputeInputCount();
+
 						// We need to patch component RTTI to reflect properties for this component.
 						ReplaceClassInformation(GetOuter()->GetName());
 
@@ -685,7 +701,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				case EHoudiniEngineTaskState::Aborted:
 				case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
 				{
-					HOUDINI_LOG_MESSAGE(TEXT("    Failed asset instantiation."));
+					HOUDINI_LOG_MESSAGE(TEXT("    FinishedInstantiationWithErrors."));
 
 					if(NotificationPtr.IsValid())
 					{
@@ -737,7 +753,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(bInstantiated || (!HapiGUID.IsValid() && (ChangedProperties.Num() > 0)))
+	if(!HapiGUID.IsValid() && (bInstantiated || (ChangedProperties.Num() > 0)))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -758,11 +774,20 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 		else
 		{
-			// We need to set all property values which have changed.
+			// We need to set all property values.
 			SetChangedPropertyValues();
 
-			// Remove all processed parameters.
-			ChangedProperties.Empty();
+			HAPI_AssetInfo AssetInfo;
+			if((HAPI_RESULT_SUCCESS == HAPI_GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
+			{
+				// Remove all processed parameters.
+				ClearChangedPropertiesAll();
+			}
+			else
+			{
+				// Asset has been instantiated, but not cooked. We cannot submit inputs yet.
+				ClearChangedPropertiesParameters();
+			}
 
 			// Create asset instantiation task object and submit it for processing.
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
@@ -1258,22 +1283,21 @@ UHoudiniAssetComponent::OnBluprintChanged(UBlueprint* Blueprint)
 void
 UHoudiniAssetComponent::OnHotLoad()
 {
-	//HOUDINI_LOG_MESSAGE( TEXT("as") );
+
 }
 
 
 void
 UHoudiniAssetComponent::OnBlueprintCompiled()
 {
-	//HOUDINI_LOG_MESSAGE( TEXT("asd") );
+
 }
 
 
 void
 UHoudiniAssetComponent::OnModulesChanged(FName Name, EModuleChangeReason Reason)
 {
-	//bool hurray = GCompilingBlueprint;
-	//HOUDINI_LOG_MESSAGE( TEXT("asd") );
+
 }
 
 
@@ -1301,6 +1325,52 @@ bool
 UHoudiniAssetComponent::HasReplacedClassInformation() const
 {
 	return PatchedClass != nullptr;
+}
+
+
+void
+UHoudiniAssetComponent::ComputeInputCount()
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		HAPI_AssetInfo AssetInfo;
+		if((HAPI_RESULT_SUCCESS == HAPI_GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
+		{
+			InputCount = AssetInfo.geoInputCount;
+		}
+	}
+	else
+	{
+		InputCount = 0;
+	}
+}
+
+
+void
+UHoudiniAssetComponent::ClearChangedPropertiesAll()
+{
+	ChangedProperties.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::ClearChangedPropertiesParameters()
+{
+	TMap<FString, UProperty*> InputProperties;
+	static const FString CategoryHoudiniInputs = TEXT("HoudiniInputs");
+
+	for(TMap<FString, UProperty*>::TIterator Iter(ChangedProperties); Iter; ++Iter)
+	{
+		UProperty* Property = Iter.Value();
+		const FString& Category = Property->GetMetaData(TEXT("Category"));
+		if(Category == CategoryHoudiniInputs)
+		{
+			InputProperties.Add(Iter.Key(), Property);
+		}
+	}
+
+	ChangedProperties.Empty();
+	ChangedProperties = InputProperties;
 }
 
 
@@ -1627,7 +1697,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	uint32 ValuesOffsetEnd = ValuesOffsetStart;
 
 	// Create properties for inputs.
-	for(int InputIdx = 0; InputIdx < AssetInfo.geoInputCount; ++InputIdx)
+	for(int InputIdx = 0; InputIdx < InputCount; ++InputIdx)
 	{
 		// Get input string handle.
 		HAPI_StringHandle InputStringHandle;
@@ -2124,6 +2194,12 @@ UHoudiniAssetComponent::CreatePropertyObject(UClass* ClassInstance, const FStrin
 	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
 
+	// Set property size. Larger than one indicates array.
+	Property->ArrayDim = 1;
+
+	// Set the class of this property.
+	Property->PropertyClass = UStaticMesh::StaticClass();
+
 	return Property;
 }
 
@@ -2135,12 +2211,6 @@ UHoudiniAssetComponent::CreatePropertyObject(UClass* ClassInstance, const FStrin
 
 	// Create property or locate existing.
 	UObjectProperty* Property = Cast<UObjectProperty>(CreatePropertyObject(ClassInstance, Name, PropertyFlags));
-
-	// Set property size. Larger than one indicates array.
-	Property->ArrayDim = 1;
-
-	// Set the class of this property.
-	Property->PropertyClass = UStaticMesh::StaticClass();
 
 	// We need to compute proper alignment for this type.
 	UObject** Boundary = ComputeOffsetAlignmentBoundary<UObject*>(Offset);
@@ -2619,6 +2689,8 @@ UHoudiniAssetComponent::CreatePropertyToggle(UClass* ClassInstance, const FStrin
 void
 UHoudiniAssetComponent::SetChangedPropertyValues()
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  SetChangedPropertyValues,           C" );
+
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	HAPI_AssetInfo AssetInfo;
 
@@ -2641,18 +2713,20 @@ UHoudiniAssetComponent::SetChangedPropertyValues()
 			// This is a property corresponding to parameter.
 			SetChangedParameterValue(AssetInfo, Property);
 		}
-		else if(Category == CategoryHoudiniInputs)
+		else if(Category == CategoryHoudiniInputs && AssetInfo.hasEverCooked)
 		{
 			// This is a property corresponding to input.
-			SetChangedInputValue(AssetInfo, Property);
+			SetChangedInputValue(Property);
 		}
 	}
 }
 
 
 void
-UHoudiniAssetComponent::SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UProperty* Property)
+UHoudiniAssetComponent::SetChangedInputValue(UProperty* Property)
 {
+	HOUDINI_TEST_LOG_MESSAGE( "  SetChangedInputValue,                  C" );
+
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	if(!Property->HasMetaData(TEXT("HoudiniInputIndex")))
@@ -2666,38 +2740,36 @@ UHoudiniAssetComponent::SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UP
 	int32 InputIndex = FCString::Atoi(*Property->GetMetaData(TEXT("HoudiniInputIndex")));
 
 	// Make sure index is valid.
-	if(InputIndex >= AssetInfo.geoInputCount)
+	// If we don't have a cooked asset, we can continue. Otherwise we need to make sure input index is valid.
+	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId) || InputIndex < InputCount)
 	{
-		check(false);
-		return;
-	}
-
-	// Make sure property is handling static meshes only.
-	UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
-	if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
-	{
-		// Retrieve offset into scratch space for this property and read the value (should be static mesh).
-		uint32 ValueOffset = Property->GetOffset_ForDebug();
-		UObject* Object = *(UObject**)((const char*) this + ValueOffset);
-
-		// If we have valid static mesh assigned, we need to marshal it into HAPI.
-		HAPI_AssetId ConnectedAssetId = -1;
-		UStaticMesh* StaticMesh = Cast<UStaticMesh>(Object);
-		if(!StaticMesh)
+		// Make sure property is handling static meshes only.
+		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
+		if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
 		{
-			// We have no static mesh assigned, reset all geometry.
-			ClearGeos();
+			// Retrieve offset into scratch space for this property and read the value (should be static mesh).
+			uint32 ValueOffset = Property->GetOffset_ForDebug();
+			UObject* Object = *(UObject**)((const char*) this + ValueOffset);
+
+			// If we have valid static mesh assigned, we need to marshal it into HAPI.
+			HAPI_AssetId ConnectedAssetId = -1;
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(Object);
+			if(!StaticMesh)
+			{
+				// We have no static mesh assigned, reset all geometry.
+				ClearGeos();
 			
-			// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
-			SetHoudiniLogoGeometry();
+				// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
+				SetHoudiniLogoGeometry();
 
-			return;
-		}
+				return;
+			}
 
-		if(FHoudiniEngineUtils::HapiCreateAndConnectAsset(AssetId, InputIndex, StaticMesh, ConnectedAssetId))
-		{
-			// We successfully created input asset, now we need to record connections for book keeping purposes.
-			InputAssetIds.Add(StaticMesh, ConnectedAssetId);
+			if(FHoudiniEngineUtils::HapiCreateAndConnectAsset(AssetId, InputIndex, StaticMesh, ConnectedAssetId))
+			{
+				// We successfully created input asset, now we need to record connections for book keeping purposes.
+				InputAssetIds.Add(StaticMesh, ConnectedAssetId);
+			}
 		}
 	}
 }
@@ -3315,6 +3387,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	int64 ScratchSpaceSize = HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE;
 	Ar << ScratchSpaceSize;
 
+	// Serialize input count.
+	Ar << InputCount;
+
 	if(Ar.IsLoading())
 	{
 		// Make sure scratch space size is suitable. We need to check this because size is defined by compile time constant.
@@ -3351,6 +3426,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		TMap<FName, FString> PropertyMeta;
 		TMap<FName, FString>* LookupPropertyMeta = nullptr;
 		UEnum* Enum = nullptr;
+		UStaticMesh* StaticMesh = nullptr;
 
 		if(Ar.IsSaving())
 		{
@@ -3414,106 +3490,203 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			PropertyMeta.Remove(TEXT("HoudiniPropertyChanged"));
 		}
 
-		if(EHoudiniEngineProperty::String == PropertyType)
+		switch(PropertyType)
 		{
-			// If it is a string property, we need to reconstruct string in case of loading.
-			FString* UnrealString = (FString*) ((const char*) this + PropertyOffset);
-
-			if(Ar.IsSaving())
+			// Serialization of String properties.
+			case EHoudiniEngineProperty::String:
 			{
-				Ar << *UnrealString;
+				// If it is a string property, we need to reconstruct string in case of loading.
+				FString* UnrealString = (FString*) ((const char*) this + PropertyOffset);
+
+				if(Ar.IsSaving())
+				{
+					Ar << *UnrealString;
+				}
+				else if(Ar.IsLoading())
+				{
+					FString StoredString;
+					Ar << StoredString;
+					new(UnrealString) FString(StoredString);
+				}
+
+				break;
 			}
-			else if(Ar.IsLoading())
+
+			// Serialization of Enumeration properties (used for choice lists).
+			case EHoudiniEngineProperty::Enumeration:
 			{
-				FString StoredString;
-				Ar << StoredString;
-				new(UnrealString) FString(StoredString);
+				if(Ar.IsSaving())
+				{
+					UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
+					Enum = EnumProperty->Enum;
+
+					// Store flags of the enum object and patch them to flags we need.
+					EObjectFlags EnumFlags = Enum->GetFlags();
+					Enum->ClearFlags(RF_AllFlags);
+					Enum->SetFlags(RF_Public);
+
+					// Store the enum object.
+					Ar << Enum;
+
+					// Restore enum flags.
+					Enum->ClearFlags(RF_AllFlags);
+					Enum->SetFlags(EnumFlags);
+
+					// Meta properties for enum entries are not serialized automatically, we need to save them manually.
+					int EnumEntries = Enum->NumEnums() - 1;
+					Ar << EnumEntries;
+
+					// Store all entry names.
+					for(int Idx = 0; Idx < EnumEntries; ++Idx)
+					{
+						// Store entry name.
+						FString EnumEntryName = Enum->GetEnumName(Idx);
+						Ar << EnumEntryName;
+					}
+
+					for(int Idx = 0; Idx < EnumEntries; ++Idx)
+					{
+						// Store entry meta information.
+						{
+							FString EnumEntryMetaDisplayName = Enum->GetMetaData(TEXT("DisplayName"), Idx);
+							Ar << EnumEntryMetaDisplayName;
+						}
+						{
+							FString EnumEntryMetaHoudiniName = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
+							Ar << EnumEntryMetaHoudiniName;
+						}
+					}
+				}
+				else if(Ar.IsLoading())
+				{
+					// Load enum object.
+					Ar << Enum;
+
+					// Meta properties for enum entries are not serialized automatically, we need to load them manually.
+					int EnumEntries = 0;
+					Ar << EnumEntries;
+
+					TArray<FName> EnumValues;
+
+					// Load enum entries.
+					for(int Idx = 0; Idx < EnumEntries; ++Idx)
+					{
+						// Get entry name;
+						FString EnumEntryName;
+						Ar << EnumEntryName;
+
+						EnumValues.Add(FName(*EnumEntryName));
+					}
+
+					// Set entries for this enum.
+					Enum->SetEnums(EnumValues, false);
+
+					// Load meta information for each entry.
+					for(int Idx = 0; Idx < EnumEntries; ++Idx)
+					{
+						{
+							FString EnumEntryMetaDisplayName;
+							Ar << EnumEntryMetaDisplayName;
+
+							Enum->SetMetaData(TEXT("DisplayName"), *EnumEntryMetaDisplayName, Idx);
+						}
+						{
+							FString EnumEntryMetaHoudiniName;
+							Ar << EnumEntryMetaHoudiniName;
+
+							Enum->SetMetaData(TEXT("HoudiniName"), *EnumEntryMetaHoudiniName, Idx);
+						}
+					}
+				}
+
+				break;
 			}
-		}
-		else if(EHoudiniEngineProperty::Enumeration == PropertyType)
-		{
-			if(Ar.IsSaving())
+
+			// Serialization of Object properties (used for inputs).
+			case EHoudiniEngineProperty::Object:
 			{
-				UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
-				Enum = EnumProperty->Enum;
+				bool bInputProperty = false;
+				bool bMeshAssigned = false;
 
-				// Store flags of the enum object and patch them to flags we need.
-				EObjectFlags EnumFlags = Enum->GetFlags();
-				Enum->ClearFlags(RF_AllFlags);
-				Enum->SetFlags(RF_Public);
+				FString MeshPackage;
+				FString MeshName;
 
-				// Store the enum object.
-				Ar << Enum;
-
-				// Restore enum flags.
-				Enum->ClearFlags(RF_AllFlags);
-				Enum->SetFlags(EnumFlags);
-
-				// Meta properties for enum entries are not serialized automatically, we need to save them manually.
-				int EnumEntries = Enum->NumEnums() - 1;
-				Ar << EnumEntries;
-
-				// Store all entry names.
-				for(int Idx = 0; Idx < EnumEntries; ++Idx)
+				if(Ar.IsSaving())
 				{
-					// Store entry name.
-					FString EnumEntryName = Enum->GetEnumName(Idx);
-					Ar << EnumEntryName;
+					bInputProperty = Property->HasMetaData(TEXT("HoudiniInputIndex"));
 				}
 
-				for(int Idx = 0; Idx < EnumEntries; ++Idx)
+				// Serialize the flag that specifies whether this object property is an input.
+				Ar << bInputProperty;
+
+				if(Ar.IsSaving())
 				{
-					// Store entry meta information.
+					// Get Mesh for this property.
+					UObject* ScratchSpaceObject = *(UObject**)((const char*) this + PropertyOffset);
+					if(ScratchSpaceObject)
 					{
-						FString EnumEntryMetaDisplayName = Enum->GetMetaData(TEXT("DisplayName"), Idx);
-						Ar << EnumEntryMetaDisplayName;
-					}
-					{
-						FString EnumEntryMetaHoudiniName = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
-						Ar << EnumEntryMetaHoudiniName;
+						StaticMesh = Cast<UStaticMesh>(ScratchSpaceObject);
+
+						// If mesh is set.
+						if(StaticMesh)
+						{
+							bMeshAssigned = true;
+
+							// Retrieve package of mesh.
+							UPackage* Package = Cast<UPackage>(StaticMesh->GetOuter());
+							Package->GetName(MeshPackage);
+
+							// Retrieve name of mesh.
+							MeshName = StaticMesh->GetName();
+						}
 					}
 				}
+
+				Ar << bMeshAssigned;
+				if(bMeshAssigned)
+				{
+					Ar << MeshPackage;
+					Ar << MeshName;
+				}
+
+				if(Ar.IsLoading())
+				{
+					UObject** ScratchSpaceObject = (UObject**)((const char*) this + PropertyOffset);
+
+					if(bMeshAssigned)
+					{
+						// Attempt to locate package which contains referenced static mesh.
+						UPackage* Package = FindPackage(NULL, *MeshPackage);
+						if(!Package)
+						{
+							// Package was not loaded previously, we will try to load it.
+							Package = PackageTools::LoadPackage(MeshPackage);
+						}
+
+						if(Package)
+						{
+							StaticMesh = Cast<UStaticMesh>(StaticFindObject(UStaticMesh::StaticClass(), Package, *MeshName, true));
+						}
+						else
+						{
+							// Package does not exist - we cannot locate necessary mesh.
+						}
+					}
+					else
+					{
+						// We have no mesh assigned for this property.
+					}
+
+					// Set pointer in scratch space buffer.
+					*ScratchSpaceObject = StaticMesh;
+				}
+
+				break;
 			}
-			else if(Ar.IsLoading())
+
+			default:
 			{
-				// Load enum object.
-				Ar << Enum;
-
-				// Meta properties for enum entries are not serialized automatically, we need to load them manually.
-				int EnumEntries = 0;
-				Ar << EnumEntries;
-
-				TArray<FName> EnumValues;
-
-				// Load enum entries.
-				for(int Idx = 0; Idx < EnumEntries; ++Idx)
-				{
-					// Get entry name;
-					FString EnumEntryName;
-					Ar << EnumEntryName;
-
-					EnumValues.Add(FName(*EnumEntryName));
-				}
-
-				// Set entries for this enum.
-				Enum->SetEnums(EnumValues, false);
-
-				// Load meta information for each entry.
-				for(int Idx = 0; Idx < EnumEntries; ++Idx)
-				{
-					{
-						FString EnumEntryMetaDisplayName;
-						Ar << EnumEntryMetaDisplayName;
-
-						Enum->SetMetaData(TEXT("DisplayName"), *EnumEntryMetaDisplayName, Idx);
-					}
-					{
-						FString EnumEntryMetaHoudiniName;
-						Ar << EnumEntryMetaHoudiniName;
-
-						Enum->SetMetaData(TEXT("HoudiniName"), *EnumEntryMetaHoudiniName, Idx);
-					}
-				}
+				break;
 			}
 		}
 

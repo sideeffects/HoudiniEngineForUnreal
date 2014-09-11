@@ -258,7 +258,7 @@ private:
 	void SetChangedParameterValue(const HAPI_AssetInfo& AssetInfo, UProperty* Property);
 
 	/** Set input value which has changed. **/
-	void SetChangedInputValue(const HAPI_AssetInfo& AssetInfo, UProperty* Property);
+	void SetChangedInputValue(UProperty* Property);
 
 	/** Helper function to compute proper alignment boundary at a given offset for a specified type. **/
 	template <typename TType> TType* ComputeOffsetAlignmentBoundary(uint32 Offset) const;
@@ -268,6 +268,9 @@ private:
 
 	/** Return Unreal Class corresponding to a Hapi property type. **/
 	UClass* GetPropertyType(HAPI_ParmType PropertyType, int ChoiceCount) const;
+
+	/** Computes number of inputs for Houdini asset. **/
+	void ComputeInputCount();
 
 	/** Update rendering information. **/
 	void UpdateRenderingInformation();
@@ -289,6 +292,12 @@ private:
 
 	/** Clear all existing geos (and their parts). This is called during geometry recreation. **/
 	void ClearGeos();
+
+	/** Clear a list of all changed properties (both regular parameters and inputs) . **/
+	void ClearChangedPropertiesAll();
+
+	/** Clear only parameter properties. Will leave input properties. **/
+	void ClearChangedPropertiesParameters();
 
 	/** Create necessary rendering resources for each geo. **/
 	void CreateRenderingResources();
@@ -392,6 +401,9 @@ protected:
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
+
+	/** Number of inputs for this Houdini asset. **/
+	int32 InputCount;
 
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;
