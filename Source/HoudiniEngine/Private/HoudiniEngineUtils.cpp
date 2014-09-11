@@ -1459,9 +1459,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 
 	// Extract indices from static mesh.
 	std::vector<int> StaticMeshIndices;
-	for(int IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); ++IndexIdx)
+	for(int IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
 	{
-		StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx]);
+		// Swap indices to fix winding order.
+		StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx + 0]);
+		StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx + 2]);
+		StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx + 1]);
 	}
 
 	// We can now set vertex list.

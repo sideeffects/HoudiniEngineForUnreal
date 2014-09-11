@@ -51,7 +51,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		// Create mesh for drawing submission.
 		FMeshBatch Mesh;
 		Mesh.UseDynamicData = false;
-		Mesh.bDisableBackfaceCulling = true;
+		//Mesh.bDisableBackfaceCulling = true;
 		Mesh.bWireframe = bWireframe;
 		Mesh.DynamicVertexData = nullptr;
 		Mesh.DynamicVertexStride = 0;
