@@ -1457,6 +1457,32 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint, 
 														  &StaticMeshVertices[0], 0, AttributeInfoPoint.count), false);
 
+	// See if we have texture coordinates to upload (for now upload only first channel).
+	int32 StaticMeshUVCount = RawMesh.WedgeTexCoords[0].Num();
+	if(StaticMeshUVCount > 0)
+	{
+		const TArray<FVector2D>& RawMeshUVs = RawMesh.WedgeTexCoords[0];
+		std::vector<float> StaticMeshUVs(RawMeshUVs.Num() * 2);
+		for(int32 UVIdx = 0; UVIdx < StaticMeshUVCount; ++UVIdx)
+		{
+			StaticMeshUVs[UVIdx * 2 + 0] = RawMeshUVs[UVIdx].X;
+			StaticMeshUVs[UVIdx * 2 + 1] = RawMeshUVs[UVIdx].Y;
+		}
+
+		// Create attribute for UVs
+		HAPI_AttributeInfo AttributeInfoVertex = HAPI_AttributeInfo_Create();
+		AttributeInfoVertex.count = StaticMeshUVCount;
+		AttributeInfoVertex.tupleSize = 2; 
+		AttributeInfoVertex.exists = true;
+		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_UV, &AttributeInfoVertex), false);
+
+		// Upload UV data.
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_UV, &AttributeInfoVertex, 
+														  &StaticMeshUVs[0], 0, AttributeInfoVertex.count), false);
+	}
+
 	// Extract indices from static mesh.
 	std::vector<int> StaticMeshIndices;
 	for(int IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
