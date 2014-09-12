@@ -1466,7 +1466,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		for(int32 UVIdx = 0; UVIdx < StaticMeshUVCount; ++UVIdx)
 		{
 			StaticMeshUVs[UVIdx * 2 + 0] = RawMeshUVs[UVIdx].X;
-			StaticMeshUVs[UVIdx * 2 + 1] = RawMeshUVs[UVIdx].Y;
+			StaticMeshUVs[UVIdx * 2 + 1] = 1.0f - RawMeshUVs[UVIdx].Y;
 		}
 
 		// Create attribute for UVs
