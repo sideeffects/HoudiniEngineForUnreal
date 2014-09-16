@@ -19,13 +19,13 @@
 FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
+	UsedFields(EHoudiniMeshVertexField::None),
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
 	ComponentReferenceCount(1),
 	bMultipleMaterials(false),
-	bHoudiniLogo(false),
-	bHasUVs(false)
+	bHoudiniLogo(false)
 {
 	Transform = FMatrix::Identity;
 	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -36,13 +36,13 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_
 	Transform(InTransform),
 	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
+	UsedFields(EHoudiniMeshVertexField::None),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
 	ComponentReferenceCount(1),
 	bMultipleMaterials(false),
-	bHoudiniLogo(false),
-	bHasUVs(false)
+	bHoudiniLogo(false)
 {
 	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 }
@@ -87,20 +87,6 @@ FHoudiniAssetObjectGeo::GetTransform() const
 }
 
 
-bool
-FHoudiniAssetObjectGeo::HasUVs() const
-{
-	return bHasUVs;
-}
-
-
-void
-FHoudiniAssetObjectGeo::SetUVsPresence(bool bInHasUVs)
-{
-	bHasUVs = bInHasUVs;
-}
-
-
 void
 FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 {
@@ -116,25 +102,14 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 			{
 				if(Ar.IsLoading())
 				{
-					FDynamicMeshVertex Vertex;
-
-					Ar << Vertex.Position;
-					Ar << Vertex.TextureCoordinate;
-					Ar << Vertex.TangentX;
-					Ar << Vertex.TangentZ;
-					Ar << Vertex.Color;
-
+					FHoudiniMeshVertex Vertex;
+					Ar << Vertex;
 					Vertices.Add(Vertex);
 				}
 				else if(Ar.IsSaving())
 				{
-					FDynamicMeshVertex& Vertex = Vertices[Idx];
-
-					Ar << Vertex.Position;
-					Ar << Vertex.TextureCoordinate;
-					Ar << Vertex.TangentX;
-					Ar << Vertex.TangentZ;
-					Ar << Vertex.Color;
+					FHoudiniMeshVertex& Vertex = Vertices[Idx];
+					Ar << Vertex;
 				}
 			}
 		}
@@ -148,9 +123,6 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 
 	// Serialize multiple materials flag.
 	Ar << bMultipleMaterials;
-
-	// Serialize whether we have UVs.
-	Ar << bHasUVs;
 
 	// Serialize parts.
 	int32 NumParts = HoudiniAssetObjectGeoParts.Num();
@@ -199,7 +171,7 @@ FHoudiniAssetObjectGeo::AddGeoPart(FHoudiniAssetObjectGeoPart* HoudiniAssetObjec
 }
 
 
-TArray<FDynamicMeshVertex>&
+const TArray<FHoudiniMeshVertex>&
 FHoudiniAssetObjectGeo::GetVertices()
 {
 	return Vertices;
@@ -266,38 +238,10 @@ FHoudiniAssetObjectGeo::UsesMultipleMaterials() const
 
 
 void
-FHoudiniAssetObjectGeo::AddTriangleVertices(FHoudiniMeshTriangle& Tri)
+FHoudiniAssetObjectGeo::SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InUsedFields)
 {
-	const FVector Edge01 = Tri.Vertex1 - Tri.Vertex0;
-	const FVector Edge02 = Tri.Vertex2 - Tri.Vertex0;
-
-	const FVector TangentX = Edge01.SafeNormal();
-	const FVector TangentZ = (Edge02 ^ Edge01).SafeNormal();
-	const FVector TangentY = (TangentX ^ TangentZ).SafeNormal();
-
-	FDynamicMeshVertex Vert0;
-	Vert0.Position = Tri.Vertex0;
-	Vert0.Color = Tri.Color0;
-	Vert0.TextureCoordinate = Tri.TextureCoordinate0;
-	Vert0.SetTangents(TangentX, TangentY, TangentZ);
-
-	Vertices.Add(Vert0);
-
-	FDynamicMeshVertex Vert1;
-	Vert1.Position = Tri.Vertex1;
-	Vert1.Color = Tri.Color1;
-	Vert1.TextureCoordinate = Tri.TextureCoordinate1;
-	Vert1.SetTangents(TangentX, TangentY, TangentZ);
-
-	Vertices.Add(Vert1);
-
-	FDynamicMeshVertex Vert2;
-	Vert2.Position = Tri.Vertex2;
-	Vert2.Color = Tri.Color2;
-	Vert2.TextureCoordinate = Tri.TextureCoordinate2;
-	Vert2.SetTangents(TangentX, TangentY, TangentZ);
-
-	Vertices.Add(Vert2);
+	Vertices = InVertices;
+	UsedFields = InUsedFields;
 }
 
 
@@ -314,6 +258,7 @@ FHoudiniAssetObjectGeo::CreateRenderingResources()
 	// Create new vertex buffer.
 	HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer();
 	HoudiniMeshVertexBuffer->Vertices = Vertices;
+	HoudiniMeshVertexBuffer->VertexUsedFields = UsedFields;
 
 	// Create new vertex factory.
 	HoudiniMeshVertexFactory = new FHoudiniMeshVertexFactory();

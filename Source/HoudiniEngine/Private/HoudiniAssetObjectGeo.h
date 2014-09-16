@@ -53,10 +53,10 @@ public:
 	virtual void Serialize(FArchive& Ar);
 
 	/** Retrieve list of vertices. **/
-	TArray<FDynamicMeshVertex>& GetVertices();
+	const TArray<FHoudiniMeshVertex>& GetVertices();
 
-	/** Add vertices of given triangle to list of vertices. **/
-	void AddTriangleVertices(FHoudiniMeshTriangle& Triangle);
+	/** Set vertices for this geo. **/
+	void SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InUsedFields);
 
 	/** Create rendering resources for this geo. **/
 	void CreateRenderingResources();
@@ -94,12 +94,6 @@ public:
 	/** Return number of vertices in this geo. **/
 	int32 GetVertexCount() const;
 
-	/** Return true if this geo has UVs. **/
-	bool HasUVs() const;
-
-	/** Set UVs presence status. **/
-	void SetUVsPresence(bool bInHasUVs);
-
 protected:
 
 	/** Set this geometry as Houdini logo geometry. **/
@@ -111,7 +105,7 @@ protected:
 	TArray<FHoudiniAssetObjectGeoPart*> HoudiniAssetObjectGeoParts;
 
 	/** Vertices used by this geo. **/
-	TArray<FDynamicMeshVertex> Vertices;
+	TArray<FHoudiniMeshVertex> Vertices;
 
 	/** Transform for this part. **/
 	FMatrix Transform;
@@ -124,6 +118,9 @@ protected:
 
 	/** Corresponding Vertex factory used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshVertexFactory* HoudiniMeshVertexFactory;
+
+	/** Descriptor of which fields are used by vertices. **/
+	int32 UsedFields;
 
 	/** HAPI Object Id for this geometry. **/
 	HAPI_ObjectId ObjectId;
@@ -142,7 +139,4 @@ protected:
 	
 	/** Is set to true when this geometry is a Houdini logo geometry. **/
 	bool bHoudiniLogo;
-
-	/** Is set to true when this geo does not have UV information. **/
-	bool bHasUVs;
 };

@@ -17,12 +17,25 @@
 
 class FHoudiniMeshVertexBuffer : public FVertexBuffer
 {
+public:
+
+	/** Default constructor. **/
+	FHoudiniMeshVertexBuffer();
+
 public: /** FRenderResource methods. **/
 
 	virtual void InitRHI() override;
 
 public:
 
+	/** Check if field is used by vertex in this vertex buffer. **/
+	bool CheckUsedField(EHoudiniMeshVertexField::Type Field) const;
+
+public:
+
 	/** Array of stored vertices. **/
-	TArray<FDynamicMeshVertex> Vertices;
+	TArray<FHoudiniMeshVertex> Vertices;
+
+	/** Descriptor of which fields are used by vertices. **/
+	int32 VertexUsedFields;
 };

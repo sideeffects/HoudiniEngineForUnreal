@@ -42,6 +42,7 @@
 #include "LevelEditor.h"
 #include "IMainFrameModule.h"
 #include "DesktopPlatformModule.h"
+#include "RawMesh.h"
 
 #include "Materials/MaterialExpressionTextureSample.h"
 
@@ -141,9 +142,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HOUDINI_CHECK_ERROR(HAPI_PARAM_RESULT, HAPI_PARAM_CALL)														\
 	HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
 
-
 /** HoudiniEngine Class headers. **/
-#include "HoudiniMeshTriangle.h"
+#include "HoudiniMeshVertex.h"
 #include "HoudiniAssetMaterial.h"
 #include "HoudiniAssetObjectGeoPart.h"
 #include "HoudiniAssetObjectGeo.h"
@@ -153,7 +153,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniAssetFactory.h"
 #include "HoudiniAssetThumbnailRenderer.h"
-#include "HoudiniTestComponent.h"
 
 /** HoudiniEngine Private headers. **/
 #include "HoudiniEnginePrivatePatch.h"
