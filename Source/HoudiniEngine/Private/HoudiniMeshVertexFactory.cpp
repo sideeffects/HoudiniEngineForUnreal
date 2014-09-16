@@ -37,11 +37,63 @@ FHoudiniMeshVertexFactory::Init(const FHoudiniMeshVertexBuffer* VertexBuffer)
 			// Initialize the vertex factory's stream components.
 			DataType NewData;
 
-			NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
-			NewData.TextureCoordinates.Add(FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2));
-			NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
-			NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
-			NewData.ColorComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Color, VET_Color);
+			// Position component.
+			NewData.PositionComponent = FVertexStreamComponent(
+			VertexBuffer,
+			STRUCT_OFFSET(FHoudiniMeshVertex, Position),
+			sizeof(FHoudiniMeshVertex),
+			VET_Float3
+			);
+
+			// Color component.
+			NewData.ColorComponent = FVertexStreamComponent(
+			VertexBuffer,
+			STRUCT_OFFSET(FHoudiniMeshVertex, Color),
+			sizeof(FHoudiniMeshVertex),
+			VET_Float3
+			);
+
+			// Texture coordinate components.
+			{
+				NewData.TextureCoordinates.Add(FVertexStreamComponent(
+				VertexBuffer,
+				STRUCT_OFFSET(FHoudiniMeshVertex, TextureCoordinates[0]),
+				sizeof(FHoudiniMeshVertex),
+				VET_Float2
+				));
+
+				// Texture coordinate component, UV1.
+				NewData.TextureCoordinates.Add(FVertexStreamComponent(
+				VertexBuffer,
+				STRUCT_OFFSET(FHoudiniMeshVertex, TextureCoordinates[1]),
+				sizeof(FHoudiniMeshVertex),
+				VET_Float2
+				));
+			}
+
+			// Tangent components.
+			{
+				NewData.TangentBasisComponents[0] = FVertexStreamComponent(
+				VertexBuffer,
+				STRUCT_OFFSET(FHoudiniMeshVertex, PackedTangent[0]),
+				sizeof(FHoudiniMeshVertex),
+				VET_PackedNormal
+				);
+
+				NewData.TangentBasisComponents[1] = FVertexStreamComponent(
+				VertexBuffer,
+				STRUCT_OFFSET(FHoudiniMeshVertex, PackedTangent[1]),
+				sizeof(FHoudiniMeshVertex),
+				VET_PackedNormal
+				);
+			}
+
+			/*
+			if(VertexBuffer->CheckUsedField(EHoudiniMeshVertexField::Position))
+			{
+				NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FHoudiniMeshVertex, Position, VET_Float3);
+			}
+			*/
 
 			VertexFactory->SetData(NewData);
 		});

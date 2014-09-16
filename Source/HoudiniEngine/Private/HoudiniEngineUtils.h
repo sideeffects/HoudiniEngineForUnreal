@@ -125,8 +125,22 @@ protected:
 	/** Create a package for static mesh. **/
 	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
 
-	/** Check presence of UVs in all geos. **/
-	static bool BakeCheckUVsPresence(const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos);
+protected:
+
+	/** Helper function which extracts texture coordinates. **/
+	static bool ExtractTextureCoordinates(FHoudiniMeshVertex* Vertices, int TriangleIdx, const std::vector<int>& VertexList,
+										  const HAPI_AttributeInfo& AttribInfo, const std::vector<float>& Data, int Channel);
+
+	/** Helper function which extracts normals. **/
+	static bool ExtractNormals(FHoudiniMeshVertex* Vertices, int TriangleIdx, const std::vector<int>& VertexList,
+							   const HAPI_AttributeInfo& AttribInfo, const std::vector<float>& Data);
+
+	/** Helper function which extracts colors. **/
+	static bool ExtractColors(FHoudiniMeshVertex* Vertices, int TriangleIdx, const std::vector<int>& VertexList,
+							   const HAPI_AttributeInfo& AttribInfo, const std::vector<float>& Data);
+
+	/** Helper function to compute tangents. **/
+	static bool ComputePackedTangents(FHoudiniMeshVertex* Vertices);
 
 protected:
 
@@ -134,7 +148,7 @@ protected:
 	static void UpdateBoundingVolumeExtent(const FVector& Vector, FVector& ExtentMin, FVector& ExtentMax);
 
 	/** Transform position of a given triangle using a given transformation matrix. **/
-	static void TransformPosition(const FMatrix& TransformMatrix, FHoudiniMeshTriangle& Triangle);
+	static void TransformPosition(const FMatrix& TransformMatrix, FHoudiniMeshVertex* Vertices);
 
 	/** Create a texture from given information. **/
 	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer);

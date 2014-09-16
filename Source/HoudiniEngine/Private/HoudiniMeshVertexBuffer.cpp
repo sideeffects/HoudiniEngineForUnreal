@@ -16,6 +16,21 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+FHoudiniMeshVertexBuffer::FHoudiniMeshVertexBuffer() :
+	FVertexBuffer(),
+	VertexUsedFields(EHoudiniMeshVertexField::None)
+{
+
+}
+
+
+bool
+FHoudiniMeshVertexBuffer::CheckUsedField(EHoudiniMeshVertexField::Type Field) const
+{
+	return ((VertexUsedFields & Field) != 0);
+}
+
+
 void
 FHoudiniMeshVertexBuffer::InitRHI()
 {
@@ -25,10 +40,10 @@ FHoudiniMeshVertexBuffer::InitRHI()
 	}
 
 	FRHIResourceCreateInfo CreateInfo;
-	VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo);
+	VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FHoudiniMeshVertex), BUF_Static, CreateInfo);
 
 	// Copy the vertex data into the vertex buffer.
-	void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
-	FMemory::Memcpy(VertexBufferData, Vertices.GetTypedData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
+	void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FHoudiniMeshVertex), RLM_WriteOnly);
+	FMemory::Memcpy(VertexBufferData, Vertices.GetTypedData(), Vertices.Num() * sizeof(FHoudiniMeshVertex));
 	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
