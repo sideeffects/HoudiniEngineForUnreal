@@ -94,10 +94,18 @@ public:
 	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 										 const char* Name, HAPI_AttributeOwner Owner);
 
+	/** HAPI : Check if Unreal specific packed tangent attribute exists. **/
+	static bool HapiCheckAttributeExistsPackedTangent(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId);
+
 	/** HAPI : Get attribute data as float. **/
 	static bool HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											std::vector<float>& Data, int TupleSize = 0);
+
+	/** HAPI : Get attribute data as integer. **/
+	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+											std::vector<int>& Data, int TupleSize = 0);
 
 	/** HAPI : Get parameter data as float. **/
 	static float HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue);
@@ -141,6 +149,10 @@ protected:
 
 	/** Helper function to compute tangents. **/
 	static bool ComputePackedTangents(FHoudiniMeshVertex* Vertices);
+
+	/** Helper function which extracts Unreal specific packed tangents. **/
+	static bool ExtractPackedTangents(FHoudiniMeshVertex* Vertices, int TriangleIdx, const std::vector<int>& VertexList,
+									  const HAPI_AttributeInfo& AttribInfo, const std::vector<int>& Data, int Channel);
 
 protected:
 
