@@ -436,6 +436,14 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectI
 }
 
 
+bool
+FHoudiniEngineUtils::HapiCheckAttributeExistsPackedTangent(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId)
+{
+	 return (FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, HAPI_UNREAL_ATTRIB_PACKED_TANGENT, HAPI_ATTROWNER_VERTEX) && 
+				FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, HAPI_UNREAL_ATTRIB_PACKED_TANGENT2, HAPI_ATTROWNER_VERTEX));
+}
+
+
 int
 FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names)
 {
@@ -484,6 +492,47 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 	Data.resize(AttributeInfo.count * AttributeInfo.tupleSize);
 
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeFloatData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo,
+		&Data[0], 0, AttributeInfo.count), false);
+
+	// Store the retrieved attribute information.
+	ResultAttributeInfo = AttributeInfo;
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+											std::vector<int>& Data, int TupleSize)
+{
+	ResultAttributeInfo.exists = false;
+
+	int OriginalTupleSize = TupleSize;
+	HAPI_AttributeInfo AttributeInfo;
+	for(int AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
+
+		if(AttributeInfo.exists)
+		{
+			break;
+		}
+	}
+
+	if(!AttributeInfo.exists)
+	{
+		return false;
+	}
+
+	if(OriginalTupleSize > 0)
+	{
+		AttributeInfo.tupleSize = OriginalTupleSize;
+	}
+
+	// Allocate sufficient buffer for data.
+	Data.resize(AttributeInfo.count * AttributeInfo.tupleSize);
+
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeIntData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo,
 		&Data[0], 0, AttributeInfo.count), false);
 
 	// Store the retrieved attribute information.
@@ -846,6 +895,71 @@ FHoudiniEngineUtils::ExtractColors(FHoudiniMeshVertex* Vertices, int TriangleIdx
 
 
 bool
+FHoudiniEngineUtils::ExtractPackedTangents(FHoudiniMeshVertex* Vertices, int TriangleIdx, const std::vector<int>& VertexList,
+										   const HAPI_AttributeInfo& AttribInfo, const std::vector<int>& Data, int Channel)
+{
+	check(Channel == 0 || Channel == 1);
+
+	if(AttribInfo.exists)
+	{
+		switch(AttribInfo.owner)
+		{
+			case HAPI_ATTROWNER_VERTEX:
+			{
+				Vertices[0].PackedTangent[Channel].Vector.X = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 0 + 0];
+				Vertices[0].PackedTangent[Channel].Vector.Y = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 0 + 1];
+				Vertices[0].PackedTangent[Channel].Vector.Z = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 0 + 2];
+				Vertices[0].PackedTangent[Channel].Vector.W = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 0 + 3];
+
+				Vertices[2].PackedTangent[Channel].Vector.X = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 1 + 0];
+				Vertices[2].PackedTangent[Channel].Vector.Y = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 1 + 1];
+				Vertices[2].PackedTangent[Channel].Vector.Z = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 1 + 2];
+				Vertices[2].PackedTangent[Channel].Vector.W = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 1 + 3];
+
+				Vertices[1].PackedTangent[Channel].Vector.X = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 2 + 0];
+				Vertices[1].PackedTangent[Channel].Vector.Y = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 2 + 1];
+				Vertices[1].PackedTangent[Channel].Vector.Z = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 2 + 2];
+				Vertices[1].PackedTangent[Channel].Vector.W = (uint8) Data[TriangleIdx * 3 * AttribInfo.tupleSize + AttribInfo.tupleSize * 2 + 3];
+
+				return true;
+			}
+
+			case HAPI_ATTROWNER_POINT:
+			{
+				Vertices[0].PackedTangent[Channel].Vector.X = (uint8) Data[VertexList[TriangleIdx * 3 + 0] * 3 + 0];
+				Vertices[0].PackedTangent[Channel].Vector.Z = (uint8) Data[VertexList[TriangleIdx * 3 + 0] * 3 + 1];
+				Vertices[0].PackedTangent[Channel].Vector.Y = (uint8) Data[VertexList[TriangleIdx * 3 + 0] * 3 + 2];
+				Vertices[0].PackedTangent[Channel].Vector.W = (uint8) Data[VertexList[TriangleIdx * 3 + 0] * 3 + 3];
+
+				Vertices[2].PackedTangent[Channel].Vector.X = (uint8) Data[VertexList[TriangleIdx * 3 + 1] * 3 + 0];
+				Vertices[2].PackedTangent[Channel].Vector.Z = (uint8) Data[VertexList[TriangleIdx * 3 + 1] * 3 + 1];
+				Vertices[2].PackedTangent[Channel].Vector.Y = (uint8) Data[VertexList[TriangleIdx * 3 + 1] * 3 + 2];
+				Vertices[2].PackedTangent[Channel].Vector.W = (uint8) Data[VertexList[TriangleIdx * 3 + 1] * 3 + 3];
+
+				Vertices[1].PackedTangent[Channel].Vector.X = (uint8) Data[VertexList[TriangleIdx * 3 + 2] * 3 + 0];
+				Vertices[1].PackedTangent[Channel].Vector.Z = (uint8) Data[VertexList[TriangleIdx * 3 + 2] * 3 + 1];
+				Vertices[1].PackedTangent[Channel].Vector.Y = (uint8) Data[VertexList[TriangleIdx * 3 + 2] * 3 + 2];
+				Vertices[1].PackedTangent[Channel].Vector.W = (uint8) Data[VertexList[TriangleIdx * 3 + 2] * 3 + 3];
+
+				return true;
+			}
+
+			default:
+			{
+				break;
+			}
+		}
+	}
+
+	Vertices[0].SetZeroNormal();
+	Vertices[2].SetZeroNormal();
+	Vertices[1].SetZeroNormal();
+
+	return false;
+}
+
+
+bool
 FHoudiniEngineUtils::ComputePackedTangents(FHoudiniMeshVertex* Vertices)
 {
 	const FVector Edge01 = Vertices[1].Position - Vertices[0].Position;
@@ -901,6 +1015,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 	std::vector<float> Normals;
 	std::vector<float> Colors;
 	std::vector<float> Tangents[2];
+	std::vector<int> PackedTangents[2];
 
 	// Retrieve asset name for material and texture name generation.
 	FString AssetName;
@@ -1055,6 +1170,11 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 					HAPI_AttributeInfo AttribInfoColors;
 					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
 
+					// Check if we have Unreal specific packed tangent data.
+					HAPI_AttributeInfo AttribInfoPackedTangents[2];
+					FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_UNREAL_ATTRIB_PACKED_TANGENT, AttribInfoPackedTangents[0], PackedTangents[0]);
+					FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_UNREAL_ATTRIB_PACKED_TANGENT2, AttribInfoPackedTangents[1], PackedTangents[1]);
+
 					// Array of extracted vertices.
 					TArray<FHoudiniMeshVertex> ExtractedVertices;
 
@@ -1105,14 +1225,16 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 							UsedFields |= EHoudiniMeshVertexField::Color;
 						}
 
-						/*
-						Vertices[0].SetZeroPackedTangents();
-						Vertices[2].SetZeroPackedTangents();
-						Vertices[1].SetZeroPackedTangents();
-						*/
-
-						// Compute packed tangents.
-						FHoudiniEngineUtils::ComputePackedTangents(&Vertices[0]);
+						// If we have Unreal tangent packed data, use it. If not this will compute tangents.
+						if(AttribInfoPackedTangents[0].exists && AttribInfoPackedTangents[1].exists)
+						{
+							FHoudiniEngineUtils::ExtractPackedTangents(&Vertices[0], TriangleIdx, VertexList, AttribInfoPackedTangents[0], PackedTangents[0], 0);
+							FHoudiniEngineUtils::ExtractPackedTangents(&Vertices[0], TriangleIdx, VertexList, AttribInfoPackedTangents[1], PackedTangents[1], 1);
+						}
+						else
+						{
+							FHoudiniEngineUtils::ComputePackedTangents(Vertices);
+						}
 
 						// Bake vertex transformation.
 						FHoudiniEngineUtils::TransformPosition(TransformMatrix, &Vertices[0]);
@@ -1593,26 +1715,67 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		}
 	}
 
-	// FVector* data = RawMesh.VertexPositions.GetData();
-
-	/*
-	// Upload tangent data.
+	// Upload Unreal specific packed tangents.
+	if(RawMesh.WedgeTangentX.Num() && RawMesh.WedgeTangentY.Num())
 	{
-		int32 StaticMeshTangentCount = RawMesh.WedgeTangentX.Num();
-		if(StaticMeshTangentCount)
+		// Get raw tangent data.
+		FVector* RawMeshTangentsX = RawMesh.WedgeTangentX.GetData();
+		FVector* RawMeshTangentsY = RawMesh.WedgeTangentY.GetData();
+
+		// We need to upload them as integers (they are unsigned ints).
+
 		{
-			const TArray<FVector>& RawMeshNormals = RawMesh.WedgeTangentX;
-			std::vector<float> StaticMeshNormals(RawMeshNormals.Num() * 3);
-			for(int32 NormalIdx = 0; NormalIdx < StaticMeshNormalCount; ++NormalIdx)
+			int RawMeshTangentsXDataCount = RawMesh.WedgeTangentX.Num();
+			std::vector<int> RawMeshTangentsXData(RawMeshTangentsXDataCount * 4);
+			for(int TangentXIdx = 0; TangentXIdx < RawMeshTangentsXDataCount; ++TangentXIdx)
 			{
-				StaticMeshNormals[NormalIdx * 3 + 0] = RawMeshNormals[NormalIdx].X;
-				StaticMeshNormals[NormalIdx * 3 + 1] = RawMeshNormals[NormalIdx].Y;
-				StaticMeshNormals[NormalIdx * 3 + 2] = RawMeshNormals[NormalIdx].Z;
+				FPackedNormal PackedNormal(RawMeshTangentsX[TangentXIdx]);
+				RawMeshTangentsXData[TangentXIdx * 4 + 0] = PackedNormal.Vector.X;
+				RawMeshTangentsXData[TangentXIdx * 4 + 1] = PackedNormal.Vector.Y;
+				RawMeshTangentsXData[TangentXIdx * 4 + 2] = PackedNormal.Vector.Z;
+				RawMeshTangentsXData[TangentXIdx * 4 + 3] = PackedNormal.Vector.W;
 			}
+
+			// Create attribute for packed tangent.
+			HAPI_AttributeInfo AttributeInfoPackedTangent = HAPI_AttributeInfo_Create();
+			AttributeInfoPackedTangent.count = RawMeshTangentsXDataCount;
+			AttributeInfoPackedTangent.tupleSize = 4; 
+			AttributeInfoPackedTangent.exists = true;
+			AttributeInfoPackedTangent.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoPackedTangent.storage = HAPI_STORAGETYPE_INT;
+			HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT, &AttributeInfoPackedTangent), false);
+
+			// Upload normal data.
+			HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT, &AttributeInfoPackedTangent, 
+															  (int*) &RawMeshTangentsXData[0], 0, AttributeInfoPackedTangent.count), false);
+		}
+
+		{
+			int RawMeshTangentsYDataCount = RawMesh.WedgeTangentY.Num();
+			std::vector<int> RawMeshTangentsYData(RawMeshTangentsYDataCount * 4);
+			for(int TangentYIdx = 0; TangentYIdx < RawMeshTangentsYDataCount; ++TangentYIdx)
+			{
+				FPackedNormal PackedNormal(RawMeshTangentsX[TangentYIdx]);
+				RawMeshTangentsYData[TangentYIdx * 4 + 0] = PackedNormal.Vector.X;
+				RawMeshTangentsYData[TangentYIdx * 4 + 1] = PackedNormal.Vector.Y;
+				RawMeshTangentsYData[TangentYIdx * 4 + 2] = PackedNormal.Vector.Z;
+				RawMeshTangentsYData[TangentYIdx * 4 + 3] = PackedNormal.Vector.W;
+			}
+
+			// Create attribute for packed tangent.
+			HAPI_AttributeInfo AttributeInfoPackedTangent2 = HAPI_AttributeInfo_Create();
+			AttributeInfoPackedTangent2.count = RawMeshTangentsYDataCount;
+			AttributeInfoPackedTangent2.tupleSize = 4; 
+			AttributeInfoPackedTangent2.exists = true;
+			AttributeInfoPackedTangent2.owner = HAPI_ATTROWNER_VERTEX;
+			AttributeInfoPackedTangent2.storage = HAPI_STORAGETYPE_INT;
+			HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT2, &AttributeInfoPackedTangent2), false);
+
+			// Upload normal data.
+			HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT2, &AttributeInfoPackedTangent2, 
+															  (int*) &RawMeshTangentsYData[0], 0, AttributeInfoPackedTangent2.count), false);
 		}
 	}
-	*/
-
 
 	// See if we have normals to upload.
 	if(RawMesh.WedgeTangentZ.Num())

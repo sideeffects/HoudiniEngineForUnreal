@@ -142,6 +142,10 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HOUDINI_CHECK_ERROR(HAPI_PARAM_RESULT, HAPI_PARAM_CALL)														\
 	HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
 
+/** HAPI related attribute definitions. **/
+#define HAPI_UNREAL_ATTRIB_PACKED_TANGENT				"unreal_packed_tangent"
+#define HAPI_UNREAL_ATTRIB_PACKED_TANGENT2				"unreal_packed_tangent2"
+
 /** HoudiniEngine Class headers. **/
 #include "HoudiniMeshVertex.h"
 #include "HoudiniAssetMaterial.h"
