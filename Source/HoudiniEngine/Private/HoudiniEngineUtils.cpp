@@ -612,9 +612,6 @@ FHoudiniEngineUtils::ConstructLogoGeo()
 	// Array of created vertices.
 	TArray<FHoudiniMeshVertex> ExtractedVertices;
 
-	// Flags of fields used by each vertex.
-	int32 UsedFields = EHoudiniMeshVertexField::Position | EHoudiniMeshVertexField::Color;
-
 	// Construct triangle data.
 	for(int VertexIndex = 0; VertexIndex < VertexIndexCount; VertexIndex += 3)
 	{
@@ -680,7 +677,7 @@ FHoudiniEngineUtils::ConstructLogoGeo()
 	}
 
 	// Set geo vertices.
-	ObjectGeo->SetVertices(ExtractedVertices, UsedFields);
+	ObjectGeo->SetVertices(ExtractedVertices, 0);
 
 	// Compute bounding volume.
 	SphereBounds = FBoxSphereBounds(FBox(ExtentMin, ExtentMax));
@@ -1178,8 +1175,18 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 					// Array of extracted vertices.
 					TArray<FHoudiniMeshVertex> ExtractedVertices;
 
-					// Flags of fields used by each vertex.
-					int32 UsedFields = EHoudiniMeshVertexField::Position;
+					// Count the number of UV channels.
+					int32 TextureCoordinateChannelCount = 0;
+
+					if(AttribInfoUVs[0].exists)
+					{
+						TextureCoordinateChannelCount++;
+					}
+
+					if(AttribInfoUVs[1].exists)
+					{
+						TextureCoordinateChannelCount++;
+					}
 
 					// We need to create vertex information.
 					for(int TriangleIdx = 0; TriangleIdx < PartInfo.faceCount; ++TriangleIdx)
@@ -1203,27 +1210,14 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 						Vertices[1].Position.Y = Positions[VertexList[TriangleIdx * 3 + 2] * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
 
 						// Transfer UV and UV2 information, if it is present.
-						if(FHoudiniEngineUtils::ExtractTextureCoordinates(&Vertices[0], TriangleIdx, VertexList, AttribInfoUVs[0], UVs[0], 0))
-						{
-							UsedFields |= EHoudiniMeshVertexField::TextureCoordinate0;
-						}
-
-						if(FHoudiniEngineUtils::ExtractTextureCoordinates(&Vertices[0], TriangleIdx, VertexList, AttribInfoUVs[1], UVs[1], 1))
-						{
-							UsedFields |= EHoudiniMeshVertexField::TextureCoordinate1;
-						}
+						FHoudiniEngineUtils::ExtractTextureCoordinates(&Vertices[0], TriangleIdx, VertexList, AttribInfoUVs[0], UVs[0], 0);
+						FHoudiniEngineUtils::ExtractTextureCoordinates(&Vertices[0], TriangleIdx, VertexList, AttribInfoUVs[1], UVs[1], 1);
 
 						// Transfer normal data, if it is present.
-						if(FHoudiniEngineUtils::ExtractNormals(&Vertices[0], TriangleIdx, VertexList, AttribInfoNormals, Normals))
-						{
-							UsedFields |= EHoudiniMeshVertexField::Normal;
-						}
+						FHoudiniEngineUtils::ExtractNormals(&Vertices[0], TriangleIdx, VertexList, AttribInfoNormals, Normals);
 
 						// Transfer color data, if it is present.
-						if(FHoudiniEngineUtils::ExtractColors(&Vertices[0], TriangleIdx, VertexList, AttribInfoColors, Colors))
-						{
-							UsedFields |= EHoudiniMeshVertexField::Color;
-						}
+						FHoudiniEngineUtils::ExtractColors(&Vertices[0], TriangleIdx, VertexList, AttribInfoColors, Colors);
 
 						// If we have Unreal tangent packed data, use it. If not this will compute tangents.
 						if(AttribInfoPackedTangents[0].exists && AttribInfoPackedTangents[1].exists)
@@ -1246,7 +1240,7 @@ FHoudiniEngineUtils::ConstructGeos(HAPI_AssetId AssetId, UPackage* Package, TArr
 					}
 
 					// Set vertices for current geo.
-					HoudiniAssetObjectGeo->SetVertices(ExtractedVertices, UsedFields);
+					HoudiniAssetObjectGeo->SetVertices(ExtractedVertices, TextureCoordinateChannelCount);
 				} // if(GeoInfo.hasGeoChanged)
 
 				// Retrieve material information for this part.
@@ -1675,14 +1669,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint, 
 														  &StaticMeshVertices[0], 0, AttributeInfoPoint.count), false);
 
-	// See if we have texture coordinates to upload (for now upload only first channel).
+	// See if we have texture coordinates to upload.
 	for(int32 MeshTexCoordIdx = 0; MeshTexCoordIdx < MAX_STATIC_TEXCOORDS; ++MeshTexCoordIdx)
 	{
 		int32 StaticMeshUVCount = RawMesh.WedgeTexCoords[MeshTexCoordIdx].Num();
 
 		if(StaticMeshUVCount > 0)
 		{
-			const TArray<FVector2D>& RawMeshUVs = RawMesh.WedgeTexCoords[0];
+			const TArray<FVector2D>& RawMeshUVs = RawMesh.WedgeTexCoords[MeshTexCoordIdx];
 			std::vector<float> StaticMeshUVs(RawMeshUVs.Num() * 2);
 			for(int32 UVIdx = 0; UVIdx < StaticMeshUVCount; ++UVIdx)
 			{
@@ -2037,11 +2031,11 @@ FHoudiniEngineUtils::CreateStaticMeshes(UHoudiniAsset* HoudiniAsset, const TArra
 				RawMesh.WedgeTangentX.Add(MeshVertex.PackedTangent[0]);
 				RawMesh.WedgeTangentY.Add(MeshVertex.PackedTangent[1]);
 
-				// First uv channel is used for diffuse/normal.
-				RawMesh.WedgeTexCoords[0].Add(MeshVertex.TextureCoordinates[0]);
-
-				// Second uv channel is used for lightmap.
-				RawMesh.WedgeTexCoords[1].Add(MeshVertex.TextureCoordinates[0]);
+				// Add UV channels.
+				for(int TexCoordIdx = 0; TexCoordIdx < Geo->GetTextureCoordinateChannelCount(); ++TexCoordIdx)
+				{
+					RawMesh.WedgeTexCoords[TexCoordIdx].Add(MeshVertex.TextureCoordinates[TexCoordIdx]);
+				}
 			}
 
 			// Get index information for this geo.

@@ -15,33 +15,6 @@
 
 #pragma once
 
-namespace EHoudiniMeshVertexField
-{
-	enum Type
-	{
-		None,
-
-		Position						= (1 << 0),
-
-		TextureCoordinate0				= (1 << 1),
-		TextureCoordinate1				= (1 << 2),
-		TextureCoordinate2				= (1 << 3),
-		TextureCoordinate3				= (1 << 4),
-		TextureCoordinate4				= (1 << 5),
-		TextureCoordinate5				= (1 << 6),
-		TextureCoordinate6				= (1 << 7),
-		TextureCoordinate7				= (1 << 8),
-
-		PackedTangent0					= (1 << 9),
-		PackedTangent1					= (1 << 10),
-
-		UnpackedTangent0				= (1 << 11),
-		UnpackedTangent1				= (1 << 12),
-
-		Normal							= (1 << 13),
-		Color							= (1 << 14)
-	};
-}
 
 struct FHoudiniMeshVertex
 {

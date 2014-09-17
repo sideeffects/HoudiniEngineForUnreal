@@ -56,7 +56,7 @@ public:
 	const TArray<FHoudiniMeshVertex>& GetVertices();
 
 	/** Set vertices for this geo. **/
-	void SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InUsedFields);
+	void SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InTextureCoordinateChannelCount);
 
 	/** Create rendering resources for this geo. **/
 	void CreateRenderingResources();
@@ -94,6 +94,9 @@ public:
 	/** Return number of vertices in this geo. **/
 	int32 GetVertexCount() const;
 
+	/** Return number of uv channels used by this geo. **/
+	int32 GetTextureCoordinateChannelCount() const;
+
 protected:
 
 	/** Set this geometry as Houdini logo geometry. **/
@@ -119,9 +122,6 @@ protected:
 	/** Corresponding Vertex factory used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshVertexFactory* HoudiniMeshVertexFactory;
 
-	/** Descriptor of which fields are used by vertices. **/
-	int32 UsedFields;
-
 	/** HAPI Object Id for this geometry. **/
 	HAPI_ObjectId ObjectId;
 
@@ -133,6 +133,9 @@ protected:
 
 	/** Number of components using this geo. **/
 	uint32 ComponentReferenceCount;
+
+	/** Number of UV channels used by this geo. **/
+	int32 TextureCoordinateChannelCount;
 
 	/** Is set to true when submeshes use different materials. **/
 	bool bMultipleMaterials;

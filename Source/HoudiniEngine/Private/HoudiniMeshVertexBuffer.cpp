@@ -16,21 +16,6 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-FHoudiniMeshVertexBuffer::FHoudiniMeshVertexBuffer() :
-	FVertexBuffer(),
-	VertexUsedFields(EHoudiniMeshVertexField::None)
-{
-
-}
-
-
-bool
-FHoudiniMeshVertexBuffer::CheckUsedField(EHoudiniMeshVertexField::Type Field) const
-{
-	return ((VertexUsedFields & Field) != 0);
-}
-
-
 void
 FHoudiniMeshVertexBuffer::InitRHI()
 {

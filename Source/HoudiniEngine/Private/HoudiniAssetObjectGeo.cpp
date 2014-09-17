@@ -19,11 +19,11 @@
 FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
-	UsedFields(EHoudiniMeshVertexField::None),
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
 	ComponentReferenceCount(1),
+	TextureCoordinateChannelCount(0),
 	bMultipleMaterials(false),
 	bHoudiniLogo(false)
 {
@@ -36,11 +36,11 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_
 	Transform(InTransform),
 	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
-	UsedFields(EHoudiniMeshVertexField::None),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
 	ComponentReferenceCount(1),
+	TextureCoordinateChannelCount(0),
 	bMultipleMaterials(false),
 	bHoudiniLogo(false)
 {
@@ -123,6 +123,9 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 
 	// Serialize multiple materials flag.
 	Ar << bMultipleMaterials;
+
+	// Serialize number of UV channels.
+	Ar << TextureCoordinateChannelCount;
 
 	// Serialize parts.
 	int32 NumParts = HoudiniAssetObjectGeoParts.Num();
@@ -238,10 +241,10 @@ FHoudiniAssetObjectGeo::UsesMultipleMaterials() const
 
 
 void
-FHoudiniAssetObjectGeo::SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InUsedFields)
+FHoudiniAssetObjectGeo::SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InTextureCoordinateChannelCount)
 {
 	Vertices = InVertices;
-	UsedFields = InUsedFields;
+	TextureCoordinateChannelCount = InTextureCoordinateChannelCount;
 }
 
 
@@ -258,7 +261,6 @@ FHoudiniAssetObjectGeo::CreateRenderingResources()
 	// Create new vertex buffer.
 	HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer();
 	HoudiniMeshVertexBuffer->Vertices = Vertices;
-	HoudiniMeshVertexBuffer->VertexUsedFields = UsedFields;
 
 	// Create new vertex factory.
 	HoudiniMeshVertexFactory = new FHoudiniMeshVertexFactory();
@@ -348,4 +350,11 @@ FHoudiniAssetObjectGeo::ComputeAggregateBoundingVolume()
 	{
 		AggregateBoundingVolume = AggregateBoundingVolume + HoudiniAssetObjectGeoParts[Idx]->GetBoundingVolume();
 	}
+}
+
+
+int32
+FHoudiniAssetObjectGeo::GetTextureCoordinateChannelCount() const
+{
+	return TextureCoordinateChannelCount;
 }
