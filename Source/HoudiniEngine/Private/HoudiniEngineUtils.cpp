@@ -2653,7 +2653,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
 				}
 
-				StaticMesh->Build(false);
+				StaticMesh->Build(true);
 				StaticMeshes.Add(StaticMesh);
 
 				volatile int foo = 2;

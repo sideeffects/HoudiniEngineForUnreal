@@ -58,9 +58,11 @@ HOUDINI_PRIVATE_PATCH(FPrivate_UClass_CreateDefaultObject, UClass::CreateDefault
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAsset(nullptr),
+	StaticMesh(nullptr),
 	ChangedHoudiniAsset(nullptr),
 	OriginalBlueprintComponent(nullptr),
 	PatchedClass(nullptr),
+	StaticMeshComponent(nullptr),
 	Blueprint(nullptr),
 	AssetId(-1),
 	InputCount(0),
@@ -210,6 +212,9 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 					FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
 					HoudiniAssetObjectGeo->AddReferencedObjects(Collector);
 				}
+
+				// Add reference to static mesh component.
+				Collector.AddReferencedObject(HoudiniAssetComponent->StaticMeshComponent, InThis);
 			}
 		}
 	}
@@ -345,43 +350,15 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 
 
 void
-UHoudiniAssetComponent::CreateAndAttachStaticMeshComponent(UStaticMesh* InStaticMesh)
+UHoudiniAssetComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
 {
-	// Add static mesh to list of static meshes used by this component.
-	StaticMeshes.Add(InStaticMesh);
+	StaticMesh = InStaticMesh;
 
-	// And create corresponding static mesh component for this mesh (and attach to Houdini asset component).
-	UStaticMeshComponent* StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
-	StaticMeshComponent->AttachTo(this);
-	StaticMeshComponent->SetStaticMesh(InStaticMesh);
-	StaticMeshComponent->SetVisibility(true);
-	StaticMeshComponent->UpdateBounds();
-	StaticMeshComponent->AddToRoot();
-	//StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-}
-
-
-void
-UHoudiniAssetComponent::CreateAndAttachStaticMeshComponents(TArray<UStaticMesh*>& InStaticMeshes)
-{
-	for(TArray<UStaticMesh*>::TIterator Iter = InStaticMeshes.CreateIterator(); Iter; ++Iter)
+	if(StaticMeshComponent)
 	{
-		CreateAndAttachStaticMeshComponent(*Iter);
-	}
-}
-
-
-void
-UHoudiniAssetComponent::DetachAndDestoryStaticMeshComponents()
-{
-	// And remove and destroy all corresponding static mesh components.
-	for(TArray<USceneComponent*>::TIterator Iter = AttachChildren.CreateIterator(); Iter; ++Iter)
-	{
-		USceneComponent* SceneComponent = *Iter;
-
-		SceneComponent->RemoveFromRoot();
-		SceneComponent->DetachFromParent();
-		SceneComponent->DestroyComponent();
+		StaticMeshComponent->SetStaticMesh(StaticMesh);
+		StaticMeshComponent->SetVisibility(true);
+		StaticMeshComponent->UpdateBounds();
 	}
 }
 
@@ -672,10 +649,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						TArray<UStaticMesh*> NewStaticMeshes;
 						if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, NewStaticMeshes))
 						{
-							DetachAndDestoryStaticMeshComponents();
-							StaticMeshes.Empty();
-
-							CreateAndAttachStaticMeshComponents(NewStaticMeshes);
+							SetStaticMesh(NewStaticMeshes[0]);
 						}
 
 						// Clear rendering resources used by geos.
@@ -1076,46 +1050,8 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 FPrimitiveSceneProxy*
 UHoudiniAssetComponent::CreateSceneProxy()
 {
-	/*
 	FPrimitiveSceneProxy* Proxy = nullptr;
-
-	//if(ContainsGeos())
-	if(StaticMesh)
-	{
-		Proxy = new FHoudiniMeshSceneProxy(this);
-	}
-
 	return Proxy;
-	*/
-	
-	FPrimitiveSceneProxy* Proxy = nullptr;
-
-	/*
-	if(StaticMeshComponent)
-	{
-		Proxy = StaticMeshComponent->CreateSceneProxy();
-	}
-	*/
-	return Proxy;
-}
-
-
-void
-UHoudiniAssetComponent::OnComponentDestroyed()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
-
-	// Release all Houdini related resources.
-	ResetHoudiniResources();
-
-	// Remove all static meshes.
-	StaticMeshes.Empty();
-
-	// We need to detach and destroy all corresponding generated static mesh components.
-	DetachAndDestoryStaticMeshComponents();
-
-	// Call super class implementation.
-	Super::OnComponentDestroyed();
 }
 
 
@@ -3122,11 +3058,33 @@ UHoudiniAssetComponent::OnComponentCreated()
 
 	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentCreated,                 C" );
 
-	if(0 == StaticMeshes.Num())
+	// And create corresponding static mesh component for this mesh (and attach to Houdini asset component).
+	if(!StaticMeshComponent)
 	{
-		UStaticMesh* StaticMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
-		CreateAndAttachStaticMeshComponent(StaticMesh);
+		StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+		StaticMeshComponent->AttachTo(this);
+		SetStaticMesh(FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
 	}
+}
+
+
+void
+UHoudiniAssetComponent::OnComponentDestroyed()
+{
+	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
+
+	// Release all Houdini related resources.
+	ResetHoudiniResources();
+
+	if(StaticMeshComponent)
+	{
+		StaticMeshComponent->RemoveFromRoot();
+		StaticMeshComponent->DetachFromParent();
+		StaticMeshComponent->DestroyComponent();
+	}
+
+	// Call super class implementation.
+	Super::OnComponentDestroyed();
 }
 
 
