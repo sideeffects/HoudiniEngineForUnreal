@@ -345,6 +345,48 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 
 
 void
+UHoudiniAssetComponent::CreateAndAttachStaticMeshComponent(UStaticMesh* InStaticMesh)
+{
+	// Add static mesh to list of static meshes used by this component.
+	StaticMeshes.Add(InStaticMesh);
+
+	// And create corresponding static mesh component for this mesh (and attach to Houdini asset component).
+	UStaticMeshComponent* StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+	StaticMeshComponent->AttachTo(this);
+	StaticMeshComponent->SetStaticMesh(InStaticMesh);
+	StaticMeshComponent->SetVisibility(true);
+	StaticMeshComponent->UpdateBounds();
+	StaticMeshComponent->AddToRoot();
+	//StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+}
+
+
+void
+UHoudiniAssetComponent::CreateAndAttachStaticMeshComponents(TArray<UStaticMesh*>& InStaticMeshes)
+{
+	for(TArray<UStaticMesh*>::TIterator Iter = InStaticMeshes.CreateIterator(); Iter; ++Iter)
+	{
+		CreateAndAttachStaticMeshComponent(*Iter);
+	}
+}
+
+
+void
+UHoudiniAssetComponent::DetachAndDestoryStaticMeshComponents()
+{
+	// And remove and destroy all corresponding static mesh components.
+	for(TArray<USceneComponent*>::TIterator Iter = AttachChildren.CreateIterator(); Iter; ++Iter)
+	{
+		USceneComponent* SceneComponent = *Iter;
+
+		SceneComponent->RemoveFromRoot();
+		SceneComponent->DetachFromParent();
+		SceneComponent->DestroyComponent();
+	}
+}
+
+
+void
 UHoudiniAssetComponent::ClearGeos()
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  ClearGeos,                          C" );
@@ -625,6 +667,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Construct new objects (asset objects and asset object parts).
 						TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
 						FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
+
+						//!!!
+						TArray<UStaticMesh*> NewStaticMeshes;
+						if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, NewStaticMeshes))
+						{
+							DetachAndDestoryStaticMeshComponents();
+							StaticMeshes.Empty();
+
+							CreateAndAttachStaticMeshComponents(NewStaticMeshes);
+						}
 
 						// Clear rendering resources used by geos.
 						ReleaseRenderingResources();
@@ -1024,13 +1076,26 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 FPrimitiveSceneProxy*
 UHoudiniAssetComponent::CreateSceneProxy()
 {
+	/*
 	FPrimitiveSceneProxy* Proxy = nullptr;
 
-	if(ContainsGeos())
+	//if(ContainsGeos())
+	if(StaticMesh)
 	{
 		Proxy = new FHoudiniMeshSceneProxy(this);
 	}
 
+	return Proxy;
+	*/
+	
+	FPrimitiveSceneProxy* Proxy = nullptr;
+
+	/*
+	if(StaticMeshComponent)
+	{
+		Proxy = StaticMeshComponent->CreateSceneProxy();
+	}
+	*/
 	return Proxy;
 }
 
@@ -1042,6 +1107,12 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Release all Houdini related resources.
 	ResetHoudiniResources();
+
+	// Remove all static meshes.
+	StaticMeshes.Empty();
+
+	// We need to detach and destroy all corresponding generated static mesh components.
+	DetachAndDestoryStaticMeshComponents();
 
 	// Call super class implementation.
 	Super::OnComponentDestroyed();
@@ -3048,7 +3119,14 @@ UHoudiniAssetComponent::OnComponentCreated()
 {
 	// This event will only be fired for native Actor and native Component.
 	Super::OnComponentCreated();
+
 	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentCreated,                 C" );
+
+	if(0 == StaticMeshes.Num())
+	{
+		UStaticMesh* StaticMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
+		CreateAndAttachStaticMeshComponent(StaticMesh);
+	}
 }
 
 

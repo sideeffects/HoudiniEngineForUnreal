@@ -52,17 +52,14 @@ public:
 	/** Serialization. **/
 	virtual void Serialize(FArchive& Ar);
 
-	/** Retrieve list of vertices. **/
-	const TArray<FHoudiniMeshVertex>& GetVertices();
-
-	/** Set vertices for this geo. **/
-	void SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InTextureCoordinateChannelCount);
-
 	/** Create rendering resources for this geo. **/
 	void CreateRenderingResources();
 
 	/** Release rendering resources used by this geo. **/
 	void ReleaseRenderingResources();
+
+	/** Return true if rendering resources for this geo have been created. **/
+	bool CheckRenderingResourcesCreated() const;
 
 	/** Return transform of this geo. **/
 	const FMatrix& GetTransform() const;
@@ -91,11 +88,8 @@ public:
 	/** Compute aggregate bounding volume from all parts. **/
 	void ComputeAggregateBoundingVolume();
 
-	/** Return number of vertices in this geo. **/
-	int32 GetVertexCount() const;
-
-	/** Return number of uv channels used by this geo. **/
-	int32 GetTextureCoordinateChannelCount() const;
+	/** Return number of positions. **/
+	uint32 GetPositionCount() const;
 
 protected:
 
@@ -107,17 +101,22 @@ protected:
 	/** List of geo parts (these correspond to submeshes). Will always have at least one. **/
 	TArray<FHoudiniAssetObjectGeoPart*> HoudiniAssetObjectGeoParts;
 
-	/** Vertices used by this geo. **/
-	TArray<FHoudiniMeshVertex> Vertices;
+	/** Raw vertex data for this geo. **/
+	TArray<FVector> VertexPositions;
+	TArray<FVector> VertexNormals;
+	TArray<FVector> VertexColors;
+	TArray<FVector2D> VertexTextureCoordinates[MAX_STATIC_TEXCOORDS];
+	TArray<FPackedNormal> VertexPackedTangentXs;
+	TArray<FPackedNormal> VertexPackedTangentZs;
 
 	/** Transform for this part. **/
 	FMatrix Transform;
 
-	/** Bounding volume information for this geo - aggregate of all part bounding volumes. **/
+	/** Bounding volume information for this geo - aggregate of all parts bounding volumes. **/
 	FBoxSphereBounds AggregateBoundingVolume;
 
-	/** Corresponding Vertex buffer used by proxy object. Owned by render thread. Kept here for indexing. **/
-	FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer;
+	/** Vertex buffers used by proxy object. owned by render thread. **/
+	TArray<FHoudiniMeshVertexBuffer*> HoudiniMeshVertexBuffers;
 
 	/** Corresponding Vertex factory used by proxy object. Owned by render thread. Kept here for indexing. **/
 	FHoudiniMeshVertexFactory* HoudiniMeshVertexFactory;
@@ -134,12 +133,12 @@ protected:
 	/** Number of components using this geo. **/
 	uint32 ComponentReferenceCount;
 
-	/** Number of UV channels used by this geo. **/
-	int32 TextureCoordinateChannelCount;
-
 	/** Is set to true when submeshes use different materials. **/
 	bool bMultipleMaterials;
 	
 	/** Is set to true when this geometry is a Houdini logo geometry. **/
 	bool bHoudiniLogo;
+
+	/** Is set to true when rendering resources have been initialized. **/
+	bool bRenderingResourcesCreated;
 };

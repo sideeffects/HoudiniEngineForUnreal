@@ -25,5 +25,5 @@ public:
 
 public:
 
-	void Init(const FHoudiniMeshVertexBuffer* VertexBuffer);
+	void Init(const TArray<FHoudiniMeshVertexBuffer*>& HoudiniMeshVertexBuffers);
 };

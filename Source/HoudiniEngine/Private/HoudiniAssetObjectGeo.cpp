@@ -17,15 +17,14 @@
 
 
 FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
-	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
 	ComponentReferenceCount(1),
-	TextureCoordinateChannelCount(0),
 	bMultipleMaterials(false),
-	bHoudiniLogo(false)
+	bHoudiniLogo(false),
+	bRenderingResourcesCreated(false)
 {
 	Transform = FMatrix::Identity;
 	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -34,15 +33,14 @@ FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo() :
 
 FHoudiniAssetObjectGeo::FHoudiniAssetObjectGeo(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
 	Transform(InTransform),
-	HoudiniMeshVertexBuffer(nullptr),
 	HoudiniMeshVertexFactory(nullptr),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
 	ComponentReferenceCount(1),
-	TextureCoordinateChannelCount(0),
 	bMultipleMaterials(false),
-	bHoudiniLogo(false)
+	bHoudiniLogo(false),
+	bRenderingResourcesCreated(false)
 {
 	AggregateBoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 }
@@ -59,10 +57,14 @@ FHoudiniAssetObjectGeo::~FHoudiniAssetObjectGeo()
 	HoudiniAssetObjectGeoParts.Empty();
 
 	// Delete dangling rendering resources.
-	if(HoudiniMeshVertexBuffer)
+	for(TArray<FHoudiniMeshVertexBuffer*>::TIterator Iter = HoudiniMeshVertexBuffers.CreateIterator(); Iter; ++Iter)
 	{
-		check(!HoudiniMeshVertexBuffer->IsInitialized());
-		delete HoudiniMeshVertexBuffer;
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = *Iter;
+		if(HoudiniMeshVertexBuffer)
+		{
+			check(!HoudiniMeshVertexBuffer->IsInitialized());
+			delete HoudiniMeshVertexBuffer;
+		}
 	}
 
 	if(HoudiniMeshVertexFactory)
@@ -73,10 +75,10 @@ FHoudiniAssetObjectGeo::~FHoudiniAssetObjectGeo()
 }
 
 
-int32
-FHoudiniAssetObjectGeo::GetVertexCount() const
+bool
+FHoudiniAssetObjectGeo::CheckRenderingResourcesCreated() const
 {
-	return Vertices.Num();
+	return bRenderingResourcesCreated;
 }
 
 
@@ -90,6 +92,7 @@ FHoudiniAssetObjectGeo::GetTransform() const
 void
 FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 {
+	/*
 	// Serialize stored vertices.
 	{
 		// Serialize number of vertices.
@@ -114,6 +117,7 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 			}
 		}
 	}
+	*/
 
 	// Serialize transform.
 	Ar << Transform;
@@ -123,9 +127,6 @@ FHoudiniAssetObjectGeo::Serialize(FArchive& Ar)
 
 	// Serialize multiple materials flag.
 	Ar << bMultipleMaterials;
-
-	// Serialize number of UV channels.
-	Ar << TextureCoordinateChannelCount;
 
 	// Serialize parts.
 	int32 NumParts = HoudiniAssetObjectGeoParts.Num();
@@ -171,13 +172,6 @@ void
 FHoudiniAssetObjectGeo::AddGeoPart(FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart)
 {
 	HoudiniAssetObjectGeoParts.Add(HoudiniAssetObjectGeoPart);
-}
-
-
-const TArray<FHoudiniMeshVertex>&
-FHoudiniAssetObjectGeo::GetVertices()
-{
-	return Vertices;
 }
 
 
@@ -240,11 +234,10 @@ FHoudiniAssetObjectGeo::UsesMultipleMaterials() const
 }
 
 
-void
-FHoudiniAssetObjectGeo::SetVertices(const TArray<FHoudiniMeshVertex>& InVertices, int32 InTextureCoordinateChannelCount)
+uint32
+FHoudiniAssetObjectGeo::GetPositionCount() const
 {
-	Vertices = InVertices;
-	TextureCoordinateChannelCount = InTextureCoordinateChannelCount;
+	return VertexPositions.Num();
 }
 
 
@@ -252,22 +245,84 @@ void
 FHoudiniAssetObjectGeo::CreateRenderingResources()
 {
 	// Check to make sure we are not running this twice.
-	if(HoudiniMeshVertexBuffer && HoudiniMeshVertexFactory)
+	if(bRenderingResourcesCreated)
 	{
 		// Resources have been initialized, we can skip. This will happen when geos are reused between the cooks.
 		return;
 	}
 
-	// Create new vertex buffer.
-	HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer();
-	HoudiniMeshVertexBuffer->Vertices = Vertices;
+	// Create vertex stream for position data.
+	if(VertexPositions.Num() > 0)
+	{
+		uint32 DataBytesCount = sizeof(FVector) * VertexPositions.Num();
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer((const uint8*) VertexPositions.GetTypedData(),
+			DataBytesCount, VET_Float3, 3, EHoudiniMeshVertexBufferSemantic::Position);
+		HoudiniMeshVertexBuffers.Add(HoudiniMeshVertexBuffer);
+	}
+
+	// Create vertex stream for normals.
+	if(VertexNormals.Num() > 0)
+	{
+		uint32 DataBytesCount = sizeof(FVector) * VertexNormals.Num();
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer((const uint8*) VertexNormals.GetTypedData(),
+			DataBytesCount, VET_Float3, 3, EHoudiniMeshVertexBufferSemantic::Normal);
+		HoudiniMeshVertexBuffers.Add(HoudiniMeshVertexBuffer);
+	}
+
+	// Create vertex stream for colors.
+	if(VertexColors.Num() > 0)
+	{
+		uint32 DataBytesCount = sizeof(FVector) * VertexColors.Num();
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer((const uint8*) VertexColors.GetTypedData(),
+			DataBytesCount, VET_Float3, 3, EHoudiniMeshVertexBufferSemantic::Color);
+		HoudiniMeshVertexBuffers.Add(HoudiniMeshVertexBuffer);
+	}
+
+	// Create vertex streams for UVs.
+	for(int32 TexCoordChannelIdx = 0; TexCoordChannelIdx < MAX_STATIC_TEXCOORDS; ++TexCoordChannelIdx)
+	{
+		// Get texture coordinate array for this channel.
+		const TArray<FVector2D>& UVChannel = VertexTextureCoordinates[TexCoordChannelIdx];
+
+		if(UVChannel.Num() > 0)
+		{
+			uint32 DataBytesCount = sizeof(FVector2D) * UVChannel.Num();
+			FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer((const uint8*) UVChannel.GetTypedData(),
+					DataBytesCount, VET_Float2, 2, 
+					static_cast<EHoudiniMeshVertexBufferSemantic::Type>(EHoudiniMeshVertexBufferSemantic::TextureCoordinate0 + TexCoordChannelIdx));
+			HoudiniMeshVertexBuffers.Add(HoudiniMeshVertexBuffer);
+		}
+	}
+
+	// Create vertex stream for packed tangent data - tangent x.
+	if(VertexPackedTangentXs.Num() > 0)
+	{
+		uint32 DataBytesCount = sizeof(FPackedNormal) * VertexPackedTangentXs.Num();
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer((const uint8*) VertexPackedTangentXs.GetTypedData(),
+			DataBytesCount, VET_PackedNormal, 4, EHoudiniMeshVertexBufferSemantic::PackedTangentX);
+		HoudiniMeshVertexBuffers.Add(HoudiniMeshVertexBuffer);
+	}
+
+	// Create vertex stream for packed tangent data - tangent z.
+	if(VertexPackedTangentZs.Num() > 0)
+	{
+		uint32 DataBytesCount = sizeof(FPackedNormal) * VertexPackedTangentZs.Num();
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = new FHoudiniMeshVertexBuffer((const uint8*) VertexPackedTangentZs.GetTypedData(),
+			DataBytesCount, VET_PackedNormal, 4, EHoudiniMeshVertexBufferSemantic::PackedTangentZ);
+		HoudiniMeshVertexBuffers.Add(HoudiniMeshVertexBuffer);
+	}
 
 	// Create new vertex factory.
 	HoudiniMeshVertexFactory = new FHoudiniMeshVertexFactory();
-	HoudiniMeshVertexFactory->Init(HoudiniMeshVertexBuffer);
+	HoudiniMeshVertexFactory->Init(HoudiniMeshVertexBuffers);
 
-	// Enqueue initialization of vertex buffer and vertex factory on render thread.
-	BeginInitResource(HoudiniMeshVertexBuffer);
+	// Enqueue initialization of vertex buffers and vertex factory on render thread.
+	for(TArray<FHoudiniMeshVertexBuffer*>::TIterator Iter = HoudiniMeshVertexBuffers.CreateIterator(); Iter; ++Iter)
+	{
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = *Iter;
+		BeginInitResource(HoudiniMeshVertexBuffer);
+	}
+
 	BeginInitResource(HoudiniMeshVertexFactory);
 
 	// Create necessary rendering resources for each part.
@@ -276,6 +331,8 @@ FHoudiniAssetObjectGeo::CreateRenderingResources()
 		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = *Iter;
 		HoudiniAssetObjectGeoPart->CreateRenderingResources();
 	}
+
+	bRenderingResourcesCreated = true;
 }
 
 
@@ -283,8 +340,10 @@ void
 FHoudiniAssetObjectGeo::ReleaseRenderingResources()
 {
 	// Enqueue release of vertex buffer and vertex factory on render thread.
-	if(HoudiniMeshVertexBuffer)
+
+	for(TArray<FHoudiniMeshVertexBuffer*>::TIterator Iter = HoudiniMeshVertexBuffers.CreateIterator(); Iter; ++Iter)
 	{
+		FHoudiniMeshVertexBuffer* HoudiniMeshVertexBuffer = *Iter;
 		BeginReleaseResource(HoudiniMeshVertexBuffer);
 	}
 
@@ -299,6 +358,8 @@ FHoudiniAssetObjectGeo::ReleaseRenderingResources()
 		FHoudiniAssetObjectGeoPart* HoudiniAssetObjectGeoPart = *Iter;
 		HoudiniAssetObjectGeoPart->ReleaseRenderingResources();
 	}
+
+	bRenderingResourcesCreated = false;
 }
 
 
@@ -350,11 +411,4 @@ FHoudiniAssetObjectGeo::ComputeAggregateBoundingVolume()
 	{
 		AggregateBoundingVolume = AggregateBoundingVolume + HoudiniAssetObjectGeoParts[Idx]->GetBoundingVolume();
 	}
-}
-
-
-int32
-FHoudiniAssetObjectGeo::GetTextureCoordinateChannelCount() const
-{
-	return TextureCoordinateChannelCount;
 }

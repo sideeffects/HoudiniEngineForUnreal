@@ -59,6 +59,13 @@ public:
 	static int ConvertUnrealColorRGB(const FColor& UnrealColor, float* HoudiniColorRGB);
 	static int ConvertUnrealColorRGBA(const FColor& UnrealColor, float* HoudiniColorRGBA);
 
+	/** Construct static mesh which represents Houdini logo geometry. **/
+	static UStaticMesh* CreateStaticMeshHoudiniLogo();
+
+	/** Construct static meshes for a given Houdini asset. Flag controls whether one mesh or multiple meshes will be created. **/
+	static bool CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
+												   TArray<UStaticMesh*>& StaticMeshes, bool bSplit = false);
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/
@@ -73,6 +80,10 @@ public:
 	/** HAPI : Return all group names for a given Geo. **/
 	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
 								  std::vector<std::string>& GroupNames);
+
+	/** HAPI : Return all group names for a given Geo. **/
+	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
+								  TArray<FString>& GroupNames);
 
 	/** HAPI : Get string name for a given handle. **/
 	static bool HapiGetString(int Name, std::string& NameString);
@@ -102,10 +113,18 @@ public:
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											std::vector<float>& Data, int TupleSize = 0);
 
+	static bool HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+											TArray<float>& Data, int TupleSize = 0);
+
 	/** HAPI : Get attribute data as integer. **/
 	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											std::vector<int>& Data, int TupleSize = 0);
+
+	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+											TArray<int>& Data, int TupleSize = 0);
 
 	/** HAPI : Get parameter data as float. **/
 	static float HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue);
@@ -131,7 +150,7 @@ public:
 protected:
 
 	/** Create a package for static mesh. **/
-	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
+	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
 
 protected:
 
@@ -149,6 +168,10 @@ protected:
 
 	/** Helper function to compute tangents. **/
 	static bool ComputePackedTangents(FHoudiniMeshVertex* Vertices);
+
+	/** Helper function to compute Unreal specific packed tangents. **/
+	static void ComputePackedTangents(const TArray<FVector>& Positions, const TArray<int32>& Indices,
+									  TArray<FPackedNormal>& TangentXs, TArray<FPackedNormal>& TangentZs);
 
 	/** Helper function which extracts Unreal specific packed tangents. **/
 	static bool ExtractPackedTangents(FHoudiniMeshVertex* Vertices, int TriangleIdx, const std::vector<int>& VertexList,

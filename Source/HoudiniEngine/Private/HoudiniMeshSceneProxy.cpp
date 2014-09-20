@@ -17,11 +17,10 @@
 
 
 FHoudiniMeshSceneProxy::FHoudiniMeshSceneProxy(UHoudiniAssetComponent* Component, FName ResourceName) :
-	FPrimitiveSceneProxy(Component, ResourceName),
+	FPrimitiveSceneProxy(Component),
 	HoudiniAssetComponent(Component)
 {
 	// This constructor will be executing on a game thread.
-
 }
 
 
@@ -31,6 +30,36 @@ FHoudiniMeshSceneProxy::~FHoudiniMeshSceneProxy()
 }
 
 
+uint32
+FHoudiniMeshSceneProxy::GetMemoryFootprint() const
+{
+	return(sizeof(*this) + GetAllocatedSize());
+}
+
+
+void
+FHoudiniMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
+{
+	checkSlow(IsInRenderingThread());
+}
+
+
+void
+FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View, uint32 DrawDynamicFlags)
+{
+
+}
+
+
+void
+FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
+{
+	DrawDynamicElements(PDI, View, 0);
+}
+
+
+
+/*
 void
 FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
 {
@@ -64,7 +93,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 		Mesh.bUseAsOccluder = true;
 
 		// If vertex buffer is invalid, skip this geo.
-		if(!HoudiniAssetObjectGeo->HoudiniMeshVertexBuffer || !HoudiniAssetObjectGeo->HoudiniMeshVertexFactory)
+		if(!HoudiniAssetObjectGeo->CheckRenderingResourcesCreated())
 		{
 			continue;
 		}
@@ -94,7 +123,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 				BatchElement.NumPrimitives = HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer->Indices.Num() / 3;
 				BatchElement.NumInstances = 1;
 				BatchElement.MinVertexIndex = 0;
-				BatchElement.MaxVertexIndex = HoudiniAssetObjectGeo->HoudiniMeshVertexBuffer->Vertices.Num() - 1;
+				BatchElement.MaxVertexIndex = HoudiniAssetObjectGeo->GetPositionCount() - 1;
 				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), false);
 			
 				// Draw mesh with only one submesh.
@@ -139,7 +168,7 @@ FHoudiniMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const 
 				BatchElement.NumPrimitives = HoudiniAssetObjectGeoPart->HoudiniMeshIndexBuffer->Indices.Num() / 3;
 				BatchElement.NumInstances = 1;
 				BatchElement.MinVertexIndex = 0;
-				BatchElement.MaxVertexIndex = HoudiniAssetObjectGeo->HoudiniMeshVertexBuffer->Vertices.Num() - 1;
+				BatchElement.MaxVertexIndex = HoudiniAssetObjectGeo->GetPositionCount() - 1;
 				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), false);
 			}
 
@@ -205,3 +234,4 @@ FHoudiniMeshSceneProxy::ComputeMaterialProxy(bool bWireframe, const FColoredMate
 	UMaterial* Material = UMaterial::GetDefaultMaterial(MD_Surface);
 	return Material->GetRenderProxy(IsSelected(), IsHovered());
 }
+*/

@@ -16,7 +16,9 @@
 #pragma once
 
 class FSceneView;
+class UStaticMesh;
 class UMaterialInterface;
+class FStaticMeshRenderData;
 class UHoudiniAssetComponent;
 class FPrimitiveDrawInterface;
 class FStaticPrimitiveDrawInterface;
@@ -34,15 +36,19 @@ public:
 public: /** FPrimitiveSceneProxy methods. **/
 
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View, uint32 DrawDynamicFlags ) override;
+	virtual uint32 GetMemoryFootprint() const override;
+
+	/*
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
-	virtual uint32 GetMemoryFootprint() const override;
-
+	*/
 private:
 
 	/** Return material proxy used by the given geo part. **/
-	const FMaterialRenderProxy* ComputeMaterialProxy(bool bWireframe, const FColoredMaterialRenderProxy* WireframeProxy, FHoudiniAssetObjectGeoPart* GeoPart);
+	//const FMaterialRenderProxy* ComputeMaterialProxy(bool bWireframe, const FColoredMaterialRenderProxy* WireframeProxy, FHoudiniAssetObjectGeoPart* GeoPart);
 
 private:
 

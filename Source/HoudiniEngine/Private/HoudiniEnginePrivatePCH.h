@@ -43,6 +43,7 @@
 #include "IMainFrameModule.h"
 #include "DesktopPlatformModule.h"
 #include "RawMesh.h"
+#include "StaticMeshResources.h"
 
 #include "Materials/MaterialExpressionTextureSample.h"
 
