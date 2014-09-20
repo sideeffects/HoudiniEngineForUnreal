@@ -41,6 +41,13 @@ FHoudiniEngine::GetHoudiniLogoGeo() const
 }
 
 
+UStaticMesh*
+FHoudiniEngine::GetHoudiniLogoStaticMesh() const
+{
+	return HoudiniLogoStaticMesh;
+}
+
+
 FHoudiniEngine&
 FHoudiniEngine::Get()
 {
@@ -109,6 +116,10 @@ FHoudiniEngine::StartupModule()
 		static const FString HoudiniLogoMaterialPath(TEXT("/HoudiniEngine/HoudiniLogoMaterial.HoudiniLogoMaterial"));
 		HoudiniLogoMaterial = Cast<UMaterial>(StaticLoadObject(MaterialClass, NULL, *HoudiniLogoMaterialPath));
 	}
+
+	// Create static mesh Houdini logo.
+	HoudiniLogoStaticMesh = FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo();
+	HoudiniLogoStaticMesh->AddToRoot();
 
 	// Construct Houdini logo geometry.
 	{
@@ -191,6 +202,9 @@ FHoudiniEngine::ShutdownModule()
 
 	// Deconstruct Houdini logo geometry.
 	HoudiniLogoGeo->ReleaseRenderingResources();
+
+	// We no longer need Houdini logo static mesh.
+	HoudiniLogoStaticMesh->RemoveFromRoot();
 
 	// Perform HAPI finalization.
 	HAPI_Cleanup();

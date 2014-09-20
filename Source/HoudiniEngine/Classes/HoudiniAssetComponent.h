@@ -83,6 +83,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
+	/** Generated Static mesh used for rendering. **/
+	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
+	TArray<UStaticMesh*> StaticMeshes;
+
 	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
 	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniTextures)
 	TArray<UTexture2D*> HoudiniTextures;
@@ -336,6 +340,15 @@ private:
 
 	/** Stop delegate which is responsible for checking update status of main Blueprint component. **/
 	void StopDuplicatedFromBlueprintUpdate();
+
+	/** Create static mesh component for a given mesh and attach component to this component. **/
+	void CreateAndAttachStaticMeshComponent(UStaticMesh* InStaticMesh);
+
+	/** Create static mesh components for all static meshes in a given array. **/
+	void CreateAndAttachStaticMeshComponents(TArray<UStaticMesh*>& InStaticMeshes);
+
+	/** Remove all generated static mesh components. **/
+	void DetachAndDestoryStaticMeshComponents();
 
 public:
 

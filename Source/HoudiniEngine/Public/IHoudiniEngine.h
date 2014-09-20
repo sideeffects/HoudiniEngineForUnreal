@@ -15,12 +15,16 @@
 
 #pragma once
 
+class UStaticMesh;
 struct FHoudiniEngineNotificationInfo;
 struct FHoudiniEngineTask;
 
 class IHoudiniEngine : public IModuleInterface
 {
 public:
+
+	/** Return static mesh reprensenting Houdini logo. **/
+	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const = 0;
 
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;

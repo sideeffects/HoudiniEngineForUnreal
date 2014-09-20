@@ -33,6 +33,7 @@ public: /** IModuleInterface methods. **/
 
 public: /** IHoudiniEngine methods. **/
 
+	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
 	virtual TSharedPtr<FHoudiniAssetObjectGeo> GetHoudiniLogoGeo() const override;
 	virtual void AddTask(const FHoudiniEngineTask& Task) override;
@@ -78,6 +79,9 @@ private:
 
 	/** Logo geometry. **/
 	TSharedPtr<FHoudiniAssetObjectGeo> HoudiniLogoGeo;
+
+	/** Static mesh used for Houdini logo rendering. **/
+	UStaticMesh* HoudiniLogoStaticMesh;
 
 	/** Material used by houdini logo geometry. **/
 	TWeakObjectPtr<UMaterial> HoudiniLogoMaterial;
