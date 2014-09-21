@@ -58,11 +58,9 @@ HOUDINI_PRIVATE_PATCH(FPrivate_UClass_CreateDefaultObject, UClass::CreateDefault
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAsset(nullptr),
-	StaticMesh(nullptr),
 	ChangedHoudiniAsset(nullptr),
 	OriginalBlueprintComponent(nullptr),
 	PatchedClass(nullptr),
-	StaticMeshComponent(nullptr),
 	Blueprint(nullptr),
 	AssetId(-1),
 	InputCount(0),
@@ -213,8 +211,15 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 					HoudiniAssetObjectGeo->AddReferencedObjects(Collector);
 				}
 
-				// Add reference to static mesh component.
-				Collector.AddReferencedObject(HoudiniAssetComponent->StaticMeshComponent, InThis);
+				// Add references to all static meshes and their static mesh components.
+				for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(HoudiniAssetComponent->StaticMeshComponents); Iter; ++Iter)
+				{
+					UStaticMesh* StaticMesh = Iter.Key();
+					UStaticMeshComponent* StaticMeshComponent = Iter.Value();
+
+					Collector.AddReferencedObject(StaticMesh, InThis);
+					Collector.AddReferencedObject(StaticMeshComponent, InThis);
+				}
 			}
 		}
 	}
@@ -350,16 +355,71 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 
 
 void
-UHoudiniAssetComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
+UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
-	StaticMesh = InStaticMesh;
-
-	if(StaticMeshComponent)
+	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
+		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+		UStaticMesh* StaticMesh = Iter.Value();
+
+		// See if we need to create component for this mesh.
+		UStaticMeshComponent* StaticMeshComponent = nullptr;
+		UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+		if(!FoundStaticMeshComponent)
+		{
+			// Create necessary component.
+			StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+			StaticMeshComponent->AttachTo(this);
+
+			// Add to map of components.
+			StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
+		}
+		else
+		{
+			StaticMeshComponent = *FoundStaticMeshComponent;
+		}
+
 		StaticMeshComponent->SetStaticMesh(StaticMesh);
 		StaticMeshComponent->SetVisibility(true);
+		StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 		StaticMeshComponent->UpdateBounds();
 	}
+
+	StaticMeshes = StaticMeshMap;
+}
+
+
+void
+UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
+{
+	UStaticMesh* HoudiniLogoStaticMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
+
+	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
+	{
+		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+		UStaticMesh* StaticMesh = Iter.Value();
+
+		// Locate corresponding component.
+		UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+		check(FoundStaticMeshComponent);
+
+		// Remove component from map of static mesh components.
+		StaticMeshComponents.Remove(StaticMesh);
+
+		// Detach and destroy the component.
+		UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
+		StaticMeshComponent->RemoveFromRoot();
+		StaticMeshComponent->DetachFromParent();
+		StaticMeshComponent->DestroyComponent();
+
+		// Make sure we don't delete the logo static mesh.
+		if(HoudiniLogoStaticMesh != StaticMesh)
+		{
+			StaticMesh->MarkPendingKill();
+		}
+	}
+
+	StaticMeshMap.Empty();
 }
 
 
@@ -645,12 +705,41 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
 						FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
 
-						//!!!
+						{
+							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
+							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, StaticMeshes, NewStaticMeshes))
+							{
+								// Remove all duplicates. After this operation, old map will have meshes which we need to deallocate.
+								for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(NewStaticMeshes); Iter; ++Iter)
+								{
+									const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+									UStaticMesh* StaticMesh = Iter.Value();
+
+									// Remove mesh from previous map of meshes.
+									int32 ObjectsRemoved = StaticMeshes.Remove(HoudiniGeoPartObject);
+								}
+
+								// Free meshes and components that are no longer used.
+								ReleaseStaticMeshResources(StaticMeshes);
+
+								// Set meshes and create new components for those meshes that do not have them.
+								CreateStaticMeshResources(NewStaticMeshes);
+							}
+						}
+						/*
+
+						(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
+												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
+												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut)
+
 						TArray<UStaticMesh*> NewStaticMeshes;
 						if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, NewStaticMeshes))
 						{
 							SetStaticMesh(NewStaticMeshes[0]);
 						}
+						*/
+						//TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
+						//TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
 						// Clear rendering resources used by geos.
 						ReleaseRenderingResources();
@@ -3058,13 +3147,13 @@ UHoudiniAssetComponent::OnComponentCreated()
 
 	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentCreated,                 C" );
 
-	// And create corresponding static mesh component for this mesh (and attach to Houdini asset component).
-	if(!StaticMeshComponent)
-	{
-		StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
-		StaticMeshComponent->AttachTo(this);
-		SetStaticMesh(FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
-	}
+	//Create Houdini logo static mesh and component for it.
+	FHoudiniGeoPartObject HoudiniGeoPartObject;
+	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
+	NewStaticMeshes.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
+	CreateStaticMeshResources(NewStaticMeshes);
+
+	// Initially we will have one mesh - Houdini logo.
 }
 
 
@@ -3076,12 +3165,10 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	// Release all Houdini related resources.
 	ResetHoudiniResources();
 
-	if(StaticMeshComponent)
-	{
-		StaticMeshComponent->RemoveFromRoot();
-		StaticMeshComponent->DetachFromParent();
-		StaticMeshComponent->DestroyComponent();
-	}
+	// Release static mesh related resources.
+	ReleaseStaticMeshResources(StaticMeshes);
+	StaticMeshes.Empty();
+	StaticMeshComponents.Empty();
 
 	// Call super class implementation.
 	Super::OnComponentDestroyed();

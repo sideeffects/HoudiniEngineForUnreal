@@ -66,6 +66,10 @@ public:
 	static bool CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
 												   TArray<UStaticMesh*>& StaticMeshes, bool bSplit = false);
 
+	static bool CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
+												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
+												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut);
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/
