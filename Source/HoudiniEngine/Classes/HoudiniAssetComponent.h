@@ -84,8 +84,8 @@ public:
 	UHoudiniAsset* HoudiniAsset;
 
 	/** Generated Static mesh used for rendering. **/
-	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
-	UStaticMesh* StaticMesh;
+	//UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
+	//UStaticMesh* StaticMesh;
 
 	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
 	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniTextures)
@@ -341,8 +341,11 @@ private:
 	/** Stop delegate which is responsible for checking update status of main Blueprint component. **/
 	void StopDuplicatedFromBlueprintUpdate();
 
-	/** Sets static mesh for this component. **/
-	void SetStaticMesh(UStaticMesh* InStaticMesh);
+	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
+	void CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
+
+	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
+	void ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
 public:
 
@@ -358,6 +361,12 @@ protected:
 
 	/** Array of asset objects geos. **/
 	TArray<FHoudiniAssetObjectGeo*> HoudiniAssetObjectGeos;
+
+	/** Map of used static meshes and corresponding HAPI params. **/
+	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
+
+	/** Map of components used by static meshes. **/
+	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;
@@ -396,9 +405,6 @@ protected:
 
 	/** Patched class information. We store this here because we need sometimes to unroll back to original class information. **/
 	UClass* PatchedClass;
-
-	/** Static mesh component which is used for rendering the static geometry. **/
-	UStaticMeshComponent* StaticMeshComponent;
 
 	/** Used to store Houdini Asset when it is changing through a property action. **/
 	UHoudiniAsset* ChangedHoudiniAsset;

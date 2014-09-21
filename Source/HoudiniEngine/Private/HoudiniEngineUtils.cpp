@@ -2347,8 +2347,9 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 
 
 bool
-FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package,
-														TArray<UStaticMesh*>& StaticMeshes, bool bSplit)
+FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
+												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
+												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut)
 {
 	if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 	{
@@ -2430,11 +2431,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 			bool bGeoError = false;
 
-			if(!bSplit)
-			{
-				MeshCounter = -1;
-			}
-
 			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
 			{
 				// Get part information.
@@ -2454,42 +2450,58 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					break;
 				}
 
-				if(bSplit || (!bSplit && !StaticMesh))
+				// Attempt to locate static mesh from previous instantiation.
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
+				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
+
+				// See if geometry has changed for this part.
+				if(!GeoInfo.hasGeoChanged)
+				{
+					// If geometry has not changed, look up static mesh from previous instantiation / cooking and use it.
+					if(FoundStaticMesh)
+					{
+						StaticMeshesOut.Add(HoudiniGeoPartObject, *FoundStaticMesh);
+						continue;
+					}
+					else
+					{
+						// No mesh located, this is an error.
+						bGeoError = true;
+						break;
+					}
+				}
+
+				// If static mesh was not located, we need to create one.
+				if(!FoundStaticMesh)
 				{
 					MeshGuid.Invalidate();
 
 					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, GetTransientPackage(), MeshName, MeshGuid, MeshCounter);
 					StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
-
-					// Make sure static mesh has a new lighting guid.
-					StaticMesh->LightingGuid = FGuid::NewGuid();
-
-					// Set it to use textured lightmaps. We use coordinate 1 for UVs.
-					StaticMesh->LightMapResolution = 32;
-					StaticMesh->LightMapCoordinateIndex = 1;
-
-					StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
-					StaticMesh->LODGroup = NAME_None;
-
-					MeshCounter++;
 				}
+				else
+				{
+					// If it was located, we will just reuse it.
+					StaticMesh = *FoundStaticMesh;
+				}
+
+				// Make sure static mesh has a new lighting guid.
+				StaticMesh->LightingGuid = FGuid::NewGuid();
+
+				// Set it to use textured light maps. We use coordinate 1 for UVs.
+				StaticMesh->LightMapResolution = 32;
+				StaticMesh->LightMapCoordinateIndex = 1;
+
+				StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
+				StaticMesh->LODGroup = NAME_None;
+
+				MeshCounter++;
 
 				// Create new source model for current static mesh.
 				new(StaticMesh->SourceModels) FStaticMeshSourceModel();
 
 				// Grab current source model.
-				FStaticMeshSourceModel* SrcModel = nullptr;
-
-				if(bSplit)
-				{
-					// If we are splitting, we will always use 0 level (we create new mesh each time).
-					SrcModel = &StaticMesh->SourceModels[0];
-				}
-				else
-				{
-					// Otherwise grab the last one.
-					SrcModel = &StaticMesh->SourceModels[MeshCounter];
-				}
+				FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
 
 				// Load existing raw model. This will be empty as we are constructing a new mesh.
 				FRawMesh RawMesh;
@@ -2547,11 +2559,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				int32 FaceCount = PartInfo.vertexCount / 3;
 
 				// Set face specific information.
-				RawMesh.FaceMaterialIndices.AddZeroed(FaceCount);
-				RawMesh.FaceSmoothingMasks.AddZeroed(FaceCount);
+				RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+				RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
 
 				// Transfer indices.
-				RawMesh.WedgeIndices.SetNumUninitialized(VertexList.Num());
+				RawMesh.WedgeIndices.SetNumZeroed(VertexList.Num());
 				for(int32 VertexIdx = 0; VertexIdx < VertexList.Num(); VertexIdx += 3)
 				{
 					RawMesh.WedgeIndices[VertexIdx + 0] = VertexList[VertexIdx + 0];
@@ -2561,7 +2573,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 				// Transfer vertex positions.
 				int32 VertexPositionsCount = Positions.Num() / 3;
-				RawMesh.VertexPositions.SetNumUninitialized(VertexPositionsCount);
+				RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
 				for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
 				{
 					FVector VertexPosition;
@@ -2576,7 +2588,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
 				{
 					int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
-					RawMesh.WedgeColors.SetNumUninitialized(WedgeColorsCount);
+					RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
 					for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
 					{
 						FLinearColor WedgeColor;
@@ -2602,7 +2614,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 				// Transfer normals.
 				int32 WedgeNormalCount = Normals.Num() / 3;
-				RawMesh.WedgeTangentZ.SetNumUninitialized(WedgeNormalCount);
+				RawMesh.WedgeTangentZ.SetNumZeroed(WedgeNormalCount);
 				for(int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx)
 				{
 					FVector WedgeTangentZ;
@@ -2614,8 +2626,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 
 				// Create empty tangents.
-				RawMesh.WedgeTangentX.SetNumUninitialized(VertexList.Num());
-				RawMesh.WedgeTangentY.SetNumUninitialized(VertexList.Num());
+				RawMesh.WedgeTangentX.SetNumZeroed(VertexList.Num());
+				RawMesh.WedgeTangentY.SetNumZeroed(VertexList.Num());
 
 				// Transfer UVs.
 				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
@@ -2624,7 +2636,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					if(TextureCoordinate.Num() > 0)
 					{
 						int32 WedgeUVCount = TextureCoordinate.Num() / 2;
-						RawMesh.WedgeTexCoords[TexCoordIdx].SetNumUninitialized(WedgeUVCount);
+						RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
 						for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
 						{
 							FVector2D WedgeUV;
@@ -2654,15 +2666,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 
 				StaticMesh->Build(true);
-				StaticMeshes.Add(StaticMesh);
-
-				volatile int foo = 2;
+				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 			}
 		}
 	}
-
-
-
 
 	return true;
 }
