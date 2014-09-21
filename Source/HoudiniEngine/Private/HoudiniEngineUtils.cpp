@@ -2630,6 +2630,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				RawMesh.WedgeTangentY.SetNumZeroed(VertexList.Num());
 
 				// Transfer UVs.
+				bool bFoundUVs = false;
 				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 				{
 					TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
@@ -2644,8 +2645,16 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 							WedgeUV.Y = TextureCoordinate[WedgeUVIdx * 2 + 1];
 
 							RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
+
+							bFoundUVs = true;
 						}
 					}
+				}
+
+				// We have to have at least one UV channel. If there's none, create one with zero data.
+				if(!bFoundUVs)
+				{
+					RawMesh.WedgeTexCoords[0].SetNumZeroed(VertexList.Num());
 				}
 
 				// Some mesh generation settings.
