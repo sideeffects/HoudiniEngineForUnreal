@@ -2498,7 +2498,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				MeshCounter++;
 
 				// Create new source model for current static mesh.
-				new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+				if(!StaticMesh->SourceModels.Num())
+				{
+					new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+				}
 
 				// Grab current source model.
 				FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
@@ -2669,6 +2672,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				{
 					new(StaticMesh->SourceModels) FStaticMeshSourceModel();
 				}
+
 				for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
 				{
 					StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
