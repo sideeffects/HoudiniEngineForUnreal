@@ -34,13 +34,6 @@ FHoudiniEngine::GetHoudiniLogoBrush() const
 }
 
 
-TSharedPtr<FHoudiniAssetObjectGeo>
-FHoudiniEngine::GetHoudiniLogoGeo() const
-{
-	return HoudiniLogoGeo;
-}
-
-
 UStaticMesh*
 FHoudiniEngine::GetHoudiniLogoStaticMesh() const
 {
@@ -121,19 +114,6 @@ FHoudiniEngine::StartupModule()
 	HoudiniLogoStaticMesh = FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo();
 	HoudiniLogoStaticMesh->AddToRoot();
 
-	// Construct Houdini logo geometry.
-	{
-		HoudiniLogoGeo = MakeShareable(FHoudiniEngineUtils::ConstructLogoGeo());
-		HoudiniLogoGeo->SetHoudiniLogo();
-
-		if(HoudiniLogoMaterial.IsValid())
-		{
-			HoudiniLogoGeo->ReplaceMaterial(HoudiniLogoMaterial.Get());
-		}
-
-		HoudiniLogoGeo->CreateRenderingResources();
-	}
-
 	// Extend main menu, we will add Houdini section to 'Window' menu tab.
 	{
 		MainMenuExtender = MakeShareable(new FExtender);
@@ -199,9 +179,6 @@ FHoudiniEngine::ShutdownModule()
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 	}
-
-	// Deconstruct Houdini logo geometry.
-	HoudiniLogoGeo->ReleaseRenderingResources();
 
 	// We no longer need Houdini logo static mesh.
 	HoudiniLogoStaticMesh->RemoveFromRoot();
