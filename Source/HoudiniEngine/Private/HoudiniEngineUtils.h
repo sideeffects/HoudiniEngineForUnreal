@@ -17,6 +17,9 @@
 
 class UTexture2D;
 class UHoudiniAsset;
+class UStaticMesh;
+class FArchive;
+struct FRawMesh;
 class UHoudiniAssetMaterial;
 class FHoudiniAssetObjectGeo;
 
@@ -69,6 +72,12 @@ public:
 	static bool CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
 												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut);
+
+	/** Save a given static mesh in raw form. **/
+	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar);
+
+	/** Load raw mesh from archive and create static mesh from it. **/
+	static UStaticMesh* LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, int32 MeshCounter, FArchive& Ar);
 
 public:
 
@@ -155,6 +164,9 @@ protected:
 
 	/** Create a package for static mesh. **/
 	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
+
+	/** Helper routine to serialize FRawMesh. **/
+	static void Serialize(FRawMesh& RawMesh, FArchive& Ar);
 
 protected:
 

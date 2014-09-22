@@ -16,6 +16,13 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+uint32
+GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+{
+	return HoudiniGeoPartObject.GetTypeHash();
+}
+
+
 FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	TransformMatrix(FMatrix::Identity),
 	ObjectId(-1),
@@ -51,7 +58,18 @@ FHoudiniGeoPartObject::GetTypeHash() const
 }
 
 
-uint32 GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+void
+FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 {
-	return HoudiniGeoPartObject.GetTypeHash();
+	Ar << TransformMatrix;
+	Ar << ObjectId;
+	Ar << GeoId;
+	Ar << PartId;
+}
+
+
+bool
+FHoudiniGeoPartObject::IsValid() const
+{
+	return (ObjectId >= 0 && GeoId >= 0 && PartId >= 0);
 }
