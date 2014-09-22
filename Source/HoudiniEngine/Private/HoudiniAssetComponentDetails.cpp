@@ -32,6 +32,7 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 void
 FHoudiniAssetComponentDetails::CreateStaticMeshes(bool bMultipleMeshes)
 {
+	/*
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
@@ -46,6 +47,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshes(bool bMultipleMeshes)
 			FAssetRegistryModule::AssetCreated(StaticMeshes[MeshIdx]);
 		}
 	}
+	*/
 }
 
 

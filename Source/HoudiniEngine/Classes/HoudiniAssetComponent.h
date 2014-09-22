@@ -59,10 +59,9 @@ class UClass;
 class UProperty;
 class UMaterial;
 class FTransform;
+class UStaticMesh;
 class UHoudiniAsset;
-class UHoudiniAssetObject;
 class FPrimitiveSceneProxy;
-class FHoudiniAssetObjectGeo;
 
 struct FPropertyChangedEvent;
 
@@ -146,7 +145,7 @@ private: /** UPrimitiveComponent methods. **/
 
 private: /** USceneComponent methods. **/
 
-	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	//virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
 private: /** FEditorDelegates delegates. **/
 
@@ -294,29 +293,14 @@ private:
 	/** Release materials for this component. **/
 	void ReleaseComponentMaterials();
 
-	/** Clear all existing geos (and their parts). This is called during geometry recreation. **/
-	void ClearGeos();
-
 	/** Clear a list of all changed properties (both regular parameters and inputs) . **/
 	void ClearChangedPropertiesAll();
 
 	/** Clear only parameter properties. Will leave input properties. **/
 	void ClearChangedPropertiesParameters();
 
-	/** Create necessary rendering resources for each geo. **/
-	void CreateRenderingResources();
-
-	/** Release rendering resources used by each geo. **/
-	void ReleaseRenderingResources();
-
-	/** Return true if this component contains geometry. **/
-	bool ContainsGeos() const;
-
-	/** Collect textures from geometry. **/
-	void CollectTextures();
-
 	/** Compute bounding volume for all geometry of this component. **/
-	void ComputeComponentBoundingVolume();
+	//void ComputeComponentBoundingVolume();
 
 	/** Check if value for property has been changed and property is queued up to participate in subsequent cook. If it **/
 	/** has been changed, then we do not want to update the current value with value coming from current cook as it     **/
@@ -325,9 +309,6 @@ private:
 
 	/** Reset all Houdini related information, the asset, cooking trackers, generated geometry, related state, etc. **/
 	void ResetHoudiniResources();
-
-	/** Set geometry to be Houdini logo. Used when no asset geometry is present. **/
-	void SetHoudiniLogoGeometry();
 
 	/** Start delegate which is responsible for asset change. **/
 	void StartHoudiniAssetChange();
@@ -361,9 +342,6 @@ private:
 	static uint32 ComponentPatchedClassCounter;
 
 protected:
-
-	/** Array of asset objects geos. **/
-	TArray<FHoudiniAssetObjectGeo*> HoudiniAssetObjectGeos;
 
 	/** Map of used static meshes and corresponding HAPI params. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
