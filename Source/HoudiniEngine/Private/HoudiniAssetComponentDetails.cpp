@@ -30,39 +30,32 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 
 
 void
-FHoudiniAssetComponentDetails::CreateStaticMeshes(bool bMultipleMeshes)
+FHoudiniAssetComponentDetails::CreateStaticMeshes()
 {
-	/*
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-	
-		TArray<UStaticMesh*> StaticMeshes;
-		FHoudiniEngineUtils::CreateStaticMeshes(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->HoudiniAssetObjectGeos,
-												StaticMeshes, bMultipleMeshes);
 
-		// Notify asset registry that we have created assets. This should update the content browser.
-		for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
+		int32 MeshIdx = 0;
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
 		{
-			FAssetRegistryModule::AssetCreated(StaticMeshes[MeshIdx]);
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UStaticMesh* StaticMesh = Iter.Value();
+
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent->HoudiniAsset, StaticMesh, MeshIdx);
+			MeshIdx++;
+
+			// Notify asset registry that we have created assets. This should update the content browser.
+			FAssetRegistryModule::AssetCreated(OutStaticMesh);
 		}
 	}
-	*/
 }
 
 
 FReply
-FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
+FHoudiniAssetComponentDetails::OnButtonClickedBake()
 {
-	CreateStaticMeshes(false);
-	return FReply::Handled();
-}
-
-
-FReply
-FHoudiniAssetComponentDetails::OnButtonClickedBakeMultiple()
-{
-	CreateStaticMeshes(true);
+	CreateStaticMeshes();
 	return FReply::Handled();
 }
 
@@ -110,22 +103,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 						SNew(SButton)
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Center)
-						.OnClicked(this, &FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle)
-						.Text(LOCTEXT("BakeHoudiniActor", "Bake Single"))
-						.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake selected Houdini Actor into a single mesh"))
-					]
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(2.0f, 0.0f)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					[
-						SNew(SButton)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.OnClicked(this, &FHoudiniAssetComponentDetails::OnButtonClickedBakeMultiple)
-						.Text(LOCTEXT("BakeHoudiniActor", "Bake Multiple"))
-						.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake selected Houdini Actor into multiple meshes"))
+						.OnClicked(this, &FHoudiniAssetComponentDetails::OnButtonClickedBake)
+						.Text(LOCTEXT("BakeHoudiniActor", "Bake"))
+						.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake selected Houdini Actor into static meshes"))
 					]
 			]
 		];
