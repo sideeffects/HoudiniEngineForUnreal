@@ -337,6 +337,9 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 void
 UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
+	// Reset array used for static mesh preview.
+	PreviewStaticMeshes.Empty();
+
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
 		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
@@ -364,6 +367,9 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		StaticMeshComponent->SetVisibility(true);
 		StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 		StaticMeshComponent->UpdateBounds();
+
+		// Add static mesh to preview list.
+		PreviewStaticMeshes.Add(StaticMesh);
 	}
 
 	StaticMeshes = StaticMeshMap;

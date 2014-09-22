@@ -83,8 +83,8 @@ public:
 	UHoudiniAsset* HoudiniAsset;
 
 	/** Generated Static mesh used for rendering. **/
-	//UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
-	//UStaticMesh* StaticMesh;
+	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
+	TArray<UStaticMesh*> PreviewStaticMeshes;
 
 	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
 	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniTextures)
