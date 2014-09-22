@@ -409,7 +409,7 @@ UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, U
 		// Make sure we don't delete the logo static mesh.
 		if(HoudiniLogoStaticMesh != StaticMesh)
 		{
-			StaticMesh->MarkPendingKill();
+			//StaticMesh->MarkPendingKill();
 		}
 	}
 
