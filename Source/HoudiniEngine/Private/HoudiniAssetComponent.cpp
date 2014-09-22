@@ -117,7 +117,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 			UPackage::PackageSavedEvent.AddUObject(this, &UHoudiniAssetComponent::OnPackageSaved);
 
 			// We also set default geometry for Blueprint component.
-			SetHoudiniLogoGeometry();
+			//SetHoudiniLogoGeometry();
 		}
 		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
 		{
@@ -143,7 +143,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	}
 
 	// Create a generic bounding volume.
-	BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+	//BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
 	// Set component properties.
 	Mobility = EComponentMobility::Movable;
@@ -197,19 +197,12 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 				}
 
 				// Retrieve asset associated with this component.
-				/*UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-				if(HoudiniAsset)
-				{
-					// Manually add a reference to Houdini asset from this component.
-					Collector.AddReferencedObject(HoudiniAsset, InThis);
-				}*/
-
-				// Propagate referencing request to all geos.
-				for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetComponent->HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
-				{
-					FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
-					HoudiniAssetObjectGeo->AddReferencedObjects(Collector);
-				}
+				//UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+				//if(HoudiniAsset)
+				//{
+				//	// Manually add a reference to Houdini asset from this component.
+				//	Collector.AddReferencedObject(HoudiniAsset, InThis);
+				//}
 
 				// Add references to all static meshes and their static mesh components.
 				for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(HoudiniAssetComponent->StaticMeshComponents); Iter; ++Iter)
@@ -261,22 +254,6 @@ AHoudiniAssetActor*
 UHoudiniAssetComponent::GetHoudiniAssetActorOwner() const
 {
 	return Cast<AHoudiniAssetActor>(GetOwner());
-}
-
-
-void
-UHoudiniAssetComponent::SetHoudiniLogoGeometry()
-{
-	// Set Houdini logo to be default geometry.
-	if(FHoudiniEngine::IsInitialized() && !ContainsGeos())
-	{
-		TSharedPtr<FHoudiniAssetObjectGeo> Geo = FHoudiniEngine::Get().GetHoudiniLogoGeo();
-		Geo->ComponentReferenceCount++;
-		HoudiniAssetObjectGeos.Add(Geo.Get());
-		ComputeComponentBoundingVolume();
-
-		bContainsHoudiniLogoGeometry = true;
-	}
 }
 
 
@@ -428,34 +405,6 @@ UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, U
 
 
 void
-UHoudiniAssetComponent::ClearGeos()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  ClearGeos,                          C" );
-
-	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
-	{
-		FHoudiniAssetObjectGeo* Geo = *Iter;
-		
-		// Delete this geo, except for when it is a logo geo. Logo is managed by engine and is shared.
-		if(!Geo->ComponentReferenceCount && !Geo->IsHoudiniLogo())
-		{
-			delete(Geo);
-		}
-	}
-
-	HoudiniAssetObjectGeos.Empty();
-	bContainsHoudiniLogoGeometry = false;
-}
-
-
-bool
-UHoudiniAssetComponent::ContainsGeos() const
-{
-	return (HoudiniAssetObjectGeos.Num() > 0);
-}
-
-
-void
 UHoudiniAssetComponent::StartHoudiniTicking()
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  StartHoudiniTicking,                C" );
@@ -574,7 +523,7 @@ UHoudiniAssetComponent::TickDuplicatedFromBlueprintUpdate()
 	}
 
 	// Otherwise we can update.
-
+	/*
 	if(OriginalBlueprintComponent->bContainsHoudiniLogoGeometry || !OriginalBlueprintComponent->ContainsGeos())
 	{
 		// Blueprint component contains no geometry or contains logo geometry.
@@ -591,6 +540,7 @@ UHoudiniAssetComponent::TickDuplicatedFromBlueprintUpdate()
 			HoudiniAssetObjectGeos.Add(Geo);
 		}
 	}
+	*/
 
 	// Replace class object with Blueprint's class.
 	ReplaceClassObject(OriginalBlueprintComponent->GetClass());
@@ -705,10 +655,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// We need to patch component RTTI to reflect properties for this component.
 						ReplaceClassInformation(GetOuter()->GetName());
 
-						// Construct new objects (asset objects and asset object parts).
-						TArray<FHoudiniAssetObjectGeo*> NewObjectGeos;
-						FHoudiniEngineUtils::ConstructGeos(AssetId, GetOutermost(), HoudiniAssetObjectGeos, NewObjectGeos);
-
 						{
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
 							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, StaticMeshes, NewStaticMeshes))
@@ -730,41 +676,12 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								CreateStaticMeshResources(NewStaticMeshes);
 							}
 						}
-						/*
-
-						(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
-												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
-												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut)
-
-						TArray<UStaticMesh*> NewStaticMeshes;
-						if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, NewStaticMeshes))
-						{
-							SetStaticMesh(NewStaticMeshes[0]);
-						}
-						*/
-						//TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
-						//TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
-
-						// Clear rendering resources used by geos.
-						ReleaseRenderingResources();
-
-						// Delete all existing geo objects (this will also delete their geo parts).
-						ClearGeos();
-
-						// Set new geo objects.
-						HoudiniAssetObjectGeos = NewObjectGeos;
 
 						// Recompute bounding volume.
-						ComputeComponentBoundingVolume();
-
-						// Collect all textures (for debugging purposes).
-						CollectTextures();
+						//ComputeComponentBoundingVolume();
 
 						// Manually tick GC to propagate reference counts.
 						//GetWorld()->ForceGarbageCollection(false);
-
-						// Create all rendering resources.
-						CreateRenderingResources();
 
 						// Need to update rendering information.
 						UpdateRenderingInformation();
@@ -929,12 +846,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 void
 UHoudiniAssetComponent::TickHoudiniAssetChange()
 {
-	// Set Houdini logo to be default geometry.
-	ReleaseStaticMeshResources(StaticMeshes);
-	StaticMeshes.Empty();
-	StaticMeshComponents.Empty();
-	CreateStaticMeshHoudiniLogoResource();
-
 	// We need to remove properties from generated class and restore original component information.
 	if(PatchedClass)
 	{
@@ -984,17 +895,18 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	}
 }
 
-
+/*
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return BoundingVolume;
 }
-
-
+*/
+/*
 void
 UHoudiniAssetComponent::ComputeComponentBoundingVolume()
 {
+
 	if(HoudiniAssetObjectGeos.Num() == 0)
 	{
 		BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
@@ -1009,66 +921,7 @@ UHoudiniAssetComponent::ComputeComponentBoundingVolume()
 		BoundingVolume = BoundingVolume + HoudiniAssetObjectGeos[Idx]->GetAggregateBoundingVolume();
 	}
 }
-
-
-void
-UHoudiniAssetComponent::CollectTextures()
-{
-	HoudiniTextures.Reset();
-
-	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
-	{
-		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
-		HoudiniAssetObjectGeo->CollectTextures(HoudiniTextures);
-	}
-}
-
-
-void
-UHoudiniAssetComponent::CreateRenderingResources()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  CreateRenderingResources,           C" );
-
-	for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
-	{
-		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
-		
-		if(!HoudiniAssetObjectGeo->IsHoudiniLogo())
-		{
-			HoudiniAssetObjectGeo->CreateRenderingResources();
-		}
-	}
-}
-
-
-void
-UHoudiniAssetComponent::ReleaseRenderingResources()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  ReleaseRenderingResources,          C" );
-
-	if(HoudiniAssetObjectGeos.Num() > 0)
-	{
-		for(TArray<FHoudiniAssetObjectGeo*>::TIterator Iter = HoudiniAssetObjectGeos.CreateIterator(); Iter; ++Iter)
-		{
-			FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = *Iter;
-			HoudiniAssetObjectGeo->ComponentReferenceCount--;
-
-			if(!HoudiniAssetObjectGeo->ComponentReferenceCount && !HoudiniAssetObjectGeo->IsHoudiniLogo())
-			{
-				HoudiniAssetObjectGeo->ReleaseRenderingResources();
-			}
-		}
-
-		// Insert a fence to signal when these commands completed.
-		ReleaseResourcesFence.BeginFence();
-		bAsyncResourceReleaseHasBeenStarted = true;
-
-		// Wait for fence to complete.
-		ReleaseResourcesFence.Wait();
-	}
-
-	bAsyncResourceReleaseHasBeenStarted = false;
-}
+*/
 
 
 void
@@ -1096,21 +949,6 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 			}
 		}
 	}
-
-	// Clear collected textures.
-	HoudiniTextures.Reset();
-
-	// Before releasing resources make sure we do not have scene proxy active.
-	//check(!SceneProxy);
-
-	// Now we can release rendering resources.
-	ReleaseRenderingResources();
-
-	// Make sure fence release is complete.
-	check(ReleaseResourcesFence.IsFenceComplete());
-
-	// Release all geo and part objects.
-	ClearGeos();
 
 	// If we have an asset.
 	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && bIsNativeComponent)
@@ -2863,10 +2701,11 @@ UHoudiniAssetComponent::SetChangedInputValue(UProperty* Property)
 			if(!StaticMesh)
 			{
 				// We have no static mesh assigned, reset all geometry.
-				ClearGeos();
-			
 				// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
-				SetHoudiniLogoGeometry();
+				ReleaseStaticMeshResources(StaticMeshes);
+				StaticMeshes.Empty();
+				StaticMeshComponents.Empty();
+				CreateStaticMeshHoudiniLogoResource();
 
 				return;
 			}
@@ -3075,7 +2914,10 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			ResetHoudiniResources();
 
 			// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
-			SetHoudiniLogoGeometry();
+			ReleaseStaticMeshResources(StaticMeshes);
+			StaticMeshes.Empty();
+			StaticMeshComponents.Empty();
+			CreateStaticMeshHoudiniLogoResource();
 
 			ChangedHoudiniAsset = nullptr;
 			AssetId = -1;
@@ -3256,7 +3098,7 @@ UHoudiniAssetComponent::PostLoad()
 		if(HoudiniAsset)
 		{
 			// Create all rendering resources.
-			CreateRenderingResources();
+			//CreateRenderingResources();
 
 			// Need to update rendering information.
 			UpdateRenderingInformation();
@@ -3273,7 +3115,7 @@ UHoudiniAssetComponent::PostLoad()
 	if(!HoudiniAsset)
 	{
 		// Set geometry to be Houdini logo geometry, since we have no other geometry.
-		SetHoudiniLogoGeometry();
+		//SetHoudiniLogoGeometry();
 
 		return;
 	}
@@ -3383,7 +3225,7 @@ UHoudiniAssetComponent::PostLoad()
 		//CollectTextures();
 
 		// Create all rendering resources.
-		CreateRenderingResources();
+		//CreateRenderingResources();
 
 		// Need to update rendering information.
 		UpdateRenderingInformation();
@@ -3852,6 +3694,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 
+	/*
 	// Get number of geos.
 	int32 NumGeos = HoudiniAssetObjectGeos.Num();
 
@@ -3889,11 +3732,12 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			HoudiniAssetObjectGeos.Add(HoudiniAssetObjectGeo);
 		}
 	}
+	*/
 
 	if(Ar.IsLoading())
 	{
 		// We need to recompute bounding volume.
-		ComputeComponentBoundingVolume();
+		//ComputeComponentBoundingVolume();
 	}
 
 	if(Ar.IsLoading() && (bIsNativeComponent || (bIsBlueprintGeneratedClass && HoudiniAsset)))
