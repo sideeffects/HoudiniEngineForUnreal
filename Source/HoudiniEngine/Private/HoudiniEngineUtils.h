@@ -73,6 +73,9 @@ public:
 	/** Load raw mesh from archive and create static mesh from it. **/
 	static UStaticMesh* LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, int32 MeshCounter, FArchive& Ar);
 
+	/** Bake static mesh. **/
+	static UStaticMesh* BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* StaticMesh, int32 MeshCounter);
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/
@@ -136,12 +139,6 @@ public:
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
-
-public:
-
-	/** Given a collection of geometry, create a single static mesh. **/
-	//static void CreateStaticMeshes(UHoudiniAsset* HoudiniAsset, const TArray<FHoudiniAssetObjectGeo*>& ObjectGeos, 
-	//							   TArray<UStaticMesh*>& StaticMeshes, bool bSplit = false);
 
 protected:
 
