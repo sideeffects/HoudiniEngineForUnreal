@@ -347,6 +347,9 @@ private:
 	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
 	void ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
+	/** Create Static mesh resource which corresponds to Houdini logo. **/
+	void CreateStaticMeshHoudiniLogoResource();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
