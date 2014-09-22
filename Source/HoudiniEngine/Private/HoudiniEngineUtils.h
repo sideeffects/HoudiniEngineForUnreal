@@ -140,6 +140,9 @@ public:
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
 
+	/** HAPI : Create Unreal material and necessary textures. **/
+	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName);
+
 protected:
 
 	/** Create a package for static mesh. **/

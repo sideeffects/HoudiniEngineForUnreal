@@ -1172,6 +1172,44 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					StaticMesh = *FoundStaticMesh;
 				}
 
+				// See if we have material.
+				HAPI_MaterialInfo MaterialInfo;
+				Result = HAPI_GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo);
+				if(HAPI_RESULT_SUCCESS == Result && MaterialInfo.exists)
+				{
+					if(MaterialInfo.hasChanged)
+					{
+						// Attempt to create material.
+						UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName);
+
+						if(Material)
+						{
+							// We have a valid created material.
+							StaticMesh->Materials.Add(Material);
+						}
+						else
+						{
+							// Otherwise, we just use default material.
+							UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+							StaticMesh->Materials.Add(DefaultMaterial);
+						}
+					}
+					else
+					{
+						// Material hasn't changed, we do not need to change anything.
+						check(StaticMesh->Materials.Num() > 0);
+					}
+				}
+				else
+				{
+					// Locate default material and add it to mesh, if we do not have it set.
+					if(0 == StaticMesh->Materials.Num())
+					{
+						UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+						StaticMesh->Materials.Add(DefaultMaterial);
+					}
+				}
+
 				// Make sure static mesh has a new lighting guid.
 				StaticMesh->LightingGuid = FGuid::NewGuid();
 
@@ -1257,8 +1295,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				for(int32 VertexIdx = 0; VertexIdx < VertexList.Num(); VertexIdx += 3)
 				{
 					RawMesh.WedgeIndices[VertexIdx + 0] = VertexList[VertexIdx + 0];
-					RawMesh.WedgeIndices[VertexIdx + 2] = VertexList[VertexIdx + 1];
-					RawMesh.WedgeIndices[VertexIdx + 1] = VertexList[VertexIdx + 2];
+					RawMesh.WedgeIndices[VertexIdx + 1] = VertexList[VertexIdx + 1];
+					RawMesh.WedgeIndices[VertexIdx + 2] = VertexList[VertexIdx + 2];
 				}
 
 				// Transfer vertex positions.
@@ -1330,9 +1368,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 						RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
 						for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
 						{
+							// We need to flip V coordinate when it's coming from HAPI.
 							FVector2D WedgeUV;
 							WedgeUV.X = TextureCoordinate[WedgeUVIdx * 2 + 0];
-							WedgeUV.Y = TextureCoordinate[WedgeUVIdx * 2 + 1];
+							WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
 
 							RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
 
@@ -1550,4 +1589,108 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* In
 
 	StaticMesh->Build(true);
 	return StaticMesh;
+}
+
+
+UMaterial*
+FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName)
+{
+	UMaterial* Material = nullptr;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// Get node information.
+	HAPI_NodeInfo NodeInfo;
+	HAPI_GetNodeInfo(MaterialInfo.nodeId, &NodeInfo);
+
+	// Get node parameters.
+	std::vector<HAPI_ParmInfo> NodeParams;
+	NodeParams.resize(NodeInfo.parmCount);
+	HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+
+	// Get names of parameters.
+	std::vector<std::string> NodeParamNames;
+	NodeParamNames.resize(NodeInfo.parmCount);
+	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
+
+	// See if texture is available.
+	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("ogl_tex1", NodeParamNames);
+
+	if(-1 == ParmNameIdx)
+	{
+		ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("baseColorMap", NodeParamNames);
+	}
+
+	if(-1 == ParmNameIdx)
+	{
+		ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("map", NodeParamNames);
+	}
+
+	if(ParmNameIdx >= 0)
+	{
+		// Update context for generated materials (will trigger when object goes out of scope).
+		FMaterialUpdateContext MaterialUpdateContext;
+
+		UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+		FString MaterialName = FString::Printf(TEXT("%s_material"), *MeshName);
+		Material = (UHoudiniAssetMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Transient | RF_Public, NULL, GWarn);
+	
+		std::vector<char> ImageBuffer;
+
+		// Retrieve color data.
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameIdx].id, MaterialInfo, ImageBuffer, "C A"))
+		{
+			HAPI_ImageInfo ImageInfo;
+			Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+							
+			if(ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+			{
+				// Create texture.
+				UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, PF_R8G8B8A8, ImageBuffer);
+
+				// Create sampling expression and add it to material.
+				UMaterialExpressionTextureSample* Expression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
+				Expression->Texture = Texture;
+				Expression->SamplerType = SAMPLERTYPE_Color;
+
+				Material->Expressions.Add(Expression);
+
+				Material->BaseColor.Expression = Expression;
+
+				if(FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo))
+				{
+					// This material contains transparency.
+					Material->BlendMode = BLEND_Masked;
+
+					TArray<FExpressionOutput> Outputs = Expression->GetOutputs();
+					FExpressionOutput* Output = Outputs.GetTypedData();
+
+					Material->OpacityMask.Expression = Expression;
+					Material->OpacityMask.Mask = Output->Mask;
+					Material->OpacityMask.MaskR = 0;
+					Material->OpacityMask.MaskG = 0;
+					Material->OpacityMask.MaskB = 0;
+					Material->OpacityMask.MaskA = 1;
+				}
+				else
+				{
+					// Material is opaque.
+					Material->BlendMode = BLEND_Opaque;
+				}
+
+				// Set other material properties.
+				Material->TwoSided = true;
+				Material->SetShadingModel(MSM_DefaultLit);
+
+				// Propagate and trigger material updates.
+				Material->PreEditChange(nullptr);
+				Material->PostEditChange();
+				Material->MarkPackageDirty();
+
+				// Schedule this material for update.
+				MaterialUpdateContext.AddMaterial(Material);
+			}
+		}
+	}
+
+	return Material;
 }
