@@ -337,6 +337,9 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 void
 UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
+	// Reset Houdini logo flag.
+	bContainsHoudiniLogoGeometry = false;
+
 	// Reset array used for static mesh preview.
 	PreviewStaticMeshes.Empty();
 
@@ -372,7 +375,11 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		PreviewStaticMeshes.Add(StaticMesh);
 	}
 
-	StaticMeshes = StaticMeshMap;
+	// Skip self assignment.
+	if(&StaticMeshes != &StaticMeshMap)
+	{
+		StaticMeshes = StaticMeshMap;
+	}
 }
 
 
@@ -3036,6 +3043,7 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource()
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
 	NewStaticMeshes.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
 	CreateStaticMeshResources(NewStaticMeshes);
+	bContainsHoudiniLogoGeometry = true;
 }
 
 
@@ -3121,8 +3129,7 @@ UHoudiniAssetComponent::PostLoad()
 	if(!HoudiniAsset)
 	{
 		// Set geometry to be Houdini logo geometry, since we have no other geometry.
-		//SetHoudiniLogoGeometry();
-
+		CreateStaticMeshHoudiniLogoResource();
 		return;
 	}
 
@@ -3227,11 +3234,14 @@ UHoudiniAssetComponent::PostLoad()
 		// Update properties panel.
 		//UpdateEditorProperties();
 
-		// Collect all textures (for debugging purposes).
-		//CollectTextures();
-
-		// Create all rendering resources.
-		//CreateRenderingResources();
+		if(StaticMeshes.Num() > 0)
+		{
+			CreateStaticMeshResources(StaticMeshes);
+		}
+		else
+		{
+			CreateStaticMeshHoudiniLogoResource();
+		}
 
 		// Need to update rendering information.
 		UpdateRenderingInformation();
@@ -3699,6 +3709,54 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			SerializedProperties.Add(SerializedProperty);
 		}
 	}
+
+	// Serialize geometry - generated raw static meshes.
+	int32 NumStaticMeshes = StaticMeshes.Num();
+
+	// Serialize geos only if they are not Houdini logo.
+	if(Ar.IsSaving() && bContainsHoudiniLogoGeometry)
+	{
+		NumStaticMeshes = 0;
+	}
+
+	// Serialize number of geos.
+	Ar << NumStaticMeshes;
+
+	if(NumStaticMeshes > 0)
+	{
+		if(Ar.IsSaving())
+		{
+			for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
+			{
+				FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+				UStaticMesh* StaticMesh = Iter.Value();
+
+				// Store the object geo part information.
+				HoudiniGeoPartObject.Serialize(Ar);
+
+				// Serialize raw mesh.
+				FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, Ar);
+			}
+		}
+		else if(Ar.IsLoading())
+		{
+			for(int StaticMeshIdx = 0; StaticMeshIdx < NumStaticMeshes; ++StaticMeshIdx)
+			{
+				FHoudiniGeoPartObject HoudiniGeoPartObject;
+
+				// Get object geo part information.
+				HoudiniGeoPartObject.Serialize(Ar);
+
+				// Load the raw mesh.
+				UStaticMesh* StaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(HoudiniAsset, nullptr, StaticMeshIdx, Ar);
+				if(StaticMesh)
+				{
+					StaticMeshes.Add(HoudiniGeoPartObject, StaticMesh);
+				}
+			}
+		}
+	}
+
 
 	/*
 	// Get number of geos.

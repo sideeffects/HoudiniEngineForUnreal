@@ -2476,8 +2476,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				{
 					MeshGuid.Invalidate();
 
-					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, GetTransientPackage(), MeshName, MeshGuid, MeshCounter);
-					StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, Package, MeshName, MeshGuid, MeshCounter);
+					StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
 				}
 				else
 				{
@@ -2685,4 +2685,121 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 	}
 
 	return true;
+}
+
+
+void
+FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar)
+{
+	if(Ar.IsSaving())
+	{
+		FRawMesh RawMesh;
+
+		FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
+		FRawMeshBulkData* RawMeshBulkData = SrcModel->RawMeshBulkData;
+		RawMeshBulkData->LoadRawMesh(RawMesh);
+
+		// Store name of this mesh.
+		//FString StaticMeshName = StaticMesh->GetName();
+		//Ar << StaticMeshName;
+
+		// Store raw data bytes.
+		FHoudiniEngineUtils::Serialize(RawMesh, Ar);
+	}
+}
+
+
+UStaticMesh*
+FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, int32 MeshCounter, FArchive& Ar)
+{
+	UStaticMesh* StaticMesh = nullptr;
+
+	if(!Ar.IsLoading())
+	{
+		return StaticMesh;
+	}
+
+	// If we have no package, we will use transient package.
+	if(!Package)
+	{
+		Package = GetTransientPackage();
+	}
+
+	// Get platform manager LOD specific information.
+	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
+	check(CurrentPlatform);
+	const FStaticMeshLODGroup& LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(NAME_None);
+	int32 NumLODs = LODGroup.GetDefaultNumLODs();
+
+	FGuid MeshGuid;
+	FString MeshName;
+	UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, Package, MeshName, MeshGuid, MeshCounter);
+	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+
+	// Create new source model for current static mesh.
+	if(!StaticMesh->SourceModels.Num())
+	{
+		new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+	}
+
+	FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
+	FRawMeshBulkData* RawMeshBulkData = SrcModel->RawMeshBulkData;
+
+	// Load raw data bytes.
+	FRawMesh RawMesh;
+	FHoudiniEngineUtils::Serialize(RawMesh, Ar);
+
+	// Make sure static mesh has a new lighting guid.
+	StaticMesh->LightingGuid = FGuid::NewGuid();
+
+	// Set it to use textured light maps. We use coordinate 1 for UVs.
+	StaticMesh->LightMapResolution = 32;
+	StaticMesh->LightMapCoordinateIndex = 1;
+
+	StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
+	StaticMesh->LODGroup = NAME_None;
+	RawMeshBulkData->SaveRawMesh(RawMesh);
+
+	// Some mesh generation settings.
+	SrcModel->BuildSettings.bRemoveDegenerates = true;
+	SrcModel->BuildSettings.bRecomputeNormals = true;
+	SrcModel->BuildSettings.bRecomputeTangents = true;
+
+	// Store the new raw mesh.
+	RawMeshBulkData->SaveRawMesh(RawMesh);
+
+	while(StaticMesh->SourceModels.Num() < NumLODs)
+	{
+		new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+	}
+
+	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
+	{
+		StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
+	}
+
+	StaticMesh->Build(true);
+	return StaticMesh;
+}
+
+
+void
+FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, FArchive& Ar)
+{
+	// Serialize material index.
+	Ar << RawMesh.FaceMaterialIndices;
+	Ar << RawMesh.FaceSmoothingMasks;
+	Ar << RawMesh.VertexPositions;
+	Ar << RawMesh.WedgeIndices;
+	Ar << RawMesh.WedgeTangentX;
+	Ar << RawMesh.WedgeTangentY;
+	Ar << RawMesh.WedgeTangentZ;
+
+	for(int TexCoordIdx = 0; TexCoordIdx < MAX_MESH_TEXTURE_COORDS; ++TexCoordIdx)
+	{
+		Ar << RawMesh.WedgeTexCoords[TexCoordIdx];
+	}
+
+	Ar << RawMesh.WedgeColors;
+	Ar << RawMesh.MaterialIndexToImportIndex;
 }

@@ -15,6 +15,10 @@
 
 #pragma once
 
+class FMatrix;
+class FArchive;
+
+
 struct FHoudiniGeoPartObject
 {
 
@@ -32,6 +36,12 @@ public:
 	/** Comparison operator, used by hashing containers. **/
 	bool operator==(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const;
 
+	/** Serialization. **/
+	void Serialize(FArchive& Ar);
+
+	/** Return true if this geo part object corresponds to a valid HAPI object. **/
+	bool IsValid() const;
+
 public:
 
 	/** Transform of this geo part object. **/
@@ -48,4 +58,5 @@ public:
 };
 
 
+/** Function used by hasing containers to create a unique hash for this type of object. **/
 uint32 GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
