@@ -297,7 +297,10 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	HoudiniAsset = InHoudiniAsset;
 
 	// Set Houdini logo to be default geometry.
-	SetHoudiniLogoGeometry();
+	ReleaseStaticMeshResources(StaticMeshes);
+	StaticMeshes.Empty();
+	StaticMeshComponents.Empty();
+	CreateStaticMeshHoudiniLogoResource();
 
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
@@ -926,6 +929,12 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 void
 UHoudiniAssetComponent::TickHoudiniAssetChange()
 {
+	// Set Houdini logo to be default geometry.
+	ReleaseStaticMeshResources(StaticMeshes);
+	StaticMeshes.Empty();
+	StaticMeshComponents.Empty();
+	CreateStaticMeshHoudiniLogoResource();
+
 	// We need to remove properties from generated class and restore original component information.
 	if(PatchedClass)
 	{
@@ -3148,13 +3157,8 @@ UHoudiniAssetComponent::OnComponentCreated()
 
 	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentCreated,                 C" );
 
-	//Create Houdini logo static mesh and component for it.
-	FHoudiniGeoPartObject HoudiniGeoPartObject;
-	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
-	NewStaticMeshes.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
-	CreateStaticMeshResources(NewStaticMeshes);
-
-	// Initially we will have one mesh - Houdini logo.
+	// Create Houdini logo static mesh and component for it.
+	CreateStaticMeshHoudiniLogoResource();
 }
 
 
@@ -3173,6 +3177,17 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Call super class implementation.
 	Super::OnComponentDestroyed();
+}
+
+
+void
+UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource()
+{
+	// Create Houdini logo static mesh and component for it.
+	FHoudiniGeoPartObject HoudiniGeoPartObject;
+	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
+	NewStaticMeshes.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
+	CreateStaticMeshResources(NewStaticMeshes);
 }
 
 
