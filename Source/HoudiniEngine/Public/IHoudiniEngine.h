@@ -29,9 +29,6 @@ public:
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
 
-	/** Return Houdini logo geometry. **/
-	virtual TSharedPtr<FHoudiniAssetObjectGeo> GetHoudiniLogoGeo() const = 0;
-
 	/** Register task for execution. **/
 	virtual void AddTask(const FHoudiniEngineTask& Task) = 0;
 

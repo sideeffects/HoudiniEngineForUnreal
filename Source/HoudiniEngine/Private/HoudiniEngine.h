@@ -21,7 +21,7 @@ class IAssetTypeActions;
 class IComponentAssetBroker;
 class FHoudiniEngineScheduler;
 class FRunnableThread;
-class FHoudiniAssetObjectGeo;
+class UStaticMesh;
 
 class FHoudiniEngine : public IHoudiniEngine
 {
@@ -35,7 +35,6 @@ public: /** IHoudiniEngine methods. **/
 
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
-	virtual TSharedPtr<FHoudiniAssetObjectGeo> GetHoudiniLogoGeo() const override;
 	virtual void AddTask(const FHoudiniEngineTask& Task) override;
 	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) override;
 	virtual void RemoveTaskInfo(const FGuid HapIGUID) override;
@@ -76,9 +75,6 @@ private:
 
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
-
-	/** Logo geometry. **/
-	TSharedPtr<FHoudiniAssetObjectGeo> HoudiniLogoGeo;
 
 	/** Static mesh used for Houdini logo rendering. **/
 	UStaticMesh* HoudiniLogoStaticMesh;

@@ -147,14 +147,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_PACKED_TANGENT				"unreal_packed_tangent"
 #define HAPI_UNREAL_ATTRIB_PACKED_TANGENT2				"unreal_packed_tangent2"
 
-
-#include "HoudiniMeshVertex.h"
+/** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"
 
 /** HoudiniEngine Class headers. **/
 #include "HoudiniAssetMaterial.h"
-#include "HoudiniAssetObjectGeoPart.h"
-#include "HoudiniAssetObjectGeo.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
@@ -174,8 +171,4 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineSerialization.h"
 #include "HoudiniAssetBroker.h"
-#include "HoudiniMeshIndexBuffer.h"
-#include "HoudiniMeshVertexBuffer.h"
-#include "HoudiniMeshVertexFactory.h"
-#include "HoudiniMeshSceneProxy.h"
 #include "HoudiniAssetThumbnailScene.h"

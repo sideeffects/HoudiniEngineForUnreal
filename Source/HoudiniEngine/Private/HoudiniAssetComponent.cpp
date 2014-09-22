@@ -3757,47 +3757,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 
-
-	/*
-	// Get number of geos.
-	int32 NumGeos = HoudiniAssetObjectGeos.Num();
-
-	// Serialize geos only if they are not Houdini logo.
-	if(Ar.IsSaving() && bContainsHoudiniLogoGeometry)
-	{
-		NumGeos = 0;
-	}
-	else if(Ar.IsLoading() && NumGeos > 0)
-	{
-		bContainsHoudiniLogoGeometry = false;
-	}
-
-	// Serialize number of geos.
-	Ar << NumGeos;
-
-	for(int32 GeoIdx = 0; GeoIdx < NumGeos; ++GeoIdx)
-	{
-		FHoudiniAssetObjectGeo* HoudiniAssetObjectGeo = nullptr;
-
-		if(Ar.IsSaving())
-		{
-			HoudiniAssetObjectGeo = HoudiniAssetObjectGeos[GeoIdx];
-		}
-		else if(Ar.IsLoading())
-		{
-			HoudiniAssetObjectGeo = new FHoudiniAssetObjectGeo();
-		}
-
-		check(HoudiniAssetObjectGeo);
-		HoudiniAssetObjectGeo->Serialize(Ar);
-
-		if(Ar.IsLoading())
-		{
-			HoudiniAssetObjectGeos.Add(HoudiniAssetObjectGeo);
-		}
-	}
-	*/
-
 	if(Ar.IsLoading())
 	{
 		// We need to recompute bounding volume.

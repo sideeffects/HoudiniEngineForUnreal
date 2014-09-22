@@ -19,7 +19,6 @@
 #include "HoudiniAsset.generated.h"
 
 class UThumbnailInfo;
-class FHoudiniAssetObjectGeo;
 class UHoudiniAssetComponent;
 
 UCLASS(Blueprintable, BlueprintType, EditInlineNew, config=Editor)
@@ -70,9 +69,6 @@ protected:
 	static const int32 PersistenceFormatVersion;
 
 protected:
-
-	/** Preview geometry. **/
-	TArray<FHoudiniAssetObjectGeo*> PreviewObjectGeos;
 
 	/** Buffer containing raw Houdini OTL data. **/
 	uint8* AssetBytes;
