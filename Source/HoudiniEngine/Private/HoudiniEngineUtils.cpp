@@ -1137,6 +1137,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					break;
 				}
 
+				// Retrieve material information.
+				HAPI_MaterialInfo MaterialInfo;
+				bool bMaterialFound = false;
+				if((HAPI_RESULT_SUCCESS == HAPI_GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo)) && MaterialInfo.exists)
+				{
+					bMaterialFound = true;
+				}
+
 				// Attempt to locate static mesh from previous instantiation.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
 				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
@@ -1147,7 +1155,20 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					// If geometry has not changed, look up static mesh from previous instantiation / cooking and use it.
 					if(FoundStaticMesh)
 					{
-						StaticMeshesOut.Add(HoudiniGeoPartObject, *FoundStaticMesh);
+						StaticMesh = *FoundStaticMesh;
+
+						if(bMaterialFound && MaterialInfo.hasChanged)
+						{
+							// Even though geometry did not change, material requires update.
+							MeshName = StaticMesh->GetName();
+							UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName);
+
+							// Remove previous materials.
+							StaticMesh->Materials.Empty();
+							StaticMesh->Materials.Add(Material);
+						}
+
+						StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 						continue;
 					}
 					else
@@ -1172,10 +1193,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					StaticMesh = *FoundStaticMesh;
 				}
 
-				// See if we have material.
-				HAPI_MaterialInfo MaterialInfo;
-				Result = HAPI_GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo);
-				if(HAPI_RESULT_SUCCESS == Result && MaterialInfo.exists)
+				if(bMaterialFound)
 				{
 					if(MaterialInfo.hasChanged)
 					{
@@ -1290,13 +1308,53 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
 				RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
 
+				// Transfer UVs.
+				bool bFoundUVs = false;
+				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+				{
+					TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
+					if(TextureCoordinate.Num() > 0)
+					{
+						int32 WedgeUVCount = TextureCoordinate.Num() / 2;
+						RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
+						for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
+						{
+							// We need to flip V coordinate when it's coming from HAPI.
+							FVector2D WedgeUV;
+							WedgeUV.X = TextureCoordinate[WedgeUVIdx * 2 + 0];
+							WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
+
+							RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
+
+							bFoundUVs = true;
+						}
+					}
+				}
+
 				// Transfer indices.
 				RawMesh.WedgeIndices.SetNumZeroed(VertexList.Num());
 				for(int32 VertexIdx = 0; VertexIdx < VertexList.Num(); VertexIdx += 3)
 				{
-					RawMesh.WedgeIndices[VertexIdx + 0] = VertexList[VertexIdx + 0];
-					RawMesh.WedgeIndices[VertexIdx + 1] = VertexList[VertexIdx + 1];
-					RawMesh.WedgeIndices[VertexIdx + 2] = VertexList[VertexIdx + 2];
+					int32 WedgeIndices[3] = { VertexList[VertexIdx + 0], VertexList[VertexIdx + 1], VertexList[VertexIdx + 2] };
+
+					// Flip wedge indices to fix winding order.
+					RawMesh.WedgeIndices[VertexIdx + 0] = WedgeIndices[0];
+					RawMesh.WedgeIndices[VertexIdx + 1] = WedgeIndices[2];
+					RawMesh.WedgeIndices[VertexIdx + 2] = WedgeIndices[1];
+
+					// Check if we need to patch UVs.
+					
+					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+					{
+						if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
+						{
+							FVector2D WedgeUV1 = RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1];
+							FVector2D WedgeUV2 = RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2];
+
+							RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1] = WedgeUV2;
+							RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2] = WedgeUV1;
+						}
+					}
 				}
 
 				// Transfer vertex positions.
@@ -1356,29 +1414,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				// Create empty tangents.
 				RawMesh.WedgeTangentX.SetNumZeroed(VertexList.Num());
 				RawMesh.WedgeTangentY.SetNumZeroed(VertexList.Num());
-
-				// Transfer UVs.
-				bool bFoundUVs = false;
-				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-				{
-					TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
-					if(TextureCoordinate.Num() > 0)
-					{
-						int32 WedgeUVCount = TextureCoordinate.Num() / 2;
-						RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
-						for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
-						{
-							// We need to flip V coordinate when it's coming from HAPI.
-							FVector2D WedgeUV;
-							WedgeUV.X = TextureCoordinate[WedgeUVIdx * 2 + 0];
-							WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
-
-							RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
-
-							bFoundUVs = true;
-						}
-					}
-				}
 
 				// We have to have at least one UV channel. If there's none, create one with zero data.
 				if(!bFoundUVs)
