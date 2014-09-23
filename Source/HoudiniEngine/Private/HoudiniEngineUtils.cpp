@@ -1309,7 +1309,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
 
 				// Transfer UVs.
-				bool bFoundUVs = false;
+				int32 UVChannelCount = 0;
+				int32 FirstUVChannelIndex = -1;
 				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 				{
 					TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
@@ -1325,9 +1326,41 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 							WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
 
 							RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
-
-							bFoundUVs = true;
 						}
+
+						UVChannelCount++;
+						if(-1 == FirstUVChannelIndex)
+						{
+							FirstUVChannelIndex = TexCoordIdx;
+						}
+					}
+				}
+
+				// We need at least two UV channels.
+				switch(UVChannelCount)
+				{
+					case 0:
+					{
+						// We have to have at least one UV channel. If there's none, create one with zero data.
+						RawMesh.WedgeTexCoords[0].SetNumZeroed(VertexList.Num());
+						RawMesh.WedgeTexCoords[1].SetNumZeroed(VertexList.Num());
+						break;
+					}
+
+					case 1:
+					{
+						if(0 == FirstUVChannelIndex)
+						{
+							// We have only one UV channel, duplicate it.
+							RawMesh.WedgeTexCoords[1] = RawMesh.WedgeTexCoords[0];
+						}
+
+						break;
+					}
+
+					default:
+					{
+						break;
 					}
 				}
 
@@ -1343,7 +1376,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					RawMesh.WedgeIndices[VertexIdx + 2] = WedgeIndices[1];
 
 					// Check if we need to patch UVs.
-					
 					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 					{
 						if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
@@ -1414,12 +1446,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				// Create empty tangents.
 				RawMesh.WedgeTangentX.SetNumZeroed(VertexList.Num());
 				RawMesh.WedgeTangentY.SetNumZeroed(VertexList.Num());
-
-				// We have to have at least one UV channel. If there's none, create one with zero data.
-				if(!bFoundUVs)
-				{
-					RawMesh.WedgeTexCoords[0].SetNumZeroed(VertexList.Num());
-				}
 
 				// Some mesh generation settings.
 				SrcModel->BuildSettings.bRemoveDegenerates = true;
@@ -1577,6 +1603,9 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* In
 
 	// Create static mesh.
 	UStaticMesh* StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+
+	// Copy materials.
+	StaticMesh->Materials = InStaticMesh->Materials;
 
 	// Create new source model for current static mesh.
 	if(!StaticMesh->SourceModels.Num())
