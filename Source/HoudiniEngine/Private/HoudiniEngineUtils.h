@@ -152,7 +152,7 @@ protected:
 	static void Serialize(FRawMesh& RawMesh, FArchive& Ar);
 
 	/** Helper function to extract colors and store them in a given RawMesh. **/
-	static void ExtractAndSetColors(FRawMesh& RawMesh, const HAPI_AttributeInfo& AttribInfoColors, const TArray<float>& Colors);
+	static void TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
 
 protected:
 
