@@ -143,7 +143,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	}
 
 	// Create a generic bounding volume.
-	BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+	//BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
 	// Set component properties.
 	Mobility = EComponentMobility::Movable;
@@ -671,9 +671,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Assign unique actor label based on asset name.
 						//AssignUniqueActorLabel();
 
-						// We need to patch component RTTI to reflect properties for this component.
-						ReplaceClassInformation(GetOuter()->GetName());
-
 						{
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
 							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, StaticMeshes, NewStaticMeshes))
@@ -695,6 +692,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								CreateStaticMeshResources(NewStaticMeshes);
 							}
 						}
+
+						// We need to patch component RTTI to reflect properties for this component.
+						ReplaceClassInformation(GetOuter()->GetName());
 
 						// Recompute bounding volume.
 						//ComputeComponentBoundingVolume();
@@ -918,30 +918,24 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	return BoundingVolume;
-}
+	FBoxSphereBounds Bounds;
 
-
-/*
-void
-UHoudiniAssetComponent::ComputeComponentBoundingVolume()
-{
-
-	if(HoudiniAssetObjectGeos.Num() == 0)
+	if(AttachChildren.Num() == 0)
 	{
-		BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+		Bounds = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 	}
 	else
 	{
-		BoundingVolume = HoudiniAssetObjectGeos[0]->GetAggregateBoundingVolume();
+		Bounds = AttachChildren[0]->CalcBounds(LocalToWorld);
 	}
 
-	for(int Idx = 1; Idx < HoudiniAssetObjectGeos.Num(); ++Idx)
+	for(int32 Idx = 1; Idx < AttachChildren.Num(); ++Idx)
 	{
-		BoundingVolume = BoundingVolume + HoudiniAssetObjectGeos[Idx]->GetAggregateBoundingVolume();
+		Bounds = Bounds + AttachChildren[1]->CalcBounds(LocalToWorld);
 	}
+
+	return Bounds;
 }
-*/
 
 
 void
