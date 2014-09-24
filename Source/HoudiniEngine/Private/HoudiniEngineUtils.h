@@ -151,6 +151,9 @@ protected:
 	/** Helper routine to serialize FRawMesh. **/
 	static void Serialize(FRawMesh& RawMesh, FArchive& Ar);
 
+	/** Helper function to extract colors and store them in a given RawMesh. **/
+	static void ExtractAndSetColors(FRawMesh& RawMesh, const HAPI_AttributeInfo& AttribInfoColors, const TArray<float>& Colors);
+
 protected:
 
 	/** Create a texture from given information. **/

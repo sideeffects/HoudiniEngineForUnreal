@@ -1146,7 +1146,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 
 				// Attempt to locate static mesh from previous instantiation.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id);
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isInstancer);
 				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
 
 				// See if geometry has changed for this part.
@@ -1403,32 +1403,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 
 				// Transfer colors.
-				if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
-				{
-					int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
-					RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
-					for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
-					{
-						FLinearColor WedgeColor;
-
-						WedgeColor.R = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0];
-						WedgeColor.G = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1];
-						WedgeColor.B = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2];
-
-						if(4 == AttribInfoColors.tupleSize)
-						{
-							// We have alpha.
-							WedgeColor.A = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3];
-						}
-						else
-						{
-							WedgeColor.A = 1.0f;
-						}
-
-						// Convert linear color to fixed color (no sRGB conversion).
-						RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
-					}
-				}
+				FHoudiniEngineUtils::ExtractAndSetColors(RawMesh, AttribInfoColors, Colors);
 
 				// Transfer normals.
 				int32 WedgeNormalCount = Normals.Num() / 3;
@@ -1472,6 +1447,68 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 	}
 
 	return true;
+}
+
+
+void
+FHoudiniEngineUtils::ExtractAndSetColors(FRawMesh& RawMesh, const HAPI_AttributeInfo& AttribInfoColors, const TArray<float>& Colors)
+{
+	// Transfer colors.
+	if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
+	{
+		if(HAPI_ATTROWNER_VERTEX == AttribInfoColors.owner)
+		{
+			int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
+			RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
+			for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
+			{
+				FLinearColor WedgeColor;
+
+				WedgeColor.R = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0];
+				WedgeColor.G = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1];
+				WedgeColor.B = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2];
+
+				if(4 == AttribInfoColors.tupleSize)
+				{
+					// We have alpha.
+					WedgeColor.A = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3];
+				}
+				else
+				{
+					WedgeColor.A = 1.0f;
+				}
+
+				// Convert linear color to fixed color (no sRGB conversion).
+				RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
+			}
+		}
+		else if(HAPI_ATTROWNER_POINT == AttribInfoColors.owner)
+		{
+			int32 WedgeColorsCount = RawMesh.WedgeIndices.Num();
+			RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
+			for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
+			{
+				FLinearColor WedgeColor;
+				int32 VertexId = RawMesh.WedgeIndices[WedgeColorIdx];
+
+				WedgeColor.R = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 0];
+				WedgeColor.G = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 1];
+				WedgeColor.B = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 2];
+
+				if(4 == AttribInfoColors.tupleSize)
+				{
+					// We have alpha.
+					WedgeColor.A = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 3];
+				}
+				else
+				{
+					WedgeColor.A = 1.0f;
+				}
+
+				RawMesh.WedgeColors[VertexId] = WedgeColor.ToFColor(false);
+			}
+		}
+	}
 }
 
 
