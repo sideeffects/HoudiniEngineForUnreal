@@ -1277,12 +1277,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
 					HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
 
+				// See if we need to transfer color point attributes to vertex attributes.
+				FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoColors, Colors);
+
 				// Retrieve normal data.
 				HAPI_AttributeInfo AttribInfoNormals;
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
 					HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
 
+				// See if we need to transfer normal point attributes to vertex attributes.
+				FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoNormals, Normals);
+
 				// Retrieve UVs.
+				HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
 				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 				{
 					std::string UVAttributeName = HAPI_ATTRIB_UV;
@@ -1293,10 +1300,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					}
 
 					const char* UVAttributeNameString = UVAttributeName.c_str();
-
-					HAPI_AttributeInfo AttribInfoUVs;
 					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, UVAttributeNameString,
-																	 AttribInfoUVs, TextureCoordinates[TexCoordIdx], 2);
+																	 AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx], 2);
+
+					// See if we need to transfer uv point attributes to vertex attributes.
+					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx]);
 				}
 
 				// We can transfer attributes to raw mesh.
@@ -1403,7 +1411,32 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 
 				// Transfer colors.
-				FHoudiniEngineUtils::ExtractAndSetColors(RawMesh, AttribInfoColors, Colors);
+				if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
+				{
+					int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
+					RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
+					for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
+					{
+						FLinearColor WedgeColor;
+
+						WedgeColor.R = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0];
+						WedgeColor.G = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1];
+						WedgeColor.B = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2];
+
+						if(4 == AttribInfoColors.tupleSize)
+						{
+							// We have alpha.
+							WedgeColor.A = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3];
+						}
+						else
+						{
+							WedgeColor.A = 1.0f;
+						}
+
+						// Convert linear color to fixed color (no sRGB conversion).
+						RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
+					}
+				}
 
 				// Transfer normals.
 				int32 WedgeNormalCount = Normals.Num() / 3;
@@ -1451,62 +1484,32 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 
 void
-FHoudiniEngineUtils::ExtractAndSetColors(FRawMesh& RawMesh, const HAPI_AttributeInfo& AttribInfoColors, const TArray<float>& Colors)
+FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data)
 {
-	// Transfer colors.
-	if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
+	if(AttribInfo.exists && AttribInfo.tupleSize)
 	{
-		if(HAPI_ATTROWNER_VERTEX == AttribInfoColors.owner)
+		if(HAPI_ATTROWNER_POINT == AttribInfo.owner)
 		{
-			int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
-			RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
-			for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
+			int32 WedgeCount = VertexList.Num();
+			TArray<float> VertexData;
+			VertexData.SetNumZeroed(WedgeCount * AttribInfo.tupleSize);
+
+			for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
 			{
-				FLinearColor WedgeColor;
+				int32 VertexId = VertexList[WedgeIdx];
 
-				WedgeColor.R = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0];
-				WedgeColor.G = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1];
-				WedgeColor.B = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2];
-
-				if(4 == AttribInfoColors.tupleSize)
+				for(int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx)
 				{
-					// We have alpha.
-					WedgeColor.A = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3];
+					VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
 				}
-				else
-				{
-					WedgeColor.A = 1.0f;
-				}
-
-				// Convert linear color to fixed color (no sRGB conversion).
-				RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
 			}
+
+			Data = VertexData;
 		}
-		else if(HAPI_ATTROWNER_POINT == AttribInfoColors.owner)
+		else if(HAPI_ATTROWNER_PRIM == AttribInfo.owner)
 		{
-			int32 WedgeColorsCount = RawMesh.WedgeIndices.Num();
-			RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
-			for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
-			{
-				FLinearColor WedgeColor;
-				int32 VertexId = RawMesh.WedgeIndices[WedgeColorIdx];
-
-				WedgeColor.R = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 0];
-				WedgeColor.G = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 1];
-				WedgeColor.B = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 2];
-
-				if(4 == AttribInfoColors.tupleSize)
-				{
-					// We have alpha.
-					WedgeColor.A = Colors[RawMesh.WedgeIndices[VertexId] * AttribInfoColors.tupleSize + 3];
-				}
-				else
-				{
-					WedgeColor.A = 1.0f;
-				}
-
-				RawMesh.WedgeColors[VertexId] = WedgeColor.ToFColor(false);
-			}
+			// Handle case when data is on primitive.
+			check(false);
 		}
 	}
 }
