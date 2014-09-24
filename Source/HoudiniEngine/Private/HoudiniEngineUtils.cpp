@@ -1410,6 +1410,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
 				}
 
+				// We need to check if mesh contains degenerate triangles.
+				if(FHoudiniEngineUtils::ContainsDegenerateTriangles(RawMesh))
+				{
+					StaticMesh->MarkPendingKill();
+					continue;
+				}
+
 				// Transfer colors.
 				if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
 				{
@@ -1480,6 +1487,26 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 	}
 
 	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::ContainsDegenerateTriangles(const FRawMesh& RawMesh)
+{
+	int32 WedgeCount = RawMesh.WedgeIndices.Num();
+	for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; WedgeIdx += 3)
+	{
+		const FVector& Vertex0 = RawMesh.VertexPositions[RawMesh.WedgeIndices[WedgeIdx + 0]];
+		const FVector& Vertex1 = RawMesh.VertexPositions[RawMesh.WedgeIndices[WedgeIdx + 1]];
+		const FVector& Vertex2 = RawMesh.VertexPositions[RawMesh.WedgeIndices[WedgeIdx + 2]];
+
+		if(Vertex0 == Vertex1 || Vertex0 == Vertex2 || Vertex1 == Vertex2)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
