@@ -28,6 +28,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
+	bIsVisible(true),
 	bIsInstancer(false)
 {
 
@@ -35,14 +36,22 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
-											 HAPI_PartId InPartId, bool bInIsInstancer) :
+											 HAPI_PartId InPartId, bool bInIsVisible, bool bInIsInstancer) :
 	TransformMatrix(InTransform),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
+	bIsVisible(bInIsVisible),
 	bIsInstancer(bInIsInstancer)
 {
 
+}
+
+
+bool
+FHoudiniGeoPartObject::IsVisible() const
+{
+	return bIsVisible;
 }
 
 
@@ -75,6 +84,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << ObjectId;
 	Ar << GeoId;
 	Ar << PartId;
+	Ar << bIsVisible;
 	Ar << bIsInstancer;
 }
 

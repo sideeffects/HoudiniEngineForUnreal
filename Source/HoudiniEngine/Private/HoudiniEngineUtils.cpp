@@ -1146,7 +1146,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 
 				// Attempt to locate static mesh from previous instantiation.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isInstancer);
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
 				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
 
 				// See if geometry has changed for this part.
