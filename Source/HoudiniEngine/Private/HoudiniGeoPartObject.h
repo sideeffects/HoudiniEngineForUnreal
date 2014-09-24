@@ -27,7 +27,7 @@ public:
 	/** Constructors. **/
 	FHoudiniGeoPartObject();
 	FHoudiniGeoPartObject(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId, 
-						  bool bInIsInstancer = false);
+						  bool bInIsVisible = true, bool bInIsInstancer = false);
 
 public:
 
@@ -46,6 +46,9 @@ public:
 	/** Return true if this geo part object corresponds to an instancer. **/
 	bool IsInstancer() const;
 
+	/** Return true if this geo part object is visible. **/
+	bool IsVisible() const;
+
 public:
 
 	/** Transform of this geo part object. **/
@@ -59,6 +62,9 @@ public:
 
 	/** Id of corresponding HAPI Part. **/
 	HAPI_PartId PartId;
+
+	/* Is set to true when referenced object is visible. This is typically used by instancers. **/
+	bool bIsVisible;
 
 	/** Is set to true when referenced object is an instancer. **/
 	bool bIsInstancer;

@@ -82,7 +82,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
-	/** Generated Static mesh used for rendering. **/
+	/** Generated Static meshes used for rendering. **/
 	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
 	TArray<UStaticMesh*> PreviewStaticMeshes;
 

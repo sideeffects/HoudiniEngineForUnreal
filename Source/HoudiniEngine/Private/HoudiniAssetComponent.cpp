@@ -349,27 +349,30 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		UStaticMesh* StaticMesh = Iter.Value();
 
 		// See if we need to create component for this mesh.
-		UStaticMeshComponent* StaticMeshComponent = nullptr;
-		UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
-		if(!FoundStaticMeshComponent)
+		if(HoudiniGeoPartObject.IsVisible())
 		{
-			// Create necessary component.
-			StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
-			StaticMeshComponent->AttachTo(this);
-			StaticMeshComponent->RegisterComponent();
+			UStaticMeshComponent* StaticMeshComponent = nullptr;
+			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+			if(!FoundStaticMeshComponent)
+			{
+				// Create necessary component.
+				StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+				StaticMeshComponent->AttachTo(this);
+				StaticMeshComponent->RegisterComponent();
 
-			// Add to map of components.
-			StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
-		}
-		else
-		{
-			StaticMeshComponent = *FoundStaticMeshComponent;
-		}
+				// Add to map of components.
+				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
+			}
+			else
+			{
+				StaticMeshComponent = *FoundStaticMeshComponent;
+			}
 
-		StaticMeshComponent->SetStaticMesh(StaticMesh);
-		StaticMeshComponent->SetVisibility(true);
-		StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
-		StaticMeshComponent->UpdateBounds();
+			StaticMeshComponent->SetStaticMesh(StaticMesh);
+			StaticMeshComponent->SetVisibility(true);
+			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+			StaticMeshComponent->UpdateBounds();
+		}
 
 		// Add static mesh to preview list.
 		PreviewStaticMeshes.Add(StaticMesh);
@@ -395,22 +398,25 @@ UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, U
 
 		// Locate corresponding component.
 		UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
-		check(FoundStaticMeshComponent);
+		if(FoundStaticMeshComponent)
+		{
+			// Remove component from map of static mesh components.
+			StaticMeshComponents.Remove(StaticMesh);
 
-		// Remove component from map of static mesh components.
-		StaticMeshComponents.Remove(StaticMesh);
-
-		// Detach and destroy the component.
-		UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
-		StaticMeshComponent->RemoveFromRoot();
-		StaticMeshComponent->DetachFromParent();
-		StaticMeshComponent->DestroyComponent();
+			// Detach and destroy the component.
+			UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
+			StaticMeshComponent->RemoveFromRoot();
+			StaticMeshComponent->DetachFromParent();
+			StaticMeshComponent->DestroyComponent();
+		}
 
 		// Make sure we don't delete the logo static mesh.
+		/*
 		if(HoudiniLogoStaticMesh != StaticMesh)
 		{
-			//StaticMesh->MarkPendingKill();
+			StaticMesh->MarkPendingKill();
 		}
+		*/
 	}
 
 	StaticMeshMap.Empty();
