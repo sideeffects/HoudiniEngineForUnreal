@@ -154,6 +154,9 @@ protected:
 	/** Helper function to extract colors and store them in a given RawMesh. **/
 	static void TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
 
+	/** Helper routine to check if Raw Mesh contains degenerate triangles. **/
+	static bool ContainsDegenerateTriangles(const FRawMesh& RawMesh);
+
 protected:
 
 	/** Create a texture from given information. **/
