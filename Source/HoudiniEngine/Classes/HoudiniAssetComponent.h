@@ -120,6 +120,9 @@ public:
 	/** Return owner Houdini actor. **/
 	AHoudiniAssetActor* GetHoudiniAssetActorOwner() const;
 
+	/** Return true if this component contains Houdini logo geometry. **/
+	bool ContainsHoudiniLogoGeometry() const;
+
 public: /** UObject methods. **/
 
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
@@ -129,8 +132,6 @@ public: /** UObject methods. **/
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
 	virtual void FinishDestroy() override;
-	virtual bool IsReadyForFinishDestroy() override;
-	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -145,7 +146,7 @@ private: /** UPrimitiveComponent methods. **/
 
 private: /** USceneComponent methods. **/
 
-	//virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
 private: /** FEditorDelegates delegates. **/
 
@@ -366,9 +367,6 @@ protected:
 
 	/** Bounding volume information for current geometry. **/
 	FBoxSphereBounds BoundingVolume;
-
-	/** A fence which is used to keep track of the rendering thread releasing rendering resources. **/
-	FRenderCommandFence ReleaseResourcesFence;
 
 	/** GUID used to track asynchronous cooking requests. **/
 	FGuid HapiGUID;

@@ -143,7 +143,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	}
 
 	// Create a generic bounding volume.
-	//BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
+	BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
 
 	// Set component properties.
 	Mobility = EComponentMobility::Movable;
@@ -908,13 +908,14 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	}
 }
 
-/*
+
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return BoundingVolume;
 }
-*/
+
+
 /*
 void
 UHoudiniAssetComponent::ComputeComponentBoundingVolume()
@@ -1019,24 +1020,6 @@ void
 UHoudiniAssetComponent::FinishDestroy()
 {
 	Super::FinishDestroy();
-}
-
-
-bool
-UHoudiniAssetComponent::IsReadyForFinishDestroy()
-{
-	return Super::IsReadyForFinishDestroy() && ReleaseResourcesFence.IsFenceComplete();
-}
-
-
-void
-UHoudiniAssetComponent::PostDuplicate(bool bDuplicateForPIE)
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  PostDuplicate,                      C" );
-
-	Super::PostDuplicate(bDuplicateForPIE);
-
-
 }
 
 
@@ -3032,6 +3015,13 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Call super class implementation.
 	Super::OnComponentDestroyed();
+}
+
+
+bool
+UHoudiniAssetComponent::ContainsHoudiniLogoGeometry() const
+{
+	return bContainsHoudiniLogoGeometry;
 }
 
 

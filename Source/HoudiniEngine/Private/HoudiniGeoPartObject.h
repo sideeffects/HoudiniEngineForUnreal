@@ -26,7 +26,8 @@ public:
 
 	/** Constructors. **/
 	FHoudiniGeoPartObject();
-	FHoudiniGeoPartObject(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
+	FHoudiniGeoPartObject(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId, 
+						  bool bInIsInstancer = false);
 
 public:
 
@@ -42,6 +43,9 @@ public:
 	/** Return true if this geo part object corresponds to a valid HAPI object. **/
 	bool IsValid() const;
 
+	/** Return true if this geo part object corresponds to an instancer. **/
+	bool IsInstancer() const;
+
 public:
 
 	/** Transform of this geo part object. **/
@@ -55,6 +59,9 @@ public:
 
 	/** Id of corresponding HAPI Part. **/
 	HAPI_PartId PartId;
+
+	/** Is set to true when referenced object is an instancer. **/
+	bool bIsInstancer;
 };
 
 

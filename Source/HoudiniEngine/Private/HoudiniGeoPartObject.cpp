@@ -27,19 +27,29 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	TransformMatrix(FMatrix::Identity),
 	ObjectId(-1),
 	GeoId(-1),
-	PartId(-1)
+	PartId(-1),
+	bIsInstancer(false)
 {
 
 }
 
 
-FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
+											 HAPI_PartId InPartId, bool bInIsInstancer) :
 	TransformMatrix(InTransform),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
-	PartId(InPartId)
+	PartId(InPartId),
+	bIsInstancer(bInIsInstancer)
 {
 
+}
+
+
+bool
+FHoudiniGeoPartObject::IsInstancer() const
+{
+	return bIsInstancer;
 }
 
 
@@ -65,6 +75,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << ObjectId;
 	Ar << GeoId;
 	Ar << PartId;
+	Ar << bIsInstancer;
 }
 
 

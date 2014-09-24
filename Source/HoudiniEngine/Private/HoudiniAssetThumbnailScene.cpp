@@ -48,7 +48,8 @@ FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 
 		PreviewHoudiniAssetActor->SetActorLocation(FVector(0.0f, 0.0f, 0.0f), false);
 
-		if(HoudiniAsset->IsPreviewHoudiniLogo())
+		//if(HoudiniAsset->IsPreviewHoudiniLogo())
+		if(PreviewHoudiniAssetActor->HoudiniAssetComponent->ContainsHoudiniLogoGeometry())
 		{
 			PreviewHoudiniAssetActor->SetActorRotation(FRotator(0.0f, 175.0f, 0.0f));
 		}
