@@ -687,19 +687,20 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	// Extract vertices from static mesh.
-	std::vector<float> StaticMeshVertices;
+	TArray<float> StaticMeshVertices;
+	StaticMeshVertices.SetNumZeroed(RawMesh.VertexPositions.Num() * 3);
 	for(int VertexIdx = 0; VertexIdx < RawMesh.VertexPositions.Num(); ++VertexIdx)
 	{
 		// Grab vertex at this index (we also need to swap Z and Y).
 		const FVector& PositionVector = RawMesh.VertexPositions[VertexIdx];
-		StaticMeshVertices.push_back(PositionVector.X / FHoudiniEngineUtils::ScaleFactorPosition);
-		StaticMeshVertices.push_back(PositionVector.Z / FHoudiniEngineUtils::ScaleFactorPosition);
-		StaticMeshVertices.push_back(PositionVector.Y / FHoudiniEngineUtils::ScaleFactorPosition);
+		StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / FHoudiniEngineUtils::ScaleFactorPosition;
+		StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / FHoudiniEngineUtils::ScaleFactorPosition;
+		StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / FHoudiniEngineUtils::ScaleFactorPosition;
 	}
 
 	// Now that we have raw positions, we can upload them for our attribute.
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint, 
-														  &StaticMeshVertices[0], 0, AttributeInfoPoint.count), false);
+														  StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
 
 	// See if we have texture coordinates to upload.
 	for(int32 MeshTexCoordIdx = 0; MeshTexCoordIdx < MAX_STATIC_TEXCOORDS; ++MeshTexCoordIdx)
@@ -709,11 +710,25 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		if(StaticMeshUVCount > 0)
 		{
 			const TArray<FVector2D>& RawMeshUVs = RawMesh.WedgeTexCoords[MeshTexCoordIdx];
-			std::vector<float> StaticMeshUVs(RawMeshUVs.Num() * 2);
+			TArray<FVector2D> StaticMeshUVs;
+			StaticMeshUVs.SetNumZeroed(RawMeshUVs.Num());
+
+			// Transfer UV data.
 			for(int32 UVIdx = 0; UVIdx < StaticMeshUVCount; ++UVIdx)
 			{
-				StaticMeshUVs[UVIdx * 2 + 0] = RawMeshUVs[UVIdx].X;
-				StaticMeshUVs[UVIdx * 2 + 1] = 1.0f - RawMeshUVs[UVIdx].Y;
+				StaticMeshUVs[UVIdx] = FVector2D(RawMeshUVs[UVIdx].X, 1.0 - RawMeshUVs[UVIdx].Y);
+			}
+
+			// We need to re-index UVs for wedges we swapped (due to winding differences).
+			for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+			{
+				// We do not touch wedge 0 of this triangle.
+
+				FVector2D WedgeUV1 = StaticMeshUVs[WedgeIdx + 1];
+				FVector2D WedgeUV2 = StaticMeshUVs[WedgeIdx + 2];
+
+				StaticMeshUVs[WedgeIdx + 1] = WedgeUV2;
+				StaticMeshUVs[WedgeIdx + 2] = WedgeUV1;
 			}
 
 			// Construct attribute name for this index.
@@ -737,11 +752,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 
 			// Upload UV data.
 			HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex, 
-																  &StaticMeshUVs[0], 0, AttributeInfoVertex.count), false);
+																  (float*) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count), false);
 		}
 	}
 
 	// Upload Unreal specific packed tangents.
+	/*
 	if(RawMesh.WedgeTangentX.Num() && RawMesh.WedgeTangentY.Num())
 	{
 		// Get raw tangent data.
@@ -802,6 +818,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 															  (int*) &RawMeshTangentsYData[0], 0, AttributeInfoPackedTangent2.count), false);
 		}
 	}
+	*/
 
 	// See if we have normals to upload.
 	if(RawMesh.WedgeTangentZ.Num())
@@ -809,7 +826,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		// Get raw normal data.
 		FVector* RawMeshNormals = RawMesh.WedgeTangentZ.GetData();
 
-		// Create attribute for normals
+		// Create attribute for normals.
 		HAPI_AttributeInfo AttributeInfoVertex = HAPI_AttributeInfo_Create();
 		AttributeInfoVertex.count = RawMesh.WedgeTangentZ.Num();
 		AttributeInfoVertex.tupleSize = 3; 
@@ -826,21 +843,23 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	// Extract indices from static mesh.
 	if(RawMesh.WedgeIndices.Num())
 	{
-		std::vector<int> StaticMeshIndices;
+		TArray<int> StaticMeshIndices;
+		StaticMeshIndices.SetNumUninitialized(RawMesh.WedgeIndices.Num());
 		for(int IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
 		{
 			// Swap indices to fix winding order.
-			StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx + 0]);
-			StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx + 2]);
-			StaticMeshIndices.push_back(RawMesh.WedgeIndices[IndexIdx + 1]);
+			StaticMeshIndices[IndexIdx + 0] = (RawMesh.WedgeIndices[IndexIdx + 0]);
+			StaticMeshIndices[IndexIdx + 1] = (RawMesh.WedgeIndices[IndexIdx + 2]);
+			StaticMeshIndices[IndexIdx + 2] = (RawMesh.WedgeIndices[IndexIdx + 1]);
 		}
 
 		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetVertexList(ConnectedAssetId, 0, 0, &StaticMeshIndices[0], 0, StaticMeshIndices.size()), false);
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetVertexList(ConnectedAssetId, 0, 0, StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num()), false);
 
 		// We need to generate array of face counts.
-		std::vector<int> StaticMeshFaceCounts(Part.faceCount, 3);
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetFaceCounts(ConnectedAssetId, 0, 0, &StaticMeshFaceCounts[0], 0, StaticMeshFaceCounts.size()), false);
+		TArray<int> StaticMeshFaceCounts;
+		StaticMeshFaceCounts.Init(3, Part.faceCount);
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetFaceCounts(ConnectedAssetId, 0, 0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
 	}
 
 	// Commit the geo.
