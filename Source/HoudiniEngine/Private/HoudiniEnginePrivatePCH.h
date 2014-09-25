@@ -44,6 +44,7 @@
 #include "DesktopPlatformModule.h"
 #include "RawMesh.h"
 #include "StaticMeshResources.h"
+#include "ComponentReregisterContext.h"
 
 #include "Materials/MaterialExpressionTextureSample.h"
 

@@ -300,9 +300,6 @@ private:
 	/** Clear only parameter properties. Will leave input properties. **/
 	void ClearChangedPropertiesParameters();
 
-	/** Compute bounding volume for all geometry of this component. **/
-	//void ComputeComponentBoundingVolume();
-
 	/** Check if value for property has been changed and property is queued up to participate in subsequent cook. If it **/
 	/** has been changed, then we do not want to update the current value with value coming from current cook as it     **/
 	/** will cause property's slider to jitter and possibly discard a valid value. **/
@@ -364,9 +361,6 @@ protected:
 
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
-
-	/** Bounding volume information for current geometry. **/
-	FBoxSphereBounds BoundingVolume;
 
 	/** GUID used to track asynchronous cooking requests. **/
 	FGuid HapiGUID;
