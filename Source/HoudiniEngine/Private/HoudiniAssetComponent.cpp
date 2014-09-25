@@ -142,9 +142,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 		}
 	}
 
-	// Create a generic bounding volume.
-	//BoundingVolume = FBoxSphereBounds(FBox(-FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX, FVector(1.0f, 1.0f, 1.0f) * HALF_WORLD_MAX));
-
 	// Set component properties.
 	Mobility = EComponentMobility::Movable;
 	PrimaryComponentTick.bCanEverTick = true;
@@ -357,10 +354,6 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 			if(FoundStaticMeshComponent)
 			{
 				StaticMeshComponent = *FoundStaticMeshComponent;
-
-				StaticMeshComponent->DetachFromParent();
-				StaticMeshComponent->SetStaticMesh(nullptr);
-				StaticMeshComponent->UnregisterComponent();
 			}
 			else
 			{
@@ -369,13 +362,14 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 				// Add to map of components.
 				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
+
+				StaticMeshComponent->AttachTo(this);
+				StaticMeshComponent->RegisterComponent();
+				StaticMeshComponent->SetStaticMesh(StaticMesh);
+				StaticMeshComponent->SetVisibility(true);
 			}
 
-			StaticMeshComponent->AttachTo(this);
-			StaticMeshComponent->RegisterComponent();
 			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
-			StaticMeshComponent->SetStaticMesh(StaticMesh);
-			StaticMeshComponent->SetVisibility(true);
 		}
 
 		// Add static mesh to preview list.
@@ -410,6 +404,7 @@ UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, U
 			// Detach and destroy the component.
 			UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
 			StaticMeshComponent->DetachFromParent();
+			StaticMeshComponent->UnregisterComponent();
 			StaticMeshComponent->DestroyComponent();
 		}
 
@@ -699,24 +694,14 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// We need to patch component RTTI to reflect properties for this component.
 						ReplaceClassInformation(GetOuter()->GetName());
 
-						// Recompute bounding volume.
-						//ComputeComponentBoundingVolume();
-
-						// Manually tick GC to propagate reference counts.
-						//GetWorld()->ForceGarbageCollection(false);
-
 						// Need to update rendering information.
 						UpdateRenderingInformation();
 
-						//ReregisterComponent();
-						//UnregisterComponent();
-						//RegisterComponent();
-
-						/*
-						GetOwner()->MarkComponentsRenderStateDirty();
-						GetOwner()->UpdateComponentTransforms();
-						GetOwner()->ReregisterAllComponents();
-						*/
+						// Force editor to redraw viewports.
+						if(GEditor)
+						{
+							GEditor->RedrawAllViewports();
+						}
 
 						// Update properties panel after instantiation.
 						if(bInstantiated)

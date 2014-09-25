@@ -1480,7 +1480,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
 				}
 
+				//StaticMesh->PreEditChange(nullptr);
 				StaticMesh->Build(true);
+				//StaticMesh->PostEditChange();
+
 				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 			}
 		}
