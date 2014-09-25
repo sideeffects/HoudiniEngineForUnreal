@@ -14,6 +14,14 @@
  *      This file is generated. Do not modify directly.
  */
 
+/*
+
+	Houdini Version: 13.0.547
+	Houdini Engine Version: 1.8.16
+	Unreal Version: 4.4.1
+
+ */
+
 namespace UnrealBuildTool.Rules
 {
 	public class HoudiniEngine : ModuleRules
