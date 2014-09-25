@@ -353,25 +353,29 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		{
 			UStaticMeshComponent* StaticMeshComponent = nullptr;
 			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
-			if(!FoundStaticMeshComponent)
+
+			if(FoundStaticMeshComponent)
+			{
+				StaticMeshComponent = *FoundStaticMeshComponent;
+
+				StaticMeshComponent->DetachFromParent();
+				StaticMeshComponent->SetStaticMesh(nullptr);
+				StaticMeshComponent->UnregisterComponent();
+			}
+			else
 			{
 				// Create necessary component.
 				StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
-				StaticMeshComponent->AttachTo(this);
-				StaticMeshComponent->RegisterComponent();
 
 				// Add to map of components.
 				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
 			}
-			else
-			{
-				StaticMeshComponent = *FoundStaticMeshComponent;
-			}
 
+			StaticMeshComponent->AttachTo(this);
+			StaticMeshComponent->RegisterComponent();
+			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 			StaticMeshComponent->SetStaticMesh(StaticMesh);
 			StaticMeshComponent->SetVisibility(true);
-			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
-			StaticMeshComponent->UpdateBounds();
 		}
 
 		// Add static mesh to preview list.
@@ -405,7 +409,6 @@ UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, U
 
 			// Detach and destroy the component.
 			UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
-			StaticMeshComponent->RemoveFromRoot();
 			StaticMeshComponent->DetachFromParent();
 			StaticMeshComponent->DestroyComponent();
 		}
@@ -704,6 +707,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						// Need to update rendering information.
 						UpdateRenderingInformation();
+
+						//ReregisterComponent();
+						//UnregisterComponent();
+						//RegisterComponent();
+
+						/*
+						GetOwner()->MarkComponentsRenderStateDirty();
+						GetOwner()->UpdateComponentTransforms();
+						GetOwner()->ReregisterAllComponents();
+						*/
 
 						// Update properties panel after instantiation.
 						if(bInstantiated)
