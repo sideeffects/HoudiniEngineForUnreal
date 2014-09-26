@@ -148,6 +148,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_PACKED_TANGENT				"unreal_packed_tangent"
 #define HAPI_UNREAL_ATTRIB_PACKED_TANGENT2				"unreal_packed_tangent2"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
+#define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"

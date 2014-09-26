@@ -803,70 +803,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		}
 	}
 
-	// Upload Unreal specific packed tangents.
-	/*
-	if(RawMesh.WedgeTangentX.Num() && RawMesh.WedgeTangentY.Num())
-	{
-		// Get raw tangent data.
-		FVector* RawMeshTangentsX = RawMesh.WedgeTangentX.GetData();
-		FVector* RawMeshTangentsY = RawMesh.WedgeTangentY.GetData();
-
-		// We need to upload them as integers (they are unsigned ints).
-
-		{
-			int RawMeshTangentsXDataCount = RawMesh.WedgeTangentX.Num();
-			std::vector<int> RawMeshTangentsXData(RawMeshTangentsXDataCount * 4);
-			for(int TangentXIdx = 0; TangentXIdx < RawMeshTangentsXDataCount; ++TangentXIdx)
-			{
-				FPackedNormal PackedNormal(RawMeshTangentsX[TangentXIdx]);
-				RawMeshTangentsXData[TangentXIdx * 4 + 0] = PackedNormal.Vector.X;
-				RawMeshTangentsXData[TangentXIdx * 4 + 1] = PackedNormal.Vector.Y;
-				RawMeshTangentsXData[TangentXIdx * 4 + 2] = PackedNormal.Vector.Z;
-				RawMeshTangentsXData[TangentXIdx * 4 + 3] = PackedNormal.Vector.W;
-			}
-
-			// Create attribute for packed tangent.
-			HAPI_AttributeInfo AttributeInfoPackedTangent = HAPI_AttributeInfo_Create();
-			AttributeInfoPackedTangent.count = RawMeshTangentsXDataCount;
-			AttributeInfoPackedTangent.tupleSize = 4; 
-			AttributeInfoPackedTangent.exists = true;
-			AttributeInfoPackedTangent.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoPackedTangent.storage = HAPI_STORAGETYPE_INT;
-			HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT, &AttributeInfoPackedTangent), false);
-
-			// Upload normal data.
-			HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT, &AttributeInfoPackedTangent, 
-															  (int*) &RawMeshTangentsXData[0], 0, AttributeInfoPackedTangent.count), false);
-		}
-
-		{
-			int RawMeshTangentsYDataCount = RawMesh.WedgeTangentY.Num();
-			std::vector<int> RawMeshTangentsYData(RawMeshTangentsYDataCount * 4);
-			for(int TangentYIdx = 0; TangentYIdx < RawMeshTangentsYDataCount; ++TangentYIdx)
-			{
-				FPackedNormal PackedNormal(RawMeshTangentsX[TangentYIdx]);
-				RawMeshTangentsYData[TangentYIdx * 4 + 0] = PackedNormal.Vector.X;
-				RawMeshTangentsYData[TangentYIdx * 4 + 1] = PackedNormal.Vector.Y;
-				RawMeshTangentsYData[TangentYIdx * 4 + 2] = PackedNormal.Vector.Z;
-				RawMeshTangentsYData[TangentYIdx * 4 + 3] = PackedNormal.Vector.W;
-			}
-
-			// Create attribute for packed tangent.
-			HAPI_AttributeInfo AttributeInfoPackedTangent2 = HAPI_AttributeInfo_Create();
-			AttributeInfoPackedTangent2.count = RawMeshTangentsYDataCount;
-			AttributeInfoPackedTangent2.tupleSize = 4; 
-			AttributeInfoPackedTangent2.exists = true;
-			AttributeInfoPackedTangent2.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoPackedTangent2.storage = HAPI_STORAGETYPE_INT;
-			HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT2, &AttributeInfoPackedTangent2), false);
-
-			// Upload normal data.
-			HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_PACKED_TANGENT2, &AttributeInfoPackedTangent2, 
-															  (int*) &RawMeshTangentsYData[0], 0, AttributeInfoPackedTangent2.count), false);
-		}
-	}
-	*/
-
 	// See if we have normals to upload.
 	if(RawMesh.WedgeTangentZ.Num())
 	{
@@ -1071,10 +1007,6 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	RawMesh.WedgeIndices.Reserve(WedgeCount);
 	RawMesh.WedgeColors.AddZeroed(WedgeCount);
 	RawMesh.WedgeTexCoords[0].AddZeroed(WedgeCount);
-
-	//RawMesh.WedgeTangentX.AddZeroed(WedgeCount);
-	//RawMesh.WedgeTangentY.AddZeroed(WedgeCount);
-	//RawMesh.WedgeTangentZ.AddZeroed(WedgeCount);
 
 	// Copy vertex positions.
 	for(int VertexIdx = 0; VertexIdx < VertexCount; VertexIdx += 3)
@@ -1289,7 +1221,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 				// Set it to use textured light maps. We use coordinate 1 for UVs.
 				StaticMesh->LightMapResolution = 32;
-				StaticMesh->LightMapCoordinateIndex = 1;
 
 				StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
 				StaticMesh->LODGroup = NAME_None;
@@ -1460,32 +1391,32 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 							FirstUVChannelIndex = TexCoordIdx;
 						}
 					}
+					else
+					{
+						RawMesh.WedgeTexCoords[TexCoordIdx].Empty();
+					}
 				}
 
-				// We need at least two UV channels.
 				switch(UVChannelCount)
 				{
 					case 0:
 					{
 						// We have to have at least one UV channel. If there's none, create one with zero data.
 						RawMesh.WedgeTexCoords[0].SetNumZeroed(VertexList.Num());
-						RawMesh.WedgeTexCoords[1].SetNumZeroed(VertexList.Num());
+						StaticMesh->LightMapCoordinateIndex = 0;
 						break;
 					}
 
 					case 1:
 					{
-						if(0 == FirstUVChannelIndex)
-						{
-							// We have only one UV channel, duplicate it.
-							RawMesh.WedgeTexCoords[1] = RawMesh.WedgeTexCoords[0];
-						}
-
+						// We have only one UV channel.
+						StaticMesh->LightMapCoordinateIndex = FirstUVChannelIndex;
 						break;
 					}
 
 					default:
 					{
+						StaticMesh->LightMapCoordinateIndex = 1;
 						break;
 					}
 				}
@@ -1569,16 +1500,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				for(int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx)
 				{
 					FVector WedgeTangentZ;
+
 					WedgeTangentZ.X = Normals[WedgeTangentZIdx * 3 + 0];
-					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 1];
-					WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 2];
+					WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
+					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
 
 					RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
 				}
-
-				// Create empty tangents.
-				RawMesh.WedgeTangentX.SetNumZeroed(VertexList.Num());
-				RawMesh.WedgeTangentY.SetNumZeroed(VertexList.Num());
 
 				// Some mesh generation settings.
 				SrcModel->BuildSettings.bRemoveDegenerates = true;
@@ -1591,7 +1519,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 				else
 				{
-					SrcModel->BuildSettings.bRecomputeNormals = false;
+					SrcModel->BuildSettings.bRecomputeNormals = true;
 				}
 
 				// Store the new raw mesh.
