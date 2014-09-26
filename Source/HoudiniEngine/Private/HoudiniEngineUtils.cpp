@@ -843,7 +843,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetFaceCounts(ConnectedAssetId, 0, 0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
 	}
 
-	// Marshall face materials.
+	// Marshall face material indices.
 	if(RawMesh.FaceMaterialIndices.Num())
 	{
 		// Create list of materials, one for each face.
@@ -863,6 +863,20 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 
 		// Delete material names.
 		FHoudiniEngineUtils::DeleteFaceMaterialArray(StaticMeshFaceMaterials);
+	}
+
+	// Marshall face smoothing masks.
+	if(RawMesh.FaceSmoothingMasks.Num())
+	{
+		HAPI_AttributeInfo AttributeInfoSmoothingMasks = HAPI_AttributeInfo_Create();
+		AttributeInfoSmoothingMasks.count = RawMesh.FaceSmoothingMasks.Num();
+		AttributeInfoSmoothingMasks.tupleSize = 1;
+		AttributeInfoSmoothingMasks.exists = true;
+		AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks,
+															   (int*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
 	}
 
 	// Commit the geo.
@@ -1005,7 +1019,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	RawMesh.FaceSmoothingMasks.AddZeroed(TriangleCount);
 	RawMesh.VertexPositions.Reserve(VertexCount);
 	RawMesh.WedgeIndices.Reserve(WedgeCount);
-	RawMesh.WedgeColors.AddZeroed(WedgeCount);
+	//RawMesh.WedgeColors.AddZeroed(WedgeCount);
 	RawMesh.WedgeTexCoords[0].AddZeroed(WedgeCount);
 
 	// Copy vertex positions.
@@ -1089,6 +1103,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 	TArray<float> Normals;
 	TArray<float> Colors;
 	TArray<FString> FaceMaterials;
+	TArray<int32> FaceSmoothingMasks;
 
 	// If we have no package, we will use transient package.
 	if(!Package)
@@ -1276,6 +1291,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
 					HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
 
+				// Retrieve face smoothing data.
+				HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
+				FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+					HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
+
 				// See if we need to transfer normal point attributes to vertex attributes.
 				FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoNormals, Normals);
 
@@ -1305,6 +1325,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 				// Set face smoothing masks.
 				RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
+
+				if(FaceSmoothingMasks.Num())
+				{
+					for(int32 FaceSmoothingMaskIdx = 0; FaceSmoothingMaskIdx < FaceSmoothingMasks.Num(); ++FaceSmoothingMaskIdx)
+					{
+						RawMesh.FaceSmoothingMasks[FaceSmoothingMaskIdx] = FaceSmoothingMasks[FaceSmoothingMaskIdx];
+					}
+				}
 
 				// Set face specific information and materials.
 				if(bMaterialFound)
@@ -1511,8 +1539,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				// Some mesh generation settings.
 				SrcModel->BuildSettings.bRemoveDegenerates = true;
 				SrcModel->BuildSettings.bRecomputeTangents = true;
+				SrcModel->BuildSettings.bRecomputeNormals = true;
 
 				// If we do not have normals, we do need to recompute them.
+				/*
 				if(Normals.Num())
 				{
 					SrcModel->BuildSettings.bRecomputeNormals = false;
@@ -1521,6 +1551,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				{
 					SrcModel->BuildSettings.bRecomputeNormals = true;
 				}
+				*/
 
 				// Store the new raw mesh.
 				SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -1670,7 +1701,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Pa
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = false;
+	SrcModel->BuildSettings.bRecomputeNormals = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 
 	// Store the new raw mesh.
@@ -1760,7 +1791,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* In
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = false;
+	SrcModel->BuildSettings.bRecomputeNormals = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 
 	// Store the new raw mesh.
