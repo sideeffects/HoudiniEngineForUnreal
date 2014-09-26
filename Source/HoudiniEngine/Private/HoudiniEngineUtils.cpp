@@ -114,7 +114,7 @@ FHoudiniEngineUtils::GetErrorDescription()
 	std::vector<char> StatusStringBuffer(StatusBufferLength, 0);
 	HAPI_GetStatusString(HAPI_STATUS_CALL_RESULT, &StatusStringBuffer[0]);
 
-	return FString(ANSI_TO_TCHAR(&StatusStringBuffer[0]));
+	return FString(UTF8_TO_TCHAR(&StatusStringBuffer[0]));
 }
 
 
@@ -152,7 +152,7 @@ FHoudiniEngineUtils::GetHoudiniString(int Name, FString& NameString)
 
 	if(FHoudiniEngineUtils::HapiGetString(Name, NamePlain))
 	{
-		NameString = ANSI_TO_TCHAR(NamePlain.c_str());
+		NameString = UTF8_TO_TCHAR(NamePlain.c_str());
 		return true;
 	}
 
@@ -505,6 +505,55 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_Ob
 
 
 bool
+FHoudiniEngineUtils::HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+												  const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+												  TArray<FString>& Data, int TupleSize)
+{
+	ResultAttributeInfo.exists = false;
+
+	// Reset container size.
+	Data.Empty();
+
+	int OriginalTupleSize = TupleSize;
+	HAPI_AttributeInfo AttributeInfo;
+	for(int AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
+
+		if(AttributeInfo.exists)
+		{
+			break;
+		}
+	}
+
+	if(!AttributeInfo.exists)
+	{
+		return false;
+	}
+
+	if(OriginalTupleSize > 0)
+	{
+		AttributeInfo.tupleSize = OriginalTupleSize;
+	}
+
+	TArray<HAPI_StringHandle> StringHandles;
+	StringHandles.Init(-1, AttributeInfo.count * AttributeInfo.tupleSize);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAttributeStringData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo, &StringHandles[0], 0, AttributeInfo.count), false);
+
+	for(int32 Idx = 0; Idx < StringHandles.Num(); ++Idx)
+	{
+		FString HapiString;
+		FHoudiniEngineUtils::GetHoudiniString(StringHandles[Idx], HapiString);
+		Data.Add(HapiString);
+	}
+
+	// Store the retrieved attribute information.
+	ResultAttributeInfo = AttributeInfo;
+	return true;
+}
+
+
+bool
 FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type)
 {
 	HAPI_Result Result = HAPI_RenderTextureToImage(MaterialInfo.assetId, MaterialInfo.id, NodeParmId);
@@ -749,8 +798,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 			HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex), false);
-
-			// Upload UV data.
 			HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex, 
 																  (float*) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count), false);
 		}
@@ -834,8 +881,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL, &AttributeInfoVertex), false);
-
-		// Upload normal data.
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL, &AttributeInfoVertex, 
 														  (float*) RawMeshNormals, 0, AttributeInfoVertex.count), false);
 	}
@@ -860,6 +905,28 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		TArray<int> StaticMeshFaceCounts;
 		StaticMeshFaceCounts.Init(3, Part.faceCount);
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetFaceCounts(ConnectedAssetId, 0, 0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
+	}
+
+	// Marshall face materials.
+	if(RawMesh.FaceMaterialIndices.Num())
+	{
+		// Create list of materials, one for each face.
+		TArray<char*> StaticMeshFaceMaterials;
+		FHoudiniEngineUtils::CreateFaceMaterialArray(StaticMesh->Materials, RawMesh.FaceMaterialIndices, StaticMeshFaceMaterials);
+
+		// Create attribute for materials.
+		HAPI_AttributeInfo AttributeInfoMaterial = HAPI_AttributeInfo_Create();
+		AttributeInfoMaterial.count = RawMesh.FaceMaterialIndices.Num();
+		AttributeInfoMaterial.tupleSize = 1;
+		AttributeInfoMaterial.exists = true;
+		AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial), false);
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_SetAttributeStringData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial,
+															   (const char**) StaticMeshFaceMaterials.GetData(), 0, StaticMeshFaceMaterials.Num()), false);
+
+		// Delete material names.
+		FHoudiniEngineUtils::DeleteFaceMaterialArray(StaticMeshFaceMaterials);
 	}
 
 	// Commit the geo.
@@ -1089,6 +1156,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 	TArray<float> TextureCoordinates[MAX_STATIC_TEXCOORDS];
 	TArray<float> Normals;
 	TArray<float> Colors;
+	TArray<FString> FaceMaterials;
 
 	// If we have no package, we will use transient package.
 	if(!Package)
@@ -1171,11 +1239,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				// See if geometry has changed for this part.
 				if(!GeoInfo.hasGeoChanged)
 				{
-					// If geometry has not changed, look up static mesh from previous instantiation / cooking and use it.
+					// If geometry has not changed.
 					if(FoundStaticMesh)
 					{
 						StaticMesh = *FoundStaticMesh;
-
 						if(bMaterialFound && MaterialInfo.hasChanged)
 						{
 							// Even though geometry did not change, material requires update.
@@ -1185,6 +1252,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 							// Remove previous materials.
 							StaticMesh->Materials.Empty();
 							StaticMesh->Materials.Add(Material);
+						}
+						else
+						{
+							// Material hasn't changed, we do not need to change anything.
+							check(StaticMesh->Materials.Num() > 0);
 						}
 
 						StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
@@ -1210,41 +1282,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				{
 					// If it was located, we will just reuse it.
 					StaticMesh = *FoundStaticMesh;
-				}
-
-				if(bMaterialFound)
-				{
-					if(MaterialInfo.hasChanged)
-					{
-						// Attempt to create material.
-						UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName);
-
-						if(Material)
-						{
-							// We have a valid created material.
-							StaticMesh->Materials.Add(Material);
-						}
-						else
-						{
-							// Otherwise, we just use default material.
-							UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-							StaticMesh->Materials.Add(DefaultMaterial);
-						}
-					}
-					else
-					{
-						// Material hasn't changed, we do not need to change anything.
-						check(StaticMesh->Materials.Num() > 0);
-					}
-				}
-				else
-				{
-					// Locate default material and add it to mesh, if we do not have it set.
-					if(0 == StaticMesh->Materials.Num())
-					{
-						UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-						StaticMesh->Materials.Add(DefaultMaterial);
-					}
 				}
 
 				// Make sure static mesh has a new lighting guid.
@@ -1291,6 +1328,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					break;
 				}
 
+				HAPI_AttributeInfo AttribFaceMaterials;
+				FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+												  HAPI_UNREAL_ATTRIB_MATERIAL, AttribFaceMaterials, FaceMaterials);
+
 				// Retrieve color data.
 				HAPI_AttributeInfo AttribInfoColors;
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
@@ -1331,9 +1372,67 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				// Compute number of faces.
 				int32 FaceCount = PartInfo.vertexCount / 3;
 
-				// Set face specific information.
-				RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+				// Set face smoothing masks.
 				RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
+
+				// Set face specific information and materials.
+				if(bMaterialFound)
+				{
+					if(MaterialInfo.hasChanged || (!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
+					{
+						// Material requires update.
+						MeshName = StaticMesh->GetName();
+						UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName);
+
+						// Remove previous materials.
+						StaticMesh->Materials.Empty();
+						StaticMesh->Materials.Add(Material);
+
+						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+					}
+				}
+				else
+				{
+					RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+					StaticMesh->Materials.Empty();
+
+					if(FaceMaterials.Num())
+					{
+						TSet<FString> UniqueFaceMaterials(FaceMaterials);
+						TMap<FString, int32> UniqueFaceMaterialMap;
+
+						int32 UniqueFaceMaterialsIdx = 0;
+						for(TSet<FString>::TIterator Iter = UniqueFaceMaterials.CreateIterator(); Iter; ++Iter)
+						{
+							const FString& MaterialName = *Iter;
+							UniqueFaceMaterialMap.Add(MaterialName, UniqueFaceMaterialsIdx);
+
+							// Attempt to load this material.
+							UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
+							
+							if(!MaterialInterface)
+							{
+								// Material does not exist, use default material.
+								MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+							}
+
+							StaticMesh->Materials.Add(MaterialInterface);
+							UniqueFaceMaterialsIdx++;
+						}
+
+						for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < FaceMaterials.Num(); ++FaceMaterialIdx)
+						{
+							const FString& MaterialName = FaceMaterials[FaceMaterialIdx];
+							RawMesh.FaceMaterialIndices[FaceMaterialIdx] = UniqueFaceMaterialMap[MaterialName];
+						}
+					}
+					else
+					{
+						// We just use default material.
+						UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+						StaticMesh->Materials.Add(DefaultMaterial);
+					}
+				}
 
 				// Transfer UVs.
 				int32 UVChannelCount = 0;
@@ -1483,8 +1582,17 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 				// Some mesh generation settings.
 				SrcModel->BuildSettings.bRemoveDegenerates = true;
-				SrcModel->BuildSettings.bRecomputeNormals = true;
 				SrcModel->BuildSettings.bRecomputeTangents = true;
+
+				// If we do not have normals, we do need to recompute them.
+				if(Normals.Num())
+				{
+					SrcModel->BuildSettings.bRecomputeNormals = false;
+				}
+				else
+				{
+					SrcModel->BuildSettings.bRecomputeNormals = false;
+				}
 
 				// Store the new raw mesh.
 				SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -1634,7 +1742,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Pa
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = true;
+	SrcModel->BuildSettings.bRecomputeNormals = false;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 
 	// Store the new raw mesh.
@@ -1724,7 +1832,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* In
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = true;
+	SrcModel->BuildSettings.bRecomputeNormals = false;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 
 	// Store the new raw mesh.
@@ -1846,4 +1954,71 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 	}
 
 	return Material;
+}
+
+
+char*
+FHoudiniEngineUtils::ExtractMaterialName(UMaterialInterface* MaterialInterface)
+{
+	UPackage* Package = Cast<UPackage>(MaterialInterface->GetOuter());
+
+	FString FullMaterialName = MaterialInterface->GetPathName();
+	std::string ConvertedString = TCHAR_TO_UTF8(*FullMaterialName);
+
+	// Allocate space for unique string.
+	int32 UniqueNameBytes = ConvertedString.size() + 1;
+	char* UniqueName = static_cast<char*>(FMemory::Malloc(UniqueNameBytes));
+	FMemory::Memzero(UniqueName, UniqueNameBytes);
+	FMemory::Memcpy(UniqueName, ConvertedString.c_str(), ConvertedString.size());
+
+	return UniqueName;
+}
+
+
+void
+FHoudiniEngineUtils::CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials, const TArray<int32>& FaceMaterialIndices,
+												 TArray<char*>& OutStaticMeshFaceMaterials)
+{
+	// We need to create list of unique materials.
+	TArray<char*> UniqueMaterialList;
+
+	if(Materials.Num())
+	{
+		// We have materials.
+		for(int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
+		{
+			UMaterialInterface* MaterialInterface = Materials[MaterialIdx];
+			char* UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+			UniqueMaterialList.Add(UniqueName);
+		}
+	}
+	else
+	{
+		// We do not have any materials, add default.
+		UMaterialInterface* MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+		char* UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+		UniqueMaterialList.Add(UniqueName);
+	}
+
+	for(int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
+	{
+		int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
+		check(FaceMaterialIdx < UniqueMaterialList.Num());
+
+		OutStaticMeshFaceMaterials.Add(UniqueMaterialList[FaceMaterialIdx]);
+	}
+}
+
+
+void
+FHoudiniEngineUtils::DeleteFaceMaterialArray(TArray<char*>& OutStaticMeshFaceMaterials)
+{
+	TSet<char*> UniqueMaterials(OutStaticMeshFaceMaterials);
+	for(TSet<char*>::TIterator Iter = UniqueMaterials.CreateIterator(); Iter; ++Iter)
+	{
+		char* MaterialName = *Iter;
+		FMemory::Free(MaterialName);
+	}
+
+	OutStaticMeshFaceMaterials.Empty();
 }

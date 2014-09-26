@@ -125,6 +125,11 @@ public:
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											TArray<int>& Data, int TupleSize = 0);
 
+	/** HAPI : Get attribute data as string. **/
+	static bool HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+											TArray<FString>& Data, int TupleSize = 0);
+
 	/** HAPI : Get parameter data as float. **/
 	static float HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue);
 
@@ -156,6 +161,16 @@ protected:
 
 	/** Helper routine to check if Raw Mesh contains degenerate triangles. **/
 	static bool ContainsDegenerateTriangles(const FRawMesh& RawMesh);
+
+	/** Helper function to extract a material name from given material interface. **/
+	static char* ExtractMaterialName(UMaterialInterface* MaterialInterface);
+
+	/** Create helper array of material names, we use it for marshalling. **/
+	static void CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials, const TArray<int32>& FaceMaterialIndices,
+											TArray<char*>& OutStaticMeshFaceMaterials);
+
+	/** Delete helper array of material names. **/
+	static void DeleteFaceMaterialArray(TArray<char*>& OutStaticMeshFaceMaterials);
 
 protected:
 

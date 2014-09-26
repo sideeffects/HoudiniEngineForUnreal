@@ -2786,7 +2786,7 @@ UHoudiniAssetComponent::SetChangedParameterValue(const HAPI_AssetInfo& AssetInfo
 		{
 			// Get string at this index.
 			FString* UnrealString = (FString*) ((const char*) this + ValueOffset);
-			std::string String = TCHAR_TO_ANSI(*(*UnrealString));
+			std::string String = TCHAR_TO_UTF8(*(*UnrealString));
 
 			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, Index));
 
@@ -2805,7 +2805,7 @@ UHoudiniAssetComponent::SetChangedParameterValue(const HAPI_AssetInfo& AssetInfo
 		{
 			// This property corresponds to a string choice list.
 			FText EnumText = ByteProperty->Enum->GetEnumText(EnumValue);
-			std::string String = TCHAR_TO_ANSI(*EnumText.ToString());
+			std::string String = TCHAR_TO_UTF8(*EnumText.ToString());
 
 			HOUDINI_CHECK_ERROR(&Result, HAPI_SetParmStringValue(AssetInfo.nodeId, String.c_str(), ParamId, 0));
 		}
