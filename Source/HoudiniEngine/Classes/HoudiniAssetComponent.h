@@ -339,6 +339,9 @@ private:
 	/** Patch class counter, we need this to generate unique ids. **/
 	static uint32 ComponentPatchedClassCounter;
 
+	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
+	static bool bDisplayEngineNotInitialized;
+
 protected:
 
 	/** Map of used static meshes and corresponding HAPI params. **/

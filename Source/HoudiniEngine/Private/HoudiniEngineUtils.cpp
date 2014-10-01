@@ -1164,7 +1164,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					break;
 				}
 
-				// There are no vertices or no points.
+				// There are no vertices and no points.
 				if(PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0)
 				{
 					bGeoError = true;
@@ -1187,12 +1187,29 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, PartName, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
 
 				// We do not create mesh for instancers.
-				if(ObjectInfo.isInstancer && PartInfo.pointCount > 0)
+				if(ObjectInfo.isInstancer)
 				{
-					// Instancer objects have no mesh assigned.
-					StaticMesh = nullptr;
-					StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
-					continue;
+					if(PartInfo.pointCount > 0)
+					{
+						// Instancer objects have no mesh assigned.
+						StaticMesh = nullptr;
+						StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
+						continue;
+					}
+					else
+					{
+						bGeoError = true;
+						break;
+					}
+				}
+				else
+				{
+					if(PartInfo.vertexCount <= 0)
+					{
+						// This is not an instancer, but we do not have vertices, skip.
+						bGeoError = true;
+						break;
+					}
 				}
 
 				// Attempt to locate static mesh from previous instantiation.
@@ -1509,7 +1526,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				}
 
 				// We need to check if this mesh contains only degenerate triangles.
-				if((VertexList.Num() / 3) == FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh))
+				if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
 				{
 					// This mesh contains only degenerate triangles, there's nothing we can do.
 					StaticMesh->MarkPendingKill();

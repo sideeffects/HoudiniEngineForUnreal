@@ -52,7 +52,7 @@ FHoudiniEngine::Get()
 bool
 FHoudiniEngine::IsInitialized()
 {
-	return (FHoudiniEngine::HoudiniEngineInstance != nullptr && HAPI_IsInitialized());
+	return (FHoudiniEngine::HoudiniEngineInstance != nullptr && (HAPI_RESULT_SUCCESS == HAPI_IsInitialized()));
 }
 
 
@@ -144,7 +144,7 @@ FHoudiniEngine::StartupModule()
 	{
 		// Build and running versions do not match.
 		HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
-		HOUDINI_LOG_MESSAGE(TEXT("Build version: %d.%d.%d vs Running version: %d.%d.%d"), HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
+		HOUDINI_LOG_MESSAGE(TEXT("Build version: %d.%d.api:%d vs Running version: %d.%d.api:%d"), HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
 								HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API, RunningEngineMajor, 
 								RunningEngineMinor, RunningEngineApi);
 	}
