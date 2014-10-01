@@ -1164,8 +1164,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					break;
 				}
 
-				// There are no vertices.
-				if(PartInfo.vertexCount <= 0)
+				// There are no vertices or no points.
+				if(PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0)
 				{
 					bGeoError = true;
 					break;
@@ -1179,8 +1179,23 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					bMaterialFound = true;
 				}
 
+				// Retrieve part name.
+				FString PartName;
+				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
+
+				// Create geo part object identifier.
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, PartName, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
+
+				// We do not create mesh for instancers.
+				if(ObjectInfo.isInstancer && PartInfo.pointCount > 0)
+				{
+					// Instancer objects have no mesh assigned.
+					StaticMesh = nullptr;
+					StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
+					continue;
+				}
+
 				// Attempt to locate static mesh from previous instantiation.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
 				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
 
 				// See if geometry has changed for this part.
@@ -1206,6 +1221,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 							check(StaticMesh->Materials.Num() > 0);
 						}
 
+						// We can reuse previously created geometry.
 						StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 						continue;
 					}
