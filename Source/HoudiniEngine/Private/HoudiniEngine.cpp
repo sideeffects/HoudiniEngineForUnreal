@@ -99,17 +99,6 @@ FHoudiniEngine::StartupModule()
 		}
 	}
 
-	// Retrieve Material used by Houdini logo geometry.
-	{
-		// Get class of UMaterial and force CDO to be created, if it hasn't been already.
-		UClass* MaterialClass = UMaterial::StaticClass();
-		MaterialClass->GetDefaultObject();
-
-		// Attempt to load material.
-		static const FString HoudiniLogoMaterialPath(TEXT("/HoudiniEngine/HoudiniLogoMaterial.HoudiniLogoMaterial"));
-		HoudiniLogoMaterial = Cast<UMaterial>(StaticLoadObject(MaterialClass, NULL, *HoudiniLogoMaterialPath));
-	}
-
 	// Create static mesh Houdini logo.
 	HoudiniLogoStaticMesh = FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo();
 	HoudiniLogoStaticMesh->AddToRoot();
