@@ -38,6 +38,10 @@ uint32
 UHoudiniAssetComponent::ComponentPatchedClassCounter = 0u;
 
 
+bool
+UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
+
+
 // Define accessor for UObjectBase::SetClass private method.
 struct FPrivate_UObjectBase_SetClass
 {
@@ -293,6 +297,37 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		bLoadedComponent = false;
 	}
 
+	// Get instance of Houdini Engine.
+	FHoudiniEngine& HoudiniEngine = FHoudiniEngine::Get();
+
+	// If this is first time component is instantiated and we do not have Houdini Engine initialized, display message.
+	if(!bIsPreviewComponent && !HoudiniEngine.IsInitialized() && UHoudiniAssetComponent::bDisplayEngineNotInitialized)
+	{
+		int RunningEngineMajor = 0;
+		int RunningEngineMinor = 0;
+		int RunningEngineApi = 0;
+
+		// Retrieve version numbers for running Houdini Engine.
+		HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+		HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+		HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+
+		FString WarningMessage = FString::Printf(TEXT("Build version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
+												 TEXT("Is your PATH correct? Please update it to match Build version. ")
+												 TEXT("No cooking / instantiation will take place."),
+													HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
+													HAPI_VERSION_HOUDINI_ENGINE_MINOR,
+													HAPI_VERSION_HOUDINI_ENGINE_API,
+													RunningEngineMajor,
+													RunningEngineMinor,
+													RunningEngineApi);
+
+		FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
+		FText WarningTitleText = FText::FromString(WarningTitle);
+		FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
+		UHoudiniAssetComponent::bDisplayEngineNotInitialized = false;
+	}
+
 	if(!bIsPreviewComponent && !bLoadedComponent)
 	{
 		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
@@ -303,7 +338,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
 		Task.Asset = InHoudiniAsset;
 		Task.ActorName = GetOuter()->GetName();
-		FHoudiniEngine::Get().AddTask(Task);
+		HoudiniEngine.AddTask(Task);
 
 		// Start ticking - this will poll the cooking system for completion.
 		StartHoudiniTicking();
