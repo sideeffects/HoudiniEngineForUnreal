@@ -159,6 +159,9 @@ protected:
 	/** Helper routine to check if Raw Mesh contains degenerate triangles. **/
 	static bool ContainsDegenerateTriangles(const FRawMesh& RawMesh);
 
+	/** Helper routine to count number of degenerate triangles. **/
+	static int32 CountDegenerateTriangles(const FRawMesh& RawMesh);
+
 	/** Helper function to extract a material name from given material interface. **/
 	static char* ExtractMaterialName(UMaterialInterface* MaterialInterface);
 

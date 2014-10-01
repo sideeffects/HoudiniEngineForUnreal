@@ -1271,6 +1271,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				FRawMesh RawMesh;
 				SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
 
+				// Some mesh generation settings.
+				SrcModel->BuildSettings.bRemoveDegenerates = true;
+				SrcModel->BuildSettings.bRecomputeTangents = true;
+				SrcModel->BuildSettings.bRecomputeNormals = true;
+
 				// Retrieve vertex information for this part.
 				VertexList.SetNumUninitialized(PartInfo.vertexCount);
 				if(HAPI_RESULT_SUCCESS != HAPI_GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &VertexList[0], 0, PartInfo.vertexCount))
@@ -1503,9 +1508,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
 				}
 
-				// We need to check if mesh contains degenerate triangles.
-				if(FHoudiniEngineUtils::ContainsDegenerateTriangles(RawMesh))
+				// We need to check if this mesh contains only degenerate triangles.
+				if((VertexList.Num() / 3) == FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh))
 				{
+					// This mesh contains only degenerate triangles, there's nothing we can do.
 					StaticMesh->MarkPendingKill();
 					continue;
 				}
@@ -1552,23 +1558,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
 				}
 
-				// Some mesh generation settings.
-				SrcModel->BuildSettings.bRemoveDegenerates = true;
-				SrcModel->BuildSettings.bRecomputeTangents = true;
-				SrcModel->BuildSettings.bRecomputeNormals = true;
-
-				// If we do not have normals, we do need to recompute them.
-				/*
-				if(Normals.Num())
-				{
-					SrcModel->BuildSettings.bRecomputeNormals = false;
-				}
-				else
-				{
-					SrcModel->BuildSettings.bRecomputeNormals = true;
-				}
-				*/
-
 				// Store the new raw mesh.
 				SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
 
@@ -1612,6 +1601,27 @@ FHoudiniEngineUtils::ContainsDegenerateTriangles(const FRawMesh& RawMesh)
 	}
 
 	return false;
+}
+
+
+int32
+FHoudiniEngineUtils::CountDegenerateTriangles(const FRawMesh& RawMesh)
+{
+	int DegenerateTriangleCount = 0;
+	int32 WedgeCount = RawMesh.WedgeIndices.Num();
+	for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; WedgeIdx += 3)
+	{
+		const FVector& Vertex0 = RawMesh.VertexPositions[RawMesh.WedgeIndices[WedgeIdx + 0]];
+		const FVector& Vertex1 = RawMesh.VertexPositions[RawMesh.WedgeIndices[WedgeIdx + 1]];
+		const FVector& Vertex2 = RawMesh.VertexPositions[RawMesh.WedgeIndices[WedgeIdx + 2]];
+
+		if(Vertex0 == Vertex1 || Vertex0 == Vertex2 || Vertex1 == Vertex2)
+		{
+			DegenerateTriangleCount++;
+		}
+	}
+
+	return DegenerateTriangleCount;
 }
 
 
