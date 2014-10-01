@@ -345,35 +345,43 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
 		UStaticMesh* StaticMesh = Iter.Value();
 
-		// See if we need to create component for this mesh.
-		if(HoudiniGeoPartObject.IsVisible())
+		if(StaticMesh)
 		{
-			UStaticMeshComponent* StaticMeshComponent = nullptr;
-			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
-
-			if(FoundStaticMeshComponent)
+			// See if we need to create component for this mesh.
+			if(HoudiniGeoPartObject.IsVisible())
 			{
-				StaticMeshComponent = *FoundStaticMeshComponent;
+				UStaticMeshComponent* StaticMeshComponent = nullptr;
+				UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+
+				if(FoundStaticMeshComponent)
+				{
+					StaticMeshComponent = *FoundStaticMeshComponent;
+				}
+				else
+				{
+					// Create necessary component.
+					StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+
+					// Add to map of components.
+					StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
+
+					StaticMeshComponent->AttachTo(this);
+					StaticMeshComponent->RegisterComponent();
+					StaticMeshComponent->SetStaticMesh(StaticMesh);
+					StaticMeshComponent->SetVisibility(true);
+				}
+
+				// Transform the component by transformation provided by HAPI.
+				StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 			}
-			else
-			{
-				// Create necessary component.
-				StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
 
-				// Add to map of components.
-				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
-
-				StaticMeshComponent->AttachTo(this);
-				StaticMeshComponent->RegisterComponent();
-				StaticMeshComponent->SetStaticMesh(StaticMesh);
-				StaticMeshComponent->SetVisibility(true);
-			}
-
-			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+			// Add static mesh to preview list.
+			PreviewStaticMeshes.Add(StaticMesh);
 		}
-
-		// Add static mesh to preview list.
-		PreviewStaticMeshes.Add(StaticMesh);
+		else if(HoudiniGeoPartObject.IsInstancer())
+		{
+			// This geo part is an instancer.
+		}
 	}
 
 	// Skip self assignment.
@@ -394,27 +402,30 @@ UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, U
 		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
 		UStaticMesh* StaticMesh = Iter.Value();
 
-		// Locate corresponding component.
-		UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
-		if(FoundStaticMeshComponent)
+		if(StaticMesh)
 		{
-			// Remove component from map of static mesh components.
-			StaticMeshComponents.Remove(StaticMesh);
+			// Locate corresponding component.
+			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+			if(FoundStaticMeshComponent)
+			{
+				// Remove component from map of static mesh components.
+				StaticMeshComponents.Remove(StaticMesh);
 
-			// Detach and destroy the component.
-			UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
-			StaticMeshComponent->DetachFromParent();
-			StaticMeshComponent->UnregisterComponent();
-			StaticMeshComponent->DestroyComponent();
-		}
+				// Detach and destroy the component.
+				UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
+				StaticMeshComponent->DetachFromParent();
+				StaticMeshComponent->UnregisterComponent();
+				StaticMeshComponent->DestroyComponent();
+			}
 
-		// Make sure we don't delete the logo static mesh.
-		/*
-		if(HoudiniLogoStaticMesh != StaticMesh)
-		{
-			StaticMesh->MarkPendingKill();
+			// Make sure we don't delete the logo static mesh.
+			/*
+			if(HoudiniLogoStaticMesh != StaticMesh)
+			{
+				StaticMesh->MarkPendingKill();
+			}
+			*/
 		}
-		*/
 	}
 
 	StaticMeshMap.Empty();
