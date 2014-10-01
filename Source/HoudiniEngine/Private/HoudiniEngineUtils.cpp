@@ -1947,7 +1947,19 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(const TArray<UMaterialInterface*>& 
 		for(int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
 		{
 			UMaterialInterface* MaterialInterface = Materials[MaterialIdx];
-			char* UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+			char* UniqueName = nullptr;
+
+			if(MaterialInterface)
+			{
+				UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+			}
+			else
+			{
+				// Null material interface found, add default instead.
+				MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+				UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+			}
+
 			UniqueMaterialList.Add(UniqueName);
 		}
 	}
