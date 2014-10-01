@@ -52,6 +52,7 @@
 #include <vector>
 #include <string>
 #include "HAPI.h"
+#include "HAPI_Version.h"
 
 /** Other definitions. **/
 #define HOUDINI_ENGINE_LOGGING 1
@@ -149,6 +150,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_PACKED_TANGENT2				"unreal_packed_tangent2"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
+#define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
 
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"

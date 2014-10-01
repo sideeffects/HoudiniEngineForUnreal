@@ -52,7 +52,7 @@ FHoudiniEngine::Get()
 bool
 FHoudiniEngine::IsInitialized()
 {
-	return FHoudiniEngine::HoudiniEngineInstance != nullptr;
+	return (FHoudiniEngine::HoudiniEngineInstance != nullptr && HAPI_IsInitialized());
 }
 
 
@@ -111,19 +111,42 @@ FHoudiniEngine::StartupModule()
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MainMenuExtender);
 	}
 
-	// Perform HAPI initialization.
-	HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
-	CookOptions.maxVerticesPerPrimitive = 3;
-	CookOptions.splitGeosByGroup = false;
-	HAPI_Result Result = HAPI_Initialize("", "", &CookOptions, true, -1);
+	int RunningEngineMajor = 0;
+	int RunningEngineMinor = 0;
+	int RunningEngineApi = 0;
 
-	if(HAPI_RESULT_SUCCESS == Result)
+	// Retrieve version numbers for running Houdini Engine.
+	HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+	HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+	HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+
+	// Compare build and running versions.
+	if((HAPI_VERSION_HOUDINI_ENGINE_MAJOR == RunningEngineMajor && 
+		HAPI_VERSION_HOUDINI_ENGINE_MINOR == RunningEngineMinor &&
+		HAPI_VERSION_HOUDINI_ENGINE_API == RunningEngineApi))
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine API module."));
+		// Build and running versions match, we can perform HAPI initialization.
+		HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
+		CookOptions.maxVerticesPerPrimitive = 3;
+		CookOptions.splitGeosByGroup = false;
+		HAPI_Result Result = HAPI_Initialize("", "", &CookOptions, true, -1);
+
+		if(HAPI_RESULT_SUCCESS == Result)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine API module."));
+		}
+		else
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
+		}
 	}
 	else
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
+		// Build and running versions do not match.
+		HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
+		HOUDINI_LOG_MESSAGE(TEXT("Build version: %d.%d.%d vs Running version: %d.%d.%d"), HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
+								HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API, RunningEngineMajor, 
+								RunningEngineMinor, RunningEngineApi);
 	}
 
 	// Create HAPI scheduler and processing thread.
@@ -173,7 +196,10 @@ FHoudiniEngine::ShutdownModule()
 	HoudiniLogoStaticMesh->RemoveFromRoot();
 
 	// Perform HAPI finalization.
-	HAPI_Cleanup();
+	if(HAPI_IsInitialized())
+	{
+		HAPI_Cleanup();
+	}
 
 	// Do scheduler and thread clean up.
 	if(HoudiniEngineScheduler)
@@ -269,7 +295,7 @@ FHoudiniEngine::AddTask(const FHoudiniEngineTask& Task)
 }
 
 
-void 
+void
 FHoudiniEngine::AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo)
 {
 	FScopeLock ScopeLock(&CriticalSection);
@@ -277,7 +303,7 @@ FHoudiniEngine::AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& 
 }
 
 
-void 
+void
 FHoudiniEngine::RemoveTaskInfo(const FGuid HapIGUID)
 {
 	FScopeLock ScopeLock(&CriticalSection);
@@ -285,7 +311,7 @@ FHoudiniEngine::RemoveTaskInfo(const FGuid HapIGUID)
 }
 
 
-bool 
+bool
 FHoudiniEngine::RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo)
 {
 	FScopeLock ScopeLock(&CriticalSection);

@@ -61,9 +61,6 @@ public:
 
 	/** Construct static meshes for a given Houdini asset. Flag controls whether one mesh or multiple meshes will be created. **/
 	static bool CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
-												   TArray<UStaticMesh*>& StaticMeshes, bool bSplit = false);
-
-	static bool CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
 												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut);
 
