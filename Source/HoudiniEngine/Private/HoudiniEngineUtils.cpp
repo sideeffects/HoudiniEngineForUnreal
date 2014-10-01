@@ -1007,9 +1007,9 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	// Make sure static mesh has a new lighting guid.
 	StaticMesh->LightingGuid = FGuid::NewGuid();
 
-	// Set it to use textured lightmaps. We use coordinate 1 for UVs.
+	// Set it to use textured lightmaps.
 	StaticMesh->LightMapResolution = 32;
-	StaticMesh->LightMapCoordinateIndex = 1;
+	StaticMesh->LightMapCoordinateIndex = 0;
 
 	// Calculate number of triangles.
 	int32 TriangleCount = WedgeCount / 3;
@@ -1059,7 +1059,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 
 	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
 	StaticMesh->LODGroup = NAME_None;
-	StaticMesh->Build(false);
+	StaticMesh->Build(true);
 
 	return StaticMesh;
 }
@@ -1643,7 +1643,7 @@ FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar)
 		RawMeshBulkData->LoadRawMesh(RawMesh);
 
 		// Store raw data bytes.
-		FHoudiniEngineUtils::Serialize(RawMesh, Ar);
+		FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Ar);
 	}
 }
 
@@ -1686,7 +1686,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Pa
 
 	// Load raw data bytes.
 	FRawMesh RawMesh;
-	FHoudiniEngineUtils::Serialize(RawMesh, Ar);
+	FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Ar);
 
 	// Make sure static mesh has a new lighting guid.
 	StaticMesh->LightingGuid = FGuid::NewGuid();
@@ -1723,9 +1723,8 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Pa
 
 
 void
-FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, FArchive& Ar)
+FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, FArchive& Ar)
 {
-	// Serialize material index.
 	Ar << RawMesh.FaceMaterialIndices;
 	Ar << RawMesh.FaceSmoothingMasks;
 	Ar << RawMesh.VertexPositions;
@@ -1741,6 +1740,50 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, FArchive& Ar)
 
 	Ar << RawMesh.WedgeColors;
 	Ar << RawMesh.MaterialIndexToImportIndex;
+
+	// We also need to store / restore materials.
+	if(Ar.IsLoading())
+	{
+		Materials.Empty();
+	}
+
+	int32 MaterialCount = Materials.Num();
+	Ar << MaterialCount;
+
+	for(int32 MaterialIdx = 0; MaterialIdx < MaterialCount; ++MaterialIdx)
+	{
+		UMaterialInterface* MaterialInterface = nullptr;
+		FString MaterialPathName;
+
+		if(Ar.IsSaving())
+		{
+			MaterialInterface = Materials[MaterialIdx];
+
+			// If interface is null, use default material.
+			if(!MaterialInterface)
+			{
+				MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+			}
+
+			MaterialPathName = MaterialInterface->GetPathName();
+		}
+
+		Ar << MaterialPathName;
+
+		if(Ar.IsLoading())
+		{
+			// Attempt to load this material.
+			MaterialInterface = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialPathName, nullptr, LOAD_NoWarn, nullptr));
+							
+			if(!MaterialInterface)
+			{
+				// Material does not exist, use default material.
+				MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+			}
+
+			Materials.Add(MaterialInterface);
+		}
+	}
 }
 
 

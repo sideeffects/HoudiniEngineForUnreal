@@ -154,7 +154,7 @@ protected:
 	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
 
 	/** Helper routine to serialize FRawMesh. **/
-	static void Serialize(FRawMesh& RawMesh, FArchive& Ar);
+	static void Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, FArchive& Ar);
 
 	/** Helper function to extract colors and store them in a given RawMesh. **/
 	static void TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
