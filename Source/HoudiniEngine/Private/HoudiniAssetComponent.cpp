@@ -307,42 +307,51 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
 		UStaticMesh* StaticMesh = Iter.Value();
 
-		if(StaticMesh)
+		if(HoudiniGeoPartObject.IsInstancer())
 		{
-			// See if we need to create component for this mesh.
-			if(HoudiniGeoPartObject.IsVisible())
+			// This geo part is an instancer and is always invisible and has no static mesh assigned.
+			check(!StaticMesh);
+			check(!HoudiniGeoPartObject.IsVisible());
+
+			// 
+
+			// Locate properties for this geo part.
+			//TArray<UObjectProperty*> InstancedStaticMeshInputProperties;
+			//InstancedStaticMeshInputs.MultiFind(HoudiniGeoPartObject, InstancedStaticMeshInputProperties);
+
+
+		}
+		else if(HoudiniGeoPartObject.IsVisible())
+		{
+			// This geo part is visible and not an instancer and must have static mesh assigned.
+			check(StaticMesh);
+			
+			UStaticMeshComponent* StaticMeshComponent = nullptr;
+			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+
+			if(FoundStaticMeshComponent)
 			{
-				UStaticMeshComponent* StaticMeshComponent = nullptr;
-				UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+				StaticMeshComponent = *FoundStaticMeshComponent;
+			}
+			else
+			{
+				// Create necessary component.
+				StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
 
-				if(FoundStaticMeshComponent)
-				{
-					StaticMeshComponent = *FoundStaticMeshComponent;
-				}
-				else
-				{
-					// Create necessary component.
-					StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+				// Add to map of components.
+				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
 
-					// Add to map of components.
-					StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
-
-					StaticMeshComponent->AttachTo(this);
-					StaticMeshComponent->RegisterComponent();
-					StaticMeshComponent->SetStaticMesh(StaticMesh);
-					StaticMeshComponent->SetVisibility(true);
-				}
-
-				// Transform the component by transformation provided by HAPI.
-				StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+				StaticMeshComponent->AttachTo(this);
+				StaticMeshComponent->RegisterComponent();
+				StaticMeshComponent->SetStaticMesh(StaticMesh);
+				StaticMeshComponent->SetVisibility(true);
 			}
 
+			// Transform the component by transformation provided by HAPI.
+			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+				
 			// Add static mesh to preview list.
 			PreviewStaticMeshes.Add(StaticMesh);
-		}
-		else if(HoudiniGeoPartObject.IsInstancer())
-		{
-			// This geo part is an instancer.
 		}
 	}
 

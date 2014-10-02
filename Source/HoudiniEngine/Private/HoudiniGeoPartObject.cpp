@@ -30,7 +30,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	GeoId(-1),
 	PartId(-1),
 	bIsVisible(true),
-	bIsInstancer(false)
+	bIsInstancer(false),
+	bIsLoaded(false)
 {
 
 }
@@ -44,7 +45,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const F
 	GeoId(InGeoId),
 	PartId(InPartId),
 	bIsVisible(bInIsVisible),
-	bIsInstancer(bInIsInstancer)
+	bIsInstancer(bInIsInstancer),
+	bIsLoaded(false)
 {
 
 }
@@ -67,7 +69,7 @@ FHoudiniGeoPartObject::IsInstancer() const
 bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
-	return (ObjectId == GeoPartObject.ObjectId && GeoId == GeoPartObject.GeoId && PartId == GeoPartObject.PartId);
+	return (ObjectId == GeoPartObject.ObjectId && GeoId == GeoPartObject.GeoId && PartId == GeoPartObject.PartId && GeoPartObject.bIsLoaded == bIsLoaded);
 }
 
 
@@ -84,11 +86,18 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 {
 	Ar << TransformMatrix;
 	Ar << PartName;
+
 	Ar << ObjectId;
 	Ar << GeoId;
 	Ar << PartId;
+
 	Ar << bIsVisible;
 	Ar << bIsInstancer;
+
+	if(Ar.IsLoading())
+	{
+		bIsLoaded = true;
+	}
 }
 
 
