@@ -16,7 +16,7 @@
 
 /*
 
-	Houdini Version: 14.0.110
+	Houdini Version: 14.0.111
 	Houdini Engine Version: 1.9.4
 	Unreal Version: 4.4.1
 
@@ -30,13 +30,13 @@ namespace UnrealBuildTool.Rules
 		{
 			Definitions.Add("HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE=65536");
 
-			PublicLibraryPaths.Add("C:/Program Files/Side Effects Software/Houdini 14.0.110/custom/houdini/dsolib");
-			PublicAdditionalLibraries.Add("C:/Program Files/Side Effects Software/Houdini 14.0.110/custom/houdini/dsolib/libHAPI.a");
+			PublicLibraryPaths.Add("C:/Program Files/Side Effects Software/Houdini 14.0.111/custom/houdini/dsolib");
+			PublicAdditionalLibraries.Add("C:/Program Files/Side Effects Software/Houdini 14.0.111/custom/houdini/dsolib/libHAPI.a");
 
 			PublicIncludePaths.AddRange(
 				new string[] {
 					// ... add public include paths required here ...
-					"C:/Program Files/Side Effects Software/Houdini 14.0.110/toolkit/include/HAPI"
+					"C:/Program Files/Side Effects Software/Houdini 14.0.111/toolkit/include/HAPI"
 				}
 				);
 
