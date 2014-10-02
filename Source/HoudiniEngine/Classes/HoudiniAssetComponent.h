@@ -86,10 +86,6 @@ public:
 	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
 	TArray<UStaticMesh*> PreviewStaticMeshes;
 
-	/** List of generated Houdini textures used by this component. Changes between the cooks. **/
-	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniTextures)
-	TArray<UTexture2D*> HoudiniTextures;
-
 public:
 
 	/** Change the Houdini Asset used by this component. **/
