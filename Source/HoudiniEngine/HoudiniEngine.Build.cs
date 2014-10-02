@@ -67,7 +67,8 @@ namespace UnrealBuildTool.Rules
 					"RawMesh",
 					"TargetPlatform",
 					"LevelEditor",
-					"MainFrame"
+					"MainFrame",
+					"Launch"
 				}
 				);
 
