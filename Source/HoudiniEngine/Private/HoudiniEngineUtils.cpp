@@ -1184,7 +1184,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
 
 				// Create geo part object identifier.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, PartName, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
