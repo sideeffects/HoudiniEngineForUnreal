@@ -61,7 +61,8 @@ class UMaterial;
 class FTransform;
 class UStaticMesh;
 class UHoudiniAsset;
-class FPrimitiveSceneProxy;
+class UObjectProperty;
+class UInstancedStaticMeshComponent;
 
 struct FPropertyChangedEvent;
 
@@ -311,6 +312,12 @@ protected:
 
 	/** Map of components used by static meshes. **/
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
+
+	/** Multi map of HAPI objects and corresponding properties that are used as inputs of instancing. **/
+	TMultiMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
+
+	/** Map of instance inputs and corresponding instance static mesh components. **/
+	TMap<UObjectProperty*, UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
 
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;

@@ -71,6 +71,9 @@ public:
 
 	/** Is set to true when referenced object is an instancer. **/
 	bool bIsInstancer;
+
+	/** Is set to true when referenced object has just been loaded. **/
+	bool bIsLoaded;
 };
 
 
