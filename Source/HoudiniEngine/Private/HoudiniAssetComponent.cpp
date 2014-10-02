@@ -17,17 +17,7 @@
 #include <stdint.h>
 
 
-#define HOUDINI_TEST_LOG_MESSAGE( NameWithSpaces ) \
-	do \
-	{ \
-		HOUDINI_LOG_MESSAGE( \
-			TEXT( NameWithSpaces ) TEXT( "omponent = 0x%x, Class = 0x%x, PatchedName = %s, Asset = 0x%x, Id = %d, HapiGUID = %s || D = %d, N = %d, B = %d, R = %d, C = %d, T = %d" ), \
-			this, GetClass(), \
-			*GetClass()->GetName(), \
-			HoudiniAsset, AssetId, *HapiGUID.ToString(), \
-			bIsDefaultClass, bIsNativeComponent, bIsBlueprintGeneratedClass, bIsBlueprintReinstanceClass, \
-			bIsBlueprintConstructionScriptClass, bIsBlueprintThumbnailSceneClass ); \
-	} while(false)
+#define HOUDINI_TEST_LOG_MESSAGE( NameWithSpaces )
 
 
 UScriptStruct*
@@ -63,87 +53,24 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	Super(PCIP),
 	HoudiniAsset(nullptr),
 	ChangedHoudiniAsset(nullptr),
-	OriginalBlueprintComponent(nullptr),
 	PatchedClass(nullptr),
-	Blueprint(nullptr),
 	AssetId(-1),
 	InputCount(0),
 	HapiNotificationStarted(0.0),
 	bContainsHoudiniLogoGeometry(false),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false),
-	bAsyncResourceReleaseHasBeenStarted(false),
-	bPreSaveTriggered(false),
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
 	bInstantiated(false),
-	bIsRealDestroy(true),
-	bIsPlayModeActive(false),
-	bIsDefaultClass(false),
-	bIsBlueprintGeneratedClass(false),
-	bIsBlueprintReinstanceClass(false),
-	bIsBlueprintConstructionScriptClass(false),
-	bIsBlueprintThumbnailSceneClass(false)
+	bIsPlayModeActive(false)
 {
-	UObject* Archetype = PCIP.GetArchetype();
-	UObject* Obj = PCIP.GetObject();
-	UObject* Outer = Obj->GetOuter();
+	UObject* Object = PCIP.GetObject();
+	UObject* ObjectOuter = Object->GetOuter();
 
-	if(Outer)
+	if(ObjectOuter->IsA(AHoudiniAssetActor::StaticClass()))
 	{
-		if(Outer->GetName().StartsWith(TEXT("/Script")))
-		{
-			bIsDefaultClass = true;
-		}
-		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetName().StartsWith(TEXT("REINST_")))
-		{
-			bIsBlueprintReinstanceClass = true;
-		}
-		else if(Outer->IsA(UBlueprintGeneratedClass::StaticClass()) && Outer->GetOuter() && Outer->GetOuter()->IsA(UPackage::StaticClass()))
-		{
-			bIsBlueprintGeneratedClass = true;
-
-			UObject* OuterClassGeneratedBy = static_cast<UClass*>(Outer)->ClassGeneratedBy;
-			Blueprint = Cast<UBlueprint>(OuterClassGeneratedBy);
-			if (Blueprint)
-			{
-				Blueprint->OnChanged().AddUObject(this, &UHoudiniAssetComponent::OnBluprintChanged);
-
-				GEditor->OnHotReload().AddUObject(this, &UHoudiniAssetComponent::OnHotLoad);
-				GEditor->OnBlueprintCompiled().AddUObject(this, &UHoudiniAssetComponent::OnBlueprintCompiled);
-
-				FModuleManager::Get().OnModulesChanged().AddUObject(this, &UHoudiniAssetComponent::OnModulesChanged);
-
-				HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Blueprint->GetName()) );
-			}
-
-			// Set post-package saved callback.
-			UPackage::PackageSavedEvent.AddUObject(this, &UHoudiniAssetComponent::OnPackageSaved);
-
-			// We also set default geometry for Blueprint component.
-			//SetHoudiniLogoGeometry();
-		}
-		else if(Outer->IsA(AActor::StaticClass()) && Outer->GetClass()->GetClass() == UBlueprintGeneratedClass::StaticClass())
-		{
-			bIsBlueprintConstructionScriptClass = true;
-		}
-		else if(Outer->IsA(AHoudiniAssetActor::StaticClass()))
-		{
-			bIsNativeComponent = true;
-			if(Outer->GetOuter()->GetName().StartsWith(TEXT("/Script")))
-			{
-				bIsDefaultClass = true;
-			}
-		}
-		else if(Outer->IsA(UPackage::StaticClass())
-			&& Outer->GetName().StartsWith(TEXT("/Engine/Transient")))
-		{
-			bIsBlueprintThumbnailSceneClass = true;
-		}
-		else
-		{
-			//check(false);
-		}
+		bIsNativeComponent = true;
 	}
 
 	// Set component properties.
@@ -452,14 +379,6 @@ UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, U
 				StaticMeshComponent->UnregisterComponent();
 				StaticMeshComponent->DestroyComponent();
 			}
-
-			// Make sure we don't delete the logo static mesh.
-			/*
-			if(HoudiniLogoStaticMesh != StaticMesh)
-			{
-				StaticMesh->MarkPendingKill();
-			}
-			*/
 		}
 	}
 
@@ -530,89 +449,6 @@ UHoudiniAssetComponent::StopHoudiniAssetChange()
 		GEditor->GetTimerManager()->ClearTimer(TimerDelegateAssetChange);
 		TimerDelegateAssetChange.Unbind();
 	}
-}
-
-
-void
-UHoudiniAssetComponent::StartDuplicatedFromBlueprintUpdate()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  StartDuplicatedFromBlueprintUpdate, C" );
-
-	// If we have no timer delegate spawned for this component, spawn one.
-	if(!TimerDelegateDuplicatedFromBlueprintUpdate.IsBound())
-	{
-		TimerDelegateDuplicatedFromBlueprintUpdate = FTimerDelegate::CreateUObject(this, &UHoudiniAssetComponent::TickDuplicatedFromBlueprintUpdate);
-
-		// We need to register delegate with the timer system.
-		static const float TickTimerDelay = 0.025f;
-		GEditor->GetTimerManager()->SetTimer(TimerDelegateDuplicatedFromBlueprintUpdate, TickTimerDelay, true);
-	}
-}
-
-
-void
-UHoudiniAssetComponent::StopDuplicatedFromBlueprintUpdate()
-{
-	HOUDINI_TEST_LOG_MESSAGE( "  StopDuplicatedFromBlueprintUpdate,  C" );
-
-	if(TimerDelegateDuplicatedFromBlueprintUpdate.IsBound())
-	{
-		GEditor->GetTimerManager()->ClearTimer(TimerDelegateDuplicatedFromBlueprintUpdate);
-		TimerDelegateDuplicatedFromBlueprintUpdate.Unbind();
-	}
-}
-
-
-void
-UHoudiniAssetComponent::TickDuplicatedFromBlueprintUpdate()
-{
-	// This delegate will be called inside construction script, reinstanced and thumbnail components. These types of
-	// components are cloned / duplicated from Blueprint component. We do all cooking and resource allocation inside
-	// Blueprint component, so duplicated ones need to check for those resources and use them. Original Blueprint
-	// component does all the resource managing.
-	
-	if(!OriginalBlueprintComponent)
-	{
-		// We have pointer to original Blueprint component.
-		check(false);
-		StopDuplicatedFromBlueprintUpdate();
-		return;
-	}
-
-	if(OriginalBlueprintComponent->TimerDelegateCooking.IsBound())
-	{
-		// Original Blueprint component is still in the process of cooking / instantiating.
-		return;
-	}
-
-	// Otherwise we can update.
-	/*
-	if(OriginalBlueprintComponent->bContainsHoudiniLogoGeometry || !OriginalBlueprintComponent->ContainsGeos())
-	{
-		// Blueprint component contains no geometry or contains logo geometry.
-		SetHoudiniLogoGeometry();
-	}
-	else
-	{
-		// Otherwise, we copy geometry.
-		for(int GeoIdx = 0; GeoIdx < OriginalBlueprintComponent->HoudiniAssetObjectGeos.Num(); ++GeoIdx)
-		{
-			// Get geo at this index inside Blueprint component.
-			FHoudiniAssetObjectGeo* Geo = OriginalBlueprintComponent->HoudiniAssetObjectGeos[GeoIdx];
-			Geo->ComponentReferenceCount++;
-			HoudiniAssetObjectGeos.Add(Geo);
-		}
-	}
-	*/
-
-	// Replace class object with Blueprint's class.
-	ReplaceClassObject(OriginalBlueprintComponent->GetClass());
-
-	// We need to force redraw for this component.
-	MarkRenderStateDirty();
-
-	// We can stop ticking, update has occurred.
-	StopDuplicatedFromBlueprintUpdate();
 }
 
 
@@ -1215,10 +1051,6 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
 	// Add begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
-
-	FEditorDelegates::ChangeEditorMode.AddUObject(this, &UHoudiniAssetComponent::OnModeChange);
-	FEditorDelegates::OnFinishPickingBlueprintClass.AddUObject(this, &UHoudiniAssetComponent::OnFinishPickingBlueprintClass);
-	FEditorDelegates::OnBlueprintContextMenuCreated.AddUObject(this, &UHoudiniAssetComponent::OnBlueprintContextMenuCreated);
 }
 
 
@@ -1232,56 +1064,6 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 	// Remove begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
-
-	FEditorDelegates::ChangeEditorMode.RemoveUObject(this, &UHoudiniAssetComponent::OnModeChange);
-	FEditorDelegates::OnFinishPickingBlueprintClass.RemoveUObject(this, &UHoudiniAssetComponent::OnFinishPickingBlueprintClass);
-	FEditorDelegates::OnBlueprintContextMenuCreated.RemoveUObject(this, &UHoudiniAssetComponent::OnBlueprintContextMenuCreated);
-}
-
-
-void
-UHoudiniAssetComponent::OnModeChange(FEditorModeID NewMode)
-{
-}
-
-
-void
-UHoudiniAssetComponent::OnFinishPickingBlueprintClass(UClass* Class)
-{
-}
-
-
-void
-UHoudiniAssetComponent::OnBlueprintContextMenuCreated(FBlueprintGraphActionListBuilder& /*ContextMenuBuilder*/)
-{
-}
-
-
-void
-UHoudiniAssetComponent::OnBluprintChanged(UBlueprint* Blueprint)
-{
-	//HOUDINI_LOG_MESSAGE( TEXT("%s"), *(Blueprint->GetName()) );
-}
-
-
-void
-UHoudiniAssetComponent::OnHotLoad()
-{
-
-}
-
-
-void
-UHoudiniAssetComponent::OnBlueprintCompiled()
-{
-
-}
-
-
-void
-UHoudiniAssetComponent::OnModulesChanged(FName Name, EModuleChangeReason Reason)
-{
-
 }
 
 
@@ -1362,19 +1144,6 @@ void
 UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool bReplace)
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  ReplaceClassInformation,            C" );
-
-	// We don't need to patch the construction script generated component because it is
-	// being duplicated from the Blueprint Generated component.
-	if(bIsBlueprintConstructionScriptClass && bIsBlueprintReinstanceClass)
-	{
-		return;
-	}
-
-	// We don't need to patch the thumbnail component because it does not care about properties.
-	if(bIsBlueprintThumbnailSceneClass)
-	{
-		return;
-	}
 
 	UClass* NewClass = nullptr;
 	UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
@@ -1475,39 +1244,6 @@ UHoudiniAssetComponent::ReplaceClassObject(UClass* ClassObjectNew)
 
 	// Invoke private UObjectBase::SetClass .
 	HOUDINI_PRIVATE_CALL_PARM1(FPrivate_UObjectBase_SetClass, UObjectBase, ClassObjectNew);
-
-	// This is an attempt to patch the Blueprint component property with our patched
-	// class so that we get the patched properties in the pin menu inside blueprints.
-	// Not quite working yet.
-	/*
-	if(ClassObjectNew != PatchedClass)
-	{
-		return;
-	}
-
-	UObject* OuterClass = static_cast<UClass*>(GetOuter());
-	if(!OuterClass)
-	{
-		return;
-	}
-
-	UBlueprintGeneratedClass* BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>(OuterClass);
-	if(!BlueprintGeneratedClass)
-	{
-		return;
-	}
-
-	UField* Field = BlueprintGeneratedClass->Children;
-	while(Field)
-	{
-		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Field);
-		if(ObjectProperty && ObjectProperty->PropertyClass == UHoudiniAssetComponent::StaticClass())
-		{
-			ObjectProperty->PropertyClass = PatchedClass;
-		}
-		Field = Field->Next;
-	}
-	*/
 }
 
 
@@ -1516,21 +1252,14 @@ UHoudiniAssetComponent::RestoreOriginalClassInformation()
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  RestoreOriginalClassInformation,    C" );
 
-	// Blueprint construction script is special because it is duplicated from the blueprint component and therefore
-	// comes prepatched. However it does not have a patched class of its own. Note that we are not restored the patched
-	// class at the moment in RestorePatchedClassInformation and this causes certain update problems during first update
-	// cycle.
-	if(!PatchedClass && !bIsBlueprintConstructionScriptClass && !bIsBlueprintReinstanceClass)
+	if(!PatchedClass)
 	{
 		// If class information has not been patched, do nothing.
 		return;
 	}
 
 	// We need to add our patched class to root in order to avoid its clean up by GC.
-	if(!bIsBlueprintConstructionScriptClass && !bIsBlueprintReinstanceClass)
-	{
-		PatchedClass->AddToRoot();
-	}
+	PatchedClass->AddToRoot();
 
 	// We need to restore original class information.
 	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
@@ -3125,7 +2854,6 @@ UHoudiniAssetComponent::PreSave()
 	HOUDINI_TEST_LOG_MESSAGE( "  PreSave,                            C" );
 
 	Super::PreSave();
-	bPreSaveTriggered = true;
 
 	// We need to restore original class information.
 	RestoreOriginalClassInformation();
@@ -3138,26 +2866,6 @@ UHoudiniAssetComponent::PostLoad()
 	HOUDINI_TEST_LOG_MESSAGE( "  PostLoad,                           C" );
 
 	Super::PostLoad();
-
-	// Since these types of components don't patch their class there's nothing to
-	// be done post load except re-create the rendering resources.
-	if(bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass || bIsBlueprintReinstanceClass)
-	{
-		if(HoudiniAsset)
-		{
-			// Create all rendering resources.
-			//CreateRenderingResources();
-
-			// Need to update rendering information.
-			UpdateRenderingInformation();
-		}
-
-		// We need to start delegate in these components in order to check the status of original Blueprint component
-		// from which we were cloned.
-		StartDuplicatedFromBlueprintUpdate();
-
-		return;
-	}
 
 	// We loaded a component which has no asset associated with it.
 	if(!HoudiniAsset)
@@ -3295,16 +3003,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - Before),        C" );
 	}
 
-	// StaticConstructObject will first duplicate the Blueprint Generated component and to make
-	// the Reinstance component and then use the scoped FPostConstructInitializeProperties to
-	// re-initialize the property values. This is NOT what we want because they are initialized
-	// wrong and the serialization load process fails when trying to load strings properties.
-	// String properties are constructed in-place in the scratch space.
-	if(Ar.IsLoading() && bIsBlueprintReinstanceClass)
-	{
-		FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
-	}
-
 	Super::Serialize(Ar);
 
 	if(Ar.IsTransacting())
@@ -3318,15 +3016,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	{
 		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
-	}
-
-	if(Ar.IsSaving())
-	{
-		if(bPreSaveTriggered)
-		{
-			// Save is triggered multiple times, but there's only one presave. Can add one time save logic here.
-			bPreSaveTriggered = false;
-		}
 	}
 
 	// State of this component.
@@ -3366,27 +3055,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize component state.
 	Ar << ComponentState;
-
-	// We need to save Blueprint component's this pointer into byte stream. Reason for this is that Blueprint thumbnail
-	// and construction scripts are loaded from that byte stream (after object duplication). And it is the easiest way
-	// to pass the original component information into them. We need this information in order to update construction
-	// script state, since at this point the original Blueprint component has still not been cooked.
-	if(bIsBlueprintGeneratedClass || bIsBlueprintConstructionScriptClass || bIsBlueprintThumbnailSceneClass || bIsBlueprintReinstanceClass)
-	{
-#ifdef PLATFORM_64BITS
-		int64 ComponentPointer = reinterpret_cast<int64>(this);
-#else
-		int32 ComponentPointer = reinterpret_cast<int32>(this);
-#endif
-
-		// Serialize raw pointer.
-		Ar << ComponentPointer;
-
-		if(Ar.IsLoading() && !bIsBlueprintGeneratedClass)
-		{
-			OriginalBlueprintComponent = reinterpret_cast<UHoudiniAssetComponent*>(ComponentPointer);
-		}
-	}
 
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
@@ -3797,7 +3465,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		//ComputeComponentBoundingVolume();
 	}
 
-	if(Ar.IsLoading() && (bIsNativeComponent || (bIsBlueprintGeneratedClass && HoudiniAsset)))
+	if(Ar.IsLoading() && bIsNativeComponent)
 	{
 		// This component has been loaded.
 		bLoadedComponent = true;

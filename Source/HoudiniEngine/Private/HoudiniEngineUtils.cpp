@@ -2022,38 +2022,36 @@ FHoudiniEngineUtils::ExtractMaterialName(UMaterialInterface* MaterialInterface)
 
 void
 FHoudiniEngineUtils::CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials, const TArray<int32>& FaceMaterialIndices,
-												 TArray<char*>& OutStaticMeshFaceMaterials)
+											 TArray<char*>& OutStaticMeshFaceMaterials)
 {
 	// We need to create list of unique materials.
 	TArray<char*> UniqueMaterialList;
+	UMaterialInterface* MaterialInterface;
+	char* UniqueName = nullptr;
 
 	if(Materials.Num())
 	{
 		// We have materials.
 		for(int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
 		{
-			UMaterialInterface* MaterialInterface = Materials[MaterialIdx];
-			char* UniqueName = nullptr;
+			UniqueName = nullptr;
+			MaterialInterface = Materials[MaterialIdx];
 
-			if(MaterialInterface)
-			{
-				UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
-			}
-			else
+			if(!MaterialInterface)
 			{
 				// Null material interface found, add default instead.
 				MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
-				UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
 			}
 
+			UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
 			UniqueMaterialList.Add(UniqueName);
 		}
 	}
 	else
 	{
 		// We do not have any materials, add default.
-		UMaterialInterface* MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
-		char* UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+		MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+		UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
 		UniqueMaterialList.Add(UniqueName);
 	}
 
