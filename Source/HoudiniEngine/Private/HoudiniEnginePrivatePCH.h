@@ -45,6 +45,7 @@
 #include "RawMesh.h"
 #include "StaticMeshResources.h"
 #include "ComponentReregisterContext.h"
+#include "Resources/Version.h"
 
 #include "Materials/MaterialExpressionTextureSample.h"
 

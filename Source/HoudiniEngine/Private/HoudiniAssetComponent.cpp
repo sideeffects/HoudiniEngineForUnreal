@@ -1265,6 +1265,7 @@ UHoudiniAssetComponent::RestoreOriginalClassInformation()
 	ReplaceClassObject(UHoudiniAssetComponent::StaticClass());
 }
 
+
 void
 UHoudiniAssetComponent::RestorePatchedClassInformation()
 {
@@ -1814,7 +1815,11 @@ UHoudiniAssetComponent::CreateEnum(UClass* ClassInstance, const FString& Name, c
 	else
 	{
 		// Set enum entries (this will also remove previous entries).
+#if ENGINE_MINOR_VERSION <= 4
 		ChoiceEnum->SetEnums(EnumValues, false);
+#else
+		ChoiceEnum->SetEnums(EnumValues, UEnum::ECppForm::Regular);
+#endif
 
 		// We need to set meta data in a separate pass (as meta data requires enum being initialized).
 		for(int ChoiceIdx = 0; ChoiceIdx < Choices.size(); ++ChoiceIdx)
@@ -3278,7 +3283,11 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					}
 
 					// Set entries for this enum.
+#if ENGINE_MINOR_VERSION <= 4
 					Enum->SetEnums(EnumValues, false);
+#else
+					Enum->SetEnums(EnumValues, UEnum::ECppForm::Regular);
+#endif
 
 					// Load meta information for each entry.
 					for(int Idx = 0; Idx < EnumEntries; ++Idx)
