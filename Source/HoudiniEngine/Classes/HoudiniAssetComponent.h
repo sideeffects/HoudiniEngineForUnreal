@@ -101,9 +101,6 @@ public:
 	/** Ticking function used when asset is changed through proprety selection. **/
 	void TickHoudiniAssetChange();
 
-	/** Ticking function used when duplicated components check for update inside original Blueprint component. **/
-	void TickDuplicatedFromBlueprintUpdate();
-
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
@@ -154,22 +151,6 @@ private: /** FEditorDelegates delegates. **/
 	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
 	void OnPIEEventBegin(const bool bIsSimulating);
 	void OnPIEEventEnd(const bool bIsSimulating);
-	void OnModeChange(FEditorModeID NewMode);
-	void OnFinishPickingBlueprintClass(UClass* Class);
-	void OnBlueprintContextMenuCreated(FBlueprintGraphActionListBuilder& ContextMenuBuilder);
-
-private: /** UBlueprint delegates. **/
-
-	void OnBluprintChanged(UBlueprint* Blueprint);
-
-private: /** UEditorEngine delegates. **/
-
-	void OnHotLoad();
-	void OnBlueprintCompiled();
-
-private: /** FModuleManager delegates. **/
-
-	void OnModulesChanged(FName Name, EModuleChangeReason Reason);
 
 private: /** UPackage delegates. **/
 
@@ -314,12 +295,6 @@ private:
 	/** Stop delegate which is responsible for asset change. **/
 	void StopHoudiniAssetChange();
 
-	/** Start delegate which is responsible for checking update status of main Blueprint component. **/
-	void StartDuplicatedFromBlueprintUpdate();
-
-	/** Stop delegate which is responsible for checking update status of main Blueprint component. **/
-	void StopDuplicatedFromBlueprintUpdate();
-
 	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
 	void CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
@@ -375,21 +350,11 @@ protected:
 	/** case we cannot update right away as it would require changing properties on which update was fired.			  **/
 	FTimerDelegate TimerDelegateAssetChange;
 
-	/** Timer delegate, used by construction script and thumbnail components to check the status of original Blueprint **/
-	/** component they were cloned from and update corresponding resources. **/
-	FTimerDelegate TimerDelegateDuplicatedFromBlueprintUpdate;
-
 	/** Patched class information. We store this here because we need sometimes to unroll back to original class information. **/
 	UClass* PatchedClass;
 
 	/** Used to store Houdini Asset when it is changing through a property action. **/
 	UHoudiniAsset* ChangedHoudiniAsset;
-
-	/** Pointer to original Blueprint component instance. This is only used by Construction Script components. **/
-	UHoudiniAssetComponent* OriginalBlueprintComponent;
-
-	/** Container Blueprint Actor **/
-	UBlueprint* Blueprint;
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
@@ -409,12 +374,6 @@ protected:
 	/** Is set to true when this component belongs to a preview actor. **/
 	bool bIsPreviewComponent;
 
-	/** Is set to true when asynchronous rendering resources release has been started. Kept for debugging purposes. **/
-	bool bAsyncResourceReleaseHasBeenStarted;
-
-	/** Is set to true when PreSave has been triggered. **/
-	bool bPreSaveTriggered;
-
 	/** Is set to true if this component has been loaded. **/
 	bool bLoadedComponent;
 
@@ -424,18 +383,8 @@ protected:
 	/** Is set to true when asset has been instantiated, but not cooked. **/
 	bool bInstantiated;
 
-	/** Is set to true when blueprint component is being destroyed outside the regular		**/
-	/** blueprint create/destroy cycle.														**/
-	mutable bool bIsRealDestroy;
-
 	/** Is set to true when PIE mode is on (either play or simulate.) **/
 	bool bIsPlayModeActive;
-
-	bool bIsDefaultClass;
-	bool bIsBlueprintGeneratedClass;
-	bool bIsBlueprintReinstanceClass;
-	bool bIsBlueprintConstructionScriptClass;
-	bool bIsBlueprintThumbnailSceneClass;
 
 private:
 
