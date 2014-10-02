@@ -123,8 +123,6 @@ public: /** UObject methods. **/
 	virtual void PreSave() override;
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void BeginDestroy() override;
-	virtual void FinishDestroy() override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -132,10 +130,6 @@ protected: /** UActorComponent methods. **/
 
 	virtual void OnComponentCreated() override;
 	virtual void OnComponentDestroyed() override;
-
-private: /** UPrimitiveComponent methods. **/
-
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 
 private: /** USceneComponent methods. **/
 
@@ -268,12 +262,6 @@ private:
 	/** Assign actor label based on asset instance name. **/
 	void AssignUniqueActorLabel();
 
-	/** Release materials for this component. **/
-	void ReleaseComponentMaterials();
-
-	/** Clear a list of all changed properties (both regular parameters and inputs) . **/
-	void ClearChangedPropertiesAll();
-
 	/** Clear only parameter properties. Will leave input properties. **/
 	void ClearChangedPropertiesParameters();
 
@@ -318,7 +306,7 @@ private:
 
 protected:
 
-	/** Map of used static meshes and corresponding HAPI params. **/
+	/** Map of HAPI objects and corresponding static meshes. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
 
 	/** Map of components used by static meshes. **/

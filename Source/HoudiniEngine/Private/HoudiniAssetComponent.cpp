@@ -716,7 +716,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			if((HAPI_RESULT_SUCCESS == HAPI_GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
 			{
 				// Remove all processed parameters.
-				ClearChangedPropertiesAll();
+				ChangedProperties.Empty();
 			}
 			else
 			{
@@ -875,31 +875,6 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 
 	// Since we have new asset, we need to update bounds.
 	UpdateBounds();
-}
-
-
-FPrimitiveSceneProxy*
-UHoudiniAssetComponent::CreateSceneProxy()
-{
-	FPrimitiveSceneProxy* Proxy = nullptr;
-	return Proxy;
-}
-
-
-void
-UHoudiniAssetComponent::BeginDestroy()
-{
-	// Notify that the primitive has been detached from this component.
-	IStreamingManager::Get().NotifyPrimitiveDetached(this);
-
-	Super::BeginDestroy();
-}
-
-
-void
-UHoudiniAssetComponent::FinishDestroy()
-{
-	Super::FinishDestroy();
 }
 
 
@@ -1109,13 +1084,6 @@ UHoudiniAssetComponent::ComputeInputCount()
 	{
 		InputCount = 0;
 	}
-}
-
-
-void
-UHoudiniAssetComponent::ClearChangedPropertiesAll()
-{
-	ChangedProperties.Empty();
 }
 
 
