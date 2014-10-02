@@ -2783,6 +2783,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
 
+	// Release connected Houdini assets (if we have them).
+	ReleaseInputAssets();
+
 	// Release all Houdini related resources.
 	ResetHoudiniResources();
 
@@ -3503,6 +3506,20 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
+}
+
+
+void
+UHoudiniAssetComponent::ReleaseInputAssets()
+{
+	for(TMap<UStaticMesh*, HAPI_AssetId>::TIterator Iter(InputAssetIds); Iter; ++Iter)
+	{
+		HAPI_AssetId ConnectedAssetId = Iter.Value();
+		FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
+	}
+
+	InputAssetIds.Empty();
+	InputCount = 0;
 }
 
 #undef HOUDINI_TEST_LOG_MESSAGE

@@ -300,6 +300,9 @@ private:
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource();
 
+	/** Release connected Houdini assets that were used as inputs. **/
+	void ReleaseInputAssets();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
