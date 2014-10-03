@@ -116,6 +116,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	// Create Houdini Inputs category.
 	DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
 
+	// Create Houdini Instance Inputs category.
+	DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
+
 	// Create Houdini Properties category.
 	DetailBuilder.EditCategory("HoudiniProperties", TEXT(""), ECategoryPriority::Important);
 }

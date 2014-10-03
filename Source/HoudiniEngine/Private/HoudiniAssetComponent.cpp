@@ -361,14 +361,10 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 	}
 
 	// Now we can process instancers.
-	TMap<FHoudiniGeoPartObject, UObjectProperty*> NewInstancedStaticMeshInputs;
-
+	InstancedStaticMeshDefaultInputs.Empty();
 	for(TArray<FHoudiniGeoPartObject>::TIterator Iter(Instancers); Iter; ++Iter)
 	{
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
-
-		// Array of static meshes that are used as inputs.
-		TMap<FHoudiniGeoPartObject, UStaticMesh*> InputMeshes;
 
 		HAPI_AttributeInfo ResultAttributeInfo;
 		TArray<FString> PointInstanceValues;
@@ -380,7 +376,7 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 			for(TSet<FString>::TIterator IterString(UniquePointInstanceValues); IterString; ++IterString)
 			{
 				const FString& UniqueName = *IterString;
-				LocateStaticMeshes(UniqueName, InputMeshes);
+				LocateStaticMeshes(UniqueName, InstancedStaticMeshDefaultInputs);
 			}
 		}
 		else
@@ -396,29 +392,7 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 			}
 
 			// Locate static meshes from the specified to instance object id. Can be multiple if split occurred.
-			LocateStaticMeshes(ObjectInfo.objectToInstanceId, InputMeshes);
-		}
-
-		// If we have no static meshes that can be used as inputs, we can't do anything.
-		if(0 == InputMeshes.Num())
-		{
-			continue;
-		}
-
-		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator IterInput(InputMeshes); IterInput; ++IterInput)
-		{
-			const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInput.Key();
-			UObjectProperty* const* ObjectProperty = InstancedStaticMeshInputs.Find(HoudiniGeoPartObject);
-			if(ObjectProperty)
-			{
-				// Property for this geo part object has been previously created.
-
-			}
-			else
-			{
-				// Property does not exist, we need to create it.
-
-			}
+			LocateStaticMeshes(ObjectInfo.objectToInstanceId, InstancedStaticMeshDefaultInputs);
 		}
 	}
 }
@@ -1399,6 +1373,8 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	std::vector<char> ParmName;
 	std::vector<char> ParmLabel;
 
+	bool bPropertyChanged = false;
+
 	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
 		// There's no Houdini asset, we can return. This is typically hit when component is being loaded during serialization.
@@ -1467,7 +1443,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		}
 
 		// Check if this property has already changed and will be used in next cook update.
-		bool bPropertyChanged = CanPropertyValueBeUpdated(HAPI_PARMTYPE_PATH_NODE, 1, InputString);
+		bPropertyChanged = CanPropertyValueBeUpdated(HAPI_PARMTYPE_PATH_NODE, 1, InputString);
 
 		// Create object property.
 		UProperty* Property = CreatePropertyObject(ClassInstance, InputString, nullptr, ValuesOffsetEnd, bPropertyChanged);
@@ -1488,15 +1464,35 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		AddLinkedChild(ChildFirst, ChildLast, Property);
 	}
 
-	// Copy properties for inputs to instancers. These have been previously created.
-	/*
-	for(int InstanceInputIdx = 0; InstanceInputIdx < CreatedInstancedInputProperties.Num(); ++InstanceInputIdx)
+	// We need to create inputs for instancers.
+	int32 IterInstancedInputIndex = 0;
+	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator IterInstancedInput(InstancedStaticMeshDefaultInputs); IterInstancedInput; ++IterInstancedInput)
 	{
-	
-	}
+		// Create name for this input.
+		FString InstancedInputName = FString::Printf(TEXT("Instanced Input #%d"), IterInstancedInputIndex);
 
-	CreatedInstancedInputProperties.Reset();
-	*/
+		// Check if this property has already changed and will be used in next cook update.
+		bPropertyChanged = CanPropertyValueBeUpdated(HAPI_PARMTYPE_PATH_NODE, 1, InstancedInputName);
+
+		// Create object property.
+		UProperty* Property = CreatePropertyObject(ClassInstance, InstancedInputName, nullptr, ValuesOffsetEnd, bPropertyChanged);
+
+		// Store necessary metadata.
+		Property->SetMetaData(TEXT("Category"), TEXT("HoudiniInstancedInputs"));
+		Property->SetMetaData(TEXT("HoudiniParmName"), *InstancedInputName);
+		Property->SetMetaData(TEXT("DisplayName"), *InstancedInputName);
+
+		// Store this property in a list of created properties.
+		CreatedProperties.Add(Property);
+
+		// Insert this newly created property in link list of properties.
+		AddLinkedProperty(PropertyFirst, PropertyLast, Property);
+		AddLinkedChild(ChildFirst, ChildLast, Property);
+	
+		IterInstancedInputIndex++;
+	}
+	
+	InstancedStaticMeshDefaultInputs.Empty();
 
 	// Create properties for parameters.
 	for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
@@ -1585,7 +1581,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		UProperty* Property = nullptr;
 
 		// Check if this property has already changed and will be used in next cook update.
-		bool bPropertyChanged = CanPropertyValueBeUpdated(ParmInfoIter.type, ParmInfoIter.choiceCount, UniquePropertyName);
+		bPropertyChanged = CanPropertyValueBeUpdated(ParmInfoIter.type, ParmInfoIter.choiceCount, UniquePropertyName);
 
 		switch(ParmInfoIter.type)
 		{
@@ -1799,7 +1795,6 @@ UHoudiniAssetComponent::CanPropertyValueBeUpdated(HAPI_ParmType PropertyType, in
 		}
 	}
 
-	// Property is not marked as changed and its value can be updated.
 	return bCanBeUpdated;
 }
 
@@ -2762,6 +2757,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	// Retrieve property category.
 	static const FString CategoryHoudiniProperties = TEXT("HoudiniProperties");
 	static const FString CategoryHoudiniInputs = TEXT("HoudiniInputs");
+	static const FString CategoryHoudiniInstancedInputs = TEXT("HoudiniInstancedInputs");
 
 	const FString& Category = Property->GetMetaData(TEXT("Category"));
 
@@ -2786,7 +2782,11 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	}
 	else if(Category == CategoryHoudiniInputs)
 	{
-		// We are changing one of the Houdini inputs.
+		// We are changing one of Houdini inputs.
+	}
+	else if(Category == CategoryHoudiniInstancedInputs)
+	{
+		// We are changing one of Houdini instanced inputs.
 	}
 	else
 	{
