@@ -25,6 +25,7 @@ GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	TransformMatrix(FMatrix::Identity),
+	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
 	AssetId(-1),
 	ObjectId(-1),
@@ -38,10 +39,11 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 }
 
 
-FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InPartName, HAPI_AssetId InAssetId,
-											 HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName,
+											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
 											 bool bInIsVisible, bool bInIsInstancer) :
 	TransformMatrix(InTransform),
+	ObjectName(InObjectName),
 	PartName(InPartName),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
@@ -92,6 +94,7 @@ void
 FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 {
 	Ar << TransformMatrix;
+	Ar << ObjectName;
 	Ar << PartName;
 
 	Ar << AssetId;

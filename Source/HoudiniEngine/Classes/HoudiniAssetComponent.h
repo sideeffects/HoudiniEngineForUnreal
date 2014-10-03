@@ -292,6 +292,12 @@ private:
 	/** Release connected Houdini assets that were used as inputs. **/
 	void ReleaseInputAssets();
 
+	/** Locate static mesh by geo part object name. By default will use substring matching. **/
+	bool LocateStaticMeshes(const FString& ObjectName, TMap<FHoudiniGeoPartObject, UStaticMesh*>& InputMeshes, bool bSubstring = true) const;
+
+	/** Locate static mesh by geo part object id. **/
+	bool LocateStaticMeshes(int ObjectToInstanceId, TMap<FHoudiniGeoPartObject, UStaticMesh*>& InputMeshes) const;
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -313,17 +319,23 @@ protected:
 	/** Map of components used by static meshes. **/
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
+	/** Map of static mesh input geo parts to corresponding object properties that are used as instance inputs. **/
+	TMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
+
 	/** Multi map of HAPI objects and corresponding properties that are used as inputs of instancing. **/
-	TMultiMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
+	//TMultiMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
 
 	/** Map of instance inputs and corresponding instance static mesh components. **/
-	TMap<UObjectProperty*, UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
+	//TMap<UObjectProperty*, UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
 
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;
 
 	/** List of input asset ids for this component. **/
 	TMap<UStaticMesh*, HAPI_AssetId> InputAssetIds;
+
+	/** Temporary array of object properties that are used for managing inputs to instancers. **/
+	//TArray<UObjectProperty*> CreatedInstancedInputProperties;
 
 	/** Array of properties we have created. We keep these for serialization purposes. **/
 	TArray<UProperty*> CreatedProperties;
@@ -382,10 +394,16 @@ protected:
 
 private:
 
-	/** Marker ~ beginning of scratch space. **/
+	/** First available offset, points to beginning of scratch space buffer. **/
+	uint32 ValuesOffsetStart;
+
+	/** Last free offset within scratch space buffer. **/
+	uint32 ValuesOffsetEnd;
+
+	/** Marker - beginning of scratch space. **/
 	uint64 ScratchSpaceMarker;
 
-	/** Scratch space buffer ~ used to store data for each property. **/
+	/** Scratch space buffer - used to store data for each property. **/
 	char ScratchSpaceBuffer[HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE];
 };
 

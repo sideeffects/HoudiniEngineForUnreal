@@ -111,21 +111,28 @@ public:
 	/** HAPI : Check if given attribute exists. **/
 	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 										 const char* Name, HAPI_AttributeOwner Owner);
+	static bool HapiCheckAttributeExists(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, HAPI_AttributeOwner Owner);
 
 	/** HAPI : Get attribute data as float. **/
 	static bool HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											TArray<float>& Data, int TupleSize = 0);
+	static bool HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
+											HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int TupleSize = 0);
 
 	/** HAPI : Get attribute data as integer. **/
 	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											TArray<int>& Data, int TupleSize = 0);
+	static bool HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
+											  HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int TupleSize = 0);
 
 	/** HAPI : Get attribute data as string. **/
 	static bool HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											TArray<FString>& Data, int TupleSize = 0);
+	static bool HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
+											 HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int TupleSize = 0);
 
 	/** HAPI : Get parameter data as float. **/
 	static float HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue);
