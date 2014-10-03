@@ -93,6 +93,10 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	// Zero scratch space.
 	FMemory::Memset(ScratchSpaceBuffer, 0x0, HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
 
+	// Set scratchspace offsets.
+	ValuesOffsetStart = offsetof(UHoudiniAssetComponent, ScratchSpaceBuffer);
+	ValuesOffsetEnd = ValuesOffsetStart;
+
 	HOUDINI_TEST_LOG_MESSAGE( "Constructor,                          C" );
 }
 
@@ -302,6 +306,9 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 	// Reset array used for static mesh preview.
 	PreviewStaticMeshes.Empty();
 
+	// We need to store instancers as they need to be processed after all other meshes.
+	TArray<FHoudiniGeoPartObject> Instancers;
+
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
 		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
@@ -309,17 +316,9 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 		if(HoudiniGeoPartObject.IsInstancer())
 		{
-			// This geo part is an instancer and is always invisible and has no static mesh assigned.
+			// This geo part is an instancer and has no mesh assigned.
 			check(!StaticMesh);
-			check(!HoudiniGeoPartObject.IsVisible());
-
-			// 
-
-			// Locate properties for this geo part.
-			//TArray<UObjectProperty*> InstancedStaticMeshInputProperties;
-			//InstancedStaticMeshInputs.MultiFind(HoudiniGeoPartObject, InstancedStaticMeshInputProperties);
-
-
+			Instancers.Add(HoudiniGeoPartObject);
 		}
 		else if(HoudiniGeoPartObject.IsVisible())
 		{
@@ -359,6 +358,68 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 	if(&StaticMeshes != &StaticMeshMap)
 	{
 		StaticMeshes = StaticMeshMap;
+	}
+
+	// Now we can process instancers.
+	TMap<FHoudiniGeoPartObject, UObjectProperty*> NewInstancedStaticMeshInputs;
+
+	for(TArray<FHoudiniGeoPartObject>::TIterator Iter(Instancers); Iter; ++Iter)
+	{
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
+
+		// Array of static meshes that are used as inputs.
+		TMap<FHoudiniGeoPartObject, UStaticMesh*> InputMeshes;
+
+		HAPI_AttributeInfo ResultAttributeInfo;
+		TArray<FString> PointInstanceValues;
+		if(FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_INSTANCE, ResultAttributeInfo, PointInstanceValues))
+		{
+			// If instance attribute exists on points, we need to get all unique values.
+			TSet<FString> UniquePointInstanceValues(PointInstanceValues);
+
+			for(TSet<FString>::TIterator IterString(UniquePointInstanceValues); IterString; ++IterString)
+			{
+				const FString& UniqueName = *IterString;
+				LocateStaticMeshes(UniqueName, InputMeshes);
+			}
+		}
+		else
+		{
+			// Otherwise information will be in ObjectInfo structure.
+			HAPI_ObjectInfo ObjectInfo;
+			ObjectInfo.objectToInstanceId = -1;
+			if((HAPI_RESULT_SUCCESS != HAPI_GetObjects(AssetId, &ObjectInfo, HoudiniGeoPartObject.ObjectId, 1)) ||
+			   (-1 == ObjectInfo.objectToInstanceId))
+			{
+				// Error retrieving object info, or id of an object to be instanced is invalid, skip to next geo part.
+				continue;
+			}
+
+			// Locate static meshes from the specified to instance object id. Can be multiple if split occurred.
+			LocateStaticMeshes(ObjectInfo.objectToInstanceId, InputMeshes);
+		}
+
+		// If we have no static meshes that can be used as inputs, we can't do anything.
+		if(0 == InputMeshes.Num())
+		{
+			continue;
+		}
+
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator IterInput(InputMeshes); IterInput; ++IterInput)
+		{
+			const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInput.Key();
+			UObjectProperty* const* ObjectProperty = InstancedStaticMeshInputs.Find(HoudiniGeoPartObject);
+			if(ObjectProperty)
+			{
+				// Property for this geo part object has been previously created.
+
+			}
+			else
+			{
+				// Property does not exist, we need to create it.
+
+			}
+		}
 	}
 }
 
@@ -1372,6 +1433,9 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmValuesStrings[0], 0, NodeInfo.parmStringValueCount), false);
 	}
 
+	// Reset offsets.
+	ValuesOffsetEnd = ValuesOffsetStart;
+
 	// Reset list which keeps track of properties we have created.
 	CreatedProperties.Reset();
 
@@ -1383,9 +1447,6 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 	UField* ChildFirst = nullptr;
 	UField* ChildLast = ChildFirst;
-
-	uint32 ValuesOffsetStart = offsetof(UHoudiniAssetComponent, ScratchSpaceBuffer);
-	uint32 ValuesOffsetEnd = ValuesOffsetStart;
 
 	// Create properties for inputs.
 	for(int InputIdx = 0; InputIdx < InputCount; ++InputIdx)
@@ -1426,6 +1487,16 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		AddLinkedProperty(PropertyFirst, PropertyLast, Property);
 		AddLinkedChild(ChildFirst, ChildLast, Property);
 	}
+
+	// Copy properties for inputs to instancers. These have been previously created.
+	/*
+	for(int InstanceInputIdx = 0; InstanceInputIdx < CreatedInstancedInputProperties.Num(); ++InstanceInputIdx)
+	{
+	
+	}
+
+	CreatedInstancedInputProperties.Reset();
+	*/
 
 	// Create properties for parameters.
 	for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
@@ -3497,6 +3568,53 @@ UHoudiniAssetComponent::ReleaseInputAssets()
 
 	InputAssetIds.Empty();
 	InputCount = 0;
+}
+
+
+bool
+UHoudiniAssetComponent::LocateStaticMeshes(const FString& ObjectName, TMap<FHoudiniGeoPartObject, UStaticMesh*>& InputMeshes, bool bSubstring) const
+{
+	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
+	{
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+		UStaticMesh* StaticMesh = Iter.Value();
+
+		if(StaticMesh && ObjectName.Len() > 0)
+		{
+			if(bSubstring && ObjectName.Len() >= HoudiniGeoPartObject.ObjectName.Len())
+			{
+				int32 Index = ObjectName.Find(*HoudiniGeoPartObject.ObjectName, ESearchCase::IgnoreCase, ESearchDir::FromEnd, INDEX_NONE);
+				if((Index != -1) && (Index + HoudiniGeoPartObject.ObjectName.Len() == ObjectName.Len()))
+				{
+					InputMeshes.Add(HoudiniGeoPartObject, StaticMesh);
+				}
+			}
+			else if(HoudiniGeoPartObject.ObjectName.Equals(ObjectName))
+			{
+				InputMeshes.Add(HoudiniGeoPartObject, StaticMesh);
+			}
+		}
+	}
+
+	return InputMeshes.Num() > 0;
+}
+
+
+bool
+UHoudiniAssetComponent::LocateStaticMeshes(int ObjectToInstanceId, TMap<FHoudiniGeoPartObject, UStaticMesh*>& InputMeshes) const
+{
+	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
+	{
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+		UStaticMesh* StaticMesh = Iter.Value();
+
+		if(StaticMesh && HoudiniGeoPartObject.ObjectId == ObjectToInstanceId)
+		{
+			InputMeshes.Add(HoudiniGeoPartObject, StaticMesh);
+		}
+	}
+
+	return InputMeshes.Num() > 0;
 }
 
 #undef HOUDINI_TEST_LOG_MESSAGE

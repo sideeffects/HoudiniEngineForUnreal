@@ -401,6 +401,15 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectI
 }
 
 
+bool
+FHoudiniEngineUtils::HapiCheckAttributeExists(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, HAPI_AttributeOwner Owner)
+{
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+														 HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId,
+														 Name, Owner);
+}
+
+
 int
 FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names)
 {
@@ -461,6 +470,16 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 
 
 bool
+FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
+											HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int TupleSize)
+{
+	return FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+															HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
+															ResultAttributeInfo, Data, TupleSize);
+}
+
+
+bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
 											TArray<int>& Data, int TupleSize)
@@ -501,6 +520,17 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_Ob
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
 	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
+												   HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int TupleSize)
+{
+
+	return FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+															  HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
+															  ResultAttributeInfo, Data, TupleSize);
 }
 
 
@@ -550,6 +580,16 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_Obj
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
 	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
+												  HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int TupleSize)
+{
+	return FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+															 HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
+															 ResultAttributeInfo, Data, TupleSize);
 }
 
 
@@ -1122,6 +1162,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 		// Retrieve object at this index.
 		const HAPI_ObjectInfo& ObjectInfo = ObjectInfos[ObjectIdx];
 
+		// Retrieve object name.
+		FString ObjectName;
+		FHoudiniEngineUtils::GetHoudiniString(ObjectInfo.nameSH, ObjectName);
+
 		// Convert HAPI transform to a matrix form.
 		FMatrix TransformMatrix;
 		HOUDINI_CHECK_ERROR_RETURN(HAPI_ConvertTransformQuatToMatrix(&ObjectTransforms[ObjectIdx], &TransformMatrix.M[0][0]), false);
@@ -1184,7 +1228,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
 
 				// Create geo part object identifier.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
