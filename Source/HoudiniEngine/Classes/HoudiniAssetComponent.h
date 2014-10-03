@@ -319,8 +319,11 @@ protected:
 	/** Map of components used by static meshes. **/
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
+	/** Temporary map of default static meshes and corresponding geo parts that are used for instancing input. **/
+	TMap<FHoudiniGeoPartObject, UStaticMesh*> InstancedStaticMeshDefaultInputs;
+
 	/** Map of static mesh input geo parts to corresponding object properties that are used as instance inputs. **/
-	TMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
+	//TMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
 
 	/** Multi map of HAPI objects and corresponding properties that are used as inputs of instancing. **/
 	//TMultiMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
