@@ -620,6 +620,66 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// We need to patch component RTTI to reflect properties for this component.
 						ReplaceClassInformation(GetOuter()->GetName());
 
+						// At this point we have everything ready to create instanced static mesh resources.
+						{
+							UInstancedStaticMeshComponent* InstancedStaticMeshComponent = nullptr;
+							UStaticMesh* InstancedStaticMesh = nullptr;
+
+							for(TMap<FHoudiniGeoPartObject, UObjectProperty*>::TIterator Iter(InstancedStaticMeshInputProperties); Iter; ++Iter)
+							{
+								const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+								UObjectProperty* ObjectProperty = Iter.Value();
+
+								// Locate corresponding static mesh.
+								UStaticMesh* const* FoundInstancedStaticMesh = InstancedStaticMeshDefaultInputs.Find(HoudiniGeoPartObject);
+
+								if(!FoundInstancedStaticMesh)
+								{
+									continue;
+								}
+
+								InstancedStaticMesh = *FoundInstancedStaticMesh;
+
+								// We need to also add instances.
+								TArray<FTransform> Transforms;
+								if(!FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniGeoPartObject, Transforms))
+								{
+									continue;
+								}
+
+								// Locate corresponding component.
+								UInstancedStaticMeshComponent* const* FoundInstancedStaticMeshComponent = InstancedStaticMeshComponents.Find(ObjectProperty);
+								if(!FoundInstancedStaticMeshComponent)
+								{
+									// Component does not exist for this property, we need to create it.
+									InstancedStaticMeshComponent = ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+									InstancedStaticMeshComponent->AttachTo(this);
+									InstancedStaticMeshComponent->RegisterComponent();
+									InstancedStaticMeshComponent->SetStaticMesh(InstancedStaticMesh);
+									InstancedStaticMeshComponent->SetVisibility(true);
+
+									InstancedStaticMeshComponents.Add(ObjectProperty, InstancedStaticMeshComponent);
+								}
+								else
+								{
+									InstancedStaticMeshComponent = *FoundInstancedStaticMeshComponent;
+
+									// If this is existing component, we need to clear all instances.
+									InstancedStaticMeshComponent->ClearInstances();
+								}
+
+								// Set all instances.
+								for(int32 InstanceIdx = 0; InstanceIdx < Transforms.Num(); ++InstanceIdx)
+								{
+									InstancedStaticMeshComponent->AddInstance(Transforms[InstanceIdx]);
+								}
+
+								InstancedStaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+							}
+
+							InstancedStaticMeshDefaultInputs.Empty();
+						}
+
 						// Need to update rendering information.
 						UpdateRenderingInformation();
 
@@ -1466,8 +1526,13 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 
 	// We need to create inputs for instancers.
 	int32 IterInstancedInputIndex = 0;
+	InstancedStaticMeshInputProperties.Empty();
+
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator IterInstancedInput(InstancedStaticMeshDefaultInputs); IterInstancedInput; ++IterInstancedInput)
 	{
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancedInput.Key();
+		UStaticMesh* StaticMesh = IterInstancedInput.Value();
+
 		// Create name for this input.
 		FString InstancedInputName = FString::Printf(TEXT("Instanced Input #%d"), IterInstancedInputIndex);
 
@@ -1475,7 +1540,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		bPropertyChanged = CanPropertyValueBeUpdated(HAPI_PARMTYPE_PATH_NODE, 1, InstancedInputName);
 
 		// Create object property.
-		UProperty* Property = CreatePropertyObject(ClassInstance, InstancedInputName, nullptr, ValuesOffsetEnd, bPropertyChanged);
+		UObjectProperty* Property = Cast<UObjectProperty>(CreatePropertyObject(ClassInstance, InstancedInputName, StaticMesh, ValuesOffsetEnd, bPropertyChanged));
 
 		// Store necessary metadata.
 		Property->SetMetaData(TEXT("Category"), TEXT("HoudiniInstancedInputs"));
@@ -1485,6 +1550,9 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		// Store this property in a list of created properties.
 		CreatedProperties.Add(Property);
 
+		// Store this property and corresponding geo part object in a map for quick look up.
+		InstancedStaticMeshInputProperties.Add(HoudiniGeoPartObject, Property);
+
 		// Insert this newly created property in link list of properties.
 		AddLinkedProperty(PropertyFirst, PropertyLast, Property);
 		AddLinkedChild(ChildFirst, ChildLast, Property);
@@ -1492,7 +1560,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		IterInstancedInputIndex++;
 	}
 	
-	InstancedStaticMeshDefaultInputs.Empty();
+	//InstancedStaticMeshDefaultInputs.Empty();
 
 	// Create properties for parameters.
 	for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)

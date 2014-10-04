@@ -594,6 +594,55 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& H
 
 
 bool
+FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, TArray<FTransform>& Transforms)
+{
+	Transforms.Empty();
+
+	// Number of instances is number of points.
+	HAPI_PartInfo PartInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetPartInfo(AssetId, ObjectId, GeoId, PartId, &PartInfo), false);
+
+	if(0 == PartInfo.pointCount)
+	{
+		return false;
+	}
+
+	TArray<HAPI_Transform> InstanceTransforms;
+	InstanceTransforms.SetNumUninitialized(PartInfo.pointCount);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetInstanceTransforms(AssetId, ObjectId, GeoId, HAPI_SRT, &InstanceTransforms[0], 0, PartInfo.pointCount), false);
+
+	for(int32 Idx = 0; Idx < PartInfo.pointCount; ++Idx)
+	{
+		FMatrix TransformMatrix;
+		HAPI_Result Result = HAPI_ConvertTransformQuatToMatrix(&InstanceTransforms[Idx], &TransformMatrix.M[0][0]);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			TransformMatrix = FMatrix::Identity;
+		}
+
+		// We need to swap transforms for Z and Y.
+		float TransformSwapY = TransformMatrix.M[3][1];
+		float TransformSwapZ = TransformMatrix.M[3][2];
+		TransformMatrix.M[3][1] = TransformSwapZ;
+		TransformMatrix.M[3][2] = TransformSwapY;
+
+		TransformMatrix.ScaleTranslation(FVector(FHoudiniEngineUtils::ScaleFactorTranslate, FHoudiniEngineUtils::ScaleFactorTranslate, FHoudiniEngineUtils::ScaleFactorTranslate));
+		Transforms.Add(FTransform(TransformMatrix));
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FTransform>& Transforms)
+{
+	return FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, 
+														  HoudiniGeoPartObject.PartId, Transforms);
+}
+
+
+bool
 FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type)
 {
 	HAPI_Result Result = HAPI_RenderTextureToImage(MaterialInfo.assetId, MaterialInfo.id, NodeParmId);
