@@ -319,17 +319,14 @@ protected:
 	/** Map of components used by static meshes. **/
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
-	/** Temporary map of default static meshes and corresponding geo parts that are used for instancing input. **/
+	/** Temporary map of default static meshes and corresponding geo parts that are used for instancing input. Regenerated on recook. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> InstancedStaticMeshDefaultInputs;
 
-	/** Map of static mesh input geo parts to corresponding object properties that are used as instance inputs. **/
-	//TMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
-
-	/** Multi map of HAPI objects and corresponding properties that are used as inputs of instancing. **/
-	//TMultiMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputs;
+	/** Map of properties generated for each geo part instanced input. These are reset on recook. **/
+	TMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputProperties;
 
 	/** Map of instance inputs and corresponding instance static mesh components. **/
-	//TMap<UObjectProperty*, UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
+	TMap<UObjectProperty*, UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
 
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;
