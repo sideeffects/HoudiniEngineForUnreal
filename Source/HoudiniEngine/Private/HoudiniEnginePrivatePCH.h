@@ -155,6 +155,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniEngineInstancer.h"
 
 /** HoudiniEngine Class headers. **/
 #include "HoudiniAssetComponent.h"
