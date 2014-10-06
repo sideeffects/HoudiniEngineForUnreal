@@ -293,10 +293,10 @@ private:
 	void ReleaseInputAssets();
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
-	bool LocateStaticMeshes(const FString& ObjectName, TMap<FHoudiniGeoPartObject, UStaticMesh*>& InputMeshes, bool bSubstring = true) const;
+	bool LocateStaticMeshes(const FString& ObjectName, TMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
 
 	/** Locate static mesh by geo part object id. **/
-	bool LocateStaticMeshes(int ObjectToInstanceId, TMap<FHoudiniGeoPartObject, UStaticMesh*>& InputMeshes) const;
+	bool LocateStaticMeshes(int ObjectToInstanceId, TMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
 
 public:
 
@@ -319,23 +319,17 @@ protected:
 	/** Map of components used by static meshes. **/
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
-	/** Temporary map of default static meshes and corresponding geo parts that are used for instancing input. Regenerated on recook. **/
-	TMap<FHoudiniGeoPartObject, UStaticMesh*> InstancedStaticMeshDefaultInputs;
+	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
+	TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;
 
-	/** Map of properties generated for each geo part instanced input. These are reset on recook. **/
-	TMap<FHoudiniGeoPartObject, UObjectProperty*> InstancedStaticMeshInputProperties;
-
-	/** Map of instance inputs and corresponding instance static mesh components. **/
-	TMap<UObjectProperty*, UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
+	/** Map of instance inputs and corresponding instancers. **/
+	TMap<UObjectProperty*, FHoudiniEngineInstancer*> InstancerProperties;
 
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;
 
 	/** List of input asset ids for this component. **/
 	TMap<UStaticMesh*, HAPI_AssetId> InputAssetIds;
-
-	/** Temporary array of object properties that are used for managing inputs to instancers. **/
-	//TArray<UObjectProperty*> CreatedInstancedInputProperties;
 
 	/** Array of properties we have created. We keep these for serialization purposes. **/
 	TArray<UProperty*> CreatedProperties;

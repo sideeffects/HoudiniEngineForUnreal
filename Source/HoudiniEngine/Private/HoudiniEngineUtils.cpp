@@ -613,21 +613,15 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_Object
 
 	for(int32 Idx = 0; Idx < PartInfo.pointCount; ++Idx)
 	{
-		FMatrix TransformMatrix;
-		HAPI_Result Result = HAPI_ConvertTransformQuatToMatrix(&InstanceTransforms[Idx], &TransformMatrix.M[0][0]);
-		if(HAPI_RESULT_SUCCESS != Result)
-		{
-			TransformMatrix = FMatrix::Identity;
-		}
+		const HAPI_Transform& HapiInstanceTransform = InstanceTransforms[Idx];
 
-		// We need to swap transforms for Z and Y.
-		float TransformSwapY = TransformMatrix.M[3][1];
-		float TransformSwapZ = TransformMatrix.M[3][2];
-		TransformMatrix.M[3][1] = TransformSwapZ;
-		TransformMatrix.M[3][2] = TransformSwapY;
+		FQuat Rotation(HapiInstanceTransform.rotationQuaternion[0], HapiInstanceTransform.rotationQuaternion[1],
+					   HapiInstanceTransform.rotationQuaternion[2], HapiInstanceTransform.rotationQuaternion[3]);
+		FVector Translation(HapiInstanceTransform.position[0] * ScaleFactorTranslate, HapiInstanceTransform.position[2] * ScaleFactorTranslate,
+							HapiInstanceTransform.position[1] * ScaleFactorTranslate);
+		FVector Scale3D(HapiInstanceTransform.scale[0], HapiInstanceTransform.scale[1], HapiInstanceTransform.scale[2]);
 
-		TransformMatrix.ScaleTranslation(FVector(FHoudiniEngineUtils::ScaleFactorTranslate, FHoudiniEngineUtils::ScaleFactorTranslate, FHoudiniEngineUtils::ScaleFactorTranslate));
-		Transforms.Add(FTransform(TransformMatrix));
+		Transforms.Add(FTransform(Rotation, Translation, Scale3D));
 	}
 
 	return true;
@@ -1770,7 +1764,7 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32
 void
 FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar)
 {
-	if(Ar.IsSaving())
+	if(StaticMesh && Ar.IsSaving())
 	{
 		FRawMesh RawMesh;
 
