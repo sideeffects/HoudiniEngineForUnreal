@@ -2840,6 +2840,36 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	else if(Category == CategoryHoudiniInstancedInputs)
 	{
 		// We are changing one of Houdini instanced inputs.
+		
+		// See if property has been reset, and if it was, set back to original mesh.
+		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
+		if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
+		{
+			uint32 ValueOffset = ObjectProperty->GetOffset_ForDebug();
+			UStaticMesh* Mesh = Cast<UStaticMesh>(*(UObject**)((const char*) this + ValueOffset));
+			if(Mesh)
+			{
+			
+			}
+			else
+			{
+				// Value has been set to null (reset), we need to restore the original static mesh.
+
+				// Locate default static mesh for this instance input.
+				FHoudiniEngineInstancer* const* FoundInstancer = InstancerProperties.Find(ObjectProperty);
+				if(FoundInstancer)
+				{
+					FHoudiniEngineInstancer* HoudiniEngineInstancer = *FoundInstancer;
+					UObject** Boundary = ComputeOffsetAlignmentBoundary<UObject*>(ValueOffset);
+					*Boundary = HoudiniEngineInstancer->GetOriginalStaticMesh();
+				}
+				else
+				{
+					// This should not happen!
+					check(false);
+				}
+			}
+		}
 	}
 	else
 	{
