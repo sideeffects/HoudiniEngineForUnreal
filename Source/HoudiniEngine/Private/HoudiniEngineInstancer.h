@@ -78,6 +78,9 @@ public:
 	/** Return object property for managing this instancer's mesh. **/
 	UObjectProperty* GetObjectProperty() const;
 
+	/** Return original static mesh. **/
+	UStaticMesh* GetOriginalStaticMesh() const;
+
 protected:
 
 	/** Array of transformations for this instancer. **/

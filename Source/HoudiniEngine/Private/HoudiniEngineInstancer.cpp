@@ -188,3 +188,10 @@ FHoudiniEngineInstancer::GetObjectProperty() const
 {
 	return ObjectProperty;
 }
+
+
+UStaticMesh*
+FHoudiniEngineInstancer::GetOriginalStaticMesh() const
+{
+	return OriginalStaticMesh;
+}
