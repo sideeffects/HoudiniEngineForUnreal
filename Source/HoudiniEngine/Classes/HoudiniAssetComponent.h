@@ -293,10 +293,14 @@ private:
 	void ReleaseInputAssets();
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
-	bool LocateStaticMeshes(const FString& ObjectName, TMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
+	bool LocateStaticMeshes(const FString& ObjectName, TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
 
 	/** Locate static mesh by geo part object id. **/
-	bool LocateStaticMeshes(int ObjectToInstanceId, TMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
+	bool LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
+
+	/** Add instancers. **/
+	bool AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+	bool AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 public:
 

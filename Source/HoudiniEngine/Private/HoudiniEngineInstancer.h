@@ -52,6 +52,9 @@ public:
 	/** Add transformation for a new instance. **/
 	void AddTransformation(const FTransform& Transform);
 
+	/** Add a bulk of transformations. **/
+	void AddTransformations(const TArray<FTransform>& InTransforms);
+
 public:
 
 	/** Return instanced component associated with this instancer. **/
