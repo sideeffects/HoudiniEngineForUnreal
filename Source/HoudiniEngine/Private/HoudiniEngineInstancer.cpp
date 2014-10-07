@@ -70,6 +70,13 @@ FHoudiniEngineInstancer::AddTransformation(const FTransform& Transform)
 
 
 void
+FHoudiniEngineInstancer::AddTransformations(const TArray<FTransform>& InTransforms)
+{
+	Transformations.Append(InTransforms);
+}
+
+
+void
 FHoudiniEngineInstancer::AddInstancesToComponent()
 {
 	if(Component)
