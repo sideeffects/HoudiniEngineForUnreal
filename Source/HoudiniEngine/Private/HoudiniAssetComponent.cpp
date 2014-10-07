@@ -2840,35 +2840,44 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	else if(Category == CategoryHoudiniInstancedInputs)
 	{
 		// We are changing one of Houdini instanced inputs.
-		
-		// See if property has been reset, and if it was, set back to original mesh.
 		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
 		if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
 		{
 			uint32 ValueOffset = ObjectProperty->GetOffset_ForDebug();
 			UStaticMesh* Mesh = Cast<UStaticMesh>(*(UObject**)((const char*) this + ValueOffset));
-			if(Mesh)
+
+			// Find instancer corresponding to this property.
+			FHoudiniEngineInstancer* const* FoundInstancer = InstancerProperties.Find(ObjectProperty);
+			if(FoundInstancer)
 			{
-			
+				FHoudiniEngineInstancer* HoudiniEngineInstancer = *FoundInstancer;
+				UObject** Boundary = ComputeOffsetAlignmentBoundary<UObject*>(ValueOffset);
+
+				if(!Mesh)
+				{
+					// Value has been set to null (reset), we need to restore the original static mesh.
+					Mesh = HoudiniEngineInstancer->GetOriginalStaticMesh();
+					*Boundary = Mesh;
+				}
+
+				// Update mesh stored in instancer.
+				HoudiniEngineInstancer->SetStaticMesh(Mesh);
+
+				// We need to update corresponding instanced component.
+				UInstancedStaticMeshComponent* InstancedComponent = HoudiniEngineInstancer->GetInstancedStaticMeshComponent();
+				if(InstancedComponent)
+				{
+					InstancedComponent->SetStaticMesh(Mesh);
+				}
 			}
 			else
 			{
-				// Value has been set to null (reset), we need to restore the original static mesh.
-
-				// Locate default static mesh for this instance input.
-				FHoudiniEngineInstancer* const* FoundInstancer = InstancerProperties.Find(ObjectProperty);
-				if(FoundInstancer)
-				{
-					FHoudiniEngineInstancer* HoudiniEngineInstancer = *FoundInstancer;
-					UObject** Boundary = ComputeOffsetAlignmentBoundary<UObject*>(ValueOffset);
-					*Boundary = HoudiniEngineInstancer->GetOriginalStaticMesh();
-				}
-				else
-				{
-					// This should not happen!
-					check(false);
-				}
+				// This should not happen - there should always be an instancer mapped to an object property.
+				check(false);
 			}
+
+			HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
+			return;
 		}
 	}
 	else
@@ -3765,7 +3774,7 @@ UHoudiniAssetComponent::AddAttributeInstancer(const FHoudiniGeoPartObject& Houdi
 
 			// Reset instancer and set static mesh.
 			Instancer->Reset();
-			Instancer->SetStaticMesh(StaticMesh);
+			//Instancer->SetStaticMesh(StaticMesh);
 		}
 		else
 		{
@@ -3843,7 +3852,7 @@ UHoudiniAssetComponent::AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniG
 
 			// Reset instancer and set static mesh.
 			Instancer->Reset();
-			Instancer->SetStaticMesh(StaticMesh);
+			//Instancer->SetStaticMesh(StaticMesh);
 		}
 		else
 		{
