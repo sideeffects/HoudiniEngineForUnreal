@@ -55,6 +55,9 @@ public:
 	/** Add a bulk of transformations. **/
 	void AddTransformations(const TArray<FTransform>& InTransforms);
 
+	/** Marks this instancer as used or unused. **/
+	void MarkUsed(bool bUsed);
+
 public:
 
 	/** Return instanced component associated with this instancer. **/
@@ -68,6 +71,12 @@ public:
 
 	/** Return static mesh. **/
 	UStaticMesh* GetStaticMesh() const;
+
+	/** Return true if instancer is used. **/
+	bool IsUsed() const;
+
+	/** Return object property for managing this instancer's mesh. **/
+	UObjectProperty* GetObjectProperty() const;
 
 protected:
 

@@ -20,7 +20,8 @@ FHoudiniEngineInstancer::FHoudiniEngineInstancer(UStaticMesh* InStaticMesh) :
 	ObjectProperty(nullptr),
 	Component(nullptr),
 	StaticMesh(InStaticMesh),
-	OriginalStaticMesh(InStaticMesh)
+	OriginalStaticMesh(InStaticMesh),
+	bIsUsed(false)
 {
 
 }
@@ -130,4 +131,25 @@ FHoudiniEngineInstancer::AddReferencedObjects(FReferenceCollector& Collector)
 	}
 
 	//Collector.AddReferencedObject(ObjectProperty);
+}
+
+
+bool
+FHoudiniEngineInstancer::IsUsed() const
+{
+	return bIsUsed;
+}
+
+
+void
+FHoudiniEngineInstancer::MarkUsed(bool bUsed)
+{
+	bIsUsed = bUsed;
+}
+
+
+UObjectProperty*
+FHoudiniEngineInstancer::GetObjectProperty() const
+{
+	return ObjectProperty;
 }

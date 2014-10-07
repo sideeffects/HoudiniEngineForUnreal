@@ -302,6 +302,12 @@ private:
 	bool AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 	bool AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
+	/** Marks all instancers as unused. Unused instancers will be cleaned up after recooking. **/
+	void MarkAllInstancersUnused();
+
+	/** Clear all unused instancers and corresponding resources held by them. **/
+	void ClearAllUnusedInstancers();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
