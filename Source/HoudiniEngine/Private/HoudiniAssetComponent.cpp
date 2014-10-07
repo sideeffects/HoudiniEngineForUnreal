@@ -228,6 +228,10 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	StaticMeshComponents.Empty();
 	CreateStaticMeshHoudiniLogoResource();
 
+	// Release all instanced mesh resources.
+	MarkAllInstancersUnused();
+	ClearAllUnusedInstancers();
+
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
 	{
@@ -2564,6 +2568,10 @@ UHoudiniAssetComponent::SetChangedInputValue(UProperty* Property)
 				StaticMeshComponents.Empty();
 				CreateStaticMeshHoudiniLogoResource();
 
+				// Release all instanced mesh resources.
+				MarkAllInstancersUnused();
+				ClearAllUnusedInstancers();
+
 				return;
 			}
 
@@ -2755,6 +2763,7 @@ UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 	Super::PreEditChange(PropertyAboutToChange);
 }
 
+
 void
 UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -2775,6 +2784,10 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			StaticMeshes.Empty();
 			StaticMeshComponents.Empty();
 			CreateStaticMeshHoudiniLogoResource();
+
+			// Release all instanced mesh resources.
+			MarkAllInstancersUnused();
+			ClearAllUnusedInstancers();
 
 			ChangedHoudiniAsset = nullptr;
 			AssetId = -1;
