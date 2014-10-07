@@ -379,10 +379,8 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 	// Process instancers.
 
-	// Mark all instancers in map as unused.
-	{
-	
-	}
+	// Initially mark all instancers as unused. Used instancers will be marked as used.
+	MarkAllInstancersUnused();
 
 	for(TArray<FHoudiniGeoPartObject>::TIterator Iter(FoundInstancers); Iter; ++Iter)
 	{
@@ -399,7 +397,8 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		}
 	}
 
-	// Clear all unused instancers in map.
+	// Clear all unused instancers and resources.
+	ClearAllUnusedInstancers();
 }
 
 
@@ -2883,8 +2882,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
 
-	// Call super class implementation.
-	Super::OnComponentDestroyed();
+	// Release all instanced mesh resources.
+	MarkAllInstancersUnused();
+	ClearAllUnusedInstancers();
 }
 
 
@@ -3730,6 +3730,9 @@ UHoudiniAssetComponent::AddAttributeInstancer(const FHoudiniGeoPartObject& Houdi
 			Instancer = new FHoudiniEngineInstancer(StaticMesh);
 			Instancers.Add(InstancerHoudiniGeoPartObject, Instancer);
 		}
+
+		// Mark this instancer as used.
+		Instancer->MarkUsed(true);
 	}
 
 	// At this point we can initialize all instancers with data.
@@ -3805,6 +3808,9 @@ UHoudiniAssetComponent::AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniG
 			Instancer = new FHoudiniEngineInstancer(StaticMesh);
 			Instancers.Add(InstancerHoudiniGeoPartObject, Instancer);
 		}
+
+		// Mark this instancer as used.
+		Instancer->MarkUsed(true);
 	}
 
 	// Initialize instancers with data.
@@ -3818,6 +3824,66 @@ UHoudiniAssetComponent::AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniG
 	}
 
 	return true;
+}
+
+
+void
+UHoudiniAssetComponent::MarkAllInstancersUnused()
+{
+	for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator Iter(Instancers); Iter; ++Iter)
+	{
+		FHoudiniEngineInstancer* HoudiniEngineInstancer = Iter.Value();
+		HoudiniEngineInstancer->MarkUsed(false);
+	}
+}
+
+
+void
+UHoudiniAssetComponent::ClearAllUnusedInstancers()
+{
+	TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> UsedInstancers;
+	for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator Iter(Instancers); Iter; ++Iter)
+	{
+		FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+		FHoudiniEngineInstancer* HoudiniEngineInstancer = Iter.Value();
+		check(HoudiniEngineInstancer);
+
+		if(HoudiniEngineInstancer->IsUsed())
+		{
+			// This instancer is used, store it.
+			UsedInstancers.Add(HoudiniGeoPartObject, HoudiniEngineInstancer);
+		}
+		else
+		{
+			// This instancer is unused, we need to deallocate it and all resources.
+
+			// Grab this instancer's instanced static mesh component.
+			UInstancedStaticMeshComponent* Component = HoudiniEngineInstancer->GetInstancedStaticMeshComponent();
+			
+			// Grab object property for this instancer.
+			UObjectProperty* ObjectProperty = HoudiniEngineInstancer->GetObjectProperty();
+
+			if(ObjectProperty)
+			{
+				// Remove mapping from property to component.
+				InstancerProperties.Remove(ObjectProperty);
+			}
+
+			if(Component)
+			{
+				// Detach and destroy the component.
+				Component->DetachFromParent();
+				Component->UnregisterComponent();
+				Component->DestroyComponent();
+			}
+
+			// Delete the instancer.
+			delete HoudiniEngineInstancer;
+		}
+	}
+
+	// Reset map of instancers only to active ones.
+	Instancers = UsedInstancers;
 }
 
 
