@@ -85,7 +85,14 @@ FHoudiniEngineInstancer::AddInstancesToComponent()
 
 		for(int32 InstanceIdx = 0; InstanceIdx < Transformations.Num(); ++InstanceIdx)
 		{
-			Component->AddInstance(Transformations[InstanceIdx]);
+			const FTransform& Transform = Transformations[InstanceIdx];
+			const FVector& Scale3D = Transform.GetScale3D();
+
+			// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
+			if(!Scale3D.IsNearlyZero(SMALL_NUMBER))
+			{
+				Component->AddInstance(Transform);
+			}
 		}
 	}
 }
