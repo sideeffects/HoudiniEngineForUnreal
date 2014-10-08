@@ -72,6 +72,13 @@ FHoudiniGeoPartObject::IsInstancer() const
 
 
 bool
+FHoudiniGeoPartObject::IsLoaded() const
+{
+	return bIsLoaded;
+}
+
+
+bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
 	return (AssetId == GeoPartObject.AssetId &&
