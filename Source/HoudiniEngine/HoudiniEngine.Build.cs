@@ -17,7 +17,7 @@
 /*
 
 	Houdini Version: 13.0.559
-	Houdini Engine Version: 1.8.17
+	Houdini Engine Version: 1.8.18
 	Unreal Version: 4.4.1
 
  */
