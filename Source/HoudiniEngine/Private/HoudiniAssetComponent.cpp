@@ -222,6 +222,11 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 	HoudiniAsset = InHoudiniAsset;
 
+	if(!bIsNativeComponent)
+	{
+		return;
+	}
+
 	// Set Houdini logo to be default geometry.
 	ReleaseStaticMeshResources(StaticMeshes);
 	StaticMeshes.Empty();
@@ -2777,6 +2782,11 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
+	if(!bIsNativeComponent)
+	{
+		return;
+	}
+
 	// If Houdini Asset is being changed and has actually changed.
 	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset") && ChangedHoudiniAsset != HoudiniAsset)
 	{
@@ -2956,6 +2966,11 @@ UHoudiniAssetComponent::ContainsHoudiniLogoGeometry() const
 void
 UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource()
 {
+	if(!bIsNativeComponent)
+	{
+		return;
+	}
+
 	// Create Houdini logo static mesh and component for it.
 	FHoudiniGeoPartObject HoudiniGeoPartObject;
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
