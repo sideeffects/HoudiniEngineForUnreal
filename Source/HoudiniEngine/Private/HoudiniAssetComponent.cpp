@@ -390,6 +390,12 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 	{
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
 
+		// If this geo part instancer object has been just loaded, ignore it.
+		if(HoudiniGeoPartObject.IsLoaded())
+		{
+			continue;
+		}
+
 		if(FHoudiniEngineUtils::HapiCheckAttributeExists(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT))
 		{
 			// Instance attribute exists on points.
@@ -1239,8 +1245,8 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 		NewClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
 
 		// Create Class default object.
-		//NewClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
-		NewClass->ClassDefaultObject = nullptr;
+		NewClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
+		//NewClass->ClassDefaultObject = nullptr;
 
 		// List of replication records.
 		NewClass->ClassReps = ClassOfUHoudiniAssetComponent->ClassReps;
@@ -1267,7 +1273,7 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 			ReplaceClassObject(NewClass);
 
 			// Now we need to create CDO for this newly created class.
-			HOUDINI_PRIVATE_CALL_EXT_NOPARM(FPrivate_UClass_CreateDefaultObject, UClass, NewClass);
+			//HOUDINI_PRIVATE_CALL_EXT_NOPARM(FPrivate_UClass_CreateDefaultObject, UClass, NewClass);
 
 			// Now that RTTI has been patched, we need to subscribe to Editor delegates. This is necessary in order to
 			// patch old RTTI information back for saving and other operations. Once save completes, we restore the 
@@ -1996,8 +2002,8 @@ UHoudiniAssetComponent::CreatePropertyObject(UClass* ClassInstance, const FStrin
 	}
 
 	Property->PropertyLinkNext = nullptr;
-	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 	Property->PropertyFlags = PropertyFlags;
+	Property->SetMetaData(TEXT("Category"), TEXT("HoudiniProperties"));
 
 	// Set property size. Larger than one indicates array.
 	Property->ArrayDim = 1;
@@ -3454,22 +3460,27 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				break;
 			}
 
-			// Serialization of Object properties (used for inputs).
+			// Serialization of Object properties (used for marshalling inputs and instancer inputs).
 			case EHoudiniEngineProperty::Object:
 			{
 				bool bInputProperty = false;
+				bool bInstanceInputProperty = false;
 				bool bMeshAssigned = false;
 
-				FString MeshPackage;
-				FString MeshName;
+				FString MeshPathName;
 
 				if(Ar.IsSaving())
 				{
 					bInputProperty = Property->HasMetaData(TEXT("HoudiniInputIndex"));
+
+					static const FString CategoryHoudiniInstancedInputs = TEXT("HoudiniInstancedInputs");
+					const FString& Category = Property->GetMetaData(TEXT("Category"));
+					bInstanceInputProperty = (CategoryHoudiniInstancedInputs == Category);
 				}
 
 				// Serialize the flag that specifies whether this object property is an input.
 				Ar << bInputProperty;
+				Ar << bInstanceInputProperty;
 
 				if(Ar.IsSaving())
 				{
@@ -3483,13 +3494,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 						if(StaticMesh)
 						{
 							bMeshAssigned = true;
-
-							// Retrieve package of mesh.
-							UPackage* Package = Cast<UPackage>(StaticMesh->GetOuter());
-							Package->GetName(MeshPackage);
-
-							// Retrieve name of mesh.
-							MeshName = StaticMesh->GetName();
+							MeshPathName = StaticMesh->GetPathName();
 						}
 					}
 				}
@@ -3497,8 +3502,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				Ar << bMeshAssigned;
 				if(bMeshAssigned)
 				{
-					Ar << MeshPackage;
-					Ar << MeshName;
+					Ar << MeshPathName;
 				}
 
 				if(Ar.IsLoading())
@@ -3507,26 +3511,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 					if(bMeshAssigned)
 					{
-						// Attempt to locate package which contains referenced static mesh.
-						UPackage* Package = FindPackage(NULL, *MeshPackage);
-						if(!Package)
-						{
-							// Package was not loaded previously, we will try to load it.
-							Package = PackageTools::LoadPackage(MeshPackage);
-						}
-
-						if(Package)
-						{
-							StaticMesh = Cast<UStaticMesh>(StaticFindObject(UStaticMesh::StaticClass(), Package, *MeshName, true));
-						}
-						else
-						{
-							// Package does not exist - we cannot locate necessary mesh.
-						}
-					}
-					else
-					{
-						// We have no mesh assigned for this property.
+						StaticMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName, nullptr, LOAD_NoWarn, nullptr));
 					}
 
 					// Set pointer in scratch space buffer.

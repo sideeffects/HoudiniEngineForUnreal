@@ -49,6 +49,9 @@ public:
 	/** Return true if this geo part object is visible. **/
 	bool IsVisible() const;
 
+	/** Return true if this geo part object has just been loaded. **/
+	bool IsLoaded() const;
+
 public:
 
 	/** Transform of this geo part object. **/
