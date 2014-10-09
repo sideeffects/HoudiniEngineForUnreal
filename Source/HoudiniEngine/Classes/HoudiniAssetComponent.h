@@ -338,6 +338,9 @@ protected:
 	/** Map of instance inputs and corresponding instancers. **/
 	TMap<UObjectProperty*, FHoudiniEngineInstancer*> InstancerProperties;
 
+	/** Temporary map used to restore input object properties for instancers. **/
+	TMap<FString, FHoudiniEngineInstancer*> InstancerPropertyNames;
+
 	/** Map of properties that have changed. Will force object recook. Cleared after each recook. **/
 	TMap<FString, UProperty*> ChangedProperties;
 

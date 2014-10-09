@@ -81,18 +81,16 @@ FHoudiniGeoPartObject::IsLoaded() const
 bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
-	return (AssetId == GeoPartObject.AssetId &&
-			ObjectId == GeoPartObject.ObjectId &&
+	return (ObjectId == GeoPartObject.ObjectId &&
 			GeoId == GeoPartObject.GeoId &&
-			PartId == GeoPartObject.PartId &&
-			bIsLoaded == GeoPartObject.bIsLoaded);
+			PartId == GeoPartObject.PartId);
 }
 
 
 uint32
 FHoudiniGeoPartObject::GetTypeHash() const
 {
-	int HashBuffer[5] = { AssetId, ObjectId, GeoId, PartId, (int) bIsLoaded };
+	int HashBuffer[3] = { ObjectId, GeoId, PartId };
 	return FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
 }
 
@@ -122,5 +120,12 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 bool
 FHoudiniGeoPartObject::IsValid() const
 {
-	return (AssetId >= 0 && ObjectId >= 0 && GeoId >= 0 && PartId >= 0);
+	return (ObjectId >= 0 && GeoId >= 0 && PartId >= 0);
+}
+
+
+bool
+FHoudiniGeoPartObject::CompareNames(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const
+{
+	return (ObjectName == HoudiniGeoPartObject.ObjectName && PartName == HoudiniGeoPartObject.PartName);
 }
