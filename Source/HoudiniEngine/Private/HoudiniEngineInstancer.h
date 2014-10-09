@@ -16,10 +16,12 @@
 #pragma once
 
 
+class FArchive;
+class FTransform;
 class UStaticMesh;
 class UObjectProperty;
-class UInstancedStaticMeshComponent;
 class FReferenceCollector;
+class UInstancedStaticMeshComponent;
 
 
 struct FHoudiniEngineInstancer
@@ -34,6 +36,9 @@ public:
 
 	/** Reference counting propagation. **/
 	virtual void AddReferencedObjects(FReferenceCollector& Collector);
+
+	/** Serialization. **/
+	void Serialize(FArchive& Ar);
 
 public:
 

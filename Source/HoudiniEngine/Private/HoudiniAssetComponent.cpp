@@ -388,32 +388,35 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 	// Process instancers.
 
-	// Initially mark all instancers as unused. Used instancers will be marked as used.
-	MarkAllInstancersUnused();
-
-	for(TArray<FHoudiniGeoPartObject>::TIterator Iter(FoundInstancers); Iter; ++Iter)
+	if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 	{
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
+		// Initially mark all instancers as unused. Used instancers will be marked as used.
+		MarkAllInstancersUnused();
+	
+		for(TArray<FHoudiniGeoPartObject>::TIterator Iter(FoundInstancers); Iter; ++Iter)
+		{
+			const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
 
-		// If this geo part instancer object has been just loaded, ignore it.
-		if(HoudiniGeoPartObject.IsLoaded())
-		{
-			continue;
+			// If this geo part instancer object has been just loaded, ignore it.
+			if(HoudiniGeoPartObject.IsLoaded())
+			{
+				continue;
+			}
+
+			if(FHoudiniEngineUtils::HapiCheckAttributeExists(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT))
+			{
+				// Instance attribute exists on points.
+				AddAttributeInstancer(HoudiniGeoPartObject);
+			}
+			else
+			{
+				AddObjectInstancer(HoudiniGeoPartObject);
+			}
 		}
 
-		if(FHoudiniEngineUtils::HapiCheckAttributeExists(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT))
-		{
-			// Instance attribute exists on points.
-			AddAttributeInstancer(HoudiniGeoPartObject);
-		}
-		else
-		{
-			AddObjectInstancer(HoudiniGeoPartObject);
-		}
+		// Clear all unused instancers.
+		ClearAllUnusedInstancers();
 	}
-
-	// Clear all unused instancers and resources.
-	ClearAllUnusedInstancers();
 }
 
 
@@ -639,35 +642,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// We need to patch component RTTI to reflect properties for this component.
 						ReplaceClassInformation(GetOuter()->GetName());
 
-						{
-							for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
-							{
-								const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
-								FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
-
-								UInstancedStaticMeshComponent* Component = HoudiniEngineInstancer->GetInstancedStaticMeshComponent();
-								if(!Component)
-								{
-									// We need to create instanced component.
-									Component = ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
-									Component->AttachTo(this);
-									Component->RegisterComponent();
-									Component->SetVisibility(true);
-
-									// Store instanced component inside instancer.
-									HoudiniEngineInstancer->SetInstancedStaticMeshComponent(Component);
-								}
-
-								// Set component's static mesh.
-								HoudiniEngineInstancer->SetComponentStaticMesh();
-
-								// Set component's instances.
-								HoudiniEngineInstancer->AddInstancesToComponent();
-
-								// Set component transformation.
-								Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
-							}
-						}
+						// Create instanced static mesh resources.
+						CreateInstancedStaticMeshResources();
 
 						// Need to update rendering information.
 						UpdateRenderingInformation();
@@ -3155,6 +3131,9 @@ UHoudiniAssetComponent::PostLoad()
 			CreateStaticMeshHoudiniLogoResource();
 		}
 
+		// Create instanced static mesh resources.
+		CreateInstancedStaticMeshResources();
+
 		// Need to update rendering information.
 		UpdateRenderingInformation();
 	}
@@ -3614,6 +3593,60 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 
+	// Serialize instancing data if it is available.
+	int32 NumInstancers = Instancers.Num();
+	Ar << NumInstancers;
+
+	if(NumInstancers > 0)
+	{
+		if(Ar.IsSaving())
+		{
+			for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
+			{
+				FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
+				FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
+
+				// Store the object geo part information.
+				HoudiniGeoPartObject.Serialize(Ar);
+
+				// Store instancer information.
+				HoudiniEngineInstancer->Serialize(Ar);
+			}
+		}
+		else if(Ar.IsLoading())
+		{
+			for(int32 InstancerIdx = 0; InstancerIdx < NumInstancers; ++InstancerIdx)
+			{
+				FHoudiniGeoPartObject HoudiniGeoPartObject;
+				FHoudiniEngineInstancer* HoudiniEngineInstancer = nullptr;
+
+				// Get object geo part information.
+				HoudiniGeoPartObject.Serialize(Ar);
+
+				// Look up original mesh.
+				UStaticMesh* const* FoundOriginalMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+				UStaticMesh* OriginalMesh = nullptr;
+				if(FoundOriginalMesh)
+				{
+					OriginalMesh = *FoundOriginalMesh;
+				}
+
+				// Create instancer and get instancer information.
+				HoudiniEngineInstancer = new FHoudiniEngineInstancer(OriginalMesh);
+				HoudiniEngineInstancer->Serialize(Ar);
+
+				if(!OriginalMesh)
+				{
+					delete HoudiniEngineInstancer;
+					continue;
+				}
+
+				// Store instancer geo part mapping.
+				Instancers.Add(HoudiniGeoPartObject, HoudiniEngineInstancer);
+			}
+		}
+	}
+
 	if(Ar.IsLoading())
 	{
 		// We need to recompute bounding volume.
@@ -3936,6 +3969,39 @@ UHoudiniAssetComponent::ClearAllUnusedInstancers()
 
 	// Reset map of instancers only to active ones.
 	Instancers = UsedInstancers;
+}
+
+
+void
+UHoudiniAssetComponent::CreateInstancedStaticMeshResources()
+{
+	for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
+	{
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
+		FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
+
+		UInstancedStaticMeshComponent* Component = HoudiniEngineInstancer->GetInstancedStaticMeshComponent();
+		if(!Component)
+		{
+			// We need to create instanced component.
+			Component = ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+			Component->AttachTo(this);
+			Component->RegisterComponent();
+			Component->SetVisibility(true);
+
+			// Store instanced component inside instancer.
+			HoudiniEngineInstancer->SetInstancedStaticMeshComponent(Component);
+		}
+
+		// Set component's static mesh.
+		HoudiniEngineInstancer->SetComponentStaticMesh();
+
+		// Set component's instances.
+		HoudiniEngineInstancer->AddInstancesToComponent();
+
+		// Set component transformation.
+		Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+	}
 }
 
 

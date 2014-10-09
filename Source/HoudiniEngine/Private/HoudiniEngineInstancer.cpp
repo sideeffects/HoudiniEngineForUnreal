@@ -18,9 +18,9 @@
 
 FHoudiniEngineInstancer::FHoudiniEngineInstancer(UStaticMesh* InStaticMesh) :
 	ObjectProperty(nullptr),
-	Component(nullptr),
 	StaticMesh(InStaticMesh),
 	OriginalStaticMesh(InStaticMesh),
+	Component(nullptr),
 	bIsUsed(false)
 {
 
@@ -166,6 +166,46 @@ FHoudiniEngineInstancer::AddReferencedObjects(FReferenceCollector& Collector)
 	}
 
 	//Collector.AddReferencedObject(ObjectProperty);
+}
+
+
+void
+FHoudiniEngineInstancer::Serialize(FArchive& Ar)
+{
+	Ar << Transformations;
+
+	// We do not need to serialize original mesh - it will be restored from corresponding geo part object.
+	
+	bool bOriginalMeshUsed = (StaticMesh == OriginalStaticMesh);
+	Ar << bOriginalMeshUsed;
+
+	if(bOriginalMeshUsed)
+	{
+		if(Ar.IsLoading())
+		{
+			StaticMesh = OriginalStaticMesh;
+		}
+	}
+	else
+	{
+		// Original mesh is not used, we need to store / restore the used mesh.
+		FString MeshPathName;
+
+		if(Ar.IsSaving())
+		{
+			MeshPathName = StaticMesh->GetPathName();
+		}
+
+		Ar << MeshPathName;
+
+		if(Ar.IsLoading())
+		{
+			StaticMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName, nullptr, LOAD_NoWarn, nullptr));
+		}
+	}
+
+	// Anything to store in property?
+	//ObjectProperty
 }
 
 
