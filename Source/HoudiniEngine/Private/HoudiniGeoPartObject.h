@@ -37,6 +37,9 @@ public:
 	/** Comparison operator, used by hashing containers. **/
 	bool operator==(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const;
 
+	/** Compare based on object and part name. **/
+	bool CompareNames(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const;
+
 	/** Serialization. **/
 	void Serialize(FArchive& Ar);
 

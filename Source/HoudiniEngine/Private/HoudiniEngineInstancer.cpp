@@ -21,6 +21,7 @@ FHoudiniEngineInstancer::FHoudiniEngineInstancer(UStaticMesh* InStaticMesh) :
 	StaticMesh(InStaticMesh),
 	OriginalStaticMesh(InStaticMesh),
 	Component(nullptr),
+	ObjectPropertyName(TEXT("Empty")),
 	bIsUsed(false)
 {
 
@@ -204,8 +205,24 @@ FHoudiniEngineInstancer::Serialize(FArchive& Ar)
 		}
 	}
 
-	// Anything to store in property?
-	//ObjectProperty
+	// Serialize property information.
+	bool bObjectPropertySet = (ObjectProperty != nullptr);
+	Ar << bObjectPropertySet;
+
+	if(bObjectPropertySet)
+	{
+		if(Ar.IsSaving())
+		{
+			check(ObjectProperty->HasMetaData(TEXT("HoudiniParmName")));
+			ObjectPropertyName = ObjectProperty->GetMetaData(TEXT("HoudiniParmName"));
+		}
+		
+		Ar << ObjectPropertyName;
+	}
+	else
+	{
+		check(false);
+	}
 }
 
 

@@ -26,6 +26,7 @@ class UInstancedStaticMeshComponent;
 
 struct FHoudiniEngineInstancer
 {
+	friend class UHoudiniAssetComponent;
 
 public:
 
@@ -102,6 +103,9 @@ protected:
 
 	/** Instanced component used by this instancer. **/
 	UInstancedStaticMeshComponent* Component;
+
+	/** Input property name tied to this instancer. Used for serialization. **/
+	FString ObjectPropertyName;
 
 	/** Is set to true when this instancer is used and needs not to be deallocated. **/
 	bool bIsUsed;

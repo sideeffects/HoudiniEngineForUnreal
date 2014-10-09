@@ -387,7 +387,6 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 	}
 
 	// Process instancers.
-
 	if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 	{
 		// Initially mark all instancers as unused. Used instancers will be marked as used.
@@ -1504,24 +1503,24 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 		bPropertyChanged = CanPropertyValueBeUpdated(HAPI_PARMTYPE_PATH_NODE, 1, InstancedInputName);
 
 		// Create object property.
-		UObjectProperty* Property = Cast<UObjectProperty>(CreatePropertyObject(ClassInstance, InstancedInputName, HoudiniEngineInstancer->GetStaticMesh(), ValuesOffsetEnd, bPropertyChanged));
+		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(CreatePropertyObject(ClassInstance, InstancedInputName, HoudiniEngineInstancer->GetStaticMesh(), ValuesOffsetEnd, bPropertyChanged));
 
 		// Store necessary metadata.
-		Property->SetMetaData(TEXT("Category"), TEXT("HoudiniInstancedInputs"));
-		Property->SetMetaData(TEXT("HoudiniParmName"), *InstancedInputName);
-		Property->SetMetaData(TEXT("DisplayName"), *InstancedInputName);
+		ObjectProperty->SetMetaData(TEXT("Category"), TEXT("HoudiniInstancedInputs"));
+		ObjectProperty->SetMetaData(TEXT("HoudiniParmName"), *InstancedInputName);
+		ObjectProperty->SetMetaData(TEXT("DisplayName"), *InstancedInputName);
 
 		// Store this property in a list of created properties.
-		CreatedProperties.Add(Property);
+		CreatedProperties.Add(ObjectProperty);
 
 		// Insert this newly created property in link list of properties.
-		AddLinkedProperty(PropertyFirst, PropertyLast, Property);
-		AddLinkedChild(ChildFirst, ChildLast, Property);
+		AddLinkedProperty(PropertyFirst, PropertyLast, ObjectProperty);
+		AddLinkedChild(ChildFirst, ChildLast, ObjectProperty);
 
 		// Store property for this instancer and store this binding in a map.
-		HoudiniEngineInstancer->SetObjectProperty(Property);
-		InstancerProperties.Add(Property, HoudiniEngineInstancer);
-	
+		HoudiniEngineInstancer->SetObjectProperty(ObjectProperty);
+		InstancerProperties.Add(ObjectProperty, HoudiniEngineInstancer);
+
 		IterInstancedInputIndex++;
 	}
 
@@ -3067,6 +3066,32 @@ UHoudiniAssetComponent::PostLoad()
 				}
 			}
 
+			// Restore instancing inputs.
+			if(EHoudiniEngineProperty::Object == SerializedProperty.Type)
+			{
+				static const FString CategoryHoudiniInstancedInputs = TEXT("HoudiniInstancedInputs");
+				const FString& Category = Property->GetMetaData(TEXT("Category"));
+
+				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
+				if(ObjectProperty && (Category == CategoryHoudiniInstancedInputs))
+				{
+					check(ObjectProperty->HasMetaData(TEXT("HoudiniParmName")));
+
+					// Locate instancer.
+					FHoudiniEngineInstancer* const* FoundHoudiniEngineInstancer = InstancerPropertyNames.Find(ObjectProperty->GetMetaData(TEXT("HoudiniParmName")));
+					if(FoundHoudiniEngineInstancer)
+					{
+						FHoudiniEngineInstancer* HoudiniEngineInstancer = *FoundHoudiniEngineInstancer;
+						HoudiniEngineInstancer->SetObjectProperty(ObjectProperty);
+						InstancerProperties.Add(ObjectProperty, HoudiniEngineInstancer);
+					}
+					else
+					{
+						check(false);
+					}
+				}
+			}
+
 			// Replace offset value for this property.
 			ReplacePropertyOffset(Property, SerializedProperty.Offset);
 
@@ -3103,6 +3128,9 @@ UHoudiniAssetComponent::PostLoad()
 
 		// We can remove all serialized stored properties.
 		SerializedProperties.Reset();
+
+		// We can reset insntacing input name mapping.
+		InstancerPropertyNames.Empty();
 
 		// And add new created properties to our newly created class.
 		UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
@@ -3599,6 +3627,8 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	if(NumInstancers > 0)
 	{
+		InstancerPropertyNames.Empty();
+
 		if(Ar.IsSaving())
 		{
 			for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
@@ -3643,6 +3673,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 				// Store instancer geo part mapping.
 				Instancers.Add(HoudiniGeoPartObject, HoudiniEngineInstancer);
+
+				// Store property name mapping for this instancer.
+				InstancerPropertyNames.Add(HoudiniEngineInstancer->ObjectPropertyName, HoudiniEngineInstancer);
 			}
 		}
 	}
@@ -3878,6 +3911,7 @@ UHoudiniAssetComponent::AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniG
 
 		// See if this instancer has been allocated.
 		FHoudiniEngineInstancer* const* FoundInstancer = Instancers.Find(InstancerHoudiniGeoPartObject);
+
 		if(FoundInstancer)
 		{
 			// Instancer exists, we can reuse it.
