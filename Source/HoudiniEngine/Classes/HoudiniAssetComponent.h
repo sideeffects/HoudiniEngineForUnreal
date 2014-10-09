@@ -308,6 +308,9 @@ private:
 	/** Clear all unused instancers and corresponding resources held by them. **/
 	void ClearAllUnusedInstancers();
 
+	/** Create instanced static mesh resources. **/
+	void CreateInstancedStaticMeshResources();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
