@@ -62,9 +62,12 @@ class FTransform;
 class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
+class USplineComponent;
+class UStaticMeshComponent;
 class UInstancedStaticMeshComponent;
 
 struct FPropertyChangedEvent;
+
 
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
@@ -331,6 +334,9 @@ protected:
 
 	/** Map of components used by static meshes. **/
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
+
+	/** Map of curve / spline components. **/
+	TMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
 
 	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
 	TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;

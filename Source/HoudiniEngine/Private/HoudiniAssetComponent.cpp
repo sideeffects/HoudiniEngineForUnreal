@@ -334,6 +334,7 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 	// We need to store instancers as they need to be processed after all other meshes.
 	TArray<FHoudiniGeoPartObject> FoundInstancers;
+	TArray<FHoudiniGeoPartObject> FoundCurves;
 
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
@@ -345,6 +346,12 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 			// This geo part is an instancer and has no mesh assigned.
 			check(!StaticMesh);
 			FoundInstancers.Add(HoudiniGeoPartObject);
+		}
+		else if(HoudiniGeoPartObject.IsCurve())
+		{
+			// This geo part is a curve and has no mesh assigned.
+			check(!StaticMesh);
+			FoundCurves.Add(HoudiniGeoPartObject);
 		}
 		else if(HoudiniGeoPartObject.IsVisible())
 		{
