@@ -416,6 +416,7 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 			}
 			else
 			{
+				// Instance information is in object info.
 				AddObjectInstancer(HoudiniGeoPartObject);
 			}
 		}
@@ -886,7 +887,7 @@ UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 
 	for(int32 Idx = 1; Idx < AttachChildren.Num(); ++Idx)
 	{
-		Bounds = Bounds + AttachChildren[1]->CalcBounds(LocalToWorld);
+		Bounds = Bounds + AttachChildren[Idx]->CalcBounds(LocalToWorld);
 	}
 
 	return Bounds;

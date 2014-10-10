@@ -336,7 +336,7 @@ protected:
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
 	/** Map of curve / spline components. **/
-	TMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
+	TMultiMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
 
 	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
 	TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;
