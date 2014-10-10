@@ -34,6 +34,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsVisible(true),
 	bIsInstancer(false),
 	bIsCurve(false),
+	bIsEditable(false),
 	bIsLoaded(false)
 {
 
@@ -42,7 +43,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName,
 											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
-											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve) :
+											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve, bool bInIsEditable) :
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
@@ -53,6 +54,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const F
 	bIsVisible(bInIsVisible),
 	bIsInstancer(bInIsInstancer),
 	bIsCurve(bInIsCurve),
+	bIsEditable(bInIsEditable),
 	bIsLoaded(false)
 {
 
@@ -88,6 +90,13 @@ FHoudiniGeoPartObject::IsLoaded() const
 
 
 bool
+FHoudiniGeoPartObject::IsEditable() const
+{
+	return bIsEditable;
+}
+
+
+bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
 	return (ObjectId == GeoPartObject.ObjectId &&
@@ -118,6 +127,8 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 
 	Ar << bIsVisible;
 	Ar << bIsInstancer;
+	Ar << bIsCurve;
+	Ar << bIsEditable;
 
 	if(Ar.IsLoading())
 	{

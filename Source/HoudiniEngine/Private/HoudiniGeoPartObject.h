@@ -29,7 +29,8 @@ public:
 	FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName, HAPI_AssetId InAssetId,
 						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId, bool bInIsVisible = true,
 						  bool bInIsInstancer = false,
-						  bool bInIsCurve = false);
+						  bool bInIsCurve = false,
+						  bool bInIsEditable = false);
 
 public:
 
@@ -59,6 +60,9 @@ public:
 
 	/** Return true if this geo part object has just been loaded. **/
 	bool IsLoaded() const;
+
+	/** Return true if this geo part object is editable. **/
+	bool IsEditable() const;
 
 public:
 
@@ -91,6 +95,9 @@ public:
 
 	/** Is set to true when referenced object is a curve. **/
 	bool bIsCurve;
+
+	/** Is set to true when referenced object is editable. **/
+	bool bIsEditable;
 
 	/** Is set to true when referenced object has just been loaded. **/
 	bool bIsLoaded;

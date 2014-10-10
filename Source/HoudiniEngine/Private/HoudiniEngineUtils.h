@@ -183,6 +183,9 @@ protected:
 	/** Delete helper array of material names. **/
 	static void DeleteFaceMaterialArray(TArray<char*>& OutStaticMeshFaceMaterials);
 
+	/** Swap axis in a given transformation matrix. Houdini -> Unreal. **/
+	static void SwapTransformationHoudiniToUnreal(FMatrix& TransformMatrix);
+
 protected:
 
 	/** Create a texture from given information. **/

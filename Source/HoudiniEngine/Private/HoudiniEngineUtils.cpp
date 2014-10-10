@@ -1216,10 +1216,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 												 FHoudiniEngineUtils::ScaleFactorTranslate));
 
 		// We need to swap transforms for Z and Y.
-		float TransformSwapY = TransformMatrix.M[3][1];
-		float TransformSwapZ = TransformMatrix.M[3][2];
-		TransformMatrix.M[3][1] = TransformSwapZ;
-		TransformMatrix.M[3][2] = TransformSwapY;
+		FHoudiniEngineUtils::SwapTransformationHoudiniToUnreal(TransformMatrix);
 
 		// Iterate through all Geo informations within this object.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
@@ -1234,6 +1231,18 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 			// Right now only care about display SOPs.
 			if(!GeoInfo.isDisplayGeo)
 			{
+				continue;
+			}
+
+			if(HAPI_GEOTYPE_CURVE == GeoInfo.type)
+			{
+				// If this geo is a curve, we skip part processing.
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, ObjectName, AssetId, ObjectInfo.id, GeoInfo.id, 0,
+														   ObjectInfo.isVisible, false, true, GeoInfo.isEditable);
+
+				StaticMesh = nullptr;
+				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
+
 				continue;
 			}
 
@@ -1272,7 +1281,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 
 				// Create geo part object identifier.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-														   ObjectInfo.isVisible, ObjectInfo.isInstancer, PartInfo.isCurve);
+														   ObjectInfo.isVisible, ObjectInfo.isInstancer, PartInfo.isCurve, GeoInfo.isEditable);
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
@@ -1300,6 +1309,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					}
 				}
 
+				/*
 				// Detect curves. Curves like instancers have no associated meshes.
 				if(PartInfo.isCurve)
 				{
@@ -1307,6 +1317,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 					continue;
 				}
+				*/
 
 				// Attempt to locate static mesh from previous instantiation.
 				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
@@ -2172,4 +2183,15 @@ FHoudiniEngineUtils::DeleteFaceMaterialArray(TArray<char*>& OutStaticMeshFaceMat
 	}
 
 	OutStaticMeshFaceMaterials.Empty();
+}
+
+
+void
+FHoudiniEngineUtils::SwapTransformationHoudiniToUnreal(FMatrix& TransformMatrix)
+{
+	float TransformSwapY = TransformMatrix.M[3][1];
+	float TransformSwapZ = TransformMatrix.M[3][2];
+		
+	TransformMatrix.M[3][1] = TransformSwapZ;
+	TransformMatrix.M[3][2] = TransformSwapY;
 }
