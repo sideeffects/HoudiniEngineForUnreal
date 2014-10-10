@@ -1271,7 +1271,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
 
 				// Create geo part object identifier.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, ObjectInfo.isVisible, ObjectInfo.isInstancer);
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+														   ObjectInfo.isVisible, ObjectInfo.isInstancer, PartInfo.isCurve);
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
@@ -1297,6 +1298,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 						bGeoError = true;
 						break;
 					}
+				}
+
+				// Detect curves. Curves like instancers have no associated meshes.
+				if(PartInfo.isCurve)
+				{
+					StaticMesh = nullptr;
+					StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
+					continue;
 				}
 
 				// Attempt to locate static mesh from previous instantiation.

@@ -33,6 +33,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	PartId(-1),
 	bIsVisible(true),
 	bIsInstancer(false),
+	bIsCurve(false),
 	bIsLoaded(false)
 {
 
@@ -41,7 +42,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName,
 											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
-											 bool bInIsVisible, bool bInIsInstancer) :
+											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve) :
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
@@ -51,6 +52,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const F
 	PartId(InPartId),
 	bIsVisible(bInIsVisible),
 	bIsInstancer(bInIsInstancer),
+	bIsCurve(bInIsCurve),
 	bIsLoaded(false)
 {
 
@@ -68,6 +70,13 @@ bool
 FHoudiniGeoPartObject::IsInstancer() const
 {
 	return bIsInstancer;
+}
+
+
+bool
+FHoudiniGeoPartObject::IsCurve() const
+{
+	return bIsCurve;
 }
 
 
