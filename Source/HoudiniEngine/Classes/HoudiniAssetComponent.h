@@ -305,6 +305,9 @@ private:
 	bool AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 	bool AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
+	/** Add Curve. **/
+	bool AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents);
+
 	/** Marks all instancers as unused. Unused instancers will be cleaned up after recooking. **/
 	void MarkAllInstancersUnused();
 
@@ -313,6 +316,9 @@ private:
 
 	/** Create instanced static mesh resources. **/
 	void CreateInstancedStaticMeshResources();
+
+	/** Clear all spline related resources. **/
+	void ClearAllCurves();
 
 public:
 
@@ -336,7 +342,7 @@ protected:
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
 	/** Map of curve / spline components. **/
-	TMultiMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
+	TMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
 
 	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
 	TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;

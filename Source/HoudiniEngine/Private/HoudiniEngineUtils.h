@@ -73,6 +73,9 @@ public:
 	/** Bake static mesh. **/
 	static UStaticMesh* BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* StaticMesh, int32 MeshCounter);
 
+	/** Extract position information from coords string. **/
+	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/
@@ -122,8 +125,8 @@ public:
 
 	/** HAPI : Get attribute data as integer. **/
 	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
-											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-											TArray<int>& Data, int TupleSize = 0);
+											  const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
+											  TArray<int>& Data, int TupleSize = 0);
 	static bool HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
 											  HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int TupleSize = 0);
 
@@ -135,7 +138,13 @@ public:
 											 HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int TupleSize = 0);
 
 	/** HAPI : Get parameter data as float. **/
-	static float HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue);
+	static bool HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue, float& Value);
+
+	/** HAPI : Get parameter data as integer. **/
+	static bool HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int DefaultValue, int& Value);
+
+	/** HAPI : Get parameter data as string. **/
+	static bool HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName, const FString& DefaultValue, FString& Value);
 
 	/** HAPI : Retrieve names of all parameters. **/
 	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names);
@@ -178,13 +187,10 @@ protected:
 
 	/** Create helper array of material names, we use it for marshalling. **/
 	static void CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials, const TArray<int32>& FaceMaterialIndices,
-											TArray<char*>& OutStaticMeshFaceMaterials);
+										TArray<char*>& OutStaticMeshFaceMaterials);
 
 	/** Delete helper array of material names. **/
 	static void DeleteFaceMaterialArray(TArray<char*>& OutStaticMeshFaceMaterials);
-
-	/** Swap axis in a given transformation matrix. Houdini -> Unreal. **/
-	static void SwapTransformationHoudiniToUnreal(FMatrix& TransformMatrix);
 
 protected:
 

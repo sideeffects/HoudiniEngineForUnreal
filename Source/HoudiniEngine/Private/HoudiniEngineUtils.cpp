@@ -723,10 +723,11 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixel
 }
 
 
-float
-FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue)
+bool
+FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue, float& OutValue)
 {
 	float Value = DefaultValue;
+	bool bComputed = false;
 
 	HAPI_NodeInfo NodeInfo;
 	HAPI_GetNodeInfo(NodeId, &NodeInfo);
@@ -746,17 +747,103 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::
 	if(-1 != ParmNameIdx)
 	{
 		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
-		HAPI_Result Result = HAPI_GetParmFloatValues(NodeId, &Value, ParmInfo.floatValuesIndex, 1);
+		if(HAPI_RESULT_SUCCESS == HAPI_GetParmFloatValues(NodeId, &Value, ParmInfo.floatValuesIndex, 1))
+		{
+			bComputed = true;
+		}
 	}
 
-	return Value;
+	OutValue = Value;
+	return bComputed;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int DefaultValue, int& OutValue)
+{
+	int Value = DefaultValue;
+	bool bComputed = false;
+
+	HAPI_NodeInfo NodeInfo;
+	HAPI_GetNodeInfo(NodeId, &NodeInfo);
+
+	std::vector<HAPI_ParmInfo> NodeParams;
+	NodeParams.resize(NodeInfo.parmCount);
+	HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+
+	// Get names of parameters.
+	std::vector<std::string> NodeParamNames;
+	NodeParamNames.resize(NodeInfo.parmCount);
+	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
+
+	// See if parameter is present.
+	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
+
+	if(-1 != ParmNameIdx)
+	{
+		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
+		if(HAPI_RESULT_SUCCESS == HAPI_GetParmIntValues(NodeId, &Value, ParmInfo.intValuesIndex, 1))
+		{
+			bComputed = true;
+		}
+	}
+
+	OutValue = Value;
+	return bComputed;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName, const FString& DefaultValue, FString& OutValue)
+{
+	FString Value;
+	bool bComputed = false;
+
+	HAPI_NodeInfo NodeInfo;
+	HAPI_GetNodeInfo(NodeId, &NodeInfo);
+
+	std::vector<HAPI_ParmInfo> NodeParams;
+	NodeParams.resize(NodeInfo.parmCount);
+	HAPI_GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+
+	// Get names of parameters.
+	std::vector<std::string> NodeParamNames;
+	NodeParamNames.resize(NodeInfo.parmCount);
+	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
+
+	// See if parameter is present.
+	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
+
+	if(-1 != ParmNameIdx)
+	{
+		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
+		HAPI_StringHandle StringHandle;
+		if(HAPI_RESULT_SUCCESS == HAPI_GetParmStringValues(NodeId, false, &StringHandle, ParmInfo.stringValuesIndex, 1) && 
+		   FHoudiniEngineUtils::GetHoudiniString(StringHandle, Value))
+		{
+			bComputed = true;
+		}
+	}
+
+	if(bComputed)
+	{
+		OutValue = Value;
+	}
+	else
+	{
+		OutValue = DefaultValue;
+	}
+
+	return bComputed;
 }
 
 
 bool
 FHoudiniEngineUtils::HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo)
 {
-	float Alpha = FHoudiniEngineUtils::HapiGetParameterDataAsFloat(MaterialInfo.nodeId, "ogl_alpha", 1.0f);
+	float Alpha;
+	FHoudiniEngineUtils::HapiGetParameterDataAsFloat(MaterialInfo.nodeId, "ogl_alpha", 1.0f, Alpha);
+
 	return Alpha < 0.95f;
 }
 
@@ -1216,7 +1303,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 												 FHoudiniEngineUtils::ScaleFactorTranslate));
 
 		// We need to swap transforms for Z and Y.
-		FHoudiniEngineUtils::SwapTransformationHoudiniToUnreal(TransformMatrix);
+		Swap(TransformMatrix.M[3][1], TransformMatrix.M[3][2]);
 
 		// Iterate through all Geo informations within this object.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
@@ -1224,12 +1311,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 			// Get Geo information.
 			HAPI_GeoInfo GeoInfo;
 			if(HAPI_RESULT_SUCCESS != HAPI_GetGeoInfo(AssetId, ObjectInfo.id, GeoIdx, &GeoInfo))
-			{
-				continue;
-			}
-
-			// Right now only care about display SOPs.
-			if(!GeoInfo.isDisplayGeo)
 			{
 				continue;
 			}
@@ -1243,6 +1324,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 				StaticMesh = nullptr;
 				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 
+				continue;
+			}
+
+			// Right now only care about display SOPs.
+			if(!GeoInfo.isDisplayGeo)
+			{
 				continue;
 			}
 
@@ -1610,11 +1697,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UH
 					{
 						if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
 						{
-							FVector2D WedgeUV1 = RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1];
-							FVector2D WedgeUV2 = RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2];
-
-							RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1] = WedgeUV2;
-							RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2] = WedgeUV1;
+							Swap(RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1], RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2]);
 						}
 					}
 				}
@@ -2187,11 +2270,29 @@ FHoudiniEngineUtils::DeleteFaceMaterialArray(TArray<char*>& OutStaticMeshFaceMat
 
 
 void
-FHoudiniEngineUtils::SwapTransformationHoudiniToUnreal(FMatrix& TransformMatrix)
+FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions)
 {
-	float TransformSwapY = TransformMatrix.M[3][1];
-	float TransformSwapZ = TransformMatrix.M[3][2];
-		
-	TransformMatrix.M[3][1] = TransformSwapZ;
-	TransformMatrix.M[3][2] = TransformSwapY;
+	TArray<FString> PointStrings;
+	int32 NumPoints = Positions.ParseIntoArray(&PointStrings, TEXT(" "), true);
+
+	for(int32 PositionIdx = 0; PositionIdx < NumPoints; ++PositionIdx)
+	{
+		TArray<FString> PointCoords;
+		const FString& ParsedPoint = PointStrings[PositionIdx];
+		int32 NumCoords = ParsedPoint.ParseIntoArray(&PointCoords, TEXT(","), true);
+
+		if(3 == NumCoords)
+		{
+			FVector Point;
+			Point.X = FCString::Atof(*PointCoords[0]) * FHoudiniEngineUtils::ScaleFactorTranslate;
+			Point.Y = FCString::Atof(*PointCoords[2]) * FHoudiniEngineUtils::ScaleFactorTranslate;
+			Point.Z = FCString::Atof(*PointCoords[1]) * FHoudiniEngineUtils::ScaleFactorTranslate;
+			OutPositions.Add(Point);
+		}
+		else
+		{
+			check(false);
+		}
+	}
 }
+
