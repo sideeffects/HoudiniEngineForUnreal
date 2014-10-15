@@ -243,7 +243,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(After),             C" );
 		return;
 	}
-	
+
 	if(HoudiniAssetActor)
 	{
 		bIsPreviewComponent = HoudiniAssetActor->IsUsedForPreview();
@@ -393,10 +393,9 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 		StaticMeshes = StaticMeshMap;
 	}
 
-	// Process instancers.
 	if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 	{
-		// Initially mark all instancers as unused. Used instancers will be marked as used.
+		// Process instancers, initially mark all instancers as unused. Used instancers will be marked as used.
 		MarkAllInstancersUnused();
 	
 		for(TArray<FHoudiniGeoPartObject>::TIterator Iter(FoundInstancers); Iter; ++Iter)
@@ -423,6 +422,18 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 		// Clear all unused instancers.
 		ClearAllUnusedInstancers();
+
+		// Process curves.
+		TMap<FHoudiniGeoPartObject, USplineComponent*> NewSplineComponents;
+		for(TArray<FHoudiniGeoPartObject>::TIterator Iter(FoundCurves); Iter; ++Iter)
+		{
+			const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
+			AddAttributeCurve(HoudiniGeoPartObject, NewSplineComponents);
+		}
+
+		// Remove unused spline components.
+		ClearAllCurves();
+		SplineComponents = NewSplineComponents;
 	}
 }
 
@@ -430,13 +441,9 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 void
 UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
-	UStaticMesh* HoudiniLogoStaticMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
-
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
-		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
 		UStaticMesh* StaticMesh = Iter.Value();
-
 		if(StaticMesh)
 		{
 			// Locate corresponding component.
@@ -1671,7 +1678,7 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 					{
 						continue;
 					}
-					
+
 					// Retrieve enum value from HAPI.
 					int EnumValue = 0;
 					HOUDINI_CHECK_ERROR(&Result, HAPI_GetParmStringValues(NodeInfo.id, false, &EnumValue, ParmInfoIter.stringValuesIndex, ParmInfoIter.size));
@@ -2709,6 +2716,12 @@ UHoudiniAssetComponent::SetChangedParameterValue(const HAPI_AssetInfo& AssetInfo
 void
 UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 {
+	if(!PropertyAboutToChange)
+	{
+		Super::PreEditChange(PropertyAboutToChange);
+		return;
+	}
+
 	if(PropertyAboutToChange && PropertyAboutToChange->GetName() == TEXT("HoudiniAsset"))
 	{
 		// Memorize current Houdini Asset, since it is about to change.
@@ -2812,7 +2825,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	static const FString CategoryHoudiniInstancedInputs = TEXT("HoudiniInstancedInputs");
 
 	const FString& Category = Property->GetMetaData(TEXT("Category"));
-
 	if(Category == CategoryHoudiniProperties)
 	{
 		// We are changing one of the Houdini properties.
@@ -2936,6 +2948,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	// Release all instanced mesh resources.
 	MarkAllInstancersUnused();
 	ClearAllUnusedInstancers();
+
+	// Release all curve related resources.
+	ClearAllCurves();
 }
 
 
@@ -3954,6 +3969,102 @@ UHoudiniAssetComponent::AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniG
 }
 
 
+bool
+UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents)
+{
+	HAPI_GeoInfo GeoInfo;
+	HAPI_GetGeoInfo(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, &GeoInfo);
+
+	HAPI_NodeInfo NodeInfo;
+	HAPI_GetNodeInfo(GeoInfo.nodeId, &NodeInfo);
+
+	if(!NodeInfo.parmCount)
+	{
+		return false;
+	}
+	
+	static const std::string ParamCoords = "coords";
+	static const std::string ParamType = "type";
+
+	FString CurveCoords;
+	int CurveType;
+
+	if(FHoudiniEngineUtils::HapiGetParameterDataAsString(GeoInfo.nodeId, ParamCoords, TEXT(""), CurveCoords) &&
+	   FHoudiniEngineUtils::HapiGetParameterDataAsInteger(GeoInfo.nodeId, ParamType, 2, CurveType))
+	{
+		// Process coords string and extract positions.
+		TArray<FVector> CurvePoints;
+		CurvePoints.Add(FVector::ZeroVector);
+		FHoudiniEngineUtils::ExtractStringPositions(CurveCoords, CurvePoints);
+		CurvePoints.Add(FVector::ZeroVector);
+
+		if(CurvePoints.Num() < 6 && (CurvePoints.Num() % 2 == 0))
+		{
+			return false;
+		}
+
+		// See if spline component already has been created for this curve.
+		USplineComponent* const* FoundSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
+		USplineComponent* SplineComponent = nullptr;
+
+		if(FoundSplineComponent)
+		{
+			// Spline component has been previously created.
+			SplineComponent = *FoundSplineComponent;
+
+			// We can remove this spline component from current map.
+			SplineComponents.Remove(HoudiniGeoPartObject);
+		}
+		else
+		{
+			// We need to create a new spline component.
+			SplineComponent = ConstructObject<USplineComponent>(USplineComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+
+			// Add to map of components.
+			NewSplineComponents.Add(HoudiniGeoPartObject, SplineComponent);
+
+			SplineComponent->AttachTo(this);
+			SplineComponent->RegisterComponent();
+			SplineComponent->SetVisibility(true);
+			SplineComponent->bAllowSplineEditingPerInstance = true;
+		}
+
+		// Set points for this component.
+		{
+			// Get spline info for this spline.
+			FInterpCurveVector& SplineInfo = SplineComponent->SplineInfo;
+			SplineInfo.Points.Reset(CurvePoints.Num() / 3);
+
+			float InputKey = 0.0f;
+			for(int32 PointIndex = 0; PointIndex < CurvePoints.Num(); PointIndex += 3)
+			{
+				// Retrieve Arriving vector, position and Leaving vector.
+				const FVector& VectorArriving = CurvePoints[PointIndex + 0];
+				const FVector& VectorPosition = CurvePoints[PointIndex + 1];
+				const FVector& VectorLeaving = CurvePoints[PointIndex + 2];
+
+				// Add point, we need to un-project to local frame.
+				int32 Idx = SplineInfo.AddPoint(InputKey, SplineComponent->ComponentToWorld.InverseTransformPosition(VectorPosition));
+				SplineInfo.Points[Idx].InterpMode = CIM_CurveUser;
+				SplineInfo.Points[Idx].ArriveTangent = VectorArriving;
+				SplineInfo.Points[Idx].LeaveTangent = VectorLeaving;
+
+				InputKey += 1.0f;
+			}
+
+			SplineComponent->UpdateSpline();
+		}
+
+		// Insert this spline component into new map.
+		NewSplineComponents.Add(HoudiniGeoPartObject, SplineComponent);
+
+		return true;
+	}
+
+	return false;
+}
+
+
 void
 UHoudiniAssetComponent::MarkAllInstancersUnused()
 {
@@ -4043,6 +4154,20 @@ UHoudiniAssetComponent::CreateInstancedStaticMeshResources()
 
 		// Set component transformation.
 		Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+	}
+}
+
+
+void
+UHoudiniAssetComponent::ClearAllCurves()
+{
+	for(TMap<FHoudiniGeoPartObject, USplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
+	{
+		USplineComponent* SplineComponent = Iter.Value();
+
+		SplineComponent->DetachFromParent();
+		SplineComponent->UnregisterComponent();
+		SplineComponent->DestroyComponent();
 	}
 }
 
