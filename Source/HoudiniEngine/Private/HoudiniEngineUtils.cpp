@@ -2284,9 +2284,9 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 		if(3 == NumCoords)
 		{
 			FVector Point;
-			Point.X = FCString::Atof(*PointCoords[0]) * FHoudiniEngineUtils::ScaleFactorTranslate;
-			Point.Y = FCString::Atof(*PointCoords[2]) * FHoudiniEngineUtils::ScaleFactorTranslate;
-			Point.Z = FCString::Atof(*PointCoords[1]) * FHoudiniEngineUtils::ScaleFactorTranslate;
+			Point.X = FCString::Atof(*PointCoords[0]) * FHoudiniEngineUtils::ScaleFactorPosition;
+			Point.Y = FCString::Atof(*PointCoords[2]) * FHoudiniEngineUtils::ScaleFactorPosition;
+			Point.Z = FCString::Atof(*PointCoords[1]) * FHoudiniEngineUtils::ScaleFactorPosition;
 			OutPositions.Add(Point);
 		}
 		else
