@@ -4029,6 +4029,9 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 			SplineComponent->bAllowSplineEditingPerInstance = true;
 		}
 
+		// Transform the component.
+		SplineComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+
 		// Set points for this component.
 		{
 			// Get spline info for this spline.
@@ -4044,10 +4047,19 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 				const FVector& VectorLeaving = CurvePoints[PointIndex + 2];
 
 				// Add point, we need to un-project to local frame.
-				int32 Idx = SplineInfo.AddPoint(InputKey, SplineComponent->ComponentToWorld.InverseTransformPosition(VectorPosition));
+				int32 Idx = SplineInfo.AddPoint(InputKey, VectorPosition);
 				SplineInfo.Points[Idx].InterpMode = CIM_CurveUser;
-				SplineInfo.Points[Idx].ArriveTangent = VectorArriving;
-				SplineInfo.Points[Idx].LeaveTangent = VectorLeaving;
+				SplineInfo.Points[Idx].ArriveTangent = VectorPosition - VectorArriving;
+				SplineInfo.Points[Idx].LeaveTangent = VectorLeaving - VectorPosition;
+
+				if(PointIndex == 0)
+				{
+					SplineInfo.Points[Idx].ArriveTangent = SplineInfo.Points[Idx].LeaveTangent;
+				}
+				else if(PointIndex + 3 >= CurvePoints.Num())
+				{
+					SplineInfo.Points[Idx].LeaveTangent = SplineInfo.Points[Idx].ArriveTangent;
+				}
 
 				InputKey += 1.0f;
 			}
