@@ -36,7 +36,7 @@ public:
 public:
 
 	/** Reference counting propagation. **/
-	virtual void AddReferencedObjects(FReferenceCollector& Collector);
+	void AddReferencedObjects(FReferenceCollector& Collector);
 
 	/** Serialization. **/
 	void Serialize(FArchive& Ar);

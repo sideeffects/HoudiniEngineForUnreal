@@ -24,8 +24,8 @@ FHoudiniEngineTask::FHoudiniEngineTask() :
 
 
 FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID) :
-	TaskType(InTaskType),
-	HapiGUID(InHapiGUID)
+    HapiGUID(InHapiGUID),
+	TaskType(InTaskType)
 {
 
 }

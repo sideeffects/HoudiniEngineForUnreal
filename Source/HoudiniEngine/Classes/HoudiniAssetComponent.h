@@ -63,6 +63,7 @@ class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
 class USplineComponent;
+class AHoudiniAssetActor;
 class UStaticMeshComponent;
 class UHoudiniAssetParameter;
 class UInstancedStaticMeshComponent;
