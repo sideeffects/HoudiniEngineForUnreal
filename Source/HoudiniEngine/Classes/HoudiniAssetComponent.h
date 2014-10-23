@@ -64,6 +64,7 @@ class UHoudiniAsset;
 class UObjectProperty;
 class USplineComponent;
 class UStaticMeshComponent;
+class UHoudiniAssetParameter;
 class UInstancedStaticMeshComponent;
 
 struct FPropertyChangedEvent;
@@ -82,13 +83,13 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 
 public:
 
-	/** Houdini Asset associated with this component. **/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
-	UHoudiniAsset* HoudiniAsset;
-
 	/** Generated Static meshes used for rendering. **/
 	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
 	TArray<UStaticMesh*> PreviewStaticMeshes;
+
+	/** Houdini Asset associated with this component. **/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
+	UHoudiniAsset* HoudiniAsset;
 
 public:
 
@@ -320,6 +321,23 @@ private:
 	/** Clear all spline related resources. **/
 	void ClearAllCurves();
 
+	/** Hashing function used for hashing parameters into a map. **/
+	uint32 GetHoudiniAssetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const;
+
+	/** Return parameter for a given node and param ids. Will return null if such parameter does not exist. **/
+	UHoudiniAssetParameter* FindHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const;
+	UHoudiniAssetParameter* FindHoudiniAssetParameter(uint32 HashValue) const;
+
+	/** Remove parameter with a given hash node and param ids. **/
+	void RemoveHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId);
+	void RemoveHoudiniAssetParameter(uint32 HashValue);
+
+	/** Create new parameters and attempt to reuse existing ones. **/
+	bool CreateParameters();
+
+	/** Clear all parameters. **/
+	void ClearParameters();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -334,6 +352,10 @@ private:
 	static bool bDisplayEngineNotInitialized;
 
 protected:
+
+	/** Parameters for this component's asset. **/
+	TMap<uint32, UHoudiniAssetParameter*> Parameters;
+
 
 	/** Map of HAPI objects and corresponding static meshes. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
