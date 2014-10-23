@@ -22,6 +22,7 @@
 class FArchive;
 class FReferenceCollector;
 class IDetailCategoryBuilder;
+class UHoudiniAssetComponent;
 
 
 UCLASS()

@@ -52,8 +52,8 @@ HOUDINI_PRIVATE_PATCH(FPrivate_UClass_CreateDefaultObject, UClass::CreateDefault
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAsset(nullptr),
+    PatchedClass(nullptr),
 	ChangedHoudiniAsset(nullptr),
-	PatchedClass(nullptr),
 	AssetId(-1),
 	InputCount(0),
 	HapiNotificationStarted(0.0),
