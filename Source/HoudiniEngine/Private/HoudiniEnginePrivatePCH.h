@@ -37,8 +37,9 @@
 #include "ContentStreaming.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
-#include "IDetailPropertyRow.h"
 #include "DetailWidgetRow.h"
+#include "IDetailGroup.h"
+#include "IDetailPropertyRow.h"
 #include "LevelEditor.h"
 #include "IMainFrameModule.h"
 #include "DesktopPlatformModule.h"
@@ -158,6 +159,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniEngineInstancer.h"
 
 /** HoudiniEngine Class headers. **/
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterInt.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"

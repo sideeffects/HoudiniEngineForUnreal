@@ -40,6 +40,14 @@ private:
 	/** Button click handlers. **/
 	FReply OnButtonClickedBake();
 
+	//float TestValue() const;
+	TOptional<float> TestValue() const;
+	void SetTestValue(float f, int zid);
+	void SetTestValueCommitted(float f, ETextCommit::Type t);
+	float Test;
+
+	//TMap<SNumericEntryBox<float>::FOnValueCommitted, bool> foo;
+
 private:
 
 	/** Helper method used to create actual static meshes. **/

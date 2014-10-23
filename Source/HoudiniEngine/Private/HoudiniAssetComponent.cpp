@@ -113,12 +113,22 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 	// We need to make sure the component class has been patched.
 	UClass* ObjectClass = InThis->GetClass();
 
+	UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*) InThis;
+
+	if(HoudiniAssetComponent)
+	{
+		// Add references for all parameters.
+		for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
+		{
+			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+			Collector.AddReferencedObject(HoudiniAssetParameter, InThis);
+		}
+	}
+
 	if(UHoudiniAssetComponent::StaticClass() != ObjectClass)
 	{
 		if(ObjectClass->ClassAddReferencedObjects == UHoudiniAssetComponent::AddReferencedObjects)
 		{
-			// This is a safe cast since our component is the only type registered for this callback.
-			UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*)InThis;
 			if(HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
 			{
 				// If we have patched class object, add it as referenced.
@@ -630,6 +640,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						// Assign unique actor label based on asset name.
 						//AssignUniqueActorLabel();
+
+						//
+						CreateParameters();
+
 
 						{
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
@@ -1236,8 +1250,9 @@ UHoudiniAssetComponent::ReplaceClassInformation(const FString& ActorLabel, bool 
 		// Properties size does not change as we use the same fixed size buffer.
 		NewClass->PropertiesSize = ClassOfUHoudiniAssetComponent->PropertiesSize;
 
-		// Set super class (we are deriving from UHoudiniAssetComponent).
+		// Set super class.
 		NewClass->SetSuperStruct(ClassOfUHoudiniAssetComponent->GetSuperStruct());
+		//NewClass->SetSuperStruct(ClassOfUHoudiniAssetComponent);
 
 		// Create Class default object.
 		NewClass->ClassDefaultObject = GetClass()->ClassDefaultObject;
@@ -1508,7 +1523,6 @@ UHoudiniAssetComponent::ReplaceClassProperties(UClass* ClassInstance)
 	InstancerProperties.Empty();
 	for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
 	{
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
 		FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
 
 		// Create name for this input.
@@ -3982,26 +3996,35 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 	{
 		return false;
 	}
-	
+
 	static const std::string ParamCoords = "coords";
 	static const std::string ParamType = "type";
+	static const std::string ParamMethod = "method";
 
 	FString CurveCoords;
-	int CurveType;
+	int CurveTypeValue = 2;
+	int CurveMethodValue = 0;
 
 	if(FHoudiniEngineUtils::HapiGetParameterDataAsString(GeoInfo.nodeId, ParamCoords, TEXT(""), CurveCoords) &&
-	   FHoudiniEngineUtils::HapiGetParameterDataAsInteger(GeoInfo.nodeId, ParamType, 2, CurveType))
+	   FHoudiniEngineUtils::HapiGetParameterDataAsInteger(GeoInfo.nodeId, ParamType, 2, CurveTypeValue) &&
+	   FHoudiniEngineUtils::HapiGetParameterDataAsInteger(GeoInfo.nodeId, ParamMethod, 0, CurveMethodValue))
 	{
+		// Check if we support method, 0 - cv/tangents, 1 - breakpoints/autocompute.
+		if(0 != CurveMethodValue && 1 != CurveMethodValue)
+		{
+			return false;
+		}
+
 		// Process coords string and extract positions.
 		TArray<FVector> CurvePoints;
-		CurvePoints.Add(FVector::ZeroVector);
 		FHoudiniEngineUtils::ExtractStringPositions(CurveCoords, CurvePoints);
-		CurvePoints.Add(FVector::ZeroVector);
 
+		/*
 		if(CurvePoints.Num() < 6 && (CurvePoints.Num() % 2 == 0))
 		{
 			return false;
 		}
+		*/
 
 		// See if spline component already has been created for this curve.
 		USplineComponent* const* FoundSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
@@ -4027,16 +4050,32 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 			SplineComponent->RegisterComponent();
 			SplineComponent->SetVisibility(true);
 			SplineComponent->bAllowSplineEditingPerInstance = true;
+			SplineComponent->bStationaryEndpoints = true;
+			SplineComponent->ReparamStepsPerSegment = 25;
 		}
 
 		// Transform the component.
 		SplineComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 
-		// Set points for this component.
+		if(0 == CurveMethodValue)
 		{
+			// This is CV mode, we get tangents together with points.
+
 			// Get spline info for this spline.
 			FInterpCurveVector& SplineInfo = SplineComponent->SplineInfo;
 			SplineInfo.Points.Reset(CurvePoints.Num() / 3);
+
+			SplineComponent->SetSplineLocalPoints(CurvePoints);
+		}
+		else if(1 == CurveMethodValue)
+		{
+			// This is breakpoint mode, tangents need to be autocomputed.
+			SplineComponent->SetSplineLocalPoints(CurvePoints);
+		}
+		/*
+		// Set points for this component.
+		{
+			
 
 			float InputKey = 0.0f;
 			for(int32 PointIndex = 0; PointIndex < CurvePoints.Num(); PointIndex += 3)
@@ -4066,6 +4105,7 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 
 			SplineComponent->UpdateSpline();
 		}
+		*/
 
 		// Insert this spline component into new map.
 		NewSplineComponents.Add(HoudiniGeoPartObject, SplineComponent);
@@ -4181,6 +4221,195 @@ UHoudiniAssetComponent::ClearAllCurves()
 		SplineComponent->UnregisterComponent();
 		SplineComponent->DestroyComponent();
 	}
+}
+
+
+uint32
+UHoudiniAssetComponent::GetHoudiniAssetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const
+{
+	int HashBuffer[2] = { NodeId, ParmId };
+	uint32 HashValue = FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
+	return HashValue;
+}
+
+
+UHoudiniAssetParameter*
+UHoudiniAssetComponent::FindHoudiniAssetParameter(uint32 HashValue) const
+{
+	UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
+
+	// See if parameter exists.
+	UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = Parameters.Find(HashValue);
+
+	if(FoundHoudiniAssetParameter)
+	{
+		HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+	}
+
+	return HoudiniAssetParameter;
+}
+
+
+UHoudiniAssetParameter*
+UHoudiniAssetComponent::FindHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const
+{
+	uint32 HashValue = GetHoudiniAssetParameterHash(NodeId, ParmId);
+	UHoudiniAssetParameter* HoudiniAssetParameter = FindHoudiniAssetParameter(HashValue);
+	return HoudiniAssetParameter;
+}
+
+
+void
+UHoudiniAssetComponent::RemoveHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId)
+{
+	uint32 ValueHash = GetHoudiniAssetParameterHash(NodeId, ParmId);
+	RemoveHoudiniAssetParameter(ValueHash);
+}
+
+
+void
+UHoudiniAssetComponent::RemoveHoudiniAssetParameter(uint32 HashValue)
+{
+	Parameters.Remove(HashValue);
+}
+
+
+bool
+UHoudiniAssetComponent::CreateParameters()
+{
+	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		// There's no Houdini asset, we can return.
+		return true;
+	}
+
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
+
+	// Map of newly created and reused parameters.
+	TMap<uint32, UHoudiniAssetParameter*> NewParameters;
+
+	HAPI_AssetInfo AssetInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+
+	HAPI_NodeInfo NodeInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetNodeInfo(AssetInfo.nodeId, &NodeInfo), false);
+
+	// Retrieve parameters.
+	TArray<HAPI_ParmInfo> ParmInfos;
+	ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParameters(AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount), false);
+
+	// Retrieve integer values for this asset.
+	TArray<int> ParmValueInts;
+	ParmValueInts.SetNumZeroed(NodeInfo.parmIntValueCount);
+	if(NodeInfo.parmIntValueCount > 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIntValues(AssetInfo.nodeId, &ParmValueInts[0], 0, NodeInfo.parmIntValueCount), false);
+	}
+
+	// Retrieve float values for this asset.
+	TArray<float> ParmValueFloats;
+	ParmValueFloats.SetNumZeroed(NodeInfo.parmFloatValueCount);
+	if(NodeInfo.parmFloatValueCount > 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmFloatValues(AssetInfo.nodeId, &ParmValueFloats[0], 0, NodeInfo.parmFloatValueCount), false);
+	}
+
+	// Retrieve string values for this asset.
+	TArray<HAPI_StringHandle> ParmValueStrings;
+	ParmValueStrings.SetNumZeroed(NodeInfo.parmStringValueCount);
+	if(NodeInfo.parmStringValueCount > 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmValueStrings[0], 0, NodeInfo.parmStringValueCount), false);
+	}
+
+	// Create properties for parameters.
+	for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
+	{
+		// Retrieve param info at this index.
+		const HAPI_ParmInfo& ParmInfo = ParmInfos[ParamIdx];
+
+		// If parameter is invisible, skip it.
+		if(ParmInfo.invisible)
+		{
+			continue;
+		}
+
+		// See if this parameter has already been created.
+		uint32 ParameterHash = GetHoudiniAssetParameterHash(AssetInfo.nodeId, ParmInfo.id);
+		HoudiniAssetParameter = FindHoudiniAssetParameter(ParameterHash);
+
+		// If parameter exists, we can reuse it.
+		if(HoudiniAssetParameter)
+		{
+			// Remove parameter from current map.
+			RemoveHoudiniAssetParameter(ParameterHash);
+
+			// Reinitialize parameter and add it to map.
+			HoudiniAssetParameter->CreateParameter(this, AssetInfo.nodeId, ParmInfo);
+			NewParameters.Add(ParameterHash, HoudiniAssetParameter);
+			continue;
+		}
+
+		// Skip unsupported param types for now.
+		switch(ParmInfo.type)
+		{
+			case HAPI_PARMTYPE_INT:
+			{
+				if(!ParmInfo.choiceCount)
+				{
+					if(1 == ParmInfo.size)
+					{
+						HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(this, AssetInfo.nodeId, ParmInfo);
+					}
+					else
+					{
+						continue;
+					}
+				}
+				else
+				{
+					continue;
+				}
+
+				break;
+			}
+
+			case HAPI_PARMTYPE_FLOAT:
+			case HAPI_PARMTYPE_TOGGLE:
+			case HAPI_PARMTYPE_COLOR:
+			case HAPI_PARMTYPE_STRING:
+			case HAPI_PARMTYPE_PATH_NODE:
+			default:
+			{
+				// Just ignore unsupported types for now.
+				continue;
+			}
+		}
+
+		// Add this parameter to the map.
+		NewParameters.Add(ParameterHash, HoudiniAssetParameter);
+	}
+
+	// Remove all unused parameters.
+	ClearParameters();
+
+	Parameters = NewParameters;
+	return true;
+}
+
+
+void
+UHoudiniAssetComponent::ClearParameters()
+{
+	for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+		HoudiniAssetParameter->BeginDestroy();
+	}
+
+	Parameters.Empty();
 }
 
 
