@@ -122,6 +122,9 @@ public:
 	/** Return true if this component contains Houdini logo geometry. **/
 	bool ContainsHoudiniLogoGeometry() const;
 
+	/** Callback used by parameters to notify component about their changes. **/
+	void NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
+
 public: /** UObject methods. **/
 
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
@@ -339,6 +342,9 @@ private:
 	/** Clear all parameters. **/
 	void ClearParameters();
 
+	/** Upload changed parameters back to HAPI. **/
+	void UploadChangedParameters();
+
 public:
 
 	/** Some RTTI classes which are used during property construction. **/
@@ -436,6 +442,9 @@ protected:
 
 	/** Is set to true when PIE mode is on (either play or simulate.) **/
 	bool bIsPlayModeActive;
+
+	/** Is set to true when one of the parameters for this component has been modified. This will trigger recook. **/
+	bool bParametersChanged;
 
 private:
 
