@@ -17,23 +17,23 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterInt.generated.h"
+#include "HoudiniAssetParameterFloat.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterInt : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterFloat : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterInt();
+	virtual ~UHoudiniAssetParameterFloat();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterInt* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+	static UHoudiniAssetParameterFloat* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
@@ -54,30 +54,30 @@ public: /** UObject methods. **/
 public:
 
 	/** Get value of this property, used by Slate. **/
-	TOptional<int32> GetValue() const;
+	TOptional<float> GetValue() const;
 
 	/** Set value of this property, used by Slate. **/
-	void SetValue(int32 InValue);
+	void SetValue(float InValue);
 
 	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(int32 InValue, ETextCommit::Type CommitType);
+	void SetValueCommitted(float InValue, ETextCommit::Type CommitType);
 
 	/** Delegate fired when slider for this property begins moving. **/
 	void OnSliderMovingBegin();
 
 	/** Delegate fired when slider for this property has finished moving. **/
-	void OnSliderMovingFinish(int32 InValue);
+	void OnSliderMovingFinish(float InValue);
 
 protected:
 
 	/** Value of this property. **/
-	int32 Value;
+	float Value;
 
 	/** Min and Max values for this property. **/
-	int32 ValueMin;
-	int32 ValueMax;
+	float ValueMin;
+	float ValueMax;
 
 	/** Min and Max values for UI for this property. **/
-	int32 ValueUIMin;
-	int32 ValueUIMax;
+	float ValueUIMin;
+	float ValueUIMax;
 };

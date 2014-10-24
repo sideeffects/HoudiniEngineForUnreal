@@ -63,7 +63,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
 	bInstantiated(false),
-	bIsPlayModeActive(false)
+	bIsPlayModeActive(false),
+	bParametersChanged(false)
 {
 	UObject* Object = PCIP.GetObject();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -644,7 +645,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						//
 						CreateParameters();
 
-
 						{
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
 							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, StaticMeshes, NewStaticMeshes))
@@ -785,7 +785,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (bInstantiated || (ChangedProperties.Num() > 0)))
+	//if(!HapiGUID.IsValid() && (bInstantiated || (ChangedProperties.Num() > 0)))
+	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -795,6 +796,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		// Create new GUID to identify this request.
 		HapiGUID = FGuid::NewGuid();
 
+		// This component has been loaded and requires instantiation.
 		if(bLoadedComponentRequiresInstantiation)
 		{
 			bLoadedComponentRequiresInstantiation = false;
@@ -806,6 +808,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 		else
 		{
+			/*
 			// We need to set all property values.
 			SetChangedPropertyValues();
 
@@ -822,6 +825,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			}
 
 			// Create asset instantiation task object and submit it for processing.
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+			Task.ActorName = GetOuter()->GetName();
+			Task.AssetComponent = this;
+			FHoudiniEngine::Get().AddTask(Task);
+			*/
+
+			// Upload changed parameters back to HAPI.
+			UploadChangedParameters();
+
+			// Create asset cooking task object and submit it for processing.
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
 			Task.ActorName = GetOuter()->GetName();
 			Task.AssetComponent = this;
@@ -4355,6 +4368,27 @@ UHoudiniAssetComponent::CreateParameters()
 		// Skip unsupported param types for now.
 		switch(ParmInfo.type)
 		{
+			case HAPI_PARMTYPE_STRING:
+			{
+				if(!ParmInfo.choiceCount)
+				{
+					if(1 == ParmInfo.size)
+					{
+						HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, AssetInfo.nodeId, ParmInfo);
+					}
+					else
+					{
+						continue;
+					}
+				}
+				else
+				{
+					continue;
+				}
+
+				break;
+			}
+
 			case HAPI_PARMTYPE_INT:
 			{
 				if(!ParmInfo.choiceCount)
@@ -4377,9 +4411,21 @@ UHoudiniAssetComponent::CreateParameters()
 			}
 
 			case HAPI_PARMTYPE_FLOAT:
+			{
+				if(1 == ParmInfo.size)
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterFloat::Create(this, AssetInfo.nodeId, ParmInfo);
+				}
+				else
+				{
+					continue;
+				}
+
+				break;
+			}
+
 			case HAPI_PARMTYPE_TOGGLE:
 			case HAPI_PARMTYPE_COLOR:
-			case HAPI_PARMTYPE_STRING:
 			case HAPI_PARMTYPE_PATH_NODE:
 			default:
 			{
@@ -4410,6 +4456,33 @@ UHoudiniAssetComponent::ClearParameters()
 	}
 
 	Parameters.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
+{
+	bParametersChanged = true;
+	StartHoudiniTicking();
+}
+
+
+void
+UHoudiniAssetComponent::UploadChangedParameters()
+{
+	for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+		// If parameter has changed, upload it to HAPI.
+		if(HoudiniAssetParameter->HasChanged())
+		{
+			HoudiniAssetParameter->UploadParameterValue();
+		}
+	}
+
+	// We no longer have changed parameters.
+	bParametersChanged = false;
 }
 
 

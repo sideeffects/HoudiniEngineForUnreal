@@ -20,7 +20,8 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FPostConstructInitializePro
 	Super(PCIP),
 	HoudiniAssetComponent(nullptr),
 	NodeId(-1),
-	ParmId(-1)
+	ParmId(-1),
+	bChanged(false)
 {
 
 }
@@ -35,6 +36,12 @@ UHoudiniAssetParameter::~UHoudiniAssetParameter()
 bool
 UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
+	// If parameter has valid ids and has changed, we do not need to recreate it.
+	if(HasValidNodeParmIds() && bChanged)
+	{
+		return false;
+	}
+
 	// If parameter is invisible, we cannot create it.
 	if(!IsVisible(ParmInfo))
 	{
@@ -61,6 +68,23 @@ void
 UHoudiniAssetParameter::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 
+}
+
+
+bool
+UHoudiniAssetParameter::UploadParameterValue()
+{
+	// Mark this parameter as no longer changed.
+	bChanged = false;
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetParameter::HasChanged() const
+{
+	return bChanged;
 }
 
 
@@ -95,6 +119,13 @@ UHoudiniAssetParameter::SetNodeParmIds(HAPI_NodeId InNodeId, HAPI_ParmId InParmI
 {
 	NodeId = InNodeId;
 	ParmId = InParmId;
+}
+
+
+bool
+UHoudiniAssetParameter::HasValidNodeParmIds() const
+{
+	return ((-1 != NodeId) && (-1 != ParmId));
 }
 
 
@@ -172,4 +203,18 @@ UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, 
 	// Convert HAPI string to Unreal string.
 	RetrievedString = UTF8_TO_TCHAR(&NameBuffer[0]);
 	return true;
+}
+
+
+void
+UHoudiniAssetParameter::MarkChanged()
+{
+	// Set changed flag.
+	bChanged = true;
+
+	// Notify component about change.
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->NotifyParameterChanged(this);
+	}
 }

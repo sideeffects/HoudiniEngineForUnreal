@@ -43,6 +43,14 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
 
+	/** Upload parameter value to HAPI. **/
+	virtual bool UploadParameterValue();
+
+public:
+
+	/** Return true if this parameter has been changed. **/
+	bool HasChanged() const;
+
 public: /** UObject methods. **/
 
 	virtual void Serialize(FArchive& Ar) override;
@@ -50,24 +58,30 @@ public: /** UObject methods. **/
 
 protected:
 
-	// Set parameter and node ids.
+	/** Set parameter and node ids. **/
 	void SetNodeParmIds(HAPI_NodeId InNodeId, HAPI_ParmId InParmId);
 
-	// Set name and label. If label does not exist, name will be used instead for label. If error occurs, false will be returned. **/
+	/** Return true if parameter and node ids are valid. **/
+	bool HasValidNodeParmIds() const;
+
+	/** Set name and label. If label does not exist, name will be used instead for label. If error occurs, false will be returned. **/
 	bool SetNameAndLabel(const HAPI_ParmInfo& ParmInfo);
 
-	// Check if parameter is visible.
+	/** Check if parameter is visible. **/
 	bool IsVisible(const HAPI_ParmInfo& ParmInfo) const;
 
-	// Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist.
+	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
 	bool RetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& RetrievedName) const;
 
-	// Helper function to retrieve label name from a given param info structure. Returns false if does not exist.
+	/** Helper function to retrieve label name from a given param info structure. Returns false if does not exist. **/
 	bool RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel) const;
+
+	/** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
+	void MarkChanged();
 
 private:
 
-	// Helper function to retrieve HAPI string and convert it to Unreal one.
+	/** Helper function to retrieve HAPI string and convert it to Unreal one. **/
 	bool RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedName) const;
 
 protected:
@@ -86,4 +100,7 @@ protected:
 
 	/** Id of this parameter. **/
 	HAPI_ParmId ParmId;
+
+	/** Is set to true if value of this parameter has been changed by user. **/
+	bool bChanged;
 };

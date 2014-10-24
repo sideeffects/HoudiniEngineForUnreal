@@ -132,6 +132,24 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 }
 
 
+bool
+UHoudiniAssetParameterInt::UploadParameterValue()
+{
+	HAPI_ParmInfo ParmInfo;
+	if(HAPI_RESULT_SUCCESS != HAPI_GetParameters(NodeId, &ParmInfo, ParmId, 1))
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != HAPI_SetParmIntValues(NodeId, &Value, ParmInfo.intValuesIndex, ParmInfo.size))
+	{
+		return false;
+	}
+
+	return Super::UploadParameterValue();
+}
+
+
 TOptional<int32>
 UHoudiniAssetParameterInt::GetValue() const
 {
@@ -143,6 +161,9 @@ void
 UHoudiniAssetParameterInt::SetValue(int32 InValue)
 {
 	Value = InValue;
+
+	// Mark this parameter as changed.
+	MarkChanged();
 }
 
 
