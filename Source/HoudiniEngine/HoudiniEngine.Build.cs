@@ -16,9 +16,9 @@
 
 /*
 
-	Houdini Version: 13.0.574
+	Houdini Version: 13.0.575
 	Houdini Engine Version: 1.8.18
-	Unreal Version: 4.4.1
+	Unreal Version: 4.5.0
 
  */
 
@@ -29,14 +29,54 @@ namespace UnrealBuildTool.Rules
 		public HoudiniEngine(TargetInfo Target)
 		{
 			Definitions.Add("HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE=65536");
+			
+			string HFSPath = "";
+			string HoudiniVersion = "13.0.575";
+			
+			string HAPILib = "";
+			string HAPILibPath = "";
+			
+			if ( HFSPath == "" )
+			{
+				if( Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 )
+				{
+					HFSPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
+				}
+				else if( Target.Platform == UnrealTargetPlatform.Mac )
+				{
+					HFSPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion;
+				}
+				else if( Target.Platform == UnrealTargetPlatform.Linux )
+				{
+					HFSPath = "/opt/hfs" + HoudiniVersion;
+				}
+			}
 
-			PublicLibraryPaths.Add("C:/Program Files/Side Effects Software/Houdini 13.0.574/custom/houdini/dsolib");
-			PublicAdditionalLibraries.Add("C:/Program Files/Side Effects Software/Houdini 13.0.574/custom/houdini/dsolib/libHAPI.a");
+			string HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
+
+			if( Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 )
+			{
+				HAPILib = "libHAPI.a";
+				HAPILibPath = HFSPath + "/custom/houdini/dsolib";
+			}
+			else if( Target.Platform == UnrealTargetPlatform.Mac )
+			{
+				HAPILib = "libHAPI.dylib";
+				HAPILibPath = HFSPath + "/dsolib";
+			}
+			else if( Target.Platform == UnrealTargetPlatform.Linux )
+			{
+				HAPILib = "libHAPI.so";
+				HAPILibPath = HFSPath + "/dsolib";
+			}
+			
+			PublicLibraryPaths.Add(HAPILibPath);
+			PublicAdditionalLibraries.Add(HAPILibPath + "/" + HAPILib);
 
 			PublicIncludePaths.AddRange(
 				new string[] {
 					// ... add public include paths required here ...
-					"C:/Program Files/Side Effects Software/Houdini 13.0.574/toolkit/include/HAPI"
+					HAPIIncludePath
 				}
 				);
 
