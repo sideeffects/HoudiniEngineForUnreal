@@ -54,10 +54,10 @@ public: /** UObject methods. **/
 public:
 
 	/** Set value of this property, used by Slate. **/
-	void SetValue(const FText& InValue);
+	void SetValue(const FText& InValue, int32 Idx);
 
 	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType);
+	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx);
 
 protected:
 
