@@ -46,7 +46,7 @@ UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		return false;
 	}
 
-	// We can only handle integer type.
+	// We can only handle string type.
 	if(HAPI_PARMTYPE_STRING != ParmInfo.type)
 	{
 		return false;

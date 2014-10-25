@@ -4403,6 +4403,11 @@ UHoudiniAssetComponent::CreateParameters()
 			}
 
 			case HAPI_PARMTYPE_TOGGLE:
+			{
+				HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create(this, AssetInfo.nodeId, ParmInfo);
+				break;
+			}
+
 			case HAPI_PARMTYPE_COLOR:
 			case HAPI_PARMTYPE_PATH_NODE:
 			default:

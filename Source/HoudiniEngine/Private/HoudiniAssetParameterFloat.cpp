@@ -67,7 +67,7 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		return false;
 	}
 
-	// We can only handle integer type.
+	// We can only handle float type.
 	if(HAPI_PARMTYPE_FLOAT != ParmInfo.type)
 	{
 		return false;
