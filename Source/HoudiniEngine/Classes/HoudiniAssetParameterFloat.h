@@ -54,24 +54,24 @@ public: /** UObject methods. **/
 public:
 
 	/** Get value of this property, used by Slate. **/
-	TOptional<float> GetValue() const;
+	TOptional<float> GetValue(int32 Idx) const;
 
 	/** Set value of this property, used by Slate. **/
-	void SetValue(float InValue);
+	void SetValue(float InValue, int32 Idx);
 
 	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(float InValue, ETextCommit::Type CommitType);
+	void SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx);
 
 	/** Delegate fired when slider for this property begins moving. **/
-	void OnSliderMovingBegin();
+	void OnSliderMovingBegin(int32 Idx);
 
 	/** Delegate fired when slider for this property has finished moving. **/
-	void OnSliderMovingFinish(float InValue);
+	void OnSliderMovingFinish(float InValue, int32 Idx);
 
 protected:
 
-	/** Value of this property. **/
-	float Value;
+	/** Values of this property. **/
+	TArray<float> Values;
 
 	/** Min and Max values for this property. **/
 	float ValueMin;
