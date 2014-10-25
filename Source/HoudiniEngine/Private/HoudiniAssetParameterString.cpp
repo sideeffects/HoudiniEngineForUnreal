@@ -104,12 +104,22 @@ UHoudiniAssetParameterString::CreateWidget(IDetailCategoryBuilder& DetailCategor
 							.ToolTipText(Label)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
-	Row.ValueWidget.Widget = SNew(SEditableTextBox)
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-							
-							.Text(FText::FromString(Values[0]))
-							.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetParameterString::SetValue))
-							.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetParameterString::SetValueCommitted));
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		VerticalBox->AddSlot().Padding(0, 2)
+		[
+			SNew(SEditableTextBox)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+			.Text(FText::FromString(Values[0]))
+			.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetParameterString::SetValue, Idx))
+			.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetParameterString::SetValueCommitted, Idx))
+		];
+	}
+
+	Row.ValueWidget.Widget = VerticalBox;
 }
 
 
@@ -130,16 +140,16 @@ UHoudiniAssetParameterString::UploadParameterValue()
 
 
 void
-UHoudiniAssetParameterString::SetValue(const FText& InValue)
+UHoudiniAssetParameterString::SetValue(const FText& InValue, int32 Idx)
 {
 
 }
 
 
 void
-UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType)
+UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx)
 {
-	Values[0] = InValue.ToString();
+	Values[Idx] = InValue.ToString();
 
 	// Mark this parameter as changed.
 	MarkChanged();
