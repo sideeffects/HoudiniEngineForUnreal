@@ -19,7 +19,7 @@
 UHoudiniAssetParameterString::UHoudiniAssetParameterString(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP)
 {
-
+	Values.Add(TEXT(""));
 }
 
 
@@ -52,21 +52,25 @@ UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		return false;
 	}
 
+	// Assign internal Hapi values index.
+	SetValuesIndex(ParmInfo.stringValuesIndex);
+
 	// Get the actual value for this property.
-	HAPI_StringHandle StringHandle;
-	if(HAPI_RESULT_SUCCESS != HAPI_GetParmStringValues(InNodeId, false, &StringHandle, ParmInfo.stringValuesIndex, 1))
+	TArray<HAPI_StringHandle> StringHandles;
+	StringHandles.SetNum(TupleSize);
+	if(HAPI_RESULT_SUCCESS != HAPI_GetParmStringValues(InNodeId, false, &StringHandles[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
 
-	// Convert HAPI string handle to Unreal text.
-	FString ValueString;
-	if(!FHoudiniEngineUtils::GetHoudiniString(StringHandle, ValueString))
+	// Convert HAPI string handles to Unreal strings.
+	Values.SetNum(TupleSize);
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
-		return false;
+		FString ValueString = TEXT("");
+		FHoudiniEngineUtils::GetHoudiniString(StringHandles[Idx], ValueString);
+		Values[Idx] = ValueString;
 	}
-
-	Value = FText::FromString(ValueString);
 
 	return true;
 }
@@ -103,7 +107,7 @@ UHoudiniAssetParameterString::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	Row.ValueWidget.Widget = SNew(SEditableTextBox)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 							
-							.Text(Value)
+							.Text(FText::FromString(Values[0]))
 							.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetParameterString::SetValue))
 							.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetParameterString::SetValueCommitted));
 }
@@ -112,16 +116,13 @@ UHoudiniAssetParameterString::CreateWidget(IDetailCategoryBuilder& DetailCategor
 bool
 UHoudiniAssetParameterString::UploadParameterValue()
 {
-	HAPI_ParmInfo ParmInfo;
-	if(HAPI_RESULT_SUCCESS != HAPI_GetParameters(NodeId, &ParmInfo, ParmId, 1))
+	for(int32 Idx = 0; Idx < Values.Num(); ++Idx)
 	{
-		return false;
-	}
-
-	std::string String = TCHAR_TO_UTF8(*(Value.ToString()));
-	if(HAPI_RESULT_SUCCESS != HAPI_SetParmStringValue(NodeId, String.c_str(), ParmId, 0))
-	{
-		return false;
+		std::string ConvertedString = TCHAR_TO_UTF8(*(Values[Idx]));
+		if(HAPI_RESULT_SUCCESS != HAPI_SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, Idx))
+		{
+			return false;
+		}
 	}
 
 	return Super::UploadParameterValue();
@@ -138,7 +139,7 @@ UHoudiniAssetParameterString::SetValue(const FText& InValue)
 void
 UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType)
 {
-	Value = InValue;
+	Values[0] = InValue.ToString();
 
 	// Mark this parameter as changed.
 	MarkChanged();

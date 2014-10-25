@@ -79,6 +79,15 @@ protected:
 	/** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
 	void MarkChanged();
 
+	/** Return tuple size. **/
+	int32 GetTupleSize() const;
+
+	/** Return true if this parameter is an array (has tuple size larger than one). **/
+	bool IsArray() const;
+
+	/** Sets internal value index used by this parameter. **/
+	void SetValuesIndex(int32 InValuesIndex);
+
 private:
 
 	/** Helper function to retrieve HAPI string and convert it to Unreal one. **/
@@ -100,6 +109,12 @@ protected:
 
 	/** Id of this parameter. **/
 	HAPI_ParmId ParmId;
+
+	/** Tuple size - arrays. **/
+	int32 TupleSize;
+
+	/** Internal HAPI cached value index. **/
+	int32 ValuesIndex;
 
 	/** Is set to true if value of this parameter has been changed by user. **/
 	bool bChanged;

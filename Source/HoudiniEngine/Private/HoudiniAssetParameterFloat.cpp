@@ -18,19 +18,35 @@
 
 UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
-	Value(0.0f),
 	ValueMin(TNumericLimits<float>::Lowest()),
 	ValueMax(TNumericLimits<float>::Max()),
 	ValueUIMin(TNumericLimits<float>::Lowest()),
 	ValueUIMax(TNumericLimits<float>::Max())
 {
-
+	// Parameter will have at least one value.
+	Values.AddZeroed(1);
 }
 
 
 UHoudiniAssetParameterFloat::~UHoudiniAssetParameterFloat()
 {
 
+}
+
+
+void
+UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
+{
+	// Call base implementation.
+	Super::Serialize(Ar);
+}
+
+
+void
+UHoudiniAssetParameterFloat::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	// Call base implementation.
+	Super::AddReferencedObjects(InThis, Collector);
 }
 
 
@@ -57,8 +73,12 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		return false;
 	}
 
+	// Assign internal Hapi values index.
+	SetValuesIndex(ParmInfo.floatValuesIndex);
+
 	// Get the actual value for this property.
-	if(HAPI_RESULT_SUCCESS != HAPI_GetParmFloatValues(InNodeId, &Value, ParmInfo.floatValuesIndex, 1))
+	Values.SetNumZeroed(TupleSize);
+	if(HAPI_RESULT_SUCCESS != HAPI_GetParmFloatValues(InNodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -111,37 +131,41 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 							.ToolTipText(Label)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
-	Row.ValueWidget.Widget = SNew(SNumericEntryBox<float>)
-							.AllowSpin(true)
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		VerticalBox->AddSlot().Padding(0, 2)
+		[
+			SNew(SNumericEntryBox<float>)
+			.AllowSpin(true)
 
-							.MinValue(ValueMin)
-							.MaxValue(ValueMax)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 
-							.MinSliderValue(ValueUIMin)
-							.MaxSliderValue(ValueUIMax)
+			.MinValue(ValueMin)
+			.MaxValue(ValueMax)
 
-							.Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetParameterFloat::GetValue)))
-							.OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this, &UHoudiniAssetParameterFloat::SetValue))
-							.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(this, &UHoudiniAssetParameterFloat::SetValueCommitted))
-							.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin))
-							.OnEndSliderMovement(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish))
+			.MinSliderValue(ValueUIMin)
+			.MaxSliderValue(ValueUIMax)
 
-							.SliderExponent(1.0f);
+			.Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetParameterFloat::GetValue, Idx)))
+			.OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this, &UHoudiniAssetParameterFloat::SetValue, Idx))
+			.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx))
+			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx))
+			.OnEndSliderMovement(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx))
+
+			.SliderExponent(1.0f)
+		];
+	}
+
+	Row.ValueWidget.Widget = VerticalBox;
 }
 
 
 bool
 UHoudiniAssetParameterFloat::UploadParameterValue()
 {
-	HAPI_ParmInfo ParmInfo;
-	if(HAPI_RESULT_SUCCESS != HAPI_GetParameters(NodeId, &ParmInfo, ParmId, 1))
-	{
-		return false;
-	}
-
-	if(HAPI_RESULT_SUCCESS != HAPI_SetParmFloatValues(NodeId, &Value, ParmInfo.floatValuesIndex, ParmInfo.size))
+	if(HAPI_RESULT_SUCCESS != HAPI_SetParmFloatValues(NodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -151,16 +175,16 @@ UHoudiniAssetParameterFloat::UploadParameterValue()
 
 
 TOptional<float>
-UHoudiniAssetParameterFloat::GetValue() const
+UHoudiniAssetParameterFloat::GetValue(int32 Idx) const
 {
-	return TOptional<float>(Value);
+	return TOptional<float>(Values[Idx]);
 }
 
 
 void
-UHoudiniAssetParameterFloat::SetValue(float InValue)
+UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 {
-	Value = InValue;
+	Values[Idx] = FMath::Clamp<float>(InValue, ValueMin, ValueMax);
 
 	// Mark this parameter as changed.
 	MarkChanged();
@@ -168,37 +192,21 @@ UHoudiniAssetParameterFloat::SetValue(float InValue)
 
 
 void
-UHoudiniAssetParameterFloat::SetValueCommitted(float InValue, ETextCommit::Type CommitType)
+UHoudiniAssetParameterFloat::SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx)
 {
 
 }
 
 
 void
-UHoudiniAssetParameterFloat::OnSliderMovingBegin()
+UHoudiniAssetParameterFloat::OnSliderMovingBegin(int32 Idx)
 {
 
 }
 
 
 void
-UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue)
+UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
 {
 
-}
-
-
-void
-UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
-{
-	// Call base implementation.
-	Super::Serialize(Ar);
-}
-
-
-void
-UHoudiniAssetParameterFloat::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
 }

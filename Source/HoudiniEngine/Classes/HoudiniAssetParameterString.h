@@ -61,6 +61,6 @@ public:
 
 protected:
 
-	/** Value of this property. **/
-	FText Value;
+	/** Values of this property. **/
+	TArray<FString> Values;
 };

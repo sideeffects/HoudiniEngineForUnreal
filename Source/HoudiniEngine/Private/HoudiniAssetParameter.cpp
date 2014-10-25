@@ -21,6 +21,8 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FPostConstructInitializePro
 	HoudiniAssetComponent(nullptr),
 	NodeId(-1),
 	ParmId(-1),
+	TupleSize(1),
+	ValuesIndex(-1),
 	bChanged(false)
 {
 
@@ -56,6 +58,9 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 
 	// Set ids.
 	SetNodeParmIds(InNodeId, ParmInfo.id);
+
+	// Set tuple count.
+	TupleSize = ParmInfo.size;
 
 	// Set component.
 	HoudiniAssetComponent = InHoudiniAssetComponent;
@@ -218,3 +223,25 @@ UHoudiniAssetParameter::MarkChanged()
 		HoudiniAssetComponent->NotifyParameterChanged(this);
 	}
 }
+
+
+int32
+UHoudiniAssetParameter::GetTupleSize() const
+{
+	return TupleSize;
+}
+
+
+bool
+UHoudiniAssetParameter::IsArray() const
+{
+	return TupleSize > 1;
+}
+
+
+void
+UHoudiniAssetParameter::SetValuesIndex(int32 InValuesIndex)
+{
+	ValuesIndex = InValuesIndex;
+}
+

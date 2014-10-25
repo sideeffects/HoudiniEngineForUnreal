@@ -4372,14 +4372,7 @@ UHoudiniAssetComponent::CreateParameters()
 			{
 				if(!ParmInfo.choiceCount)
 				{
-					if(1 == ParmInfo.size)
-					{
-						HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, AssetInfo.nodeId, ParmInfo);
-					}
-					else
-					{
-						continue;
-					}
+					HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, AssetInfo.nodeId, ParmInfo);
 				}
 				else
 				{
@@ -4393,14 +4386,7 @@ UHoudiniAssetComponent::CreateParameters()
 			{
 				if(!ParmInfo.choiceCount)
 				{
-					if(1 == ParmInfo.size)
-					{
-						HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(this, AssetInfo.nodeId, ParmInfo);
-					}
-					else
-					{
-						continue;
-					}
+					HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(this, AssetInfo.nodeId, ParmInfo);
 				}
 				else
 				{
@@ -4412,15 +4398,7 @@ UHoudiniAssetComponent::CreateParameters()
 
 			case HAPI_PARMTYPE_FLOAT:
 			{
-				if(1 == ParmInfo.size)
-				{
-					HoudiniAssetParameter = UHoudiniAssetParameterFloat::Create(this, AssetInfo.nodeId, ParmInfo);
-				}
-				else
-				{
-					continue;
-				}
-
+				HoudiniAssetParameter = UHoudiniAssetParameterFloat::Create(this, AssetInfo.nodeId, ParmInfo);
 				break;
 			}
 
