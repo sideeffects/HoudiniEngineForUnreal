@@ -4376,7 +4376,7 @@ UHoudiniAssetComponent::CreateParameters()
 				}
 				else
 				{
-					continue;
+					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, AssetInfo.nodeId, ParmInfo);
 				}
 
 				break;
@@ -4390,7 +4390,7 @@ UHoudiniAssetComponent::CreateParameters()
 				}
 				else
 				{
-					continue;
+					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, AssetInfo.nodeId, ParmInfo);
 				}
 
 				break;
@@ -4435,7 +4435,7 @@ UHoudiniAssetComponent::ClearParameters()
 	for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 	{
 		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-		HoudiniAssetParameter->BeginDestroy();
+		HoudiniAssetParameter->ConditionalBeginDestroy();
 	}
 
 	Parameters.Empty();
