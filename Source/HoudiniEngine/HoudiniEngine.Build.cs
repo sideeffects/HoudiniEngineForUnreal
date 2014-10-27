@@ -16,7 +16,7 @@
 
 /*
 
-	Houdini Version: 14.0.132
+	Houdini Version: 14.0.135
 	Houdini Engine Version: 1.9.5
 	Unreal Version: 4.5.0
 
@@ -31,7 +31,7 @@ namespace UnrealBuildTool.Rules
 			Definitions.Add("HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE=65536");
 			
 			string HFSPath = "";
-			string HoudiniVersion = "14.0.132";
+			string HoudiniVersion = "14.0.135";
 			
 			string HAPILib = "";
 			string HAPILibPath = "";
