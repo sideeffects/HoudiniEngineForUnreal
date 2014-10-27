@@ -25,7 +25,7 @@ FHoudiniAssetComponentDetails::MakeInstance()
 
 FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 {
-	Test = 0.5f;
+
 }
 
 
@@ -83,6 +83,15 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 	}
 
+	// Create Houdini Asset category.
+	DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+
+	// Create Houdini Inputs category.
+	DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
+
+	// Create Houdini Instance Inputs category.
+	DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
+
 	// Create buttons for actions.
 	DetailBuilder.EditCategory("HoudiniActions", TEXT(""), ECategoryPriority::Important)
 		.AddCustomRow(TEXT(""))
@@ -121,180 +130,4 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
 		}
 	}
-
-
-	/*
-	IDetailCategoryBuilder& Category = DetailBuilder.EditCategory("HoudiniTest", TEXT(""), ECategoryPriority::Important);
-	FDetailWidgetRow& Row = Category.AddCustomRow(TEXT(""));
-	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(LOCTEXT("One", "OneOne"))
-							.ToolTipText(LOCTEXT("OneTool", "OneOneTool"));
-	Row.ValueWidget.Widget = SNew(SNumericEntryBox<float>)
-					.AllowSpin(true)
-					.MinValue(0.0f)
-					.MaxValue(1.0f)
-					.MinSliderValue(0.0f)
-					.MaxSliderValue(1.0f)
-					.OnValueChanged(this, &FHoudiniAssetComponentDetails::SetTestValue, 33)
-					//.Value(this, &FHoudiniAssetComponentDetails::TestValue)
-					.Value(Test)
-					.OnEndSliderMovement(this, &FHoudiniAssetComponentDetails::SetTestValue, 33)
-					.OnValueCommitted(this, &FHoudiniAssetComponentDetails::SetTestValueCommitted)
-					.Delta(0.1f)
-					.SliderExponent(1.0f);
-	*/
-
-		/*
-		[
-			SNew(SSplitter).Orientation(Orient_Horizontal)
-			//.ResizeMode(ESplitterResizeMode::Fixed)
-			+SSplitter::Slot()
-			.Value(0.3f)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("One", "OneOne"))
-				.ToolTipText(LOCTEXT("OneTool", "OneOneTool"))
-			]
-			+SSplitter::Slot()
-			.Value(0.7f)
-			[
-				SNew(SNumericEntryBox<float>)
-					.AllowSpin(true)
-					.MinValue(0.0f)
-					.MaxValue(1.0f)
-					.MinSliderValue(0.0f)
-					.MaxSliderValue(1.0f)
-					.OnValueChanged(this, &FHoudiniAssetComponentDetails::SetTestValue, 33)
-					.Value(this, &FHoudiniAssetComponentDetails::TestValue)
-					.OnEndSliderMovement(this, &FHoudiniAssetComponentDetails::SetTestValue, 33)
-					.OnValueCommitted(this, &FHoudiniAssetComponentDetails::SetTestValueCommitted)
-					.Delta(0.1f)
-					.SliderExponent(1.0f)
-			]
-		];
-
-	Category.AddCustomRow(TEXT(""))
-		[
-			SNew(SSplitter).Orientation(Orient_Horizontal)
-			//.ResizeMode(ESplitterResizeMode::Fixed)
-			+SSplitter::Slot()
-			.Value(0.3f)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("Two", "TwoTwo"))
-				.ToolTipText(LOCTEXT("TwoTool", "TwoTwoTool"))
-			]
-			+SSplitter::Slot()
-			.Value(0.7f)
-			[
-				SNew(SNumericEntryBox<float>)
-					.AllowSpin(true)
-					.MinValue(0.0f)
-					.MaxValue(1.0f)
-					.MinSliderValue(0.0f)
-					.MaxSliderValue(1.0f)
-					.OnValueChanged(this, &FHoudiniAssetComponentDetails::SetTestValue, 42)
-					.Value(this, &FHoudiniAssetComponentDetails::TestValue)
-					.OnEndSliderMovement(this, &FHoudiniAssetComponentDetails::SetTestValue, 42)
-					.OnValueCommitted(this, &FHoudiniAssetComponentDetails::SetTestValueCommitted)
-					.Delta(0.1f)
-					.SliderExponent(1.0f)
-			]
-		];
-		*/
-
-		/*
-		.AddCustomRow(TEXT(""))
-		[
-			SNew(SWidgetSwitcher)
-			+SWidgetSwitcher::Slot()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("One", "OneOne"))
-					.ToolTipText(LOCTEXT("OneTool", "OneOneTool"))
-				]
-			+SWidgetSwitcher::Slot()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("Two", "TwoTwo"))
-					.ToolTipText(LOCTEXT("TwoTool", "TwoTwoTool"))
-				]
-		];
-		*/
-
-	/*
-	DetailBuilder.EditCategory("HoudiniTest", TEXT(""), ECategoryPriority::Important)
-		.AddCustomRow(TEXT(""))
-		[
-			SNew(SSplitter).Orientation(Orient_Horizontal)
-			.ResizeMode(ESplitterResizeMode::Fixed)
-			+SSplitter::Slot()
-			.Value(0.3f)
-			[
-				SNew(STextBlock)
-					.Text(LOCTEXT("RepositoryLabel", "Repository"))
-					.ToolTipText(LOCTEXT("RepositoryLabel_Tooltip", "Address of SVN repository"))
-			]
-			+SSplitter::Slot()
-			.Value(0.7f)
-			[
-				SNew(SNumericEntryBox<float>)
-					.AllowSpin(true)
-					//.Label(TEXT("Label"))
-					//..LabelVAlign(VAlign_Center)
-					.MinValue(0.0f)
-					.MaxValue(1.0f)
-					.MinSliderValue(0.0f)
-					.MaxSliderValue(1.0f)
-					.OnValueChanged(this, &FHoudiniAssetComponentDetails::SetTestValue, 42)
-					//.Value(0.5f)
-					.Value(this, &FHoudiniAssetComponentDetails::TestValue)
-					.OnEndSliderMovement(this, &FHoudiniAssetComponentDetails::SetTestValue, 42)
-					.OnValueCommitted(this, &FHoudiniAssetComponentDetails::SetTestValueCommitted)
-					.Delta(0.1f)
-					.SliderExponent(1.0f)
-			]
-		];
-	*/
-
-	//TDelegateInstanceInterface* DelegateInstance 
-
-	// Create Houdini Asset category.
-	DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
-
-	// Create Houdini Inputs category.
-	DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
-
-	// Create Houdini Instance Inputs category.
-	DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
-
-	// Create Houdini Properties category.
-	DetailBuilder.EditCategory("HoudiniProperties", TEXT(""), ECategoryPriority::Important);
-}
-
-
-//float FHoudiniAssetComponentDetails::TestValue() const
-TOptional<float> FHoudiniAssetComponentDetails::TestValue() const
-{
-	return TOptional<float>(Test);
-}
-
-
-void
-FHoudiniAssetComponentDetails::SetTestValue(float f, int zid)
-{
-	Test = f;
-}
-
-
-void
-FHoudiniAssetComponentDetails::SetTestValueCommitted(float f, ETextCommit::Type t)
-{
-	/*
-	Default,
-	OnEnter,
-	OnUserMovedFocus,
-	OnCleared
-	*/
-	//Test = f;
 }

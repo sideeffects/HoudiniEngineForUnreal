@@ -247,15 +247,7 @@ private:
 	/** Upload changed parameters back to HAPI. **/
 	void UploadChangedParameters();
 
-public:
-
-	/** Some RTTI classes which are used during property construction. **/
-	static UScriptStruct* ScriptStructColor;
-
 private:
-
-	/** Patch class counter, we need this to generate unique ids. **/
-	static uint32 ComponentPatchedClassCounter;
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
 	static bool bDisplayEngineNotInitialized;
