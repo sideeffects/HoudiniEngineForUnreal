@@ -173,7 +173,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetThumbnailRenderer.h"
 
 /** HoudiniEngine Private headers. **/
-#include "HoudiniEnginePrivatePatch.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponentDetails.h"
@@ -182,6 +181,5 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniLogo.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniEngineSerialization.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetThumbnailScene.h"
