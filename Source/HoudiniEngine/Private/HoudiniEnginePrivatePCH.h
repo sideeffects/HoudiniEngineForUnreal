@@ -164,6 +164,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
+#include "HoudiniAssetParameterChoice.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
