@@ -28,8 +28,6 @@ namespace UnrealBuildTool.Rules
 	{
 		public HoudiniEngine(TargetInfo Target)
 		{
-			Definitions.Add("HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE=65536");
-			
 			string HFSPath = "";
 			string HoudiniVersion = "13.0.578";
 			
