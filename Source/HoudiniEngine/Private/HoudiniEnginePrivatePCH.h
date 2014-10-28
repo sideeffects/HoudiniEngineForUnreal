@@ -49,6 +49,8 @@
 #include "Resources/Version.h"
 #include "Components/SplineComponent.h"
 #include "Materials/MaterialExpressionTextureSample.h"
+#include "SAssetDropTarget.h"
+#include "SAssetSearchBox.h"
 
 /** Houdini Engine headers. **/
 #include <vector>
@@ -165,6 +167,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniAssetParameterChoice.h"
+#include "HoudiniAssetInput.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"

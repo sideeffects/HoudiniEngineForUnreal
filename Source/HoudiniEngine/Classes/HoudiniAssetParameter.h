@@ -67,6 +67,9 @@ protected:
 	/** Set name and label. If label does not exist, name will be used instead for label. If error occurs, false will be returned. **/
 	bool SetNameAndLabel(const HAPI_ParmInfo& ParmInfo);
 
+	/** Set name and label to be same value from string handle. **/
+	bool SetNameAndLabel(HAPI_StringHandle StringHandle);
+
 	/** Check if parameter is visible. **/
 	bool IsVisible(const HAPI_ParmInfo& ParmInfo) const;
 

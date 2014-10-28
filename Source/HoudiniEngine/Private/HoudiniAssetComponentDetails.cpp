@@ -83,15 +83,6 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 	}
 
-	// Create Houdini Asset category.
-	DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
-
-	// Create Houdini Inputs category.
-	DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
-
-	// Create Houdini Instance Inputs category.
-	DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
-
 	// Create buttons for actions.
 	DetailBuilder.EditCategory("HoudiniActions", TEXT(""), ECategoryPriority::Important)
 		.AddCustomRow(TEXT(""))
@@ -119,15 +110,37 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			]
 		];
 
-	// Create properties.
-	IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniTest", TEXT(""), ECategoryPriority::Important);
-	for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+	// Create Houdini Asset category.
+	DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+
+	// Create Houdini Inputs.
 	{
-		UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-		for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
-			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-			HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
+			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+			for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(HoudiniAssetComponent->Inputs); IterInputs; ++IterInputs)
+			{
+				UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+				HoudiniAssetInput->CreateWidget(DetailCategoryBuilder);
+			}
+		}
+	}
+
+	// Create Houdini Instance Inputs category.
+	DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
+
+	// Create Houdini properties.
+	{
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniParameters", TEXT(""), ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+			for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
+			{
+				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+				HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
+			}
 		}
 	}
 }
