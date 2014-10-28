@@ -93,6 +93,13 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(HoudiniAssetInput, InThis);
 		}
 
+		// Add references to all instance inputs.
+		for(TMap<FHoudiniGeoPartObject, UHoudiniAssetInstanceInput*>::TIterator Iter(HoudiniAssetComponent->InstanceInputs); Iter; ++Iter)
+		{
+			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Iter.Value();
+			Collector.AddReferencedObject(HoudiniAssetInstanceInput, InThis);
+		}
+
 		// Add references to all static meshes and corresponding geo parts.
 		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
 		{
@@ -102,14 +109,6 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 				Collector.AddReferencedObject(StaticMesh, InThis);
 			}
 		}
-
-		// Retrieve asset associated with this component.
-		//UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-		//if(HoudiniAsset)
-		//{
-		//	// Manually add a reference to Houdini asset from this component.
-		//	Collector.AddReferencedObject(HoudiniAsset, InThis);
-		//}
 
 		// Add references to all static meshes and their static mesh components.
 		for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(HoudiniAssetComponent->StaticMeshComponents); Iter; ++Iter)
@@ -121,12 +120,20 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(StaticMeshComponent, InThis);
 		}
 
+		// Retrieve asset associated with this component.
+		//UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+		//if(HoudiniAsset)
+		//{
+		//	// Manually add a reference to Houdini asset from this component.
+		//	Collector.AddReferencedObject(HoudiniAsset, InThis);
+		//}
+
 		// Add references to all static meshes and their instanced static mesh components.
-		for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator Iter(HoudiniAssetComponent->Instancers); Iter; ++Iter)
-		{
-			FHoudiniEngineInstancer* HoudiniEngineInstancer = Iter.Value();
-			HoudiniEngineInstancer->AddReferencedObjects(Collector);
-		}
+		//for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator Iter(HoudiniAssetComponent->Instancers); Iter; ++Iter)
+		//{
+		//	FHoudiniEngineInstancer* HoudiniEngineInstancer = Iter.Value();
+		//	HoudiniEngineInstancer->AddReferencedObjects(Collector);
+		//}
 	}
 
 	// Call base implementation.
@@ -197,8 +204,8 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	CreateStaticMeshHoudiniLogoResource();
 
 	// Release all instanced mesh resources.
-	MarkAllInstancersUnused();
-	ClearAllUnusedInstancers();
+	//MarkAllInstancersUnused();
+	//ClearAllUnusedInstancers();
 
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
@@ -358,6 +365,7 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 	if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 	{
+		/*
 		// Process instancers, initially mark all instancers as unused. Used instancers will be marked as used.
 		MarkAllInstancersUnused();
 	
@@ -385,6 +393,7 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 		// Clear all unused instancers.
 		ClearAllUnusedInstancers();
+		*/
 
 		// Process curves.
 		TMap<FHoudiniGeoPartObject, USplineComponent*> NewSplineComponents;
@@ -612,7 +621,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						}
 
 						// Create instanced static mesh resources.
-						CreateInstancedStaticMeshResources();
+						//CreateInstancedStaticMeshResources();
 
 						// Need to update rendering information.
 						UpdateRenderingInformation();
@@ -959,45 +968,6 @@ UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 		return;
 	}
 
-	/*
-	// Retrieve property category and only handle those in "HoudiniInputs".
-	static const FString CategoryHoudiniInputs = TEXT("HoudiniInputs");
-	const FString& Category = PropertyAboutToChange->GetMetaData(TEXT("Category"));
-
-	if(Category == CategoryHoudiniInputs)
-	{
-		// See if we are changing input static mesh asset.
-		UObjectProperty* ObjectProperty = Cast<UObjectProperty>(PropertyAboutToChange);
-		if(ObjectProperty && UStaticMesh::StaticClass() == ObjectProperty->PropertyClass)
-		{
-			// Get previous static mesh.
-			uint32 ValueOffset = ObjectProperty->GetOffset_ForDebug();
-			UStaticMesh* Mesh = Cast<UStaticMesh>(*(UObject**)((const char*) this + ValueOffset));
-
-			// Retrieve index meta information.
-			if(Mesh && ObjectProperty->HasMetaData(TEXT("HoudiniInputIndex")))
-			{
-				// Get input index.
-				int32 InputIndex = FCString::Atoi(*ObjectProperty->GetMetaData(TEXT("HoudiniInputIndex")));
-
-				// Disconnect what's connected to input at this index.
-				FHoudiniEngineUtils::HapiDisconnectAsset(AssetId, InputIndex);
-
-				// We also need to delete input asset created for this static mesh.
-				HAPI_AssetId const* MeshInputAssetId = InputAssetIds.Find(Mesh);
-				if(MeshInputAssetId)
-				{
-					// Schedule this asset for deletion.
-					FHoudiniEngineUtils::DestroyHoudiniAsset(*MeshInputAssetId);
-
-					// Remove input asset from our map.
-					InputAssetIds.Remove(Mesh);
-				}
-			}
-		}
-	}
-	*/
-
 	Super::PreEditChange(PropertyAboutToChange);
 }
 
@@ -1029,8 +999,8 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			CreateStaticMeshHoudiniLogoResource();
 
 			// Release all instanced mesh resources.
-			MarkAllInstancersUnused();
-			ClearAllUnusedInstancers();
+			//MarkAllInstancersUnused();
+			//ClearAllUnusedInstancers();
 
 			// Clear all created parameters.
 			ClearParameters();
@@ -1182,8 +1152,8 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	StaticMeshComponents.Empty();
 
 	// Release all instanced mesh resources.
-	MarkAllInstancersUnused();
-	ClearAllUnusedInstancers();
+	//MarkAllInstancersUnused();
+	//ClearAllUnusedInstancers();
 
 	// Release all curve related resources.
 	ClearAllCurves();
@@ -2020,6 +1990,7 @@ UHoudiniAssetComponent::LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudi
 }
 
 
+/*
 bool
 UHoudiniAssetComponent::AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
 {
@@ -2185,7 +2156,7 @@ UHoudiniAssetComponent::AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniG
 
 	return true;
 }
-
+*/
 
 bool
 UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents)
@@ -2320,7 +2291,7 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 	return false;
 }
 
-
+/*
 void
 UHoudiniAssetComponent::MarkAllInstancersUnused()
 {
@@ -2379,8 +2350,9 @@ UHoudiniAssetComponent::ClearAllUnusedInstancers()
 	// Reset map of instancers only to active ones.
 	Instancers = UsedInstancers;
 }
+*/
 
-
+/*
 void
 UHoudiniAssetComponent::CreateInstancedStaticMeshResources()
 {
@@ -2412,6 +2384,7 @@ UHoudiniAssetComponent::CreateInstancedStaticMeshResources()
 		Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 	}
 }
+*/
 
 
 void
