@@ -20,6 +20,10 @@
 #include "HoudiniAssetInstanceInput.generated.h"
 
 
+class UStaticMesh;
+class UInstancedStaticMeshComponent;
+
+
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetInstanceInput : public UHoudiniAssetParameter
 {
@@ -37,6 +41,11 @@ public:
 
 public:
 
+	/** Create this instance input. **/
+	bool CreateInstanceInput();
+
+public:
+
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
 	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
@@ -48,6 +57,7 @@ public:
 
 public: /** UObject methods. **/
 
+	virtual void BeginDestroy();
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -75,8 +85,16 @@ protected:
 	/** Set object, geo and part information. **/
 	void SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
-	/** Checks existance of special instance attribute for this instancer. Marks instancer as attribute instancer if it exists. **/
-	void CheckInstanceAttribute();
+	/** Adjust number of meshes / components depending on the number of objects we need to instance. **/
+	void AdjustMeshComponentResources(int32 ObjectCount);
+
+	/** Sets instance transformations for a given component. **/
+	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms);
+
+protected:
+
+	/** Checks existance of special instance attribute for this instancer. **/
+	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
 protected:
 
@@ -88,6 +106,12 @@ protected:
 
 	/** Static meshes which are used for input. **/
 	TArray<UStaticMesh*> StaticMeshes;
+
+	/** Original static meshes which were used as input when instancer was constructed. **/
+	TArray<UStaticMesh*> OriginalStaticMeshes;
+
+	/** Transformations for each component. **/
+	TArray<TArray<FTransform> > Transformations;
 
 	/** Corresponding object id. **/
 	HAPI_ObjectId ObjectId;

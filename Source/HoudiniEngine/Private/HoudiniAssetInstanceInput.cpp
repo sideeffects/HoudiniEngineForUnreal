@@ -46,17 +46,72 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 		return HoudiniAssetInstanceInput;
 	}
 
+	// If this is an attribute instancer, see if attribute exists.
+	bool bAttributeCheck = UHoudiniAssetInstanceInput::CheckInstanceAttribute(InHoudiniAssetComponent->GetAssetId(), InObjectId, InGeoId, InPartId);
+
+	// This is invalid combination, no object to instance and input is not an attribute instancer.
+	if(!bAttributeCheck && -1 == ObjectInfo.objectToInstanceId)
+	{
+		return HoudiniAssetInstanceInput;
+	}
+
 	HoudiniAssetInstanceInput = new UHoudiniAssetInstanceInput(FPostConstructInitializeProperties());
 
-	HoudiniAssetInstanceInput->SetNameAndLabel(ObjectInfo.nameSH);
 	HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
+	HoudiniAssetInstanceInput->SetNameAndLabel(ObjectInfo.nameSH);
 	HoudiniAssetInstanceInput->SetObjectGeoPartIds(InObjectId, InGeoId, InPartId);
 	HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectInfo.objectToInstanceId;
 
 	// Check if this instancer is an attribute instancer and if it is, mark it as such.
-	HoudiniAssetInstanceInput->CheckInstanceAttribute();
+	HoudiniAssetInstanceInput->bAttributeInstancer = bAttributeCheck;
 
 	return HoudiniAssetInstanceInput;
+}
+
+
+bool
+UHoudiniAssetInstanceInput::CreateInstanceInput()
+{
+	// Retrieve instance transforms (for each point).
+	TArray<FTransform> AllTransforms;
+	FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniAssetComponent->GetAssetId(), ObjectId, GeoId, PartId, AllTransforms);
+
+	if(bAttributeInstancer)
+	{
+	
+	}
+	else
+	{
+		// Locate all geo objects requiring instancing (can be multiple if geo / part / object split took place).
+		TArray<FHoudiniGeoPartObject> ObjectsToInstance;
+		HoudiniAssetComponent->LocateStaticMeshes(ObjectToInstanceId, ObjectsToInstance);
+
+		// Adjust number of resources according to number of objects we need to instance.
+		check(ObjectsToInstance.Num());
+		AdjustMeshComponentResources(ObjectsToInstance.Num());
+
+		// Process each existing detected objects which we need to instance.
+		for(int32 GeoIdx = 0; GeoIdx < ObjectsToInstance.Num(); ++GeoIdx)
+		{
+			const FHoudiniGeoPartObject& HoudiniGeoPartObject = ObjectsToInstance[GeoIdx];
+
+			// Set component transformation.
+			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+
+			// Locate static mesh corresponding to this geo part object.
+			UStaticMesh* StaticMesh = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
+			check(StaticMesh);
+
+			// Set component's static mesh.
+			StaticMeshes[GeoIdx] = StaticMesh;
+			InstancedStaticMeshComponents[GeoIdx]->SetStaticMesh(StaticMesh);
+
+			// Set component's transformations and instances.
+			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], AllTransforms);
+		}
+	}
+
+	return true;
 }
 
 
@@ -139,6 +194,14 @@ UHoudiniAssetInstanceInput::UploadParameterValue()
 
 
 void
+UHoudiniAssetInstanceInput::BeginDestroy()
+{
+	AdjustMeshComponentResources(0);
+	Super::BeginDestroy();
+}
+
+
+void
 UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
@@ -156,14 +219,30 @@ UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceColl
 		for(TArray<UStaticMesh*>::TIterator IterMeshes(HoudiniAssetInstanceInput->StaticMeshes); IterMeshes; ++IterMeshes)
 		{
 			UStaticMesh* StaticMesh = *IterMeshes;
-			Collector.AddReferencedObject(StaticMesh, InThis);
+			if(StaticMesh)
+			{
+				Collector.AddReferencedObject(StaticMesh, InThis);
+			}
+		}
+
+		// Add references for used original static meshes.
+		for(TArray<UStaticMesh*>::TIterator IterMeshes(HoudiniAssetInstanceInput->OriginalStaticMeshes); IterMeshes; ++IterMeshes)
+		{
+			UStaticMesh* StaticMesh = *IterMeshes;
+			if(StaticMesh)
+			{
+				Collector.AddReferencedObject(StaticMesh, InThis);
+			}
 		}
 
 		// Add references for used instanced mesh components.
 		for(TArray<UInstancedStaticMeshComponent*>::TIterator IterComponents(HoudiniAssetInstanceInput->InstancedStaticMeshComponents); IterComponents; ++IterComponents)
 		{
 			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = *IterComponents;
-			Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
+			if(InstancedStaticMeshComponent)
+			{
+				Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
+			}
 		}
 	}
 
@@ -263,15 +342,82 @@ UHoudiniAssetInstanceInput::SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_G
 
 
 void
-UHoudiniAssetInstanceInput::CheckInstanceAttribute()
+UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount)
 {
-	if(-1 == ObjectId || -1 == GeoId || -1 == PartId)
+	if(ObjectCount < InstancedStaticMeshComponents.Num())
 	{
-		return;
+		// If we have more than supplied object count, we need to free those unused resources.
+
+		for(int32 Idx = ObjectCount; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+		{
+			InstancedStaticMeshComponents[Idx]->DetachFromParent();
+			InstancedStaticMeshComponents[Idx]->UnregisterComponent();
+			InstancedStaticMeshComponents[Idx]->DestroyComponent();
+
+			InstancedStaticMeshComponents[Idx] = nullptr;
+			StaticMeshes[Idx] = nullptr;
+			OriginalStaticMeshes[Idx] = nullptr;
+		}
+
+		InstancedStaticMeshComponents.SetNum(ObjectCount);
+		StaticMeshes.SetNum(ObjectCount);
+		OriginalStaticMeshes.SetNum(ObjectCount);
+		InputWidgets.SetNum(ObjectCount);
+	}
+	else if(ObjectCount > InstancedStaticMeshComponents.Num())
+	{
+		int32 OldComponentCount = InstancedStaticMeshComponents.Num();
+
+		// If we have less than supplied object count, we need to create new resources.
+		InstancedStaticMeshComponents.SetNumZeroed(ObjectCount);
+		StaticMeshes.SetNumZeroed(ObjectCount);
+		OriginalStaticMeshes.SetNumZeroed(ObjectCount);
+		InputWidgets.SetNumZeroed(ObjectCount);
+
+		for(int32 Idx = OldComponentCount; Idx < ObjectCount; ++Idx)
+		{
+			// We need to create instanced component.
+			UInstancedStaticMeshComponent* Component = ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),
+																									  HoudiniAssetComponent->GetOwner(), NAME_None, RF_Transient);
+			Component->AttachTo(HoudiniAssetComponent);
+			Component->RegisterComponent();
+			Component->SetVisibility(true);
+
+			InstancedStaticMeshComponents[Idx] = Component;
+			StaticMeshes[Idx] = nullptr;
+			OriginalStaticMeshes[Idx] = nullptr;
+		}
+	}
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms)
+{
+	InstancedStaticMeshComponent->ClearInstances();
+
+	for(int32 InstanceIdx = 0; InstanceIdx < InstanceTransforms.Num(); ++InstanceIdx)
+	{
+		const FTransform& Transform = InstanceTransforms[InstanceIdx];
+		const FVector& Scale3D = Transform.GetScale3D();
+
+		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
+		if(!Scale3D.IsNearlyZero(SMALL_NUMBER))
+		{
+			InstancedStaticMeshComponent->AddInstance(Transform);
+		}
+	}
+}
+
+
+bool
+UHoudiniAssetInstanceInput::CheckInstanceAttribute(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId)
+{
+	if(-1 == InAssetId || -1 == InObjectId || -1 == InGeoId || -1 == InPartId)
+	{
+		return false;
 	}
 
-	// See if this is an attribute instancer.
-	bAttributeInstancer = FHoudiniEngineUtils::HapiCheckAttributeExists(HoudiniAssetComponent->GetAssetId(), ObjectId, GeoId, PartId,
-																		HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT);
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(InAssetId, InObjectId, InGeoId, InPartId, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT);
 }
 
