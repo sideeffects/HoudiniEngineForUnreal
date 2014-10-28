@@ -91,6 +91,9 @@ protected:
 	/** Sets instance transformations for a given component. **/
 	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms);
 
+	/** Retrieve all transforms for a given path. Used by attribute instancer. **/
+	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues, const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms);
+
 protected:
 
 	/** Checks existance of special instance attribute for this instancer. **/

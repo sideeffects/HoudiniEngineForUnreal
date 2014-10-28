@@ -78,7 +78,81 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
 	if(bAttributeInstancer)
 	{
-		
+		HAPI_AttributeInfo ResultAttributeInfo;
+		TArray<FString> PointInstanceValues;
+
+		if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniAssetComponent->GetAssetId(), ObjectId, GeoId, PartId, HAPI_UNREAL_ATTRIB_INSTANCE, ResultAttributeInfo, PointInstanceValues))
+		{
+			// This should not happen - attribute exists, but there was an error retrieving it.
+			check(false);
+			return false;
+		}
+
+		// Instance attribute exists on points.
+
+		// Number of points must match number of transforms.
+		if(PointInstanceValues.Num() != AllTransforms.Num())
+		{
+			// This should not happen!
+			check(false);
+			return false;
+		}
+
+		// If instance attribute exists on points, we need to get all unique values.
+		TMultiMap<FString, FHoudiniGeoPartObject> ObjectsToInstance;
+		TSet<FString> UniquePointInstanceValues(PointInstanceValues);
+		for(TSet<FString>::TIterator IterString(UniquePointInstanceValues); IterString; ++IterString)
+		{
+			const FString& UniqueName = *IterString;
+			HoudiniAssetComponent->LocateStaticMeshes(UniqueName, ObjectsToInstance);
+		}
+
+		if(0 == ObjectsToInstance.Num())
+		{
+			// We have no objects to instance.
+			return false;
+		}
+
+		// Adjust number of resources according to number of objects we need to instance.
+		check(ObjectsToInstance.Num());
+		AdjustMeshComponentResources(ObjectsToInstance.Num());
+
+		// Process each existing detected instancer and create new ones if necessary.
+		int32 GeoIdx = 0;
+		for(TMultiMap<FString, FHoudiniGeoPartObject>::TIterator IterInstancer(ObjectsToInstance); IterInstancer; ++IterInstancer)
+		{
+			const FString& ObjectInstancePath = IterInstancer.Key();
+			const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Value();
+
+			// Set component transformation.
+			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+
+			if(!OriginalStaticMeshes[GeoIdx])
+			{
+				// Locate static mesh for this geo part.
+				UStaticMesh* StaticMesh = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
+				check(StaticMesh);
+
+				OriginalStaticMeshes[GeoIdx] = StaticMesh;
+			}
+
+			// If static mesh is not set, assign it.
+			if(!StaticMeshes[GeoIdx])
+			{
+				StaticMeshes[GeoIdx] = OriginalStaticMeshes[GeoIdx];
+				InstancedStaticMeshComponents[GeoIdx]->SetStaticMesh(StaticMeshes[GeoIdx]);
+			}
+
+			// Retrieve all applicable transforms for this object.
+			TArray<FTransform> ObjectTransforms;
+			GetPathInstaceTransforms(ObjectInstancePath, PointInstanceValues, AllTransforms, ObjectTransforms);
+			check(ObjectTransforms.Num());
+
+			// Set component's transformations and instances.
+			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], ObjectTransforms);
+
+			++GeoIdx;
+		}
 	}
 	else
 	{
@@ -413,6 +487,22 @@ UHoudiniAssetInstanceInput::SetComponentInstanceTransformations(UInstancedStatic
 		if(!Scale3D.IsNearlyZero(SMALL_NUMBER))
 		{
 			InstancedStaticMeshComponent->AddInstance(Transform);
+		}
+	}
+}
+
+
+void
+UHoudiniAssetInstanceInput::GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues,
+													 const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms)
+{
+	OutTransforms.Empty();
+
+	for(int32 Idx = 0; Idx < PointInstanceValues.Num(); ++Idx)
+	{
+		if(ObjectInstancePath.Equals(PointInstanceValues[Idx]))
+		{
+			OutTransforms.Add(Transforms[Idx]);
 		}
 	}
 }
