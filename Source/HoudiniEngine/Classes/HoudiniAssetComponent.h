@@ -211,21 +211,8 @@ private:
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource();
 
-	/** Add instancers. **/
-	//bool AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
-	//bool AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
-
 	/** Add Curve. **/
 	bool AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents);
-
-	/** Marks all instancers as unused. Unused instancers will be cleaned up after recooking. **/
-	//void MarkAllInstancersUnused();
-
-	/** Clear all unused instancers and corresponding resources held by them. **/
-	//void ClearAllUnusedInstancers();
-
-	/** Create instanced static mesh resources. **/
-	//void CreateInstancedStaticMeshResources();
 
 	/** Clear all spline related resources. **/
 	void ClearAllCurves();
