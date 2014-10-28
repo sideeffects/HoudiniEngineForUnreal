@@ -107,7 +107,8 @@ namespace UnrealBuildTool.Rules
 					"LevelEditor",
 					"MainFrame",
 					"Launch",
-					"EditorStyle"
+					"EditorStyle",
+					"EditorWidgets"
 				}
 				);
 
