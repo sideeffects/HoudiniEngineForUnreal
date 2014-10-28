@@ -278,18 +278,6 @@ protected:
 	/** Instance inputs for this component's asset. Object id is used as key. **/
 	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*> InstanceInputs;
 
-	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
-	//TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;
-	//TArray<UHoudiniAssetInstanceInput*> InstanceInputs;
-
-	/** Map of instance inputs and corresponding instancers. **/
-	//TMap<UObjectProperty*, FHoudiniEngineInstancer*> InstancerProperties;
-	/** Temporary map used to restore input object properties for instancers. **/
-	//TMap<FString, FHoudiniEngineInstancer*> InstancerPropertyNames;
-
-
-
-
 	/** Map of HAPI objects and corresponding static meshes. Also map of static meshes and corresponding components. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
