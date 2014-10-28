@@ -25,10 +25,11 @@ class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
 class USplineComponent;
+class UHoudiniAssetInput;
 class AHoudiniAssetActor;
 class UStaticMeshComponent;
 class UHoudiniAssetParameter;
-class UInstancedStaticMeshComponent;
+class UHoudiniAssetInstanceInput;
 
 struct FPropertyChangedEvent;
 
@@ -199,9 +200,6 @@ private:
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource();
 
-	/** Release connected Houdini assets that were used as inputs. **/
-	void ReleaseInputAssets();
-
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
 	bool LocateStaticMeshes(const FString& ObjectName, TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
 
@@ -209,20 +207,20 @@ private:
 	bool LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
 
 	/** Add instancers. **/
-	bool AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
-	bool AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+	//bool AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+	//bool AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 	/** Add Curve. **/
 	bool AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents);
 
 	/** Marks all instancers as unused. Unused instancers will be cleaned up after recooking. **/
-	void MarkAllInstancersUnused();
+	//void MarkAllInstancersUnused();
 
 	/** Clear all unused instancers and corresponding resources held by them. **/
-	void ClearAllUnusedInstancers();
+	//void ClearAllUnusedInstancers();
 
 	/** Create instanced static mesh resources. **/
-	void CreateInstancedStaticMeshResources();
+	//void CreateInstancedStaticMeshResources();
 
 	/** Clear all spline related resources. **/
 	void ClearAllCurves();
@@ -266,26 +264,27 @@ protected:
 	/** Inputs for this component's asset. **/
 	TArray<UHoudiniAssetInput*> Inputs;
 
+	/** Instance inputs for this component's asset. **/
+	TMap<FHoudiniGeoPartObject, UHoudiniAssetInstanceInput*> InstanceInputs;
+
+	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
+	//TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;
+	//TArray<UHoudiniAssetInstanceInput*> InstanceInputs;
+
+	/** Map of instance inputs and corresponding instancers. **/
+	//TMap<UObjectProperty*, FHoudiniEngineInstancer*> InstancerProperties;
+	/** Temporary map used to restore input object properties for instancers. **/
+	//TMap<FString, FHoudiniEngineInstancer*> InstancerPropertyNames;
 
 
 
-	/** Map of HAPI objects and corresponding static meshes. **/
+
+	/** Map of HAPI objects and corresponding static meshes. Also map of static meshes and corresponding components. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
-
-	/** Map of components used by static meshes. **/
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
 	/** Map of curve / spline components. **/
 	TMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
-
-	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
-	TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;
-
-	/** Map of instance inputs and corresponding instancers. **/
-	TMap<UObjectProperty*, FHoudiniEngineInstancer*> InstancerProperties;
-
-	/** Temporary map used to restore input object properties for instancers. **/
-	TMap<FString, FHoudiniEngineInstancer*> InstancerPropertyNames;
 
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;

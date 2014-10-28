@@ -77,7 +77,7 @@ protected:
 	/** Widget used for dragging and input. **/
 	TSharedPtr<SAssetSearchBox> InputWidget;
 
-	/** Object which is used for input **/
+	/** Object which is used for input. **/
 	UObject* InputObject;
 
 	/** Id of the connected asset. **/
