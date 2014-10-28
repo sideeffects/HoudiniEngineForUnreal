@@ -110,9 +110,6 @@ protected:
 	/** Original static meshes which were used as input when instancer was constructed. **/
 	TArray<UStaticMesh*> OriginalStaticMeshes;
 
-	/** Transformations for each component. **/
-	TArray<TArray<FTransform> > Transformations;
-
 	/** Corresponding object id. **/
 	HAPI_ObjectId ObjectId;
 

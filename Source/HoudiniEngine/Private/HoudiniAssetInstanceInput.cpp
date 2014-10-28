@@ -78,7 +78,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
 	if(bAttributeInstancer)
 	{
-	
+		
 	}
 	else
 	{
@@ -90,7 +90,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		check(ObjectsToInstance.Num());
 		AdjustMeshComponentResources(ObjectsToInstance.Num());
 
-		// Process each existing detected objects which we need to instance.
+		// Process each existing detected object that needs to be instanced.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectsToInstance.Num(); ++GeoIdx)
 		{
 			const FHoudiniGeoPartObject& HoudiniGeoPartObject = ObjectsToInstance[GeoIdx];
@@ -98,13 +98,21 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			// Set component transformation.
 			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 
-			// Locate static mesh corresponding to this geo part object.
-			UStaticMesh* StaticMesh = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
-			check(StaticMesh);
+			if(!OriginalStaticMeshes[GeoIdx])
+			{
+				// Locate static mesh corresponding to this geo part object.
+				UStaticMesh* StaticMesh = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
+				check(StaticMesh);
 
-			// Set component's static mesh.
-			StaticMeshes[GeoIdx] = StaticMesh;
-			InstancedStaticMeshComponents[GeoIdx]->SetStaticMesh(StaticMesh);
+				OriginalStaticMeshes[GeoIdx] = StaticMesh;
+			}
+
+			// If static mesh is not set, assign it.
+			if(!StaticMeshes[GeoIdx])
+			{
+				StaticMeshes[GeoIdx] = OriginalStaticMeshes[GeoIdx];
+				InstancedStaticMeshComponents[GeoIdx]->SetStaticMesh(StaticMeshes[GeoIdx]);
+			}
 
 			// Set component's transformations and instances.
 			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], AllTransforms);
