@@ -81,7 +81,6 @@ UHoudiniAssetParameter::UploadParameterValue()
 {
 	// Mark this parameter as no longer changed.
 	bChanged = false;
-
 	return true;
 }
 
@@ -157,6 +156,19 @@ UHoudiniAssetParameter::SetNameAndLabel(const HAPI_ParmInfo& ParmInfo)
 	}
 
 	return true;
+}
+
+
+bool
+UHoudiniAssetParameter::SetNameAndLabel(HAPI_StringHandle StringHandle)
+{
+	if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, Name))
+	{
+		Label = Name;
+		return true;
+	}
+	
+	return false;
 }
 
 

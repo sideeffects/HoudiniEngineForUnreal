@@ -247,6 +247,12 @@ private:
 	/** Upload changed parameters back to HAPI. **/
 	void UploadChangedParameters();
 
+	/** Create inputs. Number of inputs for asset does not change. **/
+	void CreateInputs();
+
+	/** Clear all inputs. **/
+	void ClearInputs();
+
 private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
@@ -256,6 +262,12 @@ protected:
 
 	/** Parameters for this component's asset. **/
 	TMap<uint32, UHoudiniAssetParameter*> Parameters;
+
+	/** Inputs for this component's asset. **/
+	TArray<UHoudiniAssetInput*> Inputs;
+
+
+
 
 	/** Map of HAPI objects and corresponding static meshes. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
@@ -275,9 +287,6 @@ protected:
 	/** Temporary map used to restore input object properties for instancers. **/
 	TMap<FString, FHoudiniEngineInstancer*> InstancerPropertyNames;
 
-	/** List of input asset ids for this component. **/
-	TMap<UStaticMesh*, HAPI_AssetId> InputAssetIds;
-
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
 
@@ -296,9 +305,6 @@ protected:
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
-
-	/** Number of inputs for this Houdini asset. **/
-	int32 InputCount;
 
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;

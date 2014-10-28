@@ -29,7 +29,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	HoudiniAsset(nullptr),
 	ChangedHoudiniAsset(nullptr),
 	AssetId(-1),
-	InputCount(0),
 	HapiNotificationStarted(0.0),
 	bContainsHoudiniLogoGeometry(false),
 	bIsNativeComponent(false),
@@ -76,10 +75,7 @@ UHoudiniAssetComponent::~UHoudiniAssetComponent()
 void
 UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
-	// We need to make sure the component class has been patched.
-	UClass* ObjectClass = InThis->GetClass();
-
-	UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*) InThis;
+	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InThis);
 
 	if(HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
 	{
@@ -88,6 +84,13 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 		{
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 			Collector.AddReferencedObject(HoudiniAssetParameter, InThis);
+		}
+
+		// Add references to all inputs.
+		for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(HoudiniAssetComponent->Inputs); IterInputs; ++IterInputs)
+		{
+			UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+			Collector.AddReferencedObject(HoudiniAssetInput, InThis);
 		}
 
 		// Add references to all static meshes and corresponding geo parts.
@@ -544,9 +547,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Set new asset id.
 						SetAssetId(TaskInfo.AssetId);
 
-						// Compute number of inputs.
-						//ComputeInputCount();
-
 						// Assign unique actor label based on asset name.
 						AssignUniqueActorLabel();
 
@@ -585,14 +585,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Set new asset id.
 						SetAssetId(TaskInfo.AssetId);
 
-						// Compute number of inputs.
-						ComputeInputCount();
-
-						// Assign unique actor label based on asset name.
-						//AssignUniqueActorLabel();
-
-						//
+						// Create parameters and inputs.
 						CreateParameters();
+						CreateInputs();
 
 						{
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
@@ -615,9 +610,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								CreateStaticMeshResources(NewStaticMeshes);
 							}
 						}
-
-						// We need to patch component RTTI to reflect properties for this component.
-						//ReplaceClassInformation(GetOuter()->GetName());
 
 						// Create instanced static mesh resources.
 						CreateInstancedStaticMeshResources();
@@ -669,10 +661,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
 						// Compute number of inputs.
-						ComputeInputCount();
-
-						// We need to patch component RTTI to reflect properties for this component.
-						//ReplaceClassInformation(GetOuter()->GetName());
+						CreateInputs();
 
 						// Update properties panel.
 						UpdateEditorProperties();
@@ -954,53 +943,6 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 
 
 void
-UHoudiniAssetComponent::ComputeInputCount()
-{
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
-	{
-		HAPI_AssetInfo AssetInfo;
-		if((HAPI_RESULT_SUCCESS == HAPI_GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
-		{
-			InputCount = AssetInfo.geoInputCount;
-		}
-	}
-	else
-	{
-		InputCount = 0;
-	}
-}
-
-
-/*
-void
-UHoudiniAssetComponent::ClearChangedPropertiesParameters()
-{
-	TMap<FString, UProperty*> InputProperties;
-	static const FString CategoryHoudiniInputs = TEXT("HoudiniInputs");
-
-	for(TMap<FString, UProperty*>::TIterator Iter(ChangedProperties); Iter; ++Iter)
-	{
-		UProperty* Property = Iter.Value();
-		const FString& Category = Property->GetMetaData(TEXT("Category"));
-		if(Category == CategoryHoudiniInputs)
-		{
-			InputProperties.Add(Iter.Key(), Property);
-		}
-	}
-
-	ChangedProperties.Empty();
-	ChangedProperties = InputProperties;
-}
-*/
-
-
-
-
-
-
-
-
-void
 UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 {
 	if(!PropertyAboutToChange)
@@ -1092,6 +1034,9 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 			// Clear all created parameters.
 			ClearParameters();
+
+			// Clear all inputs.
+			ClearInputs();
 
 			ChangedHoudiniAsset = nullptr;
 			AssetId = -1;
@@ -1228,9 +1173,6 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 {
 	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
 
-	// Release connected Houdini assets (if we have them).
-	ReleaseInputAssets();
-
 	// Release all Houdini related resources.
 	ResetHoudiniResources();
 
@@ -1248,6 +1190,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Destroy all parameters.
 	ClearParameters();
+
+	// Destroy all inputs.
+	ClearInputs();
 }
 
 
@@ -2028,20 +1973,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetComponent::ReleaseInputAssets()
-{
-	for(TMap<UStaticMesh*, HAPI_AssetId>::TIterator Iter(InputAssetIds); Iter; ++Iter)
-	{
-		HAPI_AssetId ConnectedAssetId = Iter.Value();
-		FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
-	}
-
-	InputAssetIds.Empty();
-	InputCount = 0;
-}
-
-
 bool
 UHoudiniAssetComponent::LocateStaticMeshes(const FString& ObjectName, TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring) const
 {
@@ -2713,6 +2644,19 @@ UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAs
 void
 UHoudiniAssetComponent::UploadChangedParameters()
 {
+	// Upload inputs.
+	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
+	{
+		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+
+		// If input has changed, upload it to HAPI.
+		if(HoudiniAssetInput->HasChanged())
+		{
+			HoudiniAssetInput->UploadParameterValue();
+		}
+	}
+
+	// Upload parameters.
 	for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 	{
 		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
@@ -2726,6 +2670,53 @@ UHoudiniAssetComponent::UploadChangedParameters()
 
 	// We no longer have changed parameters.
 	bParametersChanged = false;
+}
+
+
+void
+UHoudiniAssetComponent::CreateInputs()
+{
+	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		// There's no Houdini asset, we can return.
+		return;
+	}
+
+	// Inputs have been created already.
+	if(Inputs.Num() > 0)
+	{
+		return;
+	}
+
+	HAPI_AssetInfo AssetInfo;
+	int32 InputCount = 0;
+	if((HAPI_RESULT_SUCCESS == HAPI_GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
+	{
+		InputCount = AssetInfo.geoInputCount;
+	}
+
+	// Create inputs.
+	Inputs.SetNumZeroed(InputCount);
+	for(int InputIdx = 0; InputIdx < InputCount; ++InputIdx)
+	{
+		Inputs[InputIdx] = UHoudiniAssetInput::Create(this, InputIdx);
+	}
+}
+
+
+void
+UHoudiniAssetComponent::ClearInputs()
+{
+	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
+	{
+		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+
+		// Destroy connected Houdini asset.
+		HoudiniAssetInput->DestroyHoudiniAsset();
+		HoudiniAssetInput->ConditionalBeginDestroy();
+	}
+
+	Inputs.Empty();
 }
 
 
