@@ -130,6 +130,17 @@ public:
 	/** Callback used by parameters to notify component about their changes. **/
 	void NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
 
+public:
+
+	/** Locate static mesh by geo part object name. By default will use substring matching. **/
+	bool LocateStaticMeshes(const FString& ObjectName, TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
+
+	/** Locate static mesh by geo part object id. **/
+	bool LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
+
+	/** Locate static mesh for a given geo part. **/
+	UStaticMesh* LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const;
+
 public: /** UObject methods. **/
 
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
@@ -192,19 +203,13 @@ private:
 	void StopHoudiniAssetChange();
 
 	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
-	void CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
+	void CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
 	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
-	void ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
+	void ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource();
-
-	/** Locate static mesh by geo part object name. By default will use substring matching. **/
-	bool LocateStaticMeshes(const FString& ObjectName, TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
-
-	/** Locate static mesh by geo part object id. **/
-	bool LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
 
 	/** Add instancers. **/
 	//bool AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
@@ -251,6 +256,12 @@ private:
 	/** Clear all inputs. **/
 	void ClearInputs();
 
+	/** Create instance inputs. **/
+	void CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>& Instancers);
+
+	/** Clear all instance inputs. **/
+	void ClearInstanceInputs();
+
 private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
@@ -264,8 +275,8 @@ protected:
 	/** Inputs for this component's asset. **/
 	TArray<UHoudiniAssetInput*> Inputs;
 
-	/** Instance inputs for this component's asset. **/
-	TMap<FHoudiniGeoPartObject, UHoudiniAssetInstanceInput*> InstanceInputs;
+	/** Instance inputs for this component's asset. Object id is used as key. **/
+	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*> InstanceInputs;
 
 	/** Map of instancers. Instancer group all instance related information related to one particular instantiation together. **/
 	//TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> Instancers;

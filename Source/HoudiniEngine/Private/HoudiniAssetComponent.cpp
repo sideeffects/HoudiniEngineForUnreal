@@ -94,7 +94,7 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 		}
 
 		// Add references to all instance inputs.
-		for(TMap<FHoudiniGeoPartObject, UHoudiniAssetInstanceInput*>::TIterator Iter(HoudiniAssetComponent->InstanceInputs); Iter; ++Iter)
+		for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator Iter(HoudiniAssetComponent->InstanceInputs); Iter; ++Iter)
 		{
 			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Iter.Value();
 			Collector.AddReferencedObject(HoudiniAssetInstanceInput, InThis);
@@ -198,7 +198,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	}
 
 	// Set Houdini logo to be default geometry.
-	ReleaseStaticMeshResources(StaticMeshes);
+	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
 	CreateStaticMeshHoudiniLogoResource();
@@ -294,7 +294,7 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 
 
 void
-UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
+UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
 	// Reset Houdini logo flag.
 	bContainsHoudiniLogoGeometry = false;
@@ -365,35 +365,8 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 	if(FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
 	{
-		/*
-		// Process instancers, initially mark all instancers as unused. Used instancers will be marked as used.
-		MarkAllInstancersUnused();
-	
-		for(TArray<FHoudiniGeoPartObject>::TIterator Iter(FoundInstancers); Iter; ++Iter)
-		{
-			const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
-
-			// If this geo part instancer object has been just loaded, ignore it.
-			if(HoudiniGeoPartObject.IsLoaded())
-			{
-				continue;
-			}
-
-			if(FHoudiniEngineUtils::HapiCheckAttributeExists(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT))
-			{
-				// Instance attribute exists on points.
-				AddAttributeInstancer(HoudiniGeoPartObject);
-			}
-			else
-			{
-				// Instance information is in object info.
-				AddObjectInstancer(HoudiniGeoPartObject);
-			}
-		}
-
-		// Clear all unused instancers.
-		ClearAllUnusedInstancers();
-		*/
+		// Create necessary instance inputs.
+		CreateInstanceInputs(FoundInstancers);
 
 		// Process curves.
 		TMap<FHoudiniGeoPartObject, USplineComponent*> NewSplineComponents;
@@ -411,7 +384,7 @@ UHoudiniAssetComponent::CreateStaticMeshResources(TMap<FHoudiniGeoPartObject, US
 
 
 void
-UHoudiniAssetComponent::ReleaseStaticMeshResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
+UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
@@ -613,10 +586,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								}
 
 								// Free meshes and components that are no longer used.
-								ReleaseStaticMeshResources(StaticMeshes);
+								ReleaseObjectGeoPartResources(StaticMeshes);
 
 								// Set meshes and create new components for those meshes that do not have them.
-								CreateStaticMeshResources(NewStaticMeshes);
+								CreateObjectGeoPartResources(NewStaticMeshes);
 							}
 						}
 
@@ -992,8 +965,17 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			// Houdini Asset has been changed, we need to reset corresponding HDA and relevant resources.
 			ResetHoudiniResources();
 
+			// Clear all created parameters.
+			ClearParameters();
+
+			// Clear all inputs.
+			ClearInputs();
+
+			// Clear all instance inputs.
+			ClearInstanceInputs();
+
 			// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
-			ReleaseStaticMeshResources(StaticMeshes);
+			ReleaseObjectGeoPartResources(StaticMeshes);
 			StaticMeshes.Empty();
 			StaticMeshComponents.Empty();
 			CreateStaticMeshHoudiniLogoResource();
@@ -1001,12 +983,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			// Release all instanced mesh resources.
 			//MarkAllInstancersUnused();
 			//ClearAllUnusedInstancers();
-
-			// Clear all created parameters.
-			ClearParameters();
-
-			// Clear all inputs.
-			ClearInputs();
 
 			ChangedHoudiniAsset = nullptr;
 			AssetId = -1;
@@ -1147,7 +1123,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	ResetHoudiniResources();
 
 	// Release static mesh related resources.
-	ReleaseStaticMeshResources(StaticMeshes);
+	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
 
@@ -1163,6 +1139,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Destroy all inputs.
 	ClearInputs();
+
+	// Destroy all instance inputs.
+	ClearInstanceInputs();
 }
 
 
@@ -1185,7 +1164,7 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource()
 	FHoudiniGeoPartObject HoudiniGeoPartObject;
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
 	NewStaticMeshes.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
-	CreateStaticMeshResources(NewStaticMeshes);
+	CreateObjectGeoPartResources(NewStaticMeshes);
 	bContainsHoudiniLogoGeometry = true;
 }
 
@@ -2587,8 +2566,8 @@ UHoudiniAssetComponent::CreateParameters()
 
 	// Remove all unused parameters.
 	ClearParameters();
-
 	Parameters = NewParameters;
+
 	return true;
 }
 
@@ -2690,6 +2669,71 @@ UHoudiniAssetComponent::ClearInputs()
 	}
 
 	Inputs.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>& Instancers)
+{
+	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*> NewInstanceInputs;
+
+	for(TArray<FHoudiniGeoPartObject>::TConstIterator Iter(Instancers); Iter; ++Iter)
+	{
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
+
+		// Check if this instance input already exists.
+		UHoudiniAssetInstanceInput* const* FoundHoudiniAssetInstanceInput = InstanceInputs.Find(HoudiniGeoPartObject.ObjectId);
+		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = nullptr;
+
+		if(FoundHoudiniAssetInstanceInput)
+		{
+			// Input already exists, we can reuse it.
+			HoudiniAssetInstanceInput = *FoundHoudiniAssetInstanceInput;
+
+			// Remove it from old map.
+			InstanceInputs.Remove(HoudiniGeoPartObject.ObjectId);
+		}
+		else
+		{
+			// Otherwise we need to create new instance input.
+			HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create(this, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId);
+		}
+
+		// Add input to new map.
+		NewInstanceInputs.Add(HoudiniGeoPartObject.ObjectId, HoudiniAssetInstanceInput);
+
+		// Create or re-create this input.
+		HoudiniAssetInstanceInput->CreateInstanceInput();
+	}
+
+	ClearInstanceInputs();
+	InstanceInputs = NewInstanceInputs;
+}
+
+
+void
+UHoudiniAssetComponent::ClearInstanceInputs()
+{
+	for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
+	{
+		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
+		HoudiniAssetInstanceInput->ConditionalBeginDestroy();
+	}
+
+	InstanceInputs.Empty();
+}
+
+
+UStaticMesh*
+UHoudiniAssetComponent::LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const
+{
+	UStaticMesh* const* FoundStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+	if(FoundStaticMesh)
+	{
+		return *FoundStaticMesh;
+	}
+
+	return nullptr;
 }
 
 
