@@ -127,8 +127,19 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 	}
 
-	// Create Houdini Instance Inputs category.
-	DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
+	// Create Houdini Instanced Inputs category.
+	{
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+			for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator IterInstancedInputs(HoudiniAssetComponent->InstanceInputs); IterInstancedInputs; ++IterInstancedInputs)
+			{
+				UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstancedInputs.Value();
+				HoudiniAssetInstanceInput->CreateWidget(DetailCategoryBuilder);
+			}
+		}
+	}
 
 	// Create Houdini properties.
 	{

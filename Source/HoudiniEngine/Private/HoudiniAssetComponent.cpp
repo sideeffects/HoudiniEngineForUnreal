@@ -127,13 +127,6 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 		//	// Manually add a reference to Houdini asset from this component.
 		//	Collector.AddReferencedObject(HoudiniAsset, InThis);
 		//}
-
-		// Add references to all static meshes and their instanced static mesh components.
-		//for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator Iter(HoudiniAssetComponent->Instancers); Iter; ++Iter)
-		//{
-		//	FHoudiniEngineInstancer* HoudiniEngineInstancer = Iter.Value();
-		//	HoudiniEngineInstancer->AddReferencedObjects(Collector);
-		//}
 	}
 
 	// Call base implementation.
@@ -980,10 +973,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			StaticMeshComponents.Empty();
 			CreateStaticMeshHoudiniLogoResource();
 
-			// Release all instanced mesh resources.
-			//MarkAllInstancersUnused();
-			//ClearAllUnusedInstancers();
-
 			ChangedHoudiniAsset = nullptr;
 			AssetId = -1;
 		}
@@ -1126,10 +1115,6 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
-
-	// Release all instanced mesh resources.
-	//MarkAllInstancersUnused();
-	//ClearAllUnusedInstancers();
 
 	// Release all curve related resources.
 	ClearAllCurves();
@@ -1969,174 +1954,6 @@ UHoudiniAssetComponent::LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudi
 }
 
 
-/*
-bool
-UHoudiniAssetComponent::AddAttributeInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
-{
-	HAPI_AttributeInfo ResultAttributeInfo;
-	TArray<FString> PointInstanceValues;
-
-	if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_INSTANCE, ResultAttributeInfo, PointInstanceValues))
-	{
-		// This should not happen - attribute exists, but there was an error retrieving it.
-		check(false);
-		return false;
-	}
-
-	// Instance attribute exists on points.
-
-	// Retrieve instance transforms (for each point).
-	TArray<FTransform> Transforms;
-	FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniGeoPartObject, Transforms);
-
-	// Number of points must match number of transforms.
-	if(PointInstanceValues.Num() != Transforms.Num())
-	{
-		// This should not happen!
-		check(false);
-		return false;
-	}
-
-	// If instance attribute exists on points, we need to get all unique values.
-	TMultiMap<FString, FHoudiniGeoPartObject> ObjectsToInstance;
-	TSet<FString> UniquePointInstanceValues(PointInstanceValues);
-	for(TSet<FString>::TIterator IterString(UniquePointInstanceValues); IterString; ++IterString)
-	{
-		const FString& UniqueName = *IterString;
-		LocateStaticMeshes(UniqueName, ObjectsToInstance);
-	}
-
-	if(0 == ObjectsToInstance.Num())
-	{
-		// We have no objects to instance.
-		return false;
-	}
-
-	// Process each existing detected instancer and create new ones if necessary.
-	for(TMultiMap<FString, FHoudiniGeoPartObject>::TIterator IterInstancer(ObjectsToInstance); IterInstancer; ++IterInstancer)
-	{
-		const FHoudiniGeoPartObject& InstancerHoudiniGeoPartObject = IterInstancer.Value();
-		FHoudiniEngineInstancer* Instancer = nullptr;
-
-		// Locate static mesh for this geo part.
-		UStaticMesh* StaticMesh = StaticMeshes[InstancerHoudiniGeoPartObject];
-		check(StaticMesh);
-
-		// See if this instancer has been allocated.
-		FHoudiniEngineInstancer* const* FoundInstancer = Instancers.Find(InstancerHoudiniGeoPartObject);
-		if(FoundInstancer)
-		{
-			// Instancer exists, we can reuse it.
-			Instancer = *FoundInstancer;
-
-			// Reset instancer and set static mesh.
-			Instancer->Reset();
-			//Instancer->SetStaticMesh(StaticMesh);
-		}
-		else
-		{
-			// Instancer does not exist, we need to create a new one.
-			Instancer = new FHoudiniEngineInstancer(StaticMesh);
-			Instancers.Add(InstancerHoudiniGeoPartObject, Instancer);
-		}
-
-		// Mark this instancer as used.
-		Instancer->MarkUsed(true);
-	}
-
-	// At this point we can initialize all instancers with data.
-	int32 InstanceIdx = 0;
-	for(TArray<FString>::TConstIterator IterInstanceName(PointInstanceValues); IterInstanceName; ++IterInstanceName)
-	{
-		const FString& InstanceName = *IterInstanceName;
-
-		TArray<FHoudiniGeoPartObject> GeosParts;
-		ObjectsToInstance.MultiFind(InstanceName, GeosParts);
-
-		for(int32 ObjIdx = 0; ObjIdx < GeosParts.Num(); ++ObjIdx)
-		{
-			const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject = GeosParts[ObjIdx];
-			FHoudiniEngineInstancer* Instancer = Instancers[ItemHoudiniGeoPartObject];
-
-			// Add transformation information.
-			Instancer->AddTransformation(Transforms[InstanceIdx]);
-		}
-
-		InstanceIdx++;
-	}
-
-	return true;
-}
-
-
-bool
-UHoudiniAssetComponent::AddObjectInstancer(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
-{
-	// Instancing information will be in ObjectInfo structure.
-	HAPI_ObjectInfo ObjectInfo;
-	ObjectInfo.objectToInstanceId = -1;
-	if((HAPI_RESULT_SUCCESS != HAPI_GetObjects(AssetId, &ObjectInfo, HoudiniGeoPartObject.ObjectId, 1)) || (-1 == ObjectInfo.objectToInstanceId))
-	{
-		// Error retrieving object info, or id of an object to be instanced is invalid.
-		check(false);
-		return false;
-	}
-
-	// Retrieve instance transforms (for each point).
-	TArray<FTransform> Transforms;
-	FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniGeoPartObject, Transforms);
-
-	// Locate all geo objects requiring instancing (can be multiple if geo / part / object split took place).
-	TArray<FHoudiniGeoPartObject> ObjectsToInstance;
-	LocateStaticMeshes(ObjectInfo.objectToInstanceId, ObjectsToInstance);
-
-	// Process each existing detected instancer and create new ones if necessary.
-	for(TArray<FHoudiniGeoPartObject>::TIterator IterInstancer(ObjectsToInstance); IterInstancer; ++IterInstancer)
-	{
-		const FHoudiniGeoPartObject& InstancerHoudiniGeoPartObject = *IterInstancer;
-		FHoudiniEngineInstancer* Instancer = nullptr;
-
-		// Locate static mesh for this geo part.
-		UStaticMesh* StaticMesh = StaticMeshes[InstancerHoudiniGeoPartObject];
-		check(StaticMesh);
-
-		// See if this instancer has been allocated.
-		FHoudiniEngineInstancer* const* FoundInstancer = Instancers.Find(InstancerHoudiniGeoPartObject);
-
-		if(FoundInstancer)
-		{
-			// Instancer exists, we can reuse it.
-			Instancer = *FoundInstancer;
-
-			// Reset instancer and set static mesh.
-			Instancer->Reset();
-			//Instancer->SetStaticMesh(StaticMesh);
-		}
-		else
-		{
-			// Instancer does not exist, we need to create a new one.
-			Instancer = new FHoudiniEngineInstancer(StaticMesh);
-			Instancers.Add(InstancerHoudiniGeoPartObject, Instancer);
-		}
-
-		// Mark this instancer as used.
-		Instancer->MarkUsed(true);
-	}
-
-	// Initialize instancers with data.
-	for(int32 ObjIdx = 0; ObjIdx < ObjectsToInstance.Num(); ++ObjIdx)
-	{
-		const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject = ObjectsToInstance[ObjIdx];
-		FHoudiniEngineInstancer* Instancer = Instancers[ItemHoudiniGeoPartObject];
-
-		// Add transformations to instancer.
-		Instancer->AddTransformations(Transforms);
-	}
-
-	return true;
-}
-*/
-
 bool
 UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents)
 {
@@ -2229,8 +2046,6 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 		/*
 		// Set points for this component.
 		{
-			
-
 			float InputKey = 0.0f;
 			for(int32 PointIndex = 0; PointIndex < CurvePoints.Num(); PointIndex += 3)
 			{
@@ -2269,101 +2084,6 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 
 	return false;
 }
-
-/*
-void
-UHoudiniAssetComponent::MarkAllInstancersUnused()
-{
-	for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator Iter(Instancers); Iter; ++Iter)
-	{
-		FHoudiniEngineInstancer* HoudiniEngineInstancer = Iter.Value();
-		HoudiniEngineInstancer->MarkUsed(false);
-	}
-}
-
-
-void
-UHoudiniAssetComponent::ClearAllUnusedInstancers()
-{
-	TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*> UsedInstancers;
-	for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator Iter(Instancers); Iter; ++Iter)
-	{
-		FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
-		FHoudiniEngineInstancer* HoudiniEngineInstancer = Iter.Value();
-		check(HoudiniEngineInstancer);
-
-		if(HoudiniEngineInstancer->IsUsed())
-		{
-			// This instancer is used, store it.
-			UsedInstancers.Add(HoudiniGeoPartObject, HoudiniEngineInstancer);
-		}
-		else
-		{
-			// This instancer is unused, we need to deallocate it and all resources.
-
-			// Grab this instancer's instanced static mesh component.
-			UInstancedStaticMeshComponent* Component = HoudiniEngineInstancer->GetInstancedStaticMeshComponent();
-			
-			// Grab object property for this instancer.
-			UObjectProperty* ObjectProperty = HoudiniEngineInstancer->GetObjectProperty();
-
-			if(ObjectProperty)
-			{
-				// Remove mapping from property to component.
-				InstancerProperties.Remove(ObjectProperty);
-			}
-
-			if(Component)
-			{
-				// Detach and destroy the component.
-				Component->DetachFromParent();
-				Component->UnregisterComponent();
-				Component->DestroyComponent();
-			}
-
-			// Delete the instancer.
-			delete HoudiniEngineInstancer;
-		}
-	}
-
-	// Reset map of instancers only to active ones.
-	Instancers = UsedInstancers;
-}
-*/
-
-/*
-void
-UHoudiniAssetComponent::CreateInstancedStaticMeshResources()
-{
-	for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
-	{
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
-		FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
-
-		UInstancedStaticMeshComponent* Component = HoudiniEngineInstancer->GetInstancedStaticMeshComponent();
-		if(!Component)
-		{
-			// We need to create instanced component.
-			Component = ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
-			Component->AttachTo(this);
-			Component->RegisterComponent();
-			Component->SetVisibility(true);
-
-			// Store instanced component inside instancer.
-			HoudiniEngineInstancer->SetInstancedStaticMeshComponent(Component);
-		}
-
-		// Set component's static mesh.
-		HoudiniEngineInstancer->SetComponentStaticMesh();
-
-		// Set component's instances.
-		HoudiniEngineInstancer->AddInstancesToComponent();
-
-		// Set component transformation.
-		Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
-	}
-}
-*/
 
 
 void
@@ -2728,12 +2448,14 @@ UStaticMesh*
 UHoudiniAssetComponent::LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const
 {
 	UStaticMesh* const* FoundStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+	UStaticMesh* StaticMesh = nullptr;
+
 	if(FoundStaticMesh)
 	{
-		return *FoundStaticMesh;
+		StaticMesh = *FoundStaticMesh;
 	}
 
-	return nullptr;
+	return StaticMesh;
 }
 
 
