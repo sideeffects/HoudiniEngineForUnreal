@@ -55,7 +55,7 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 		return HoudiniAssetInstanceInput;
 	}
 
-	HoudiniAssetInstanceInput = new UHoudiniAssetInstanceInput(FPostConstructInitializeProperties());
+	HoudiniAssetInstanceInput = NewObject<UHoudiniAssetInstanceInput>(InHoudiniAssetComponent);
 
 	HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
 	HoudiniAssetInstanceInput->SetNameAndLabel(ObjectInfo.nameSH);

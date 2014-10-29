@@ -586,9 +586,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 							}
 						}
 
-						// Create instanced static mesh resources.
-						//CreateInstancedStaticMeshResources();
-
 						// Need to update rendering information.
 						UpdateRenderingInformation();
 
@@ -1345,423 +1342,127 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	Ar << HoudiniAssetPackage;
 	Ar << HoudiniAssetName;
 
-	/*
+	// Serialize parameters.
+	SerializeParameters(Ar);
 
-	// Serialize input count.
-	Ar << InputCount;
-
-	if(Ar.IsLoading())
+	// Serialize inputs.
 	{
-		// Make sure scratch space size is suitable. We need to check this because size is defined by compile time constant.
-		check(ScratchSpaceSize <= HOUDINIENGINE_ASSET_SCRATCHSPACE_SIZE);
+		int32 InputCount = Inputs.Num();
+		Ar << InputCount;
 	}
 
-	// Serialize scratch space itself.
-	Ar.Serialize(&ScratchSpaceBuffer[0], ScratchSpaceSize);
-
-	// Number of properties.
-	int PropertyCount = CreatedProperties.Num();
-	Ar << PropertyCount;
-
-	// These are used to track and insert properties into new class object.
-	UProperty* PropertyFirst = nullptr;
-	UProperty* PropertyLast = PropertyFirst;
-
-	UField* ChildFirst = nullptr;
-	UField* ChildLast = ChildFirst;
-
-	for(int PropertyIdx = 0; PropertyIdx < PropertyCount; ++PropertyIdx)
+	// Serialize static meshes / geometry.
 	{
-		// Property corresponding to this index.
-		UProperty* Property = nullptr;
+		int32 NumStaticMeshes = StaticMeshes.Num();
 
-		// Property fields we need to serialize.
-		EHoudiniEngineProperty::Type PropertyType = EHoudiniEngineProperty::None;
-		int32 PropertyArrayDim = 1;
-		int32 PropertyElementSize = 4;
-		uint64 PropertyFlags = 0u;
-		int32 PropertyOffset = 0;
-		FString PropertyName;
-		bool PropertyChanged = false;
-		TMap<FName, FString> PropertyMeta;
-		TMap<FName, FString>* LookupPropertyMeta = nullptr;
-		UEnum* Enum = nullptr;
-		UStaticMesh* StaticMesh = nullptr;
-
-		if(Ar.IsSaving())
+		// Serialize geos only if they are not Houdini logo.
+		if(Ar.IsSaving() && bContainsHoudiniLogoGeometry)
 		{
-			// Get property at this index.
-			Property = CreatedProperties[PropertyIdx];
-			PropertyType = GetPropertyType(Property);
-			PropertyArrayDim = Property->ArrayDim;
-			PropertyElementSize = Property->ElementSize;
-			PropertyFlags = Property->PropertyFlags;
-			PropertyOffset = Property->GetOffset_ForDebug();
+			NumStaticMeshes = 0;
+		}
 
-			// Retrieve name of this property.
-			check(Property->HasMetaData(TEXT("HoudiniParmName")));
-			PropertyName = Property->GetMetaData(TEXT("HoudiniParmName"));
+		// Serialize number of geos.
+		Ar << NumStaticMeshes;
 
-			// Retrieve changed status of this property, this is optimization to avoid uploading back all properties
-			// to Houdini upon loading.
-			if(Property->HasMetaData(TEXT("HoudiniPropertyChanged")))
+		if(NumStaticMeshes > 0)
+		{
+			if(Ar.IsSaving())
 			{
-				PropertyChanged = true;
-			}
-
-			if(EHoudiniEngineProperty::None == PropertyType)
-			{
-				// We have encountered an unsupported property type.
-				check(false);
-			}
-		}
-
-		// Serialize fields.
-		Ar << PropertyType;
-		Ar << PropertyName;
-		Ar << PropertyArrayDim;
-		Ar << PropertyElementSize;
-		Ar << PropertyFlags;
-		Ar << PropertyOffset;
-		Ar << PropertyChanged;
-
-		// Serialize any meta information for this property.
-		bool PropertyMetaFound = false;
-
-		if(Ar.IsSaving())
-		{
-			LookupPropertyMeta = UMetaData::GetMapForObject(Property);
-			PropertyMetaFound = (LookupPropertyMeta != nullptr);
-		}
-
-		Ar << PropertyMetaFound;
-
-		if(Ar.IsSaving() && LookupPropertyMeta)
-		{
-			// Save meta information associated with this property.
-			Ar << *LookupPropertyMeta;
-		}
-		else if(Ar.IsLoading())
-		{
-			// Load meta information for this property.
-			Ar << PropertyMeta;
-
-			// Make sure changed meta flag does not get serialized back.
-			PropertyMeta.Remove(TEXT("HoudiniPropertyChanged"));
-		}
-
-		switch(PropertyType)
-		{
-			// Serialization of String properties.
-			case EHoudiniEngineProperty::String:
-			{
-				// If it is a string property, we need to reconstruct string in case of loading.
-				FString* UnrealString = (FString*) ((const char*) this + PropertyOffset);
-
-				if(Ar.IsSaving())
+				for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
 				{
-					Ar << *UnrealString;
+					FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+					UStaticMesh* StaticMesh = Iter.Value();
+
+					// Store the object geo part information.
+					HoudiniGeoPartObject.Serialize(Ar);
+
+					// Serialize raw mesh.
+					FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, Ar);
 				}
-				else if(Ar.IsLoading())
-				{
-					FString StoredString;
-					Ar << StoredString;
-					new(UnrealString) FString(StoredString);
-				}
-
-				break;
 			}
-
-			// Serialization of Enumeration properties (used for choice lists).
-			case EHoudiniEngineProperty::Enumeration:
+			else if(Ar.IsLoading())
 			{
-				if(Ar.IsSaving())
+				for(int StaticMeshIdx = 0; StaticMeshIdx < NumStaticMeshes; ++StaticMeshIdx)
 				{
-					UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
-					Enum = EnumProperty->Enum;
+					FHoudiniGeoPartObject HoudiniGeoPartObject;
 
-					// Store flags of the enum object and patch them to flags we need.
-					EObjectFlags EnumFlags = Enum->GetFlags();
-					Enum->ClearFlags(RF_AllFlags);
-					Enum->SetFlags(RF_Public);
+					// Get object geo part information.
+					HoudiniGeoPartObject.Serialize(Ar);
 
-					// Store the enum object.
-					Ar << Enum;
-
-					// Restore enum flags.
-					Enum->ClearFlags(RF_AllFlags);
-					Enum->SetFlags(EnumFlags);
-
-					// Meta properties for enum entries are not serialized automatically, we need to save them manually.
-					int EnumEntries = Enum->NumEnums() - 1;
-					Ar << EnumEntries;
-
-					// Store all entry names.
-					for(int Idx = 0; Idx < EnumEntries; ++Idx)
+					// Load the raw mesh.
+					UStaticMesh* LoadedStaticMesh = nullptr;
+					if(!HoudiniGeoPartObject.bIsInstancer)
 					{
-						// Store entry name.
-						FString EnumEntryName = Enum->GetEnumName(Idx);
-						Ar << EnumEntryName;
+						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(HoudiniAsset, nullptr, StaticMeshIdx, Ar);
 					}
 
-					for(int Idx = 0; Idx < EnumEntries; ++Idx)
-					{
-						// Store entry meta information.
-						{
-							FString EnumEntryMetaDisplayName = Enum->GetMetaData(TEXT("DisplayName"), Idx);
-							Ar << EnumEntryMetaDisplayName;
-						}
-						{
-							FString EnumEntryMetaHoudiniName = Enum->GetMetaData(TEXT("HoudiniName"), Idx);
-							Ar << EnumEntryMetaHoudiniName;
-						}
-					}
+					StaticMeshes.Add(HoudiniGeoPartObject, LoadedStaticMesh);
 				}
-				else if(Ar.IsLoading())
-				{
-					// Load enum object.
-					Ar << Enum;
-
-					// Meta properties for enum entries are not serialized automatically, we need to load them manually.
-					int EnumEntries = 0;
-					Ar << EnumEntries;
-
-					TArray<FName> EnumValues;
-
-					// Load enum entries.
-					for(int Idx = 0; Idx < EnumEntries; ++Idx)
-					{
-						// Get entry name;
-						FString EnumEntryName;
-						Ar << EnumEntryName;
-
-						EnumValues.Add(FName(*EnumEntryName));
-					}
-
-					// Set entries for this enum.
-#if ENGINE_MINOR_VERSION <= 4
-					Enum->SetEnums(EnumValues, false);
-#else
-					Enum->SetEnums(EnumValues, UEnum::ECppForm::Regular);
-#endif
-
-					// Load meta information for each entry.
-					for(int Idx = 0; Idx < EnumEntries; ++Idx)
-					{
-						{
-							FString EnumEntryMetaDisplayName;
-							Ar << EnumEntryMetaDisplayName;
-
-							Enum->SetMetaData(TEXT("DisplayName"), *EnumEntryMetaDisplayName, Idx);
-						}
-						{
-							FString EnumEntryMetaHoudiniName;
-							Ar << EnumEntryMetaHoudiniName;
-
-							Enum->SetMetaData(TEXT("HoudiniName"), *EnumEntryMetaHoudiniName, Idx);
-						}
-					}
-				}
-
-				break;
-			}
-
-			// Serialization of Object properties (used for marshalling inputs and instancer inputs).
-			case EHoudiniEngineProperty::Object:
-			{
-				bool bInputProperty = false;
-				bool bInstanceInputProperty = false;
-				bool bMeshAssigned = false;
-
-				FString MeshPathName;
-
-				if(Ar.IsSaving())
-				{
-					bInputProperty = Property->HasMetaData(TEXT("HoudiniInputIndex"));
-
-					static const FString CategoryHoudiniInstancedInputs = TEXT("HoudiniInstancedInputs");
-					const FString& Category = Property->GetMetaData(TEXT("Category"));
-					bInstanceInputProperty = (CategoryHoudiniInstancedInputs == Category);
-				}
-
-				// Serialize the flag that specifies whether this object property is an input.
-				Ar << bInputProperty;
-				Ar << bInstanceInputProperty;
-
-				if(Ar.IsSaving())
-				{
-					// Get Mesh for this property.
-					UObject* ScratchSpaceObject = *(UObject**)((const char*) this + PropertyOffset);
-					if(ScratchSpaceObject)
-					{
-						StaticMesh = Cast<UStaticMesh>(ScratchSpaceObject);
-
-						// If mesh is set.
-						if(StaticMesh)
-						{
-							bMeshAssigned = true;
-							MeshPathName = StaticMesh->GetPathName();
-						}
-					}
-				}
-
-				Ar << bMeshAssigned;
-				if(bMeshAssigned)
-				{
-					Ar << MeshPathName;
-				}
-
-				if(Ar.IsLoading())
-				{
-					UObject** ScratchSpaceObject = (UObject**)((const char*) this + PropertyOffset);
-
-					if(bMeshAssigned)
-					{
-						StaticMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName, nullptr, LOAD_NoWarn, nullptr));
-					}
-
-					// Set pointer in scratch space buffer.
-					*ScratchSpaceObject = StaticMesh;
-				}
-
-				break;
-			}
-
-			default:
-			{
-				break;
-			}
-		}
-
-		// At this point if we are loading, we can construct intermediate object.
-		if(Ar.IsLoading())
-		{
-			FHoudiniEngineSerializedProperty SerializedProperty(PropertyType, PropertyName, PropertyFlags,
-																PropertyArrayDim, PropertyElementSize, PropertyOffset, 
-																PropertyChanged);
-			if(PropertyMeta.Num())
-			{
-				SerializedProperty.Meta = PropertyMeta;
-			}
-
-			// If this is enum property, store corresponding enum.
-			if(EHoudiniEngineProperty::Enumeration == PropertyType)
-			{
-				check(Enum);
-				SerializedProperty.Enum = Enum;
-			}
-
-			// Store property in a list.
-			SerializedProperties.Add(SerializedProperty);
-		}
-	}
-
-	// Serialize geometry - generated raw static meshes.
-	int32 NumStaticMeshes = StaticMeshes.Num();
-
-	// Serialize geos only if they are not Houdini logo.
-	if(Ar.IsSaving() && bContainsHoudiniLogoGeometry)
-	{
-		NumStaticMeshes = 0;
-	}
-
-	// Serialize number of geos.
-	Ar << NumStaticMeshes;
-
-	if(NumStaticMeshes > 0)
-	{
-		if(Ar.IsSaving())
-		{
-			for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
-			{
-				FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-				UStaticMesh* StaticMesh = Iter.Value();
-
-				// Store the object geo part information.
-				HoudiniGeoPartObject.Serialize(Ar);
-
-				// Serialize raw mesh.
-				FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, Ar);
-			}
-		}
-		else if(Ar.IsLoading())
-		{
-			for(int StaticMeshIdx = 0; StaticMeshIdx < NumStaticMeshes; ++StaticMeshIdx)
-			{
-				FHoudiniGeoPartObject HoudiniGeoPartObject;
-
-				// Get object geo part information.
-				HoudiniGeoPartObject.Serialize(Ar);
-
-				// Load the raw mesh.
-				UStaticMesh* LoadedStaticMesh = nullptr;
-				if(!HoudiniGeoPartObject.bIsInstancer)
-				{
-					LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(HoudiniAsset, nullptr, StaticMeshIdx, Ar);
-				}
-
-				StaticMeshes.Add(HoudiniGeoPartObject, LoadedStaticMesh);
 			}
 		}
 	}
 
-	// Serialize instancing data if it is available.
-	int32 NumInstancers = Instancers.Num();
-	Ar << NumInstancers;
-
-	if(NumInstancers > 0)
+	// Serialize instancing data.
 	{
-		InstancerPropertyNames.Empty();
+		int32 NumInstancers = InstanceInputs.Num();
+		Ar << NumInstancers;
 
-		if(Ar.IsSaving())
+		/*
+		if(NumInstancers > 0)
 		{
-			for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
+			InstancerPropertyNames.Empty();
+
+			if(Ar.IsSaving())
 			{
-				FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
-				FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
+				for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
+				{
+					FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
+					FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
 
-				// Store the object geo part information.
-				HoudiniGeoPartObject.Serialize(Ar);
+					// Store the object geo part information.
+					HoudiniGeoPartObject.Serialize(Ar);
 
-				// Store instancer information.
-				HoudiniEngineInstancer->Serialize(Ar);
+					// Store instancer information.
+					HoudiniEngineInstancer->Serialize(Ar);
+				}
+			}
+			else if(Ar.IsLoading())
+			{
+				for(int32 InstancerIdx = 0; InstancerIdx < NumInstancers; ++InstancerIdx)
+				{
+					FHoudiniGeoPartObject HoudiniGeoPartObject;
+					FHoudiniEngineInstancer* HoudiniEngineInstancer = nullptr;
+
+					// Get object geo part information.
+					HoudiniGeoPartObject.Serialize(Ar);
+
+					// Look up original mesh.
+					UStaticMesh* const* FoundOriginalMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+					UStaticMesh* OriginalMesh = nullptr;
+					if(FoundOriginalMesh)
+					{
+						OriginalMesh = *FoundOriginalMesh;
+					}
+
+					// Create instancer and get instancer information.
+					HoudiniEngineInstancer = new FHoudiniEngineInstancer(OriginalMesh);
+					HoudiniEngineInstancer->Serialize(Ar);
+
+					if(!OriginalMesh)
+					{
+						delete HoudiniEngineInstancer;
+						continue;
+					}
+
+					// Store instancer geo part mapping.
+					Instancers.Add(HoudiniGeoPartObject, HoudiniEngineInstancer);
+
+					// Store property name mapping for this instancer.
+					InstancerPropertyNames.Add(HoudiniEngineInstancer->ObjectPropertyName, HoudiniEngineInstancer);
+				}
 			}
 		}
-		else if(Ar.IsLoading())
-		{
-			for(int32 InstancerIdx = 0; InstancerIdx < NumInstancers; ++InstancerIdx)
-			{
-				FHoudiniGeoPartObject HoudiniGeoPartObject;
-				FHoudiniEngineInstancer* HoudiniEngineInstancer = nullptr;
-
-				// Get object geo part information.
-				HoudiniGeoPartObject.Serialize(Ar);
-
-				// Look up original mesh.
-				UStaticMesh* const* FoundOriginalMesh = StaticMeshes.Find(HoudiniGeoPartObject);
-				UStaticMesh* OriginalMesh = nullptr;
-				if(FoundOriginalMesh)
-				{
-					OriginalMesh = *FoundOriginalMesh;
-				}
-
-				// Create instancer and get instancer information.
-				HoudiniEngineInstancer = new FHoudiniEngineInstancer(OriginalMesh);
-				HoudiniEngineInstancer->Serialize(Ar);
-
-				if(!OriginalMesh)
-				{
-					delete HoudiniEngineInstancer;
-					continue;
-				}
-
-				// Store instancer geo part mapping.
-				Instancers.Add(HoudiniGeoPartObject, HoudiniEngineInstancer);
-
-				// Store property name mapping for this instancer.
-				InstancerPropertyNames.Add(HoudiniEngineInstancer->ObjectPropertyName, HoudiniEngineInstancer);
-			}
-		}
+		*/
 	}
 
 	if(Ar.IsLoading())
@@ -1770,6 +1471,8 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		//ComputeComponentBoundingVolume();
 	}
 
+
+	/*
 	if(Ar.IsLoading() && bIsNativeComponent)
 	{
 		// This component has been loaded.
@@ -1996,15 +1699,6 @@ UHoudiniAssetComponent::ClearAllCurves()
 }
 
 
-uint32
-UHoudiniAssetComponent::GetHoudiniAssetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const
-{
-	int HashBuffer[2] = { NodeId, ParmId };
-	uint32 HashValue = FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
-	return HashValue;
-}
-
-
 UHoudiniAssetParameter*
 UHoudiniAssetComponent::FindHoudiniAssetParameter(uint32 HashValue) const
 {
@@ -2025,7 +1719,7 @@ UHoudiniAssetComponent::FindHoudiniAssetParameter(uint32 HashValue) const
 UHoudiniAssetParameter*
 UHoudiniAssetComponent::FindHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const
 {
-	uint32 HashValue = GetHoudiniAssetParameterHash(NodeId, ParmId);
+	uint32 HashValue = UHoudiniAssetParameter::GetParameterHash(NodeId, ParmId);
 	UHoudiniAssetParameter* HoudiniAssetParameter = FindHoudiniAssetParameter(HashValue);
 	return HoudiniAssetParameter;
 }
@@ -2034,7 +1728,7 @@ UHoudiniAssetComponent::FindHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmI
 void
 UHoudiniAssetComponent::RemoveHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId)
 {
-	uint32 ValueHash = GetHoudiniAssetParameterHash(NodeId, ParmId);
+	uint32 ValueHash = UHoudiniAssetParameter::GetParameterHash(NodeId, ParmId);
 	RemoveHoudiniAssetParameter(ValueHash);
 }
 
@@ -2109,7 +1803,7 @@ UHoudiniAssetComponent::CreateParameters()
 		}
 
 		// See if this parameter has already been created.
-		uint32 ParameterHash = GetHoudiniAssetParameterHash(AssetInfo.nodeId, ParmInfo.id);
+		uint32 ParameterHash = UHoudiniAssetParameter::GetParameterHash(AssetInfo.nodeId, ParmInfo.id);
 		HoudiniAssetParameter = FindHoudiniAssetParameter(ParameterHash);
 
 		// If parameter exists, we can reuse it.
@@ -2352,6 +2046,47 @@ UHoudiniAssetComponent::LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeo
 	}
 
 	return StaticMesh;
+}
+
+
+void
+UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
+{
+	// If we are loading, we want to clean up all existing parameters.
+	if(Ar.IsLoading())
+	{
+		ClearParameters();
+	}
+
+	// Serialize number of parameters.
+	int32 ParamCount = Parameters.Num();
+	Ar << ParamCount;
+
+	if(Ar.IsSaving())
+	{
+		for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+		{
+			uint32 HoudiniAssetParameterKey = IterParams.Key();
+			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+			Ar << HoudiniAssetParameterKey;
+			Ar << HoudiniAssetParameter;
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+		for(int32 ParmIdx = 0; ParmIdx < ParamCount; ++ParmIdx)
+		{
+			UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
+			uint32 HoudiniAssetParameterKey = -1;
+
+			Ar << HoudiniAssetParameterKey;
+			Ar << HoudiniAssetParameter;
+
+			HoudiniAssetParameter->SetHoudiniAssetComponent(this);
+			Parameters.Add(HoudiniAssetParameterKey, HoudiniAssetParameter);
+		}
+	}
 }
 
 

@@ -39,6 +39,19 @@ UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		Values.Empty();
+	}
+
+	Ar << Values;
+
+	Ar << ValueMin;
+	Ar << ValueMax;
+
+	Ar << ValueUIMin;
+	Ar << ValueUIMax;
 }
 
 
@@ -53,7 +66,8 @@ UHoudiniAssetParameterFloat::AddReferencedObjects(UObject* InThis, FReferenceCol
 UHoudiniAssetParameterFloat*
 UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	UHoudiniAssetParameterFloat* HoudiniAssetParameterFloat = new UHoudiniAssetParameterFloat(FPostConstructInitializeProperties());
+	UHoudiniAssetParameterFloat* HoudiniAssetParameterFloat = NewObject<UHoudiniAssetParameterFloat>(InHoudiniAssetComponent);
+
 	HoudiniAssetParameterFloat->CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo);
 	return HoudiniAssetParameterFloat;
 }

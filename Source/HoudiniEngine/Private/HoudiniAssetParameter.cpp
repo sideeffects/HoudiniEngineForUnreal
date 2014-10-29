@@ -93,6 +93,29 @@ UHoudiniAssetParameter::HasChanged() const
 
 
 void
+UHoudiniAssetParameter::SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent)
+{
+	HoudiniAssetComponent = InHoudiniAssetComponent;
+}
+
+
+uint32
+UHoudiniAssetParameter::GetParameterHash() const
+{
+	return UHoudiniAssetParameter::GetParameterHash(NodeId, ParmId);
+}
+
+
+uint32
+UHoudiniAssetParameter::GetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId)
+{
+	int HashBuffer[2] = { NodeId, ParmId };
+	uint32 HashValue = FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
+	return HashValue;
+}
+
+
+void
 UHoudiniAssetParameter::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UHoudiniAssetParameter* HoudiniAssetParameter = Cast<UHoudiniAssetParameter>(InThis);
@@ -115,6 +138,22 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	// Component will be assigned separately upon loading.
+
+	Ar << Name;
+	Ar << Label;
+
+	Ar << NodeId;
+	Ar << ParmId;
+
+	Ar << TupleSize;
+	Ar << ValuesIndex;
+
+	if(Ar.IsLoading())
+	{
+		bChanged = false;
+	}
 }
 
 

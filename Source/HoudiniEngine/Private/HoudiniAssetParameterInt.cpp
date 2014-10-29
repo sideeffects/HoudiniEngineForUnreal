@@ -37,7 +37,8 @@ UHoudiniAssetParameterInt::~UHoudiniAssetParameterInt()
 UHoudiniAssetParameterInt*
 UHoudiniAssetParameterInt::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	UHoudiniAssetParameterInt* HoudiniAssetParameterInt = new UHoudiniAssetParameterInt(FPostConstructInitializeProperties());
+	UHoudiniAssetParameterInt* HoudiniAssetParameterInt = NewObject<UHoudiniAssetParameterInt>(InHoudiniAssetComponent);
+
 	HoudiniAssetParameterInt->CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo);
 	return HoudiniAssetParameterInt;
 }
@@ -201,6 +202,19 @@ UHoudiniAssetParameterInt::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		Values.Empty();
+	}
+
+	Ar << Values;
+
+	Ar << ValueMin;
+	Ar << ValueMax;
+
+	Ar << ValueUIMin;
+	Ar << ValueUIMax;
 }
 
 

@@ -217,9 +217,6 @@ private:
 	/** Clear all spline related resources. **/
 	void ClearAllCurves();
 
-	/** Hashing function used for hashing parameters into a map. **/
-	uint32 GetHoudiniAssetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const;
-
 	/** Return parameter for a given node and param ids. Will return null if such parameter does not exist. **/
 	UHoudiniAssetParameter* FindHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const;
 	UHoudiniAssetParameter* FindHoudiniAssetParameter(uint32 HashValue) const;
@@ -248,6 +245,9 @@ private:
 
 	/** Clear all instance inputs. **/
 	void ClearInstanceInputs();
+
+	/** Serialize parameters. **/
+	void SerializeParameters(FArchive& Ar);
 
 private:
 
