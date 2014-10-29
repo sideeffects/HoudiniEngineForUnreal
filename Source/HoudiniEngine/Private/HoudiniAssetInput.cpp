@@ -197,7 +197,7 @@ bool
 UHoudiniAssetInput::OnIsAssetAcceptableForDrop(const UObject* Object)
 {
 	// We will accept only static meshes at this point.
-	if(Object->IsA(UStaticMesh::StaticClass()))
+	if(Object && Object->IsA(UStaticMesh::StaticClass()))
 	{
 		return true;
 	}
@@ -212,7 +212,7 @@ UHoudiniAssetInput::SetValueCommitted(const FText& InValue, ETextCommit::Type Co
 	FString AssetName = TEXT("");
 	bool bChanged = false;
 
-	if(ETextCommit::OnCleared)
+	if(ETextCommit::OnCleared == CommitType)
 	{
 		// Widget has been cleared.
 		InputObject = nullptr;

@@ -72,6 +72,9 @@ public:
 	/** Set value of this property through commit action, used by Slate. **/
 	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx);
 
+	/** Called when text value of this property changes. **/
+	void OnValueChanged(const FText& InValue, int32 Idx);
+
 public:
 
 	/** Return true if this is an attribute instancer. **/
@@ -86,10 +89,16 @@ protected:
 	void SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
 	/** Adjust number of meshes / components depending on the number of objects we need to instance. **/
-	void AdjustMeshComponentResources(int32 ObjectCount);
+	void AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize);
 
 	/** Sets instance transformations for a given component. **/
 	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms);
+
+	/** Retrieve all transforms for a given path. Used by attribute instancer. **/
+	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues, const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms);
+
+	/** Used to update the component at given index when static mesh changes. **/
+	void ChangeInstancedStaticMeshComponentMesh(int32 Idx);
 
 protected:
 
