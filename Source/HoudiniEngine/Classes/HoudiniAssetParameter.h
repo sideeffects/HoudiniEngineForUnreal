@@ -51,6 +51,17 @@ public:
 	/** Return true if this parameter has been changed. **/
 	bool HasChanged() const;
 
+	/** Return hash value for this parameter. **/
+	uint32 GetParameterHash() const;
+
+	/** Set component for this parameter. **/
+	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent);
+
+public:
+
+	/** Return hash value for this parameter defining ids. **/
+	static uint32 GetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId);
+
 public: /** UObject methods. **/
 
 	virtual void Serialize(FArchive& Ar) override;

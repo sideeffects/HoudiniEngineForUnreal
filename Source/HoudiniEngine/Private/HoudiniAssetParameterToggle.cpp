@@ -33,7 +33,8 @@ UHoudiniAssetParameterToggle::~UHoudiniAssetParameterToggle()
 UHoudiniAssetParameterToggle*
 UHoudiniAssetParameterToggle::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	UHoudiniAssetParameterToggle* HoudiniAssetParameterToggle = new UHoudiniAssetParameterToggle(FPostConstructInitializeProperties());
+	UHoudiniAssetParameterToggle* HoudiniAssetParameterToggle = NewObject<UHoudiniAssetParameterToggle>(InHoudiniAssetComponent);
+
 	HoudiniAssetParameterToggle->CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo);
 	return HoudiniAssetParameterToggle;
 }
@@ -120,6 +121,13 @@ UHoudiniAssetParameterToggle::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		Values.Empty();
+	}
+
+	Ar << Values;
 }
 
 

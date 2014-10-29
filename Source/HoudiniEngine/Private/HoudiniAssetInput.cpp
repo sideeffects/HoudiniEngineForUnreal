@@ -45,7 +45,7 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 		return HoudiniAssetInput;
 	}
 
-	HoudiniAssetInput = new UHoudiniAssetInput(FPostConstructInitializeProperties());
+	HoudiniAssetInput = NewObject<UHoudiniAssetInput>(InHoudiniAssetComponent);
 
 	// Set component and other information.
 	HoudiniAssetInput->HoudiniAssetComponent = InHoudiniAssetComponent;

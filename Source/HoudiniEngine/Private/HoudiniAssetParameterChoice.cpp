@@ -34,7 +34,8 @@ UHoudiniAssetParameterChoice::~UHoudiniAssetParameterChoice()
 UHoudiniAssetParameterChoice*
 UHoudiniAssetParameterChoice::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	UHoudiniAssetParameterChoice* HoudiniAssetParameterChoice = new UHoudiniAssetParameterChoice(FPostConstructInitializeProperties());
+	UHoudiniAssetParameterChoice* HoudiniAssetParameterChoice = NewObject<UHoudiniAssetParameterChoice>(InHoudiniAssetComponent);
+
 	HoudiniAssetParameterChoice->CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo);
 	return HoudiniAssetParameterChoice;
 }
@@ -190,6 +191,54 @@ UHoudiniAssetParameterChoice::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		StringChoiceValues.Empty();
+		StringChoiceLabels.Empty();
+	}
+
+	int32 NumChoices = StringChoiceValues.Num();
+	Ar << NumChoices;
+
+	int32 NumLabels = StringChoiceLabels.Num();
+	Ar << NumLabels;
+
+	if(Ar.IsSaving())
+	{
+		for(int32 ChoiceIdx = 0; ChoiceIdx < StringChoiceValues.Num(); ++ChoiceIdx)
+		{
+			Ar << *(StringChoiceValues[ChoiceIdx].Get());
+		}
+
+		for(int32 LabelIdx = 0; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
+		{
+			Ar << *(StringChoiceLabels[LabelIdx].Get());
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+		FString Temp;
+
+		for(int32 ChoiceIdx = 0; ChoiceIdx < NumChoices; ++ChoiceIdx)
+		{
+			Ar << Temp;
+			FString* ChoiceName = new FString(Temp);
+			StringChoiceValues.Add(TSharedPtr<FString>(ChoiceName));
+		}
+
+		for(int32 LabelIdx = 0; LabelIdx < NumLabels; ++LabelIdx)
+		{
+			Ar << Temp;
+			FString* ChoiceLabel = new FString(Temp);
+			StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+		}
+	}
+
+	Ar << StringValue;
+	Ar << CurrentValue;
+
+	Ar << bStringChoiceList;
 }
 
 
