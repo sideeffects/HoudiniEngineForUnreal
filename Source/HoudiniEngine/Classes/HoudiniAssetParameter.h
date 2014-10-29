@@ -25,7 +25,7 @@ class IDetailCategoryBuilder;
 class UHoudiniAssetComponent;
 
 
-UCLASS()
+UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniAssetParameter : public UObject
 {
 	GENERATED_UCLASS_BODY()
