@@ -46,7 +46,6 @@
 #include "RawMesh.h"
 #include "StaticMeshResources.h"
 #include "ComponentReregisterContext.h"
-#include "Resources/Version.h"
 #include "Components/SplineComponent.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "SAssetDropTarget.h"
