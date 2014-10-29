@@ -6,7 +6,7 @@
 	"VersionName" : "1.0",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL" : "http://www.sidefx.com",
-	"EngineVersion" : 1579795,
+	"MinEngineVersion" : 1579795,
 	"Description" : "Houdini Engine for Unreal Engine.",
 	"Category" : "Rendering.Components",
 	"EnabledByDefault" : true,
@@ -16,7 +16,7 @@
 		{
 			"Name" : "HoudiniEngine",
 			"Type" : "Runtime",
-			"BlacklistPlatforms" : [ "HTML5" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32", "Mac" ]
 		}
 	],
 
