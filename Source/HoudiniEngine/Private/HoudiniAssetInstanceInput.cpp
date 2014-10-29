@@ -24,7 +24,7 @@ UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput(const FPostConstructIniti
 	PartId(-1),
 	bAttributeInstancer(false)
 {
-
+	TupleSize = 0;
 }
 
 
@@ -76,6 +76,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 	TArray<FTransform> AllTransforms;
 	FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniAssetComponent->GetAssetId(), ObjectId, GeoId, PartId, AllTransforms);
 
+	// Store old tuple size.
+	int32 OldTupleSize = TupleSize;
+
 	if(bAttributeInstancer)
 	{
 		HAPI_AttributeInfo ResultAttributeInfo;
@@ -114,8 +117,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		}
 
 		// Adjust number of resources according to number of objects we need to instance.
-		check(ObjectsToInstance.Num());
-		AdjustMeshComponentResources(ObjectsToInstance.Num());
+		TupleSize = ObjectsToInstance.Num();
+		check(TupleSize);
+		AdjustMeshComponentResources(TupleSize, OldTupleSize);
 
 		// Process each existing detected instancer and create new ones if necessary.
 		int32 GeoIdx = 0;
@@ -161,8 +165,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		HoudiniAssetComponent->LocateStaticMeshes(ObjectToInstanceId, ObjectsToInstance);
 
 		// Adjust number of resources according to number of objects we need to instance.
-		check(ObjectsToInstance.Num());
-		AdjustMeshComponentResources(ObjectsToInstance.Num());
+		TupleSize = ObjectsToInstance.Num();
+		check(TupleSize);
+		AdjustMeshComponentResources(TupleSize, OldTupleSize);
 
 		// Process each existing detected object that needs to be instanced.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectsToInstance.Num(); ++GeoIdx)
@@ -210,7 +215,7 @@ void
 UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	Super::CreateWidget(DetailCategoryBuilder);
-	/*
+
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
 	Row.NameWidget.Widget = SNew(STextBlock)
@@ -218,59 +223,46 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 							.ToolTipText(Label)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
-	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
-	HorizontalBox->AddSlot()
-	[
-		SNew(SAssetDropTarget)
-			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAssetDropped))
-			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInstanceInput::OnIsAssetAcceptableForDrop))
-			.ToolTipText(Label)
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		VerticalBox->AddSlot().Padding(0, 2)
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot().Padding(2, 2)
+			+SHorizontalBox::Slot()
 			[
-				SAssignNew(InputWidget, SAssetSearchBox)
-				.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetInstanceInput::SetValueCommitted))
+				SNew(SAssetDropTarget)
+				.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAssetDropped, Idx))
+				.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInstanceInput::OnIsAssetAcceptableForDrop, Idx))
+				.ToolTipText(Label)
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot().Padding(2, 2)
+					[
+						SAssignNew(InputWidgets[Idx], SAssetSearchBox)
+						.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetInstanceInput::SetValueCommitted, Idx))
+						.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::OnValueChanged, Idx))
+					]
+				]
 			]
-		]
-	];
+		];
 
-	if(StaticMesh)
-	{
-		FString AssetName = StaticMesh->GetName();
-		InputWidget->SetText(FText::FromString(AssetName));
+		UStaticMesh* StaticMesh = StaticMeshes[Idx];
+		if(StaticMesh)
+		{
+			FString AssetName = StaticMesh->GetName();
+			InputWidgets[Idx]->SetText(FText::FromString(AssetName));
+		}
 	}
 
-	Row.ValueWidget.Widget = HorizontalBox;
-	*/
+	Row.ValueWidget.Widget = VerticalBox;
 }
 
 
 bool
 UHoudiniAssetInstanceInput::UploadParameterValue()
 {
-	/*
-	if(InputObject)
-	{
-		if(InputObject->IsA(UStaticMesh::StaticClass()))
-		{
-			// If we have valid static mesh assigned, we need to marshal it into HAPI.
-			UStaticMesh* StaticMesh = Cast<UStaticMesh>(InputObject);
-
-			if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HoudiniAssetComponent->GetAssetId(), InputIndex, StaticMesh, ConnectedAssetId))
-			{
-				bChanged = false;
-				return false;
-			}
-		}
-	}
-	else if(HasConnectedAsset())
-	{
-		// We do not have an object bound.
-		DestroyHoudiniAsset();
-	}
-	*/
-
 	return Super::UploadParameterValue();
 }
 
@@ -278,7 +270,9 @@ UHoudiniAssetInstanceInput::UploadParameterValue()
 void
 UHoudiniAssetInstanceInput::BeginDestroy()
 {
-	AdjustMeshComponentResources(0);
+	AdjustMeshComponentResources(0, TupleSize);
+	TupleSize = 0;
+
 	Super::BeginDestroy();
 }
 
@@ -297,30 +291,25 @@ UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceColl
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Cast<UHoudiniAssetInstanceInput>(InThis);
 	if(HoudiniAssetInstanceInput && !HoudiniAssetInstanceInput->IsPendingKill())
 	{
-		// Add references for used static meshes.
-		for(TArray<UStaticMesh*>::TIterator IterMeshes(HoudiniAssetInstanceInput->StaticMeshes); IterMeshes; ++IterMeshes)
+		UStaticMesh* StaticMesh = nullptr;
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = nullptr;
+
+		// Add references to all used objects.
+		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInput->GetTupleSize(); ++Idx)
 		{
-			UStaticMesh* StaticMesh = *IterMeshes;
+			StaticMesh = HoudiniAssetInstanceInput->StaticMeshes[Idx];
 			if(StaticMesh)
 			{
 				Collector.AddReferencedObject(StaticMesh, InThis);
 			}
-		}
 
-		// Add references for used original static meshes.
-		for(TArray<UStaticMesh*>::TIterator IterMeshes(HoudiniAssetInstanceInput->OriginalStaticMeshes); IterMeshes; ++IterMeshes)
-		{
-			UStaticMesh* StaticMesh = *IterMeshes;
+			StaticMesh = HoudiniAssetInstanceInput->OriginalStaticMeshes[Idx];
 			if(StaticMesh)
 			{
 				Collector.AddReferencedObject(StaticMesh, InThis);
 			}
-		}
 
-		// Add references for used instanced mesh components.
-		for(TArray<UInstancedStaticMeshComponent*>::TIterator IterComponents(HoudiniAssetInstanceInput->InstancedStaticMeshComponents); IterComponents; ++IterComponents)
-		{
-			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = *IterComponents;
+			InstancedStaticMeshComponent = HoudiniAssetInstanceInput->InstancedStaticMeshComponents[Idx];
 			if(InstancedStaticMeshComponent)
 			{
 				Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
@@ -336,33 +325,32 @@ UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceColl
 void
 UHoudiniAssetInstanceInput::OnAssetDropped(UObject* Object, int32 Idx)
 {
-	/*
 	if(Object)
 	{
 		UStaticMesh* InputStaticMesh = Cast<UStaticMesh>(Object);
 		if(InputStaticMesh)
 		{
-			StaticMesh = InputStaticMesh;
-			FString AssetName = StaticMesh->GetName();
-			InputWidget->SetText(FText::FromString(AssetName));
+			// Change used static mesh.
+			StaticMeshes[Idx] = InputStaticMesh;
 
-			MarkChanged();
+			FString AssetName = StaticMeshes[Idx]->GetName();
+			InputWidgets[Idx]->SetText(FText::FromString(AssetName));
+
+			// Change component's mesh.
+			ChangeInstancedStaticMeshComponentMesh(Idx);
 		}
 	}
-	*/
 }
 
 
 bool
 UHoudiniAssetInstanceInput::OnIsAssetAcceptableForDrop(const UObject* Object, int32 Idx)
 {
-	/*
 	// We will accept only static meshes as inputs to instancers.
-	if(Object->IsA(UStaticMesh::StaticClass()))
+	if(Object && Object->IsA(UStaticMesh::StaticClass()))
 	{
 		return true;
 	}
-	*/
 
 	return false;
 }
@@ -371,32 +359,40 @@ UHoudiniAssetInstanceInput::OnIsAssetAcceptableForDrop(const UObject* Object, in
 void
 UHoudiniAssetInstanceInput::SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx)
 {
-	/*
+
+}
+
+
+void
+UHoudiniAssetInstanceInput::OnValueChanged(const FText& InValue, int32 Idx)
+{
 	FString AssetName = TEXT("");
 	bool bChanged = false;
 
-	if(ETextCommit::OnCleared)
+	if(InValue.IsEmpty())
 	{
-		// Widget has been cleared.
-		StaticMesh = nullptr;
+		// Widget has been cleared, we reset to original mesh.
+		StaticMeshes[Idx] = OriginalStaticMeshes[Idx];
+		AssetName = StaticMeshes[Idx]->GetName();
 		bChanged = true;
 	}
 	else
 	{
 		// Otherwise set back the old text.
+		UStaticMesh* StaticMesh = StaticMeshes[Idx];
 		if(StaticMesh)
 		{
 			AssetName = StaticMesh->GetName();
 		}
 	}
 
-	InputWidget->SetText(FText::FromString(AssetName));
+	InputWidgets[Idx]->SetText(FText::FromString(AssetName));
 
 	if(bChanged)
 	{
-		MarkChanged();
+		// Change component's mesh.
+		ChangeInstancedStaticMeshComponentMesh(Idx);
 	}
-	*/
 }
 
 
@@ -424,9 +420,9 @@ UHoudiniAssetInstanceInput::SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_G
 
 
 void
-UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount)
+UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize)
 {
-	if(ObjectCount < InstancedStaticMeshComponents.Num())
+	if(ObjectCount < OldTupleSize)
 	{
 		// If we have more than supplied object count, we need to free those unused resources.
 
@@ -446,7 +442,7 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount)
 		OriginalStaticMeshes.SetNum(ObjectCount);
 		InputWidgets.SetNum(ObjectCount);
 	}
-	else if(ObjectCount > InstancedStaticMeshComponents.Num())
+	else if(ObjectCount > OldTupleSize)
 	{
 		int32 OldComponentCount = InstancedStaticMeshComponents.Num();
 
@@ -504,6 +500,18 @@ UHoudiniAssetInstanceInput::GetPathInstaceTransforms(const FString& ObjectInstan
 		{
 			OutTransforms.Add(Transforms[Idx]);
 		}
+	}
+}
+
+
+void
+UHoudiniAssetInstanceInput::ChangeInstancedStaticMeshComponentMesh(int32 Idx)
+{
+	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+	UStaticMesh* StaticMesh = StaticMeshes[Idx];
+	if(InstancedStaticMeshComponent)
+	{
+		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
 	}
 }
 
