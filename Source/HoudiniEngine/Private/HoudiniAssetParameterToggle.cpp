@@ -78,7 +78,7 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 
 	Row.NameWidget.Widget = SNew(STextBlock)
 							.Text(FString(""))
-							.ToolTipText(Label)
+							.ToolTipText(GetParameterLabel())
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
@@ -93,8 +93,8 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 				.Content()
 				[
 					SNew(STextBlock)
-					.Text(Label)
-					.ToolTipText(Label)
+					.Text(GetParameterLabel())
+					.ToolTipText(GetParameterLabel())
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 		];

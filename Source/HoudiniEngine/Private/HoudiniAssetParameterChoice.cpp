@@ -149,8 +149,8 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(Label)
-							.ToolTipText(Label)
+							.Text(GetParameterLabel())
+							.ToolTipText(GetParameterLabel())
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	Row.ValueWidget.Widget = SNew(SComboBox<TSharedPtr<FString> >)
