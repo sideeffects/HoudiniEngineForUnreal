@@ -16,6 +16,19 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+uint32
+GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter)
+{
+	if(HoudiniAssetParameter)
+	{
+		return HoudiniAssetParameter->GetTypeHash();
+	}
+	
+	return 0;
+}
+
+
+
 UHoudiniAssetParameter::UHoudiniAssetParameter(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAssetComponent(nullptr),
@@ -39,8 +52,8 @@ UHoudiniAssetParameter::~UHoudiniAssetParameter()
 bool
 UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	// If parameter has valid ids and has changed, we do not need to recreate it.
-	if(HasValidNodeParmIds() && bChanged)
+	// If parameter has has changed, we do not need to recreate it.
+	if(bChanged)
 	{
 		return false;
 	}
@@ -101,18 +114,10 @@ UHoudiniAssetParameter::SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudi
 
 
 uint32
-UHoudiniAssetParameter::GetParameterHash() const
+UHoudiniAssetParameter::GetTypeHash() const
 {
-	return UHoudiniAssetParameter::GetParameterHash(NodeId, ParmId);
-}
-
-
-uint32
-UHoudiniAssetParameter::GetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId)
-{
-	int HashBuffer[2] = { NodeId, ParmId };
-	uint32 HashValue = FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
-	return HashValue;
+	// We do hashing based on parameter name.
+	return ::GetTypeHash(ParameterName);
 }
 
 
@@ -184,13 +189,13 @@ bool
 UHoudiniAssetParameter::SetNameAndLabel(const HAPI_ParmInfo& ParmInfo)
 {
 	// If we cannot retrieve name, there's nothing to do.
-	if(!RetrieveParameterName(ParmInfo, ParameterName))
+	if(!UHoudiniAssetParameter::RetrieveParameterName(ParmInfo, ParameterName))
 	{
 		return false;
 	}
 
 	// If there's no label, use name for label.
-	if(!RetrieveParameterLabel(ParmInfo, ParameterLabel))
+	if(!UHoudiniAssetParameter::RetrieveParameterLabel(ParmInfo, ParameterLabel))
 	{
 		ParameterLabel = ParameterName;
 	}
@@ -213,21 +218,21 @@ UHoudiniAssetParameter::SetNameAndLabel(HAPI_StringHandle StringHandle)
 
 
 bool
-UHoudiniAssetParameter::RetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& RetrievedName) const
+UHoudiniAssetParameter::RetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& RetrievedName)
 {
 	return RetrieveParameterString(ParmInfo.nameSH, RetrievedName);
 }
 
 
 bool
-UHoudiniAssetParameter::RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel) const
+UHoudiniAssetParameter::RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel)
 {
 	return RetrieveParameterString(ParmInfo.labelSH, RetrievedLabel);
 }
 
 
 bool
-UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedString) const
+UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedString)
 {
 	// Retrieve length of this parameter's name.
 	int32 ParmNameLength = 0;

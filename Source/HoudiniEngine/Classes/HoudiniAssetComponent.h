@@ -217,14 +217,6 @@ private:
 	/** Clear all spline related resources. **/
 	void ClearAllCurves();
 
-	/** Return parameter for a given node and param ids. Will return null if such parameter does not exist. **/
-	UHoudiniAssetParameter* FindHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const;
-	UHoudiniAssetParameter* FindHoudiniAssetParameter(uint32 HashValue) const;
-
-	/** Remove parameter with a given hash node and param ids. **/
-	void RemoveHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId);
-	void RemoveHoudiniAssetParameter(uint32 HashValue);
-
 	/** Create new parameters and attempt to reuse existing ones. **/
 	bool CreateParameters();
 
@@ -256,8 +248,8 @@ private:
 
 protected:
 
-	/** Parameters for this component's asset. **/
-	TMap<uint32, UHoudiniAssetParameter*> Parameters;
+	/** Parameters for this component's asset, indexed by parameter name. **/
+	TMap<FString, UHoudiniAssetParameter*> Parameters;
 
 	/** Inputs for this component's asset. **/
 	TArray<UHoudiniAssetInput*> Inputs;

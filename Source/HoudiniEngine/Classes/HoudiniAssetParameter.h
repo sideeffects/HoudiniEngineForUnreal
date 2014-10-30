@@ -51,16 +51,30 @@ public:
 	/** Return true if this parameter has been changed. **/
 	bool HasChanged() const;
 
-	/** Return hash value for this parameter. **/
-	uint32 GetParameterHash() const;
+	/** Return hash value for this object, used when using this object as a key inside hashing containers. **/
+	uint32 GetTypeHash() const;
 
 	/** Set component for this parameter. **/
 	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent);
 
+	/** Return parameter name. **/
+	const FString& GetParameterName() const;
+
+	/** Return label name. **/
+	const FString& GetParameterLabel() const;
+
 public:
 
-	/** Return hash value for this parameter defining ids. **/
-	static uint32 GetParameterHash(HAPI_NodeId NodeId, HAPI_ParmId ParmId);
+	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
+	static bool RetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& RetrievedName);
+
+	/** Helper function to retrieve label name from a given param info structure. Returns false if does not exist. **/
+	static bool RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel);
+
+private:
+
+	/** Helper function to retrieve HAPI string and convert it to Unreal one. **/
+	static bool RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedName);
 
 public: /** UObject methods. **/
 
@@ -84,12 +98,6 @@ protected:
 	/** Check if parameter is visible. **/
 	bool IsVisible(const HAPI_ParmInfo& ParmInfo) const;
 
-	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
-	bool RetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& RetrievedName) const;
-
-	/** Helper function to retrieve label name from a given param info structure. Returns false if does not exist. **/
-	bool RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel) const;
-
 	/** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
 	void MarkChanged();
 
@@ -101,17 +109,6 @@ protected:
 
 	/** Sets internal value index used by this parameter. **/
 	void SetValuesIndex(int32 InValuesIndex);
-
-	/** Return parameter name. **/
-	const FString& GetParameterName() const;
-
-	/** Return label name. **/
-	const FString& GetParameterLabel() const;
-
-private:
-
-	/** Helper function to retrieve HAPI string and convert it to Unreal one. **/
-	bool RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedName) const;
 
 protected:
 
@@ -139,3 +136,7 @@ protected:
 	/** Is set to true if value of this parameter has been changed by user. **/
 	bool bChanged;
 };
+
+
+/** Function used by hasing containers to create a unique hash for this type of object. **/
+uint32 GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter);
