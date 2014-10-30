@@ -1443,6 +1443,11 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		//ComputeComponentBoundingVolume();
 	}
 
+	if(Ar.IsLoading() && bIsNativeComponent)
+	{
+		// This component has been loaded.
+		bLoadedComponent = true;
+	}
 
 	/*
 	if(Ar.IsLoading() && bIsNativeComponent)
@@ -1868,6 +1873,11 @@ UHoudiniAssetComponent::ClearParameters()
 void
 UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
+	if(bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		bLoadedComponentRequiresInstantiation = true;
+	}
+
 	bParametersChanged = true;
 	StartHoudiniTicking();
 }
