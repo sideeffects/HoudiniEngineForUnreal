@@ -152,6 +152,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			GetPathInstaceTransforms(ObjectInstancePath, PointInstanceValues, AllTransforms, ObjectTransforms);
 			check(ObjectTransforms.Num());
 
+			// Store transforms for this component.
+			InstancedTransforms[GeoIdx].Append(ObjectTransforms);
+
 			// Set component's transformations and instances.
 			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], ObjectTransforms);
 
@@ -193,11 +196,52 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 				InstancedStaticMeshComponents[GeoIdx]->SetStaticMesh(StaticMeshes[GeoIdx]);
 			}
 
+			// Store transforms for this component.
+			InstancedTransforms[GeoIdx].Append(AllTransforms);
+
 			// Set component's transformations and instances.
 			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], AllTransforms);
 		}
 	}
 
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
+{
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		// Get geo part information for this index.
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = GeoPartObjects[Idx];
+
+		UInstancedStaticMeshComponent* Component = ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),
+																								  HoudiniAssetComponent->GetOwner(), NAME_None, RF_Transient);
+
+		Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+
+		Component->AttachTo(HoudiniAssetComponent);
+		Component->RegisterComponent();
+		Component->SetVisibility(true);
+
+		SetComponentInstanceTransformations(Component, InstancedTransforms[Idx]);
+		InstancedStaticMeshComponents[Idx] = Component;
+
+		// Locate default / original mesh.
+		OriginalStaticMeshes[Idx] = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
+
+		// If custom mesh is not used, use original.
+		if(!StaticMeshes[Idx])
+		{
+			StaticMeshes[Idx] = OriginalStaticMeshes[Idx];
+		}
+
+		// Set mesh for this component.
+		Component->SetStaticMesh(StaticMeshes[Idx]);
+	}
+
+	GeoPartObjects.Empty();
 	return true;
 }
 
@@ -224,6 +268,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+	InputWidgets.SetNum(TupleSize);
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
@@ -282,6 +327,94 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	Ar << ObjectId;
+	Ar << ObjectToInstanceId;
+	Ar << GeoId;
+	Ar << PartId;
+	Ar << bAttributeInstancer;
+
+	if(Ar.IsLoading())
+	{
+		InstancedTransforms.SetNum(TupleSize);
+		for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+		{
+			InstancedTransforms[Idx].SetNum(0);
+		}
+
+		StaticMeshes.SetNumZeroed(TupleSize);
+		OriginalStaticMeshes.SetNumZeroed(TupleSize);
+		InstancedStaticMeshComponents.SetNumZeroed(TupleSize);
+
+		GeoPartObjects.SetNumZeroed(TupleSize);
+	}
+
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		bool bValidComponent = false;
+
+		if(Ar.IsSaving())
+		{
+			bValidComponent = (InstancedStaticMeshComponents[Idx] != nullptr);
+		}
+
+		Ar << bValidComponent;
+
+		if(bValidComponent)
+		{
+			// Serialize all transforms;
+			Ar << InstancedTransforms[Idx];
+
+			// Serialize whether original mesh is used.
+			bool bOriginalMeshUsed = false;
+
+			if(Ar.IsSaving())
+			{
+				bOriginalMeshUsed = (StaticMeshes[Idx] == OriginalStaticMeshes[Idx]);
+			}
+
+			Ar << bOriginalMeshUsed;
+
+			// Serialize original mesh's geo part.
+			FHoudiniGeoPartObject GeoPartObject;
+			if(Ar.IsSaving())
+			{
+				GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(OriginalStaticMeshes[Idx]);
+			}
+
+			GeoPartObject.Serialize(Ar);
+
+			if(Ar.IsLoading())
+			{
+				// Store geo parts, we can use this information in post load to get original meshes.
+				GeoPartObjects[Idx] = GeoPartObject;
+			}
+
+			// If original mesh is not used, we need to serialize it.
+			if(!bOriginalMeshUsed)
+			{
+				FString MeshPathName = TEXT("");
+
+				// If original mesh is not used, we need to store path to used mesh.
+				if(Ar.IsSaving())
+				{
+					MeshPathName = StaticMeshes[Idx]->GetPathName();
+				}
+
+				Ar << MeshPathName;
+
+				if(Ar.IsLoading())
+				{
+					StaticMeshes[Idx] = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName, nullptr, LOAD_NoWarn, nullptr));
+				}
+			}
+		}
+		else
+		{
+			// This component is not valid.
+			check(false);
+		}
+	}
 }
 
 
@@ -428,11 +561,16 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 
 		for(int32 Idx = ObjectCount; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
 		{
-			InstancedStaticMeshComponents[Idx]->DetachFromParent();
-			InstancedStaticMeshComponents[Idx]->UnregisterComponent();
-			InstancedStaticMeshComponents[Idx]->DestroyComponent();
+			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+			if(InstancedStaticMeshComponent)
+			{
+				InstancedStaticMeshComponent->DetachFromParent();
+				InstancedStaticMeshComponent->UnregisterComponent();
+				InstancedStaticMeshComponent->DestroyComponent();
 
-			InstancedStaticMeshComponents[Idx] = nullptr;
+				InstancedStaticMeshComponents[Idx] = nullptr;
+			}
+
 			StaticMeshes[Idx] = nullptr;
 			OriginalStaticMeshes[Idx] = nullptr;
 		}
@@ -465,6 +603,13 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 			StaticMeshes[Idx] = nullptr;
 			OriginalStaticMeshes[Idx] = nullptr;
 		}
+	}
+
+	// Reset transforms array.
+	InstancedTransforms.SetNum(ObjectCount);
+	for(int32 Idx = 0; Idx < ObjectCount; ++Idx)
+	{
+		InstancedTransforms[Idx].SetNum(0);
 	}
 }
 
@@ -509,6 +654,7 @@ UHoudiniAssetInstanceInput::ChangeInstancedStaticMeshComponentMesh(int32 Idx)
 {
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
 	UStaticMesh* StaticMesh = StaticMeshes[Idx];
+	UStaticMesh* OriginalStaticMesh = OriginalStaticMeshes[Idx];
 	if(InstancedStaticMeshComponent)
 	{
 		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
