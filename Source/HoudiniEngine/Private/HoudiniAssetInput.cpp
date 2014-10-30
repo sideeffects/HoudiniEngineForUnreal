@@ -28,8 +28,7 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties&
 
 UHoudiniAssetInput::~UHoudiniAssetInput()
 {
-	// Make sure connected asset has been destroyed.
-	check(-1 == ConnectedAssetId);
+
 }
 
 
@@ -50,7 +49,7 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 	// Set component and other information.
 	HoudiniAssetInput->HoudiniAssetComponent = InHoudiniAssetComponent;
 	HoudiniAssetInput->InputIndex = InInputIndex;
-	HoudiniAssetInput->ConnectedAssetId = InHoudiniAssetComponent->GetAssetId();
+	HoudiniAssetInput->ConnectedAssetId = -1;
 
 	// Get input string from handle.
 	HoudiniAssetInput->SetNameAndLabel(InputStringHandle);
