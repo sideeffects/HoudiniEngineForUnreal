@@ -25,7 +25,8 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FPostConstructInitializePro
 	ValuesIndex(-1),
 	bChanged(false)
 {
-
+	ParameterName = TEXT("");
+	ParameterLabel = TEXT("");
 }
 
 
@@ -141,8 +142,8 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 
 	// Component will be assigned separately upon loading.
 
-	Ar << Name;
-	Ar << Label;
+	Ar << ParameterName;
+	Ar << ParameterLabel;
 
 	Ar << NodeId;
 	Ar << ParmId;
@@ -183,15 +184,15 @@ bool
 UHoudiniAssetParameter::SetNameAndLabel(const HAPI_ParmInfo& ParmInfo)
 {
 	// If we cannot retrieve name, there's nothing to do.
-	if(!RetrieveParameterName(ParmInfo, Name))
+	if(!RetrieveParameterName(ParmInfo, ParameterName))
 	{
 		return false;
 	}
 
 	// If there's no label, use name for label.
-	if(!RetrieveParameterLabel(ParmInfo, Label))
+	if(!RetrieveParameterLabel(ParmInfo, ParameterLabel))
 	{
-		Label = Name;
+		ParameterLabel = ParameterName;
 	}
 
 	return true;
@@ -201,9 +202,9 @@ UHoudiniAssetParameter::SetNameAndLabel(const HAPI_ParmInfo& ParmInfo)
 bool
 UHoudiniAssetParameter::SetNameAndLabel(HAPI_StringHandle StringHandle)
 {
-	if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, Name))
+	if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, ParameterName))
 	{
-		Label = Name;
+		ParameterLabel = ParameterName;
 		return true;
 	}
 	
@@ -294,5 +295,19 @@ void
 UHoudiniAssetParameter::SetValuesIndex(int32 InValuesIndex)
 {
 	ValuesIndex = InValuesIndex;
+}
+
+
+const FString&
+UHoudiniAssetParameter::GetParameterName() const
+{
+	return ParameterName;
+}
+
+
+const FString& 
+UHoudiniAssetParameter::GetParameterLabel() const
+{
+	return ParameterLabel;
 }
 

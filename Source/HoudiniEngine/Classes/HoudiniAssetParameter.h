@@ -102,6 +102,12 @@ protected:
 	/** Sets internal value index used by this parameter. **/
 	void SetValuesIndex(int32 InValuesIndex);
 
+	/** Return parameter name. **/
+	const FString& GetParameterName() const;
+
+	/** Return label name. **/
+	const FString& GetParameterLabel() const;
+
 private:
 
 	/** Helper function to retrieve HAPI string and convert it to Unreal one. **/
@@ -113,10 +119,10 @@ protected:
 	UHoudiniAssetComponent* HoudiniAssetComponent;
 
 	/** Name of this parameter. **/
-	FString Name;
+	FString ParameterName;
 
 	/** Label of this parameter. **/
-	FString Label;
+	FString ParameterLabel;
 
 	/** Node this parameter belongs to. **/
 	HAPI_NodeId NodeId;

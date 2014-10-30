@@ -1078,50 +1078,9 @@ UHoudiniAssetComponent::PostLoad()
 	/*
 	if(!PatchedClass)
 	{
-		// Replace class information.
-		ReplaceClassInformation(GetOuter()->GetName());
-
-		// These are used to track and insert properties into new class object.
-		UProperty* PropertyFirst = nullptr;
-		UProperty* PropertyLast = PropertyFirst;
-
-		UField* ChildFirst = nullptr;
-		UField* ChildLast = ChildFirst;
-
 		// We can start reconstructing properties.
 		for(TArray<FHoudiniEngineSerializedProperty>::TIterator Iter = SerializedProperties.CreateIterator(); Iter; ++Iter)
 		{
-			FHoudiniEngineSerializedProperty& SerializedProperty = *Iter;
-
-			// Create unique property name to avoid collisions.
-			FString UniquePropertyName = ObjectTools::SanitizeObjectName(FString::Printf(TEXT("%s_%s"), *PatchedClass->GetName(), *SerializedProperty.Name));
-
-			// Create property.
-			UProperty* Property = CreateProperty(PatchedClass, UniquePropertyName, SerializedProperty.Flags, SerializedProperty.Type);
-
-			if(!Property) continue;
-
-			if(EHoudiniEngineProperty::Enumeration == SerializedProperty.Type)
-			{
-				check(SerializedProperty.Enum);
-
-				UByteProperty* EnumProperty = Cast<UByteProperty>(Property);
-				EnumProperty->Enum = SerializedProperty.Enum;
-			}
-
-			// Set rest of property flags.
-			Property->ArrayDim = SerializedProperty.ArrayDim;
-			Property->ElementSize = SerializedProperty.ElementSize;
-
-			// Set any meta information.
-			if(SerializedProperty.Meta.Num())
-			{
-				for(TMap<FName, FString>::TConstIterator ParamIter(SerializedProperty.Meta); ParamIter; ++ParamIter)
-				{
-					Property->SetMetaData(ParamIter.Key(), *(ParamIter.Value()));
-				}
-			}
-
 			// Restore instancing inputs.
 			if(EHoudiniEngineProperty::Object == SerializedProperty.Type)
 			{
@@ -1147,73 +1106,10 @@ UHoudiniAssetComponent::PostLoad()
 					}
 				}
 			}
-
-			// Replace offset value for this property.
-			ReplacePropertyOffset(Property, SerializedProperty.Offset);
-
-			// Insert this newly created property in link list of properties.
-			if(!PropertyFirst)
-			{
-				PropertyFirst = Property;
-				PropertyLast = Property;
-			}
-			else
-			{
-				PropertyLast->PropertyLinkNext = Property;
-				PropertyLast = Property;
-			}
-
-			// Insert this newly created property into link list of children.
-			if(!ChildFirst)
-			{
-				ChildFirst = Property;
-				ChildLast = Property;
-			}
-			else
-			{
-				ChildLast->Next = Property;
-				ChildLast = Property;
-			}
-
-			// We also need to add this property to a set of changed properties.
-			if(SerializedProperty.bChanged)
-			{
-				ChangedProperties.Add(Property->GetName(), Property);
-			}
-		}
-
-		// We can remove all serialized stored properties.
-		SerializedProperties.Reset();
-
-		// We can reset insntacing input name mapping.
-		InstancerPropertyNames.Empty();
-
-		// And add new created properties to our newly created class.
-		UClass* ClassOfUHoudiniAssetComponent = UHoudiniAssetComponent::StaticClass();
-
-		if(PropertyFirst)
-		{
-			PatchedClass->PropertyLink = PropertyFirst;
-			PropertyLast->PropertyLinkNext = ClassOfUHoudiniAssetComponent->PropertyLink;
-		}
-
-		if(ChildFirst)
-		{
-			PatchedClass->Children = ChildFirst;
-			ChildLast->Next = ClassOfUHoudiniAssetComponent->Children;
 		}
 
 		// Update properties panel.
 		//UpdateEditorProperties();
-
-		if(StaticMeshes.Num() > 0)
-		{
-			CreateStaticMeshResources(StaticMeshes);
-		}
-		else
-		{
-			CreateStaticMeshHoudiniLogoResource();
-		}
 
 		// Create instanced static mesh resources.
 		CreateInstancedStaticMeshResources();

@@ -86,8 +86,8 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(Label)
-							.ToolTipText(Label)
+							.Text(GetParameterLabel())
+							.ToolTipText(GetParameterLabel())
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
@@ -96,7 +96,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		SNew(SAssetDropTarget)
 			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInput::OnAssetDropped))
 			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInput::OnIsAssetAcceptableForDrop))
-			.ToolTipText(Label)
+			.ToolTipText(GetParameterLabel())
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot().Padding(2, 2)
