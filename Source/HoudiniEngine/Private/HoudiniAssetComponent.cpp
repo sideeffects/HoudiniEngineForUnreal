@@ -461,6 +461,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 {
 	FHoudiniEngineTaskInfo TaskInfo;
 	bool bStopTicking = false;
+	bool bFinishedLoadedInstantiation = false;
 
 	static float NotificationFadeOutDuration = 2.0f;
 	static float NotificationExpireDuration = 2.0f;
@@ -527,6 +528,11 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						// We just finished instantiation, we need to schedule a cook.
 						bInstantiated = true;
+
+						if(TaskInfo.bLoadedComponent)
+						{
+							bFinishedLoadedInstantiation = true;
+						}
 					}
 					else
 					{
@@ -700,6 +706,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
 			Task.Asset = HoudiniAsset;
 			Task.ActorName = GetOuter()->GetName();
+			Task.bLoadedComponent = true;
 			FHoudiniEngine::Get().AddTask(Task);
 		}
 		else
@@ -728,7 +735,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			*/
 
 			// Upload changed parameters back to HAPI.
-			UploadChangedParameters();
+			UploadChangedParameters(bFinishedLoadedInstantiation);
 
 			// Create asset cooking task object and submit it for processing.
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
@@ -1748,7 +1755,7 @@ UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAs
 
 
 void
-UHoudiniAssetComponent::UploadChangedParameters()
+UHoudiniAssetComponent::UploadChangedParameters(bool bFinishedLoading)
 {
 	// Upload inputs.
 	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
@@ -1768,7 +1775,7 @@ UHoudiniAssetComponent::UploadChangedParameters()
 		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
 		// If parameter has changed, upload it to HAPI.
-		if(HoudiniAssetParameter->HasChanged())
+		if(bFinishedLoading || HoudiniAssetParameter->HasChanged())
 		{
 			HoudiniAssetParameter->UploadParameterValue();
 		}

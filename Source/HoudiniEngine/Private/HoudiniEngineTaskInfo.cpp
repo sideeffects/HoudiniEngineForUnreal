@@ -20,7 +20,8 @@ FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo() :
 	Result(HAPI_RESULT_SUCCESS),
 	AssetId(-1),
 	TaskType(EHoudiniEngineTaskType::None),
-	TaskState(EHoudiniEngineTaskState::None)
+	TaskState(EHoudiniEngineTaskState::None),
+	bLoadedComponent(false)
 {
 
 }
@@ -32,7 +33,8 @@ FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetI
 	Result(InResult),
 	AssetId(InAssetId),
 	TaskType(InTaskType),
-	TaskState(InTaskState)
+	TaskState(InTaskState),
+	bLoadedComponent(false)
 {
 
 }

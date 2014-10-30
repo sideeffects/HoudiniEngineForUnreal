@@ -17,15 +17,17 @@
 
 
 FHoudiniEngineTask::FHoudiniEngineTask() :
-	TaskType(EHoudiniEngineTaskType::None)
+	TaskType(EHoudiniEngineTaskType::None),
+	bLoadedComponent(false)
 {
 	HapiGUID.Invalidate();
 }
 
 
 FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID) :
-    HapiGUID(InHapiGUID),
-	TaskType(InTaskType)
+	HapiGUID(InHapiGUID),
+	TaskType(InTaskType),
+	bLoadedComponent(false)
 {
 
 }
