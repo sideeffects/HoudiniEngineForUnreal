@@ -1221,10 +1221,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	SerializeParameters(Ar);
 
 	// Serialize inputs.
-	{
-		int32 InputCount = Inputs.Num();
-		Ar << InputCount;
-	}
+	SerializeInputs(Ar);
 
 	// Serialize static meshes / geometry.
 	{
@@ -1936,6 +1933,26 @@ UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
 
 			HoudiniAssetParameter->SetHoudiniAssetComponent(this);
 			Parameters.Add(HoudiniAssetParameterKey, HoudiniAssetParameter);
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::SerializeInputs(FArchive& Ar)
+{
+	if(Ar.IsLoading())
+	{
+		ClearInputs();
+	}
+
+	Ar << Inputs;
+
+	if(Ar.IsLoading())
+	{
+		for(int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
+		{
+			Inputs[InputIdx]->SetHoudiniAssetComponent(this);
 		}
 	}
 }

@@ -241,6 +241,9 @@ private:
 	/** Serialize parameters. **/
 	void SerializeParameters(FArchive& Ar);
 
+	/** Serialize inputs. **/
+	void SerializeInputs(FArchive& Ar);
+
 private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
