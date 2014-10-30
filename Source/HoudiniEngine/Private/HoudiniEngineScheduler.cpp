@@ -124,6 +124,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 
 		// Add processing notification.
 		FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, -1, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::Processing);
+		TaskInfo.bLoadedComponent = Task.bLoadedComponent;
 		TaskDescription(TaskInfo, Task.ActorName, TEXT("Started Instantiation"));
 		FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
@@ -137,6 +138,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 			{
 				// Cooking has been successful.
 				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::FinishedInstantiation);
+				TaskInfo.bLoadedComponent = Task.bLoadedComponent;
 				TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Instantiation"));
 				FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
@@ -147,6 +149,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 				// There was an error while instantiating.
 				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, 
 												EHoudiniEngineTaskState::FinishedInstantiationWithErrors);
+				TaskInfo.bLoadedComponent = Task.bLoadedComponent;
 				TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Instantiation with Errors"));
 				FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
@@ -167,6 +170,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 				FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
 
 				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::Processing);
+				TaskInfo.bLoadedComponent = Task.bLoadedComponent;
 				TaskDescription(TaskInfo, Task.ActorName, StatusString);
 				FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 			}

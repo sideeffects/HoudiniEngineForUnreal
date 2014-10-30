@@ -51,4 +51,7 @@ struct FHoudiniEngineTaskInfo
 
 	/** String used for status / progress bar. **/
 	FText StatusText;
+
+	/** Is set to true if corresponding task was issued for loaded component. **/
+	bool bLoadedComponent;
 };

@@ -224,7 +224,7 @@ private:
 	void ClearParameters();
 
 	/** Upload changed parameters back to HAPI. **/
-	void UploadChangedParameters();
+	void UploadChangedParameters(bool bFinishedLoading = false);
 
 	/** Create inputs. Number of inputs for asset does not change. **/
 	void CreateInputs();

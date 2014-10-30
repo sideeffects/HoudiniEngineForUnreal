@@ -58,4 +58,7 @@ struct FHoudiniEngineTask
 
 	/** Asset Id. **/
 	HAPI_AssetId AssetId;
+
+	/** Is set to true if component has been loaded. **/
+	bool bLoadedComponent;
 };
