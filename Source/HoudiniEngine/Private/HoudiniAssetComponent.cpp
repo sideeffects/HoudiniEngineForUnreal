@@ -79,7 +79,7 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 	if(HoudiniAssetComponent && !HoudiniAssetComponent->IsPendingKill())
 	{
 		// Add references for all parameters.
-		for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
 		{
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 			Collector.AddReferencedObject(HoudiniAssetParameter, InThis);
@@ -1570,47 +1570,6 @@ UHoudiniAssetComponent::ClearAllCurves()
 }
 
 
-UHoudiniAssetParameter*
-UHoudiniAssetComponent::FindHoudiniAssetParameter(uint32 HashValue) const
-{
-	UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
-
-	// See if parameter exists.
-	UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = Parameters.Find(HashValue);
-
-	if(FoundHoudiniAssetParameter)
-	{
-		HoudiniAssetParameter = *FoundHoudiniAssetParameter;
-	}
-
-	return HoudiniAssetParameter;
-}
-
-
-UHoudiniAssetParameter*
-UHoudiniAssetComponent::FindHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId) const
-{
-	uint32 HashValue = UHoudiniAssetParameter::GetParameterHash(NodeId, ParmId);
-	UHoudiniAssetParameter* HoudiniAssetParameter = FindHoudiniAssetParameter(HashValue);
-	return HoudiniAssetParameter;
-}
-
-
-void
-UHoudiniAssetComponent::RemoveHoudiniAssetParameter(HAPI_NodeId NodeId, HAPI_ParmId ParmId)
-{
-	uint32 ValueHash = UHoudiniAssetParameter::GetParameterHash(NodeId, ParmId);
-	RemoveHoudiniAssetParameter(ValueHash);
-}
-
-
-void
-UHoudiniAssetComponent::RemoveHoudiniAssetParameter(uint32 HashValue)
-{
-	Parameters.Remove(HashValue);
-}
-
-
 bool
 UHoudiniAssetComponent::CreateParameters()
 {
@@ -1624,7 +1583,7 @@ UHoudiniAssetComponent::CreateParameters()
 	UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
 
 	// Map of newly created and reused parameters.
-	TMap<uint32, UHoudiniAssetParameter*> NewParameters;
+	TMap<FString, UHoudiniAssetParameter*> NewParameters;
 
 	HAPI_AssetInfo AssetInfo;
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
@@ -1673,19 +1632,28 @@ UHoudiniAssetComponent::CreateParameters()
 			continue;
 		}
 
+		FString ParameterName;
+		if(!UHoudiniAssetParameter::RetrieveParameterName(ParmInfo, ParameterName))
+		{
+			// We had trouble retrieving name of this parameter, skip it.
+			continue;
+		}
+
 		// See if this parameter has already been created.
-		uint32 ParameterHash = UHoudiniAssetParameter::GetParameterHash(AssetInfo.nodeId, ParmInfo.id);
-		HoudiniAssetParameter = FindHoudiniAssetParameter(ParameterHash);
+		UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = Parameters.Find(ParameterName);
+		UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
 
 		// If parameter exists, we can reuse it.
-		if(HoudiniAssetParameter)
+		if(FoundHoudiniAssetParameter)
 		{
+			HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+
 			// Remove parameter from current map.
-			RemoveHoudiniAssetParameter(ParameterHash);
+			Parameters.Remove(ParameterName);
 
 			// Reinitialize parameter and add it to map.
 			HoudiniAssetParameter->CreateParameter(this, AssetInfo.nodeId, ParmInfo);
-			NewParameters.Add(ParameterHash, HoudiniAssetParameter);
+			NewParameters.Add(ParameterName, HoudiniAssetParameter);
 			continue;
 		}
 
@@ -1742,7 +1710,7 @@ UHoudiniAssetComponent::CreateParameters()
 		}
 
 		// Add this parameter to the map.
-		NewParameters.Add(ParameterHash, HoudiniAssetParameter);
+		NewParameters.Add(ParameterName, HoudiniAssetParameter);
 	}
 
 	// Remove all unused parameters.
@@ -1756,7 +1724,7 @@ UHoudiniAssetComponent::CreateParameters()
 void
 UHoudiniAssetComponent::ClearParameters()
 {
-	for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 	{
 		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 		HoudiniAssetParameter->ConditionalBeginDestroy();
@@ -1795,7 +1763,7 @@ UHoudiniAssetComponent::UploadChangedParameters()
 	}
 
 	// Upload parameters.
-	for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 	{
 		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
@@ -1940,9 +1908,9 @@ UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
 
 	if(Ar.IsSaving())
 	{
-		for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 		{
-			uint32 HoudiniAssetParameterKey = IterParams.Key();
+			FString HoudiniAssetParameterKey = IterParams.Key();
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
 			Ar << HoudiniAssetParameterKey;
@@ -1953,8 +1921,8 @@ UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
 	{
 		for(int32 ParmIdx = 0; ParmIdx < ParamCount; ++ParmIdx)
 		{
+			FString HoudiniAssetParameterKey = TEXT("");
 			UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
-			uint32 HoudiniAssetParameterKey = -1;
 
 			Ar << HoudiniAssetParameterKey;
 			Ar << HoudiniAssetParameter;

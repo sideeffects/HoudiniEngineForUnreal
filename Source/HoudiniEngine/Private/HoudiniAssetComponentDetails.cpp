@@ -147,7 +147,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-			for(TMap<uint32, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
+			for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
 			{
 				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 				HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
