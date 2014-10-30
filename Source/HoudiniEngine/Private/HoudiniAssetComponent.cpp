@@ -14,7 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include <stdint.h>
 
 
 #define HOUDINI_TEST_LOG_MESSAGE( NameWithSpaces )
@@ -178,8 +177,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		return;
 	}
 
-	HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(Before),            C" );
-
 	UHoudiniAsset* Asset = nullptr;
 	AHoudiniAssetActor* HoudiniAssetActor = Cast<AHoudiniAssetActor>(GetOwner());
 
@@ -203,7 +200,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
 	{
-		HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(After),             C" );
 		return;
 	}
 
@@ -263,8 +259,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		// Start ticking - this will poll the cooking system for completion.
 		StartHoudiniTicking();
 	}
-
-	HOUDINI_TEST_LOG_MESSAGE( "  SetHoudiniAsset(After),             C" );
 }
 
 
@@ -407,8 +401,6 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 void
 UHoudiniAssetComponent::StartHoudiniTicking()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  StartHoudiniTicking,                C" );
-
 	// If we have no timer delegate spawned for this component, spawn one.
 	if(!TimerDelegateCooking.IsBound())
 	{
@@ -427,8 +419,6 @@ UHoudiniAssetComponent::StartHoudiniTicking()
 void
 UHoudiniAssetComponent::StopHoudiniTicking()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  StopHoudiniTicking,                 C" );
-
 	if(TimerDelegateCooking.IsBound())
 	{
 		GEditor->GetTimerManager()->ClearTimer(TimerDelegateCooking);
@@ -443,8 +433,6 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 void
 UHoudiniAssetComponent::StartHoudiniAssetChange()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  StartHoudiniAssetChange,            C" );
-
 	// If we have no timer delegate spawned for this component, spawn one.
 	if(!TimerDelegateAssetChange.IsBound())
 	{
@@ -460,8 +448,6 @@ UHoudiniAssetComponent::StartHoudiniAssetChange()
 void
 UHoudiniAssetComponent::StopHoudiniAssetChange()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  StopHoudiniAssetChange,             C" );
-
 	if(TimerDelegateAssetChange.IsBound())
 	{
 		GEditor->GetTimerManager()->ClearTimer(TimerDelegateAssetChange);
@@ -938,8 +924,6 @@ UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 void
 UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(Before),     C" );
-
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	if(!bIsNativeComponent)
@@ -978,8 +962,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		// updates. It cannot be done here because this event is fired on a property which we might change.
 		StartHoudiniAssetChange();
 	}
-
-	HOUDINI_TEST_LOG_MESSAGE( "  PostEditChangeProperty(After),      C" );
 }
 
 
@@ -989,8 +971,6 @@ UHoudiniAssetComponent::OnComponentCreated()
 	// This event will only be fired for native Actor and native Component.
 	Super::OnComponentCreated();
 
-	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentCreated,                 C" );
-
 	// Create Houdini logo static mesh and component for it.
 	CreateStaticMeshHoudiniLogoResource();
 }
@@ -999,8 +979,6 @@ UHoudiniAssetComponent::OnComponentCreated()
 void
 UHoudiniAssetComponent::OnComponentDestroyed()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  OnComponentDestroyed,               C" );
-
 	// Release all Houdini related resources.
 	ResetHoudiniResources();
 
@@ -1080,8 +1058,6 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 void
 UHoudiniAssetComponent::PreSave()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  PreSave,                            C" );
-
 	Super::PreSave();
 }
 
@@ -1089,8 +1065,6 @@ UHoudiniAssetComponent::PreSave()
 void
 UHoudiniAssetComponent::PostLoad()
 {
-	HOUDINI_TEST_LOG_MESSAGE( "  PostLoad,                           C" );
-
 	Super::PostLoad();
 
 	// We loaded a component which has no asset associated with it.
@@ -1248,33 +1222,32 @@ UHoudiniAssetComponent::PostLoad()
 		UpdateRenderingInformation();
 	}
 	*/
+
+
+	if(StaticMeshes.Num() > 0)
+	{
+		CreateObjectGeoPartResources(StaticMeshes);
+	}
+	else
+	{
+		CreateStaticMeshHoudiniLogoResource();
+	}
 }
 
 
 void
 UHoudiniAssetComponent::Serialize(FArchive& Ar)
 {
-	if(Ar.IsSaving())
-	{
-		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Saving),                  C" );
-	}
-	else if(Ar.IsLoading())
-	{
-		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - Before),        C" );
-	}
-
 	Super::Serialize(Ar);
 
 	if(Ar.IsTransacting())
 	{
 		// We have no support for transactions (undo system) right now.
-		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
 
 	if(!Ar.IsSaving() && !Ar.IsLoading())
 	{
-		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
 
@@ -1319,7 +1292,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
 	{
-		HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 		return;
 	}
 
@@ -1501,8 +1473,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 	*/
-
-	HOUDINI_TEST_LOG_MESSAGE( "  Serialize(Loading - After),         C" );
 }
 
 
