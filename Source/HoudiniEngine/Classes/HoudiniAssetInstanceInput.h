@@ -44,6 +44,9 @@ public:
 	/** Create this instance input. **/
 	bool CreateInstanceInput();
 
+	/** Create this instance input from post-loading intermediate state. **/
+	bool CreateInstanceInputPostLoad();
+
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
@@ -118,6 +121,12 @@ protected:
 
 	/** Original static meshes which were used as input when instancer was constructed. **/
 	TArray<UStaticMesh*> OriginalStaticMeshes;
+
+	/** Transforms for each component. **/
+	TArray<TArray<FTransform> > InstancedTransforms;
+
+	/** Temporary geo part information, this is used during loading. **/
+	TArray<FHoudiniGeoPartObject> GeoPartObjects;
 
 	/** Corresponding object id. **/
 	HAPI_ObjectId ObjectId;

@@ -1082,51 +1082,6 @@ UHoudiniAssetComponent::PostLoad()
 		return;
 	}
 
-	/*
-	if(!PatchedClass)
-	{
-		// We can start reconstructing properties.
-		for(TArray<FHoudiniEngineSerializedProperty>::TIterator Iter = SerializedProperties.CreateIterator(); Iter; ++Iter)
-		{
-			// Restore instancing inputs.
-			if(EHoudiniEngineProperty::Object == SerializedProperty.Type)
-			{
-				static const FString CategoryHoudiniInstancedInputs = TEXT("HoudiniInstancedInputs");
-				const FString& Category = Property->GetMetaData(TEXT("Category"));
-
-				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
-				if(ObjectProperty && (Category == CategoryHoudiniInstancedInputs))
-				{
-					check(ObjectProperty->HasMetaData(TEXT("HoudiniParmName")));
-
-					// Locate instancer.
-					FHoudiniEngineInstancer* const* FoundHoudiniEngineInstancer = InstancerPropertyNames.Find(ObjectProperty->GetMetaData(TEXT("HoudiniParmName")));
-					if(FoundHoudiniEngineInstancer)
-					{
-						FHoudiniEngineInstancer* HoudiniEngineInstancer = *FoundHoudiniEngineInstancer;
-						HoudiniEngineInstancer->SetObjectProperty(ObjectProperty);
-						InstancerProperties.Add(ObjectProperty, HoudiniEngineInstancer);
-					}
-					else
-					{
-						check(false);
-					}
-				}
-			}
-		}
-
-		// Update properties panel.
-		//UpdateEditorProperties();
-
-		// Create instanced static mesh resources.
-		CreateInstancedStaticMeshResources();
-
-		// Need to update rendering information.
-		UpdateRenderingInformation();
-	}
-	*/
-
-
 	if(StaticMeshes.Num() > 0)
 	{
 		CreateObjectGeoPartResources(StaticMeshes);
@@ -1135,6 +1090,9 @@ UHoudiniAssetComponent::PostLoad()
 	{
 		CreateStaticMeshHoudiniLogoResource();
 	}
+
+	// Perform post load initialization on instance inputs.
+	PostLoadInitializeInstanceInputs();
 }
 
 
@@ -1274,68 +1232,8 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 
-	// Serialize instancing data.
-	{
-		int32 NumInstancers = InstanceInputs.Num();
-		Ar << NumInstancers;
-
-		/*
-		if(NumInstancers > 0)
-		{
-			InstancerPropertyNames.Empty();
-
-			if(Ar.IsSaving())
-			{
-				for(TMap<FHoudiniGeoPartObject, FHoudiniEngineInstancer*>::TIterator IterInstancer(Instancers); IterInstancer; ++IterInstancer)
-				{
-					FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Key();
-					FHoudiniEngineInstancer* HoudiniEngineInstancer = IterInstancer.Value();
-
-					// Store the object geo part information.
-					HoudiniGeoPartObject.Serialize(Ar);
-
-					// Store instancer information.
-					HoudiniEngineInstancer->Serialize(Ar);
-				}
-			}
-			else if(Ar.IsLoading())
-			{
-				for(int32 InstancerIdx = 0; InstancerIdx < NumInstancers; ++InstancerIdx)
-				{
-					FHoudiniGeoPartObject HoudiniGeoPartObject;
-					FHoudiniEngineInstancer* HoudiniEngineInstancer = nullptr;
-
-					// Get object geo part information.
-					HoudiniGeoPartObject.Serialize(Ar);
-
-					// Look up original mesh.
-					UStaticMesh* const* FoundOriginalMesh = StaticMeshes.Find(HoudiniGeoPartObject);
-					UStaticMesh* OriginalMesh = nullptr;
-					if(FoundOriginalMesh)
-					{
-						OriginalMesh = *FoundOriginalMesh;
-					}
-
-					// Create instancer and get instancer information.
-					HoudiniEngineInstancer = new FHoudiniEngineInstancer(OriginalMesh);
-					HoudiniEngineInstancer->Serialize(Ar);
-
-					if(!OriginalMesh)
-					{
-						delete HoudiniEngineInstancer;
-						continue;
-					}
-
-					// Store instancer geo part mapping.
-					Instancers.Add(HoudiniGeoPartObject, HoudiniEngineInstancer);
-
-					// Store property name mapping for this instancer.
-					InstancerPropertyNames.Add(HoudiniEngineInstancer->ObjectPropertyName, HoudiniEngineInstancer);
-				}
-			}
-		}
-		*/
-	}
+	// Serialize instance inputs (we do this after geometry loading as we might need it).
+	SerializeInstanceInputs(Ar);
 
 	if(Ar.IsLoading())
 	{
@@ -1425,6 +1323,21 @@ UHoudiniAssetComponent::LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudi
 	}
 
 	return InOutObjectsToInstance.Num() > 0;
+}
+
+
+FHoudiniGeoPartObject
+UHoudiniAssetComponent::LocateGeoPartObject(UStaticMesh* StaticMesh) const
+{
+	FHoudiniGeoPartObject GeoPartObject;
+
+	const FHoudiniGeoPartObject* FoundGeoPartObject = StaticMeshes.FindKey(StaticMesh);
+	if(FoundGeoPartObject)
+	{
+		GeoPartObject = *FoundGeoPartObject;
+	}
+
+	return GeoPartObject;
 }
 
 
@@ -1954,6 +1867,57 @@ UHoudiniAssetComponent::SerializeInputs(FArchive& Ar)
 		{
 			Inputs[InputIdx]->SetHoudiniAssetComponent(this);
 		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::SerializeInstanceInputs(FArchive& Ar)
+{
+	if(Ar.IsLoading())
+	{
+		ClearInstanceInputs();
+	}
+
+	// Serialize number of instance inputs.
+	int32 InstanceInputCount = InstanceInputs.Num();
+	Ar << InstanceInputCount;
+
+	if(Ar.IsSaving())
+	{
+		for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
+		{
+			HAPI_ObjectId HoudiniInstanceInputKey = IterInstanceInputs.Key();
+			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
+
+			Ar << HoudiniInstanceInputKey;
+			Ar << HoudiniAssetInstanceInput;
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+		for(int32 InstanceInputIdx = 0; InstanceInputIdx < InstanceInputCount; ++InstanceInputIdx)
+		{
+			HAPI_ObjectId HoudiniInstanceInputKey = -1;
+			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = nullptr;
+
+			Ar << HoudiniInstanceInputKey;
+			Ar << HoudiniAssetInstanceInput;
+
+			HoudiniAssetInstanceInput->SetHoudiniAssetComponent(this);
+			InstanceInputs.Add(HoudiniInstanceInputKey, HoudiniAssetInstanceInput);
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
+{
+	for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
+	{
+		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
+		HoudiniAssetInstanceInput->CreateInstanceInputPostLoad();
 	}
 }
 

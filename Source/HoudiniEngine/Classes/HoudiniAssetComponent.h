@@ -141,6 +141,9 @@ public:
 	/** Locate static mesh for a given geo part. **/
 	UStaticMesh* LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const;
 
+	/** Locate geo part object for given static mesh. Reverse map search. **/
+	FHoudiniGeoPartObject LocateGeoPartObject(UStaticMesh* StaticMesh) const;
+
 public: /** UObject methods. **/
 
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
@@ -243,6 +246,12 @@ private:
 
 	/** Serialize inputs. **/
 	void SerializeInputs(FArchive& Ar);
+
+	/** Serialize instance inputs. **/
+	void SerializeInstanceInputs(FArchive& Ar);
+
+	/** Used to perform post loading initialization on instance inputs. **/
+	void PostLoadInitializeInstanceInputs();
 
 private:
 
