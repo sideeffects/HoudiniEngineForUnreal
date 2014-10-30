@@ -149,6 +149,38 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	// Serialize input index.
+	Ar << InputIndex;
+
+	// We will only serialize static mesh inputs for the moment.
+	bool bMeshAssigned = false;
+	FString MeshPathName = TEXT("");
+
+	if(Ar.IsSaving())
+	{
+		UStaticMesh* StaticMeshInput = Cast<UStaticMesh>(InputObject);
+		if(StaticMeshInput)
+		{
+			bMeshAssigned = true;
+			MeshPathName = StaticMeshInput->GetPathName();
+		}
+	}
+
+	Ar << bMeshAssigned;
+	if(bMeshAssigned)
+	{
+		Ar << MeshPathName;
+	}
+
+	if(Ar.IsLoading())
+	{
+		UStaticMesh* StaticMeshInput = nullptr;
+		if(bMeshAssigned)
+		{
+			InputObject = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName, nullptr, LOAD_NoWarn, nullptr));
+		}
+	}
 }
 
 
