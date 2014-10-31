@@ -903,28 +903,29 @@ FHoudiniEngineUtils::IsValidAssetId(HAPI_AssetId AssetId)
 bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int InputIndex, UStaticMesh* StaticMesh, HAPI_AssetId& ConnectedAssetId)
 {
-	// We return invalid asset input id by default.
-	ConnectedAssetId = -1;
-
 	// If we don't have a static mesh, or host asset is invalid, there's nothing to do.
 	if(!StaticMesh || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
 	{
 		return false;
 	}
 
-	HAPI_AssetId AssetId = -1;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_CreateInputAsset(&AssetId, nullptr), false);
-
-	// Check if we have a valid id for this new input asset.
-	if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
+	// Check if connected asset id is valid, if it is not, we need to create an input asset.
+	if(ConnectedAssetId < 0)
 	{
-		return false;
+		HAPI_AssetId AssetId = -1;
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_CreateInputAsset(&AssetId, nullptr), false);
+
+		// Check if we have a valid id for this new input asset.
+		if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
+		{
+			return false;
+		}
+
+		// We now have a valid id.
+		ConnectedAssetId = AssetId;
+
+		HOUDINI_CHECK_ERROR_RETURN(HAPI_CookAsset(AssetId, nullptr), false);
 	}
-
-	// We now have a valid id.
-	ConnectedAssetId = AssetId;
-
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_CookAsset(AssetId, nullptr), false);
 	
 	// Grab base LOD level.
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
