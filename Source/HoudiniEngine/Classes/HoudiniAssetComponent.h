@@ -230,6 +230,9 @@ private:
 	/** Upload changed parameters back to HAPI. **/
 	void UploadChangedParameters();
 
+	/** If parameters were loaded, they need to be updated with proper ids after HAPI instantiation. **/
+	void UpdateLoadedParameter();
+
 	/** Create inputs. Number of inputs for asset does not change. **/
 	void CreateInputs();
 
