@@ -532,9 +532,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						if(TaskInfo.bLoadedComponent)
 						{
 							bFinishedLoadedInstantiation = true;
-
-							// Update parameter node id for all loaded parameters.
-							UpdateLoadedParameter();
 						}
 					}
 					else
@@ -662,9 +659,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					if(TaskInfo.bLoadedComponent)
 					{
 						bFinishedLoadedInstantiation = true;
-
-						// Update parameter node id for all loaded parameters.
-						UpdateLoadedParameter();
 					}
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
@@ -728,11 +722,20 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 		else
 		{
-			// If we finished loading instantiation, we can restore preset data.
-			if(bFinishedLoadedInstantiation && PresetBuffer.Num() > 0)
+			if(bFinishedLoadedInstantiation)
 			{
-				FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
-				PresetBuffer.Empty();
+				// Update parameter node id for all loaded parameters.
+				UpdateLoadedParameter();
+
+				// Additionally, we need to update and create assets for all input parameters that have geos assigned.
+				UpateLoadedInputs();
+
+				// If we finished loading instantiation, we can restore preset data.
+				if(PresetBuffer.Num() > 0)
+				{
+					FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
+					PresetBuffer.Empty();
+				}
 			}
 
 			// Upload changed parameters back to HAPI.
@@ -1782,6 +1785,17 @@ UHoudiniAssetComponent::ClearInputs()
 	}
 
 	Inputs.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::UpateLoadedInputs()
+{
+	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
+	{
+		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+		HoudiniAssetInput->UploadParameterValue();
+	}
 }
 
 

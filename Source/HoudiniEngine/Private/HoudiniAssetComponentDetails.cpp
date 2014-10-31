@@ -115,7 +115,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Inputs.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniDragAndDropInputs", TEXT(""), ECategoryPriority::Important);
 		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
@@ -129,7 +129,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Instanced Inputs category.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniDragAndDropInstancedInputs", TEXT(""), ECategoryPriority::Important);
 		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;

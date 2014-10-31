@@ -239,6 +239,9 @@ private:
 	/** Clear all inputs. **/
 	void ClearInputs();
 
+	/** If inputs were loaded, they need to be updated and assigned geos need to be connected. **/
+	void UpateLoadedInputs();
+
 	/** Create instance inputs. **/
 	void CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>& Instancers);
 
