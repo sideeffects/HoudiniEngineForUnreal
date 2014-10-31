@@ -126,6 +126,51 @@ FHoudiniEngineUtils::IsInitialized()
 
 
 bool
+FHoudiniEngineUtils::ComputeAssetPresetBufferLength(HAPI_AssetId AssetId, int32& OutBufferLength)
+{
+	HAPI_AssetInfo AssetInfo;
+	OutBufferLength = 0;
+
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+
+	int32 BufferLength = 0;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetPresetBufLength(AssetInfo.nodeId, &BufferLength), false);
+
+	OutBufferLength = BufferLength;
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::SetAssetPreset(HAPI_AssetId AssetId, const TArray<char>& PresetBuffer)
+{
+	HAPI_AssetInfo AssetInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetPreset(AssetInfo.nodeId, &PresetBuffer[0], PresetBuffer.Num()), false);
+
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::GetAssetPreset(HAPI_AssetId AssetId, TArray<char>& PresetBuffer)
+{
+	PresetBuffer.Empty();
+
+	HAPI_AssetInfo AssetInfo;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+
+	int32 BufferLength = 0;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetPresetBufLength(AssetInfo.nodeId, &BufferLength), false);
+
+	PresetBuffer.SetNumZeroed(BufferLength);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetPreset(AssetInfo.nodeId, &PresetBuffer[0], PresetBuffer.Num()), false);
+
+	return true;
+}
+
+
+bool
 FHoudiniEngineUtils::IsHoudiniAssetValid(HAPI_AssetId AssetId)
 {
 	HAPI_AssetInfo AssetInfo;

@@ -711,31 +711,15 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 		else
 		{
-			/*
-			// We need to set all property values.
-			SetChangedPropertyValues();
-
-			HAPI_AssetInfo AssetInfo;
-			if((HAPI_RESULT_SUCCESS == HAPI_GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
+			// If we finished loading instantiation, we can restore preset data.
+			if(bFinishedLoadedInstantiation && PresetBuffer.Num() > 0)
 			{
-				// Remove all processed parameters.
-				ChangedProperties.Empty();
+				FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
+				PresetBuffer.Empty();
 			}
-			else
-			{
-				// Asset has been instantiated, but not cooked. We cannot submit inputs yet.
-				ClearChangedPropertiesParameters();
-			}
-
-			// Create asset instantiation task object and submit it for processing.
-			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-			Task.ActorName = GetOuter()->GetName();
-			Task.AssetComponent = this;
-			FHoudiniEngine::Get().AddTask(Task);
-			*/
 
 			// Upload changed parameters back to HAPI.
-			UploadChangedParameters(bFinishedLoadedInstantiation);
+			UploadChangedParameters();
 
 			// Create asset cooking task object and submit it for processing.
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
@@ -1174,6 +1158,31 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize package name and object name - we will need those to reconstruct / locate the asset.
 	Ar << HoudiniAssetPackage;
 	Ar << HoudiniAssetName;
+
+	// Serialization of preset.
+	{
+		bool bPresetSaved = false;
+		if(Ar.IsSaving() && FHoudiniEngineUtils::IsValidAssetId(AssetId))
+		{
+			if(FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
+			{
+				bPresetSaved = true;
+			}
+		}
+
+		Ar << bPresetSaved;
+
+		if(bPresetSaved)
+		{
+			Ar << PresetBuffer;
+
+			if(Ar.IsSaving())
+			{
+				// We no longer need preset buffer.
+				PresetBuffer.Empty();
+			}
+		}
+	}
 
 	// Serialize parameters.
 	SerializeParameters(Ar);
@@ -1665,7 +1674,7 @@ UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAs
 
 
 void
-UHoudiniAssetComponent::UploadChangedParameters(bool bFinishedLoading)
+UHoudiniAssetComponent::UploadChangedParameters()
 {
 	// Upload inputs.
 	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
@@ -1685,7 +1694,7 @@ UHoudiniAssetComponent::UploadChangedParameters(bool bFinishedLoading)
 		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
 		// If parameter has changed, upload it to HAPI.
-		if(bFinishedLoading || HoudiniAssetParameter->HasChanged())
+		if(HoudiniAssetParameter->HasChanged())
 		{
 			HoudiniAssetParameter->UploadParameterValue();
 		}

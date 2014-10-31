@@ -17,6 +17,7 @@
 #include "HAPI.h"
 #include "HoudiniAssetComponent.generated.h"
 
+
 class UClass;
 class UProperty;
 class UMaterial;
@@ -227,7 +228,7 @@ private:
 	void ClearParameters();
 
 	/** Upload changed parameters back to HAPI. **/
-	void UploadChangedParameters(bool bFinishedLoading = false);
+	void UploadChangedParameters();
 
 	/** Create inputs. Number of inputs for asset does not change. **/
 	void CreateInputs();
@@ -275,6 +276,9 @@ protected:
 
 	/** Map of curve / spline components. **/
 	TMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
+
+	/** Buffer to hold preset data for serialization purposes. Used only during serialization. **/
+	TArray<char> PresetBuffer;
 
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;

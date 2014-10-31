@@ -36,6 +36,15 @@ public:
 	/** Return true if module has been properly initialized. **/
 	static bool IsInitialized();
 
+	/** Return necessary buffer size to store preset information for a given asset. **/
+	static bool ComputeAssetPresetBufferLength(HAPI_AssetId AssetId, int32& OutBufferLength);
+
+	/** Sets preset data for a given asset. **/
+	static bool SetAssetPreset(HAPI_AssetId AssetId, const TArray<char>& PresetBuffer);
+
+	/** Gets preset data for a given asset. **/
+	static bool GetAssetPreset(HAPI_AssetId AssetId, TArray<char>& PresetBuffer);
+
 	/** Return true if asset is valid. **/
 	static bool IsHoudiniAssetValid(HAPI_AssetId AssetId);
 

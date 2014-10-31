@@ -110,6 +110,9 @@ protected:
 	/** Sets internal value index used by this parameter. **/
 	void SetValuesIndex(int32 InValuesIndex);
 
+	/** Assigns a unique parameter name. **/
+	void AssignUniqueParameterName();
+
 protected:
 
 	/** Owner component. **/
