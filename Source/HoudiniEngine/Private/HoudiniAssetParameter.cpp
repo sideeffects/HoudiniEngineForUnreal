@@ -329,3 +329,10 @@ UHoudiniAssetParameter::AssignUniqueParameterName()
 
 	Rename(*NewName);
 }
+
+
+void
+UHoudiniAssetParameter::SetNodeId(HAPI_NodeId InNodeId)
+{
+	NodeId = InNodeId;
+}

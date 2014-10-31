@@ -532,6 +532,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						if(TaskInfo.bLoadedComponent)
 						{
 							bFinishedLoadedInstantiation = true;
+
+							// Update parameter node id for all loaded parameters.
+							UpdateLoadedParameter();
 						}
 					}
 					else
@@ -649,6 +652,14 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						}
 					}
 
+					if(TaskInfo.bLoadedComponent)
+					{
+						bFinishedLoadedInstantiation = true;
+
+						// Update parameter node id for all loaded parameters.
+						UpdateLoadedParameter();
+					}
+
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
 					bStopTicking = true;
@@ -687,7 +698,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	//if(!HapiGUID.IsValid() && (bInstantiated || (ChangedProperties.Num() > 0)))
 	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged))
 	{
 		// If we are not cooking and we have property changes queued up.
@@ -1702,6 +1712,23 @@ UHoudiniAssetComponent::UploadChangedParameters()
 
 	// We no longer have changed parameters.
 	bParametersChanged = false;
+}
+
+
+void
+UHoudiniAssetComponent::UpdateLoadedParameter()
+{
+	HAPI_AssetInfo AssetInfo;
+	if(HAPI_RESULT_SUCCESS != HAPI_GetAssetInfo(AssetId, &AssetInfo))
+	{
+		return;
+	}
+
+	for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+		HoudiniAssetParameter->SetNodeId(AssetInfo.nodeId);
+	}
 }
 
 
