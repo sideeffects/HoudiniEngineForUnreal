@@ -213,7 +213,7 @@ private:
 	void ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
-	void CreateStaticMeshHoudiniLogoResource();
+	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
 	/** Add Curve. **/
 	bool AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents);
