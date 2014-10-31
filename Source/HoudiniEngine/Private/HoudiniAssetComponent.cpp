@@ -191,7 +191,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
-	CreateStaticMeshHoudiniLogoResource();
+	CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 
 	// Release all instanced mesh resources.
 	//MarkAllInstancersUnused();
@@ -577,7 +577,14 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								ReleaseObjectGeoPartResources(StaticMeshes);
 
 								// Set meshes and create new components for those meshes that do not have them.
-								CreateObjectGeoPartResources(NewStaticMeshes);
+								if(NewStaticMeshes.Num() > 0)
+								{
+									CreateObjectGeoPartResources(NewStaticMeshes);
+								}
+								else
+								{
+									CreateStaticMeshHoudiniLogoResource(NewStaticMeshes);
+								}
 							}
 						}
 
@@ -953,7 +960,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			ReleaseObjectGeoPartResources(StaticMeshes);
 			StaticMeshes.Empty();
 			StaticMeshComponents.Empty();
-			CreateStaticMeshHoudiniLogoResource();
+			CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 
 			ChangedHoudiniAsset = nullptr;
 			AssetId = -1;
@@ -973,7 +980,7 @@ UHoudiniAssetComponent::OnComponentCreated()
 	Super::OnComponentCreated();
 
 	// Create Houdini logo static mesh and component for it.
-	CreateStaticMeshHoudiniLogoResource();
+	CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 }
 
 
@@ -1010,7 +1017,7 @@ UHoudiniAssetComponent::ContainsHoudiniLogoGeometry() const
 
 
 void
-UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource()
+UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
 	if(!bIsNativeComponent)
 	{
@@ -1019,9 +1026,8 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource()
 
 	// Create Houdini logo static mesh and component for it.
 	FHoudiniGeoPartObject HoudiniGeoPartObject;
-	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
-	NewStaticMeshes.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
-	CreateObjectGeoPartResources(NewStaticMeshes);
+	StaticMeshMap.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
+	CreateObjectGeoPartResources(StaticMeshMap);
 	bContainsHoudiniLogoGeometry = true;
 }
 
@@ -1072,7 +1078,7 @@ UHoudiniAssetComponent::PostLoad()
 	if(!HoudiniAsset)
 	{
 		// Set geometry to be Houdini logo geometry, since we have no other geometry.
-		CreateStaticMeshHoudiniLogoResource();
+		CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 		return;
 	}
 
@@ -1082,7 +1088,7 @@ UHoudiniAssetComponent::PostLoad()
 	}
 	else
 	{
-		CreateStaticMeshHoudiniLogoResource();
+		CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 	}
 
 	// Perform post load initialization on instance inputs.

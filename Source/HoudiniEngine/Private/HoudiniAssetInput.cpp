@@ -243,7 +243,7 @@ UHoudiniAssetInput::SetValueCommitted(const FText& InValue, ETextCommit::Type Co
 	FString AssetName = TEXT("");
 	bool bChanged = false;
 
-	if(ETextCommit::OnCleared == CommitType)
+	if(InValue.IsEmpty())
 	{
 		// Widget has been cleared.
 		InputObject = nullptr;
