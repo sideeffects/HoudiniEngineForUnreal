@@ -70,6 +70,9 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 		return false;
 	}
 
+	// Assign a unique parameter name for easier debugging times.
+	AssignUniqueParameterName();
+
 	// Set ids.
 	SetNodeParmIds(InNodeId, ParmInfo.id);
 
@@ -310,9 +313,19 @@ UHoudiniAssetParameter::GetParameterName() const
 }
 
 
-const FString& 
+const FString&
 UHoudiniAssetParameter::GetParameterLabel() const
 {
 	return ParameterLabel;
 }
 
+
+void
+UHoudiniAssetParameter::AssignUniqueParameterName()
+{
+	FString CurrentName = GetName();
+	FString NewName = FString::Printf(TEXT("%s_%s"), *CurrentName, *ParameterLabel);
+	NewName = ObjectTools::SanitizeObjectName(NewName);
+
+	Rename(*NewName);
+}
