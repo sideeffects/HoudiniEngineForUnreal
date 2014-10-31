@@ -173,6 +173,11 @@ FHoudiniEngineUtils::GetAssetPreset(HAPI_AssetId AssetId, TArray<char>& PresetBu
 bool
 FHoudiniEngineUtils::IsHoudiniAssetValid(HAPI_AssetId AssetId)
 {
+	if(AssetId < 0)
+	{
+		return false;
+	}
+
 	HAPI_AssetInfo AssetInfo;
 	int ValidationAnswer = 0;
 

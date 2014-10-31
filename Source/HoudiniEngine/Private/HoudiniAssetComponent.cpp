@@ -16,9 +16,6 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-#define HOUDINI_TEST_LOG_MESSAGE( NameWithSpaces )
-
-
 bool
 UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
 
@@ -1977,5 +1974,3 @@ UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
 	}
 }
 
-
-#undef HOUDINI_TEST_LOG_MESSAGE
