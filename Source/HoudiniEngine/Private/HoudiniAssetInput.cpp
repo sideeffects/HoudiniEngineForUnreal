@@ -212,7 +212,7 @@ UHoudiniAssetInput::HasConnectedAsset() const
 void
 UHoudiniAssetInput::OnAssetDropped(UObject* Object)
 {
-	if(Object)
+	if(Object && (Object != InputObject))
 	{
 		InputObject = Object;
 
