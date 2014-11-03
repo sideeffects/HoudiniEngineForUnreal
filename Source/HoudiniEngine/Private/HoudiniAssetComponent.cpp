@@ -1153,14 +1153,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	/*
-	if(Ar.IsTransacting())
-	{
-		// We have no support for transactions (undo system) right now.
-		return;
-	}
-	*/
-
 	if(!Ar.IsSaving() && !Ar.IsLoading())
 	{
 		return;
@@ -1228,6 +1220,31 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize package name and object name - we will need those to reconstruct / locate the asset.
 	Ar << HoudiniAssetPackage;
 	Ar << HoudiniAssetName;
+
+	// If we are transacting and loading, we need to restore the asset.
+	if(Ar.IsTransacting())
+	{
+		if(Ar.IsLoading())
+		{
+			// We need to locate corresponding package and load it if it is not loaded.
+			UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
+			if(!Package)
+			{
+				// Package was not loaded previously, we will try to load it.
+				Package = PackageTools::LoadPackage(HoudiniAssetPackage);
+			}
+
+			if(Package)
+			{
+				// At this point we can locate the asset, since package exists.
+				UHoudiniAsset* HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
+				if(HoudiniAssetLookup)
+				{
+					HoudiniAsset = HoudiniAssetLookup;
+				}
+			}
+		}
+	}
 
 	// Serialization of preset.
 	{
