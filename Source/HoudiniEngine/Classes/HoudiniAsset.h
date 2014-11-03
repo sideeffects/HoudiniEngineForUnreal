@@ -18,8 +18,10 @@
 #pragma once
 #include "HoudiniAsset.generated.h"
 
+
 class UThumbnailInfo;
 class UHoudiniAssetComponent;
+
 
 UCLASS(Blueprintable, BlueprintType, EditInlineNew, config=Editor)
 class HOUDINIENGINE_API UHoudiniAsset : public UObject

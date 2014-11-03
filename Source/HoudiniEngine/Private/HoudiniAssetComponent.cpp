@@ -328,9 +328,9 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
 
 				StaticMeshComponent->AttachTo(this);
-				StaticMeshComponent->RegisterComponent();
 				StaticMeshComponent->SetStaticMesh(StaticMesh);
 				StaticMeshComponent->SetVisibility(true);
+				StaticMeshComponent->RegisterComponent();
 			}
 
 			// Transform the component by transformation provided by HAPI.
@@ -862,9 +862,6 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 		// Reset asset id
 		AssetId = -1;
 	}
-
-	// Unsubscribe from Editor events.
-	UnsubscribeEditorDelegates();
 }
 
 
@@ -911,18 +908,10 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 void
 UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
 {
-	if(!PropertyAboutToChange)
-	{
-		Super::PreEditChange(PropertyAboutToChange);
-		return;
-	}
-
 	if(PropertyAboutToChange && PropertyAboutToChange->GetName() == TEXT("HoudiniAsset"))
 	{
 		// Memorize current Houdini Asset, since it is about to change.
 		ChangedHoudiniAsset = HoudiniAsset;
-		Super::PreEditChange(PropertyAboutToChange);
-		return;
 	}
 
 	Super::PreEditChange(PropertyAboutToChange);
@@ -981,6 +970,9 @@ UHoudiniAssetComponent::OnComponentCreated()
 
 	// Create Houdini logo static mesh and component for it.
 	CreateStaticMeshHoudiniLogoResource(StaticMeshes);
+
+	// Subscribe to delegates.
+	SubscribeEditorDelegates();
 }
 
 
@@ -1006,6 +998,46 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Destroy all instance inputs.
 	ClearInstanceInputs();
+
+	// Unsubscribe from Editor events.
+	UnsubscribeEditorDelegates();
+
+	Super::OnComponentDestroyed();
+}
+
+
+void
+UHoudiniAssetComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	// We need to recreate render states for loaded components.
+	if(bLoadedComponent)
+	{
+		// Static meshes.
+		for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
+		{
+			UStaticMeshComponent* StaticMeshComponent = Iter.Value();
+			if(StaticMeshComponent)
+			{
+				StaticMeshComponent->RecreateRenderState_Concurrent();
+			}
+		}
+
+		// Instanced static meshes.
+		for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator Iter(InstanceInputs); Iter; ++Iter)
+		{
+			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Iter.Value();
+			HoudiniAssetInstanceInput->RecreateRenderStates();
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::OnUnregister()
+{
+	Super::OnUnregister();
 }
 
 
@@ -1093,6 +1125,21 @@ UHoudiniAssetComponent::PostLoad()
 
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
+
+	// Need to update rendering information.
+	UpdateRenderingInformation();
+
+	// Force editor to redraw viewports.
+	if(GEditor)
+	{
+		GEditor->RedrawAllViewports();
+	}
+
+	// Update properties panel after instantiation.
+	if(bInstantiated)
+	{
+		UpdateEditorProperties();
+	}
 }
 
 
@@ -1272,6 +1319,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		bLoadedComponent = true;
 	}
 
+	// Store whether we are in PIE mode.
+	Ar << bIsPlayModeActive;
+
 	/*
 	if(Ar.IsLoading() && bIsNativeComponent)
 	{
@@ -1430,8 +1480,8 @@ UHoudiniAssetComponent::AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGe
 			NewSplineComponents.Add(HoudiniGeoPartObject, SplineComponent);
 
 			SplineComponent->AttachTo(this);
-			SplineComponent->RegisterComponent();
 			SplineComponent->SetVisibility(true);
+			SplineComponent->RegisterComponent();
 			SplineComponent->bAllowSplineEditingPerInstance = true;
 			SplineComponent->bStationaryEndpoints = true;
 			SplineComponent->ReparamStepsPerSegment = 25;

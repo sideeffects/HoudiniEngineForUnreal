@@ -159,6 +159,8 @@ protected: /** UActorComponent methods. **/
 
 	virtual void OnComponentCreated() override;
 	virtual void OnComponentDestroyed() override;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
 private: /** USceneComponent methods. **/
 

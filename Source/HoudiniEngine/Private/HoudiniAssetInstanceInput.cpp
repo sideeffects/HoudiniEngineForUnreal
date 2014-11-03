@@ -222,8 +222,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 		Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 
 		Component->AttachTo(HoudiniAssetComponent);
-		Component->RegisterComponent();
-		Component->SetVisibility(true);
 
 		SetComponentInstanceTransformations(Component, InstancedTransforms[Idx]);
 		InstancedStaticMeshComponents[Idx] = Component;
@@ -239,10 +237,26 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 
 		// Set mesh for this component.
 		Component->SetStaticMesh(StaticMeshes[Idx]);
+		Component->SetVisibility(true);
+		Component->RegisterComponent();
 	}
 
 	GeoPartObjects.Empty();
 	return true;
+}
+
+
+void
+UHoudiniAssetInstanceInput::RecreateRenderStates()
+{
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+		if(InstancedStaticMeshComponent)
+		{
+			InstancedStaticMeshComponent->RecreateRenderState_Concurrent();
+		}
+	}
 }
 
 

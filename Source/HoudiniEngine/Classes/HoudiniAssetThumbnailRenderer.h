@@ -16,11 +16,13 @@
 #pragma once
 #include "HoudiniAssetThumbnailRenderer.generated.h"
 
+
 class UObject;
 class FCanvas;
 class FRenderTarget;
 class UHoudiniAsset;
 class FHoudiniAssetThumbnailScene;
+
 
 UCLASS(config = Editor)
 class HOUDINIENGINE_API UHoudiniAssetThumbnailRenderer : public UDefaultSizedThumbnailRenderer
