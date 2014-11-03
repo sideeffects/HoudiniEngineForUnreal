@@ -15,13 +15,16 @@
 
 #pragma once
 
-class UTexture2D;
-class UHoudiniAsset;
-class UStaticMesh;
+
 class FArchive;
-struct FRawMesh;
+class UTexture2D;
+class UStaticMesh;
+class UHoudiniAsset;
 class UHoudiniAssetMaterial;
 class FHoudiniAssetObjectGeo;
+
+struct FRawMesh;
+
 
 struct FHoudiniEngineUtils
 {

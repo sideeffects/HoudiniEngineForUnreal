@@ -47,6 +47,9 @@ public:
 	/** Create this instance input from post-loading intermediate state. **/
 	bool CreateInstanceInputPostLoad();
 
+	/** Recreates render states for used instanced static mesh components. **/
+	void RecreateRenderStates();
+
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
