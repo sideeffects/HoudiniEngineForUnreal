@@ -40,25 +40,19 @@ FHoudiniAssetThumbnailScene::FHoudiniAssetThumbnailScene()
 void
 FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 {
-	PreviewHoudiniAssetActor->GetHoudiniAssetComponent()->SetHoudiniAsset(HoudiniAsset);
-
 	if(HoudiniAsset)
 	{
-		FTransform MeshTransform = FTransform::Identity;
-
-		PreviewHoudiniAssetActor->SetActorLocation(FVector(0.0f, 0.0f, 0.0f), false);
-
-		//if(HoudiniAsset->IsPreviewHoudiniLogo())
 		if(PreviewHoudiniAssetActor->HoudiniAssetComponent->ContainsHoudiniLogoGeometry())
 		{
+			float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
+
+			PreviewHoudiniAssetActor->SetActorLocation(FVector(0.0f, 0.0f, BoundsZOffset), false);
 			PreviewHoudiniAssetActor->SetActorRotation(FRotator(0.0f, 175.0f, 0.0f));
 		}
 
+		PreviewHoudiniAssetActor->GetHoudiniAssetComponent()->SetHoudiniAsset(HoudiniAsset);
 		PreviewHoudiniAssetActor->HoudiniAssetComponent->UpdateBounds();
 
-		// Center the mesh at the world origin then offset to put it on top of the plane
-		float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
-		PreviewHoudiniAssetActor->SetActorLocation(-PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds.Origin + FVector(0.0f, 0.0f, BoundsZOffset), false);
 		PreviewHoudiniAssetActor->HoudiniAssetComponent->RecreateRenderState_Concurrent();
 	}
 }
