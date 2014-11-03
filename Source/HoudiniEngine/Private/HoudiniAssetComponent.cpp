@@ -928,6 +928,11 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		return;
 	}
 
+	if(!PropertyChangedEvent.MemberProperty)
+	{
+		return;
+	}
+
 	// If Houdini Asset is being changed and has actually changed.
 	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset") && ChangedHoudiniAsset != HoudiniAsset)
 	{
@@ -1148,11 +1153,13 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	/*
 	if(Ar.IsTransacting())
 	{
 		// We have no support for transactions (undo system) right now.
 		return;
 	}
+	*/
 
 	if(!Ar.IsSaving() && !Ar.IsLoading())
 	{

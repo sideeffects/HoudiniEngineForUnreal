@@ -76,9 +76,8 @@ void
 FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 {
 	HOUDINI_LOG_MESSAGE(
-		TEXT("HAPI Asynchronous Instantiation Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
-		TEXT("AssetId = %d, HapiGUID = %s"),
-		Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString() );
+		TEXT("HAPI Asynchronous Instantiation Started. Component = 0x%x, HoudiniAsset = 0x%x, HapiGUID = %s"),
+		Task.AssetComponent.Get(), Task.Asset.Get(), *Task.HapiGUID.ToString() );
 
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
@@ -185,11 +184,6 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 void
 FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 {
-	HOUDINI_LOG_MESSAGE(
-		TEXT("HAPI Asynchronous Cooking Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
-		TEXT("AssetId = %d, HapiGUID = %s"),
-		Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString());
-
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
 		HOUDINI_LOG_ERROR(TEXT("TaskCookAsset failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
@@ -204,6 +198,11 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 
 	// Retrieve asset id.
 	HAPI_AssetId AssetId = Task.AssetComponent->GetAssetId();
+
+	HOUDINI_LOG_MESSAGE(
+		TEXT("HAPI Asynchronous Cooking Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
+		TEXT("AssetId = %d, HapiGUID = %s"),
+		Task.AssetComponent.Get(), Task.Asset.Get(), AssetId, *Task.HapiGUID.ToString());
 
 	if(-1 == AssetId)
 	{
