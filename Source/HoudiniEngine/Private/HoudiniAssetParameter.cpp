@@ -327,7 +327,8 @@ UHoudiniAssetParameter::AssignUniqueParameterName()
 
 	if(CurrentName != TEXT("None"))
 	{
-		FString NewName = FString::Printf(TEXT("%s_%s"), *CurrentName, *ParameterLabel);
+		FString ClassName = GetClass()->GetName();
+		FString NewName = FString::Printf(TEXT("%s_%s"), *ClassName, *ParameterLabel);
 		NewName = ObjectTools::SanitizeObjectName(NewName);
 
 		Rename(*NewName);
