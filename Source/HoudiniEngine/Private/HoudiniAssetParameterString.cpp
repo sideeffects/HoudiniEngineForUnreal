@@ -157,8 +157,13 @@ UHoudiniAssetParameterString::SetValue(const FText& InValue, int32 Idx)
 void
 UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx)
 {
-	Values[Idx] = InValue.ToString();
+	FString CommittedValue = InValue.ToString();
 
-	// Mark this parameter as changed.
-	MarkChanged();
+	if(Values[Idx] != CommittedValue)
+	{
+		Values[Idx] = CommittedValue;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
 }

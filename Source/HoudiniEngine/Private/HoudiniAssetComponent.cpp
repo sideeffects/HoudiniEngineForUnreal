@@ -33,7 +33,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bLoadedComponentRequiresInstantiation(false),
 	bInstantiated(false),
 	bIsPlayModeActive(false),
-	bParametersChanged(false)
+	bParametersChanged(false),
+	bUndoRequested(false)
 {
 	UObject* Object = PCIP.GetObject();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -289,6 +290,35 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 	// We need to store instancers as they need to be processed after all other meshes.
 	TArray<FHoudiniGeoPartObject> FoundInstancers;
 	TArray<FHoudiniGeoPartObject> FoundCurves;
+
+	// Release all unused components.
+	/*
+	TArray<UStaticMesh*> UsedStaticMeshes;
+
+	StaticMeshMap.GenerateValueArray(UsedStaticMeshes);
+	TMap<UStaticMesh*, UStaticMeshComponent*> NewStaticMeshComponents;
+	for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
+	{
+		UStaticMesh* StaticMesh = Iter.Key();
+		UStaticMeshComponent* StaticMeshComponent = Iter.Value();
+
+		// See if this mesh / component is used in new map.
+		if(UsedStaticMeshes.Contains(StaticMesh))
+		{
+			NewStaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
+		}
+		else
+		{
+			AttachChildren.Remove(StaticMeshComponent);
+
+			//StaticMeshComponent->DetachFromParent();
+			StaticMeshComponent->UnregisterComponent();
+			StaticMeshComponent->DestroyComponent();
+		}
+	}
+
+	StaticMeshComponents = NewStaticMeshComponents;
+	*/
 
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
@@ -564,7 +594,21 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 									UStaticMesh* StaticMesh = Iter.Value();
 
 									// Remove mesh from previous map of meshes.
-									int32 ObjectsRemoved = StaticMeshes.Remove(HoudiniGeoPartObject);
+									UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+									if(FoundOldStaticMesh)
+									{
+										UStaticMesh* OldStaticMesh = *FoundOldStaticMesh;
+
+										if(OldStaticMesh == StaticMesh)
+										{
+											// Mesh has not changed, we need to remove it from old map to avoid deallocation.
+											StaticMeshes.Remove(HoudiniGeoPartObject);
+										}
+										else
+										{
+										
+										}
+									}
 								}
 
 								// Free meshes and components that are no longer used.
@@ -719,7 +763,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 		else
 		{
-			if(bFinishedLoadedInstantiation)
+			if(bFinishedLoadedInstantiation || bUndoRequested)
 			{
 				// Update parameter node id for all loaded parameters.
 				UpdateLoadedParameter();
@@ -733,6 +777,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
 					PresetBuffer.Empty();
 				}
+
+				// Unset Undo flag.
+				bUndoRequested = false;
 			}
 
 			// Upload changed parameters back to HAPI.
@@ -1322,6 +1369,25 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(HoudiniAsset, nullptr, StaticMeshIdx, Ar);
 					}
 
+					// See if we already have a static mesh for this geo part object.
+					UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+					if(FoundOldStaticMesh)
+					{
+						UStaticMesh* OldStaticMesh = *FoundOldStaticMesh;
+
+						// Retrieve component for old static mesh.
+						UStaticMeshComponent* const* FoundOldStaticMeshComponent = StaticMeshComponents.Find(OldStaticMesh);
+						if(FoundOldStaticMeshComponent)
+						{
+							UStaticMeshComponent* OldStaticMeshComponent = *FoundOldStaticMeshComponent;
+
+							// We need to replace component's static mesh with a new one.
+							StaticMeshComponents.Remove(OldStaticMesh);
+							StaticMeshComponents.Add(LoadedStaticMesh, OldStaticMeshComponent);
+							OldStaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
+						}
+					}
+
 					StaticMeshes.Add(HoudiniGeoPartObject, LoadedStaticMesh);
 				}
 			}
@@ -1375,6 +1441,21 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 	}
 	*/
+}
+
+
+void
+UHoudiniAssetComponent::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	if(bLoadedComponent)
+	{
+		bUndoRequested = true;
+		bParametersChanged = true;
+
+		StartHoudiniTicking();
+	}
 }
 
 
@@ -1753,6 +1834,9 @@ UHoudiniAssetComponent::ClearParameters()
 void
 UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
+	Modify();
+
 	if(bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
 		bLoadedComponentRequiresInstantiation = true;
@@ -2045,6 +2129,25 @@ UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
 	{
 		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
 		HoudiniAssetInstanceInput->CreateInstanceInputPostLoad();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::RemoveStaticMeshComponent(UStaticMesh* StaticMesh)
+{
+	UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+	if(FoundStaticMeshComponent)
+	{
+		StaticMeshComponents.Remove(StaticMesh);
+
+		UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
+		if(StaticMeshComponent)
+		{
+			StaticMeshComponent->DetachFromParent();
+			StaticMeshComponent->UnregisterComponent();
+			StaticMeshComponent->DestroyComponent();
+		}
 	}
 }
 

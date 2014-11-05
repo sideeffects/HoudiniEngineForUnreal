@@ -71,7 +71,7 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 	}
 
 	// Assign a unique parameter name for easier debugging times.
-	AssignUniqueParameterName();
+	//AssignUniqueParameterName();
 
 	// Set ids.
 	SetNodeParmIds(InNodeId, ParmInfo.id);

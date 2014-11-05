@@ -142,10 +142,15 @@ UHoudiniAssetParameterToggle::AddReferencedObjects(UObject* InThis, FReferenceCo
 void
 UHoudiniAssetParameterToggle::CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx)
 {
-	Values[Idx] = (ESlateCheckBoxState::Checked == NewState);
+	int32 bState = (ESlateCheckBoxState::Checked == NewState);
 
-	// Mark this parameter as changed.
-	MarkChanged();
+	if(Values[Idx] != bState)
+	{
+		Values[Idx] = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
 }
 
 
