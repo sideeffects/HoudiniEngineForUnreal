@@ -157,7 +157,7 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 							 .OptionsSource(&StringChoiceLabels)
 							 .InitiallySelectedItem(StringChoiceLabels[CurrentValue])
 							 .OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
-							 .OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetParameterChoice::OnChoiceChance))
+							 .OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetParameterChoice::OnChoiceChange))
 							 [
 								SNew(STextBlock)
 								.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, &UHoudiniAssetParameterChoice::HandleChoiceContentText)))
@@ -261,29 +261,36 @@ UHoudiniAssetParameterChoice::CreateChoiceEntryWidget(TSharedPtr<FString> Choice
 
 
 void
-UHoudiniAssetParameterChoice::OnChoiceChance(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
 {
 	if(!NewChoice.IsValid())
 	{
 		return;
 	}
 
+	bool bChanged = false;
 	StringValue = *(NewChoice.Get());
 
 	// We need to match selection based on label.
-	for(int32 LabelIdx = 0; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
+	int32 LabelIdx = 0;
+	for(; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
 	{
 		FString* ChoiceLabel = StringChoiceLabels[LabelIdx].Get();
 
 		if(ChoiceLabel->Equals(StringValue))
 		{
-			CurrentValue = LabelIdx;
+			bChanged = true;
 			break;
 		}
 	}
 
-	// Mark this property as changed.
-	MarkChanged();
+	if(bChanged)
+	{
+		CurrentValue = LabelIdx;
+	
+		// Mark this property as changed.
+		MarkChanged();
+	}
 }
 
 

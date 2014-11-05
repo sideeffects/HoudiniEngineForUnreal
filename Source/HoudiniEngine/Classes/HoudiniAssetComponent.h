@@ -152,6 +152,7 @@ public: /** UObject methods. **/
 	virtual void PreSave() override;
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostEditUndo() override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -262,6 +263,9 @@ private:
 	/** Used to perform post loading initialization on instance inputs. **/
 	void PostLoadInitializeInstanceInputs();
 
+	/** Remove static mesh and associated component and deallocate corresponding resources. **/
+	void RemoveStaticMeshComponent(UStaticMesh* StaticMesh);
+
 private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
@@ -333,5 +337,8 @@ protected:
 
 	/** Is set to true when one of the parameters for this component has been modified. This will trigger recook. **/
 	bool bParametersChanged;
+
+	/** Is set to true when undo is being performed. **/
+	bool bUndoRequested;
 };
 

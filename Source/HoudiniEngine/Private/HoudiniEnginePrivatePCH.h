@@ -50,6 +50,7 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "SAssetDropTarget.h"
 #include "SAssetSearchBox.h"
+#include "ScopedTransaction.h"
 
 /** Houdini Engine headers. **/
 #include <vector>

@@ -57,7 +57,7 @@ public:
 	TSharedRef<SWidget> CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry);
 
 	/** Called when change of selection is triggered. **/
-	void OnChoiceChance(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
+	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
 
 	/** Called to retrieve the name of selected item. **/
 	FString HandleChoiceContentText() const;

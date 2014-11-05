@@ -198,10 +198,13 @@ UHoudiniAssetParameterFloat::GetValue(int32 Idx) const
 void
 UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 {
-	Values[Idx] = FMath::Clamp<float>(InValue, ValueMin, ValueMax);
+	if(Values[Idx] != InValue)
+	{
+		Values[Idx] = FMath::Clamp<float>(InValue, ValueMin, ValueMax);
 
-	// Mark this parameter as changed.
-	MarkChanged();
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
 }
 
 
