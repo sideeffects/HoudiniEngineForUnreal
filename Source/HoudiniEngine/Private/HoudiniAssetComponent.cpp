@@ -604,10 +604,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 											// Mesh has not changed, we need to remove it from old map to avoid deallocation.
 											StaticMeshes.Remove(HoudiniGeoPartObject);
 										}
-										else
-										{
-										
-										}
 									}
 								}
 
@@ -1445,6 +1441,13 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 
 void
+UHoudiniAssetComponent::PreEditUndo()
+{
+	Super::PreEditUndo();
+}
+
+
+void
 UHoudiniAssetComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
@@ -1828,6 +1831,13 @@ UHoudiniAssetComponent::ClearParameters()
 	}
 
 	Parameters.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::NotifyParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
+{
+
 }
 
 

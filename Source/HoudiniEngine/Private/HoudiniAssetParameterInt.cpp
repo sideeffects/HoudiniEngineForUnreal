@@ -171,6 +171,8 @@ UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx)
 {
 	if(Values[Idx] != InValue)
 	{
+		MarkPreChanged();
+
 		Values[Idx] = FMath::Clamp<int32>(InValue, ValueMin, ValueMax);
 
 		// Mark this parameter as changed.

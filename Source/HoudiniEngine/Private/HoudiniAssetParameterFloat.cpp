@@ -200,6 +200,8 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 {
 	if(Values[Idx] != InValue)
 	{
+		MarkPreChanged();
+
 		Values[Idx] = FMath::Clamp<float>(InValue, ValueMin, ValueMax);
 
 		// Mark this parameter as changed.

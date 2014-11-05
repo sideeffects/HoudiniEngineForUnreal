@@ -214,6 +214,8 @@ UHoudiniAssetInput::OnAssetDropped(UObject* Object)
 {
 	if(Object && (Object != InputObject))
 	{
+		MarkPreChanged();
+
 		InputObject = Object;
 
 		FString AssetName = InputObject->GetName();
@@ -245,6 +247,8 @@ UHoudiniAssetInput::SetValueCommitted(const FText& InValue, ETextCommit::Type Co
 
 	if(InValue.IsEmpty())
 	{
+		MarkPreChanged();
+
 		// Widget has been cleared.
 		InputObject = nullptr;
 		bChanged = true;

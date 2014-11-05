@@ -161,6 +161,8 @@ UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommi
 
 	if(Values[Idx] != CommittedValue)
 	{
+		MarkPreChanged();
+
 		Values[Idx] = CommittedValue;
 
 		// Mark this parameter as changed.

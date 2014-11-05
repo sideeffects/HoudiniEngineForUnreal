@@ -102,6 +102,9 @@ protected:
 	/** Check if parameter is visible. **/
 	bool IsVisible(const HAPI_ParmInfo& ParmInfo) const;
 
+	/** Mark this parameter as pre-changed. This occurs when user modifies the value of this parameter through UI, but before it is saved. **/
+	void MarkPreChanged();
+
 	/** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
 	void MarkChanged();
 
