@@ -272,6 +272,16 @@ UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, 
 
 
 void
+UHoudiniAssetParameter::MarkPreChanged()
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->NotifyParameterWillChange(this);
+	}
+}
+
+
+void
 UHoudiniAssetParameter::MarkChanged()
 {
 	// Set changed flag.

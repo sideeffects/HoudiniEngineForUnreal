@@ -286,6 +286,8 @@ UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESel
 
 	if(bChanged)
 	{
+		MarkPreChanged();
+
 		CurrentValue = LabelIdx;
 	
 		// Mark this property as changed.

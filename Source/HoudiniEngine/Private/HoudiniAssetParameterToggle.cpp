@@ -146,6 +146,8 @@ UHoudiniAssetParameterToggle::CheckStateChanged(ESlateCheckBoxState::Type NewSta
 
 	if(Values[Idx] != bState)
 	{
+		MarkPreChanged();
+
 		Values[Idx] = bState;
 
 		// Mark this parameter as changed.

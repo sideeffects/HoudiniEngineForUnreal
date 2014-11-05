@@ -128,6 +128,9 @@ public:
 	/** Return true if this component contains Houdini logo geometry. **/
 	bool ContainsHoudiniLogoGeometry() const;
 
+	/** Callback used by parameters to notify component that their value is about to change. **/
+	void NotifyParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter);
+
 	/** Callback used by parameters to notify component about their changes. **/
 	void NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
 
@@ -152,6 +155,7 @@ public: /** UObject methods. **/
 	virtual void PreSave() override;
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
