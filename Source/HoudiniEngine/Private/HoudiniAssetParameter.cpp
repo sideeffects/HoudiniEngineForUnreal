@@ -292,6 +292,8 @@ UHoudiniAssetParameter::MarkChanged()
 	{
 		HoudiniAssetComponent->NotifyParameterChanged(this);
 	}
+
+	PrintParameterInfo();
 }
 
 
@@ -350,4 +352,11 @@ void
 UHoudiniAssetParameter::SetNodeId(HAPI_NodeId InNodeId)
 {
 	NodeId = InNodeId;
+}
+
+
+void
+UHoudiniAssetParameter::PrintParameterInfo()
+{
+	HOUDINI_LOG_MESSAGE(TEXT("Parameter Change: %s"), *ParameterName);
 }
