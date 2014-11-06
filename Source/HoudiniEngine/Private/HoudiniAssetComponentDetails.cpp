@@ -59,30 +59,11 @@ FHoudiniAssetComponentDetails::CreateSingleStaticMesh()
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
 
-		TArray<UStaticMesh*> StaticMeshes;
-		HoudiniAssetComponent->StaticMeshes.GenerateValueArray(StaticMeshes);
-
-		if(StaticMeshes.Num() > 0)
+		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeSingleStaticMesh(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->StaticMeshComponents);
+		if(OutStaticMesh)
 		{
-			{
-				// Create empty static mesh for first mesh in list.
-			}
-
-			// For each additional mesh, merge.
-			for(int32 MeshIdx = 1; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
-			{
-				UStaticMesh* StaticMesh = StaticMeshes[MeshIdx];
-				if(StaticMesh)
-				{
-					// Merge this static mesh to original mesh.
-				}
-			}
-
-			// Bake mesh.
-			// UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent->HoudiniAsset, original_mesh, 0);
-
 			// Notify asset registry that we have created assets. This should update the content browser.
-			//FAssetRegistryModule::AssetCreated(OutStaticMesh);
+			FAssetRegistryModule::AssetCreated(OutStaticMesh);
 		}
 	}
 }

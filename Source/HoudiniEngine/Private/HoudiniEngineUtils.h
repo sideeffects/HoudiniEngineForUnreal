@@ -85,6 +85,9 @@ public:
 	/** Bake static mesh. **/
 	static UStaticMesh* BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* StaticMesh, int32 MeshCounter);
 
+	/** Bake single static mesh - this will combine individual objects into one, baking in transformations. **/
+	static UStaticMesh* BakeSingleStaticMesh(UHoudiniAsset* HoudiniAsset, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents);
+
 	/** Extract position information from coords string. **/
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
 
