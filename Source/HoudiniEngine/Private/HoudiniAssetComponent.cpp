@@ -291,35 +291,6 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 	TArray<FHoudiniGeoPartObject> FoundInstancers;
 	TArray<FHoudiniGeoPartObject> FoundCurves;
 
-	// Release all unused components.
-	/*
-	TArray<UStaticMesh*> UsedStaticMeshes;
-
-	StaticMeshMap.GenerateValueArray(UsedStaticMeshes);
-	TMap<UStaticMesh*, UStaticMeshComponent*> NewStaticMeshComponents;
-	for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
-	{
-		UStaticMesh* StaticMesh = Iter.Key();
-		UStaticMeshComponent* StaticMeshComponent = Iter.Value();
-
-		// See if this mesh / component is used in new map.
-		if(UsedStaticMeshes.Contains(StaticMesh))
-		{
-			NewStaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
-		}
-		else
-		{
-			AttachChildren.Remove(StaticMeshComponent);
-
-			//StaticMeshComponent->DetachFromParent();
-			StaticMeshComponent->UnregisterComponent();
-			StaticMeshComponent->DestroyComponent();
-		}
-	}
-
-	StaticMeshComponents = NewStaticMeshComponents;
-	*/
-
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
 		const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
@@ -1837,16 +1808,14 @@ UHoudiniAssetComponent::ClearParameters()
 void
 UHoudiniAssetComponent::NotifyParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
-
+	FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
+	Modify();
 }
 
 
 void
 UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
-	Modify();
-
 	if(bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
 		bLoadedComponentRequiresInstantiation = true;

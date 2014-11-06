@@ -122,6 +122,11 @@ protected:
 
 protected:
 
+	/** Print parameter information for debugging. **/
+	virtual void PrintParameterInfo();
+
+protected:
+
 	/** Owner component. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;
 

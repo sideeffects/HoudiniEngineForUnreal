@@ -229,3 +229,34 @@ UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
 {
 
 }
+
+
+void
+UHoudiniAssetParameterFloat::PrintParameterInfo()
+{
+	switch(TupleSize)
+	{
+		case 3:
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f, %f, %f"), *ParameterName, Values[0], Values[1], Values[2]);
+			break;
+		}
+
+		case 2:
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f, %f"), *ParameterName, Values[0], Values[1]);
+			break;
+		}
+
+		case 1:
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f"), *ParameterName, Values[0]);
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+}
