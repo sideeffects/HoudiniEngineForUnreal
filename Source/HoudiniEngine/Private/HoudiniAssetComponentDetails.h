@@ -39,11 +39,15 @@ private:
 
 	/** Button click handlers. **/
 	FReply OnButtonClickedBake();
+	FReply OnButtonClickedBakeSingle();
 
 private:
 
-	/** Helper method used to create actual static meshes. **/
+	/** Helper method used to create separate static meshes. **/
 	void CreateStaticMeshes();
+
+	/** Helper method used to create a single static mesh. **/
+	void CreateSingleStaticMesh();
 
 private:
 
