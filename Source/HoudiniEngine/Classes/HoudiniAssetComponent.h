@@ -183,6 +183,9 @@ public:
 	/** Callback used by parameters to notify component about their changes. **/
 	void NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
 
+	/** Assign generation parameters to static mesh. **/
+	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
+
 public:
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/

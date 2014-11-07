@@ -1513,14 +1513,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					StaticMesh = *FoundStaticMesh;
 				}
 
-				// Make sure static mesh has a new lighting guid.
-				StaticMesh->LightingGuid = FGuid::NewGuid();
-
-				// Set it to use textured light maps. We use coordinate 1 for UVs.
-				StaticMesh->LightMapResolution = 32;
-
-				StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
-				StaticMesh->LODGroup = NAME_None;
+				// Assign generation parameters for this static mesh.
+				HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
 				MeshCounter++;
 
@@ -1977,15 +1971,9 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	FRawMesh RawMesh;
 	FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Ar);
 
-	// Make sure static mesh has a new lighting guid.
-	StaticMesh->LightingGuid = FGuid::NewGuid();
+	// Assign generation parameters for this static mesh.
+	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
-	// Set it to use textured light maps. We use coordinate 1 for UVs.
-	StaticMesh->LightMapResolution = 32;
-	StaticMesh->LightMapCoordinateIndex = 1;
-
-	StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
-	StaticMesh->LODGroup = NAME_None;
 	RawMeshBulkData->SaveRawMesh(RawMesh);
 
 	// Some mesh generation settings.
@@ -2113,15 +2101,9 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	FRawMeshBulkData* InRawMeshBulkData = InSrcModel->RawMeshBulkData;
 	InRawMeshBulkData->LoadRawMesh(RawMesh);
 
-	// Make sure static mesh has a new lighting guid.
-	StaticMesh->LightingGuid = FGuid::NewGuid();
+	// Assign generation parameters for this static mesh.
+	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
-	// Set it to use textured light maps. We use coordinate 1 for UVs.
-	StaticMesh->LightMapResolution = 32;
-	StaticMesh->LightMapCoordinateIndex = 1;
-
-	StaticMesh->LightMapResolution = LODGroup.GetDefaultLightMapResolution();
-	StaticMesh->LODGroup = NAME_None;
 	RawMeshBulkData->SaveRawMesh(RawMesh);
 
 	// Some mesh generation settings.
@@ -2195,12 +2177,8 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 		RawMesh.WedgeTexCoords[UVIdx].Empty();
 	}
 
-	// Make sure static mesh has a new lighting guid.
-	NewStaticMesh->LightingGuid = FGuid::NewGuid();
-
-	// Set it to use textured lightmaps.
-	NewStaticMesh->LightMapResolution = 32;
-	NewStaticMesh->LightMapCoordinateIndex = 0;
+	// Assign generation parameters for this static mesh.
+	HoudiniAssetComponent->SetStaticMeshGenerationParameters(NewStaticMesh);
 
 	TSet<UMaterialInterface*> UniqueMaterials;
 	int32 FaceCount = 0;
@@ -2392,7 +2370,6 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	}
 
 	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
-	NewStaticMesh->LODGroup = NAME_None;
 	NewStaticMesh->Build(true);
 
 	return NewStaticMesh;
