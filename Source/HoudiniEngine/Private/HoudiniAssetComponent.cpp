@@ -1837,6 +1837,60 @@ UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAs
 
 
 void
+UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh)
+{
+	if(StaticMesh)
+	{
+		// Make sure static mesh has a new lighting guid.
+		StaticMesh->LightingGuid = FGuid::NewGuid();
+		StaticMesh->LODGroup = NAME_None;
+
+
+		// Set resolution of lightmap.
+		StaticMesh->LightMapResolution = GeneratedLightMapResolution;
+
+		// Set Bias multiplier for Light Propagation Volume lighting.
+		StaticMesh->LpvBiasMultiplier = GeneratedLpvBiasMultiplier;
+
+		// Set light map coordinate index.
+		StaticMesh->LightMapCoordinateIndex = GeneratedLightMapCoordinateIndex;
+
+		// Set method for LOD texture factor computation.
+		StaticMesh->bUseMaximumStreamingTexelRatio = bGeneratedUseMaximumStreamingTexelRatio;
+
+		// Set distance where textures using UV 0 are streamed in/out.
+		StaticMesh->StreamingDistanceMultiplier = GeneratedStreamingDistanceMultiplier;
+
+		// Set default settings when using this mesh for instanced foliage.
+		StaticMesh->FoliageDefaultSettings = GeneratedFoliageDefaultSettings;
+
+		// Add user data.
+		for(int32 AssetUserDataIdx = 0; AssetUserDataIdx < GeneratedAssetUserData.Num(); ++AssetUserDataIdx)
+		{
+			StaticMesh->AddAssetUserData(GeneratedAssetUserData[AssetUserDataIdx]);
+		}
+
+		StaticMesh->CreateBodySetup();
+		
+		// Set flag whether physics triangle mesh will use double sided faces when doing scene queries. 
+		StaticMesh->BodySetup->bDoubleSidedGeometry = bGeneratedDoubleSidedGeometry;
+
+		// Assign physical material for simple collision.
+		StaticMesh->BodySetup->PhysMaterial = GeneratedPhysMaterial;
+
+		// Assign collision trace behavior.
+		StaticMesh->BodySetup->CollisionTraceFlag = GeneratedCollisionTraceFlag;
+
+		// Assign walkable slope behavior.
+		StaticMesh->BodySetup->WalkableSlopeOverride = GeneratedWalkableSlopeOverride;
+
+		//BodySetup->CreatePhysicsMeshes();
+		//RefreshCollisionChange(StaticMesh);
+	}
+}
+
+
+void
 UHoudiniAssetComponent::UploadChangedParameters()
 {
 	// Upload inputs.
