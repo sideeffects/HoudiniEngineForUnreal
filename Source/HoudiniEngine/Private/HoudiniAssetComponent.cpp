@@ -987,6 +987,27 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		// Start ticking which will update the asset. We cannot update it here as it involves potential property
 		// updates. It cannot be done here because this event is fired on a property which we might change.
 		StartHoudiniAssetChange();
+		return;
+	}
+
+	UProperty* Property = PropertyChangedEvent.MemberProperty;
+	if(Property->HasMetaData(TEXT("Category")))
+	{
+		const FString& Category = Property->GetMetaData(TEXT("Category"));
+		static const FString CategoryHoudiniGeneratedStaticMeshSettings = TEXT("HoudiniGeneratedStaticMeshSettings");
+
+		if(CategoryHoudiniGeneratedStaticMeshSettings == Category)
+		{
+			// We are changing one of the mesh generation properties, we need to update all static meshes.
+			for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
+			{
+				UStaticMesh* StaticMesh = Iter.Key();
+
+				SetStaticMeshGenerationParameters(StaticMesh);
+				StaticMesh->Build(true);
+				RefreshCollisionChange(StaticMesh);
+			}
+		}
 	}
 }
 
