@@ -1871,7 +1871,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 		}
 
 		StaticMesh->CreateBodySetup();
-		
+
 		// Set flag whether physics triangle mesh will use double sided faces when doing scene queries. 
 		StaticMesh->BodySetup->bDoubleSidedGeometry = bGeneratedDoubleSidedGeometry;
 
@@ -1884,7 +1884,9 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 		// Assign walkable slope behavior.
 		StaticMesh->BodySetup->WalkableSlopeOverride = GeneratedWalkableSlopeOverride;
 
-		//BodySetup->CreatePhysicsMeshes();
+		// We want to use all of geometry for collision detection purposes.
+		StaticMesh->BodySetup->bMeshCollideAll = true;
+
 		//RefreshCollisionChange(StaticMesh);
 	}
 }

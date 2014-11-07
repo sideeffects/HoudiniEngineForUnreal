@@ -1825,6 +1825,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
 				{
 					StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
+
+					for(int32 MaterialIndex = 0; MaterialIndex < StaticMesh->Materials.Num(); ++MaterialIndex)
+					{
+						FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
+						Info.MaterialIndex = MaterialIndex;
+						Info.bEnableCollision = true;
+						Info.bCastShadow = true;
+						StaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
+					}
 				}
 
 				//StaticMesh->PreEditChange(nullptr);
@@ -1992,6 +2001,15 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
 	{
 		StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
+
+		for(int32 MaterialIndex = 0; MaterialIndex < StaticMesh->Materials.Num(); ++MaterialIndex)
+		{
+			FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
+			Info.MaterialIndex = MaterialIndex;
+			Info.bEnableCollision = true;
+			Info.bCastShadow = true;
+			StaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
+		}
 	}
 
 	StaticMesh->Build(true);
@@ -2122,6 +2140,15 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
 	{
 		StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
+
+		for(int32 MaterialIndex = 0; MaterialIndex < StaticMesh->Materials.Num(); ++MaterialIndex)
+		{
+			FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
+			Info.MaterialIndex = MaterialIndex;
+			Info.bEnableCollision = true;
+			Info.bCastShadow = true;
+			StaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
+		}
 	}
 
 	StaticMesh->Build(true);
@@ -2364,9 +2391,19 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	{
 		new(NewStaticMesh->SourceModels) FStaticMeshSourceModel();
 	}
+	
 	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
 	{
 		NewStaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
+					
+		for(int32 MaterialIndex = 0; MaterialIndex < NewStaticMesh->Materials.Num(); ++MaterialIndex)
+		{
+			FMeshSectionInfo Info = NewStaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
+			Info.MaterialIndex = MaterialIndex;
+			Info.bEnableCollision = true;
+			Info.bCastShadow = true;
+			NewStaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
+		}
 	}
 
 	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
