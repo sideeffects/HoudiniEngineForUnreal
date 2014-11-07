@@ -26,13 +26,16 @@ class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
 class USplineComponent;
+class UPhysicalMaterial;
 class UHoudiniAssetInput;
 class AHoudiniAssetActor;
 class UStaticMeshComponent;
 class UHoudiniAssetParameter;
 class UHoudiniAssetInstanceInput;
+class UFoliageType_InstancedStaticMesh;
 
 struct FPropertyChangedEvent;
+struct FWalkableSlopeOverride;
 
 
 namespace EHoudiniAssetComponentState
@@ -97,6 +100,52 @@ public:
 	/** Houdini Asset associated with this component. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
+
+public: /** Static mesh generation properties.**/
+
+	/** If true, the physics triangle mesh will use double sided faces when doing scene queries. **/
+	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Double Sided Geometry"))
+	uint32 bGeneratedDoubleSidedGeometry : 1;
+
+	/** Physical material to use for simple collision on this body. Encodes information about density, friction etc. **/
+	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Simple Collision Physical Material"))
+	UPhysicalMaterial* GeneratedPhysMaterial;
+
+	/** Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate. **/
+	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Collision Complexity"))
+	TEnumAsByte<enum ECollisionTraceFlag> GeneratedCollisionTraceFlag;
+
+	/** Resolution of lightmap. **/
+	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Light Map Resolution", FixedIncrement="4.0"))
+	int32 GeneratedLightMapResolution;
+
+	/** Bias multiplier for Light Propagation Volume lighting. **/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Lpv Bias Multiplier", UIMin="0.0", UIMax="3.0"))
+	float GeneratedLpvBiasMultiplier;
+
+	/** Custom walkable slope setting for generated mesh's body. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Walkable Slope Override"))
+	FWalkableSlopeOverride GeneratedWalkableSlopeOverride;
+
+	/** The light map coordinate index. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Light map coordinate index"))
+	int32 GeneratedLightMapCoordinateIndex;
+
+	/** True if mesh should use a less-conservative method of mip LOD texture factor computation. **/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Use Maximum Streaming Texel Ratio"))
+	uint32 bGeneratedUseMaximumStreamingTexelRatio:1;
+
+	/** Allows artists to adjust the distance where textures using UV 0 are streamed in/out. **/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Streaming Distance Multiplier"))
+	float GeneratedStreamingDistanceMultiplier;
+
+	/** Default settings when using this mesh for instanced foliage. **/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Foliage Default Settings"))
+	UFoliageType_InstancedStaticMesh* GeneratedFoliageDefaultSettings;
+
+	/** Array of user data stored with the asset. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Asset User Data"))
+	TArray<UAssetUserData*> GeneratedAssetUserData;
 
 public:
 

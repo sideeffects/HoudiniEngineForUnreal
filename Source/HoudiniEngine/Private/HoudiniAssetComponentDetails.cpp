@@ -42,7 +42,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshes()
 			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
 			UStaticMesh* StaticMesh = Iter.Value();
 
-			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent->HoudiniAsset, StaticMesh, MeshIdx);
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, StaticMesh, MeshIdx);
 			MeshIdx++;
 
 			// Notify asset registry that we have created assets. This should update the content browser.
@@ -59,7 +59,7 @@ FHoudiniAssetComponentDetails::CreateSingleStaticMesh()
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
 
-		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeSingleStaticMesh(HoudiniAssetComponent->HoudiniAsset, HoudiniAssetComponent->StaticMeshComponents);
+		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeSingleStaticMesh(HoudiniAssetComponent, HoudiniAssetComponent->StaticMeshComponents);
 		if(OutStaticMesh)
 		{
 			// Notify asset registry that we have created assets. This should update the content browser.
@@ -137,6 +137,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Asset category.
 	DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+
+	// Create Houdini Generated Static mesh settings category.
+	DetailBuilder.EditCategory("HoudiniGeneratedStaticMeshSettings", TEXT(""), ECategoryPriority::Important);
 
 	// Create Houdini Inputs.
 	{
