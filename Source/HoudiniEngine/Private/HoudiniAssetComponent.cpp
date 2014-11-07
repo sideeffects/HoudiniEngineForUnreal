@@ -58,6 +58,16 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	// This component requires render update.
 	bNeverNeedsRenderUpdate = false;
 
+	// Initialize static mesh generation parameters.
+	bGeneratedDoubleSidedGeometry = false;
+	GeneratedPhysMaterial = nullptr;
+	GeneratedCollisionTraceFlag = CTF_UseDefault;
+	GeneratedLpvBiasMultiplier = 1.0f;
+	GeneratedLightMapResolution = 32;
+	GeneratedLightMapCoordinateIndex = 1;
+	bGeneratedUseMaximumStreamingTexelRatio = false;
+	GeneratedStreamingDistanceMultiplier = 1.0f;
+
 	// Make an invalid GUID, since we do not have any cooking requests.
 	HapiGUID.Invalidate();
 }
@@ -556,7 +566,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						{
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
-							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(AssetId, HoudiniAsset, nullptr, StaticMeshes, NewStaticMeshes))
+							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, nullptr, StaticMeshes, NewStaticMeshes))
 							{
 								// Remove all duplicates. After this operation, old map will have meshes which we need to deallocate.
 								for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(NewStaticMeshes); Iter; ++Iter)
@@ -1333,7 +1343,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					UStaticMesh* LoadedStaticMesh = nullptr;
 					if(!HoudiniGeoPartObject.bIsInstancer)
 					{
-						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(HoudiniAsset, nullptr, StaticMeshIdx, Ar);
+						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(this, nullptr, StaticMeshIdx, Ar);
 					}
 
 					// See if we already have a static mesh for this geo part object.

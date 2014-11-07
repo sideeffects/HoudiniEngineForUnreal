@@ -21,6 +21,7 @@ class UTexture2D;
 class UStaticMesh;
 class UHoudiniAsset;
 class UHoudiniAssetMaterial;
+class UHoudiniAssetComponent;
 class FHoudiniAssetObjectGeo;
 
 struct FRawMesh;
@@ -72,7 +73,7 @@ public:
 	static UStaticMesh* CreateStaticMeshHoudiniLogo();
 
 	/** Construct static meshes for a given Houdini asset. Flag controls whether one mesh or multiple meshes will be created. **/
-	static bool CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
+	static bool CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, 
 												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut);
 
@@ -80,13 +81,13 @@ public:
 	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar);
 
 	/** Load raw mesh from archive and create static mesh from it. **/
-	static UStaticMesh* LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, int32 MeshCounter, FArchive& Ar);
+	static UStaticMesh* LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, int32 MeshCounter, FArchive& Ar);
 
 	/** Bake static mesh. **/
-	static UStaticMesh* BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* StaticMesh, int32 MeshCounter);
+	static UStaticMesh* BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UStaticMesh* StaticMesh, int32 MeshCounter);
 
 	/** Bake single static mesh - this will combine individual objects into one, baking in transformations. **/
-	static UStaticMesh* BakeSingleStaticMesh(UHoudiniAsset* HoudiniAsset, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents);
+	static UStaticMesh* BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents);
 
 	/** Extract position information from coords string. **/
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);

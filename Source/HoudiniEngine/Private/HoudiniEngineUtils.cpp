@@ -1288,11 +1288,14 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 
 
 bool
-FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(HAPI_AssetId AssetId, UHoudiniAsset* HoudiniAsset, UPackage* Package, 
+FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, 
 														const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 														TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut)
 {
-	if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
+	HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+
+	if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId) || !HoudiniAsset)
 	{
 		return false;
 	}
@@ -1934,11 +1937,12 @@ FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar)
 
 
 UStaticMesh*
-FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, int32 MeshCounter, FArchive& Ar)
+FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, int32 MeshCounter, FArchive& Ar)
 {
 	UStaticMesh* StaticMesh = nullptr;
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
-	if(!Ar.IsLoading())
+	if(!Ar.IsLoading() || !HoudiniAsset)
 	{
 		return StaticMesh;
 	}
@@ -2073,8 +2077,11 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& M
 
 
 UStaticMesh*
-FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* InStaticMesh, int32 MeshCounter)
+FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UStaticMesh* InStaticMesh, int32 MeshCounter)
 {
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	check(HoudiniAsset);
+
 	// Get platform manager LOD specific information.
 	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 	check(CurrentPlatform);
@@ -2141,11 +2148,12 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAsset* HoudiniAsset, UStaticMesh* In
 
 
 UStaticMesh*
-FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAsset* HoudiniAsset, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents)
+FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents)
 {
 	UStaticMesh* NewStaticMesh = nullptr;
 
-	if(0 == StaticMeshComponents.Num())
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	if(!HoudiniAsset || 0 == StaticMeshComponents.Num())
 	{
 		return NewStaticMesh;
 	}
