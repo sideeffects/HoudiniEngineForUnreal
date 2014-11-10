@@ -997,8 +997,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		StartHoudiniAssetChange();
 		return;
 	}
-
-	if(Property->GetName() == TEXT("Mobility"))
+	else if(Property->GetName() == TEXT("Mobility"))
 	{
 		// Mobility was changed, we need to update it for all attached components as well.
 		for(TArray<USceneComponent*>::TIterator Iter(AttachChildren); Iter; ++Iter)
@@ -1007,6 +1006,12 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			SceneComponent->SetMobility(Mobility);
 		}
 
+		return;
+	}
+	else if(Property->GetName() == TEXT("bVisible"))
+	{
+		// Visibility has changed, propagate it to children.
+		SetVisibility(bVisible, true);
 		return;
 	}
 
