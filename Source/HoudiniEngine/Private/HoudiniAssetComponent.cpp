@@ -622,7 +622,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						{
 							UpdateEditorProperties();
 						}
-
 					}
 					else
 					{
@@ -903,6 +902,11 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 
 	// Update physics representation right away.
 	RecreatePhysicsState();
+	for(TArray<USceneComponent*>::TIterator Iter(AttachChildren); Iter; ++Iter)
+	{
+		USceneComponent* SceneComponent = *Iter;
+		SceneComponent->RecreatePhysicsState();
+	}
 
 	// Since we have new asset, we need to update bounds.
 	UpdateBounds();
@@ -1096,7 +1100,11 @@ UHoudiniAssetComponent::OnRegister()
 			UStaticMeshComponent* StaticMeshComponent = Iter.Value();
 			if(StaticMeshComponent)
 			{
+				// Recreate render state.
 				StaticMeshComponent->RecreateRenderState_Concurrent();
+
+				// Need to recreate physics state.
+				StaticMeshComponent->RecreatePhysicsState();
 			}
 		}
 
