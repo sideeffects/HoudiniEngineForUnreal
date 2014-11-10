@@ -1513,9 +1513,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					StaticMesh = *FoundStaticMesh;
 				}
 
-				// Assign generation parameters for this static mesh.
-				HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
-
 				MeshCounter++;
 
 				// Create new source model for current static mesh.
@@ -1836,6 +1833,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 				}
 
+				// Assign generation parameters for this static mesh.
+				HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
+
 				//StaticMesh->PreEditChange(nullptr);
 				StaticMesh->Build(true);
 				//StaticMesh->PostEditChange();
@@ -1980,9 +1980,6 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	FRawMesh RawMesh;
 	FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Ar);
 
-	// Assign generation parameters for this static mesh.
-	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
-
 	RawMeshBulkData->SaveRawMesh(RawMesh);
 
 	// Some mesh generation settings.
@@ -2011,6 +2008,9 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 			StaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
 		}
 	}
+
+	// Assign generation parameters for this static mesh.
+	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
 	StaticMesh->Build(true);
 	return StaticMesh;
@@ -2119,9 +2119,6 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	FRawMeshBulkData* InRawMeshBulkData = InSrcModel->RawMeshBulkData;
 	InRawMeshBulkData->LoadRawMesh(RawMesh);
 
-	// Assign generation parameters for this static mesh.
-	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
-
 	RawMeshBulkData->SaveRawMesh(RawMesh);
 
 	// Some mesh generation settings.
@@ -2150,6 +2147,9 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 			StaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
 		}
 	}
+
+	// Assign generation parameters for this static mesh.
+	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
 	StaticMesh->Build(true);
 	return StaticMesh;
@@ -2203,9 +2203,6 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	{
 		RawMesh.WedgeTexCoords[UVIdx].Empty();
 	}
-
-	// Assign generation parameters for this static mesh.
-	HoudiniAssetComponent->SetStaticMeshGenerationParameters(NewStaticMesh);
 
 	TSet<UMaterialInterface*> UniqueMaterials;
 	int32 FaceCount = 0;
@@ -2405,6 +2402,9 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 			NewStaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
 		}
 	}
+
+	// Assign generation parameters for this static mesh.
+	HoudiniAssetComponent->SetStaticMeshGenerationParameters(NewStaticMesh);
 
 	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
 	NewStaticMesh->Build(true);

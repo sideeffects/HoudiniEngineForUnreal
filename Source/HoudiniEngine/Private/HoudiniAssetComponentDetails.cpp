@@ -101,8 +101,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 			if(Object)
 			{
-				// We can't use Unreal cast here since we have patched RTTI for component.
-				UHoudiniAssetComponent* HoudiniAssetComponent = (UHoudiniAssetComponent*) Object;
+				UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(Object);
 				HoudiniAssetComponents.Add(HoudiniAssetComponent);
 			}
 		}

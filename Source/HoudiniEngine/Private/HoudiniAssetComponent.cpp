@@ -338,7 +338,12 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 				// Add to map of components.
 				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
 
-				StaticMeshComponent->AttachTo(this);
+				StaticMeshComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
+
+				//StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+				//StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
+				//StaticMeshComponent->bAlwaysCreatePhysicsState = true;
+
 				StaticMeshComponent->SetStaticMesh(StaticMesh);
 				StaticMeshComponent->SetVisibility(true);
 				StaticMeshComponent->RegisterComponent();
@@ -617,6 +622,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						{
 							UpdateEditorProperties();
 						}
+
 					}
 					else
 					{
@@ -952,13 +958,15 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		return;
 	}
 
-	if(!PropertyChangedEvent.MemberProperty)
+	UProperty* Property = PropertyChangedEvent.MemberProperty;
+
+	if(!Property)
 	{
 		return;
 	}
 
 	// If Houdini Asset is being changed and has actually changed.
-	if(PropertyChangedEvent.MemberProperty->GetName() == TEXT("HoudiniAsset") && ChangedHoudiniAsset != HoudiniAsset)
+	if(Property->GetName() == TEXT("HoudiniAsset") && ChangedHoudiniAsset != HoudiniAsset)
 	{
 		if(ChangedHoudiniAsset)
 		{
@@ -990,7 +998,18 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		return;
 	}
 
-	UProperty* Property = PropertyChangedEvent.MemberProperty;
+	if(Property->GetName() == TEXT("Mobility"))
+	{
+		// Mobility was changed, we need to update it for all attached components as well.
+		for(TArray<USceneComponent*>::TIterator Iter(AttachChildren); Iter; ++Iter)
+		{
+			USceneComponent* SceneComponent = *Iter;
+			SceneComponent->SetMobility(Mobility);
+		}
+
+		return;
+	}
+
 	if(Property->HasMetaData(TEXT("Category")))
 	{
 		const FString& Category = Property->GetMetaData(TEXT("Category"));
@@ -1007,6 +1026,8 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 				StaticMesh->Build(true);
 				RefreshCollisionChange(StaticMesh);
 			}
+
+			return;
 		}
 	}
 }
