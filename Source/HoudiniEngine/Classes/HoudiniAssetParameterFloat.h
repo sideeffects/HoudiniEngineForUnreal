@@ -3,9 +3,6 @@
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
  *
- * Brokers define connection between assets (for example in content
- * browser) and actors.
- *
  * Produced by:
  *      Mykola Konyk
  *      Side Effects Software Inc
