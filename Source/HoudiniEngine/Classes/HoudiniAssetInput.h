@@ -67,6 +67,12 @@ public:
 	/** Set value of this property through commit action, used by Slate. **/
 	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType);
 
+	/** Handle reset input button click. **/
+	FReply OnButtonClickedResetInput();
+
+	/** Handle create / select curve input button click. **/
+	FReply OnButtonClickedCreateSelectCurveInput();
+
 protected:
 
 	/** Return true if this input has connected asset. **/

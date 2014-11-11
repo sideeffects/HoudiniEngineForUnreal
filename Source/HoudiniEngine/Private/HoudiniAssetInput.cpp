@@ -81,6 +81,17 @@ UHoudiniAssetInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCompon
 void
 UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
+	FText CurveText;
+
+	if(InputObject && InputObject->IsA(UHoudiniSplineComponent::StaticClass()))
+	{
+		CurveText = FText::FromString(TEXT("Select Input Curve"));
+	}
+	else
+	{
+		CurveText = FText::FromString(TEXT("Create Input Curve"));
+	}
+
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
@@ -93,17 +104,41 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 	HorizontalBox->AddSlot()
 	[
-		SNew(SAssetDropTarget)
-			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInput::OnAssetDropped))
-			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInput::OnIsAssetAcceptableForDrop))
-			.ToolTipText(GetParameterLabel())
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot().Padding(2, 2)
+			SNew(SAssetDropTarget)
+				.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInput::OnAssetDropped))
+				.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInput::OnIsAssetAcceptableForDrop))
+				.ToolTipText(GetParameterLabel())
 			[
-				SAssignNew(InputWidget, SAssetSearchBox)
-				.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetInput::SetValueCommitted))
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot().Padding(2, 2)
+				[
+					SAssignNew(InputWidget, SAssetSearchBox)
+					.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetInput::SetValueCommitted))
+				]
 			]
+		]
+		+SVerticalBox::Slot()
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickedCreateSelectCurveInput))
+			//.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+			.Text(CurveText)
+			.ToolTipText(CurveText)
+		]
+		+SVerticalBox::Slot()
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickedResetInput))
+			//.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+			.Text(LOCTEXT("ResetInput", "Reset Input"))
+			.ToolTipText(LOCTEXT("HoudiniAssetInputTipResetInput", "Reset Input"))
 		]
 	];
 
@@ -132,6 +167,11 @@ UHoudiniAssetInput::UploadParameterValue()
 				bChanged = false;
 				return false;
 			}
+		}
+		else if(InputObject->IsA(UHoudiniSplineComponent::StaticClass()))
+		{
+			// If we have spline component input, we need to input that information.
+			UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(InputObject);
 		}
 	}
 	else if(HasConnectedAsset())
@@ -268,5 +308,38 @@ UHoudiniAssetInput::SetValueCommitted(const FText& InValue, ETextCommit::Type Co
 	{
 		MarkChanged();
 	}
+}
+
+
+FReply
+UHoudiniAssetInput::OnButtonClickedResetInput()
+{
+	if(InputObject)
+	{
+		if(InputObject->IsA(UStaticMesh::StaticClass()))
+		{
+			// Static mesh is used as input.
+
+			MarkPreChanged();
+
+			InputObject = nullptr;
+			InputWidget->SetText(FText::FromString(TEXT("")));
+
+			MarkChanged();
+		}
+		else if(InputObject->IsA(UHoudiniSplineComponent::StaticClass()))
+		{
+			// We have curve input.
+		}
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+UHoudiniAssetInput::OnButtonClickedCreateSelectCurveInput()
+{
+	return FReply::Handled();
 }
 
