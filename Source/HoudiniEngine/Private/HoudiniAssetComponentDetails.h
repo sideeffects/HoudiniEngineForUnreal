@@ -15,6 +15,13 @@
 
 #pragma once
 
+
+struct FGeometry;
+struct FSlateBrush;
+struct FPointerEvent;
+
+
+class UStaticMesh;
 class IDetailLayoutBuilder;
 class UHoudiniAssetComponent;
 
@@ -37,22 +44,36 @@ public:
 
 private:
 
-	/** Button click handlers. **/
-	FReply OnButtonClickedBake();
+	/** Button click handlers. **/	
 	FReply OnButtonClickedBakeSingle();
 
 private:
 
-	/** Helper method used to create separate static meshes. **/
-	void CreateStaticMeshes();
+	/** Helper method used to create widgets for generated static meshes. **/
+	void CreateStaticMeshAndMaterialWidgets(IDetailCategoryBuilder& DetailCategoryBuilder);
 
 	/** Helper method used to create a single static mesh. **/
 	void CreateSingleStaticMesh();
+
+	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
+	const FSlateBrush* GetThumbnailBorder(UStaticMesh* StaticMesh) const;
+
+	/** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
+	FReply OnStaticMeshDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UStaticMesh* StaticMesh);
+
+	/** Handler for bake individual static mesh action. **/
+	FReply OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudiniAssetComponent* HoudiniAssetComponent);
+
+	/** Handler for bake all static meshes action. **/
+	FReply OnBakeAllStaticMeshes();
 
 private:
 
 	/** Components which are being customized. **/
 	TArray<UHoudiniAssetComponent*> HoudiniAssetComponents;
+
+	/** Map of static meshes and corresponding thumbnail borders. **/
+	TMap<UStaticMesh*, TSharedPtr<SBorder> > StaticMeshThumbnailBorders;
 
 	/** Whether baking option is enabled. **/
 	bool bEnableBaking;
