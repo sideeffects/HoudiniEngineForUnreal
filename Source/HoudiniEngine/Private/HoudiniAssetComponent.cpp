@@ -294,9 +294,6 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 	// Reset Houdini logo flag.
 	bContainsHoudiniLogoGeometry = false;
 
-	// Reset array used for static mesh preview.
-	PreviewStaticMeshes.Empty();
-
 	// We need to store instancers as they need to be processed after all other meshes.
 	TArray<FHoudiniGeoPartObject> FoundInstancers;
 	TArray<FHoudiniGeoPartObject> FoundCurves;
@@ -351,9 +348,6 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 
 			// Transform the component by transformation provided by HAPI.
 			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
-				
-			// Add static mesh to preview list.
-			PreviewStaticMeshes.Add(StaticMesh);
 		}
 	}
 

@@ -80,7 +80,7 @@ operator<<(FArchive& Ar, EHoudiniAssetComponentState::Type& E)
 }
 
 
-UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew)
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 {
 	friend class FHoudiniMeshSceneProxy;
@@ -93,15 +93,12 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 
 public:
 
-	/** Generated Static meshes used for rendering. **/
-	UPROPERTY(VisibleInstanceOnly, EditFixedSize, NoClear, Transient, BlueprintReadOnly, Category=HoudiniAsset)
-	TArray<UStaticMesh*> PreviewStaticMeshes;
-
 	/** Houdini Asset associated with this component. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
-public: /** Static mesh generation properties.**/
+/** Static mesh generation properties.**/
+public:
 
 	/** If true, the physics triangle mesh will use double sided faces when doing scene queries. **/
 	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Double Sided Geometry"))
@@ -200,7 +197,8 @@ public:
 	/** Locate geo part object for given static mesh. Reverse map search. **/
 	FHoudiniGeoPartObject LocateGeoPartObject(UStaticMesh* StaticMesh) const;
 
-public: /** UObject methods. **/
+/** UObject methods. **/
+public:
 
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -212,18 +210,21 @@ public: /** UObject methods. **/
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
-protected: /** UActorComponent methods. **/
+/** UActorComponent methods. **/
+protected:
 
 	virtual void OnComponentCreated() override;
 	virtual void OnComponentDestroyed() override;
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 
-private: /** USceneComponent methods. **/
+/** USceneComponent methods. **/
+private:
 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
-private: /** FEditorDelegates delegates. **/
+/** FEditorDelegates delegates. **/
+private:
 
 	void OnPreSaveWorld(uint32 SaveFlags, class UWorld* World);
 	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);

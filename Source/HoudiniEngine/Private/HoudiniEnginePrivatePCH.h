@@ -52,6 +52,8 @@
 #include "SAssetSearchBox.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
+#include "Editor/UnrealEd/Public/AssetThumbnail.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 
 /** Houdini Engine headers. **/
 #include <vector>

@@ -30,29 +30,6 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 
 
 void
-FHoudiniAssetComponentDetails::CreateStaticMeshes()
-{
-	if(HoudiniAssetComponents.Num() > 0)
-	{
-		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-
-		int32 MeshIdx = 0;
-		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
-		{
-			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-			UStaticMesh* StaticMesh = Iter.Value();
-
-			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, StaticMesh, MeshIdx);
-			MeshIdx++;
-
-			// Notify asset registry that we have created assets. This should update the content browser.
-			FAssetRegistryModule::AssetCreated(OutStaticMesh);
-		}
-	}
-}
-
-
-void
 FHoudiniAssetComponentDetails::CreateSingleStaticMesh()
 {
 	if(HoudiniAssetComponents.Num() > 0)
@@ -66,14 +43,6 @@ FHoudiniAssetComponentDetails::CreateSingleStaticMesh()
 			FAssetRegistryModule::AssetCreated(OutStaticMesh);
 		}
 	}
-}
-
-
-FReply
-FHoudiniAssetComponentDetails::OnButtonClickedBake()
-{
-	CreateStaticMeshes();
-	return FReply::Handled();
 }
 
 
@@ -108,6 +77,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	}
 
 	// Create buttons for actions.
+	/*
 	DetailBuilder.EditCategory("HoudiniActions", TEXT(""), ECategoryPriority::Important)
 		.AddCustomRow(TEXT(""))
 		[
@@ -133,9 +103,16 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 					]
 			]
 		];
+	*/
 
 	// Create Houdini Asset category.
 	DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+
+	// Create category for generated static meshes and their materials.
+	{
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniGeneratedMeshes", TEXT(""), ECategoryPriority::Important);
+		CreateStaticMeshAndMaterialWidgets(DetailCategoryBuilder);
+	}
 
 	// Create Houdini Generated Static mesh settings category.
 	DetailBuilder.EditCategory("HoudiniGeneratedStaticMeshSettings", TEXT(""), ECategoryPriority::Important);
@@ -182,3 +159,189 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 	}
 }
+
+
+void
+FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategoryBuilder& DetailCategoryBuilder)
+{
+	for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+	{
+		int32 MeshIdx = 0;
+
+		UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+		for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator IterMeshes(HoudiniAssetComponent->StaticMeshComponents); IterMeshes; ++IterMeshes)
+		{
+			UStaticMesh* StaticMesh = IterMeshes.Key();
+
+			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+
+			FString Label = FString::Printf(TEXT("Static Mesh %d"), MeshIdx);
+			Row.NameWidget.Widget = SNew(STextBlock)
+									.Text(Label)
+									.ToolTipText(Label)
+									.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+
+			// Get thumbnail pool for this builder.
+			IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
+			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+
+			// Create thumbnail for this mesh.
+			TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(new FAssetThumbnail(StaticMesh, 64, 64, AssetThumbnailPool));
+
+			//TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+			TSharedPtr<SBorder> ThumbnailBorder;
+			TSharedPtr<SHorizontalBox> ButtonBox;
+			TSharedPtr<SComboButton> AssetComboButton;
+			TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+			VerticalBox->AddSlot().Padding(0, 2)
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+				.AutoWidth()
+				[
+					SAssignNew(ThumbnailBorder, SBorder)
+					.Padding(5.0f)
+					.BorderImage(this, &FHoudiniAssetComponentDetails::GetThumbnailBorder, StaticMesh)
+					.OnMouseDoubleClick(this, &FHoudiniAssetComponentDetails::OnStaticMeshDoubleClick, StaticMesh)
+					[
+						SNew(SBox)
+						.WidthOverride(64)
+						.HeightOverride(64)
+						//.ToolTipText( this, &SPropertyEditorAsset::OnGetToolTip )
+						[
+							StaticMeshThumbnail->MakeThumbnailWidget()
+						]
+					]
+				]
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.VAlign(VAlign_Center)
+					[
+						SAssignNew(ButtonBox, SHorizontalBox)
+						//.IsEnabled(this, &SPropertyEditorAsset::CanEdit)
+						+SHorizontalBox::Slot()
+						[
+							SNew(SButton)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.Text(LOCTEXT("Bake", "Bake"))
+							.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeStaticMesh, StaticMesh, HoudiniAssetComponent)
+							.ToolTipText(LOCTEXT("HoudiniStaticMeshBakeButton", "Bake this generated static mesh"))
+						]
+					]
+				]
+			];
+
+
+
+
+
+
+
+			// Store thumbnail for this mesh.
+			StaticMeshThumbnailBorders.Add(StaticMesh, ThumbnailBorder);
+
+			Row.ValueWidget.Widget = VerticalBox;
+			MeshIdx++;
+		}
+	}
+
+	DetailCategoryBuilder.AddCustomRow(TEXT(""))
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(0, 2.0f, 0, 0)
+		.FillHeight(1.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes)
+					.Text(LOCTEXT("BakeHoudiniActor", "Bake All"))
+					.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake all generated static meshes"))
+				]
+		]
+	];
+}
+
+
+const FSlateBrush*
+FHoudiniAssetComponentDetails::GetThumbnailBorder(UStaticMesh* StaticMesh) const
+{
+	TSharedPtr<SBorder> ThumbnailBorder = StaticMeshThumbnailBorders[StaticMesh];
+	if(ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+	}
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnStaticMeshDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UStaticMesh* StaticMesh)
+{
+	if(StaticMesh && GEditor)
+	{
+		GEditor->EditObject(StaticMesh);
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(StaticMesh)
+	{
+		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, StaticMesh, -1);
+		
+		// Notify asset registry that we have created assets. This should update the content browser.
+		FAssetRegistryModule::AssetCreated(OutStaticMesh);
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
+{
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+
+		int32 MeshIdx = 0;
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
+		{
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UStaticMesh* StaticMesh = Iter.Value();
+
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, StaticMesh, MeshIdx);
+			MeshIdx++;
+
+			// Notify asset registry that we have created assets. This should update the content browser.
+			FAssetRegistryModule::AssetCreated(OutStaticMesh);
+		}
+	}
+
+	return FReply::Handled();
+}
+
