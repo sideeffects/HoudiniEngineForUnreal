@@ -183,6 +183,9 @@ public:
 	/** Assign generation parameters to static mesh. **/
 	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
 
+	/** Refresh editor's detail panel and update properties. **/
+	void UpdateEditorProperties();
+
 public:
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
@@ -244,9 +247,6 @@ private:
 
 	/** Update rendering information. **/
 	void UpdateRenderingInformation();
-
-	/** Refresh editor's detail panel and update properties. **/
-	void UpdateEditorProperties();
 
 	/** Start ticking. **/
 	void StartHoudiniTicking();

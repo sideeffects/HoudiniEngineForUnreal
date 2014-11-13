@@ -502,6 +502,12 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 	{
 		// Replace material.
 		StaticMesh->Materials[MaterialIdx] = MaterialInterface;
+
+		// We need to update editor to reflect changes.
+		if(HoudiniAssetComponents.Num() > 0)
+		{
+			HoudiniAssetComponents[0]->UpdateEditorProperties();
+		}
 	}
 }
 
@@ -555,8 +561,8 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 	UMaterialInterface* MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
 	if(MaterialInterface)
 	{
-		// Replace material.
-		StaticMesh->Materials[MaterialIdx] = MaterialInterface;
+		// Replace material with default.
+		OnMaterialInterfaceDropped(MaterialInterface, StaticMesh, MaterialIdx);
 	}
 
 	return FReply::Handled();
