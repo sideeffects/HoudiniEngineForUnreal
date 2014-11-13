@@ -47,6 +47,9 @@ public:
 	/** Recreates render states for used instanced static mesh components. **/
 	void RecreateRenderStates();
 
+	/** Recreates physics states for used instanced static mesh components. **/
+	void RecreatePhysicsStates();
+
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/

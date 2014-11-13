@@ -260,6 +260,20 @@ UHoudiniAssetInstanceInput::RecreateRenderStates()
 }
 
 
+void
+UHoudiniAssetInstanceInput::RecreatePhysicsStates()
+{
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+		if(InstancedStaticMeshComponent)
+		{
+			InstancedStaticMeshComponent->RecreatePhysicsState();
+		}
+	}
+}
+
+
 bool
 UHoudiniAssetInstanceInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {

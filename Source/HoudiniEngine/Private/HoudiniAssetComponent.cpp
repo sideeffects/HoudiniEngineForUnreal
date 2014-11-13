@@ -822,6 +822,23 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 }
 
 
+void
+UHoudiniAssetComponent::GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticMeshes)
+{
+	UsedStaticMeshes.Empty();
+
+	// Add all static meshes.
+	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
+	{
+		UStaticMesh* StaticMesh = Iter.Value();
+		if(StaticMesh)
+		{
+			UsedStaticMeshes.Add(StaticMesh);
+		}
+	}
+}
+
+
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
@@ -1106,7 +1123,12 @@ UHoudiniAssetComponent::OnRegister()
 		for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator Iter(InstanceInputs); Iter; ++Iter)
 		{
 			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Iter.Value();
+
+			// Recreate render state.
 			HoudiniAssetInstanceInput->RecreateRenderStates();
+
+			// Recreate physics state.
+			//HoudiniAssetInstanceInput->RecreatePhysicsStates();
 		}
 	}
 }

@@ -186,6 +186,9 @@ public:
 	/** Refresh editor's detail panel and update properties. **/
 	void UpdateEditorProperties();
 
+	/** Return all static meshes used by this component. For both instanced and uinstanced components. **/
+	void GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticMeshes);
+
 public:
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
