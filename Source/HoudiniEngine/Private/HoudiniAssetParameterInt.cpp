@@ -120,7 +120,7 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
-		VerticalBox->AddSlot().Padding(0, 2)
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
 			SNew(SNumericEntryBox<int>)
 			.AllowSpin(true)
@@ -144,6 +144,7 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
+	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
 
 

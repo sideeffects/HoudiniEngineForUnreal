@@ -85,7 +85,7 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
-		VerticalBox->AddSlot().Padding(0, 2)
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
 			SNew(SCheckBox)
 				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, &UHoudiniAssetParameterToggle::CheckStateChanged, Idx))
@@ -101,6 +101,7 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
+	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
 
 
