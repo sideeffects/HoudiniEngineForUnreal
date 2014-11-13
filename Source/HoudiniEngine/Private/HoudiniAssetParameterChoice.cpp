@@ -153,16 +153,23 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 							.ToolTipText(GetParameterLabel())
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
-	Row.ValueWidget.Widget = SNew(SComboBox<TSharedPtr<FString> >)
-							 .OptionsSource(&StringChoiceLabels)
-							 .InitiallySelectedItem(StringChoiceLabels[CurrentValue])
-							 .OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
-							 .OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetParameterChoice::OnChoiceChange))
-							 [
-								SNew(STextBlock)
-								.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, &UHoudiniAssetParameterChoice::HandleChoiceContentText)))
-								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-							 ];
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+	HorizontalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SComboBox<TSharedPtr<FString> >)
+		.OptionsSource(&StringChoiceLabels)
+		.InitiallySelectedItem(StringChoiceLabels[CurrentValue])
+		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
+		.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetParameterChoice::OnChoiceChange))
+		[
+			SNew(STextBlock)
+			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, &UHoudiniAssetParameterChoice::HandleChoiceContentText)))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
+	Row.ValueWidget.Widget = HorizontalBox;
+	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
 
 
