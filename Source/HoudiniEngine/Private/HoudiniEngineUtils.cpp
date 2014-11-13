@@ -1902,28 +1902,31 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32
 {
 	if(AttribInfo.exists && AttribInfo.tupleSize)
 	{
-		if(HAPI_ATTROWNER_POINT == AttribInfo.owner)
-		{
-			int32 WedgeCount = VertexList.Num();
-			TArray<float> VertexData;
-			VertexData.SetNumZeroed(WedgeCount * AttribInfo.tupleSize);
+		int32 WedgeCount = VertexList.Num();
+		TArray<float> VertexData;
+		VertexData.SetNumZeroed(WedgeCount * AttribInfo.tupleSize);
 
+		if(HAPI_ATTROWNER_POINT == AttribInfo.owner || HAPI_ATTROWNER_PRIM == AttribInfo.owner)
+		{
 			for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
 			{
 				int32 VertexId = VertexList[WedgeIdx];
+				int32 PrimIdx = WedgeIdx / 3;
 
 				for(int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx)
 				{
-					VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
+					if(HAPI_ATTROWNER_POINT == AttribInfo.owner)
+					{
+						VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
+					}
+					else if(HAPI_ATTROWNER_PRIM == AttribInfo.owner)
+					{
+						VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Data[PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx];
+					}
 				}
 			}
 
 			Data = VertexData;
-		}
-		else if(HAPI_ATTROWNER_PRIM == AttribInfo.owner)
-		{
-			// Handle case when data is on primitive.
-			check(false);
 		}
 	}
 }

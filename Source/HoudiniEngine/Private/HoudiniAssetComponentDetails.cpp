@@ -182,11 +182,15 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 	for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 	{
 		int32 MeshIdx = 0;
-
 		UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-		for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator IterMeshes(HoudiniAssetComponent->StaticMeshComponents); IterMeshes; ++IterMeshes)
+
+		// Get all static meshes used by this component.
+		TArray<UStaticMesh*> UsedStaticMeshes;
+		HoudiniAssetComponent->GetAllUsedStaticMeshes(UsedStaticMeshes);
+
+		for(TArray<UStaticMesh*>::TIterator IterMeshes(UsedStaticMeshes); IterMeshes; ++IterMeshes)
 		{
-			UStaticMesh* StaticMesh = IterMeshes.Key();
+			UStaticMesh* StaticMesh = *IterMeshes;
 
 			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
