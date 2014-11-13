@@ -67,7 +67,7 @@ private:
 
 	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
 	const FSlateBrush* GetStaticMeshThumbnailBorder(UStaticMesh* StaticMesh) const;
-	const FSlateBrush* GetMaterialInterfaceThumbnailBorder(UMaterialInterface* MaterialInterface) const;
+	const FSlateBrush* GetMaterialInterfaceThumbnailBorder(UStaticMesh* StaticMesh, int32 MaterialIdx) const;
 
 	/** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
 	FReply OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
@@ -109,6 +109,9 @@ private:
 
 	/** Map of static meshes / material indices to combo elements. **/
 	TMap<TPair<UStaticMesh*, int32>, TSharedPtr<SComboButton> > MaterialInterfaceComboButtons;
+
+	/** Map of static meshes / material indices to thumbnail borders. **/
+	TMap<TPair<UStaticMesh*, int32>, TSharedPtr<SBorder> > MaterialInterfaceThumbnailBorders;
 
 	/** Delegate for filtering material interfaces. **/
 	FOnShouldFilterAsset OnShouldFilterMaterialInterface;

@@ -177,6 +177,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 {
 	StaticMeshThumbnailBorders.Empty();
 	MaterialInterfaceComboButtons.Empty();
+	MaterialInterfaceThumbnailBorders.Empty();
 
 	for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 	{
@@ -276,7 +277,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				[
 					SAssignNew(MaterialThumbnailBorder, SBorder)
 					.Padding(5.0f)
-					.BorderImage(this, &FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder, MaterialInterface)
+					.BorderImage(this, &FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder, StaticMesh, MaterialIdx)
 					.OnMouseDoubleClick(this, &FHoudiniAssetComponentDetails::OnThumbnailDoubleClick, (UObject*) MaterialInterface)
 					[
 						SNew(SBox)
@@ -288,6 +289,12 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 						]
 					]
 				];
+
+				// Store thumbnail for this mesh and material index.
+				{
+					TPairInitializer<UStaticMesh*, int32> Pair(StaticMesh, MaterialIdx);
+					MaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
+				}
 
 				TSharedPtr<SComboButton> AssetComboButton;
 				TSharedPtr<SHorizontalBox> ButtonBox;
@@ -363,8 +370,10 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				];
 
 				// Store combo button for this mesh and index.
-				TPairInitializer<UStaticMesh*, int32> Pair(StaticMesh, MaterialIdx);
-				MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
+				{
+					TPairInitializer<UStaticMesh*, int32> Pair(StaticMesh, MaterialIdx);
+					MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
+				}
 			}
 
 			Row.ValueWidget.Widget = VerticalBox;
@@ -417,10 +426,11 @@ FHoudiniAssetComponentDetails::GetStaticMeshThumbnailBorder(UStaticMesh* StaticM
 
 
 const FSlateBrush*
-FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder(UMaterialInterface* MaterialInterface) const
+FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder(UStaticMesh* StaticMesh, int32 MaterialIdx) const
 {
-	/*
-	TSharedPtr<SBorder> ThumbnailBorder = StaticMeshThumbnailBorders[StaticMesh];
+	TPairInitializer<UStaticMesh*, int32> Pair(StaticMesh, MaterialIdx);
+	TSharedPtr<SBorder> ThumbnailBorder = MaterialInterfaceThumbnailBorders[Pair];
+
 	if(ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
 	{
 		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
@@ -429,9 +439,6 @@ FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder(UMaterialInte
 	{
 		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 	}
-	*/
-
-	return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 }
 
 
