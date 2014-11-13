@@ -1473,9 +1473,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						StaticMesh = *FoundStaticMesh;
 						if(bMaterialFound && MaterialInfo.hasChanged)
 						{
+							// Grab current source model and load existing raw model. This will be empty as we are constructing a new mesh.
+							FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
+							FRawMesh RawMesh;
+							SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
+
 							// Even though geometry did not change, material requires update.
 							MeshName = StaticMesh->GetName();
-							UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName);
+							UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
 
 							// Remove previous materials.
 							StaticMesh->Materials.Empty();
@@ -1532,6 +1537,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				SrcModel->BuildSettings.bRemoveDegenerates = true;
 				SrcModel->BuildSettings.bRecomputeTangents = true;
 				SrcModel->BuildSettings.bRecomputeNormals = true;
+				//SrcModel->BuildSettings.bRecomputeNormals = false;
 
 				// Retrieve vertex information for this part.
 				VertexList.SetNumUninitialized(PartInfo.vertexCount);
@@ -1609,72 +1615,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					for(int32 FaceSmoothingMaskIdx = 0; FaceSmoothingMaskIdx < FaceSmoothingMasks.Num(); ++FaceSmoothingMaskIdx)
 					{
 						RawMesh.FaceSmoothingMasks[FaceSmoothingMaskIdx] = FaceSmoothingMasks[FaceSmoothingMaskIdx];
-					}
-				}
-
-				// Set face specific information and materials.
-				if(bMaterialFound)
-				{
-					if(MaterialInfo.hasChanged || (!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
-					{
-						// Material requires update.
-						MeshName = StaticMesh->GetName();
-						UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName);
-
-						// Remove previous materials.
-						StaticMesh->Materials.Empty();
-						StaticMesh->Materials.Add(Material);
-
-						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-					}
-				}
-				else
-				{
-					RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-
-					if(FaceMaterials.Num())
-					{
-						// We regenerate materials.
-						StaticMesh->Materials.Empty();
-
-						TSet<FString> UniqueFaceMaterials(FaceMaterials);
-						TMap<FString, int32> UniqueFaceMaterialMap;
-
-						int32 UniqueFaceMaterialsIdx = 0;
-						for(TSet<FString>::TIterator Iter = UniqueFaceMaterials.CreateIterator(); Iter; ++Iter)
-						{
-							const FString& MaterialName = *Iter;
-							UniqueFaceMaterialMap.Add(MaterialName, UniqueFaceMaterialsIdx);
-
-							// Attempt to load this material.
-							UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
-							
-							if(!MaterialInterface)
-							{
-								// Material does not exist, use default material.
-								MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
-							}
-
-							StaticMesh->Materials.Add(MaterialInterface);
-							UniqueFaceMaterialsIdx++;
-						}
-
-						for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < FaceMaterials.Num(); ++FaceMaterialIdx)
-						{
-							const FString& MaterialName = FaceMaterials[FaceMaterialIdx];
-							RawMesh.FaceMaterialIndices[FaceMaterialIdx] = UniqueFaceMaterialMap[MaterialName];
-						}
-					}
-					else
-					{
-						if(0 == StaticMesh->Materials.Num())
-						{
-							// We just use default material if we do not have any.
-							UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-							StaticMesh->Materials.Add(DefaultMaterial);
-						}
-
-						// Otherwise reuse materials from previous mesh.
 					}
 				}
 
@@ -1816,6 +1756,74 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
 
 					RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
+				}
+
+				// Set face specific information and materials.
+				if(bMaterialFound)
+				{
+					if(MaterialInfo.hasChanged || (!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
+					{
+						// Material requires update.
+						MeshName = StaticMesh->GetName();
+						UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
+
+						//if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
+
+						// Remove previous materials.
+						StaticMesh->Materials.Empty();
+						StaticMesh->Materials.Add(Material);
+
+						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+					}
+				}
+				else
+				{
+					RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+
+					if(FaceMaterials.Num())
+					{
+						// We regenerate materials.
+						StaticMesh->Materials.Empty();
+
+						TSet<FString> UniqueFaceMaterials(FaceMaterials);
+						TMap<FString, int32> UniqueFaceMaterialMap;
+
+						int32 UniqueFaceMaterialsIdx = 0;
+						for(TSet<FString>::TIterator Iter = UniqueFaceMaterials.CreateIterator(); Iter; ++Iter)
+						{
+							const FString& MaterialName = *Iter;
+							UniqueFaceMaterialMap.Add(MaterialName, UniqueFaceMaterialsIdx);
+
+							// Attempt to load this material.
+							UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
+							
+							if(!MaterialInterface)
+							{
+								// Material does not exist, use default material.
+								MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+							}
+
+							StaticMesh->Materials.Add(MaterialInterface);
+							UniqueFaceMaterialsIdx++;
+						}
+
+						for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < FaceMaterials.Num(); ++FaceMaterialIdx)
+						{
+							const FString& MaterialName = FaceMaterials[FaceMaterialIdx];
+							RawMesh.FaceMaterialIndices[FaceMaterialIdx] = UniqueFaceMaterialMap[MaterialName];
+						}
+					}
+					else
+					{
+						if(0 == StaticMesh->Materials.Num())
+						{
+							// We just use default material if we do not have any.
+							UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+							StaticMesh->Materials.Add(DefaultMaterial);
+						}
+
+						// Otherwise reuse materials from previous mesh.
+					}
 				}
 
 				// Store the new raw mesh.
@@ -2133,8 +2141,9 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
+	SrcModel->BuildSettings.bRecomputeNormals = true;
+	//SrcModel->BuildSettings.bRecomputeNormals = false;
 
 	// Store the new raw mesh.
 	RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -2424,7 +2433,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 
 
 UMaterial*
-FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName)
+FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh)
 {
 	UMaterial* Material = nullptr;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -2484,7 +2493,6 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 				Expression->SamplerType = SAMPLERTYPE_Color;
 
 				Material->Expressions.Add(Expression);
-
 				Material->BaseColor.Expression = Expression;
 
 				if(FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo))
@@ -2507,20 +2515,33 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 					// Material is opaque.
 					Material->BlendMode = BLEND_Opaque;
 				}
-
-				// Set other material properties.
-				Material->TwoSided = true;
-				Material->SetShadingModel(MSM_DefaultLit);
-
-				// Propagate and trigger material updates.
-				Material->PreEditChange(nullptr);
-				Material->PostEditChange();
-				Material->MarkPackageDirty();
-
-				// Schedule this material for update.
-				MaterialUpdateContext.AddMaterial(Material);
 			}
 		}
+		else
+		{
+			// If texture extraction failed and we have vertex colors.
+			if(RawMesh.WedgeColors.Num() > 0)
+			{
+				UMaterialExpressionVertexColor* Expression = ConstructObject<UMaterialExpressionVertexColor>(UMaterialExpressionVertexColor::StaticClass(), Material);
+				Material->Expressions.Add(Expression);
+				Material->BaseColor.Expression = Expression;
+			}
+
+			// Material is opaque.
+			Material->BlendMode = BLEND_Opaque;
+		}
+
+		// Set other material properties.
+		Material->TwoSided = true;
+		Material->SetShadingModel(MSM_DefaultLit);
+
+		// Propagate and trigger material updates.
+		Material->PreEditChange(nullptr);
+		Material->PostEditChange();
+		Material->MarkPackageDirty();
+
+		// Schedule this material for update.
+		MaterialUpdateContext.AddMaterial(Material);
 	}
 
 	return Material;

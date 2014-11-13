@@ -48,6 +48,8 @@
 #include "ComponentReregisterContext.h"
 #include "Components/SplineComponent.h"
 #include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionVertexColor.h"
 #include "SAssetDropTarget.h"
 #include "SAssetSearchBox.h"
 #include "ScopedTransaction.h"

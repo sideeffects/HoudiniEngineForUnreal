@@ -175,7 +175,7 @@ public:
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
 
 	/** HAPI : Create Unreal material and necessary textures. **/
-	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName);
+	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh);
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
 	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, TArray<FTransform>& Transforms);
