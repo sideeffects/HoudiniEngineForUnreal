@@ -1631,10 +1631,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				else
 				{
 					RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-					StaticMesh->Materials.Empty();
 
 					if(FaceMaterials.Num())
 					{
+						// We regenerate materials.
+						StaticMesh->Materials.Empty();
+
 						TSet<FString> UniqueFaceMaterials(FaceMaterials);
 						TMap<FString, int32> UniqueFaceMaterialMap;
 
@@ -1665,9 +1667,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 					else
 					{
-						// We just use default material.
-						UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-						StaticMesh->Materials.Add(DefaultMaterial);
+						if(0 == StaticMesh->Materials.Num())
+						{
+							// We just use default material if we do not have any.
+							UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+							StaticMesh->Materials.Add(DefaultMaterial);
+						}
+
+						// Otherwise reuse materials from previous mesh.
 					}
 				}
 
