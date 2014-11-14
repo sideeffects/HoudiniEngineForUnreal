@@ -161,6 +161,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
+#define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION			"rot"
+#define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE				"scale"
+#define HAPI_UNREAL_ATTRIB_INSTANCE_POSITION			"P"
 
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"
