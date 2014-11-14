@@ -659,18 +659,22 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_Object
 	}
 
 	TArray<HAPI_Transform> InstanceTransforms;
-	InstanceTransforms.SetNumUninitialized(PartInfo.pointCount);
+	InstanceTransforms.SetNumZeroed(PartInfo.pointCount);
 	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetInstanceTransforms(AssetId, ObjectId, GeoId, HAPI_SRT, &InstanceTransforms[0], 0, PartInfo.pointCount), false);
 
 	for(int32 Idx = 0; Idx < PartInfo.pointCount; ++Idx)
 	{
 		const HAPI_Transform& HapiInstanceTransform = InstanceTransforms[Idx];
 
-		FQuat Rotation(HapiInstanceTransform.rotationQuaternion[0], HapiInstanceTransform.rotationQuaternion[1],
-					   HapiInstanceTransform.rotationQuaternion[2], HapiInstanceTransform.rotationQuaternion[3]);
+		// We need to swap Y and Z axis when going from Houdini to Unreal. Additionally, Houdini is right handed
+		// coordinate system and Unreal is left handed one, so we need to negate rotations.
+		FQuat Rotation(-HapiInstanceTransform.rotationQuaternion[0], -HapiInstanceTransform.rotationQuaternion[2],
+					   -HapiInstanceTransform.rotationQuaternion[1], HapiInstanceTransform.rotationQuaternion[3]);
+
 		FVector Translation(HapiInstanceTransform.position[0] * ScaleFactorTranslate, HapiInstanceTransform.position[2] * ScaleFactorTranslate,
 							HapiInstanceTransform.position[1] * ScaleFactorTranslate);
-		FVector Scale3D(HapiInstanceTransform.scale[0], HapiInstanceTransform.scale[1], HapiInstanceTransform.scale[2]);
+
+		FVector Scale3D(HapiInstanceTransform.scale[0], HapiInstanceTransform.scale[2], HapiInstanceTransform.scale[1]);
 
 		Transforms.Add(FTransform(Rotation, Translation, Scale3D));
 	}

@@ -178,7 +178,8 @@ public:
 	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh);
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
-	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, TArray<FTransform>& Transforms);
+	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+										  TArray<FTransform>& Transforms);
 	static bool HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FTransform>& Transforms);
 
 protected:
