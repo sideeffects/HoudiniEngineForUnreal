@@ -1819,21 +1819,23 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 					else
 					{
-						if(RawMesh.WedgeColors.Num() > 0)
+						if(0 == StaticMesh->Materials.Num())
 						{
-							// We have colors.
-							MeshName = StaticMesh->GetName();
-							UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
+							if(RawMesh.WedgeColors.Num() > 0)
+							{
+								// We have colors.
+								MeshName = StaticMesh->GetName();
+								UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
 
-							// Remove previous materials.
-							StaticMesh->Materials.Empty();
-							StaticMesh->Materials.Add(Material);
-						}
-						else if(0 == StaticMesh->Materials.Num())
-						{
-							// We just use default material if we do not have any.
-							UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-							StaticMesh->Materials.Add(DefaultMaterial);
+								// Remove previous materials.
+								StaticMesh->Materials.Add(Material);
+							}
+							else
+							{
+								// We just use default material if we do not have any.
+								UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+								StaticMesh->Materials.Add(DefaultMaterial);
+							}
 						}
 
 						// Otherwise reuse materials from previous mesh.
