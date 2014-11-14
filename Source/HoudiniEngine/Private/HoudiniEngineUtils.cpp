@@ -33,7 +33,7 @@ const FString kResultStringCannotLoadPreset(TEXT("Uneable to Load Preset"));
 
 
 const float
-FHoudiniEngineUtils::ScaleFactorPosition = 75.0f;
+FHoudiniEngineUtils::ScaleFactorPosition = 50.0f;
 
 
 const float
@@ -1819,7 +1819,17 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 					else
 					{
-						if(0 == StaticMesh->Materials.Num())
+						if(RawMesh.WedgeColors.Num() > 0)
+						{
+							// We have colors.
+							MeshName = StaticMesh->GetName();
+							UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
+
+							// Remove previous materials.
+							StaticMesh->Materials.Empty();
+							StaticMesh->Materials.Add(Material);
+						}
+						else if(0 == StaticMesh->Materials.Num())
 						{
 							// We just use default material if we do not have any.
 							UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
@@ -2469,15 +2479,15 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 		ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("map", NodeParamNames);
 	}
 
+	// Update context for generated materials (will trigger when object goes out of scope).
+	FMaterialUpdateContext MaterialUpdateContext;
+
+	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+	FString MaterialName = FString::Printf(TEXT("%s_material"), *MeshName);
+	Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Transient | RF_Public, NULL, GWarn);
+
 	if(ParmNameIdx >= 0)
 	{
-		// Update context for generated materials (will trigger when object goes out of scope).
-		FMaterialUpdateContext MaterialUpdateContext;
-
-		UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
-		FString MaterialName = FString::Printf(TEXT("%s_material"), *MeshName);
-		Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Transient | RF_Public, NULL, GWarn);
-	
 		std::vector<char> ImageBuffer;
 
 		// Retrieve color data.
@@ -2520,6 +2530,11 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 					Material->BlendMode = BLEND_Opaque;
 				}
 			}
+			else
+			{
+				// This is illegal case but it needs to be handled.
+				check(false);
+			}
 		}
 		else
 		{
@@ -2534,19 +2549,31 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 			// Material is opaque.
 			Material->BlendMode = BLEND_Opaque;
 		}
-
-		// Set other material properties.
-		Material->TwoSided = true;
-		Material->SetShadingModel(MSM_DefaultLit);
-
-		// Propagate and trigger material updates.
-		Material->PreEditChange(nullptr);
-		Material->PostEditChange();
-		Material->MarkPackageDirty();
-
-		// Schedule this material for update.
-		MaterialUpdateContext.AddMaterial(Material);
 	}
+	else
+	{
+		if(RawMesh.WedgeColors.Num() > 0)
+		{
+			UMaterialExpressionVertexColor* Expression = ConstructObject<UMaterialExpressionVertexColor>(UMaterialExpressionVertexColor::StaticClass(), Material);
+			Material->Expressions.Add(Expression);
+			Material->BaseColor.Expression = Expression;
+		}
+
+		// Material is opaque.
+		Material->BlendMode = BLEND_Opaque;
+	}
+
+	// Set other material properties.
+	Material->TwoSided = true;
+	Material->SetShadingModel(MSM_DefaultLit);
+
+	// Propagate and trigger material updates.
+	Material->PreEditChange(nullptr);
+	Material->PostEditChange();
+	Material->MarkPackageDirty();
+
+	// Schedule this material for update.
+	MaterialUpdateContext.AddMaterial(Material);
 
 	return Material;
 }
