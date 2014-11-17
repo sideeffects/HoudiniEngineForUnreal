@@ -1537,10 +1537,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				FRawMesh RawMesh;
 				SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
 
-				// Some mesh generation settings.
-				SrcModel->BuildSettings.bRemoveDegenerates = true;
-				SrcModel->BuildSettings.bRecomputeTangents = true;
-
 				// Retrieve vertex information for this part.
 				VertexList.SetNumUninitialized(PartInfo.vertexCount);
 				if(HAPI_RESULT_SUCCESS != HAPI_GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &VertexList[0], 0, PartInfo.vertexCount))
@@ -1760,9 +1756,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
 				}
 
-				// If we have normal data, do not recompute them.
-				SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
-
 				// Set face specific information and materials.
 				if(bMaterialFound)
 				{
@@ -1840,6 +1833,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						// Otherwise reuse materials from previous mesh.
 					}
 				}
+
+				// Some mesh generation settings.
+				SrcModel->BuildSettings.bRemoveDegenerates = true;
+				SrcModel->BuildSettings.bRecomputeTangents = true;
+				SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
 				// Store the new raw mesh.
 				SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -2021,8 +2019,8 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
+	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
 	// Store the new raw mesh.
 	RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -2161,8 +2159,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
-	SrcModel->BuildSettings.bRecomputeNormals = true;
-	//SrcModel->BuildSettings.bRecomputeNormals = false;
+	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
 	// Store the new raw mesh.
 	RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -2416,7 +2413,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = true;
+	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 
 	// Store the new raw mesh.
