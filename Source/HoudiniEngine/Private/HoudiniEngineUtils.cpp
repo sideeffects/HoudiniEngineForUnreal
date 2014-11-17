@@ -1540,8 +1540,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Some mesh generation settings.
 				SrcModel->BuildSettings.bRemoveDegenerates = true;
 				SrcModel->BuildSettings.bRecomputeTangents = true;
-				SrcModel->BuildSettings.bRecomputeNormals = true;
-				//SrcModel->BuildSettings.bRecomputeNormals = false;
 
 				// Retrieve vertex information for this part.
 				VertexList.SetNumUninitialized(PartInfo.vertexCount);
@@ -1756,11 +1754,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					FVector WedgeTangentZ;
 
 					WedgeTangentZ.X = Normals[WedgeTangentZIdx * 3 + 0];
-					WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
-					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
+					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 1];
+					WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 2];
 
 					RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
 				}
+
+				// If we have normal data, do not recompute them.
+				SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
 				// Set face specific information and materials.
 				if(bMaterialFound)
@@ -1770,8 +1771,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						// Material requires update.
 						MeshName = StaticMesh->GetName();
 						UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
-
-						//if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
 
 						// Remove previous materials.
 						StaticMesh->Materials.Empty();
