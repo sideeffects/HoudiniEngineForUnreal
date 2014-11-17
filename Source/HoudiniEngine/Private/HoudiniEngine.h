@@ -93,6 +93,9 @@ private:
 	/** The extender to pass to the level editor to extend it's window menu. **/
 	TSharedPtr<FExtender> MainMenuExtender;
 
+	/** Visualizer for our spline component. **/
+	TSharedPtr<FComponentVisualizer> SplineComponentVisualizer;
+
 	/** Synchronization primitive. **/
 	FCriticalSection CriticalSection;
 

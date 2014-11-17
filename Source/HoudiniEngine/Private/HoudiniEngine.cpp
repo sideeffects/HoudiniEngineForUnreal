@@ -76,6 +76,16 @@ FHoudiniEngine::StartupModule()
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
 
+	// Register visualizer for our spline component.
+	{
+		if(GUnrealEd)
+		{
+			SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
+			GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(), SplineComponentVisualizer);
+			SplineComponentVisualizer->OnRegister();
+		}
+	}
+
 	// Create Houdini logo brush.
 	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
 	for(auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
@@ -190,6 +200,14 @@ FHoudiniEngine::ShutdownModule()
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
+	}
+
+	// Unregister our spline component visualizer.
+	{
+		if(GUnrealEd && SplineComponentVisualizer.IsValid())
+		{
+			GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
+		}
 	}
 
 	// We no longer need Houdini logo static mesh.
