@@ -31,6 +31,7 @@ class UHoudiniAssetInput;
 class AHoudiniAssetActor;
 class UStaticMeshComponent;
 class UHoudiniAssetParameter;
+class UHoudiniSplineComponent;
 class UHoudiniAssetInstanceInput;
 class UFoliageType_InstancedStaticMesh;
 

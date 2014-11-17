@@ -16,6 +16,29 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+// Macro to update given property on all components.
+#define HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(COMPONENT_CLASS, PROPERTY)										\
+	do																										\
+	{																										\
+		TArray<UActorComponent*> ReregisterComponents;														\
+		for(TArray<USceneComponent*>::TIterator Iter(AttachChildren); Iter; ++Iter)							\
+		{																									\
+			COMPONENT_CLASS* Component = Cast<COMPONENT_CLASS>(*Iter);										\
+			if(Component)																					\
+			{																								\
+				Component->PROPERTY = PROPERTY;																\
+				ReregisterComponents.Add(Component);														\
+			}																								\
+		}																									\
+																											\
+		if(ReregisterComponents.Num() > 0)																	\
+		{																									\
+			FMultiComponentReregisterContext MultiComponentReregisterContext(ReregisterComponents);			\
+		}																									\
+	}																										\
+	while(0)
+
+
 bool
 UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
 
@@ -1034,6 +1057,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	{
 		const FString& Category = Property->GetMetaData(TEXT("Category"));
 		static const FString CategoryHoudiniGeneratedStaticMeshSettings = TEXT("HoudiniGeneratedStaticMeshSettings");
+		static const FString CategoryLighting = TEXT("Lighting");
 
 		if(CategoryHoudiniGeneratedStaticMeshSettings == Category)
 		{
@@ -1048,6 +1072,49 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 			}
 
 			return;
+		}
+		else if(CategoryLighting == Category)
+		{
+			if(Property->GetName() == TEXT("CastShadow"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, CastShadow);
+			}
+			else if(Property->GetName() == TEXT("bCastDynamicShadow"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bCastDynamicShadow);
+			}
+			else if(Property->GetName() == TEXT("bCastStaticShadow"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bCastStaticShadow);
+			}
+			else if(Property->GetName() == TEXT("bCastVolumetricTranslucentShadow"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bCastVolumetricTranslucentShadow);
+			}
+			else if(Property->GetName() == TEXT("bCastInsetShadow"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bCastInsetShadow);
+			}
+			else if(Property->GetName() == TEXT("bCastHiddenShadow"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bCastHiddenShadow);
+			}
+			else if(Property->GetName() == TEXT("bCastShadowAsTwoSided"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bCastShadowAsTwoSided);
+			}
+			else if(Property->GetName() == TEXT("bLightAsIfStatic"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bLightAsIfStatic);
+			}
+			else if(Property->GetName() == TEXT("bLightAttachmentsAsGroup"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, bLightAttachmentsAsGroup);
+			}
+			else if(Property->GetName() == TEXT("IndirectLightingCacheQuality"))
+			{
+				HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(UPrimitiveComponent, IndirectLightingCacheQuality);
+			}
 		}
 	}
 }
