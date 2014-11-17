@@ -1821,21 +1821,21 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					{
 						if(0 == StaticMesh->Materials.Num())
 						{
+							UMaterial* Material = nullptr;
+
 							if(RawMesh.WedgeColors.Num() > 0)
 							{
 								// We have colors.
 								MeshName = StaticMesh->GetName();
-								UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
-
-								// Remove previous materials.
-								StaticMesh->Materials.Add(Material);
+								Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, RawMesh);
 							}
 							else
 							{
 								// We just use default material if we do not have any.
-								UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-								StaticMesh->Materials.Add(DefaultMaterial);
+								Material = UMaterial::GetDefaultMaterial(MD_Surface);
 							}
+
+							StaticMesh->Materials.Add(Material);
 						}
 
 						// Otherwise reuse materials from previous mesh.
@@ -1939,14 +1939,18 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32
 
 				for(int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx)
 				{
+					float Value = 0.0f;
+
 					if(HAPI_ATTROWNER_POINT == AttribInfo.owner)
 					{
-						VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
+						Value = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
 					}
 					else if(HAPI_ATTROWNER_PRIM == AttribInfo.owner)
 					{
-						VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Data[PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx];
+						Value = Data[PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx];
 					}
+
+					VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Value;
 				}
 			}
 
