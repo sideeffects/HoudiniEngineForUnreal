@@ -156,14 +156,18 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 	HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
 
 /** HAPI related attribute definitions. **/
-#define HAPI_UNREAL_ATTRIB_PACKED_TANGENT				"unreal_packed_tangent"
-#define HAPI_UNREAL_ATTRIB_PACKED_TANGENT2				"unreal_packed_tangent2"
+#define HAPI_UNREAL_ATTRIB_TANGENT						"unreal_tangent"
+#define HAPI_UNREAL_ATTRIB_BINORMAL						"unreal_binormal"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION			"rot"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE				"scale"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_POSITION			"P"
+#define HAPI_UNREAL_ATTRIB_POSITION						"P"
+#define HAPI_UNREAL_PARAM_CURVE_TYPE					"type"
+#define HAPI_UNREAL_PARAM_CURVE_METHOD					"method"
+#define HAPI_UNREAL_PARAM_CURVE_COORDS					"coords"
 
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"

@@ -279,8 +279,8 @@ private:
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
-	/** Add Curve. **/
-	bool AddAttributeCurve(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TMap<FHoudiniGeoPartObject, USplineComponent*>& NewSplineComponents);
+	/** Create curves. **/
+	void CreateCurves(const TArray<FHoudiniGeoPartObject>& Curves);
 
 	/** Clear all spline related resources. **/
 	void ClearAllCurves();
@@ -348,7 +348,7 @@ protected:
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
 	/** Map of curve / spline components. **/
-	TMap<FHoudiniGeoPartObject, USplineComponent*> SplineComponents;
+	TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*> SplineComponents;
 
 	/** Buffer to hold preset data for serialization purposes. Used only during serialization. **/
 	TArray<char> PresetBuffer;

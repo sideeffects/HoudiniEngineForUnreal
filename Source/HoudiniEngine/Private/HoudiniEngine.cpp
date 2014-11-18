@@ -139,6 +139,8 @@ FHoudiniEngine::StartupModule()
 		HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
 		CookOptions.maxVerticesPerPrimitive = 3;
 		CookOptions.splitGeosByGroup = false;
+		CookOptions.refineCurveToLinear = true;
+
 		HAPI_Result Result = HAPI_Initialize("", "", &CookOptions, true, -1);
 
 		if(HAPI_RESULT_SUCCESS == Result)
