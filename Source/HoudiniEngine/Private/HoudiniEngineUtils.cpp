@@ -1700,9 +1700,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				{
 					FVector VertexPosition;
 					VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * FHoudiniEngineUtils::ScaleFactorPosition;
-					VertexPosition.Z = Positions[VertexPositionIdx * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
-					VertexPosition.Y = Positions[VertexPositionIdx * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
+					VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
+					VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
 
+					// We need to flip Z and Y coordinate here.
+					Swap(VertexPosition.Y, VertexPosition.Z);
 					RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
 				}
 
@@ -1742,6 +1744,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 				}
 
+				// See if we need to generate tangents, we do this only if normals are present.
+				bool bGenerateTangents = (Normals.Num() > 0);
+
 				// Transfer normals.
 				int32 WedgeNormalCount = Normals.Num() / 3;
 				RawMesh.WedgeTangentZ.SetNumZeroed(WedgeNormalCount);
@@ -1750,10 +1755,22 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					FVector WedgeTangentZ;
 
 					WedgeTangentZ.X = Normals[WedgeTangentZIdx * 3 + 0];
-					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 1];
-					WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 2];
+					WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
+					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
 
+					// We need to flip Z and Y coordinate here.
+					Swap(WedgeTangentZ.Y, WedgeTangentZ.Z);
 					RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
+
+					// If we need to generate tangents.
+					if(bGenerateTangents)
+					{
+						FVector TangentX, TangentY;
+						WedgeTangentZ.FindBestAxisVectors(TangentX, TangentY);
+
+						RawMesh.WedgeTangentX.Add(TangentX);
+						RawMesh.WedgeTangentY.Add(TangentY);
+					}
 				}
 
 				// Set face specific information and materials.
@@ -1836,7 +1853,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				// Some mesh generation settings.
 				SrcModel->BuildSettings.bRemoveDegenerates = true;
-				SrcModel->BuildSettings.bRecomputeTangents = true;
+				SrcModel->BuildSettings.bRecomputeTangents = (0 == RawMesh.WedgeTangentX.Num() || 0 == RawMesh.WedgeTangentY.Num());
 				SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
 				// Store the new raw mesh.

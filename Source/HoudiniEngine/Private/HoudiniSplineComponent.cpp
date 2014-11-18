@@ -15,10 +15,16 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 
-UHoudiniSplineComponent::UHoudiniSplineComponent(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
-{
 
+UHoudiniSplineComponent::UHoudiniSplineComponent(const FPostConstructInitializeProperties& PCIP) :
+	Super(PCIP),
+	CurveType(EHoudiniSplineComponentType::Polygon),
+	CurveMethod(EHoudiniSplineComponentMethod::Breakpoints),
+	bClosedCurve(false)
+{
+	// By default we will create two points.
+	CurvePoints.Add(FVector(0.0f, 0.0f, 0.0f));
+	CurvePoints.Add(FVector(100.0f, 0.0f, 0.0f));
 }
 
 
@@ -26,3 +32,74 @@ UHoudiniSplineComponent::~UHoudiniSplineComponent()
 {
 
 }
+
+
+bool
+UHoudiniSplineComponent::Construct(const TArray<FVector>& InCurvePoints, EHoudiniSplineComponentType::Enum InCurveType, 
+								   EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve)
+{
+	ResetCurvePoints();
+	AddPoints(InCurvePoints);
+
+	CurveType = InCurveType;
+	CurveMethod = InCurveMethod;
+	bClosedCurve = bInClosedCurve;
+
+	// Perform other construction here.
+	return true;
+}
+
+
+EHoudiniSplineComponentType::Enum
+UHoudiniSplineComponent::GetCurveType() const
+{
+	return CurveType;
+}
+
+
+EHoudiniSplineComponentMethod::Enum
+UHoudiniSplineComponent::GetCurveMethod() const
+{
+	return CurveMethod;
+}
+
+
+bool
+UHoudiniSplineComponent::IsClosedCurve() const
+{
+	return bClosedCurve;
+}
+
+
+void
+UHoudiniSplineComponent::ResetCurvePoints()
+{
+	CurvePoints.Empty();
+}
+
+
+void
+UHoudiniSplineComponent::AddPoint(const FVector& Point)
+{
+	CurvePoints.Add(Point);
+}
+
+
+void
+UHoudiniSplineComponent::AddPoints(const TArray<FVector>& Points)
+{
+	CurvePoints.Append(Points);
+}
+
+
+bool
+UHoudiniSplineComponent::IsValidCurve() const
+{
+	if(CurvePoints.Num() < 2)
+	{
+		return false;
+	}
+
+	return true;
+}
+

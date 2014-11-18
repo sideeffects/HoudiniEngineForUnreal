@@ -17,6 +17,28 @@
 #include "HoudiniSplineComponent.generated.h"
 
 
+namespace EHoudiniSplineComponentType
+{
+	enum Enum
+	{
+		Polygon,
+		Nurbs,
+		Bezier
+	};
+}
+
+
+namespace EHoudiniSplineComponentMethod
+{
+	enum Enum
+	{
+		CVs,
+		Breakpoints,
+		Freehand
+	};
+}
+
+
 UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 {
@@ -26,7 +48,46 @@ class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 
 public:
 
+	/** Construct spline from given information. Resets any existing state. **/
+	bool Construct(const TArray<FVector>& InCurvePoints, EHoudiniSplineComponentType::Enum InCurveType, 
+				   EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
+
+	/** Return the type of this curve. **/
+	EHoudiniSplineComponentType::Enum GetCurveType() const;
+
+	/** Return method used by this curve. **/
+	EHoudiniSplineComponentMethod::Enum GetCurveMethod() const;
+
+	/** Return true if this curve is closed. **/
+	bool IsClosedCurve() const;
+
+	/** Resets all points of this curve. **/
+	void ResetCurvePoints();
+
+	/** Add a point to this curve. **/
+	void AddPoint(const FVector& Point);
+
+	/** Add points to this curve. **/
+	void AddPoints(const TArray<FVector>& Points);
+
+	/** Return true if this spline is a valid spline. **/
+	bool IsValidCurve() const;
+
 protected:
 
+	/** List of points composing this curve. **/
+	TArray<FVector> CurvePoints;
+
+	/** List of refined points used for drawing. **/
+	TArray<FVector> CurveRefinedPoints;
+
+	/** Type of this curve. **/
+	EHoudiniSplineComponentType::Enum CurveType;
+
+	/** Method used for this curve. **/
+	EHoudiniSplineComponentMethod::Enum CurveMethod;
+
+	/** Whether this spline is closed. **/
+	bool bClosedCurve;
 };
 
