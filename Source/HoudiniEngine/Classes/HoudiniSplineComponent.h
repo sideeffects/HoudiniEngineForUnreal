@@ -42,6 +42,7 @@ namespace EHoudiniSplineComponentMethod
 UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 {
+	friend class UHoudiniAssetComponent;
 	GENERATED_UCLASS_BODY()
 
 	virtual ~UHoudiniSplineComponent();
@@ -49,8 +50,8 @@ class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 public:
 
 	/** Construct spline from given information. Resets any existing state. **/
-	bool Construct(const TArray<FVector>& InCurvePoints, EHoudiniSplineComponentType::Enum InCurveType, 
-				   EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
+	bool Construct(const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,
+				   EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
 
 	/** Return the type of this curve. **/
 	EHoudiniSplineComponentType::Enum GetCurveType() const;
@@ -64,11 +65,17 @@ public:
 	/** Resets all points of this curve. **/
 	void ResetCurvePoints();
 
+	/** Reset display points of this curve. **/
+	void ResetCurveDisplayPoints();
+
 	/** Add a point to this curve. **/
 	void AddPoint(const FVector& Point);
 
 	/** Add points to this curve. **/
 	void AddPoints(const TArray<FVector>& Points);
+
+	/** Add display points to this curve. **/
+	void AddDisplayPoints(const TArray<FVector>& Points);
 
 	/** Return true if this spline is a valid spline. **/
 	bool IsValidCurve() const;
@@ -79,7 +86,7 @@ protected:
 	TArray<FVector> CurvePoints;
 
 	/** List of refined points used for drawing. **/
-	TArray<FVector> CurveRefinedPoints;
+	TArray<FVector> CurveDisplayPoints;
 
 	/** Type of this curve. **/
 	EHoudiniSplineComponentType::Enum CurveType;

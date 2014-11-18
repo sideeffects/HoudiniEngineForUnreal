@@ -1642,6 +1642,58 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 	{
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
 
+		// Retrieve node id from geo part.
+		HAPI_NodeId NodeId = HoudiniGeoPartObject.GetNodeId(AssetId);
+		if(-1 == NodeId)
+		{
+			// Invalid node id.
+			continue;
+		}
+
+		if(!HoudiniGeoPartObject.HasParameters(AssetId))
+		{
+			// We have no parameters on this curve.
+			continue;
+		}
+
+		FString CurvePointsString;
+		EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
+		EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
+		int CurveClosed = 1;
+
+		HAPI_AttributeInfo AttributeRefinedCurvePositions;
+		TArray<float> RefinedCurvePositions;
+		if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION, AttributeRefinedCurvePositions, RefinedCurvePositions))
+		{
+			continue;
+		}
+
+		if(!AttributeRefinedCurvePositions.exists && RefinedCurvePositions.Num() > 0)
+		{
+			continue;
+		}
+
+		// Transfer refined positions to position vector and perform necessary axis swap.
+		TArray<FVector> CurveDisplayPoints;
+		for(int32 RefinedIdx = 0; RefinedIdx < RefinedCurvePositions.Num(); RefinedIdx += 3)
+		{
+			FVector DisplayPoint(RefinedCurvePositions[RefinedIdx + 0], RefinedCurvePositions[RefinedIdx + 1], RefinedCurvePositions[RefinedIdx + 2]);
+			Swap(DisplayPoint.Z, DisplayPoint.Y);
+			CurveDisplayPoints.Add(DisplayPoint);
+		}
+
+		if(!FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), CurvePointsString) ||
+			!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int) EHoudiniSplineComponentType::Bezier, (int&) CurveTypeValue) ||
+			!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, (int) EHoudiniSplineComponentMethod::CVs, (int&) CurveMethodValue) ||
+			!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed))
+		{
+			continue;
+		}
+
+		// Process coords string and extract positions.
+		TArray<FVector> CurvePoints;
+		FHoudiniEngineUtils::ExtractStringPositions(CurvePointsString, CurvePoints);
+
 		// Check if this curve already exists.
 		UHoudiniSplineComponent* const* FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
 		UHoudiniSplineComponent* HoudiniSplineComponent = nullptr;
@@ -1657,48 +1709,20 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		else
 		{
 			// We need to create new curve.
-
-			HAPI_GeoInfo GeoInfo;
-			HAPI_GetGeoInfo(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, &GeoInfo);
-
-			HAPI_NodeInfo NodeInfo;
-			HAPI_GetNodeInfo(GeoInfo.nodeId, &NodeInfo);
-
-			if(!NodeInfo.parmCount)
-			{
-				continue;
-			}
-
-			FString CurvePointsString;
-			int CurveTypeValue = 2;
-			int CurveMethodValue = 0;
-
-			HAPI_AttributeInfo AttributeRefinedCurvePositions;
-			TArray<float> RefinedCurvePositions;
-			if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION,
-																 AttributeRefinedCurvePositions, RefinedCurvePositions))
-			{
-				continue;
-			}
-
-			if(!AttributeRefinedCurvePositions.exists)
-			{
-				continue;
-			}
-
-			if(!FHoudiniEngineUtils::HapiGetParameterDataAsString(GeoInfo.nodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), CurvePointsString) ||
-			   !FHoudiniEngineUtils::HapiGetParameterDataAsInteger(GeoInfo.nodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, 2, CurveTypeValue) ||
-			   !FHoudiniEngineUtils::HapiGetParameterDataAsInteger(GeoInfo.nodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, 0, CurveMethodValue))
-			{
-				continue;
-			}
-
-			// Process coords string and extract positions.
-			TArray<FVector> CurvePoints;
-			FHoudiniEngineUtils::ExtractStringPositions(CurvePointsString, CurvePoints);
-
-
+			HoudiniSplineComponent = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(), this, NAME_None, RF_Transient);
+			HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
+			HoudiniSplineComponent->SetVisibility(true);
+			HoudiniSplineComponent->RegisterComponent();
 		}
+
+		// Add to map of components.
+		NewSplineComponents.Add(HoudiniGeoPartObject, HoudiniSplineComponent);
+
+		// Transform the component by transformation provided by HAPI.
+		HoudiniSplineComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+
+		// Construct curve from available data.
+		HoudiniSplineComponent->Construct(CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, (CurveClosed == 1));
 	}
 
 	ClearAllCurves();

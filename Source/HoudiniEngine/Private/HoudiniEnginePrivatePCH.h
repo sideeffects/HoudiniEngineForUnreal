@@ -168,6 +168,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_CURVE_TYPE					"type"
 #define HAPI_UNREAL_PARAM_CURVE_METHOD					"method"
 #define HAPI_UNREAL_PARAM_CURVE_COORDS					"coords"
+#define HAPI_UNREAL_PARAM_CURVE_CLOSED					"close"
 
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"

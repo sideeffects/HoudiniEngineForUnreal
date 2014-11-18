@@ -1378,7 +1378,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 			{
 				// If this geo is a curve, we skip part processing.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, ObjectName, AssetId, ObjectInfo.id, GeoInfo.id, 0,
-														   ObjectInfo.isVisible, false, true, GeoInfo.isEditable);
+														   ObjectInfo.isVisible, false, true, GeoInfo.isEditable, GeoInfo.hasGeoChanged);
 
 				StaticMesh = nullptr;
 				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
@@ -1427,7 +1427,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				// Create geo part object identifier.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-														   ObjectInfo.isVisible, ObjectInfo.isInstancer, PartInfo.isCurve, GeoInfo.isEditable);
+														   ObjectInfo.isVisible, ObjectInfo.isInstancer, PartInfo.isCurve, GeoInfo.isEditable, GeoInfo.hasGeoChanged);
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
