@@ -28,9 +28,7 @@ public:
 	FHoudiniGeoPartObject();
 	FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName, HAPI_AssetId InAssetId,
 						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId, bool bInIsVisible = true,
-						  bool bInIsInstancer = false,
-						  bool bInIsCurve = false,
-						  bool bInIsEditable = false);
+						  bool bInIsInstancer = false, bool bInIsCurve = false, bool bInIsEditable = false, bool bInHasGeoChanged = false);
 
 public:
 
@@ -63,6 +61,19 @@ public:
 
 	/** Return true if this geo part object is editable. **/
 	bool IsEditable() const;
+
+	/** Return true if corresponding geometry has changed. **/
+	bool HasGeoChanged() const;
+
+public:
+
+	/** Get node id for this geo part object. **/
+	HAPI_NodeId GetNodeId() const;
+	HAPI_NodeId GetNodeId(HAPI_AssetId InAssetId) const;
+
+	/** Return true if this geo part has parameters. **/
+	bool HasParameters() const;
+	bool HasParameters(HAPI_AssetId InAssetId) const;
 
 public:
 
@@ -98,6 +109,9 @@ public:
 
 	/** Is set to true when referenced object is editable. **/
 	bool bIsEditable;
+
+	/** Is set to true when geometry has changed. **/
+	bool bHasGeoChanged;
 
 	/** Is set to true when referenced object has just been loaded. **/
 	bool bIsLoaded;

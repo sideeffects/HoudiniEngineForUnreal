@@ -35,6 +35,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsInstancer(false),
 	bIsCurve(false),
 	bIsEditable(false),
+	bHasGeoChanged(false),
 	bIsLoaded(false)
 {
 
@@ -43,7 +44,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName,
 											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
-											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve, bool bInIsEditable) :
+											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve, bool bInIsEditable, bool bInHasGeoChanged) :
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
@@ -55,6 +56,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const F
 	bIsInstancer(bInIsInstancer),
 	bIsCurve(bInIsCurve),
 	bIsEditable(bInIsEditable),
+	bHasGeoChanged(bInHasGeoChanged),
 	bIsLoaded(false)
 {
 
@@ -93,6 +95,13 @@ bool
 FHoudiniGeoPartObject::IsEditable() const
 {
 	return bIsEditable;
+}
+
+
+bool
+FHoudiniGeoPartObject::HasGeoChanged() const
+{
+	return bHasGeoChanged;
 }
 
 
@@ -148,4 +157,49 @@ bool
 FHoudiniGeoPartObject::CompareNames(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const
 {
 	return (ObjectName == HoudiniGeoPartObject.ObjectName && PartName == HoudiniGeoPartObject.PartName);
+}
+
+
+HAPI_NodeId
+FHoudiniGeoPartObject::GetNodeId() const
+{
+	return GetNodeId(AssetId);
+}
+
+
+HAPI_NodeId
+FHoudiniGeoPartObject::GetNodeId(HAPI_AssetId InAssetId) const
+{
+	HAPI_NodeId NodeId = -1;
+
+	HAPI_GeoInfo GeoInfo;
+	if(IsValid() && (-1 != AssetId) && (HAPI_RESULT_SUCCESS == HAPI_GetGeoInfo(InAssetId, ObjectId, GeoId, &GeoInfo)))
+	{
+		NodeId = GeoInfo.nodeId;
+	}
+
+	return NodeId;
+}
+
+
+bool
+FHoudiniGeoPartObject::HasParameters() const
+{
+	return HasParameters(AssetId);
+}
+
+
+bool
+FHoudiniGeoPartObject::HasParameters(HAPI_AssetId InAssetId) const
+{
+	HAPI_NodeId NodeId = GetNodeId(InAssetId);
+	if(-1 == NodeId)
+	{
+		return false;
+	}
+
+	HAPI_NodeInfo NodeInfo;
+	HAPI_GetNodeInfo(NodeId, &NodeInfo);
+
+	return (NodeInfo.parmCount > 0);
 }

@@ -35,11 +35,14 @@ UHoudiniSplineComponent::~UHoudiniSplineComponent()
 
 
 bool
-UHoudiniSplineComponent::Construct(const TArray<FVector>& InCurvePoints, EHoudiniSplineComponentType::Enum InCurveType, 
-								   EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve)
+UHoudiniSplineComponent::Construct(const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,
+								   EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve)
 {
 	ResetCurvePoints();
 	AddPoints(InCurvePoints);
+
+	ResetCurveDisplayPoints();
+	AddDisplayPoints(InCurveDisplayPoints);
 
 	CurveType = InCurveType;
 	CurveMethod = InCurveMethod;
@@ -79,6 +82,13 @@ UHoudiniSplineComponent::ResetCurvePoints()
 
 
 void
+UHoudiniSplineComponent::ResetCurveDisplayPoints()
+{
+	CurveDisplayPoints.Empty();
+}
+
+
+void
 UHoudiniSplineComponent::AddPoint(const FVector& Point)
 {
 	CurvePoints.Add(Point);
@@ -89,6 +99,13 @@ void
 UHoudiniSplineComponent::AddPoints(const TArray<FVector>& Points)
 {
 	CurvePoints.Append(Points);
+}
+
+
+void
+UHoudiniSplineComponent::AddDisplayPoints(const TArray<FVector>& Points)
+{
+	CurveDisplayPoints.Append(Points);
 }
 
 
