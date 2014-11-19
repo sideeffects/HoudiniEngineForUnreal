@@ -68,6 +68,16 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 
 			DisplayPointPrevious = DisplayPoint;
 		}
+
+		// Draw control points.
+		for(int32 PointIdx = 0; PointIdx < CurvePoints.Num(); ++PointIdx)
+		{
+			// Get point at this index.
+			const FVector& DisplayPoint = HoudiniSplineComponentTransform.TransformPosition(CurvePoints[PointIdx]);
+
+			// Draw point.
+			PDI->DrawPoint(DisplayPoint, ColorNormal, GrabHandleSize, SDPG_Foreground);
+		}
 	}
 }
 
