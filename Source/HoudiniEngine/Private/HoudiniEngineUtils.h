@@ -92,6 +92,9 @@ public:
 	/** Extract position information from coords string. **/
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
 
+	/** Create string containing positions from a given vector of positions. **/
+	static void CreatePositionsString(const TArray<FVector>& Positions, FString& PositionString);
+
 	/** Given raw positions incoming from HAPI, convert them to Unreal's FVector and perform necessary flipping and scaling. **/
 	static void ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw, TArray<FVector>& DataOut);
 

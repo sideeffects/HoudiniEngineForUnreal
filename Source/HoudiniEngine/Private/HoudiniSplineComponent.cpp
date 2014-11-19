@@ -35,9 +35,12 @@ UHoudiniSplineComponent::~UHoudiniSplineComponent()
 
 
 bool
-UHoudiniSplineComponent::Construct(const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,
-								   EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve)
+UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints,
+								   const TArray<FVector>& InCurveDisplayPoints, EHoudiniSplineComponentType::Enum InCurveType,
+								   EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve)
 {
+	HoudiniGeoPartObject = InHoudiniGeoPartObject;
+
 	ResetCurvePoints();
 	AddPoints(InCurvePoints);
 
@@ -118,5 +121,40 @@ UHoudiniSplineComponent::IsValidCurve() const
 	}
 
 	return true;
+}
+
+
+void
+UHoudiniSplineComponent::UpdatePoint(int32 PointIndex, const FVector& Point)
+{
+	CurvePoints[PointIndex] = Point;
+}
+
+
+void
+UHoudiniSplineComponent::UploadControlPoints()
+{
+	if(HoudiniGeoPartObject.IsValid())
+	{
+		HAPI_NodeId NodeId = HoudiniGeoPartObject.GetNodeId();
+		if(NodeId > 0)
+		{
+			FString PositionString = TEXT("");
+			FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
+
+			// Get param id.
+			HAPI_ParmId ParmId = -1;
+			if(HAPI_RESULT_SUCCESS != HAPI_GetParmIdFromName(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+			{
+				return;
+			}
+
+			std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+			if(HAPI_RESULT_SUCCESS != HAPI_SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, 0))
+			{
+				return;
+			}
+		}
+	}
 }
 

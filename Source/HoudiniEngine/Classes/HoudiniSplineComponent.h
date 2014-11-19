@@ -52,7 +52,7 @@ class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 public:
 
 	/** Construct spline from given information. Resets any existing state. **/
-	bool Construct(const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,
+	bool Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,
 				   EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
 
 	/** Return the type of this curve. **/
@@ -82,7 +82,16 @@ public:
 	/** Return true if this spline is a valid spline. **/
 	bool IsValidCurve() const;
 
+	/** Update point at given index with new information. **/
+	void UpdatePoint(int32 PointIndex, const FVector& Point);
+
+	/** Upload changed control points to HAPI. **/
+	void UploadControlPoints();
+
 protected:
+
+	/** Corresponding geo part object. **/
+	FHoudiniGeoPartObject HoudiniGeoPartObject;
 
 	/** List of points composing this curve. **/
 	TArray<FVector> CurvePoints;
