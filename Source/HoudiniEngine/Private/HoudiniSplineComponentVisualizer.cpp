@@ -198,6 +198,39 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewp
 			Point = HoudiniSplineComponentTransform.InverseTransformPosition(PointTransformedDelta);
 		}
 
+		// Handle change in rotation.
+		if(!DeltaRotate.IsZero())
+		{
+			Point = DeltaRotate.RotateVector(Point);
+		}
+
+		if(!DeltaScale.IsZero())
+		{
+			// For now in case of rescaling, do nothing.
+			return true;
+		}
+
+		// Handle change in scale.
+		/*
+		if(!DeltaScale.IsZero())
+		{
+			if(DeltaScale.X != 0.0f)
+			{
+				Point.X *= DeltaScale.X;
+			}
+
+			if(DeltaScale.Y != 0.0f)
+			{
+				Point.Y *= DeltaScale.Y;
+			}
+
+			if(DeltaScale.Z != 0.0f)
+			{
+				Point.Z *= DeltaScale.Z;
+			}
+		}
+		*/
+
 		NotifyComponentModified(EditedControlPointIndex, Point);
 		return true;
 	}
