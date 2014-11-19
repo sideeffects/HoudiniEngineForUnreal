@@ -77,8 +77,11 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 		const TArray<FVector>& CurveDisplayPoints = HoudiniSplineComponent->CurveDisplayPoints;
 
 		// Draw the curve.
+		FVector DisplayPointFirst;
 		FVector DisplayPointPrevious;
-		for(int32 DisplayPointIdx = 0; DisplayPointIdx < CurveDisplayPoints.Num(); ++DisplayPointIdx)
+
+		int32 NumDisplayPoints = CurveDisplayPoints.Num();
+		for(int32 DisplayPointIdx = 0; DisplayPointIdx < NumDisplayPoints; ++DisplayPointIdx)
 		{
 			// Get point for this index.
 			const FVector& DisplayPoint = HoudiniSplineComponentTransform.TransformPosition(CurveDisplayPoints[DisplayPointIdx]);
@@ -87,6 +90,16 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 			{
 				// Draw line from previous point to current one.
 				PDI->DrawLine(DisplayPointPrevious, DisplayPoint, ColorNormal, SDPG_Foreground);
+			}
+			else
+			{
+				DisplayPointFirst = DisplayPoint;
+			}
+
+			// If this is last point, draw link from last to first.
+			if(NumDisplayPoints > 1 && DisplayPointIdx + 1 == NumDisplayPoints)
+			{
+				PDI->DrawLine(DisplayPointFirst, DisplayPoint, ColorNormal, SDPG_Foreground);
 			}
 
 			DisplayPointPrevious = DisplayPoint;
