@@ -167,6 +167,7 @@ FHoudiniSplineComponentVisualizer::GetWidgetLocation(const FEditorViewportClient
 	{
 		// Get curve points.
 		const TArray<FVector>& CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+		check(EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num());
 		OutLocation = EditedHoudiniSplineComponent->ComponentToWorld.TransformPosition(CurvePoints[EditedControlPointIndex]);
 		
 		return true;
@@ -187,6 +188,7 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewp
 		// Get component transformation.
 		const FTransform& HoudiniSplineComponentTransform = EditedHoudiniSplineComponent->ComponentToWorld;
 
+		check(EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num());
 		FVector Point = CurvePoints[EditedControlPointIndex];
 
 		// Handle change in translation.
