@@ -57,6 +57,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bInstantiated(false),
 	bIsPlayModeActive(false),
 	bParametersChanged(false),
+	bCurveChanged(false),
 	bUndoRequested(false)
 {
 	UObject* Object = PCIP.GetObject();
@@ -735,7 +736,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged))
+	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bCurveChanged))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -779,6 +780,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 			// Upload changed parameters back to HAPI.
 			UploadChangedParameters();
+
+			// Reset curves flag.
+			bCurveChanged = false;
 
 			// Create asset cooking task object and submit it for processing.
 			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
@@ -1722,7 +1726,7 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		HoudiniSplineComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
 
 		// Construct curve from available data.
-		HoudiniSplineComponent->Construct(CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, (CurveClosed == 1));
+		HoudiniSplineComponent->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, (CurveClosed == 1));
 	}
 
 	ClearAllCurves();
@@ -1927,6 +1931,19 @@ UHoudiniAssetComponent::NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAs
 	}
 
 	bParametersChanged = true;
+	StartHoudiniTicking();
+}
+
+
+void
+UHoudiniAssetComponent::NotifyHoudiniSplineChanged(UHoudiniSplineComponent* HoudiniSplineComponent)
+{
+	if(bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		bLoadedComponentRequiresInstantiation = true;
+	}
+
+	bCurveChanged = true;
 	StartHoudiniTicking();
 }
 

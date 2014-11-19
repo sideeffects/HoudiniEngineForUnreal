@@ -16,8 +16,30 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+IMPLEMENT_HIT_PROXY(HHoudiniSplineVisProxy, HComponentVisProxy);
+IMPLEMENT_HIT_PROXY(HHoudiniSplineControlPointVisProxy, HHoudiniSplineVisProxy);
+
+
+HHoudiniSplineVisProxy::HHoudiniSplineVisProxy(const UActorComponent* InComponent) :
+	HComponentVisProxy(InComponent, HPP_Wireframe)
+{
+
+}
+
+
+HHoudiniSplineControlPointVisProxy::HHoudiniSplineControlPointVisProxy(const UActorComponent* InComponent, int32 InControlPointIndex) :
+	HHoudiniSplineVisProxy(InComponent),
+	ControlPointIndex(InControlPointIndex)
+{
+
+}
+
+
 FHoudiniSplineComponentVisualizer::FHoudiniSplineComponentVisualizer() :
-	FComponentVisualizer()
+	FComponentVisualizer(),
+	EditedHoudiniSplineComponent(nullptr),
+	bCurveEditing(false),
+	EditedControlPointIndex(INDEX_NONE)
 {
 
 }
@@ -44,6 +66,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 	{
 		static const FColor ColorNormal(255, 255, 255);
 		static const FColor ColorSelected(255, 0, 0);
+
 		static const float GrabHandleSize = 12.0f;
 
 		// Get component transformation.
@@ -75,9 +98,125 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 			// Get point at this index.
 			const FVector& DisplayPoint = HoudiniSplineComponentTransform.TransformPosition(CurvePoints[PointIdx]);
 
-			// Draw point.
-			PDI->DrawPoint(DisplayPoint, ColorNormal, GrabHandleSize, SDPG_Foreground);
+			// If we are editing this control point, change color.
+			FColor ColorCurrent = ColorNormal;
+			if(bCurveEditing && PointIdx == EditedControlPointIndex)
+			{
+				ColorCurrent = ColorSelected;
+			}
+
+			// Draw point and set hit box for it.
+			PDI->SetHitProxy(new HHoudiniSplineControlPointVisProxy(HoudiniSplineComponent, PointIdx));
+			PDI->DrawPoint(DisplayPoint, ColorCurrent, GrabHandleSize, SDPG_Foreground);
+			PDI->SetHitProxy(nullptr);
 		}
+	}
+}
+
+
+bool
+FHoudiniSplineComponentVisualizer::VisProxyHandleClick(FLevelEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click)
+{
+	bCurveEditing = false;
+
+	if(VisProxy && VisProxy->Component.IsValid())
+	{
+		const UHoudiniSplineComponent* HoudiniSplineComponent = CastChecked<const UHoudiniSplineComponent>(VisProxy->Component.Get());
+		EditedHoudiniSplineComponent = const_cast<UHoudiniSplineComponent*>(HoudiniSplineComponent);
+
+		if(HoudiniSplineComponent)
+		{
+			if(VisProxy->IsA(HHoudiniSplineControlPointVisProxy::StaticGetType()))
+			{
+				HHoudiniSplineControlPointVisProxy* ControlPointProxy = (HHoudiniSplineControlPointVisProxy*) VisProxy;
+				bCurveEditing = true;
+				EditedControlPointIndex = ControlPointProxy->ControlPointIndex;
+			}
+		}
+	}
+
+	return bCurveEditing;
+}
+
+
+void
+FHoudiniSplineComponentVisualizer::EndEditing()
+{
+	EditedHoudiniSplineComponent = nullptr;
+	EditedControlPointIndex = INDEX_NONE;
+}
+
+
+bool
+FHoudiniSplineComponentVisualizer::GetWidgetLocation(const FEditorViewportClient* ViewportClient, FVector& OutLocation) const
+{
+	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
+	{
+		// Get curve points.
+		const TArray<FVector>& CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+		OutLocation = EditedHoudiniSplineComponent->ComponentToWorld.TransformPosition(CurvePoints[EditedControlPointIndex]);
+		
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale)
+{
+	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
+	{
+		// Get curve points.
+		const TArray<FVector>& CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+
+		// Get component transformation.
+		const FTransform& HoudiniSplineComponentTransform = EditedHoudiniSplineComponent->ComponentToWorld;
+
+		FVector Point = CurvePoints[EditedControlPointIndex];
+
+		// Handle change in translation.
+		if(!DeltaTranslate.IsZero())
+		{
+			FVector PointTransformed = HoudiniSplineComponentTransform.TransformPosition(Point);
+			FVector PointTransformedDelta = PointTransformed + DeltaTranslate;
+
+			Point = HoudiniSplineComponentTransform.InverseTransformPosition(PointTransformedDelta);
+		}
+
+		NotifyComponentModified(EditedControlPointIndex, Point);
+		return true;
+	}
+
+	return false;
+}
+
+
+void
+FHoudiniSplineComponentVisualizer::NotifyComponentModified(int32 PointIndex, const FVector& Point)
+{
+	if(EditedHoudiniSplineComponent)
+	{
+		// Update given control point.
+		EditedHoudiniSplineComponent->UpdatePoint(PointIndex, Point);
+		EditedHoudiniSplineComponent->UploadControlPoints();
+
+		// Retrieve Houdini asset component we are attached to and notify it about control point change. This will trigger recook.
+		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+		if(HoudiniAssetComponent)
+		{
+			HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);
+		}
+
+		/*
+		if (SplineOwningActor.IsValid())
+		{
+			SplineOwningActor.Get()->PostEditMove(true);
+		}
+		*/
+
+		GEditor->RedrawLevelEditingViewports(true);
 	}
 }
 

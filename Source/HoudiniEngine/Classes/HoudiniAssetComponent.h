@@ -181,6 +181,9 @@ public:
 	/** Callback used by parameters to notify component about their changes. **/
 	void NotifyParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
 
+	/** Notification used by spline visualizer to notify main Houdini asset component about spline change. **/
+	void NotifyHoudiniSplineChanged(UHoudiniSplineComponent* HoudiniSplineComponent);
+
 	/** Assign generation parameters to static mesh. **/
 	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
 
@@ -398,6 +401,9 @@ protected:
 
 	/** Is set to true when one of the parameters for this component has been modified. This will trigger recook. **/
 	bool bParametersChanged;
+
+	/** Is set to true when curve information has changed and requires reuploading. This will trigger recook. **/
+	bool bCurveChanged;
 
 	/** Is set to true when undo is being performed. **/
 	bool bUndoRequested;

@@ -2679,27 +2679,42 @@ void
 FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions)
 {
 	TArray<FString> PointStrings;
-	int32 NumPoints = Positions.ParseIntoArray(&PointStrings, TEXT(" "), true);
 
-	for(int32 PositionIdx = 0; PositionIdx < NumPoints; ++PositionIdx)
+	static const TCHAR* PositionSeparators[] =
 	{
-		TArray<FString> PointCoords;
-		const FString& ParsedPoint = PointStrings[PositionIdx];
-		int32 NumCoords = ParsedPoint.ParseIntoArray(&PointCoords, TEXT(","), true);
+		TEXT(" "),
+		TEXT(","),
+	};
 
-		if(3 == NumCoords)
-		{
-			FVector Point(FCString::Atof(*PointCoords[0]), FCString::Atof(*PointCoords[1]), FCString::Atof(*PointCoords[2]));
+	int32 NumCoords = Positions.ParseIntoArray(&PointStrings, PositionSeparators, 2);
+	for(int32 CoordIdx = 0; CoordIdx < NumCoords; CoordIdx += 3)
+	{
+		FVector Position;
 
-			Point *= FHoudiniEngineUtils::ScaleFactorPosition;
-			Swap(Point.Y, Point.Z);
+		Position.X = FCString::Atof(*PointStrings[CoordIdx + 0]);
+		Position.Y = FCString::Atof(*PointStrings[CoordIdx + 1]);
+		Position.Z = FCString::Atof(*PointStrings[CoordIdx + 2]);
 
-			OutPositions.Add(Point);
-		}
-		else
-		{
-			check(false);
-		}
+		Position *= FHoudiniEngineUtils::ScaleFactorPosition;
+		Swap(Position.Y, Position.Z);
+
+		OutPositions.Add(Position);
+	}
+}
+
+
+void
+FHoudiniEngineUtils::CreatePositionsString(const TArray<FVector>& Positions, FString& PositionString)
+{
+	PositionString = TEXT("");
+
+	for(int32 Idx = 0; Idx < Positions.Num(); ++Idx)
+	{
+		FVector Position = Positions[Idx];
+		Swap(Position.Z, Position.Y);
+		Position /= FHoudiniEngineUtils::ScaleFactorPosition;
+
+		PositionString += FString::Printf(TEXT("%f, %f, %f "), Position.X, Position.Y, Position.Z);
 	}
 }
 
