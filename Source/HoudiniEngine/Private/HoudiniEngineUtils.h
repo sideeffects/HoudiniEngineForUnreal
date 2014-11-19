@@ -92,6 +92,9 @@ public:
 	/** Extract position information from coords string. **/
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
 
+	/** Given raw positions incoming from HAPI, convert them to Unreal's FVector and perform necessary flipping and scaling. **/
+	static void ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw, TArray<FVector>& DataOut);
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/

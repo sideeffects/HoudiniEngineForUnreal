@@ -57,6 +57,28 @@ FHoudiniEngine::IsInitialized()
 
 
 void
+FHoudiniEngine::RegisterComponentVisualizers()
+{
+	if(GUnrealEd && !SplineComponentVisualizer.IsValid())
+	{
+		SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
+		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(), SplineComponentVisualizer);
+		SplineComponentVisualizer->OnRegister();
+	}
+}
+
+
+void
+FHoudiniEngine::UnregisterComponentVisualizers()
+{
+	if(GUnrealEd && SplineComponentVisualizer.IsValid())
+	{
+		GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
+	}
+}
+
+
+void
 FHoudiniEngine::StartupModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
@@ -75,16 +97,6 @@ FHoudiniEngine::StartupModule()
 	// Register details presenter for our component type.
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
-
-	// Register visualizer for our spline component.
-	{
-		if(GUnrealEd)
-		{
-			SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
-			GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(), SplineComponentVisualizer);
-			SplineComponentVisualizer->OnRegister();
-		}
-	}
 
 	// Create Houdini logo brush.
 	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
@@ -204,13 +216,8 @@ FHoudiniEngine::ShutdownModule()
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 	}
 
-	// Unregister our spline component visualizer.
-	{
-		if(GUnrealEd && SplineComponentVisualizer.IsValid())
-		{
-			GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
-		}
-	}
+	// Unregister our component visualizers.
+	UnregisterComponentVisualizers();
 
 	// We no longer need Houdini logo static mesh.
 	HoudiniLogoStaticMesh->RemoveFromRoot();
