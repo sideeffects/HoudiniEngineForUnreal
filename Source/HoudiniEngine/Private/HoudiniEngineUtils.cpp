@@ -1535,7 +1535,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				// Load existing raw model. This will be empty as we are constructing a new mesh.
 				FRawMesh RawMesh;
-				SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
+				//SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
+				//RawMesh.Empty();
 
 				// Retrieve vertex information for this part.
 				VertexList.SetNumUninitialized(PartInfo.vertexCount);
@@ -1774,6 +1775,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				}
 
 				// Set face specific information and materials.
+				RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+
 				if(bMaterialFound)
 				{
 					if(MaterialInfo.hasChanged || (!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
@@ -1785,14 +1788,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						// Remove previous materials.
 						StaticMesh->Materials.Empty();
 						StaticMesh->Materials.Add(Material);
-
-						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
 					}
 				}
 				else
 				{
-					RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-
 					if(FaceMaterials.Num())
 					{
 						// We regenerate materials.
@@ -2241,20 +2240,8 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	FStaticMeshSourceModel* SrcModel = &NewStaticMesh->SourceModels[0];
 	FRawMesh RawMesh;
 	FRawMeshBulkData* RawMeshBulkData = SrcModel->RawMeshBulkData;
-	RawMeshBulkData->LoadRawMesh(RawMesh);
-
-	// Reset containers.
-	RawMesh.FaceMaterialIndices.Empty();
-	RawMesh.FaceSmoothingMasks.Empty();
-	RawMesh.VertexPositions.Empty();
-	RawMesh.WedgeIndices.Empty();
-	RawMesh.WedgeColors.Empty();
-
-	// Reset UVs.
-	for(int32 UVIdx = 0; UVIdx < MAX_MESH_TEXTURE_COORDS; ++UVIdx)
-	{
-		RawMesh.WedgeTexCoords[UVIdx].Empty();
-	}
+	//RawMeshBulkData->LoadRawMesh(RawMesh);
+	//RawMesh.Empty();
 
 	TSet<UMaterialInterface*> UniqueMaterials;
 	int32 FaceCount = 0;

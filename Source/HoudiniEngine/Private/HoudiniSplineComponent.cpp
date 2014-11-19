@@ -127,6 +127,7 @@ UHoudiniSplineComponent::IsValidCurve() const
 void
 UHoudiniSplineComponent::UpdatePoint(int32 PointIndex, const FVector& Point)
 {
+	check(PointIndex >= 0 && PointIndex < CurvePoints.Num());
 	CurvePoints[PointIndex] = Point;
 }
 
