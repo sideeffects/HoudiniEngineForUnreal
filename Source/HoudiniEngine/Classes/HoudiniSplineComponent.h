@@ -43,6 +43,8 @@ UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 {
 	friend class UHoudiniAssetComponent;
+	friend class FHoudiniSplineComponentVisualizer;
+
 	GENERATED_UCLASS_BODY()
 
 	virtual ~UHoudiniSplineComponent();

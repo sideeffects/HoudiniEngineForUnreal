@@ -28,12 +28,17 @@ class FHoudiniEngineScheduler;
 class FHoudiniEngine : public IHoudiniEngine
 {
 
-public: /** IModuleInterface methods. **/
+/** IModuleInterface methods. **/
+public:
 
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
-public: /** IHoudiniEngine methods. **/
+/** IHoudiniEngine methods. **/
+public:
+
+	virtual void RegisterComponentVisualizers() override;
+	virtual void UnregisterComponentVisualizers() override;
 
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;

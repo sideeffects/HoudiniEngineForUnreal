@@ -25,5 +25,9 @@ public:
 /** FComponentVisualizer methods. **/
 public:
 
+	/** Registration of this component visualizer. **/
+	virtual void OnRegister() override;
 
+	/** Draw visualization for the given component. **/
+	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 };

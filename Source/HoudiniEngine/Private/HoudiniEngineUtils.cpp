@@ -2689,16 +2689,32 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 
 		if(3 == NumCoords)
 		{
-			FVector Point;
-			Point.X = FCString::Atof(*PointCoords[0]) * FHoudiniEngineUtils::ScaleFactorPosition;
-			Point.Y = FCString::Atof(*PointCoords[2]) * FHoudiniEngineUtils::ScaleFactorPosition;
-			Point.Z = FCString::Atof(*PointCoords[1]) * FHoudiniEngineUtils::ScaleFactorPosition;
+			FVector Point(FCString::Atof(*PointCoords[0]), FCString::Atof(*PointCoords[1]), FCString::Atof(*PointCoords[2]));
+
+			Point *= FHoudiniEngineUtils::ScaleFactorPosition;
+			Swap(Point.Y, Point.Z);
+
 			OutPositions.Add(Point);
 		}
 		else
 		{
 			check(false);
 		}
+	}
+}
+
+
+void
+FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw, TArray<FVector>& DataOut)
+{
+	for(int32 Idx = 0; Idx < DataRaw.Num(); Idx += 3)
+	{
+		FVector Point(DataRaw[Idx + 0], DataRaw[Idx + 1], DataRaw[Idx + 2]);
+
+		Point *= FHoudiniEngineUtils::ScaleFactorPosition;
+		Swap(Point.Z, Point.Y);
+
+		DataOut.Add(Point);
 	}
 }
 

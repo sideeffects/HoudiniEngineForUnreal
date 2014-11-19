@@ -247,6 +247,11 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	// Get instance of Houdini Engine.
 	FHoudiniEngine& HoudiniEngine = FHoudiniEngine::Get();
 
+	// Register component visualizers with this module. This is a good place to perform this task as at this point
+	// all modules, including Editor modules will have been loaded. We cannot perform this task inside Houdini Engine
+	// module as there's no guarantee that necessary modules were initialized.
+	HoudiniEngine.RegisterComponentVisualizers();
+
 	// If this is first time component is instantiated and we do not have Houdini Engine initialized, display message.
 	if(!bIsPreviewComponent && !HoudiniEngine.IsInitialized() && UHoudiniAssetComponent::bDisplayEngineNotInitialized)
 	{
@@ -1675,12 +1680,7 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 
 		// Transfer refined positions to position vector and perform necessary axis swap.
 		TArray<FVector> CurveDisplayPoints;
-		for(int32 RefinedIdx = 0; RefinedIdx < RefinedCurvePositions.Num(); RefinedIdx += 3)
-		{
-			FVector DisplayPoint(RefinedCurvePositions[RefinedIdx + 0], RefinedCurvePositions[RefinedIdx + 1], RefinedCurvePositions[RefinedIdx + 2]);
-			Swap(DisplayPoint.Z, DisplayPoint.Y);
-			CurveDisplayPoints.Add(DisplayPoint);
-		}
+		FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(RefinedCurvePositions, CurveDisplayPoints);
 
 		if(!FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), CurvePointsString) ||
 			!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int) EHoudiniSplineComponentType::Bezier, (int&) CurveTypeValue) ||
