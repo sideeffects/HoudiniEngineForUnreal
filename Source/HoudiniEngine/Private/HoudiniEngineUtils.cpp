@@ -668,13 +668,15 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_Object
 
 		// We need to swap Y and Z axis when going from Houdini to Unreal. Additionally, Houdini is right handed
 		// coordinate system and Unreal is left handed one, so we need to negate rotations.
-		FQuat Rotation(-HapiInstanceTransform.rotationQuaternion[0], -HapiInstanceTransform.rotationQuaternion[2],
-					   -HapiInstanceTransform.rotationQuaternion[1], HapiInstanceTransform.rotationQuaternion[3]);
+		FQuat Rotation(-HapiInstanceTransform.rotationQuaternion[0], -HapiInstanceTransform.rotationQuaternion[1],
+					   -HapiInstanceTransform.rotationQuaternion[2], HapiInstanceTransform.rotationQuaternion[3]);
+		Swap(Rotation.Y, Rotation.Z);
 
-		FVector Translation(HapiInstanceTransform.position[0] * ScaleFactorTranslate, HapiInstanceTransform.position[2] * ScaleFactorTranslate,
-							HapiInstanceTransform.position[1] * ScaleFactorTranslate);
+		FVector Translation(HapiInstanceTransform.position[0], HapiInstanceTransform.position[2], HapiInstanceTransform.position[1]);
+		Translation *= ScaleFactorTranslate;
 
-		FVector Scale3D(HapiInstanceTransform.scale[0], HapiInstanceTransform.scale[2], HapiInstanceTransform.scale[1]);
+		FVector Scale3D(HapiInstanceTransform.scale[0], HapiInstanceTransform.scale[1], HapiInstanceTransform.scale[2]);
+		Swap(Scale3D.Y, Scale3D.Z);
 
 		Transforms.Add(FTransform(Rotation, Translation, Scale3D));
 	}
