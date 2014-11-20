@@ -1880,6 +1880,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Assign generation parameters for this static mesh.
 				HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
+				{
+					UBodySetup* BodySetup = StaticMesh->BodySetup;
+					BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
+					BodySetup->bGenerateMirroredCollision = false;
+					BodySetup->bGenerateNonMirroredCollision = false;
+				}
+
 				//StaticMesh->PreEditChange(nullptr);
 				StaticMesh->Build(true);
 				//StaticMesh->PostEditChange();
@@ -2717,6 +2724,27 @@ FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw,
 		Swap(Point.Z, Point.Y);
 
 		DataOut.Add(Point);
+	}
+}
+
+
+void
+FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
+{
+	// Unlike Empty this will not change memory allocations.
+
+	RawMesh.FaceMaterialIndices.Reset();
+	RawMesh.FaceSmoothingMasks.Reset();
+	RawMesh.VertexPositions.Reset();
+	RawMesh.WedgeIndices.Reset();
+	RawMesh.WedgeTangentX.Reset();
+	RawMesh.WedgeTangentY.Reset();
+	RawMesh.WedgeTangentZ.Reset();
+	RawMesh.WedgeColors.Reset();
+
+	for(int32 Idx = 0; Idx < MAX_MESH_TEXTURE_COORDS; ++Idx)
+	{
+		RawMesh.WedgeTexCoords[Idx].Reset();
 	}
 }
 
