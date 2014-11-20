@@ -87,7 +87,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniAssetComponent->GetAssetId(), ObjectId, GeoId, PartId, HAPI_UNREAL_ATTRIB_INSTANCE, ResultAttributeInfo, PointInstanceValues))
 		{
 			// This should not happen - attribute exists, but there was an error retrieving it.
-			check(false);
 			return false;
 		}
 
@@ -96,8 +95,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		// Number of points must match number of transforms.
 		if(PointInstanceValues.Num() != AllTransforms.Num())
 		{
-			// This should not happen!
-			check(false);
+			// This should not happen, we have mismatch between number of instance values and transforms.
 			return false;
 		}
 
