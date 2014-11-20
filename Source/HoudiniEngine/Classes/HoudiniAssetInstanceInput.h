@@ -69,20 +69,6 @@ public: /** UObject methods. **/
 
 public:
 
-	/** Called when user drops an asset into this input. **/
-	void OnAssetDropped(UObject* Object, int32 Idx);
-
-	/** Called to determine if asset is acceptable for this input. **/
-	bool OnIsAssetAcceptableForDrop(const UObject* Object, int32 Idx);
-
-	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx);
-
-	/** Called when text value of this property changes. **/
-	void OnValueChanged(const FText& InValue, int32 Idx);
-
-public:
-
 	/** Return true if this is an attribute instancer. **/
 	bool IsAttributeInstancer() const;
 
@@ -111,7 +97,34 @@ protected:
 	/** Checks existance of special instance attribute for this instancer. **/
 	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
+	/** Delegate used when static mesh has been drag and dropped. **/
+	void OnStaticMeshDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+
+	/** Delegate used to detect if valid object has been dragged and dropped. **/
+	bool OnStaticMeshDraggedOver(const UObject* InObject) const;
+
+	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
+	const FSlateBrush* GetStaticMeshThumbnailBorder(UStaticMesh* StaticMesh, int32 Idx) const;
+
+	/** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
+	FReply OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
+
+	/** Construct drop down menu content for static mesh. **/
+	TSharedRef<SWidget> OnGetStaticMeshMenuContent(UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+
+	/** Delegate for handling selection in content browser. **/
+	void OnStaticMeshSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+
+	/** Closes the combo button. **/
+	void CloseStaticMeshComboButton();
+
 protected:
+
+	/** Map of static meshes and corresponding thumbnail borders. **/
+	TMap<int32, TSharedPtr<SBorder> > StaticMeshThumbnailBorders;
+
+	/** Map of static meshes to combo elements. **/
+	TMap<int32, TSharedPtr<SComboButton> > StaticMeshComboButtons;
 
 	/** Widget used for dragging and input. **/
 	TArray<TSharedPtr<SAssetSearchBox> > InputWidgets;
@@ -130,6 +143,9 @@ protected:
 
 	/** Temporary geo part information, this is used during loading. **/
 	TArray<FHoudiniGeoPartObject> GeoPartObjects;
+
+	/** Delegate for filtering static meshes. **/
+	FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
 	/** Corresponding object id. **/
 	HAPI_ObjectId ObjectId;
