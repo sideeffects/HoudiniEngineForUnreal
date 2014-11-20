@@ -151,6 +151,13 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(StaticMeshComponent, InThis);
 		}
 
+		// Add references to all spline components.
+		for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(HoudiniAssetComponent->SplineComponents); Iter; ++Iter)
+		{
+			UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
+			Collector.AddReferencedObject(HoudiniSplineComponent, InThis);
+		}
+
 		// Retrieve asset associated with this component.
 		//UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
 		//if(HoudiniAsset)
