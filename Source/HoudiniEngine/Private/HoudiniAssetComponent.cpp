@@ -1990,21 +1990,32 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 		}
 
 		StaticMesh->CreateBodySetup();
+		UBodySetup* BodySetup = StaticMesh->BodySetup;
+		check(BodySetup);
 
 		// Set flag whether physics triangle mesh will use double sided faces when doing scene queries. 
-		StaticMesh->BodySetup->bDoubleSidedGeometry = bGeneratedDoubleSidedGeometry;
+		BodySetup->bDoubleSidedGeometry = bGeneratedDoubleSidedGeometry;
 
 		// Assign physical material for simple collision.
-		StaticMesh->BodySetup->PhysMaterial = GeneratedPhysMaterial;
+		BodySetup->PhysMaterial = GeneratedPhysMaterial;
 
 		// Assign collision trace behavior.
-		StaticMesh->BodySetup->CollisionTraceFlag = GeneratedCollisionTraceFlag;
+		BodySetup->CollisionTraceFlag = GeneratedCollisionTraceFlag;
 
 		// Assign walkable slope behavior.
-		StaticMesh->BodySetup->WalkableSlopeOverride = GeneratedWalkableSlopeOverride;
+		BodySetup->WalkableSlopeOverride = GeneratedWalkableSlopeOverride;
 
 		// We want to use all of geometry for collision detection purposes.
-		StaticMesh->BodySetup->bMeshCollideAll = true;
+		BodySetup->bMeshCollideAll = true;
+
+		// Disabling collision generation for testing.
+		{
+			BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
+			BodySetup->bGenerateMirroredCollision = false;
+			BodySetup->bGenerateNonMirroredCollision = false;
+			BodySetup->bMeshCollideAll = false;
+			BodySetup->bDoubleSidedGeometry = false;
+		}
 
 		//RefreshCollisionChange(StaticMesh);
 	}

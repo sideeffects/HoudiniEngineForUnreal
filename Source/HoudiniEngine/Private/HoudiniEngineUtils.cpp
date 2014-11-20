@@ -1882,13 +1882,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Assign generation parameters for this static mesh.
 				HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
-				{
-					UBodySetup* BodySetup = StaticMesh->BodySetup;
-					BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
-					BodySetup->bGenerateMirroredCollision = false;
-					BodySetup->bGenerateNonMirroredCollision = false;
-				}
-
 				//StaticMesh->PreEditChange(nullptr);
 				StaticMesh->Build(true);
 				//StaticMesh->PostEditChange();
