@@ -286,48 +286,107 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 {
 	Super::CreateWidget(DetailCategoryBuilder);
 
-	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+	StaticMeshThumbnailBorders.Empty();
+	StaticMeshComboButtons.Empty();
 
-	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(GetParameterLabel())
-							.ToolTipText(GetParameterLabel())
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+	// Get thumbnail pool for this builder.
+	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
-	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-	InputWidgets.SetNum(TupleSize);
-
-	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	for(int32 StaticMeshIdx = 0; StaticMeshIdx < StaticMeshes.Num(); ++StaticMeshIdx)
 	{
-		VerticalBox->AddSlot().Padding(0, 2)
+		UStaticMesh* StaticMesh = StaticMeshes[StaticMeshIdx];
+
+		FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+		FString Label = FString::Printf(TEXT("Static Mesh Instance %d"), StaticMeshIdx);
+		Row.NameWidget.Widget = SNew(STextBlock)
+								.Text(Label)
+								.ToolTipText(Label)
+								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+
+		// Create thumbnail for this mesh.
+		TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(new FAssetThumbnail(StaticMesh, 64, 64, AssetThumbnailPool));
+		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+		TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+		TSharedPtr<SBorder>StaticMeshThumbnailBorder;
+
+		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
+			SNew(SAssetDropTarget)
+			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver))
+			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshDropped, StaticMesh, StaticMeshIdx))
 			[
-				SNew(SAssetDropTarget)
-				.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAssetDropped, Idx))
-				.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInstanceInput::OnIsAssetAcceptableForDrop, Idx))
-				.ToolTipText(GetParameterLabel())
+				SAssignNew(HorizontalBox, SHorizontalBox)
+			]
+		];
+
+		HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
+		[
+			SAssignNew(StaticMeshThumbnailBorder, SBorder)
+			.Padding(5.0f)
+
+			.BorderImage(TAttribute<const FSlateBrush*>::Create(TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, StaticMesh, StaticMeshIdx)))
+			.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*) StaticMesh))
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(StaticMesh->GetPathName())
 				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot().Padding(2, 2)
-					[
-						SAssignNew(InputWidgets[Idx], SAssetSearchBox)
-						.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetInstanceInput::SetValueCommitted, Idx))
-						.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::OnValueChanged, Idx))
-					]
+					StaticMeshThumbnail->MakeThumbnailWidget()
 				]
 			]
 		];
 
-		UStaticMesh* StaticMesh = StaticMeshes[Idx];
-		if(StaticMesh)
-		{
-			FString AssetName = StaticMesh->GetName();
-			InputWidgets[Idx]->SetText(FText::FromString(AssetName));
-		}
-	}
+		// Store thumbnail border for this static mesh.
+		StaticMeshThumbnailBorders.Add(StaticMeshIdx, StaticMeshThumbnailBorder);
 
-	Row.ValueWidget.Widget = VerticalBox;
+		TSharedPtr<SComboButton> AssetComboButton;
+		TSharedPtr<SHorizontalBox> ButtonBox;
+
+		HorizontalBox->AddSlot()
+		.FillWidth(1.0f)
+		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			//.VAlign(VAlign_Center)
+			//.VAlign(VAlign_Fill)
+			.HAlign(HAlign_Fill)
+			[
+				SAssignNew(ButtonBox, SHorizontalBox)
+				+SHorizontalBox::Slot()
+				[
+					SAssignNew(AssetComboButton, SComboButton)
+					//.ToolTipText(this, &FHoudiniAssetComponentDetails::OnGetToolTip )
+					.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
+					.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+					.OnGetMenuContent(FOnGetContent::CreateUObject(this, &UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent, StaticMesh, StaticMeshIdx))
+					.ContentPadding(2.0f)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
+						.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+						.Text(StaticMesh->GetName())
+					]
+				]
+			]/*
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin( 0.0f, 0.0f ))
+			[
+				SNullWidget::NullWidget
+			]*/
+		];
+
+		// Store combo button static mesh mapping.
+		StaticMeshComboButtons.Add(StaticMeshIdx, AssetComboButton);
+
+		Row.ValueWidget.Widget = VerticalBox;
+		Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
+	}
 }
 
 
@@ -481,80 +540,6 @@ UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceColl
 }
 
 
-void
-UHoudiniAssetInstanceInput::OnAssetDropped(UObject* Object, int32 Idx)
-{
-	if(Object)
-	{
-		UStaticMesh* InputStaticMesh = Cast<UStaticMesh>(Object);
-		if(InputStaticMesh)
-		{
-			// Change used static mesh.
-			StaticMeshes[Idx] = InputStaticMesh;
-
-			FString AssetName = StaticMeshes[Idx]->GetName();
-			InputWidgets[Idx]->SetText(FText::FromString(AssetName));
-
-			// Change component's mesh.
-			ChangeInstancedStaticMeshComponentMesh(Idx);
-		}
-	}
-}
-
-
-bool
-UHoudiniAssetInstanceInput::OnIsAssetAcceptableForDrop(const UObject* Object, int32 Idx)
-{
-	// We will accept only static meshes as inputs to instancers.
-	if(Object && Object->IsA(UStaticMesh::StaticClass()))
-	{
-		return true;
-	}
-
-	return false;
-}
-
-
-void
-UHoudiniAssetInstanceInput::SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx)
-{
-
-}
-
-
-void
-UHoudiniAssetInstanceInput::OnValueChanged(const FText& InValue, int32 Idx)
-{
-	FString AssetName = TEXT("");
-	bool bChanged = false;
-
-	if(InValue.IsEmpty())
-	{
-		// Widget has been cleared, we reset to original mesh.
-		StaticMeshes[Idx] = OriginalStaticMeshes[Idx];
-		AssetName = StaticMeshes[Idx]->GetName();
-		bChanged = true;
-	}
-	else
-	{
-		// Otherwise set back the old text.
-		UStaticMesh* StaticMesh = StaticMeshes[Idx];
-		if(StaticMesh)
-		{
-			AssetName = StaticMesh->GetName();
-		}
-	}
-
-	InputWidgets[Idx]->SetText(FText::FromString(AssetName));
-
-	if(bChanged)
-	{
-		// Change component's mesh.
-		ChangeInstancedStaticMeshComponentMesh(Idx);
-	}
-}
-
-
 bool
 UHoudiniAssetInstanceInput::IsAttributeInstancer() const
 {
@@ -697,5 +682,93 @@ UHoudiniAssetInstanceInput::CheckInstanceAttribute(HAPI_AssetId InAssetId, HAPI_
 	}
 
 	return FHoudiniEngineUtils::HapiCheckAttributeExists(InAssetId, InObjectId, InGeoId, InPartId, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT);
+}
+
+
+void
+UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 StaticMeshIdx)
+{
+	UStaticMesh* InputStaticMesh = Cast<UStaticMesh>(InObject);
+	if(InputStaticMesh && StaticMesh != InputStaticMesh)
+	{
+		// Change used static mesh.
+		StaticMeshes[StaticMeshIdx] = InputStaticMesh;
+
+		// Change component's mesh.
+		ChangeInstancedStaticMeshComponentMesh(StaticMeshIdx);
+	}
+}
+
+
+bool
+UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver(const UObject* Object) const
+{
+	// We will accept only static meshes as inputs to instancers.
+	if(Object && Object->IsA(UStaticMesh::StaticClass()))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+const FSlateBrush*
+UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder(UStaticMesh* StaticMesh, int32 Idx) const
+{
+	TSharedPtr<SBorder> ThumbnailBorder = StaticMeshThumbnailBorders[Idx];
+	if(ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+	}
+}
+
+
+FReply
+UHoudiniAssetInstanceInput::OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object)
+{
+	if(Object && GEditor)
+	{
+		GEditor->EditObject(Object);
+	}
+
+	return FReply::Handled();
+}
+
+
+TSharedRef<SWidget>
+UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent(UStaticMesh* StaticMesh, int32 StaticMeshIdx)
+{
+	TArray<const UClass*> AllowedClasses;
+	AllowedClasses.Add(UStaticMesh::StaticClass());
+
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true, &AllowedClasses, OnShouldFilterStaticMesh,
+		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshSelected, StaticMesh, StaticMeshIdx), 
+		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::CloseStaticMeshComboButton));
+}
+
+
+void
+UHoudiniAssetInstanceInput::OnStaticMeshSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, int32 StaticMeshIdx)
+{
+	TSharedPtr<SComboButton> AssetComboButton = StaticMeshComboButtons[StaticMeshIdx];
+	if(AssetComboButton.IsValid())
+	{
+		AssetComboButton->SetIsOpen(false);
+
+		UObject* Object = AssetData.GetAsset();
+		OnStaticMeshDropped(Object, StaticMesh, StaticMeshIdx);
+	}
+}
+
+
+void
+UHoudiniAssetInstanceInput::CloseStaticMeshComboButton()
+{
+
 }
 

@@ -179,6 +179,10 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 	MaterialInterfaceComboButtons.Empty();
 	MaterialInterfaceThumbnailBorders.Empty();
 
+	// Get thumbnail pool for this builder.
+	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+
 	for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 	{
 		int32 MeshIdx = 0;
@@ -199,10 +203,6 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 									.Text(Label)
 									.ToolTipText(Label)
 									.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-
-			// Get thumbnail pool for this builder.
-			IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
-			TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
 			// Create thumbnail for this mesh.
 			TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(new FAssetThumbnail(StaticMesh, 64, 64, AssetThumbnailPool));
@@ -270,7 +270,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				VerticalBox->AddSlot().Padding(0, 2)
 				[
 					SNew(SAssetDropTarget)
-					.OnIsAssetAcceptableForDrop( this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDraggedOver)
+					.OnIsAssetAcceptableForDrop(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDraggedOver)
 					.OnAssetDropped(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped, StaticMesh, MaterialIdx)
 					[
 						SAssignNew(HorizontalBox, SHorizontalBox)
