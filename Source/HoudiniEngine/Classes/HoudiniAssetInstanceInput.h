@@ -118,6 +118,12 @@ protected:
 	/** Closes the combo button. **/
 	void CloseStaticMeshComboButton();
 
+	/** Browse to static mesh. **/
+	void OnStaticMeshBrowse(UStaticMesh* StaticMesh);
+
+	/** Handler for reset static mesh button. **/
+	FReply OnResetStaticMeshClicked(UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+
 protected:
 
 	/** Map of static meshes and corresponding thumbnail borders. **/
