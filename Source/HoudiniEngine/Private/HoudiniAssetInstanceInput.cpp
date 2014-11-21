@@ -381,6 +381,38 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			]*/
 		];
 
+		// Create tooltip.
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Asset"), FText::FromString(StaticMesh->GetName()));
+		FText StaticMeshTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshBrowse, StaticMesh),
+				TAttribute<FText>(StaticMeshTooltip))
+		];
+
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SButton)
+			.ToolTipText(LOCTEXT("ResetToBase", "Reset to default static mesh"))
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ContentPadding(0) 
+			.Visibility(EVisibility::Visible)
+			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnResetStaticMeshClicked, StaticMesh, StaticMeshIdx))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+			]
+		];
+
 		// Store combo button static mesh mapping.
 		StaticMeshComboButtons.Add(StaticMeshIdx, AssetComboButton);
 
@@ -770,5 +802,27 @@ void
 UHoudiniAssetInstanceInput::CloseStaticMeshComboButton()
 {
 
+}
+
+
+void
+UHoudiniAssetInstanceInput::OnStaticMeshBrowse(UStaticMesh* StaticMesh)
+{
+	if(GEditor)
+	{
+		TArray<UObject*> Objects;
+		Objects.Add(StaticMesh);
+		GEditor->SyncBrowserToObjects(Objects);
+	}
+}
+
+
+FReply
+UHoudiniAssetInstanceInput::OnResetStaticMeshClicked(UStaticMesh* StaticMesh, int32 StaticMeshIdx)
+{
+	UStaticMesh* OriginalStaticMesh = OriginalStaticMeshes[StaticMeshIdx];
+	OnStaticMeshDropped(OriginalStaticMesh, StaticMesh, StaticMeshIdx);
+
+	return FReply::Handled();
 }
 

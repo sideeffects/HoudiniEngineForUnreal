@@ -560,9 +560,12 @@ FHoudiniAssetComponentDetails::CloseMaterialInterfaceComboButton()
 void
 FHoudiniAssetComponentDetails::OnMaterialInterfaceBrowse(UMaterialInterface* MaterialInterface)
 {
-	TArray<UObject*> Objects;
-	Objects.Add(MaterialInterface);
-	GEditor->SyncBrowserToObjects(Objects);
+	if(GEditor)
+	{
+		TArray<UObject*> Objects;
+		Objects.Add(MaterialInterface);
+		GEditor->SyncBrowserToObjects(Objects);
+	}
 }
 
 
