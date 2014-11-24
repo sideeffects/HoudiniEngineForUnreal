@@ -840,6 +840,7 @@ UHoudiniAssetInstanceInput::UpdateInstanceTransforms(int32 Idx)
 
 	// Get component for this index.
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+	InstancedStaticMeshComponent->ClearInstances();
 
 	TArray<FTransform>& Transforms = InstancedTransforms[Idx];
 	for(int32 InstanceIdx = 0; InstanceIdx < Transforms.Num(); ++InstanceIdx)
@@ -870,7 +871,8 @@ UHoudiniAssetInstanceInput::UpdateInstanceTransforms(int32 Idx)
 		Transform.SetRotation(TransformRotation);
 		Transform.SetScale3D(TransformScale3D);
 
-		InstancedStaticMeshComponent->UpdateInstanceTransform(InstanceIdx, Transform, false);
+		//InstancedStaticMeshComponent->UpdateInstanceTransform(InstanceIdx, Transform, false);
+		InstancedStaticMeshComponent->AddInstance(Transform);
 	}
 }
 
