@@ -16,6 +16,10 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
+const float
+UHoudiniAssetInstanceInput::ScaleSmallValue = KINDA_SMALL_NUMBER * 2.0f;
+
+
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	ObjectId(-1),
@@ -775,19 +779,19 @@ UHoudiniAssetInstanceInput::SetComponentInstanceTransformations(UInstancedStatic
 		FVector TransformScale3D = Transform.GetScale3D() * Scale;
 
 		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
-		if(TransformScale3D.X < KINDA_SMALL_NUMBER)
+		if(TransformScale3D.X < UHoudiniAssetInstanceInput::ScaleSmallValue)
 		{
-			TransformScale3D.X = KINDA_SMALL_NUMBER * 2.0f;
+			TransformScale3D.X = UHoudiniAssetInstanceInput::ScaleSmallValue;
 		}
 
-		if(TransformScale3D.Y < KINDA_SMALL_NUMBER)
+		if(TransformScale3D.Y < UHoudiniAssetInstanceInput::ScaleSmallValue)
 		{
-			TransformScale3D.Y = KINDA_SMALL_NUMBER * 2.0f;
+			TransformScale3D.Y = UHoudiniAssetInstanceInput::ScaleSmallValue;
 		}
 
-		if(TransformScale3D.Z < KINDA_SMALL_NUMBER)
+		if(TransformScale3D.Z < UHoudiniAssetInstanceInput::ScaleSmallValue)
 		{
-			TransformScale3D.Z = KINDA_SMALL_NUMBER * 2.0f;
+			TransformScale3D.Z = UHoudiniAssetInstanceInput::ScaleSmallValue;
 		}
 
 		Transform.SetRotation(TransformRotation);
@@ -848,19 +852,19 @@ UHoudiniAssetInstanceInput::UpdateInstanceTransforms(int32 Idx)
 		FVector TransformScale3D = Transform.GetScale3D() * Scale;
 
 		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
-		if(TransformScale3D.X < KINDA_SMALL_NUMBER)
+		if(TransformScale3D.X < UHoudiniAssetInstanceInput::ScaleSmallValue)
 		{
-			TransformScale3D.X = KINDA_SMALL_NUMBER * 2.0f;
+			TransformScale3D.X = UHoudiniAssetInstanceInput::ScaleSmallValue;
 		}
 
-		if(TransformScale3D.Y < KINDA_SMALL_NUMBER)
+		if(TransformScale3D.Y < UHoudiniAssetInstanceInput::ScaleSmallValue)
 		{
-			TransformScale3D.Y = KINDA_SMALL_NUMBER * 2.0f;
+			TransformScale3D.Y = UHoudiniAssetInstanceInput::ScaleSmallValue;
 		}
 
-		if(TransformScale3D.Z < KINDA_SMALL_NUMBER)
+		if(TransformScale3D.Z < UHoudiniAssetInstanceInput::ScaleSmallValue)
 		{
-			TransformScale3D.Z = KINDA_SMALL_NUMBER * 2.0f;
+			TransformScale3D.Z = UHoudiniAssetInstanceInput::ScaleSmallValue;
 		}
 
 		Transform.SetRotation(TransformRotation);
