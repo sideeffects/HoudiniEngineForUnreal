@@ -777,17 +777,17 @@ UHoudiniAssetInstanceInput::SetComponentInstanceTransformations(UInstancedStatic
 		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
 		if(TransformScale3D.X < KINDA_SMALL_NUMBER)
 		{
-			TransformScale3D.X = KINDA_SMALL_NUMBER;
+			TransformScale3D.X = KINDA_SMALL_NUMBER * 2.0f;
 		}
 
 		if(TransformScale3D.Y < KINDA_SMALL_NUMBER)
 		{
-			TransformScale3D.Y = KINDA_SMALL_NUMBER;
+			TransformScale3D.Y = KINDA_SMALL_NUMBER * 2.0f;
 		}
 
 		if(TransformScale3D.Z < KINDA_SMALL_NUMBER)
 		{
-			TransformScale3D.Z = KINDA_SMALL_NUMBER;
+			TransformScale3D.Z = KINDA_SMALL_NUMBER * 2.0f;
 		}
 
 		Transform.SetRotation(TransformRotation);
@@ -850,17 +850,17 @@ UHoudiniAssetInstanceInput::UpdateInstanceTransforms(int32 Idx)
 		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
 		if(TransformScale3D.X < KINDA_SMALL_NUMBER)
 		{
-			TransformScale3D.X = KINDA_SMALL_NUMBER;
+			TransformScale3D.X = KINDA_SMALL_NUMBER * 2.0f;
 		}
 
 		if(TransformScale3D.Y < KINDA_SMALL_NUMBER)
 		{
-			TransformScale3D.Y = KINDA_SMALL_NUMBER;
+			TransformScale3D.Y = KINDA_SMALL_NUMBER * 2.0f;
 		}
 
 		if(TransformScale3D.Z < KINDA_SMALL_NUMBER)
 		{
-			TransformScale3D.Z = KINDA_SMALL_NUMBER;
+			TransformScale3D.Z = KINDA_SMALL_NUMBER * 2.0f;
 		}
 
 		Transform.SetRotation(TransformRotation);
