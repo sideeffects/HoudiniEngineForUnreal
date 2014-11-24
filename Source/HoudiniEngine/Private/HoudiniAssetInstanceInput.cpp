@@ -519,8 +519,7 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 
 		// By default, we have identity scales.
 		static const FVector ScaleIdentity(1.0f, 1.0f, 1.0f);
-		ScaleOffsets.Empty();
-		ScaleOffsets.Append(&ScaleIdentity, TupleSize);
+		ScaleOffsets.Init(ScaleIdentity, TupleSize);
 
 		GeoPartObjects.SetNumZeroed(TupleSize);
 	}
@@ -705,7 +704,11 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 
 		// We need to add identity scales for new components.
 		ScaleOffsets.SetNum(OldTupleSize);
-		ScaleOffsets.Append(&ScaleIdentity, ObjectCount - OldTupleSize);
+
+		for(int32 ScaleIdx = OldTupleSize; ScaleIdx < ObjectCount; ++ScaleIdx)
+		{
+			ScaleOffsets.Add(ScaleIdentity);
+		}
 
 		for(int32 Idx = OldComponentCount; Idx < ObjectCount; ++Idx)
 		{

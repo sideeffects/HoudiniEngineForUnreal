@@ -2355,7 +2355,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 			{
 				// If color is missing for one mesh, we will add black instead.
 				static const FColor& BlackColor = FColor::Black;
-				RawMesh.WedgeColors.Append(&BlackColor, InRawMesh.WedgeIndices.Num());
+				RawMesh.WedgeColors.Init(BlackColor, InRawMesh.WedgeIndices.Num());
 			}
 		}
 
@@ -2388,9 +2388,9 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 			check(MaterialGlobalIdx != INDEX_NONE);
 
 			// Add face indices to default material.
-			RawMesh.FaceMaterialIndices.Append(&MaterialGlobalIdx, InRawMesh.FaceMaterialIndices.Num());
-			OriginalMaterialIndices.Append(&InvalidIdx, InRawMesh.FaceMaterialIndices.Num());
-			UpdatedMaterialIndices.Append(&MaterialGlobalIdx, InRawMesh.FaceMaterialIndices.Num());
+			RawMesh.FaceMaterialIndices.Init(MaterialGlobalIdx, InRawMesh.FaceMaterialIndices.Num());
+			OriginalMaterialIndices.Init(InvalidIdx, InRawMesh.FaceMaterialIndices.Num());
+			UpdatedMaterialIndices.Init(MaterialGlobalIdx, InRawMesh.FaceMaterialIndices.Num());
 		}
 
 		// Generate UV sets - go through all indices.
