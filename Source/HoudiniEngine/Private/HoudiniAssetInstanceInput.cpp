@@ -464,6 +464,21 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			]
 		];
 
+		const FString LabelLinearScale = TEXT("Scale all fields linearly");
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+		[
+			SNew(SCheckBox)
+			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::CheckStateChanged, StaticMeshIdx))
+			.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::IsChecked, StaticMeshIdx)))
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LabelLinearScale)
+				.ToolTipText(LabelLinearScale)
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		];
+
 		// Store combo button static mesh mapping.
 		StaticMeshComboButtons.Add(StaticMeshIdx, AssetComboButton);
 
@@ -521,6 +536,8 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 		static const FVector ScaleIdentity(1.0f, 1.0f, 1.0f);
 		ScaleOffsets.Init(ScaleIdentity, TupleSize);
 
+		ScaleOffsetsLinearly.Init(true, TupleSize);
+
 		GeoPartObjects.SetNumZeroed(TupleSize);
 	}
 
@@ -542,6 +559,9 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 
 			// Serialize scale offset.
 			Ar << ScaleOffsets[Idx];
+
+			// Serialize whether this offset is scaled linearly.
+			Ar << ScaleOffsetsLinearly[Idx];
 
 			// Serialize all transforms;
 			Ar << InstancedTransforms[Idx];
@@ -690,6 +710,7 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 		InputWidgets.SetNum(ObjectCount);
 		RotationOffsets.SetNum(ObjectCount);
 		ScaleOffsets.SetNum(ObjectCount);
+		ScaleOffsetsLinearly.SetNum(ObjectCount);
 	}
 	else if(ObjectCount > OldTupleSize)
 	{
@@ -704,10 +725,12 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 
 		// We need to add identity scales for new components.
 		ScaleOffsets.SetNum(OldTupleSize);
+		ScaleOffsetsLinearly.SetNum(OldTupleSize);
 
 		for(int32 ScaleIdx = OldTupleSize; ScaleIdx < ObjectCount; ++ScaleIdx)
 		{
 			ScaleOffsets.Add(ScaleIdentity);
+			ScaleOffsetsLinearly.Add(true);
 		}
 
 		for(int32 Idx = OldComponentCount; Idx < ObjectCount; ++Idx)
@@ -1074,6 +1097,12 @@ UHoudiniAssetInstanceInput::SetScaleX(float Value, int32 Idx)
 
 	Scale3D.X = Value;
 
+	if(ScaleOffsetsLinearly[Idx])
+	{
+		Scale3D.Y = Value;
+		Scale3D.Z = Value;
+	}
+
 	UpdateInstanceTransforms(Idx);
 }
 
@@ -1085,6 +1114,12 @@ UHoudiniAssetInstanceInput::SetScaleY(float Value, int32 Idx)
 	FVector& Scale3D = ScaleOffsets[Idx];
 
 	Scale3D.Y = Value;
+
+	if(ScaleOffsetsLinearly[Idx])
+	{
+		Scale3D.X = Value;
+		Scale3D.Z = Value;
+	}
 
 	UpdateInstanceTransforms(Idx);
 }
@@ -1098,6 +1133,34 @@ UHoudiniAssetInstanceInput::SetScaleZ(float Value, int32 Idx)
 
 	Scale3D.Z = Value;
 
+	if(ScaleOffsetsLinearly[Idx])
+	{
+		Scale3D.X = Value;
+		Scale3D.Y = Value;
+	}
+
 	UpdateInstanceTransforms(Idx);
+}
+
+
+void
+UHoudiniAssetInstanceInput::CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx)
+{
+	check(Idx >= 0 && Idx < ScaleOffsetsLinearly.Num())
+	ScaleOffsetsLinearly[Idx] =  (ESlateCheckBoxState::Checked == NewState);
+}
+
+
+ESlateCheckBoxState::Type
+UHoudiniAssetInstanceInput::IsChecked(int32 Idx) const
+{
+	check(Idx >= 0 && Idx < ScaleOffsetsLinearly.Num())
+
+	if(ScaleOffsetsLinearly[Idx])
+	{
+		return ESlateCheckBoxState::Checked;
+	}
+	
+	return ESlateCheckBoxState::Unchecked;
 }
 
