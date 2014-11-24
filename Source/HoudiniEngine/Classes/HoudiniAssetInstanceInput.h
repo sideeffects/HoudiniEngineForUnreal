@@ -84,13 +84,16 @@ protected:
 	void AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize);
 
 	/** Sets instance transformations for a given component. **/
-	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms);
+	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms, int32 Idx);
 
 	/** Retrieve all transforms for a given path. Used by attribute instancer. **/
 	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues, const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms);
 
 	/** Used to update the component at given index when static mesh changes. **/
 	void ChangeInstancedStaticMeshComponentMesh(int32 Idx);
+
+	/** Used to update existing transforms with offsets for given index. **/
+	void UpdateInstanceTransforms(int32 Idx);
 
 protected:
 
@@ -124,6 +127,26 @@ protected:
 	/** Handler for reset static mesh button. **/
 	FReply OnResetStaticMeshClicked(UStaticMesh* StaticMesh, int32 StaticMeshIdx);
 
+	/** Get rotation components for given index. **/
+	TOptional<float> GetRotationRoll(int32 Idx) const;
+	TOptional<float> GetRotationPitch(int32 Idx) const;
+	TOptional<float> GetRotationYaw(int32 Idx) const;
+
+	/** Set rotation components for given index. **/
+	void SetRotationRoll(float Value, int32 Idx);
+	void SetRotationPitch(float Value, int32 Idx);
+	void SetRotationYaw(float Value, int32 Idx);
+
+	/** Get scale components for a given index. **/
+	TOptional<float> GetScaleX(int32 Idx) const;
+	TOptional<float> GetScaleY(int32 Idx) const;
+	TOptional<float> GetScaleZ(int32 Idx) const;
+
+	/** Set scale components for a given index. **/
+	void SetScaleX(float Value, int32 Idx);
+	void SetScaleY(float Value, int32 Idx);
+	void SetScaleZ(float Value, int32 Idx);
+
 protected:
 
 	/** Map of static meshes and corresponding thumbnail borders. **/
@@ -146,6 +169,12 @@ protected:
 
 	/** Transforms for each component. **/
 	TArray<TArray<FTransform> > InstancedTransforms;
+
+	/** Rotation offsets for each component. **/
+	TArray<FRotator> RotationOffsets;
+
+	/** Scale offsets for each component. **/
+	TArray<FVector> ScaleOffsets;
 
 	/** Temporary geo part information, this is used during loading. **/
 	TArray<FHoudiniGeoPartObject> GeoPartObjects;

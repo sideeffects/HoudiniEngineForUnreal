@@ -154,7 +154,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			InstancedTransforms[GeoIdx].Append(ObjectTransforms);
 
 			// Set component's transformations and instances.
-			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], ObjectTransforms);
+			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], ObjectTransforms, GeoIdx);
 
 			++GeoIdx;
 		}
@@ -198,7 +198,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			InstancedTransforms[GeoIdx].Append(AllTransforms);
 
 			// Set component's transformations and instances.
-			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], AllTransforms);
+			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], AllTransforms, GeoIdx);
 		}
 	}
 
@@ -221,7 +221,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 
 		Component->AttachTo(HoudiniAssetComponent);
 
-		SetComponentInstanceTransformations(Component, InstancedTransforms[Idx]);
+		SetComponentInstanceTransformations(Component, InstancedTransforms[Idx], Idx);
 		InstancedStaticMeshComponents[Idx] = Component;
 
 		// Locate default / original mesh.
@@ -413,6 +413,57 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			]
 		];
 
+		const FString LabelRotation = TEXT("Rotation Offset:");
+		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
+		[
+			SNew(STextBlock)
+			.Text(LabelRotation)
+			.ToolTipText(LabelRotation)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		];
+
+		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot().MaxWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth)
+			[
+				SNew(SRotatorInputBox)
+				.AllowSpin(true)
+				.bColorAxisLabels(true)
+				.Roll(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::GetRotationRoll, StaticMeshIdx)))
+				.Pitch(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::GetRotationPitch, StaticMeshIdx)))
+				.Yaw(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::GetRotationYaw, StaticMeshIdx)))
+				.OnRollChanged(FOnFloatValueChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::SetRotationRoll, StaticMeshIdx))
+				.OnPitchChanged(FOnFloatValueChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::SetRotationPitch, StaticMeshIdx))
+				.OnYawChanged(FOnFloatValueChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::SetRotationYaw, StaticMeshIdx))
+			]
+		];
+
+		const FString LabelScale = TEXT("Scale Offset:");
+		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
+		[
+			SNew(STextBlock)
+			.Text(LabelScale)
+			.ToolTipText(LabelScale)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		];
+
+		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot().MaxWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth)
+			[
+				SNew(SVectorInputBox)
+				.bColorAxisLabels(true)
+				.X(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::GetScaleX, StaticMeshIdx)))
+				.Y(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::GetScaleY, StaticMeshIdx)))
+				.Z(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, &UHoudiniAssetInstanceInput::GetScaleZ, StaticMeshIdx)))
+				.OnXChanged(FOnFloatValueChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::SetScaleX, StaticMeshIdx))
+				.OnYChanged(FOnFloatValueChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::SetScaleY, StaticMeshIdx))
+				.OnZChanged(FOnFloatValueChanged::CreateUObject(this, &UHoudiniAssetInstanceInput::SetScaleZ, StaticMeshIdx))
+			]
+		];
+
 		// Store combo button static mesh mapping.
 		StaticMeshComboButtons.Add(StaticMeshIdx, AssetComboButton);
 
@@ -463,6 +514,14 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 		OriginalStaticMeshes.SetNumZeroed(TupleSize);
 		InstancedStaticMeshComponents.SetNumZeroed(TupleSize);
 
+		// By default, we have no rotations.
+		RotationOffsets.SetNumZeroed(TupleSize);
+
+		// By default, we have identity scales.
+		static const FVector ScaleIdentity(1.0f, 1.0f, 1.0f);
+		ScaleOffsets.Empty();
+		ScaleOffsets.Append(&ScaleIdentity, TupleSize);
+
 		GeoPartObjects.SetNumZeroed(TupleSize);
 	}
 
@@ -479,6 +538,12 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 
 		if(bValidComponent)
 		{
+			// Serialize rotation offset.
+			Ar << RotationOffsets[Idx];
+
+			// Serialize scale offset.
+			Ar << ScaleOffsets[Idx];
+
 			// Serialize all transforms;
 			Ar << InstancedTransforms[Idx];
 
@@ -598,6 +663,8 @@ UHoudiniAssetInstanceInput::SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_G
 void
 UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize)
 {
+	static const FVector ScaleIdentity(1.0f, 1.0f, 1.0f);
+
 	if(ObjectCount < OldTupleSize)
 	{
 		// If we have more than supplied object count, we need to free those unused resources.
@@ -622,6 +689,8 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 		StaticMeshes.SetNum(ObjectCount);
 		OriginalStaticMeshes.SetNum(ObjectCount);
 		InputWidgets.SetNum(ObjectCount);
+		RotationOffsets.SetNum(ObjectCount);
+		ScaleOffsets.SetNum(ObjectCount);
 	}
 	else if(ObjectCount > OldTupleSize)
 	{
@@ -632,6 +701,11 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 		StaticMeshes.SetNumZeroed(ObjectCount);
 		OriginalStaticMeshes.SetNumZeroed(ObjectCount);
 		InputWidgets.SetNumZeroed(ObjectCount);
+		RotationOffsets.SetNumZeroed(ObjectCount);
+
+		// We need to add identity scales for new components.
+		ScaleOffsets.SetNum(OldTupleSize);
+		ScaleOffsets.Append(&ScaleIdentity, ObjectCount - OldTupleSize);
 
 		for(int32 Idx = OldComponentCount; Idx < ObjectCount; ++Idx)
 		{
@@ -658,20 +732,42 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 
 
 void
-UHoudiniAssetInstanceInput::SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms)
+UHoudiniAssetInstanceInput::SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms, int32 Idx)
 {
 	InstancedStaticMeshComponent->ClearInstances();
 
+	// Get current rotation and scale for this index.
+	FRotator Rotator = RotationOffsets[Idx];
+	FVector Scale = ScaleOffsets[Idx];
+
 	for(int32 InstanceIdx = 0; InstanceIdx < InstanceTransforms.Num(); ++InstanceIdx)
 	{
-		const FTransform& Transform = InstanceTransforms[InstanceIdx];
-		const FVector& Scale3D = Transform.GetScale3D();
+		FTransform Transform = InstanceTransforms[InstanceIdx];
+
+		// Compute new rotation and scale.
+		FQuat TransformRotation = Transform.GetRotation() * Rotator.Quaternion();
+		FVector TransformScale3D = Transform.GetScale3D() * Scale;
 
 		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
-		if(!Scale3D.IsNearlyZero(SMALL_NUMBER))
+		if(TransformScale3D.X < KINDA_SMALL_NUMBER)
 		{
-			InstancedStaticMeshComponent->AddInstance(Transform);
+			TransformScale3D.X = KINDA_SMALL_NUMBER;
 		}
+
+		if(TransformScale3D.Y < KINDA_SMALL_NUMBER)
+		{
+			TransformScale3D.Y = KINDA_SMALL_NUMBER;
+		}
+
+		if(TransformScale3D.Z < KINDA_SMALL_NUMBER)
+		{
+			TransformScale3D.Z = KINDA_SMALL_NUMBER;
+		}
+
+		Transform.SetRotation(TransformRotation);
+		Transform.SetScale3D(TransformScale3D);
+
+		InstancedStaticMeshComponent->AddInstance(Transform);
 	}
 }
 
@@ -701,6 +797,50 @@ UHoudiniAssetInstanceInput::ChangeInstancedStaticMeshComponentMesh(int32 Idx)
 	if(InstancedStaticMeshComponent)
 	{
 		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+	}
+}
+
+
+void
+UHoudiniAssetInstanceInput::UpdateInstanceTransforms(int32 Idx)
+{
+	// Get current rotation and scale for this index.
+	FRotator Rotator = RotationOffsets[Idx];
+	FVector Scale = ScaleOffsets[Idx];
+
+	// Get component for this index.
+	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+
+	TArray<FTransform>& Transforms = InstancedTransforms[Idx];
+	for(int32 InstanceIdx = 0; InstanceIdx < Transforms.Num(); ++InstanceIdx)
+	{
+		// Get transform for this instance.
+		FTransform Transform = Transforms[InstanceIdx];
+
+		// Compute new rotation and scale.
+		FQuat TransformRotation = Transform.GetRotation() * Rotator.Quaternion();
+		FVector TransformScale3D = Transform.GetScale3D() * Scale;
+
+		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances. Happens in blueprint as well.
+		if(TransformScale3D.X < KINDA_SMALL_NUMBER)
+		{
+			TransformScale3D.X = KINDA_SMALL_NUMBER;
+		}
+
+		if(TransformScale3D.Y < KINDA_SMALL_NUMBER)
+		{
+			TransformScale3D.Y = KINDA_SMALL_NUMBER;
+		}
+
+		if(TransformScale3D.Z < KINDA_SMALL_NUMBER)
+		{
+			TransformScale3D.Z = KINDA_SMALL_NUMBER;
+		}
+
+		Transform.SetRotation(TransformRotation);
+		Transform.SetScale3D(TransformScale3D);
+
+		InstancedStaticMeshComponent->UpdateInstanceTransform(InstanceIdx, Transform, false);
 	}
 }
 
@@ -824,5 +964,137 @@ UHoudiniAssetInstanceInput::OnResetStaticMeshClicked(UStaticMesh* StaticMesh, in
 	OnStaticMeshDropped(OriginalStaticMesh, StaticMesh, StaticMeshIdx);
 
 	return FReply::Handled();
+}
+
+
+TOptional<float>
+UHoudiniAssetInstanceInput::GetRotationRoll(int32 Idx) const
+{
+	check(Idx >= 0 && Idx < RotationOffsets.Num())
+	const FRotator& Rotator = RotationOffsets[Idx];
+
+	return Rotator.Roll;
+}
+
+
+TOptional<float>
+UHoudiniAssetInstanceInput::GetRotationPitch(int32 Idx) const
+{
+	check(Idx >= 0 && Idx < RotationOffsets.Num())
+	const FRotator& Rotator = RotationOffsets[Idx];
+
+	return Rotator.Pitch;
+}
+
+
+TOptional<float>
+UHoudiniAssetInstanceInput::GetRotationYaw(int32 Idx) const
+{
+	check(Idx >= 0 && Idx < RotationOffsets.Num())
+	const FRotator& Rotator = RotationOffsets[Idx];
+
+	return Rotator.Yaw;
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetRotationRoll(float Value, int32 Idx)
+{
+	check(Idx >= 0 && Idx < RotationOffsets.Num())
+	FRotator& Rotator = RotationOffsets[Idx];
+
+	Rotator.Roll = Value;
+
+	UpdateInstanceTransforms(Idx);
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetRotationPitch(float Value, int32 Idx)
+{
+	check(Idx >= 0 && Idx < RotationOffsets.Num())
+	FRotator& Rotator = RotationOffsets[Idx];
+
+	Rotator.Pitch = Value;
+
+	UpdateInstanceTransforms(Idx);
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetRotationYaw(float Value, int32 Idx)
+{
+	check(Idx >= 0 && Idx < RotationOffsets.Num())
+	FRotator& Rotator = RotationOffsets[Idx];
+
+	Rotator.Yaw = Value;
+
+	UpdateInstanceTransforms(Idx);
+}
+
+
+TOptional<float>
+UHoudiniAssetInstanceInput::GetScaleX(int32 Idx) const
+{
+	check(Idx >= 0 && Idx < ScaleOffsets.Num())
+	const FVector& Scale3D = ScaleOffsets[Idx];
+
+	return Scale3D.X;
+}
+
+
+TOptional<float>
+UHoudiniAssetInstanceInput::GetScaleY(int32 Idx) const
+{
+	check(Idx >= 0 && Idx < ScaleOffsets.Num())
+	const FVector& Scale3D = ScaleOffsets[Idx];
+
+	return Scale3D.Y;
+}
+
+
+TOptional<float>
+UHoudiniAssetInstanceInput::GetScaleZ(int32 Idx) const
+{
+	check(Idx >= 0 && Idx < ScaleOffsets.Num())
+	const FVector& Scale3D = ScaleOffsets[Idx];
+
+	return Scale3D.Z;
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetScaleX(float Value, int32 Idx)
+{
+	check(Idx >= 0 && Idx < ScaleOffsets.Num())
+	FVector& Scale3D = ScaleOffsets[Idx];
+
+	Scale3D.X = Value;
+
+	UpdateInstanceTransforms(Idx);
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetScaleY(float Value, int32 Idx)
+{
+	check(Idx >= 0 && Idx < ScaleOffsets.Num())
+	FVector& Scale3D = ScaleOffsets[Idx];
+
+	Scale3D.Y = Value;
+
+	UpdateInstanceTransforms(Idx);
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetScaleZ(float Value, int32 Idx)
+{
+	check(Idx >= 0 && Idx < ScaleOffsets.Num())
+	FVector& Scale3D = ScaleOffsets[Idx];
+
+	Scale3D.Z = Value;
+
+	UpdateInstanceTransforms(Idx);
 }
 
