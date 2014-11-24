@@ -155,6 +155,11 @@ protected:
 
 protected:
 
+	/** Epsilon value used as a check for scale / inverse transform computations. This is necessary due to bug in Unreal. **/
+	static const float ScaleSmallValue;
+
+protected:
+
 	/** Map of static meshes and corresponding thumbnail borders. **/
 	TMap<int32, TSharedPtr<SBorder> > StaticMeshThumbnailBorders;
 
