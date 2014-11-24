@@ -147,6 +147,12 @@ protected:
 	void SetScaleY(float Value, int32 Idx);
 	void SetScaleZ(float Value, int32 Idx);
 
+	/** Return true if given index must scale linearly. **/
+	ESlateCheckBoxState::Type IsChecked(int32 Idx) const;
+
+	/** Set option for whether scale should be linear. **/
+	void CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx);
+
 protected:
 
 	/** Map of static meshes and corresponding thumbnail borders. **/
@@ -175,6 +181,9 @@ protected:
 
 	/** Scale offsets for each component. **/
 	TArray<FVector> ScaleOffsets;
+
+	/** Whether to scale linearly for all fields. **/
+	TArray<bool> ScaleOffsetsLinearly;
 
 	/** Temporary geo part information, this is used during loading. **/
 	TArray<FHoudiniGeoPartObject> GeoPartObjects;
