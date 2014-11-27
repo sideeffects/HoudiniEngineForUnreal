@@ -34,7 +34,8 @@ public:
 	/** Return actor component. **/
 	UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
 
-public: /** AActor methods. **/
+/** AActor methods. **/
+public:
 
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 };

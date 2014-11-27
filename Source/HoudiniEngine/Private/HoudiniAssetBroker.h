@@ -27,7 +27,8 @@ public:
 
 	virtual ~FHoudiniAssetBroker();
 
-public: /** IComponentAssetBroker methods. **/
+/** IComponentAssetBroker methods. **/
+public:
 
 	/** Reports the asset class this broker knows how to handle. **/
 	UClass* GetSupportedAssetClass() override;

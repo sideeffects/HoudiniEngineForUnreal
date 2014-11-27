@@ -61,7 +61,8 @@ public:
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
 
-public: /** UObject methods. **/
+/** UObject methods. **/
+public:
 
 	virtual void BeginDestroy();
 	virtual void Serialize(FArchive& Ar) override;

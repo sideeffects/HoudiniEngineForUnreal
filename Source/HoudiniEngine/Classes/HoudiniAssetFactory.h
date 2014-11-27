@@ -27,7 +27,8 @@ class HOUDINIENGINE_API UHoudiniAssetFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
-private: /** UFactory methods. **/
+/** UFactory methods. **/
+private:
 
 	virtual bool DoesSupportClass(UClass* Class) override;
 	virtual FText GetDisplayName() const override;

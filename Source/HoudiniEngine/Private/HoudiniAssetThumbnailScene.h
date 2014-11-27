@@ -27,7 +27,8 @@ public:
 	/** Sets the houdini asset to use in the next GetView(). **/
 	void SetHoudiniAsset(UHoudiniAsset* HoudiniAsset);
 
-protected: /** FThumbnailPreviewScene methods. **/
+/** FThumbnailPreviewScene methods. **/
+protected:
 
 	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
