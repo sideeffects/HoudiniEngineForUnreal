@@ -46,7 +46,6 @@ UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAsset(nullptr),
-	ChangedHoudiniAsset(nullptr),
 	AssetId(-1),
 	HapiNotificationStarted(0.0),
 	bContainsHoudiniLogoGeometry(false),
@@ -158,13 +157,13 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(HoudiniSplineComponent, InThis);
 		}
 
-		// Retrieve asset associated with this component.
-		//UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-		//if(HoudiniAsset)
-		//{
-		//	// Manually add a reference to Houdini asset from this component.
-		//	Collector.AddReferencedObject(HoudiniAsset, InThis);
-		//}
+		// Retrieve asset associated with this component and add reference to it.
+		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+		if(HoudiniAsset)
+		{
+			// Manually add a reference to Houdini asset from this component.
+			Collector.AddReferencedObject(HoudiniAsset, InThis);
+		}
 	}
 
 	// Call base implementation.
@@ -226,19 +225,28 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		return;
 	}
 
+	// Houdini Asset has been changed, we need to reset corresponding HDA and relevant resources.
+	ResetHoudiniResources();
+
+	// Clear all created parameters.
+	ClearParameters();
+
+	// Clear all inputs.
+	ClearInputs();
+
+	// Clear all instance inputs.
+	ClearInstanceInputs();
+
 	// Set Houdini logo to be default geometry.
 	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
 	CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 
-	// Release all instanced mesh resources.
-	//MarkAllInstancersUnused();
-	//ClearAllUnusedInstancers();
-
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
 	{
+		UpdateEditorProperties();
 		return;
 	}
 
@@ -981,19 +989,6 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 
 
 void
-UHoudiniAssetComponent::PreEditChange(UProperty* PropertyAboutToChange)
-{
-	if(PropertyAboutToChange && PropertyAboutToChange->GetName() == TEXT("HoudiniAsset"))
-	{
-		// Memorize current Houdini Asset, since it is about to change.
-		ChangedHoudiniAsset = HoudiniAsset;
-	}
-
-	Super::PreEditChange(PropertyAboutToChange);
-}
-
-
-void
 UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -1011,6 +1006,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	}
 
 	// If Houdini Asset is being changed and has actually changed.
+	/*
 	if(Property->GetName() == TEXT("HoudiniAsset") && ChangedHoudiniAsset != HoudiniAsset)
 	{
 		if(ChangedHoudiniAsset)
@@ -1042,7 +1038,9 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		StartHoudiniAssetChange();
 		return;
 	}
-	else if(Property->GetName() == TEXT("Mobility"))
+	*/
+
+	if(Property->GetName() == TEXT("Mobility"))
 	{
 		// Mobility was changed, we need to update it for all attached components as well.
 		for(TArray<USceneComponent*>::TIterator Iter(AttachChildren); Iter; ++Iter)

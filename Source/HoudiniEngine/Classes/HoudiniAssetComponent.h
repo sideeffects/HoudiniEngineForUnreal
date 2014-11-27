@@ -95,7 +95,7 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 public:
 
 	/** Houdini Asset associated with this component. **/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
 	UHoudiniAsset* HoudiniAsset;
 
 /** Static mesh generation properties.**/
@@ -210,7 +210,6 @@ public:
 /** UObject methods. **/
 public:
 
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PreSave() override;
 	virtual void PostLoad() override;
@@ -368,9 +367,6 @@ protected:
 	/** Timer delegate, used during asset change. This is necessary when asset is changed through properties. In this **/
 	/** case we cannot update right away as it would require changing properties on which update was fired.			  **/
 	FTimerDelegate TimerDelegateAssetChange;
-
-	/** Used to store Houdini Asset when it is changing through a property action. **/
-	UHoudiniAsset* ChangedHoudiniAsset;
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;

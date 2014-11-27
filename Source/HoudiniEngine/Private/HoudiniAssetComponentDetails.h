@@ -62,6 +62,9 @@ private:
 	/** Helper method used to create widgets for generated static meshes. **/
 	void CreateStaticMeshAndMaterialWidgets(IDetailCategoryBuilder& DetailCategoryBuilder);
 
+	/** Helper method used to create widget for Houdini asset. **/
+	void CreateHoudiniAssetWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
+
 	/** Helper method used to create a single static mesh. **/
 	void CreateSingleStaticMesh();
 
@@ -99,6 +102,30 @@ private:
 	/** Handler for reset material interface button. **/
 	FReply OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, int32 MaterialIdx);
 
+	/** Delegate used when Houdini asset has been drag and dropped. **/
+	void OnHoudiniAssetDropped(UObject* InObject);
+
+	/** Delegate used to detect if valid object has been dragged and dropped. **/
+	bool OnHoudiniAssetDraggedOver(const UObject* InObject) const;
+
+	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
+	const FSlateBrush* GetHoudiniAssetThumbnailBorder() const;
+
+	/** Construct drop down menu content for Houdini asset. **/
+	TSharedRef<SWidget> OnGetHoudiniAssetMenuContent();
+
+	/** Delegate for handling selection in content browser. **/
+	void OnHoudiniAssetSelected(const FAssetData& AssetData);
+
+	/** Closes the combo button. **/
+	void CloseHoudiniAssetComboButton();
+
+	/** Browse to Houdini asset. **/
+	void OnHoudiniAssetBrowse();
+
+	/** Handler for reset Houdini asset button. **/
+	FReply OnResetHoudiniAssetClicked();
+
 private:
 
 	/** Components which are being customized. **/
@@ -115,6 +142,15 @@ private:
 
 	/** Delegate for filtering material interfaces. **/
 	FOnShouldFilterAsset OnShouldFilterMaterialInterface;
+
+	/** Thumbnail border used by Houdini asset. **/
+	TSharedPtr<SBorder> HoudiniAssetThumbnailBorder;
+
+	/** Combo element used by Houdini asset. **/
+	TSharedPtr<SComboButton> HoudiniAssetComboButton;
+
+	/** Delegate for filtering Houdini assets. **/
+	FOnShouldFilterAsset OnShouldFilterHoudiniAsset;
 
 	/** Whether baking option is enabled. **/
 	bool bEnableBaking;
