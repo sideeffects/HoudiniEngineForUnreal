@@ -473,32 +473,6 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 
 
 void
-UHoudiniAssetComponent::StartHoudiniAssetChange()
-{
-	// If we have no timer delegate spawned for this component, spawn one.
-	if(!TimerDelegateAssetChange.IsBound())
-	{
-		TimerDelegateAssetChange = FTimerDelegate::CreateUObject(this, &UHoudiniAssetComponent::TickHoudiniAssetChange);
-
-		// We need to register delegate with the timer system.
-		static const float TickTimerDelay = 0.01f;
-		GEditor->GetTimerManager()->SetTimer(TimerDelegateAssetChange, TickTimerDelay, false);
-	}
-}
-
-
-void
-UHoudiniAssetComponent::StopHoudiniAssetChange()
-{
-	if(TimerDelegateAssetChange.IsBound())
-	{
-		GEditor->GetTimerManager()->ClearTimer(TimerDelegateAssetChange);
-		TimerDelegateAssetChange.Unbind();
-	}
-}
-
-
-void
 UHoudiniAssetComponent::TickHoudiniComponent()
 {
 	FHoudiniEngineTaskInfo TaskInfo;
@@ -818,33 +792,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 
 void
-UHoudiniAssetComponent::TickHoudiniAssetChange()
-{
-	// We need to update editor properties.
-	UpdateEditorProperties();
-
-	if(HoudiniAsset)
-	{
-		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
-
-		// Create new GUID to identify this request.
-		HapiGUID = FGuid::NewGuid();
-
-		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
-		Task.Asset = HoudiniAsset;
-		Task.ActorName = GetOuter()->GetName();
-		FHoudiniEngine::Get().AddTask(Task);
-
-		// Start ticking - this will poll the cooking system for completion.
-		StartHoudiniTicking();
-	}
-
-	// We no longer need this ticker.
-	StopHoudiniAssetChange();
-}
-
-
-void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
@@ -1004,41 +951,6 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	{
 		return;
 	}
-
-	// If Houdini Asset is being changed and has actually changed.
-	/*
-	if(Property->GetName() == TEXT("HoudiniAsset") && ChangedHoudiniAsset != HoudiniAsset)
-	{
-		if(ChangedHoudiniAsset)
-		{
-			// Houdini Asset has been changed, we need to reset corresponding HDA and relevant resources.
-			ResetHoudiniResources();
-
-			// Clear all created parameters.
-			ClearParameters();
-
-			// Clear all inputs.
-			ClearInputs();
-
-			// Clear all instance inputs.
-			ClearInstanceInputs();
-
-			// We also do not have geometry anymore, so we need to use default geometry (Houdini logo).
-			ReleaseObjectGeoPartResources(StaticMeshes);
-			StaticMeshes.Empty();
-			StaticMeshComponents.Empty();
-			CreateStaticMeshHoudiniLogoResource(StaticMeshes);
-
-			ChangedHoudiniAsset = nullptr;
-			AssetId = -1;
-		}
-
-		// Start ticking which will update the asset. We cannot update it here as it involves potential property
-		// updates. It cannot be done here because this event is fired on a property which we might change.
-		StartHoudiniAssetChange();
-		return;
-	}
-	*/
 
 	if(Property->GetName() == TEXT("Mobility"))
 	{

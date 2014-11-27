@@ -153,9 +153,6 @@ public:
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
 
-	/** Ticking function used when asset is changed through proprety selection. **/
-	void TickHoudiniAssetChange();
-
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
@@ -265,12 +262,6 @@ private:
 
 	/** Reset all Houdini related information, the asset, cooking trackers, generated geometry, related state, etc. **/
 	void ResetHoudiniResources();
-
-	/** Start delegate which is responsible for asset change. **/
-	void StartHoudiniAssetChange();
-
-	/** Stop delegate which is responsible for asset change. **/
-	void StopHoudiniAssetChange();
 
 	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
 	void CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
