@@ -70,6 +70,13 @@ UHoudiniSplineComponent::GetCurveMethod() const
 }
 
 
+int32
+UHoudiniSplineComponent::GetCurvePointCount() const
+{
+	return CurvePoints.Num();
+}
+
+
 bool
 UHoudiniSplineComponent::IsClosedCurve() const
 {
@@ -157,5 +164,21 @@ UHoudiniSplineComponent::UploadControlPoints()
 			}
 		}
 	}
+}
+
+
+void
+UHoudiniSplineComponent::RemovePoint(int32 PointIndex)
+{
+	check(PointIndex >= 0 && PointIndex < CurvePoints.Num());
+	CurvePoints.RemoveAt(PointIndex);
+}
+
+
+void
+UHoudiniSplineComponent::AddPoint(int32 PointIndex, const FVector& Point)
+{
+	check(PointIndex >= 0 && PointIndex < CurvePoints.Num());
+	CurvePoints.Insert(Point, PointIndex);
 }
 

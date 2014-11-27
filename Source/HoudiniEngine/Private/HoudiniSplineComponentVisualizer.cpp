@@ -35,26 +35,57 @@ HHoudiniSplineControlPointVisProxy::HHoudiniSplineControlPointVisProxy(const UAc
 }
 
 
+FHoudiniSplineComponentVisualizerCommands::FHoudiniSplineComponentVisualizerCommands() :
+	TCommands<FHoudiniSplineComponentVisualizerCommands>(
+		"HoudiniSplineComponentVisualizer",
+		LOCTEXT("HoudiniSplineComponentVisualizer", "Houdini Spline Component Visualizer"),
+		NAME_None,
+		FEditorStyle::GetStyleSetName()
+		)
+	{
+
+	}
+
+
+void
+FHoudiniSplineComponentVisualizerCommands::RegisterCommands()
+{
+	UI_COMMAND(CommandAddControlPoint, "Add Control Point", "Add Control Point.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(CommandDeleteControlPoint, "Delete Control Point", "Delete Control Point.", EUserInterfaceActionType::Button, FInputGesture());
+}
+
+
 FHoudiniSplineComponentVisualizer::FHoudiniSplineComponentVisualizer() :
 	FComponentVisualizer(),
 	EditedHoudiniSplineComponent(nullptr),
 	bCurveEditing(false),
 	EditedControlPointIndex(INDEX_NONE)
 {
-
+	FHoudiniSplineComponentVisualizerCommands::Register();
+	VisualizerActions = MakeShareable(new FUICommandList);
 }
 
 
 FHoudiniSplineComponentVisualizer::~FHoudiniSplineComponentVisualizer()
 {
-
+	FHoudiniSplineComponentVisualizerCommands::Unregister();
 }
 
 
 void
 FHoudiniSplineComponentVisualizer::OnRegister()
 {
+	const auto& Commands = FHoudiniSplineComponentVisualizerCommands::Get();
 
+	VisualizerActions->MapAction(
+		Commands.CommandAddControlPoint,
+		FExecuteAction::CreateSP(this, &FHoudiniSplineComponentVisualizer::OnAddControlPoint),
+		FCanExecuteAction::CreateSP(this, &FHoudiniSplineComponentVisualizer::IsAddControlPointValid));
+
+	VisualizerActions->MapAction(
+		Commands.CommandDeleteControlPoint,
+		FExecuteAction::CreateSP(this, &FHoudiniSplineComponentVisualizer::OnDeleteControlPoint),
+		FCanExecuteAction::CreateSP(this, &FHoudiniSplineComponentVisualizer::IsDeleteControlPointValid));
 }
 
 
@@ -212,32 +243,80 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewp
 			return true;
 		}
 
-		// Handle change in scale.
-		/*
-		if(!DeltaScale.IsZero())
-		{
-			if(DeltaScale.X != 0.0f)
-			{
-				Point.X *= DeltaScale.X;
-			}
-
-			if(DeltaScale.Y != 0.0f)
-			{
-				Point.Y *= DeltaScale.Y;
-			}
-
-			if(DeltaScale.Z != 0.0f)
-			{
-				Point.Z *= DeltaScale.Z;
-			}
-		}
-		*/
-
 		NotifyComponentModified(EditedControlPointIndex, Point);
 		return true;
 	}
 
 	return false;
+}
+
+
+TSharedPtr<SWidget>
+FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
+{
+	FMenuBuilder MenuBuilder(true, VisualizerActions);
+	{
+		MenuBuilder.BeginSection("CurveKeyEdit");
+		{
+			if(INDEX_NONE != EditedControlPointIndex)
+			{
+				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandAddControlPoint);
+				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandDeleteControlPoint);
+			}
+
+			/*
+			if(SelectedSegmentIndex != INDEX_NONE)
+			{
+				MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().AddKey);
+			}
+			else if (SelectedKeyIndex != INDEX_NONE)
+			{
+				MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().DeleteKey);
+				MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().DuplicateKey);
+
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("SplinePointType", "Spline Point Type"),
+					LOCTEXT("KeyTypeTooltip", "Define the type of the spline point."),
+					FNewMenuDelegate::CreateSP(this, &FSplineComponentVisualizer::GenerateSplinePointTypeSubMenu));
+
+				// Only add the Automatic Tangents submenu if the key is a curve type
+				USplineComponent* SplineComp = GetEditedSplineComponent();
+				if (SplineComp &&
+					SelectedKeyIndex < SplineComp->SplineInfo.Points.Num() &&
+					SplineComp->SplineInfo.Points[SelectedKeyIndex].IsCurveKey())
+				{
+					MenuBuilder.AddSubMenu(
+						LOCTEXT("ResetToAutomaticTangent", "Reset to Automatic Tangent"),
+						LOCTEXT("ResetToAutomaticTangentTooltip", "Reset the spline point tangent to an automatically generated value."),
+						FNewMenuDelegate::CreateSP(this, &FSplineComponentVisualizer::GenerateTangentTypeSubMenu));
+				}
+			}
+			*/
+		}
+		MenuBuilder.EndSection();
+	}
+
+	TSharedPtr<SWidget> MenuWidget = MenuBuilder.MakeWidget();
+	return MenuWidget;
+}
+
+
+void
+FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
+{
+	if(EditedHoudiniSplineComponent)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+		if(HoudiniAssetComponent)
+		{
+			HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);
+		}
+
+		if(GEditor)
+		{
+			GEditor->RedrawLevelEditingViewports(true);
+		}
+	}
 }
 
 
@@ -250,21 +329,65 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified(int32 PointIndex, con
 		EditedHoudiniSplineComponent->UpdatePoint(PointIndex, Point);
 		EditedHoudiniSplineComponent->UploadControlPoints();
 
-		// Retrieve Houdini asset component we are attached to and notify it about control point change. This will trigger recook.
-		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
-		if(HoudiniAssetComponent)
-		{
-			HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);
-		}
-
-		/*
-		if (SplineOwningActor.IsValid())
-		{
-			SplineOwningActor.Get()->PostEditMove(true);
-		}
-		*/
-
-		GEditor->RedrawLevelEditingViewports(true);
+		UpdateHoudiniComponents();
 	}
+}
+
+
+void
+FHoudiniSplineComponentVisualizer::OnAddControlPoint()
+{
+	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
+	{
+		// Get curve points.
+		const TArray<FVector>& CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+		check(EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num());
+		FVector Point = CurvePoints[EditedControlPointIndex] + FVector(100.0f, 0.0f, 100.0f);
+
+		EditedHoudiniSplineComponent->AddPoint(EditedControlPointIndex, Point);
+		EditedHoudiniSplineComponent->UploadControlPoints();
+
+		UpdateHoudiniComponents();
+	}
+}
+
+
+bool
+FHoudiniSplineComponentVisualizer::IsAddControlPointValid() const
+{
+	// We can always add points.
+
+	return true;
+}
+
+
+void
+FHoudiniSplineComponentVisualizer::OnDeleteControlPoint()
+{
+	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
+	{
+		EditedHoudiniSplineComponent->RemovePoint(EditedControlPointIndex);
+		EditedHoudiniSplineComponent->UploadControlPoints();
+
+		UpdateHoudiniComponents();
+		EditedControlPointIndex = INDEX_NONE;
+	}
+}
+
+
+bool
+FHoudiniSplineComponentVisualizer::IsDeleteControlPointValid() const
+{
+	// We can only delete points if we have more than two points.
+
+	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
+	{
+		if(EditedHoudiniSplineComponent->GetCurvePointCount() > 2)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
