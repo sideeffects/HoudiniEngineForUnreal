@@ -117,7 +117,10 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	*/
 
 	// Create Houdini Asset category.
-	DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+	{
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+		CreateHoudiniAssetWidget(DetailCategoryBuilder);
+	}
 
 	// Create category for generated static meshes and their materials.
 	{
@@ -414,6 +417,141 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 }
 
 
+void
+FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
+{
+	// Reset Houdini asset related widgets.
+	HoudiniAssetComboButton.Reset();
+	HoudiniAssetThumbnailBorder.Reset();
+
+	// Get thumbnail pool for this builder.
+	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+
+	FString Label = TEXT("Houdini Asset");
+	Row.NameWidget.Widget = SNew(STextBlock)
+							.Text(Label)
+							.ToolTipText(Label)
+							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+
+	UHoudiniAsset* HoudiniAsset = nullptr;
+	FString HoudiniAssetPathName = TEXT("");
+	FString HoudiniAssetName = TEXT("");
+
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+		HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+
+		if(HoudiniAsset)
+		{
+			HoudiniAssetPathName = HoudiniAsset->GetPathName();
+			HoudiniAssetName = HoudiniAsset->GetName();
+		}
+	}
+
+	// Create thumbnail for this Houdini asset.
+	TSharedPtr<FAssetThumbnail> HoudiniAssetThumbnail = MakeShareable(new FAssetThumbnail(HoudiniAsset, 64, 64, AssetThumbnailPool));
+
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+	TSharedPtr<SHorizontalBox> ButtonBox;
+
+	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
+	[
+		SNew(SAssetDropTarget)
+		.OnIsAssetAcceptableForDrop(this, &FHoudiniAssetComponentDetails::OnHoudiniAssetDraggedOver)
+		.OnAssetDropped(this, &FHoudiniAssetComponentDetails::OnHoudiniAssetDropped)
+		[
+			SAssignNew(HorizontalBox, SHorizontalBox)
+		]
+	];
+
+	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
+	[
+		SAssignNew(HoudiniAssetThumbnailBorder, SBorder)
+		.Padding(5.0f)
+		.BorderImage(this, &FHoudiniAssetComponentDetails::GetHoudiniAssetThumbnailBorder)
+		[
+			SNew(SBox)
+			.WidthOverride(64)
+			.HeightOverride(64)
+			.ToolTipText(HoudiniAssetPathName)
+			[
+				HoudiniAssetThumbnail->MakeThumbnailWidget()
+			]
+		]
+	];
+
+	HorizontalBox->AddSlot()
+	.FillWidth(1.0f)
+	.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+	.VAlign(VAlign_Center)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.HAlign(HAlign_Fill)
+		[
+			SAssignNew(ButtonBox, SHorizontalBox)
+			+SHorizontalBox::Slot()
+			[
+				SAssignNew(HoudiniAssetComboButton, SComboButton)
+				.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
+				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				.OnGetMenuContent(this, &FHoudiniAssetComponentDetails::OnGetHoudiniAssetMenuContent)
+				.ContentPadding(2.0f)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
+					.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.Text(HoudiniAssetName)
+				]
+			]
+		]/*
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(FMargin( 0.0f, 0.0f ))
+		[
+			SNullWidget::NullWidget
+		]*/
+	];
+
+	ButtonBox->AddSlot()
+	.AutoWidth()
+	.Padding(2.0f, 0.0f)
+	.VAlign(VAlign_Center)
+	[
+		PropertyCustomizationHelpers::MakeBrowseButton(
+			FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::OnHoudiniAssetBrowse),
+			TAttribute<FText>(FText::FromString(HoudiniAssetName)))
+	];
+
+	ButtonBox->AddSlot()
+	.AutoWidth()
+	.Padding(2.0f, 0.0f)
+	.VAlign(VAlign_Center)
+	[
+		SNew(SButton)
+		.ToolTipText(LOCTEXT("ResetToBaseHoudiniAsset", "Reset Houdini Asset"))
+		.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+		.ContentPadding(0) 
+		.Visibility(EVisibility::Visible)
+		.OnClicked(this, &FHoudiniAssetComponentDetails::OnResetHoudiniAssetClicked)
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+		]
+	];
+
+
+	Row.ValueWidget.Widget = VerticalBox;
+	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
+}
+
+
 const FSlateBrush*
 FHoudiniAssetComponentDetails::GetStaticMeshThumbnailBorder(UStaticMesh* StaticMesh) const
 {
@@ -467,6 +605,7 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudin
 		
 		// Notify asset registry that we have created assets. This should update the content browser.
 		FAssetRegistryModule::AssetCreated(OutStaticMesh);
+		//OutStaticMesh->MakePackageDirty();
 	}
 
 	return FReply::Handled();
@@ -577,6 +716,117 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 	{
 		// Replace material with default.
 		OnMaterialInterfaceDropped(MaterialInterface, StaticMesh, MaterialIdx);
+	}
+
+	return FReply::Handled();
+}
+
+
+void
+FHoudiniAssetComponentDetails::OnHoudiniAssetDropped(UObject* InObject)
+{
+	if(InObject)
+	{
+		UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(InObject);
+		if(HoudiniAsset && HoudiniAssetComponents.Num() > 0)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
+		}
+	}
+}
+
+
+bool
+FHoudiniAssetComponentDetails::OnHoudiniAssetDraggedOver(const UObject* InObject) const
+{
+	return (InObject && InObject->IsA(UHoudiniAsset::StaticClass()));
+}
+
+
+
+const FSlateBrush*
+FHoudiniAssetComponentDetails::GetHoudiniAssetThumbnailBorder() const
+{
+	if(HoudiniAssetThumbnailBorder.IsValid() && HoudiniAssetThumbnailBorder->IsHovered())
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+	}
+}
+
+
+TSharedRef<SWidget>
+FHoudiniAssetComponentDetails::OnGetHoudiniAssetMenuContent()
+{
+	TArray<const UClass*> AllowedClasses;
+	AllowedClasses.Add(UHoudiniAsset::StaticClass());
+
+	UHoudiniAsset* HoudiniAsset = nullptr;
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+		HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	}
+
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(HoudiniAsset), true, &AllowedClasses, OnShouldFilterHoudiniAsset,
+		FOnAssetSelected::CreateSP(this, &FHoudiniAssetComponentDetails::OnHoudiniAssetSelected), 
+		FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::CloseHoudiniAssetComboButton));
+}
+
+
+void
+FHoudiniAssetComponentDetails::OnHoudiniAssetSelected(const FAssetData& AssetData)
+{
+	if(HoudiniAssetComboButton.IsValid())
+	{
+		HoudiniAssetComboButton->SetIsOpen(false);
+
+		UObject* Object = AssetData.GetAsset();
+		OnHoudiniAssetDropped(Object);
+	}
+}
+
+
+void
+FHoudiniAssetComponentDetails::CloseHoudiniAssetComboButton()
+{
+
+}
+
+
+void
+FHoudiniAssetComponentDetails::OnHoudiniAssetBrowse()
+{
+	if(GEditor)
+	{
+		UHoudiniAsset* HoudiniAsset = nullptr;
+		if(HoudiniAssetComponents.Num() > 0)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+			HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+
+			if(HoudiniAsset)
+			{
+				TArray<UObject*> Objects;
+				Objects.Add(HoudiniAsset);
+				GEditor->SyncBrowserToObjects(Objects);
+			}
+		}
+	}
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnResetHoudiniAssetClicked()
+{
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+		HoudiniAssetComponent->SetHoudiniAsset(nullptr);
 	}
 
 	return FReply::Handled();
