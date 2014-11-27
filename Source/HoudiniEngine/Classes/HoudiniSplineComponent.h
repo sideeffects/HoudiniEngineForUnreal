@@ -64,6 +64,9 @@ public:
 	/** Return true if this curve is closed. **/
 	bool IsClosedCurve() const;
 
+	/** Return number of curve points. **/
+	int32 GetCurvePointCount() const;
+
 	/** Resets all points of this curve. **/
 	void ResetCurvePoints();
 
@@ -87,6 +90,12 @@ public:
 
 	/** Upload changed control points to HAPI. **/
 	void UploadControlPoints();
+
+	/** Remove point at a given index. **/
+	void RemovePoint(int32 PointIndex);
+
+	/** Add a point to this curve at given point index. **/
+	void AddPoint(int32 PointIndex, const FVector& Point);
 
 protected:
 

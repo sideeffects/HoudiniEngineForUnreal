@@ -34,6 +34,27 @@ struct HHoudiniSplineControlPointVisProxy : public HHoudiniSplineVisProxy
 };
 
 
+/** Define commands for our component visualizer */
+class FHoudiniSplineComponentVisualizerCommands : public TCommands<FHoudiniSplineComponentVisualizerCommands>
+{
+public:
+
+	/** Constructor. **/
+	FHoudiniSplineComponentVisualizerCommands();
+
+	/** Register commands. **/
+	virtual void RegisterCommands() override;
+
+public:
+
+	/** Command for adding a control point. **/
+	TSharedPtr<FUICommandInfo> CommandAddControlPoint;
+
+	/** Command for deleting a control point. **/
+	TSharedPtr<FUICommandInfo> CommandDeleteControlPoint;
+};
+
+
 /** Our spline visualizer. **/
 class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 {
@@ -63,12 +84,29 @@ public:
 	/** Handle input change. **/
 	virtual bool HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
 
+	/** Create context menu for this visualizer. **/
+	virtual TSharedPtr<SWidget> GenerateContextMenu() const override;
+
 protected:
+
+	/** Update owner spline component and Houdini component it is attached to. **/
+	void UpdateHoudiniComponents();
 
 	/** Perform internal component update. **/
 	void NotifyComponentModified(int32 PointIndex, const FVector& Point);
 
+	/** Callbacks for Add control point action. **/
+	void OnAddControlPoint();
+	bool IsAddControlPointValid() const;
+
+	/** Callbacks for Delete control point action. **/
+	void OnDeleteControlPoint();
+	bool IsDeleteControlPointValid() const;
+
 protected:
+
+	/** Visualizer actions. **/
+	TSharedPtr<FUICommandList> VisualizerActions;
 
 	/** Houdini component which is being edited. **/
 	UHoudiniSplineComponent* EditedHoudiniSplineComponent;
