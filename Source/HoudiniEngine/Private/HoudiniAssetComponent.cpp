@@ -237,6 +237,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	// Clear all instance inputs.
 	ClearInstanceInputs();
 
+	// Release all curve related resources.
+	ClearAllCurves();
+
 	// Set Houdini logo to be default geometry.
 	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
