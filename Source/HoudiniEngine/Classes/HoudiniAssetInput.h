@@ -51,7 +51,8 @@ public:
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
 
-public: /** UObject methods. **/
+/** UObject methods. **/
+public:
 
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);

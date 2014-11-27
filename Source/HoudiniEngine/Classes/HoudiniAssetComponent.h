@@ -92,12 +92,6 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 
 	virtual ~UHoudiniAssetComponent();
 
-public:
-
-	/** Houdini Asset associated with this component. **/
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniAsset)
-	UHoudiniAsset* HoudiniAsset;
-
 /** Static mesh generation properties.**/
 public:
 
@@ -324,6 +318,11 @@ private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
 	static bool bDisplayEngineNotInitialized;
+
+public:
+
+	/** Houdini Asset associated with this component. **/
+	UHoudiniAsset* HoudiniAsset;
 
 protected:
 

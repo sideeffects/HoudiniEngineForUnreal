@@ -77,7 +77,8 @@ private:
 	/** Helper function to retrieve HAPI string and convert it to Unreal one. **/
 	static bool RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedName);
 
-public: /** UObject methods. **/
+/** UObject methods. **/
+public:
 
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);

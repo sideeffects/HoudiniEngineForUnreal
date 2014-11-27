@@ -38,7 +38,8 @@ public:
 	/** Constructor. **/
 	FHoudiniAssetComponentDetails();
 
-public: /** IDetailCustomization methods. **/
+/** IDetailCustomization methods. **/
+public:
 
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 

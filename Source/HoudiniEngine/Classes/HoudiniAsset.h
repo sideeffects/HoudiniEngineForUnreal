@@ -35,7 +35,8 @@ public:
 				  const uint8* BufferEnd,
 				  const FString& InFileName);
 
-public: /** UObject methods. **/
+/** UObject methods. **/
+public:
 
 	virtual void FinishDestroy() override;
 	virtual void Serialize(FArchive& Ar) override;

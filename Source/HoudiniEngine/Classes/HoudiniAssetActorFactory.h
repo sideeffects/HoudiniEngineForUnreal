@@ -26,7 +26,8 @@ class HOUDINIENGINE_API UHoudiniAssetActorFactory : public UActorFactory
 {
 	GENERATED_UCLASS_BODY()
 
-public: /** UActorFactory inherited methods. **/
+/** UActorFactory methods. **/
+public:
 
 	/** Return true if Actor can be created from a given asset. **/
 	virtual bool CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg) override;

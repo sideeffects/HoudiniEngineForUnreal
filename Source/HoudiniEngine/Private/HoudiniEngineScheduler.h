@@ -23,13 +23,15 @@ public:
 	FHoudiniEngineScheduler();
 	virtual ~FHoudiniEngineScheduler();
 
-public: /** FRunnable methods. **/
+/** FRunnable methods. **/
+public:
 
 	virtual uint32 Run() override;
 	virtual void Stop() override;
 	FSingleThreadRunnable* GetSingleThreadInterface() override;
 
-public: /** FSingleThreadRunnable methods. **/
+/** FSingleThreadRunnable methods. **/
+public:
 
 	virtual void Tick() override;
 
