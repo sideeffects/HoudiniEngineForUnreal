@@ -22,5 +22,5 @@ Currently, the supported Unreal Engine versions are:
 6. Generate Visual Studio solution (by running GenerateProjectFiles.bat) and build Unreal Engine.
 7. When starting Unreal Engine editor, go to Plugins menu and enable HoudiniEngine plugin (it's in Rendering section). 
 8. Restart Unreal Engine.
-9. You should now be able to load (import OTL files and drop OTL files into Content Browser) Houdini Digital Assets. Asset cooking will be done in a separate thread and Thumbnail for the asset will be generated asynchronously.
+9. You should now be able to load (import OTL files and drop OTL files into Content Browser) Houdini Digital Assets.
 10. Once you have a Houdini Digital Asset in Content Browser you should be able to drag it into Editor viewport. This will spawn a new Houdini Asset Actor. Geometry cooking will be done in a separate thread and geometry will be displayed once the cooking is complete. At this point you will be able to see asset parameters in the Details panel. Modifying any of the parameters will force asset to recook and possibly update its geometry.
