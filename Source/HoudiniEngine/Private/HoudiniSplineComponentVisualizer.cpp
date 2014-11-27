@@ -365,6 +365,9 @@ FHoudiniSplineComponentVisualizer::OnAddControlPoint()
 		EditedHoudiniSplineComponent->AddPoint(ControlPointIndex, Point);
 		EditedHoudiniSplineComponent->UploadControlPoints();
 
+		// Select newly created point.
+		EditedControlPointIndex = ControlPointIndex;
+
 		UpdateHoudiniComponents();
 	}
 }
