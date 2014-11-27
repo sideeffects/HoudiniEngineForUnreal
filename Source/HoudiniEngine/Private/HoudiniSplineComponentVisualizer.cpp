@@ -342,9 +342,27 @@ FHoudiniSplineComponentVisualizer::OnAddControlPoint()
 		// Get curve points.
 		const TArray<FVector>& CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
 		check(EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num());
-		FVector Point = CurvePoints[EditedControlPointIndex] + FVector(100.0f, 0.0f, 100.0f);
 
-		EditedHoudiniSplineComponent->AddPoint(EditedControlPointIndex, Point);
+		FVector OtherPoint;
+		if(EditedControlPointIndex + 1 != CurvePoints.Num())
+		{
+			OtherPoint = CurvePoints[EditedControlPointIndex + 1];
+		}
+		else
+		{
+			OtherPoint = CurvePoints[0];
+		}
+
+		FVector Dir = (OtherPoint - CurvePoints[EditedControlPointIndex]) / 2.0f;
+		FVector Point = CurvePoints[EditedControlPointIndex] + Dir;
+
+		int32 ControlPointIndex = EditedControlPointIndex + 1;
+		if(ControlPointIndex == CurvePoints.Num())
+		{
+			ControlPointIndex = 0;
+		}
+
+		EditedHoudiniSplineComponent->AddPoint(ControlPointIndex, Point);
 		EditedHoudiniSplineComponent->UploadControlPoints();
 
 		UpdateHoudiniComponents();
