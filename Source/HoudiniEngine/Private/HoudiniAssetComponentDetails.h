@@ -38,6 +38,9 @@ public:
 	/** Constructor. **/
 	FHoudiniAssetComponentDetails();
 
+	/** Destructor. **/
+	virtual ~FHoudiniAssetComponentDetails();
+
 /** IDetailCustomization methods. **/
 public:
 

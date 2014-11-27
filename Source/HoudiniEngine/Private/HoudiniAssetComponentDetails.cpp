@@ -40,6 +40,12 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 }
 
 
+FHoudiniAssetComponentDetails::~FHoudiniAssetComponentDetails()
+{
+
+}
+
+
 void
 FHoudiniAssetComponentDetails::CreateSingleStaticMesh()
 {
@@ -86,35 +92,6 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			}
 		}
 	}
-
-	// Create buttons for actions.
-	/*
-	DetailBuilder.EditCategory("HoudiniActions", TEXT(""), ECategoryPriority::Important)
-		.AddCustomRow(TEXT(""))
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.Padding(0, 2.0f, 0, 0)
-			.FillHeight(1.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(2.0f, 0.0f)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					[
-						SNew(SButton)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.OnClicked(this, &FHoudiniAssetComponentDetails::OnButtonClickedBake)
-						.Text(LOCTEXT("BakeHoudiniActor", "Bake"))
-						.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake selected Houdini Actor into static meshes"))
-					]
-			]
-		];
-	*/
 
 	// Create Houdini Asset category.
 	{
