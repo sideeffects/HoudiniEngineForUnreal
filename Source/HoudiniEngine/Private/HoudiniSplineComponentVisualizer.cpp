@@ -263,35 +263,6 @@ FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
 				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandAddControlPoint);
 				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandDeleteControlPoint);
 			}
-
-			/*
-			if(SelectedSegmentIndex != INDEX_NONE)
-			{
-				MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().AddKey);
-			}
-			else if (SelectedKeyIndex != INDEX_NONE)
-			{
-				MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().DeleteKey);
-				MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().DuplicateKey);
-
-				MenuBuilder.AddSubMenu(
-					LOCTEXT("SplinePointType", "Spline Point Type"),
-					LOCTEXT("KeyTypeTooltip", "Define the type of the spline point."),
-					FNewMenuDelegate::CreateSP(this, &FSplineComponentVisualizer::GenerateSplinePointTypeSubMenu));
-
-				// Only add the Automatic Tangents submenu if the key is a curve type
-				USplineComponent* SplineComp = GetEditedSplineComponent();
-				if (SplineComp &&
-					SelectedKeyIndex < SplineComp->SplineInfo.Points.Num() &&
-					SplineComp->SplineInfo.Points[SelectedKeyIndex].IsCurveKey())
-				{
-					MenuBuilder.AddSubMenu(
-						LOCTEXT("ResetToAutomaticTangent", "Reset to Automatic Tangent"),
-						LOCTEXT("ResetToAutomaticTangentTooltip", "Reset the spline point tangent to an automatically generated value."),
-						FNewMenuDelegate::CreateSP(this, &FSplineComponentVisualizer::GenerateTangentTypeSubMenu));
-				}
-			}
-			*/
 		}
 		MenuBuilder.EndSection();
 	}
