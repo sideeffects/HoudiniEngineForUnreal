@@ -1303,27 +1303,24 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	Ar << HoudiniAssetPackage;
 	Ar << HoudiniAssetName;
 
-	// If we are transacting and loading, we need to restore the asset.
-	if(Ar.IsTransacting())
+	// If we are loading, we need to restore the asset.
+	if(Ar.IsLoading())
 	{
-		if(Ar.IsLoading())
+		// We need to locate corresponding package and load it if it is not loaded.
+		UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
+		if(!Package)
 		{
-			// We need to locate corresponding package and load it if it is not loaded.
-			UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
-			if(!Package)
-			{
-				// Package was not loaded previously, we will try to load it.
-				Package = PackageTools::LoadPackage(HoudiniAssetPackage);
-			}
+			// Package was not loaded previously, we will try to load it.
+			Package = PackageTools::LoadPackage(HoudiniAssetPackage);
+		}
 
-			if(Package)
+		if(Package)
+		{
+			// At this point we can locate the asset, since package exists.
+			UHoudiniAsset* HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
+			if(HoudiniAssetLookup)
 			{
-				// At this point we can locate the asset, since package exists.
-				UHoudiniAsset* HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
-				if(HoudiniAssetLookup)
-				{
-					HoudiniAsset = HoudiniAssetLookup;
-				}
+				HoudiniAsset = HoudiniAssetLookup;
 			}
 		}
 	}
@@ -1446,36 +1443,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Store whether we are in PIE mode.
 	Ar << bIsPlayModeActive;
-
-	/*
-	if(Ar.IsLoading() && bIsNativeComponent)
-	{
-		// This component has been loaded.
-		bLoadedComponent = true;
-
-		// We need to locate corresponding package and load it if it is not loaded.
-		UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
-		if(!Package)
-		{
-			// Package was not loaded previously, we will try to load it.
-			Package = PackageTools::LoadPackage(HoudiniAssetPackage);
-		}
-
-		if(!Package)
-		{
-			// Package does not exist - this is a problem, we cannot continue. Component will have no asset.
-			return;
-		}
-
-		// At this point we can locate the asset, since package exists.
-		UHoudiniAsset* HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(), Package, *HoudiniAssetName, true));
-		if(HoudiniAssetLookup)
-		{
-			// Set asset for this component. This will trigger asynchronous instantiation.
-			SetHoudiniAsset(HoudiniAssetLookup);
-		}
-	}
-	*/
 }
 
 
