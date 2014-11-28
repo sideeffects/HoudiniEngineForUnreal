@@ -1396,27 +1396,27 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 					// Load the raw mesh.
 					UStaticMesh* LoadedStaticMesh = nullptr;
-					if(!HoudiniGeoPartObject.bIsInstancer)
+					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
 					{
 						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(this, nullptr, StaticMeshIdx, Ar);
-					}
 
-					// See if we already have a static mesh for this geo part object.
-					UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
-					if(FoundOldStaticMesh)
-					{
-						UStaticMesh* OldStaticMesh = *FoundOldStaticMesh;
-
-						// Retrieve component for old static mesh.
-						UStaticMeshComponent* const* FoundOldStaticMeshComponent = StaticMeshComponents.Find(OldStaticMesh);
-						if(FoundOldStaticMeshComponent)
+						// See if we already have a static mesh for this geo part object.
+						UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+						if(FoundOldStaticMesh)
 						{
-							UStaticMeshComponent* OldStaticMeshComponent = *FoundOldStaticMeshComponent;
+							UStaticMesh* OldStaticMesh = *FoundOldStaticMesh;
 
-							// We need to replace component's static mesh with a new one.
-							StaticMeshComponents.Remove(OldStaticMesh);
-							StaticMeshComponents.Add(LoadedStaticMesh, OldStaticMeshComponent);
-							OldStaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
+							// Retrieve component for old static mesh.
+							UStaticMeshComponent* const* FoundOldStaticMeshComponent = StaticMeshComponents.Find(OldStaticMesh);
+							if(FoundOldStaticMeshComponent)
+							{
+								UStaticMeshComponent* OldStaticMeshComponent = *FoundOldStaticMeshComponent;
+
+								// We need to replace component's static mesh with a new one.
+								StaticMeshComponents.Remove(OldStaticMesh);
+								StaticMeshComponents.Add(LoadedStaticMesh, OldStaticMeshComponent);
+								OldStaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
+							}
 						}
 					}
 
