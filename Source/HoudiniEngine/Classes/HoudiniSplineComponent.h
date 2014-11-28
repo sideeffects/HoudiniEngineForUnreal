@@ -49,11 +49,6 @@ class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 
 	virtual ~UHoudiniSplineComponent();
 
-/** UObject methods. **/
-public:
-
-	virtual void Serialize(FArchive& Ar) override;
-
 public:
 
 	/** Construct spline from given information. Resets any existing state. **/
@@ -101,6 +96,9 @@ public:
 
 	/** Add a point to this curve at given point index. **/
 	void AddPoint(int32 PointIndex, const FVector& Point);
+
+	/** Serialize raw data of this component. **/
+	void SerializeRaw(FArchive& Ar);
 
 protected:
 

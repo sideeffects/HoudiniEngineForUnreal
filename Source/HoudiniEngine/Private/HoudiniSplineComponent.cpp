@@ -35,11 +35,15 @@ UHoudiniSplineComponent::~UHoudiniSplineComponent()
 
 
 void
-UHoudiniSplineComponent::Serialize(FArchive& Ar)
+UHoudiniSplineComponent::SerializeRaw(FArchive& Ar)
 {
-	Super::Serialize(Ar);
-
 	HoudiniGeoPartObject.Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		CurvePoints.Empty();
+		CurveDisplayPoints.Empty();
+	}
 
 	Ar << CurvePoints;
 	Ar << CurveDisplayPoints;

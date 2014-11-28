@@ -295,6 +295,9 @@ private:
 	/** Serialize curves. **/
 	void SerializeCurves(FArchive& Ar);
 
+	/** Used to perform post loading initializtion of curve / spline components. **/
+	void PostLoadCurves();
+
 	/** Used to perform post loading initialization on instance inputs. **/
 	void PostLoadInitializeInstanceInputs();
 

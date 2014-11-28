@@ -1213,6 +1213,9 @@ UHoudiniAssetComponent::PostLoad()
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
 
+	// Perform post load initialization of curve / spline components.
+	PostLoadCurves();
+
 	// Need to update rendering information.
 	UpdateRenderingInformation();
 
@@ -1323,6 +1326,12 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 				HoudiniAsset = HoudiniAssetLookup;
 			}
 		}
+	}
+
+	// If we have no asset, we can stop.
+	if(!HoudiniAsset)
+	{
+		return;
 	}
 
 	// Serialization of preset.
@@ -2201,6 +2210,9 @@ UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
 
 			// Store the object geo part information for this curve.
 			HoudiniGeoPartObject.Serialize(Ar);
+
+			// Store component information.
+			HoudiniSplineComponent->SerializeRaw(Ar);
 		}
 	}
 	else if(Ar.IsLoading())
@@ -2208,12 +2220,34 @@ UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
 		for(int32 CurveIdx = 0; CurveIdx < CurveCount; ++CurveIdx)
 		{
 			FHoudiniGeoPartObject HoudiniGeoPartObject;
+			UHoudiniSplineComponent* HoudiniSplineComponent = nullptr;
 
 			// Retrieve geo part information for this curve.
 			HoudiniGeoPartObject.Serialize(Ar);
 
-			//SplineComponents.Add()
+			// Create Spline component.
+			HoudiniSplineComponent = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(), GetOwner(), NAME_None, RF_Transient);
+			HoudiniSplineComponent->AddToRoot();
+			HoudiniSplineComponent->SerializeRaw(Ar);
+
+			// We need to store geo part to spline component mapping.
+			SplineComponents.Add(HoudiniGeoPartObject, HoudiniSplineComponent);
 		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::PostLoadCurves()
+{
+	for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
+	{
+		UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
+
+		HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
+		HoudiniSplineComponent->SetVisibility(true);
+		HoudiniSplineComponent->RegisterComponent();
+		HoudiniSplineComponent->RemoveFromRoot();
 	}
 }
 
