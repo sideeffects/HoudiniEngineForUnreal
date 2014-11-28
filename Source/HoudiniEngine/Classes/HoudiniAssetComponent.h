@@ -275,7 +275,10 @@ private:
 	void ClearInputs();
 
 	/** If inputs were loaded, they need to be updated and assigned geos need to be connected. **/
-	void UpateLoadedInputs();
+	void UpdateLoadedInputs();
+
+	/** If curves were loaded, their points need to be uploaded. **/
+	void UploadLoadedCurves();
 
 	/** Create instance inputs. **/
 	void CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>& Instancers);

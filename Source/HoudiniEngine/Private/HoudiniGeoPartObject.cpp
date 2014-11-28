@@ -173,9 +173,14 @@ FHoudiniGeoPartObject::GetNodeId(HAPI_AssetId InAssetId) const
 	HAPI_NodeId NodeId = -1;
 
 	HAPI_GeoInfo GeoInfo;
-	if(IsValid() && (-1 != AssetId) && (HAPI_RESULT_SUCCESS == HAPI_GetGeoInfo(InAssetId, ObjectId, GeoId, &GeoInfo)))
+	if(IsValid() && (-1 != InAssetId) && (HAPI_RESULT_SUCCESS == HAPI_GetGeoInfo(InAssetId, ObjectId, GeoId, &GeoInfo)))
 	{
 		NodeId = GeoInfo.nodeId;
+	}
+	else
+	{
+		FString Str = FHoudiniEngineUtils::GetErrorDescription();
+		volatile int i = 42;
 	}
 
 	return NodeId;
