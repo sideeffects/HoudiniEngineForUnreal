@@ -757,7 +757,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				UpdateLoadedParameter();
 
 				// Additionally, we need to update and create assets for all input parameters that have geos assigned.
-				UpateLoadedInputs();
+				UpdateLoadedInputs();
+
+				// We also need to upload loaded curve points.
+				UploadLoadedCurves();
 
 				// If we finished loading instantiation, we can restore preset data.
 				if(PresetBuffer.Num() > 0)
@@ -2011,12 +2014,23 @@ UHoudiniAssetComponent::ClearInputs()
 
 
 void
-UHoudiniAssetComponent::UpateLoadedInputs()
+UHoudiniAssetComponent::UpdateLoadedInputs()
 {
 	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
 	{
 		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
 		HoudiniAssetInput->UploadParameterValue();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::UploadLoadedCurves()
+{
+	for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
+	{
+		UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
+		HoudiniSplineComponent->UploadControlPoints();
 	}
 }
 

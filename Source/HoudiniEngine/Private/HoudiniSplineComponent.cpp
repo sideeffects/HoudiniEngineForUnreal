@@ -163,9 +163,12 @@ UHoudiniSplineComponent::UpdatePoint(int32 PointIndex, const FVector& Point)
 void
 UHoudiniSplineComponent::UploadControlPoints()
 {
-	if(HoudiniGeoPartObject.IsValid())
+	// Grab component we are attached to.
+	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(AttachParent);
+
+	if(HoudiniGeoPartObject.IsValid() && HoudiniAssetComponent)
 	{
-		HAPI_NodeId NodeId = HoudiniGeoPartObject.GetNodeId();
+		HAPI_NodeId NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetComponent->GetAssetId());
 		if(NodeId > 0)
 		{
 			FString PositionString = TEXT("");
