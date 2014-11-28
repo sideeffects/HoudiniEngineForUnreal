@@ -160,6 +160,24 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_CURVE_COORDS					"coords"
 #define HAPI_UNREAL_PARAM_CURVE_CLOSED					"close"
 
+/** Helper function to serialize enumerations. **/
+template <typename TEnum>
+FORCEINLINE
+FArchive&
+SerializeEnumeration(FArchive& Ar, TEnum& E)
+{
+	uint8 B = (uint8) E;
+	Ar << B;
+
+	if(Ar.IsLoading())
+	{
+		E = (TEnum) B;
+	}
+
+	return Ar;
+}
+
+
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"
 

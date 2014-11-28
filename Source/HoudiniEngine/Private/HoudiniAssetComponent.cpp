@@ -238,7 +238,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	ClearInstanceInputs();
 
 	// Release all curve related resources.
-	ClearAllCurves();
+	ClearCurves();
 
 	// Set Houdini logo to be default geometry.
 	ReleaseObjectGeoPartResources(StaticMeshes);
@@ -1066,7 +1066,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	StaticMeshComponents.Empty();
 
 	// Release all curve related resources.
-	ClearAllCurves();
+	ClearCurves();
 
 	// Destroy all parameters.
 	ClearParameters();
@@ -1241,7 +1241,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	// State of this component.
-	EHoudiniAssetComponentState::Type ComponentState = EHoudiniAssetComponentState::Invalid;
+	EHoudiniAssetComponentState::Enum ComponentState = EHoudiniAssetComponentState::Invalid;
 
 	if(Ar.IsSaving())
 	{
@@ -1276,7 +1276,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	// Serialize component state.
-	Ar << ComponentState;
+	SerializeEnumeration<EHoudiniAssetComponentState::Enum>(Ar, ComponentState);
 
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
@@ -1428,6 +1428,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize instance inputs (we do this after geometry loading as we might need it).
 	SerializeInstanceInputs(Ar);
+
+	// Serialize curves.
+	SerializeCurves(Ar);
 
 	if(Ar.IsLoading())
 	{
@@ -1616,13 +1619,13 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		HoudiniSplineComponent->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, (CurveClosed == 1));
 	}
 
-	ClearAllCurves();
+	ClearCurves();
 	SplineComponents = NewSplineComponents;
 }
 
 
 void
-UHoudiniAssetComponent::ClearAllCurves()
+UHoudiniAssetComponent::ClearCurves()
 {
 	for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
 	{
@@ -2172,6 +2175,44 @@ UHoudiniAssetComponent::SerializeInstanceInputs(FArchive& Ar)
 
 			HoudiniAssetInstanceInput->SetHoudiniAssetComponent(this);
 			InstanceInputs.Add(HoudiniInstanceInputKey, HoudiniAssetInstanceInput);
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
+{
+	if(Ar.IsLoading())
+	{
+		ClearCurves();
+	}
+
+	// Serialize number of curves.
+	int32 CurveCount = SplineComponents.Num();
+	Ar << CurveCount;
+
+	if(Ar.IsSaving())
+	{
+		for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
+		{
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
+
+			// Store the object geo part information for this curve.
+			HoudiniGeoPartObject.Serialize(Ar);
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+		for(int32 CurveIdx = 0; CurveIdx < CurveCount; ++CurveIdx)
+		{
+			FHoudiniGeoPartObject HoudiniGeoPartObject;
+
+			// Retrieve geo part information for this curve.
+			HoudiniGeoPartObject.Serialize(Ar);
+
+			//SplineComponents.Add()
 		}
 	}
 }

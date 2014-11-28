@@ -43,7 +43,7 @@ namespace EHoudiniAssetComponentState
 {
 	/** This enumeration represents a state of component when it is serialized. **/
 
-	enum Type
+	enum Enum
 	{
 		/** Invalid type corresponds to state when component has been created, but is in invalid state. It had no **/
 		/** Houdini asset assigned. Typically this will be the case when component instance is a default class    **/
@@ -62,22 +62,6 @@ namespace EHoudiniAssetComponentState
 		/** instantiated, and component has a pending asynchronous cook in progress.                               **/
 		BeingCooked
 	};
-}
-
-
-FORCEINLINE
-FArchive&
-operator<<(FArchive& Ar, EHoudiniAssetComponentState::Type& E)
-{
-	uint8 B = (uint8) E;
-	Ar << B;
-
-	if(Ar.IsLoading())
-	{
-		E = (EHoudiniAssetComponentState::Type) B;
-	}
-
-	return Ar;
 }
 
 
@@ -270,7 +254,7 @@ private:
 	void CreateCurves(const TArray<FHoudiniGeoPartObject>& Curves);
 
 	/** Clear all spline related resources. **/
-	void ClearAllCurves();
+	void ClearCurves();
 
 	/** Create new parameters and attempt to reuse existing ones. **/
 	bool CreateParameters();
@@ -307,6 +291,9 @@ private:
 
 	/** Serialize instance inputs. **/
 	void SerializeInstanceInputs(FArchive& Ar);
+
+	/** Serialize curves. **/
+	void SerializeCurves(FArchive& Ar);
 
 	/** Used to perform post loading initialization on instance inputs. **/
 	void PostLoadInitializeInstanceInputs();

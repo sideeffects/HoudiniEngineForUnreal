@@ -34,6 +34,23 @@ UHoudiniSplineComponent::~UHoudiniSplineComponent()
 }
 
 
+void
+UHoudiniSplineComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	HoudiniGeoPartObject.Serialize(Ar);
+
+	Ar << CurvePoints;
+	Ar << CurveDisplayPoints;
+
+	SerializeEnumeration<EHoudiniSplineComponentType::Enum>(Ar, CurveType);
+	SerializeEnumeration<EHoudiniSplineComponentMethod::Enum>(Ar, CurveMethod);
+
+	Ar << bClosedCurve;
+}
+
+
 bool
 UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints,
 								   const TArray<FVector>& InCurveDisplayPoints, EHoudiniSplineComponentType::Enum InCurveType,
