@@ -49,6 +49,11 @@ class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 
 	virtual ~UHoudiniSplineComponent();
 
+/** UObject methods. **/
+public:
+
+	virtual void Serialize(FArchive& Ar) override;
+
 public:
 
 	/** Construct spline from given information. Resets any existing state. **/
