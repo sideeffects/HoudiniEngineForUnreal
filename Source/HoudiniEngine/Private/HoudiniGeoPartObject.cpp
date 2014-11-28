@@ -177,11 +177,6 @@ FHoudiniGeoPartObject::GetNodeId(HAPI_AssetId InAssetId) const
 	{
 		NodeId = GeoInfo.nodeId;
 	}
-	else
-	{
-		FString Str = FHoudiniEngineUtils::GetErrorDescription();
-		volatile int i = 42;
-	}
 
 	return NodeId;
 }
