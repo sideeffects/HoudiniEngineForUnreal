@@ -57,22 +57,34 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
-public:
+protected:
 
-	/** Called when user drops an asset into this input. **/
-	void OnAssetDropped(UObject* Object);
+	/** Delegate used when static mesh has been drag and dropped. **/
+	void OnStaticMeshDropped(UObject* InObject);
 
-	/** Called to determine if asset is acceptable for this input. **/
-	bool OnIsAssetAcceptableForDrop(const UObject* Object);
+	/** Delegate used to detect if valid object has been dragged and dropped. **/
+	bool OnStaticMeshDraggedOver(const UObject* InObject) const;
 
-	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType);
+	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
+	const FSlateBrush* GetStaticMeshThumbnailBorder() const;
 
-	/** Handle reset input button click. **/
-	FReply OnButtonClickedResetInput();
+	/** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
+	FReply OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent);
 
-	/** Handle create / select curve input button click. **/
-	FReply OnButtonClickedCreateSelectCurveInput();
+	/** Construct drop down menu content for static mesh. **/
+	TSharedRef<SWidget> OnGetStaticMeshMenuContent();
+
+	/** Delegate for handling selection in content browser. **/
+	void OnStaticMeshSelected(const FAssetData& AssetData);
+
+	/** Closes the combo button. **/
+	void CloseStaticMeshComboButton();
+
+	/** Browse to static mesh. **/
+	void OnStaticMeshBrowse();
+
+	/** Handler for reset static mesh button. **/
+	FReply OnResetStaticMeshClicked();
 
 protected:
 
@@ -80,6 +92,15 @@ protected:
 	bool HasConnectedAsset() const;
 
 protected:
+
+	/** Thumbnail border used by static mesh. **/
+	TSharedPtr<SBorder> StaticMeshThumbnailBorder;
+
+	/** Combo element used by static mesh. **/
+	TSharedPtr<SComboButton> StaticMeshComboButton;
+
+	/** Delegate for filtering static meshes. **/
+	FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
 	/** Widget used for dragging and input. **/
 	TSharedPtr<SAssetSearchBox> InputWidget;
