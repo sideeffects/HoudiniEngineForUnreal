@@ -447,7 +447,7 @@ void
 UHoudiniAssetComponent::StartHoudiniTicking()
 {
 	// If we have no timer delegate spawned for this component, spawn one.
-	if(!TimerDelegateCooking.IsBound())
+	if(!TimerDelegateCooking.IsBound() && GEditor)
 	{
 		TimerDelegateCooking = FTimerDelegate::CreateUObject(this, &UHoudiniAssetComponent::TickHoudiniComponent);
 
@@ -464,7 +464,7 @@ UHoudiniAssetComponent::StartHoudiniTicking()
 void
 UHoudiniAssetComponent::StopHoudiniTicking()
 {
-	if(TimerDelegateCooking.IsBound())
+	if(TimerDelegateCooking.IsBound() && GEditor)
 	{
 		GEditor->GetTimerManager()->ClearTimer(TimerDelegateCooking);
 		TimerDelegateCooking.Unbind();
@@ -801,7 +801,7 @@ void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	if(HoudiniAssetActor && bIsNativeComponent)
+	if(HoudiniAssetActor && bIsNativeComponent && GEditor)
 	{
 		// Manually reselect the actor - this will cause details panel to be updated and force our 
 		// property changes to be picked up by the UI.
