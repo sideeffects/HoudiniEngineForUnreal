@@ -128,6 +128,9 @@ public:
 	/** Change the Houdini Asset used by this component. **/
 	virtual void SetHoudiniAsset(UHoudiniAsset* NewHoudiniAsset);
 
+	/** Return true if this component has no cooking or instantiation in progress. **/
+	bool IsNotCookingOrInstantiating() const;
+
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
 
@@ -306,6 +309,15 @@ private:
 
 	/** Remove static mesh and associated component and deallocate corresponding resources. **/
 	void RemoveStaticMeshComponent(UStaticMesh* StaticMesh);
+
+	/** Start asset instantiation task. **/
+	void StartTaskAssetInstantiation(bool bLoadedComponent = false, bool bStartTicking = false);
+
+	/** Start asset deletion task. **/
+	void StartTaskAssetDeletion();
+
+	/** Start asset cooking task. **/
+	void StartTaskAssetCooking(bool bStartTicking = false);
 
 private:
 

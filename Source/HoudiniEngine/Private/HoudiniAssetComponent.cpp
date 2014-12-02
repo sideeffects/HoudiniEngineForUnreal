@@ -301,19 +301,15 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 	if(!bIsPreviewComponent && !bLoadedComponent)
 	{
-		EHoudiniEngineTaskType::Type HoudiniEngineTaskType = EHoudiniEngineTaskType::AssetInstantiation;
-
-		// Create new GUID to identify this request.
-		HapiGUID = FGuid::NewGuid();
-
-		FHoudiniEngineTask Task(HoudiniEngineTaskType, HapiGUID);
-		Task.Asset = InHoudiniAsset;
-		Task.ActorName = GetOuter()->GetName();
-		HoudiniEngine.AddTask(Task);
-
-		// Start ticking - this will poll the cooking system for completion.
-		StartHoudiniTicking();
+		StartTaskAssetInstantiation(false, true);
 	}
+}
+
+
+bool
+UHoudiniAssetComponent::IsNotCookingOrInstantiating() const
+{
+	return !HapiGUID.IsValid();
 }
 
 
@@ -735,19 +731,12 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		// Grab current time for delayed notification.
 		HapiNotificationStarted = FPlatformTime::Seconds();
 
-		// Create new GUID to identify this request.
-		HapiGUID = FGuid::NewGuid();
-
 		// This component has been loaded and requires instantiation.
 		if(bLoadedComponentRequiresInstantiation)
 		{
 			bLoadedComponentRequiresInstantiation = false;
 
-			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
-			Task.Asset = HoudiniAsset;
-			Task.ActorName = GetOuter()->GetName();
-			Task.bLoadedComponent = true;
-			FHoudiniEngine::Get().AddTask(Task);
+			StartTaskAssetInstantiation(true);
 		}
 		else
 		{
@@ -780,10 +769,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			bCurveChanged = false;
 
 			// Create asset cooking task object and submit it for processing.
-			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-			Task.ActorName = GetOuter()->GetName();
-			Task.AssetComponent = this;
-			FHoudiniEngine::Get().AddTask(Task);
+			StartTaskAssetCooking();
 		}
 
 		// We do not want to stop ticking system as we have just submitted a task.
@@ -826,6 +812,65 @@ UHoudiniAssetComponent::GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticM
 		{
 			UsedStaticMeshes.Add(StaticMesh);
 		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool bStartTicking)
+{
+	// Create new GUID to identify this request.
+	HapiGUID = FGuid::NewGuid();
+
+	FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
+	Task.Asset = HoudiniAsset;
+	Task.ActorName = GetOuter()->GetName();
+	Task.bLoadedComponent = bLoadedComponent;
+	FHoudiniEngine::Get().AddTask(Task);
+
+	// Start ticking - this will poll the cooking system for completion.
+	if(bStartTicking)
+	{
+		StartHoudiniTicking();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::StartTaskAssetDeletion()
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && bIsNativeComponent)
+	{
+		// Generate GUID for our new task.
+		HapiGUID = FGuid::NewGuid();
+
+		// Create asset deletion task object and submit it for processing.
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetDeletion, HapiGUID);
+		Task.AssetId = AssetId;
+		FHoudiniEngine::Get().AddTask(Task);
+
+		// Reset asset id
+		AssetId = -1;
+
+		// We do not need to tick as we are not interested in result - this component is about to be deleted.
+	}
+}
+
+
+void
+UHoudiniAssetComponent::StartTaskAssetCooking(bool bStartTicking)
+{
+	// Generate GUID for our new task.
+	HapiGUID = FGuid::NewGuid();
+
+	FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+	Task.ActorName = GetOuter()->GetName();
+	Task.AssetComponent = this;
+	FHoudiniEngine::Get().AddTask(Task);
+
+	if(bStartTicking)
+	{
+		StartHoudiniTicking();
 	}
 }
 
@@ -879,20 +924,8 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 		}
 	}
 
-	// If we have an asset.
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && bIsNativeComponent)
-	{
-		// Generate GUID for our new task.
-		HapiGUID = FGuid::NewGuid();
-
-		// Create asset deletion task object and submit it for processing.
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetDeletion, HapiGUID);
-		Task.AssetId = AssetId;
-		FHoudiniEngine::Get().AddTask(Task);
-
-		// Reset asset id
-		AssetId = -1;
-	}
+	// Start asset deletion.
+	StartTaskAssetDeletion();
 }
 
 
@@ -1858,7 +1891,6 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 		// Make sure static mesh has a new lighting guid.
 		StaticMesh->LightingGuid = FGuid::NewGuid();
 		StaticMesh->LODGroup = NAME_None;
-
 
 		// Set resolution of lightmap.
 		StaticMesh->LightMapResolution = GeneratedLightMapResolution;
