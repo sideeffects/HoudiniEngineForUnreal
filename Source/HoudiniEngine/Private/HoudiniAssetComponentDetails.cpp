@@ -367,6 +367,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 		}
 	}
 
+	TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
+	TSharedRef<SButton> ButtonRecook = SNew(SButton);
 	DetailCategoryBuilder.AddCustomRow(TEXT(""))
 	[
 		SNew(SVerticalBox)
@@ -375,22 +377,47 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 		.FillHeight(1.0f)
 		.VAlign(VAlign_Center)
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				[
-					SNew(SButton)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes)
-					.Text(LOCTEXT("BakeHoudiniActor", "Bake All"))
-					.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake all generated static meshes"))
-				]
+			SAssignNew(HorizontalButtonBox, SHorizontalBox)
 		]
 	];
+
+	HorizontalButtonBox->AddSlot()
+	.AutoWidth()
+	.Padding(2.0f, 0.0f)
+	.VAlign(VAlign_Center)
+	.HAlign(HAlign_Center)
+	[
+		SNew(SButton)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes)
+		.Text(LOCTEXT("BakeHoudiniActor", "Bake All"))
+		.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake all generated static meshes"))
+	];
+
+	HorizontalButtonBox->AddSlot()
+	.AutoWidth()
+	.Padding(2.0f, 0.0f)
+	.VAlign(VAlign_Center)
+	.HAlign(HAlign_Center)
+	[
+		SAssignNew(ButtonRecook, SButton)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.OnClicked(this, &FHoudiniAssetComponentDetails::OnRecookAsset)
+		.Text(LOCTEXT("RecookHoudiniActor", "Recook"))
+		.ToolTipText( LOCTEXT("RecookHoudiniActorToolTip", "Recook Houdini asset"))
+	];
+
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+		ButtonRecook->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateUObject(HoudiniAssetComponent, &UHoudiniAssetComponent::IsNotCookingOrInstantiating)));
+	}
+	else
+	{
+		ButtonRecook->SetEnabled(false);
+	}
 }
 
 
@@ -607,6 +634,19 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
 			// Notify asset registry that we have created assets. This should update the content browser.
 			FAssetRegistryModule::AssetCreated(OutStaticMesh);
 		}
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnRecookAsset()
+{
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+		HoudiniAssetComponent->StartTaskAssetCooking(true);
 	}
 
 	return FReply::Handled();

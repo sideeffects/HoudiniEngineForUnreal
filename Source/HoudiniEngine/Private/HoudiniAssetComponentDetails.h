@@ -85,6 +85,9 @@ private:
 	/** Handler for bake all static meshes action. **/
 	FReply OnBakeAllStaticMeshes();
 
+	/** Handler for recook action. **/
+	FReply OnRecookAsset();
+
 	/** Delegate used to detect if valid object has been dragged and dropped. **/
 	bool OnMaterialInterfaceDraggedOver(const UObject* InObject) const;
 
