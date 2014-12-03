@@ -62,8 +62,11 @@ public:
 
 public:
 
-	/** Return id of connected asset or id of created input curve. **/
+	/** Return id of connected asset id. **/
 	HAPI_AssetId GetConnectedAssetId() const;
+
+	/* Return id of connected curve id. **/
+	HAPI_AssetId GetConnectedCurveAssetId() const;
 
 	/** Called by attached spline component whenever its state changes. **/
 	void OnInputCurveChanged();
@@ -108,6 +111,9 @@ protected:
 	/** Return true if this input has connected asset. **/
 	bool HasConnectedAsset() const;
 
+	/** Return true if this input has connected curve. **/
+	bool HasConnectedCurve() const;
+
 	/** Extract curve parameters and update the attached spline component. **/
 	void UpdateInputCurve();
 
@@ -133,6 +139,9 @@ protected:
 
 	/** Id of the connected asset. **/
 	HAPI_AssetId ConnectedAssetId;
+
+	/** Id of connected curve. **/
+	HAPI_AssetId ConnectedCurveAssetId;
 
 	/** Index of this input. **/
 	int32 InputIndex;
