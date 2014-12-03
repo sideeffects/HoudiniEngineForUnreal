@@ -98,6 +98,8 @@ UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 void
 UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
+	ColorBlock.Reset();
+
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
@@ -107,12 +109,13 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 							.ToolTipText(GetParameterLabel())
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 	
-	TSharedPtr<SColorBlock> ColorBlock = SNew(SColorBlock);
+	ColorBlock = SNew(SColorBlock);
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
 		SAssignNew(ColorBlock, SColorBlock)
 		.Color(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateUObject(this, &UHoudiniAssetParameterColor::GetColor)))
+		.OnMouseButtonDown(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown))
 	];
 
 	Row.ValueWidget.Widget = VerticalBox;
@@ -136,5 +139,42 @@ FLinearColor
 UHoudiniAssetParameterColor::GetColor() const
 {
 	return Color;
+}
+
+
+FReply
+UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if(MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+	{
+		return FReply::Unhandled();
+	}
+
+	FColorPickerArgs PickerArgs;
+	PickerArgs.ParentWidget = ColorBlock;
+	PickerArgs.bUseAlpha = true;
+	PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
+	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(this, &UHoudiniAssetParameterColor::OnPaintColorChanged);
+	PickerArgs.InitialColorOverride = GetColor();
+	PickerArgs.bOnlyRefreshOnOk = true;
+
+	OpenColorPicker(PickerArgs);
+
+	return FReply::Handled();
+}
+
+
+void
+UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor)
+{
+	if(Color != InNewColor)
+	{
+		MarkPreChanged();
+
+		Color = InNewColor;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
 }
 

@@ -43,6 +43,7 @@
 #include "SAssetDropTarget.h"
 #include "SAssetSearchBox.h"
 #include "SColorBlock.h"
+#include "SColorPicker.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
