@@ -54,7 +54,16 @@ protected:
 	/** Return color for this color parameter. **/
 	FLinearColor GetColor() const;
 
+	/** Handle mouse click on color box. **/
+	FReply OnColorBlockMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+	/** Called when new color is selected. **/
+	void OnPaintColorChanged(FLinearColor InNewColor);
+
 protected:
+
+	/** Color block widget. **/
+	TSharedPtr<SColorBlock> ColorBlock;
 
 	/** Color for this property. **/
 	FLinearColor Color;
