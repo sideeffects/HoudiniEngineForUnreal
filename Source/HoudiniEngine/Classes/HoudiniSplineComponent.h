@@ -39,6 +39,9 @@ namespace EHoudiniSplineComponentMethod
 }
 
 
+class UHoudiniAssetInput;
+
+
 UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 {
@@ -100,6 +103,15 @@ public:
 	/** Serialize raw data of this component. **/
 	void SerializeRaw(FArchive& Ar);
 
+	/** Return true if this is an input curve. **/
+	bool IsInputCurve() const;
+
+	/** Assign input parameter to this spline, if it is an input curve. **/
+	void SetHoudiniAssetInput(UHoudiniAssetInput* InHoudiniAssetInput);
+
+	/** Used by visualizer to notify about input spline update. **/
+	void NotifyHoudiniInputCurveChanged();
+
 protected:
 
 	/** Corresponding geo part object. **/
@@ -110,6 +122,9 @@ protected:
 
 	/** List of refined points used for drawing. **/
 	TArray<FVector> CurveDisplayPoints;
+
+	/** Corresponding asset input parameter if this is an input curve. **/
+	UHoudiniAssetInput* HoudiniAssetInput;
 
 	/** Type of this curve. **/
 	EHoudiniSplineComponentType::Enum CurveType;

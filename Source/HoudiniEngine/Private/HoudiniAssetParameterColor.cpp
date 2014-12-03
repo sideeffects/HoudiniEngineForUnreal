@@ -108,7 +108,7 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 							.Text(GetParameterLabel())
 							.ToolTipText(GetParameterLabel())
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-	
+
 	ColorBlock = SNew(SColorBlock);
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2)

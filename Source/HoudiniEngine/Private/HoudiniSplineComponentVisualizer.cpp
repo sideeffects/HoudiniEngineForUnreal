@@ -277,10 +277,17 @@ FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
 {
 	if(EditedHoudiniSplineComponent)
 	{
-		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
-		if(HoudiniAssetComponent)
+		if(EditedHoudiniSplineComponent->IsInputCurve())
 		{
-			HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);
+			EditedHoudiniSplineComponent->NotifyHoudiniInputCurveChanged();
+		}
+		else
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+			if(HoudiniAssetComponent)
+			{
+				HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);
+			}
 		}
 
 		if(GEditor)
