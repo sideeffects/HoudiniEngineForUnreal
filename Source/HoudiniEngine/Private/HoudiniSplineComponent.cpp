@@ -18,6 +18,7 @@
 
 UHoudiniSplineComponent::UHoudiniSplineComponent(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
+	HoudiniAssetInput(nullptr),
 	CurveType(EHoudiniSplineComponentType::Polygon),
 	CurveMethod(EHoudiniSplineComponentMethod::Breakpoints),
 	bClosedCurve(false)
@@ -163,29 +164,41 @@ UHoudiniSplineComponent::UpdatePoint(int32 PointIndex, const FVector& Point)
 void
 UHoudiniSplineComponent::UploadControlPoints()
 {
-	// Grab component we are attached to.
-	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(AttachParent);
+	HAPI_NodeId NodeId = -1;
 
-	if(HoudiniGeoPartObject.IsValid() && HoudiniAssetComponent)
+	if(IsInputCurve())
 	{
-		HAPI_NodeId NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetComponent->GetAssetId());
-		if(NodeId > 0)
+		if(HoudiniGeoPartObject.IsValid())
 		{
-			FString PositionString = TEXT("");
-			FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
+			NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetInput->GetConnectedAssetId());
+		}
+	}
+	else
+	{
+		// Grab component we are attached to.
+		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(AttachParent);
+		if(HoudiniGeoPartObject.IsValid() && HoudiniAssetComponent)
+		{
+			NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetComponent->GetAssetId());
+		}
+	}
 
-			// Get param id.
-			HAPI_ParmId ParmId = -1;
-			if(HAPI_RESULT_SUCCESS != HAPI_GetParmIdFromName(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
-			{
-				return;
-			}
+	if(NodeId >= 0)
+	{
+		FString PositionString = TEXT("");
+		FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
 
-			std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-			if(HAPI_RESULT_SUCCESS != HAPI_SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, 0))
-			{
-				return;
-			}
+		// Get param id.
+		HAPI_ParmId ParmId = -1;
+		if(HAPI_RESULT_SUCCESS != HAPI_GetParmIdFromName(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+		{
+			return;
+		}
+
+		std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+		if(HAPI_RESULT_SUCCESS != HAPI_SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, 0))
+		{
+			return;
 		}
 	}
 }
@@ -206,3 +219,26 @@ UHoudiniSplineComponent::AddPoint(int32 PointIndex, const FVector& Point)
 	CurvePoints.Insert(Point, PointIndex);
 }
 
+
+bool
+UHoudiniSplineComponent::IsInputCurve() const
+{
+	return HoudiniAssetInput != nullptr;
+}
+
+
+void
+UHoudiniSplineComponent::SetHoudiniAssetInput(UHoudiniAssetInput* InHoudiniAssetInput)
+{
+	HoudiniAssetInput = InHoudiniAssetInput;
+}
+
+
+void
+UHoudiniSplineComponent::NotifyHoudiniInputCurveChanged()
+{
+	if(HoudiniAssetInput)
+	{
+		HoudiniAssetInput->OnInputCurveChanged();
+	}
+}

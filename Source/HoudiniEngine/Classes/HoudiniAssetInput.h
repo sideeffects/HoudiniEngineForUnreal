@@ -20,6 +20,9 @@
 #include "HoudiniAssetInput.generated.h"
 
 
+class UHoudiniSplineComponent;
+
+
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetInput : public UHoudiniAssetParameter
 {
@@ -57,6 +60,14 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
+public:
+
+	/** Return id of connected asset or id of created input curve. **/
+	HAPI_AssetId GetConnectedAssetId() const;
+
+	/** Called by attached spline component whenever its state changes. **/
+	void OnInputCurveChanged();
+
 protected:
 
 	/** Delegate used when static mesh has been drag and dropped. **/
@@ -86,10 +97,19 @@ protected:
 	/** Handler for reset static mesh button. **/
 	FReply OnResetStaticMeshClicked();
 
+	/** Return text for a button responsible for curve actions. **/
+	FText GetCurveButtonText() const;
+
+	/** Handler for curve button actions click. **/
+	FReply OnClickCurveButton();
+
 protected:
 
 	/** Return true if this input has connected asset. **/
 	bool HasConnectedAsset() const;
+
+	/** Extract curve parameters and update the attached spline component. **/
+	void UpdateInputCurve();
 
 protected:
 
@@ -105,8 +125,11 @@ protected:
 	/** Widget used for dragging and input. **/
 	TSharedPtr<SAssetSearchBox> InputWidget;
 
-	/** Object which is used for input. **/
+	/** Object which is used for geometry input. **/
 	UObject* InputObject;
+
+	/** Houdini spline component which is used for curve input. **/
+	UHoudiniSplineComponent* InputCurve;
 
 	/** Id of the connected asset. **/
 	HAPI_AssetId ConnectedAssetId;

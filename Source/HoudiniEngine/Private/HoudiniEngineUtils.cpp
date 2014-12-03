@@ -913,6 +913,48 @@ FHoudiniEngineUtils::IsValidAssetId(HAPI_AssetId AssetId)
 
 
 bool
+FHoudiniEngineUtils::HapiCreateCurve(HAPI_AssetId& CurveAssetId)
+{
+	HAPI_AssetId AssetId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_CreateCurve(&AssetId), false);
+
+	CurveAssetId = AssetId;
+
+	HAPI_NodeId NodeId = -1;
+	if(!FHoudiniEngineUtils::HapiGetNodeId(AssetId, 0, 0, NodeId))
+	{
+		return false;
+	}
+
+	// Submit default points to curve.
+	HAPI_ParmId ParmId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIdFromName(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId), false);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_SetParmStringValue(NodeId, HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT, ParmId, 0), false);
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_CookAsset(AssetId, nullptr), false);
+
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId& NodeId)
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		HAPI_GeoInfo GeoInfo;
+		if(HAPI_RESULT_SUCCESS == HAPI_GetGeoInfo(AssetId, ObjectId, GeoId, &GeoInfo))
+		{
+			NodeId = GeoInfo.nodeId;
+			return true;
+		}
+	}
+
+	NodeId = -1;
+	return false;
+}
+
+
+bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int InputIndex, UStaticMesh* StaticMesh, HAPI_AssetId& ConnectedAssetId)
 {
 	// If we don't have a static mesh, or host asset is invalid, there's nothing to do.

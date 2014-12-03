@@ -42,6 +42,25 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 }
 
 
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
+	TransformMatrix(FMatrix::Identity),
+	ObjectName(TEXT("Empty")),
+	PartName(TEXT("Empty")),
+	AssetId(InAssetId),
+	ObjectId(InObjectId),
+	GeoId(InGeoId),
+	PartId(InPartId),
+	bIsVisible(true),
+	bIsInstancer(false),
+	bIsCurve(),
+	bIsEditable(false),
+	bHasGeoChanged(false),
+	bIsLoaded(false)
+{
+
+}
+
+
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName,
 											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
 											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve, bool bInIsEditable, bool bInHasGeoChanged) :
@@ -172,10 +191,9 @@ FHoudiniGeoPartObject::GetNodeId(HAPI_AssetId InAssetId) const
 {
 	HAPI_NodeId NodeId = -1;
 
-	HAPI_GeoInfo GeoInfo;
-	if(IsValid() && (-1 != InAssetId) && (HAPI_RESULT_SUCCESS == HAPI_GetGeoInfo(InAssetId, ObjectId, GeoId, &GeoInfo)))
+	if(IsValid())
 	{
-		NodeId = GeoInfo.nodeId;
+		FHoudiniEngineUtils::HapiGetNodeId(InAssetId, ObjectId, GeoId, NodeId);
 	}
 
 	return NodeId;

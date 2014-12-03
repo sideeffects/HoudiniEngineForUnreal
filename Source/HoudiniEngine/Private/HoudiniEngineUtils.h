@@ -103,6 +103,12 @@ public:
 	/** HAPI : Return true if given asset id is valid. **/
 	static bool IsValidAssetId(HAPI_AssetId AssetId);
 
+	/** HAPI : Create curve for input. **/
+	static bool HapiCreateCurve(HAPI_AssetId& CurveAssetId);
+
+	/** HAPI : Retrieve Node id from given parameters. **/
+	static bool HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId& NodeId);
+
 	/** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return new asset id. **/
 	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int InputIndex, UStaticMesh* Mesh, HAPI_AssetId& ConnectedAssetId);
 

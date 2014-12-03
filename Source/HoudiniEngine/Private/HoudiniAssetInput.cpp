@@ -19,6 +19,7 @@
 UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	InputObject(nullptr),
+	InputCurve(nullptr),
 	ConnectedAssetId(-1),
 	InputIndex(0)
 {
@@ -203,6 +204,30 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		]
 	];
 
+	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.MaxWidth(120.0f)
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetCurveButtonText)))
+			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnClickCurveButton))
+		]/*
+		+SHorizontalBox::Slot()
+		.MaxWidth(120.0f)
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("Reset Curve", "Reset Curve"))
+			//.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeStaticMesh, StaticMesh, HoudiniAssetComponent)
+			//.ToolTipText(LOCTEXT("HoudiniStaticMeshBakeButton", "Bake this generated static mesh"))
+		]*/
+	];
+
 	Row.ValueWidget.Widget = VerticalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
@@ -286,10 +311,16 @@ UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	UHoudiniAssetInput* HoudiniAssetInput = Cast<UHoudiniAssetInput>(InThis);
 	if(HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill())
 	{
-		// Add reference to held object.
+		// Add reference to held geometry object.
 		if(HoudiniAssetInput->InputObject)
 		{
 			Collector.AddReferencedObject(HoudiniAssetInput->InputObject, InThis);
+		}
+
+		// Add reference to held curve object.
+		if(HoudiniAssetInput->InputCurve)
+		{
+			Collector.AddReferencedObject(HoudiniAssetInput->InputCurve, InThis);
 		}
 	}
 
@@ -348,7 +379,7 @@ UHoudiniAssetInput::GetStaticMeshThumbnailBorder() const
 FReply
 UHoudiniAssetInput::OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
-	if(InputObject && GEditor)
+	if(InputObject && InputObject->IsA(UStaticMesh::StaticClass()) && GEditor)
 	{
 		GEditor->EditObject(InputObject);
 	}
@@ -406,5 +437,124 @@ UHoudiniAssetInput::OnResetStaticMeshClicked()
 {
 	OnStaticMeshDropped(nullptr);
 	return FReply::Handled();
+}
+
+
+FText
+UHoudiniAssetInput::GetCurveButtonText() const
+{
+	if(InputCurve)
+	{
+		return LOCTEXT("Delete Curve", "Delete Curve");
+	}
+	
+	return LOCTEXT("Create Curve", "Create Curve");
+}
+
+
+FReply
+UHoudiniAssetInput::OnClickCurveButton()
+{
+	bool bCreateNewCurve = false;
+
+	if(InputCurve)
+	{
+		// This is a delete action.
+	}
+	else if(InputObject && InputObject->IsA(UStaticMesh::StaticClass()))
+	{
+		// Otherwise we have static mesh input, we need to destroy it.
+		if(HasConnectedAsset())
+		{
+			// We do not have an object bound.
+			DestroyHoudiniAsset();
+		}
+
+		bCreateNewCurve = true;
+	}
+	else
+	{
+		// We have no input assigned.
+		bCreateNewCurve = true;
+	}
+
+	if(bCreateNewCurve)
+	{
+		HAPI_AssetId CurveAssetId = -1;
+		if(FHoudiniEngineUtils::HapiCreateCurve(CurveAssetId) && FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
+		{
+			// Store asset id.
+			ConnectedAssetId = CurveAssetId;
+
+			// Create new spline component.
+			UHoudiniSplineComponent* HoudiniSplineComponent = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(), HoudiniAssetComponent, NAME_None, RF_Transient);
+			HoudiniSplineComponent->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+			HoudiniSplineComponent->SetVisibility(true);
+			HoudiniSplineComponent->RegisterComponent();
+			HoudiniSplineComponent->SetHoudiniAssetInput(this);
+			
+			// Store this component as input curve.
+			InputCurve = HoudiniSplineComponent;
+
+			// Extract parameters for curve and set them.
+			UpdateInputCurve();
+		}
+	}
+
+	return FReply::Handled();
+}
+
+
+HAPI_AssetId
+UHoudiniAssetInput::GetConnectedAssetId() const
+{
+	return ConnectedAssetId;
+}
+
+
+void
+UHoudiniAssetInput::OnInputCurveChanged()
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+	{
+		HAPI_CookAsset(ConnectedAssetId, nullptr);
+		UpdateInputCurve();
+	}
+}
+
+
+void
+UHoudiniAssetInput::UpdateInputCurve()
+{
+	FString CurvePointsString;
+	EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
+	EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
+	int CurveClosed = 1;
+
+	HAPI_NodeId NodeId = -1;
+	if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
+	{
+		FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), CurvePointsString);
+		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int) EHoudiniSplineComponentType::Bezier, (int&) CurveTypeValue);
+		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, (int) EHoudiniSplineComponentMethod::CVs, (int&) CurveMethodValue);
+		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed);
+	}
+
+	// Construct geo part object.
+	FHoudiniGeoPartObject HoudiniGeoPartObject(ConnectedAssetId, 0, 0, 0);
+	HoudiniGeoPartObject.bIsCurve = true;
+
+	HAPI_AttributeInfo AttributeRefinedCurvePositions;
+	TArray<float> RefinedCurvePositions;
+	FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION, AttributeRefinedCurvePositions, RefinedCurvePositions);
+
+	// Process coords string and extract positions.
+	TArray<FVector> CurvePoints;
+	FHoudiniEngineUtils::ExtractStringPositions(CurvePointsString, CurvePoints);
+
+	TArray<FVector> CurveDisplayPoints;
+	FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(RefinedCurvePositions, CurveDisplayPoints);
+
+	InputCurve->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, (CurveClosed == 1));
 }
 
