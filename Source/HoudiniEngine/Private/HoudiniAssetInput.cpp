@@ -21,6 +21,7 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties&
 	InputObject(nullptr),
 	InputCurve(nullptr),
 	ConnectedAssetId(-1),
+	ConnectedCurveAssetId(-1),
 	InputIndex(0)
 {
 
@@ -51,6 +52,7 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 	HoudiniAssetInput->HoudiniAssetComponent = InHoudiniAssetComponent;
 	HoudiniAssetInput->InputIndex = InInputIndex;
 	HoudiniAssetInput->ConnectedAssetId = -1;
+	HoudiniAssetInput->ConnectedCurveAssetId = -1;
 
 	// Get input string from handle.
 	HoudiniAssetInput->SetNameAndLabel(InputStringHandle);
@@ -62,10 +64,18 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 void
 UHoudiniAssetInput::DestroyHoudiniAsset()
 {
+	// Destroy connected geometry.
 	if(-1 != ConnectedAssetId)
 	{
 		FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
 		ConnectedAssetId = -1;
+	}
+
+	// Destroy connected curve.
+	if(-1 != ConnectedCurveAssetId)
+	{
+		FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedCurveAssetId);
+		ConnectedCurveAssetId = -1;
 	}
 }
 
@@ -252,7 +262,6 @@ UHoudiniAssetInput::UploadParameterValue()
 		else if(InputObject->IsA(UHoudiniSplineComponent::StaticClass()))
 		{
 			// If we have spline component input, we need to input that information.
-			UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(InputObject);
 		}
 	}
 	else if(HasConnectedAsset())
@@ -333,6 +342,13 @@ bool
 UHoudiniAssetInput::HasConnectedAsset() const
 {
 	return -1 != ConnectedAssetId;
+}
+
+
+bool
+UHoudiniAssetInput::HasConnectedCurve() const
+{
+	return -1 != ConnectedCurveAssetId;
 }
 
 
@@ -484,7 +500,7 @@ UHoudiniAssetInput::OnClickCurveButton()
 		if(FHoudiniEngineUtils::HapiCreateCurve(CurveAssetId) && FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
 		{
 			// Store asset id.
-			ConnectedAssetId = CurveAssetId;
+			ConnectedCurveAssetId = CurveAssetId;
 
 			// Create new spline component.
 			UHoudiniSplineComponent* HoudiniSplineComponent = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(), HoudiniAssetComponent, NAME_None, RF_Transient);
@@ -512,12 +528,19 @@ UHoudiniAssetInput::GetConnectedAssetId() const
 }
 
 
+HAPI_AssetId
+UHoudiniAssetInput::GetConnectedCurveAssetId() const
+{
+	return ConnectedCurveAssetId;
+}
+
+
 void
 UHoudiniAssetInput::OnInputCurveChanged()
 {
-	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedCurveAssetId))
 	{
-		HAPI_CookAsset(ConnectedAssetId, nullptr);
+		HAPI_CookAsset(ConnectedCurveAssetId, nullptr);
 		UpdateInputCurve();
 	}
 }
@@ -532,7 +555,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 	int CurveClosed = 1;
 
 	HAPI_NodeId NodeId = -1;
-	if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
+	if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedCurveAssetId, 0, 0, NodeId))
 	{
 		FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), CurvePointsString);
 		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int) EHoudiniSplineComponentType::Bezier, (int&) CurveTypeValue);
@@ -541,7 +564,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 	}
 
 	// Construct geo part object.
-	FHoudiniGeoPartObject HoudiniGeoPartObject(ConnectedAssetId, 0, 0, 0);
+	FHoudiniGeoPartObject HoudiniGeoPartObject(ConnectedCurveAssetId, 0, 0, 0);
 	HoudiniGeoPartObject.bIsCurve = true;
 
 	HAPI_AttributeInfo AttributeRefinedCurvePositions;

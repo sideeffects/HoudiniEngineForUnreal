@@ -170,7 +170,7 @@ UHoudiniSplineComponent::UploadControlPoints()
 	{
 		if(HoudiniGeoPartObject.IsValid())
 		{
-			NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetInput->GetConnectedAssetId());
+			NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetInput->GetConnectedCurveAssetId());
 		}
 	}
 	else
