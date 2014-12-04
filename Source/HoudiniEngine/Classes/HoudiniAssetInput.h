@@ -23,6 +23,16 @@
 class UHoudiniSplineComponent;
 
 
+namespace EHoudiniAssetInputType
+{
+	enum Enum
+	{
+		GeometryInput = 0,
+		CurveInput
+	};
+}
+
+
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetInput : public UHoudiniAssetParameter
 {
@@ -161,6 +171,6 @@ protected:
 	/** Index of this input. **/
 	int32 InputIndex;
 
-	/** Choice selection (which mode is active - geometry or curve). **/
-	int32 ChoiceIndex;
+	/** Choice selection. **/
+	EHoudiniAssetInputType::Enum ChoiceIndex;
 };
