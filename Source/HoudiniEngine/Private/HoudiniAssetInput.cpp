@@ -77,6 +77,16 @@ UHoudiniAssetInput::DestroyHoudiniAsset()
 		FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedCurveAssetId);
 		ConnectedCurveAssetId = -1;
 	}
+
+	// We need to destroy spline component.
+	if(InputCurve)
+	{
+		InputCurve->DetachFromParent();
+		InputCurve->UnregisterComponent();
+		InputCurve->DestroyComponent();
+
+		InputCurve = nullptr;
+	}
 }
 
 
