@@ -106,6 +106,15 @@ protected:
 	/** Handler for curve button actions click. **/
 	FReply OnClickCurveButton();
 
+	/** Helper method used to generate choice entry widget. **/
+	TSharedRef<SWidget> CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry);
+
+	/** Called when change of selection is triggered. **/
+	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
+
+	/** Called to retrieve the name of selected item. **/
+	FString HandleChoiceContentText() const;
+
 protected:
 
 	/** Return true if this input has connected asset. **/
@@ -119,6 +128,9 @@ protected:
 
 protected:
 
+	/** Choice labels for this property. **/
+	TArray<TSharedPtr<FString> > StringChoiceLabels;
+
 	/** Thumbnail border used by static mesh. **/
 	TSharedPtr<SBorder> StaticMeshThumbnailBorder;
 
@@ -130,6 +142,9 @@ protected:
 
 	/** Widget used for dragging and input. **/
 	TSharedPtr<SAssetSearchBox> InputWidget;
+
+	/** Value of choice option. **/
+	FString ChoiceStringValue;
 
 	/** Object which is used for geometry input. **/
 	UObject* InputObject;
@@ -145,4 +160,7 @@ protected:
 
 	/** Index of this input. **/
 	int32 InputIndex;
+
+	/** Choice selection (which mode is active - geometry or curve). **/
+	int32 ChoiceIndex;
 };
