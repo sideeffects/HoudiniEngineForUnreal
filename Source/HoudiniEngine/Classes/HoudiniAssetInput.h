@@ -64,6 +64,9 @@ public:
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
 
+	/** Notifaction from a child parameter about its change. **/
+	virtual void NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
+
 /** UObject methods. **/
 public:
 
