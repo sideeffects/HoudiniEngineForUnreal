@@ -185,6 +185,38 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 }
 
 
+void
+UHoudiniAssetParameterChoice::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
+{
+	Super::CreateWidget(VerticalBox);
+
+	VerticalBox->AddSlot().Padding(2, 2, 2, 2)
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot().MaxWidth(80).Padding(7, 1, 0, 0).VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(GetParameterLabel())
+			.ToolTipText(GetParameterLabel())
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		+SHorizontalBox::Slot()
+		[
+			SNew(SComboBox<TSharedPtr<FString> >)
+			.OptionsSource(&StringChoiceLabels)
+			.InitiallySelectedItem(StringChoiceLabels[CurrentValue])
+			.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
+			.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetParameterChoice::OnChoiceChange))
+			[
+				SNew(STextBlock)
+				.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, &UHoudiniAssetParameterChoice::HandleChoiceContentText)))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+	];
+}
+
+
 bool
 UHoudiniAssetParameterChoice::UploadParameterValue()
 {

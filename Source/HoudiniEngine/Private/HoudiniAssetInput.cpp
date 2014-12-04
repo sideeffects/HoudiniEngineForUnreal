@@ -317,32 +317,6 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 			HoudiniAssetParameter->CreateWidget(VerticalBox);
 		}
-
-		/*
-		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.MaxWidth(120.0f)
-			[
-				SNew(SButton)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetCurveButtonText)))
-				.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnClickCurveButton))
-			]
-			+SHorizontalBox::Slot()
-			.MaxWidth(120.0f)
-			[
-				SNew(SButton)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("Reset Curve", "Reset Curve"))
-				//.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeStaticMesh, StaticMesh, HoudiniAssetComponent)
-				//.ToolTipText(LOCTEXT("HoudiniStaticMeshBakeButton", "Bake this generated static mesh"))
-			]
-		];
-		*/
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
@@ -641,6 +615,13 @@ UHoudiniAssetInput::OnInputCurveChanged()
 		HAPI_CookAsset(CurveAssetId, nullptr);
 		UpdateInputCurve();
 	}
+}
+
+
+void
+UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
+{
+
 }
 
 
