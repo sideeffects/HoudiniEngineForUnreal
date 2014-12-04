@@ -22,9 +22,10 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties&
 	InputCurve(nullptr),
 	ConnectedAssetId(-1),
 	ConnectedCurveAssetId(-1),
-	InputIndex(0)
+	InputIndex(0),
+	ChoiceIndex(0)
 {
-
+	ChoiceStringValue = TEXT("");
 }
 
 
@@ -56,6 +57,23 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 
 	// Get input string from handle.
 	HoudiniAssetInput->SetNameAndLabel(InputStringHandle);
+
+	// Get string values for all available choices.
+	HoudiniAssetInput->StringChoiceLabels.Empty();
+
+	{
+		FString* ChoiceLabel = new FString(TEXT("Geometry Input"));
+		HoudiniAssetInput->StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+
+		HoudiniAssetInput->ChoiceStringValue = *ChoiceLabel;
+	}
+
+	{
+		FString* ChoiceLabel = new FString(TEXT("Curve Input"));
+		HoudiniAssetInput->StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+	}
+
+	HoudiniAssetInput->ChoiceIndex = 0;
 
 	return HoudiniAssetInput;
 }
@@ -122,6 +140,20 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 	TSharedPtr<SHorizontalBox> ButtonBox;
+
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SComboBox<TSharedPtr<FString> >)
+		.OptionsSource(&StringChoiceLabels)
+		.InitiallySelectedItem(StringChoiceLabels[ChoiceIndex])
+		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetInput::CreateChoiceEntryWidget))
+		.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetInput::OnChoiceChange))
+		[
+			SNew(STextBlock)
+			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, &UHoudiniAssetInput::HandleChoiceContentText)))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
 
 	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 	[
@@ -589,5 +621,53 @@ UHoudiniAssetInput::UpdateInputCurve()
 	FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(RefinedCurvePositions, CurveDisplayPoints);
 
 	InputCurve->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, (CurveClosed == 1));
+}
+
+
+TSharedRef<SWidget>
+UHoudiniAssetInput::CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry)
+{
+	return SNew(STextBlock)
+		   .Text(*ChoiceEntry)
+		   .ToolTipText(*ChoiceEntry)
+		   .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+}
+
+
+void
+UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+{
+	if(!NewChoice.IsValid())
+	{
+		return;
+	}
+
+	bool bChanged = false;
+	ChoiceStringValue = *(NewChoice.Get());
+
+	// We need to match selection based on label.
+	int32 LabelIdx = 0;
+	for(; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
+	{
+		FString* ChoiceLabel = StringChoiceLabels[LabelIdx].Get();
+
+		if(ChoiceLabel->Equals(ChoiceStringValue))
+		{
+			bChanged = true;
+			break;
+		}
+	}
+
+	if(bChanged)
+	{
+		// We are switching modes.
+	}
+}
+
+
+FString
+UHoudiniAssetInput::HandleChoiceContentText() const
+{
+	return ChoiceStringValue;
 }
 
