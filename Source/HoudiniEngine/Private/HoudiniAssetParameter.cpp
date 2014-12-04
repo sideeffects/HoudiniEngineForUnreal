@@ -32,6 +32,7 @@ GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter)
 UHoudiniAssetParameter::UHoudiniAssetParameter(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
 	HoudiniAssetComponent(nullptr),
+	ParentParameter(nullptr),
 	NodeId(-1),
 	ParmId(-1),
 	TupleSize(1),
@@ -50,7 +51,8 @@ UHoudiniAssetParameter::~UHoudiniAssetParameter()
 
 
 bool
-UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
+										HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	// If parameter has has changed, we do not need to recreate it.
 	if(bChanged)
@@ -81,6 +83,9 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 
 	// Set component.
 	HoudiniAssetComponent = InHoudiniAssetComponent;
+
+	// Store parameter parent.
+	ParentParameter = InParentParameter;
 
 	return true;
 }
@@ -113,6 +118,13 @@ void
 UHoudiniAssetParameter::SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent)
 {
 	HoudiniAssetComponent = InHoudiniAssetComponent;
+}
+
+
+void
+UHoudiniAssetParameter::SetParentParameter(UHoudiniAssetParameter* InParentParameter)
+{
+	ParentParameter = InParentParameter;
 }
 
 

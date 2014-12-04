@@ -53,19 +53,32 @@ UHoudiniAssetParameterColor::AddReferencedObjects(UObject* InThis, FReferenceCol
 
 
 UHoudiniAssetParameterColor*
-UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
+									HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	UHoudiniAssetParameterColor* HoudiniAssetParameterColor = NewObject<UHoudiniAssetParameterColor>(InHoudiniAssetComponent);
+	UObject* Outer = InHoudiniAssetComponent;
+	if(!Outer)
+	{
+		Outer = InParentParameter;
+		if(!Outer)
+		{
+			// Must have either component or parent not null.
+			check(false);
+		}
+	}
 
-	HoudiniAssetParameterColor->CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo);
+	UHoudiniAssetParameterColor* HoudiniAssetParameterColor = NewObject<UHoudiniAssetParameterColor>(Outer);
+
+	HoudiniAssetParameterColor->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterColor;
 }
 
 
 bool
-UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
+											 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	if(!Super::CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo))
+	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
 		return false;
 	}
