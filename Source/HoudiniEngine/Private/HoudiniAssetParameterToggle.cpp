@@ -118,6 +118,41 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 }
 
 
+void
+UHoudiniAssetParameterToggle::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
+{
+	Super::CreateWidget(VerticalBox);
+
+	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	{
+		VerticalBox->AddSlot().Padding(0, 2, 0, 2)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot().MaxWidth(8)
+			[
+				SNew(STextBlock)
+				.Text(FString(""))
+				.ToolTipText(GetParameterLabel())
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			+SHorizontalBox::Slot()
+			[
+				SNew(SCheckBox)
+				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, &UHoudiniAssetParameterToggle::CheckStateChanged, Idx))
+				.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, &UHoudiniAssetParameterToggle::IsChecked, Idx)))
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(GetParameterLabel())
+					.ToolTipText(GetParameterLabel())
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+			]
+		];
+	}
+}
+
+
 bool
 UHoudiniAssetParameterToggle::UploadParameterValue()
 {
