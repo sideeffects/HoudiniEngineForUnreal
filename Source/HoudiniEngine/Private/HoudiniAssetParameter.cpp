@@ -336,8 +336,6 @@ UHoudiniAssetParameter::MarkChanged()
 	{
 		ParentParameter->NotifyChildParameterChanged(this);
 	}
-
-	PrintParameterInfo();
 }
 
 

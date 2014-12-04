@@ -25,7 +25,8 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties&
 	ConnectedAssetId(-1),
 	InputIndex(0),
 	ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
-	bStaticMeshChanged(false)
+	bStaticMeshChanged(false),
+	bSwitchedToCurve(false)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -768,6 +769,14 @@ UHoudiniAssetInput::UpdateInputCurve()
 		ClearInputCurveParameters();
 		InputCurveParameters = NewInputCurveParameters;
 	}
+
+	if(bSwitchedToCurve)
+	{
+		// We need to trigger details panel update.
+		HoudiniAssetComponent->UpdateEditorProperties();
+
+		bSwitchedToCurve = false;
+	}
 }
 
 
@@ -824,6 +833,9 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 
 				InputCurve = nullptr;
 			}
+
+			// We need to trigger details panel update.
+			HoudiniAssetComponent->UpdateEditorProperties();
 		}
 		else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 		{
@@ -839,15 +851,14 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 				// Store this component as input curve.
 				InputCurve = HoudiniSplineComponent;
 			}
+
+			bSwitchedToCurve = true;
 		}
 
 		// If we have input object and geometry asset, we need to connect it back.
 		MarkPreChanged();
 		ConnectInputAsset();
 		MarkChanged();
-
-		// We need to trigger details panel update.
-		HoudiniAssetComponent->UpdateEditorProperties();
 	}
 }
 

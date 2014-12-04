@@ -198,4 +198,7 @@ protected:
 
 	/** Is set to true when static mesh used for geometry input has changed. **/
 	bool bStaticMeshChanged;
+
+	/** Is set to true when choice switches to curve mode. **/
+	bool bSwitchedToCurve;
 };
