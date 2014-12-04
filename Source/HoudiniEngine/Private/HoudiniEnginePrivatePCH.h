@@ -162,7 +162,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_CURVE_COORDS					"coords"
 #define HAPI_UNREAL_PARAM_CURVE_CLOSED					"close"
 
-#define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 0.0 3.0, 0.0, 3.0"
+#define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
 
 /** Helper function to serialize enumerations. **/
 template <typename TEnum>
