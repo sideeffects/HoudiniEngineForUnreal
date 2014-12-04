@@ -30,19 +30,32 @@ UHoudiniAssetParameterString::~UHoudiniAssetParameterString()
 
 
 UHoudiniAssetParameterString*
-UHoudiniAssetParameterString::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterString::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
+									 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	UHoudiniAssetParameterString* HoudiniAssetParameterString = NewObject<UHoudiniAssetParameterString>(InHoudiniAssetComponent);
+	UObject* Outer = InHoudiniAssetComponent;
+	if(!Outer)
+	{
+		Outer = InParentParameter;
+		if(!Outer)
+		{
+			// Must have either component or parent not null.
+			check(false);
+		}
+	}
 
-	HoudiniAssetParameterString->CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo);
+	UHoudiniAssetParameterString* HoudiniAssetParameterString = NewObject<UHoudiniAssetParameterString>(Outer);
+
+	HoudiniAssetParameterString->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterString;
 }
 
 
 bool
-UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
+											  HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	if(!Super::CreateParameter(InHoudiniAssetComponent, InNodeId, ParmInfo))
+	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
 		return false;
 	}

@@ -36,7 +36,7 @@ public:
 public:
 
 	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
@@ -54,6 +54,9 @@ public:
 
 	/** Set component for this parameter. **/
 	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent);
+
+	/** Set parent parameter for this parameter. **/
+	void SetParentParameter(UHoudiniAssetParameter* InParentParameter);
 
 	/** Return parameter name. **/
 	const FString& GetParameterName() const;
@@ -127,6 +130,9 @@ protected:
 
 	/** Owner component. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;
+
+	/** Parent parameter. **/
+	UHoudiniAssetParameter* ParentParameter;
 
 	/** Name of this parameter. **/
 	FString ParameterName;

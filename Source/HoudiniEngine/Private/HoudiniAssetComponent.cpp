@@ -1767,7 +1767,7 @@ UHoudiniAssetComponent::CreateParameters()
 			Parameters.Remove(ParameterName);
 
 			// Reinitialize parameter and add it to map.
-			HoudiniAssetParameter->CreateParameter(this, AssetInfo.nodeId, ParmInfo);
+			HoudiniAssetParameter->CreateParameter(this, nullptr, AssetInfo.nodeId, ParmInfo);
 			NewParameters.Add(ParameterName, HoudiniAssetParameter);
 			continue;
 		}
@@ -1779,11 +1779,11 @@ UHoudiniAssetComponent::CreateParameters()
 			{
 				if(!ParmInfo.choiceCount)
 				{
-					HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, AssetInfo.nodeId, ParmInfo);
+					HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 				}
 				else
 				{
-					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, AssetInfo.nodeId, ParmInfo);
+					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 				}
 
 				break;
@@ -1793,11 +1793,11 @@ UHoudiniAssetComponent::CreateParameters()
 			{
 				if(!ParmInfo.choiceCount)
 				{
-					HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(this, AssetInfo.nodeId, ParmInfo);
+					HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 				}
 				else
 				{
-					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, AssetInfo.nodeId, ParmInfo);
+					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 				}
 
 				break;
@@ -1805,19 +1805,19 @@ UHoudiniAssetComponent::CreateParameters()
 
 			case HAPI_PARMTYPE_FLOAT:
 			{
-				HoudiniAssetParameter = UHoudiniAssetParameterFloat::Create(this, AssetInfo.nodeId, ParmInfo);
+				HoudiniAssetParameter = UHoudiniAssetParameterFloat::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 				break;
 			}
 
 			case HAPI_PARMTYPE_TOGGLE:
 			{
-				HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create(this, AssetInfo.nodeId, ParmInfo);
+				HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 				break;
 			}
 
 			case HAPI_PARMTYPE_COLOR:
 			{
-				HoudiniAssetParameter = UHoudiniAssetParameterColor::Create(this, AssetInfo.nodeId, ParmInfo);
+				HoudiniAssetParameter = UHoudiniAssetParameterColor::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 				break;
 			}
 

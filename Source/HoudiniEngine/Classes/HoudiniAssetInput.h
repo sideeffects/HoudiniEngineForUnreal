@@ -56,7 +56,7 @@ public:
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
@@ -67,6 +67,7 @@ public:
 /** UObject methods. **/
 public:
 
+	virtual void BeginDestroy();
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -145,7 +146,13 @@ protected:
 	/** Called to destroy connected curve input and its asset. **/
 	void DestroyCurveInputAsset();
 
+	/** Clear input curve parameters. **/
+	void ClearInputCurveParameters();
+
 protected:
+
+	/** Parameters used by a curve input asset. **/
+	TMap<FString, UHoudiniAssetParameter*> InputCurveParameters;
 
 	/** Choice labels for this property. **/
 	TArray<TSharedPtr<FString> > StringChoiceLabels;
