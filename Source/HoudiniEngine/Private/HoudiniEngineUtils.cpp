@@ -1167,6 +1167,14 @@ FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int InputInde
 }
 
 
+bool
+FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int InputIndex)
+{
+	HOUDINI_CHECK_ERROR_RETURN(HAPI_ConnectAssetGeometry(AssetIdFrom, ObjectIdFrom, AssetIdTo, InputIndex), false);
+	return true;
+}
+
+
 UPackage*
 FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx)
 {

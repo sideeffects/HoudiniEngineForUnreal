@@ -112,8 +112,11 @@ public:
 	/** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return new asset id. **/
 	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int InputIndex, UStaticMesh* Mesh, HAPI_AssetId& ConnectedAssetId);
 
-	/** HAPI : Marshaling, disconnect given host asset and return new asset id. **/
+	/** HAPI : Marshaling, disconnect input asset from a given slot. **/
 	static bool HapiDisconnectAsset(HAPI_AssetId HostAssetId, int InputIndex);
+
+	/** HAPI : Marshaling, connect input asset to a given slot of host asset. **/
+	static bool HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int InputIndex);
 
 	/** HAPI : Return all group names for a given Geo. **/
 	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,

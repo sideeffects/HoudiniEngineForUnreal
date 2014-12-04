@@ -2042,7 +2042,7 @@ UHoudiniAssetComponent::ClearInputs()
 		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
 
 		// Destroy connected Houdini asset.
-		HoudiniAssetInput->DestroyHoudiniAsset();
+		HoudiniAssetInput->DestroyHoudiniAssets();
 		HoudiniAssetInput->ConditionalBeginDestroy();
 	}
 

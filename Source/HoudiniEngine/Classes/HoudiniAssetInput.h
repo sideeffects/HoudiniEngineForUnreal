@@ -51,7 +51,7 @@ public:
 public:
 
 	/** Called to destroy connected Houdini asset, if there's one. **/
-	void DestroyHoudiniAsset();
+	void DestroyHoudiniAssets();
 
 public:
 
@@ -75,8 +75,23 @@ public:
 	/** Return id of connected asset id. **/
 	HAPI_AssetId GetConnectedAssetId() const;
 
-	/* Return id of connected curve id. **/
-	HAPI_AssetId GetConnectedCurveAssetId() const;
+	/* Return id of curve input asset. **/
+	HAPI_AssetId GetCurveAssetId() const;
+
+	/** Return id of geometry input asset. **/
+	HAPI_AssetId GetGeometryAssetId() const;
+
+	/** Return true if connected asset is a geometry asset. **/
+	bool IsGeometryAssetConnected() const;
+
+	/** Return true if connected asset is a curve asset. **/
+	bool IsCurveAssetConnected() const;
+
+	/** Disconnect connected input asset. **/
+	void DisconnectInputAsset();
+
+	/** Connect input asset. **/
+	void ConnectInputAsset();
 
 	/** Called by attached spline component whenever its state changes. **/
 	void OnInputCurveChanged();
@@ -110,12 +125,6 @@ protected:
 	/** Handler for reset static mesh button. **/
 	FReply OnResetStaticMeshClicked();
 
-	/** Return text for a button responsible for curve actions. **/
-	FText GetCurveButtonText() const;
-
-	/** Handler for curve button actions click. **/
-	FReply OnClickCurveButton();
-
 	/** Helper method used to generate choice entry widget. **/
 	TSharedRef<SWidget> CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry);
 
@@ -127,14 +136,14 @@ protected:
 
 protected:
 
-	/** Return true if this input has connected asset. **/
-	bool HasConnectedAsset() const;
-
-	/** Return true if this input has connected curve. **/
-	bool HasConnectedCurve() const;
-
 	/** Extract curve parameters and update the attached spline component. **/
 	void UpdateInputCurve();
+
+	/** Called to destroy connected geometry input and its asset. **/
+	void DestroyGeometryInputAsset();
+
+	/** Called to destroy connected curve input and its asset. **/
+	void DestroyCurveInputAsset();
 
 protected:
 
@@ -162,15 +171,21 @@ protected:
 	/** Houdini spline component which is used for curve input. **/
 	UHoudiniSplineComponent* InputCurve;
 
-	/** Id of the connected asset. **/
-	HAPI_AssetId ConnectedAssetId;
+	/** Id of geometry asset. **/
+	HAPI_AssetId GeometryAssetId;
 
 	/** Id of connected curve. **/
-	HAPI_AssetId ConnectedCurveAssetId;
+	HAPI_AssetId CurveAssetId;
+
+	/** Id of currently connected asset. **/
+	HAPI_AssetId ConnectedAssetId;
 
 	/** Index of this input. **/
 	int32 InputIndex;
 
 	/** Choice selection. **/
 	EHoudiniAssetInputType::Enum ChoiceIndex;
+
+	/** Is set to true when static mesh used for geometry input has changed. **/
+	bool bStaticMeshChanged;
 };
