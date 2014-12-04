@@ -23,7 +23,7 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties&
 	ConnectedAssetId(-1),
 	ConnectedCurveAssetId(-1),
 	InputIndex(0),
-	ChoiceIndex(0)
+	ChoiceIndex(EHoudiniAssetInputType::GeometryInput)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -73,7 +73,7 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 		HoudiniAssetInput->StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
 	}
 
-	HoudiniAssetInput->ChoiceIndex = 0;
+	HoudiniAssetInput->ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
 
 	return HoudiniAssetInput;
 }
@@ -155,130 +155,135 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		]
 	];
 
-	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
-	[
-		SNew(SAssetDropTarget)
-		.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshDraggedOver))
-		.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshDropped))
-		[
-			SAssignNew(HorizontalBox, SHorizontalBox)
-		]
-	];
-
-	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
-	[
-		SAssignNew(StaticMeshThumbnailBorder, SBorder)
-		.Padding(5.0f)
-		.BorderImage(TAttribute<const FSlateBrush*>::Create(TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetStaticMeshThumbnailBorder)))
-		.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetInput::OnThumbnailDoubleClick))
-		[
-			SNew(SBox)
-			.WidthOverride(64)
-			.HeightOverride(64)
-			.ToolTipText(GetParameterLabel())
-			[
-				StaticMeshThumbnail->MakeThumbnailWidget()
-			]
-		]
-	];
-
-	FString MeshName = TEXT("");
-	if(InputObject)
+	if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
 	{
-		MeshName = InputObject->GetName();
-	}
-
-	HorizontalBox->AddSlot()
-	.FillWidth(1.0f)
-	.Padding(0.0f, 4.0f, 4.0f, 4.0f)
-	.VAlign(VAlign_Center)
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		//.VAlign(VAlign_Center)
-		//.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
+		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 		[
-			SAssignNew(ButtonBox, SHorizontalBox)
-			+SHorizontalBox::Slot()
+			SNew(SAssetDropTarget)
+			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshDraggedOver))
+			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshDropped))
 			[
-				SAssignNew(StaticMeshComboButton, SComboButton)
-				.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
-				.OnGetMenuContent(FOnGetContent::CreateUObject(this, &UHoudiniAssetInput::OnGetStaticMeshMenuContent))
-				.ContentPadding(2.0f)
-				.ButtonContent()
+				SAssignNew(HorizontalBox, SHorizontalBox)
+			]
+		];
+
+		HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
+		[
+			SAssignNew(StaticMeshThumbnailBorder, SBorder)
+			.Padding(5.0f)
+			.BorderImage(TAttribute<const FSlateBrush*>::Create(TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetStaticMeshThumbnailBorder)))
+			.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetInput::OnThumbnailDoubleClick))
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(GetParameterLabel())
 				[
-					SNew(STextBlock)
-					.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-					.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-					.Text(MeshName)
+					StaticMeshThumbnail->MakeThumbnailWidget()
 				]
 			]
-		]/*
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(FMargin( 0.0f, 0.0f ))
+		];
+
+		FString MeshName = TEXT("");
+		if(InputObject)
+		{
+			MeshName = InputObject->GetName();
+		}
+
+		HorizontalBox->AddSlot()
+		.FillWidth(1.0f)
+		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+		.VAlign(VAlign_Center)
 		[
-			SNullWidget::NullWidget
-		]*/
-	];
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			//.VAlign(VAlign_Center)
+			//.VAlign(VAlign_Fill)
+			.HAlign(HAlign_Fill)
+			[
+				SAssignNew(ButtonBox, SHorizontalBox)
+				+SHorizontalBox::Slot()
+				[
+					SAssignNew(StaticMeshComboButton, SComboButton)
+					.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
+					.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+					.OnGetMenuContent(FOnGetContent::CreateUObject(this, &UHoudiniAssetInput::OnGetStaticMeshMenuContent))
+					.ContentPadding(2.0f)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
+						.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+						.Text(MeshName)
+					]
+				]
+			]/*
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FMargin( 0.0f, 0.0f ))
+			[
+				SNullWidget::NullWidget
+			]*/
+		];
 
-	// Create tooltip.
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("Asset"), FText::FromString(MeshName));
-	FText StaticMeshTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+		// Create tooltip.
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Asset"), FText::FromString(MeshName));
+		FText StaticMeshTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
 
-	ButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding(2.0f, 0.0f)
-	.VAlign(VAlign_Center)
-	[
-		PropertyCustomizationHelpers::MakeBrowseButton(
-			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshBrowse),
-			TAttribute<FText>(StaticMeshTooltip))
-	];
-
-	ButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding(2.0f, 0.0f)
-	.VAlign(VAlign_Center)
-	[
-		SNew(SButton)
-		.ToolTipText(LOCTEXT("ResetToBase", "Reset to default static mesh"))
-		.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-		.ContentPadding(0) 
-		.Visibility(EVisibility::Visible)
-		.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnResetStaticMeshClicked))
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
 		[
-			SNew(SImage)
-			.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
-		]
-	];
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshBrowse),
+				TAttribute<FText>(StaticMeshTooltip))
+		];
 
-	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.MaxWidth(120.0f)
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
 		[
 			SNew(SButton)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetCurveButtonText)))
-			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnClickCurveButton))
-		]/*
-		+SHorizontalBox::Slot()
-		.MaxWidth(120.0f)
+			.ToolTipText(LOCTEXT("ResetToBase", "Reset to default static mesh"))
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ContentPadding(0) 
+			.Visibility(EVisibility::Visible)
+			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnResetStaticMeshClicked))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+			]
+		];
+	}
+	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
+	{
+		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 		[
-			SNew(SButton)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.Text(LOCTEXT("Reset Curve", "Reset Curve"))
-			//.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeStaticMesh, StaticMesh, HoudiniAssetComponent)
-			//.ToolTipText(LOCTEXT("HoudiniStaticMeshBakeButton", "Bake this generated static mesh"))
-		]*/
-	];
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.MaxWidth(120.0f)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetCurveButtonText)))
+				.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnClickCurveButton))
+			]/*
+			+SHorizontalBox::Slot()
+			.MaxWidth(120.0f)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Text(LOCTEXT("Reset Curve", "Reset Curve"))
+				//.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeStaticMesh, StaticMesh, HoudiniAssetComponent)
+				//.ToolTipText(LOCTEXT("HoudiniStaticMeshBakeButton", "Bake this generated static mesh"))
+			]*/
+		];
+	}
 
 	Row.ValueWidget.Widget = VerticalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
@@ -661,6 +666,10 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 	if(bChanged)
 	{
 		// We are switching modes.
+		ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(LabelIdx);
+
+		// We need to trigger details panel update.
+		HoudiniAssetComponent->UpdateEditorProperties();
 	}
 }
 
