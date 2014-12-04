@@ -312,6 +312,12 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(InputCurveParameters); IterParams; ++IterParams)
+		{
+			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+			HoudiniAssetParameter->CreateWidget(VerticalBox);
+		}
+
 		/*
 		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 		[
@@ -764,8 +770,6 @@ UHoudiniAssetInput::UpdateInputCurve()
 					{
 						HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(nullptr, this, NodeId, ParmInfo);
 					}
-
-					NewInputCurveParameters.Add(ParameterName, HoudiniAssetParameter);
 				}
 				else if(HAPI_PARMTYPE_TOGGLE == ParmInfo.type)
 				{
@@ -775,6 +779,8 @@ UHoudiniAssetInput::UpdateInputCurve()
 				{
 					check(false);
 				}
+
+				NewInputCurveParameters.Add(ParameterName, HoudiniAssetParameter);
 			}
 		}
 

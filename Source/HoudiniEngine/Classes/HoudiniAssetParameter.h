@@ -41,8 +41,17 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
 
+	/** Create widget for this parameter inside a given box. **/
+	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
+
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
+
+	/** Notification from a child parameter about upcoming change. **/
+	virtual void NotifyChildParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter);
+
+	/** Notifaction from a child parameter about its change. **/
+	virtual void NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
 
 public:
 

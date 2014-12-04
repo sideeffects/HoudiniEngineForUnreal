@@ -94,7 +94,28 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 void
 UHoudiniAssetParameter::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
+	// Default implementation does nothing.
+}
 
+
+void
+UHoudiniAssetParameter::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
+{
+	// Default implementation does nothing.
+}
+
+
+void
+UHoudiniAssetParameter::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
+{
+	// Default implementation does nothing.
+}
+
+
+void
+UHoudiniAssetParameter::NotifyChildParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
+{
+	// Default implementation does nothing.
 }
 
 
@@ -290,6 +311,11 @@ UHoudiniAssetParameter::MarkPreChanged()
 	{
 		HoudiniAssetComponent->NotifyParameterWillChange(this);
 	}
+
+	if(ParentParameter)
+	{
+		ParentParameter->NotifyChildParameterWillChange(this);
+	}
 }
 
 
@@ -303,6 +329,12 @@ UHoudiniAssetParameter::MarkChanged()
 	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->NotifyParameterChanged(this);
+	}
+
+	// Notify parent parameter about change.
+	if(ParentParameter)
+	{
+		ParentParameter->NotifyChildParameterChanged(this);
 	}
 
 	PrintParameterInfo();
