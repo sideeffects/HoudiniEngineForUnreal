@@ -127,8 +127,8 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 				DisplayPointFirst = DisplayPoint;
 			}
 
-			// If this is last point, draw link from last to first.
-			if(NumDisplayPoints > 1 && DisplayPointIdx + 1 == NumDisplayPoints)
+			// If this is last point and curve is closed, draw link from last to first.
+			if(HoudiniSplineComponent->IsClosedCurve() && (NumDisplayPoints > 1) && (DisplayPointIdx + 1 == NumDisplayPoints))
 			{
 				PDI->DrawLine(DisplayPointFirst, DisplayPoint, ColorNormal, SDPG_Foreground);
 			}

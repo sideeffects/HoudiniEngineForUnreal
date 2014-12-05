@@ -26,7 +26,8 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties&
 	InputIndex(0),
 	ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
 	bStaticMeshChanged(false),
-	bSwitchedToCurve(false)
+	bSwitchedToCurve(false),
+	bLoadedParameter(false)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -59,24 +60,41 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 	// Get input string from handle.
 	HoudiniAssetInput->SetNameAndLabel(InputStringHandle);
 
-	// Get string values for all available choices.
-	HoudiniAssetInput->StringChoiceLabels.Empty();
+	// By default geometry input is chosen.
+	HoudiniAssetInput->ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
+
+	// Create necessary widget resources.
+	HoudiniAssetInput->CreateWidgetResources();
+
+	return HoudiniAssetInput;
+}
+
+
+void
+UHoudiniAssetInput::CreateWidgetResources()
+{
+	ChoiceStringValue = TEXT("");
+	StringChoiceLabels.Empty();
 
 	{
 		FString* ChoiceLabel = new FString(TEXT("Geometry Input"));
-		HoudiniAssetInput->StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
 
-		HoudiniAssetInput->ChoiceStringValue = *ChoiceLabel;
+		if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
+		{
+			ChoiceStringValue = *ChoiceLabel;
+		}
 	}
 
 	{
 		FString* ChoiceLabel = new FString(TEXT("Curve Input"));
-		HoudiniAssetInput->StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+
+		if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
+		{
+			ChoiceStringValue = *ChoiceLabel;
+		}
 	}
-
-	HoudiniAssetInput->ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
-
-	return HoudiniAssetInput;
 }
 
 
@@ -365,8 +383,16 @@ UHoudiniAssetInput::UploadParameterValue()
 			}
 		}
 
-		// Connect asset.
-		FHoudiniEngineUtils::HapiConnectAsset(CurveAssetId, 0, HostAssetId, InputIndex);
+		// Connect asset if it is not connected.
+		if(!IsCurveAssetConnected())
+		{
+			FHoudiniEngineUtils::HapiConnectAsset(CurveAssetId, 0, HostAssetId, InputIndex);
+		}
+
+		if(bLoadedParameter)
+		{
+		
+		}
 
 		// We need to update newly created curve.
 		UpdateInputCurve();
@@ -385,15 +411,40 @@ UHoudiniAssetInput::BeginDestroy()
 
 
 void
+UHoudiniAssetInput::PostLoad()
+{
+	Super::PostLoad();
+
+	if(InputCurve)
+	{
+		InputCurve->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+		InputCurve->SetVisibility(true);
+		InputCurve->RegisterComponent();
+		InputCurve->RemoveFromRoot();
+	}
+}
+
+
+void
 UHoudiniAssetInput::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
 
+	// Serialize current choice selection.
+	SerializeEnumeration(Ar, ChoiceIndex);
+
+	// Create necessary widget resources.
+	if(Ar.IsLoading())
+	{
+		CreateWidgetResources();
+		bLoadedParameter = true;
+	}
+
 	// Serialize input index.
 	Ar << InputIndex;
 
-	// We will only serialize static mesh inputs for the moment.
+	// Serialize static mesh input.
 	bool bMeshAssigned = false;
 	FString MeshPathName = TEXT("");
 
@@ -420,6 +471,21 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 		{
 			InputObject = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName, nullptr, LOAD_NoWarn, nullptr));
 		}
+	}
+
+	// Serialize curve.
+	bool bCurveCreated = (InputCurve != nullptr);
+	Ar << bCurveCreated;
+
+	if(bCurveCreated)
+	{
+		if(Ar.IsLoading())
+		{
+			InputCurve = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(), HoudiniAssetComponent, NAME_None, RF_Transient);
+			InputCurve->AddToRoot();
+		}
+
+		InputCurve->SerializeRaw(Ar);
 	}
 }
 
@@ -614,7 +680,9 @@ UHoudiniAssetInput::OnInputCurveChanged()
 	if(FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
 	{
 		HAPI_CookAsset(CurveAssetId, nullptr);
-		UpdateInputCurve();
+
+		MarkPreChanged();
+		MarkChanged();
 	}
 }
 
@@ -630,7 +698,9 @@ UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniA
 			HoudiniAssetParameter->UploadParameterValue();
 
 			HAPI_CookAsset(CurveAssetId, nullptr);
-			UpdateInputCurve();
+
+			MarkPreChanged();
+			MarkChanged();
 		}
 	}
 }

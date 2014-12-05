@@ -72,6 +72,7 @@ public:
 
 	virtual void BeginDestroy();
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 public:
@@ -152,6 +153,9 @@ protected:
 	/** Clear input curve parameters. **/
 	void ClearInputCurveParameters();
 
+	/** Create necessary resources for this input. **/
+	void CreateWidgetResources();
+
 protected:
 
 	/** Parameters used by a curve input asset. **/
@@ -201,4 +205,7 @@ protected:
 
 	/** Is set to true when choice switches to curve mode. **/
 	bool bSwitchedToCurve;
+
+	/** Is set to true if this parameter has been loaded. **/
+	bool bLoadedParameter;
 };
