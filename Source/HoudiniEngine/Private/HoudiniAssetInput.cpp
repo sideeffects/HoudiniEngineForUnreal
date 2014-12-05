@@ -353,7 +353,7 @@ UHoudiniAssetInput::UploadParameterValue()
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(InputObject);
 		if(StaticMesh)
 		{
-			if(bStaticMeshChanged)
+			if(bStaticMeshChanged || bLoadedParameter)
 			{
 				bStaticMeshChanged = false;
 				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh, GeometryAssetId))
@@ -398,6 +398,7 @@ UHoudiniAssetInput::UploadParameterValue()
 		UpdateInputCurve();
 	}
 
+	bLoadedParameter = false;
 	return Super::UploadParameterValue();
 }
 
