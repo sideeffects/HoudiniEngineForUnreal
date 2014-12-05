@@ -622,7 +622,17 @@ UHoudiniAssetInput::OnInputCurveChanged()
 void
 UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
+	if(HoudiniAssetParameter && EHoudiniAssetInputType::CurveInput == ChoiceIndex)
+	{
+		if(FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
+		{
+			// We need to upload changed param back to HAPI.
+			HoudiniAssetParameter->UploadParameterValue();
 
+			HAPI_CookAsset(CurveAssetId, nullptr);
+			UpdateInputCurve();
+		}
+	}
 }
 
 
