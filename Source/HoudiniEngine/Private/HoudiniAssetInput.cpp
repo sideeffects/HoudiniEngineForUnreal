@@ -487,6 +487,48 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 		}
 
 		InputCurve->SerializeRaw(Ar);
+
+		// Serialize curve parameters.
+		SerializeInputCurveParameters(Ar);
+	}
+}
+
+
+void
+UHoudiniAssetInput::SerializeInputCurveParameters(FArchive& Ar)
+{
+	// Serialize number of parameters.
+	int32 ParamCount = InputCurveParameters.Num();
+	Ar << ParamCount;
+
+	if(Ar.IsSaving())
+	{
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(InputCurveParameters); IterParams; ++IterParams)
+		{
+			FString ParameterKey = IterParams.Key();
+			UHoudiniAssetParameter* Parameter = IterParams.Value();
+
+			Ar << ParameterKey;
+			Ar << Parameter;
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+		InputCurveParameters.Empty();
+
+		for(int32 ParmIdx = 0; ParmIdx < ParamCount; ++ParmIdx)
+		{
+			FString ParameterKey = TEXT("");
+			UHoudiniAssetParameter* Parameter = nullptr;
+
+			Ar << ParameterKey;
+			Ar << Parameter;
+
+			Parameter->SetHoudiniAssetComponent(nullptr);
+			Parameter->SetParentParameter(this);
+
+			InputCurveParameters.Add(ParameterKey, Parameter);
+		}
 	}
 }
 
