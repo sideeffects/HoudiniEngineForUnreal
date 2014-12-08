@@ -17,11 +17,13 @@
 
 /** Unreal headers. **/
 #include "CoreUObject.h"
+#include "UnrealEd.h"
 #include "ObjectTools.h"
 #include "AssetTypeActions_Base.h"
 #include "ModuleManager.h"
 #include "EngineModule.h"
 #include "Core.h"
+#include "AssetData.h"
 #include "ComponentAssetBroker.h"
 #include "PackageTools.h"
 #include "ThumbnailHelpers.h"
