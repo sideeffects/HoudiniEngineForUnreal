@@ -156,6 +156,9 @@ protected:
 	/** Create necessary resources for this input. **/
 	void CreateWidgetResources();
 
+	/** Serialize input curve related parameters. **/
+	void SerializeInputCurveParameters(FArchive& Ar);
+
 protected:
 
 	/** Parameters used by a curve input asset. **/
