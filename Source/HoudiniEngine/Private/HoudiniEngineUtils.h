@@ -61,14 +61,6 @@ public:
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
-	/** Convert Houdini color to Unreal FColor and return number of channels. **/
-	static int ConvertHoudiniColorRGB(const float* HoudiniColorRGB, FColor& UnrealColor);
-	static int ConvertHoudiniColorRGBA(const float* HoudiniColorRGBA, FColor& UnrealColor);
-
-	/** Convert Unreal FColor to Houdini color and return number of channels. **/
-	static int ConvertUnrealColorRGB(const FColor& UnrealColor, float* HoudiniColorRGB);
-	static int ConvertUnrealColorRGBA(const FColor& UnrealColor, float* HoudiniColorRGBA);
-
 	/** Construct static mesh which represents Houdini logo geometry. **/
 	static UStaticMesh* CreateStaticMeshHoudiniLogo();
 
