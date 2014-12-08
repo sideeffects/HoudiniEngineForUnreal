@@ -41,6 +41,8 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FPostConstructInitializePro
 {
 	ParameterName = TEXT("");
 	ParameterLabel = TEXT("");
+
+	ParentParameterName = TEXT("");
 }
 
 
@@ -180,6 +182,15 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
+
+	// Serialize name of parent.
+	bool bParentPresent = (ParentParameter != nullptr);
+	Ar << bParentPresent;
+
+	if(bParentPresent)
+	{
+		Ar << ParentParameterName;
+	}
 
 	// Component will be assigned separately upon loading.
 
@@ -371,6 +382,13 @@ const FString&
 UHoudiniAssetParameter::GetParameterLabel() const
 {
 	return ParameterLabel;
+}
+
+
+const FString&
+UHoudiniAssetParameter::GetParentParameterName() const
+{
+	return ParentParameterName;
 }
 
 

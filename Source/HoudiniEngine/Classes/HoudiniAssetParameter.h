@@ -73,6 +73,9 @@ public:
 	/** Return label name. **/
 	const FString& GetParameterLabel() const;
 
+	/** Return parent parameter name, if no parent is present will return empty string. **/
+	const FString& GetParentParameterName() const;
+
 	/** Update parameter's node id. This is necessary after parameter is loaded. **/
 	void SetNodeId(HAPI_NodeId InNodeId);
 
@@ -148,6 +151,9 @@ protected:
 
 	/** Label of this parameter. **/
 	FString ParameterLabel;
+
+	/** Name of parent parameter, used for serialization purposes. **/
+	FString ParentParameterName;
 
 	/** Node this parameter belongs to. **/
 	HAPI_NodeId NodeId;
