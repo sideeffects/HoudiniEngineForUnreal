@@ -2165,6 +2165,7 @@ UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
 	}
 	else if(Ar.IsLoading())
 	{
+		// Load and create parameters.
 		for(int32 ParmIdx = 0; ParmIdx < ParamCount; ++ParmIdx)
 		{
 			FString HoudiniAssetParameterKey = TEXT("");
@@ -2175,6 +2176,22 @@ UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
 
 			HoudiniAssetParameter->SetHoudiniAssetComponent(this);
 			Parameters.Add(HoudiniAssetParameterKey, HoudiniAssetParameter);
+		}
+
+		// We need to re-patch parent parameter links.
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+		{
+			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+			const FString& ParentParameterName = HoudiniAssetParameter->GetParentParameterName();
+			if(!ParentParameterName.IsEmpty())
+			{
+				UHoudiniAssetParameter* const* FoundParentParameter = Parameters.Find(ParentParameterName);
+				if(FoundParentParameter)
+				{
+					HoudiniAssetParameter->SetParentParameter(*FoundParentParameter);
+				}
+			}
 		}
 	}
 }
