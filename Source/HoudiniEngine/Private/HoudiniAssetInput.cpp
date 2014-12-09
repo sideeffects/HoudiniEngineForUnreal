@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetInput::UHoudiniAssetInput(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	InputObject(nullptr),
 	InputCurve(nullptr),
 	GeometryAssetId(-1),
@@ -670,7 +670,10 @@ UHoudiniAssetInput::OnGetStaticMeshMenuContent()
 	TArray<const UClass*> AllowedClasses;
 	AllowedClasses.Add(UStaticMesh::StaticClass());
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(InputObject), true, &AllowedClasses, OnShouldFilterStaticMesh,
+	TArray<UFactory*> NewAssetFactories;
+
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(InputObject), true, AllowedClasses, NewAssetFactories,
+		OnShouldFilterStaticMesh,
 		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected), 
 		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::CloseStaticMeshComboButton));
 }

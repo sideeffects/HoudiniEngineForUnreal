@@ -30,7 +30,7 @@ class HOUDINIENGINE_API UHoudiniAsset : public UObject
 
 public:
 
-	UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
+	UHoudiniAsset(const FObjectInitializer& ObjectInitializer,
 				  const uint8*& BufferStart,
 				  const uint8* BufferEnd,
 				  const FString& InFileName);

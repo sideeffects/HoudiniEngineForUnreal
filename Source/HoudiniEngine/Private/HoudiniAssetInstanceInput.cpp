@@ -20,8 +20,8 @@ const float
 UHoudiniAssetInstanceInput::ScaleSmallValue = KINDA_SMALL_NUMBER * 2.0f;
 
 
-UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	ObjectId(-1),
 	ObjectToInstanceId(-1),
 	GeoId(-1),
@@ -950,7 +950,10 @@ UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent(UStaticMesh* StaticMesh, 
 	TArray<const UClass*> AllowedClasses;
 	AllowedClasses.Add(UStaticMesh::StaticClass());
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true, &AllowedClasses, OnShouldFilterStaticMesh,
+	TArray<UFactory*> NewAssetFactories;
+
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true, AllowedClasses, NewAssetFactories,
+		OnShouldFilterStaticMesh,
 		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshSelected, StaticMesh, StaticMeshIdx), 
 		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::CloseStaticMeshComboButton));
 }

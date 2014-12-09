@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetParameterString::UHoudiniAssetParameterString(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UHoudiniAssetParameterString::UHoudiniAssetParameterString(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	Values.Add(TEXT(""));
 }

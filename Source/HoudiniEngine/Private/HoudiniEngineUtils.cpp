@@ -1214,7 +1214,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	}
 
 	// Create new static mesh.
-	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
 
 	// Create one LOD level.
 	new(StaticMesh->SourceModels) FStaticMeshSourceModel();
@@ -1519,7 +1519,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					MeshGuid.Invalidate();
 
 					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, Package, MeshName, MeshGuid, MeshCounter);
-					StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+					StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
 				}
 				else
 				{
@@ -2021,7 +2021,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	FGuid MeshGuid;
 	FString MeshName;
 	UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, Package, MeshName, MeshGuid, MeshCounter);
-	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
 
 	// Create new source model for current static mesh.
 	if(!StaticMesh->SourceModels.Num())
@@ -2155,7 +2155,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, nullptr, MeshName, BakeGUID, MeshCounter);
 
 	// Create static mesh.
-	UStaticMesh* StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+	UStaticMesh* StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) UStaticMesh(FObjectInitializer());
 
 	// Copy materials.
 	StaticMesh->Materials = InStaticMesh->Materials;
@@ -2234,7 +2234,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, nullptr, MeshName, BakeGUID);
 
 	// Create static mesh.
-	NewStaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FPostConstructInitializeProperties());
+	NewStaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
 
 	// Create new source model for new static mesh.
 	if(!NewStaticMesh->SourceModels.Num())
@@ -2493,7 +2493,7 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 	// Update context for generated materials (will trigger when object goes out of scope).
 	FMaterialUpdateContext MaterialUpdateContext;
 
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FObjectInitializer());
 	FString MaterialName = FString::Printf(TEXT("%s_material"), *MeshName);
 	Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Transient | RF_Public, NULL, GWarn);
 
@@ -2526,7 +2526,7 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 					Material->BlendMode = BLEND_Masked;
 
 					TArray<FExpressionOutput> Outputs = Expression->GetOutputs();
-					FExpressionOutput* Output = Outputs.GetTypedData();
+					FExpressionOutput* Output = Outputs.GetData();
 
 					Material->OpacityMask.Expression = Expression;
 					Material->OpacityMask.Mask = Output->Mask;

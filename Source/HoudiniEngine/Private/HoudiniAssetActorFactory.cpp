@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetActorFactory::UHoudiniAssetActorFactory(const FPostConstructInitializeProperties& PCIP) : 
-	Super(PCIP)
+UHoudiniAssetActorFactory::UHoudiniAssetActorFactory(const FObjectInitializer& ObjectInitializer) : 
+	Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("HoudiniAssetDisplayName", "Houdini Engine Asset");
 	NewActorClass = AHoudiniAssetActor::StaticClass();

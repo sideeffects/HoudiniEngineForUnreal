@@ -43,8 +43,8 @@ bool
 UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
 
 
-UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
 	AssetId(-1),
 	HapiNotificationStarted(0.0),
@@ -59,7 +59,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FPostConstructInitializePro
 	bCurveChanged(false),
 	bUndoRequested(false)
 {
-	UObject* Object = PCIP.GetObject();
+	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
 
 	if(ObjectOuter->IsA(AHoudiniAssetActor::StaticClass()))

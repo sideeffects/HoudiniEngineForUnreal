@@ -684,7 +684,9 @@ FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent(UMaterialInterf
 	TArray<const UClass*> AllowedClasses;
 	AllowedClasses.Add(UMaterialInterface::StaticClass());
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(MaterialInterface), true, &AllowedClasses, OnShouldFilterMaterialInterface,
+	TArray<UFactory*> NewAssetFactories;
+
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(MaterialInterface), true, AllowedClasses, NewAssetFactories, OnShouldFilterMaterialInterface,
 		FOnAssetSelected::CreateSP(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected, StaticMesh, MaterialIdx), 
 		FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::CloseMaterialInterfaceComboButton));
 }
@@ -781,6 +783,8 @@ FHoudiniAssetComponentDetails::OnGetHoudiniAssetMenuContent()
 	TArray<const UClass*> AllowedClasses;
 	AllowedClasses.Add(UHoudiniAsset::StaticClass());
 
+	TArray<UFactory*> NewAssetFactories;
+
 	UHoudiniAsset* HoudiniAsset = nullptr;
 	if(HoudiniAssetComponents.Num() > 0)
 	{
@@ -788,7 +792,8 @@ FHoudiniAssetComponentDetails::OnGetHoudiniAssetMenuContent()
 		HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	}
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(HoudiniAsset), true, &AllowedClasses, OnShouldFilterHoudiniAsset,
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(HoudiniAsset), true, AllowedClasses, NewAssetFactories,
+		OnShouldFilterHoudiniAsset,
 		FOnAssetSelected::CreateSP(this, &FHoudiniAssetComponentDetails::OnHoudiniAssetSelected), 
 		FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::CloseHoudiniAssetComboButton));
 }

@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniSplineComponent::UHoudiniSplineComponent(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniSplineComponent::UHoudiniSplineComponent(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	HoudiniAssetInput(nullptr),
 	CurveType(EHoudiniSplineComponentType::Polygon),
 	CurveMethod(EHoudiniSplineComponentMethod::Breakpoints),
