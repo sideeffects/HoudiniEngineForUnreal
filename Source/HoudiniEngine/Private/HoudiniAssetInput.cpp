@@ -405,27 +405,27 @@ UHoudiniAssetInput::UploadParameterValue()
 				// Upload parameter value.
 				Parameter->UploadParameterValue();
 			}
-
-			// Also upload points.
-			HAPI_NodeId NodeId = -1;
-			if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
-			{
-				const TArray<FVector>& CurvePoints = InputCurve->GetCurvePoints();
-
-				FString PositionString = TEXT("");
-				FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
-
-				// Get param id.
-				HAPI_ParmId ParmId = -1;
-				if(HAPI_RESULT_SUCCESS == HAPI_GetParmIdFromName(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
-				{
-					std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-					HAPI_SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, 0);
-				}
-			}
-
-			HAPI_CookAsset(CurveAssetId, nullptr);
 		}
+
+		// Also upload points.
+		HAPI_NodeId NodeId = -1;
+		if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
+		{
+			const TArray<FVector>& CurvePoints = InputCurve->GetCurvePoints();
+
+			FString PositionString = TEXT("");
+			FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
+
+			// Get param id.
+			HAPI_ParmId ParmId = -1;
+			if(HAPI_RESULT_SUCCESS == HAPI_GetParmIdFromName(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+			{
+				std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+				HAPI_SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, 0);
+			}
+		}
+
+		HAPI_CookAsset(CurveAssetId, nullptr);
 
 		// We need to update newly created curve.
 		UpdateInputCurve();
@@ -455,6 +455,7 @@ UHoudiniAssetInput::PostLoad()
 		InputCurve->SetVisibility(true);
 		InputCurve->RegisterComponent();
 		InputCurve->RemoveFromRoot();
+		InputCurve->SetHoudiniAssetInput(this);
 	}
 }
 
@@ -753,13 +754,8 @@ UHoudiniAssetInput::IsCurveAssetConnected() const
 void
 UHoudiniAssetInput::OnInputCurveChanged()
 {
-	if(FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
-	{
-		HAPI_CookAsset(CurveAssetId, nullptr);
-
-		MarkPreChanged();
-		MarkChanged();
-	}
+	MarkPreChanged();
+	MarkChanged();
 }
 
 
@@ -768,16 +764,15 @@ UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniA
 {
 	if(HoudiniAssetParameter && EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
+		MarkPreChanged();
+
 		if(FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
 		{
 			// We need to upload changed param back to HAPI.
 			HoudiniAssetParameter->UploadParameterValue();
-
-			HAPI_CookAsset(CurveAssetId, nullptr);
-
-			MarkPreChanged();
-			MarkChanged();
 		}
+
+		MarkChanged();
 	}
 }
 
@@ -930,7 +925,6 @@ UHoudiniAssetInput::UpdateInputCurve()
 	{
 		// We need to trigger details panel update.
 		HoudiniAssetComponent->UpdateEditorProperties();
-
 		bSwitchedToCurve = false;
 	}
 }
