@@ -391,7 +391,40 @@ UHoudiniAssetInput::UploadParameterValue()
 
 		if(bLoadedParameter)
 		{
-		
+			HAPI_AssetInfo CurveAssetInfo;
+			HAPI_GetAssetInfo(CurveAssetId, &CurveAssetInfo);
+
+			// If we just loaded our curve, we need to set parameters.
+			for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(InputCurveParameters); IterParams; ++IterParams)
+			{
+				UHoudiniAssetParameter* Parameter = IterParams.Value();
+
+				// We need to update node id for loaded parameters.
+				Parameter->SetNodeId(CurveAssetInfo.nodeId);
+
+				// Upload parameter value.
+				Parameter->UploadParameterValue();
+			}
+
+			// Also upload points.
+			HAPI_NodeId NodeId = -1;
+			if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
+			{
+				const TArray<FVector>& CurvePoints = InputCurve->GetCurvePoints();
+
+				FString PositionString = TEXT("");
+				FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
+
+				// Get param id.
+				HAPI_ParmId ParmId = -1;
+				if(HAPI_RESULT_SUCCESS == HAPI_GetParmIdFromName(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+				{
+					std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+					HAPI_SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, 0);
+				}
+			}
+
+			HAPI_CookAsset(CurveAssetId, nullptr);
 		}
 
 		// We need to update newly created curve.

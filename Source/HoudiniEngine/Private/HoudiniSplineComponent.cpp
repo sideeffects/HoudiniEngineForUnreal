@@ -242,3 +242,10 @@ UHoudiniSplineComponent::NotifyHoudiniInputCurveChanged()
 		HoudiniAssetInput->OnInputCurveChanged();
 	}
 }
+
+
+const TArray<FVector>&
+UHoudiniSplineComponent::GetCurvePoints() const
+{
+	return CurvePoints;
+}
