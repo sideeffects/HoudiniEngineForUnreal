@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

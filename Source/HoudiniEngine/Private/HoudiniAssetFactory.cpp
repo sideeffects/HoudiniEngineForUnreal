@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetFactory::UHoudiniAssetFactory(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UHoudiniAssetFactory::UHoudiniAssetFactory(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	// This factory is responsible for manufacturing HoudiniEngine assets.
 	SupportedClass = UHoudiniAsset::StaticClass();
@@ -62,7 +62,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
 	// Create a new asset.
-	UHoudiniAsset* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FPostConstructInitializeProperties(), Buffer, BufferEnd, UFactory::CurrentFilename);
+	UHoudiniAsset* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FObjectInitializer(), Buffer, BufferEnd, UFactory::CurrentFilename);
 
 	// Broadcast notification that the new asset has been imported.
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);

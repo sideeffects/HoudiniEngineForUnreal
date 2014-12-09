@@ -24,7 +24,7 @@ class HOUDINIENGINE_API AHoudiniAssetActor : public AActor
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
-	TSubobjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
+	UHoudiniAssetComponent* HoudiniAssetComponent;
 
 public:
 

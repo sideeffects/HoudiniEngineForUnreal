@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetParameterChoice::UHoudiniAssetParameterChoice(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniAssetParameterChoice::UHoudiniAssetParameterChoice(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	CurrentValue(0),
 	bStringChoiceList(false)
 {

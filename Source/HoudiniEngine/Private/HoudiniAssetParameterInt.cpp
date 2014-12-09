@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetParameterInt::UHoudiniAssetParameterInt(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniAssetParameterInt::UHoudiniAssetParameterInt(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	ValueMin(TNumericLimits<int32>::Lowest()),
 	ValueMax(TNumericLimits<int32>::Max()),
 	ValueUIMin(TNumericLimits<int32>::Lowest()),

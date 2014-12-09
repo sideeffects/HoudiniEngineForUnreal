@@ -20,8 +20,8 @@ const int32
 UHoudiniAsset::PersistenceFormatVersion = 0;
 
 
-UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
 	bPreviewHoudiniLogo(false)
@@ -30,11 +30,11 @@ UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP) :
 }
 
 
-UHoudiniAsset::UHoudiniAsset(const FPostConstructInitializeProperties& PCIP,
+UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer,
 							 const uint8*& BufferStart,
 							 const uint8* BufferEnd,
 							 const FString& InFileName) :
-	Super(PCIP),
+	Super(ObjectInitializer),
 	OTLFileName(InFileName),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),

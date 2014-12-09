@@ -16,13 +16,13 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	bCanBeDamaged = false;
 
 	// Create Houdini component and attach it to a root component.
-	HoudiniAssetComponent = PCIP.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
+	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	RootComponent = HoudiniAssetComponent;
 }
@@ -31,7 +31,7 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FPostConstructInitializeProperties&
 UHoudiniAssetComponent*
 AHoudiniAssetActor::GetHoudiniAssetComponent() const
 {
-	return HoudiniAssetComponent.Get();
+	return HoudiniAssetComponent;
 }
 
 
@@ -45,7 +45,7 @@ AHoudiniAssetActor::IsUsedForPreview() const
 bool
 AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
-	if(HoudiniAssetComponent.IsValid())
+	if(HoudiniAssetComponent)
 	{
 		// Retrieve asset associated with this component.
 		UHoudiniAsset* HoudiniAsset = GetHoudiniAssetComponent()->GetHoudiniAsset();

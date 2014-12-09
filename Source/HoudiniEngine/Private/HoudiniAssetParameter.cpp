@@ -29,8 +29,8 @@ GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter)
 
 
 
-UHoudiniAssetParameter::UHoudiniAssetParameter(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	HoudiniAssetComponent(nullptr),
 	ParentParameter(nullptr),
 	NodeId(-1),

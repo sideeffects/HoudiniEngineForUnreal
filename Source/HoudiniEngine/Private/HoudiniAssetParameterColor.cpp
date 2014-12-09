@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetParameterColor::UHoudiniAssetParameterColor(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UHoudiniAssetParameterColor::UHoudiniAssetParameterColor(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	Color = FColor::White;
 }

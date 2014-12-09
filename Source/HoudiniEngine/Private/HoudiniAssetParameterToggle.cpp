@@ -16,8 +16,8 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetParameterToggle::UHoudiniAssetParameterToggle(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UHoudiniAssetParameterToggle::UHoudiniAssetParameterToggle(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	// Parameter will have at least one value.
 	Values.AddZeroed(1);
