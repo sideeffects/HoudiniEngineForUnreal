@@ -112,6 +112,9 @@ public:
 	/** Used by visualizer to notify about input spline update. **/
 	void NotifyHoudiniInputCurveChanged();
 
+	/** Return curve points. **/
+	const TArray<FVector>& GetCurvePoints() const;
+
 protected:
 
 	/** Corresponding geo part object. **/
