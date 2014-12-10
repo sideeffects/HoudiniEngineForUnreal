@@ -1346,11 +1346,11 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	if(Ar.IsLoading())
 	{
 		// We need to locate corresponding package and load it if it is not loaded.
-		UPackage* Package = FindPackage(NULL, *HoudiniAssetPackage);
+		UPackage* Package = FindPackage(nullptr, *HoudiniAssetPackage);
 		if(!Package)
 		{
 			// Package was not loaded previously, we will try to load it.
-			Package = PackageTools::LoadPackage(HoudiniAssetPackage);
+			Package = LoadPackage(nullptr, *HoudiniAssetPackage, LOAD_None);
 		}
 
 		if(Package)
