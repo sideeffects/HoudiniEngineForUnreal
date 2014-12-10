@@ -1941,6 +1941,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 		BodySetup->bMeshCollideAll = true;
 
 		// Disabling collision generation for testing.
+		/*
 		{
 			BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
 			BodySetup->bGenerateMirroredCollision = false;
@@ -1948,6 +1949,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 			BodySetup->bMeshCollideAll = false;
 			BodySetup->bDoubleSidedGeometry = false;
 		}
+		*/
 
 		//RefreshCollisionChange(StaticMesh);
 	}
