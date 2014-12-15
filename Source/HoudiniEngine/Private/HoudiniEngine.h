@@ -86,9 +86,6 @@ private:
 	/** Static mesh used for Houdini logo rendering. **/
 	UStaticMesh* HoudiniLogoStaticMesh;
 
-	/** Material used by houdini logo geometry. **/
-	TWeakObjectPtr<UMaterial> HoudiniLogoMaterial;
-
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 
