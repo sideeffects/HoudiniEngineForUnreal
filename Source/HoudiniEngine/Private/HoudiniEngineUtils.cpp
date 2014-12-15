@@ -2750,18 +2750,16 @@ FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
 void
 FHoudiniEngineUtils::GetPathStrings(TArray<FString>& PathStrings)
 {
+	FString CurrentPathString;
+
+#if PLATFORM_WINDOWS
+
 	// Get the current value of the PATH variable.
 	TArray<TCHAR> PathVariable;
 	PathVariable.AddUninitialized(GetEnvironmentVariable(TEXT("PATH"), nullptr, 0));
-	verify(::GetEnvironmentVariable(TEXT("PATH"), PathVariable.GetData(), PathVariable.Num()) == PathVariable.Num() - 1);
-
-	FString CurrentPathString;
 	CurrentPathString.AppendChars(&PathVariable[0], PathVariable.Num());
 
-#if PLATFORM_WINDOWS
 	static const TCHAR* PathDelim = TEXT(";");
-#elif PLATFORM_MAC
-	static const TCHAR* PathDelim = TEXT(":");
 #else
 #error "Parsing PATH variable, Unsupported Platform."
 #endif
@@ -2777,6 +2775,8 @@ FHoudiniEngineUtils::GetPathStrings(TArray<FString>& PathStrings)
 void
 FHoudiniEngineUtils::SetPathStrings(const TArray<FString>& PathStrings)
 {
+#if PLATFORM_WINDOWS
+
 	FString NewPathVariable;
 
 	for(int32 PathIdx = 0; PathIdx < PathStrings.Num(); ++PathIdx)
@@ -2790,4 +2790,5 @@ FHoudiniEngineUtils::SetPathStrings(const TArray<FString>& PathStrings)
 	}
 
 	SetEnvironmentVariable(TEXT("PATH"), *NewPathVariable);
+#endif
 }
