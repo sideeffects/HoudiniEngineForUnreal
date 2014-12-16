@@ -573,7 +573,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						{
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
-							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, nullptr, StaticMeshes, NewStaticMeshes))
+							//if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, nullptr, StaticMeshes, NewStaticMeshes))
+							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, GetOutermost(), StaticMeshes, NewStaticMeshes))
 							{
 								// Remove all duplicates. After this operation, old map will have meshes which we need to deallocate.
 								for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(NewStaticMeshes); Iter; ++Iter)

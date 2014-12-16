@@ -2119,7 +2119,8 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& M
 	for(int32 MaterialIdx = 0; MaterialIdx < MaterialCount; ++MaterialIdx)
 	{
 		UMaterialInterface* MaterialInterface = nullptr;
-		FString MaterialPathName;
+		FString MaterialPathName, MaterialName;
+		bool bHoudiniMaterial = false;
 
 		if(Ar.IsSaving())
 		{
@@ -2132,19 +2133,39 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& M
 			}
 
 			MaterialPathName = MaterialInterface->GetPathName();
+			MaterialName = MaterialInterface->GetName();
+
+			if(MaterialName.EndsWith(FString(HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX), ESearchCase::IgnoreCase))
+			{
+				bHoudiniMaterial = true;
+			}
 		}
 
 		Ar << MaterialPathName;
+		Ar << bHoudiniMaterial;
+
+		if(Ar.IsSaving() && bHoudiniMaterial)
+		{
+			// We are serializing a Houdini material.
+		}
 
 		if(Ar.IsLoading())
 		{
 			// Attempt to load this material.
 			MaterialInterface = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialPathName, nullptr, LOAD_NoWarn, nullptr));
-							
+
 			if(!MaterialInterface)
 			{
-				// Material does not exist, use default material.
-				MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+				if(bHoudiniMaterial)
+				{
+					// Material does not exist, but it is a Houdini material.
+					MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+				}
+				else
+				{
+					// Otherwise use default material.
+					MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+				}
 			}
 
 			Materials.Add(MaterialInterface);
@@ -2509,8 +2530,8 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 	FMaterialUpdateContext MaterialUpdateContext;
 
 	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FObjectInitializer());
-	FString MaterialName = FString::Printf(TEXT("%s_material"), *MeshName);
-	Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Transient | RF_Public, NULL, GWarn);
+	FString MaterialName = FString::Printf(TEXT("%s_%s"), *MeshName, HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX);
+	Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Public, NULL, GWarn);
 
 	if(ParmNameIdx >= 0)
 	{

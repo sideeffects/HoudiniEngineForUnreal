@@ -171,6 +171,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
 
+/** Suffix for all Unreal materials which are generated from Houdini. **/
+#define HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX			TEXT("_houdini_material")
+
 /** Helper function to serialize enumerations. **/
 template <typename TEnum>
 FORCEINLINE
