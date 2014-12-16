@@ -696,9 +696,24 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer)
+FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName, 
+										 EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer)
 {
-	UTexture2D* Texture = UTexture2D::CreateTransient(ImageInfo.xRes, ImageInfo.yRes, PixelFormat);
+	UTexture2D* Texture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Package, *TextureName, RF_Public);
+	Texture->PlatformData = new FTexturePlatformData();
+	Texture->PlatformData->SizeX = ImageInfo.xRes;
+	Texture->PlatformData->SizeY = ImageInfo.yRes;
+	Texture->PlatformData->PixelFormat = PixelFormat;
+
+	// Allocate first mipmap.
+	int32 NumBlocksX = ImageInfo.xRes / GPixelFormats[PixelFormat].BlockSizeX;
+	int32 NumBlocksY = ImageInfo.yRes / GPixelFormats[PixelFormat].BlockSizeY;
+	FTexture2DMipMap* Mip = new(Texture->PlatformData->Mips) FTexture2DMipMap();
+	Mip->SizeX = ImageInfo.xRes;
+	Mip->SizeY = ImageInfo.yRes;
+	Mip->BulkData.Lock(LOCK_READ_WRITE);
+	Mip->BulkData.Realloc(NumBlocksX * NumBlocksY * GPixelFormats[PixelFormat].BlockBytes);
+	Mip->BulkData.Unlock();
 
 	// Lock texture for modification.
 	uint8* MipData = static_cast<uint8*>(Texture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
@@ -2432,7 +2447,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	{
 		new(NewStaticMesh->SourceModels) FStaticMeshSourceModel();
 	}
-	
+
 	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
 	{
 		NewStaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
@@ -2506,11 +2521,12 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 		{
 			HAPI_ImageInfo ImageInfo;
 			Result = HAPI_GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
-							
+
 			if(ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
 			{
 				// Create texture.
-				UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, PF_R8G8B8A8, ImageBuffer);
+				FString TextureName = FString::Printf(TEXT("%s_diffuse_texture"), *MeshName);
+				UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, Package, TextureName, PF_R8G8B8A8, ImageBuffer);
 
 				// Create sampling expression and add it to material.
 				UMaterialExpressionTextureSample* Expression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
