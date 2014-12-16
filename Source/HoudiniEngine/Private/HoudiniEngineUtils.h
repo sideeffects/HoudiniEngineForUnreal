@@ -227,7 +227,8 @@ protected:
 protected:
 
 	/** Create a texture from given information. **/
-	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer);
+	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName,
+										   EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer);
 
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
