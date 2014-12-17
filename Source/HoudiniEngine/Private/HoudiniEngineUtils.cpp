@@ -704,6 +704,14 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPacka
 	Texture->PlatformData->SizeX = ImageInfo.xRes;
 	Texture->PlatformData->SizeY = ImageInfo.yRes;
 	Texture->PlatformData->PixelFormat = PixelFormat;
+	/*
+	NewTexture->SRGB = false;
+	NewTexture->CompressionNone = true;
+	NewTexture->MipGenSettings = TMGS_LeaveExistingMips;
+	NewTexture->AddressX = TA_Clamp;
+	NewTexture->AddressY = TA_Clamp;
+	NewTexture->LODGroup = InLODGroup;
+	*/
 
 	// Allocate first mipmap.
 	int32 NumBlocksX = ImageInfo.xRes / GPixelFormats[PixelFormat].BlockSizeX;
@@ -742,7 +750,11 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPacka
 
 	// Unlock the texture.
 	Texture->PlatformData->Mips[0].BulkData.Unlock();
-	Texture->UpdateResource();
+	//Texture->UpdateResource();
+	Texture->PostEditChange();
+	//CurrentGizmoActor->GizmoTexture->Source.UnlockMip(0);
+	//CurrentGizmoActor->GizmoTexture->PostEditChange();
+	//void CachePlatformData(bool bAsyncCache = false);
 
 	return Texture;
 }
@@ -1994,10 +2006,16 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32
 
 
 void
-FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar)
+FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Package, FArchive& Ar)
 {
 	if(StaticMesh && Ar.IsSaving())
 	{
+		// If we have no package, we will use transient package.
+		if(!Package)
+		{
+			Package = GetTransientPackage();
+		}
+
 		FRawMesh RawMesh;
 
 		FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
@@ -2005,7 +2023,7 @@ FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar)
 		RawMeshBulkData->LoadRawMesh(RawMesh);
 
 		// Store raw data bytes.
-		FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Ar);
+		FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Package, Ar);
 	}
 }
 
@@ -2049,7 +2067,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 
 	// Load raw data bytes.
 	FRawMesh RawMesh;
-	FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Ar);
+	FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Package, Ar);
 
 	RawMeshBulkData->SaveRawMesh(RawMesh);
 
@@ -2089,7 +2107,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 
 
 void
-FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, FArchive& Ar)
+FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, UPackage* Package, FArchive& Ar)
 {
 	Ar << RawMesh.FaceMaterialIndices;
 	Ar << RawMesh.FaceSmoothingMasks;
@@ -2135,10 +2153,7 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& M
 			MaterialPathName = MaterialInterface->GetPathName();
 			MaterialName = MaterialInterface->GetName();
 
-			if(MaterialName.EndsWith(FString(HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX), ESearchCase::IgnoreCase))
-			{
-				bHoudiniMaterial = true;
-			}
+			bHoudiniMaterial = MaterialName.EndsWith(FString(HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX), ESearchCase::IgnoreCase);
 		}
 
 		Ar << MaterialPathName;
@@ -2156,6 +2171,8 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& M
 
 			if(!MaterialInterface)
 			{
+				MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+
 				if(bHoudiniMaterial)
 				{
 					// Material does not exist, but it is a Houdini material.
@@ -2171,6 +2188,28 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& M
 			Materials.Add(MaterialInterface);
 		}
 	}
+}
+
+
+void
+FHoudiniEngineUtils::Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar)
+{
+	FString MaterialName;
+
+	if(Ar.IsSaving())
+	{
+		MaterialName = MaterialInterface->GetName();
+	}
+
+	Ar << MaterialName;
+
+	if(Ar.IsLoading())
+	{
+		MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+	}
+
+
+	// Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, RF_Public, NULL, GWarn);
 }
 
 
