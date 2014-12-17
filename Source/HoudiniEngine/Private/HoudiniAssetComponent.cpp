@@ -1428,7 +1428,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					HoudiniGeoPartObject.Serialize(Ar);
 
 					// Serialize raw mesh.
-					FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, Ar);
+					FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, nullptr, Ar);
 				}
 			}
 			else if(Ar.IsLoading())

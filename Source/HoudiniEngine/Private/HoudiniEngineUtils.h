@@ -70,7 +70,7 @@ public:
 												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut);
 
 	/** Save a given static mesh in raw form. **/
-	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, FArchive& Ar);
+	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Package, FArchive& Ar);
 
 	/** Load raw mesh from archive and create static mesh from it. **/
 	static UStaticMesh* LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, int32 MeshCounter, FArchive& Ar);
@@ -203,7 +203,10 @@ protected:
 	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
 
 	/** Helper routine to serialize FRawMesh. **/
-	static void Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, FArchive& Ar);
+	static void Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, UPackage* Package, FArchive& Ar);
+
+	/** Helper routine to serialize Material interface. **/
+	static void Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar);
 
 	/** Helper function to extract colors and store them in a given RawMesh. **/
 	static void TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
