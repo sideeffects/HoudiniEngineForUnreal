@@ -191,6 +191,23 @@ SerializeEnumeration(FArchive& Ar, TEnum& E)
 	return Ar;
 }
 
+/** Struct to enable global silent flag - this will force dialogs to not show up. **/
+struct FHoudiniScopedGlobalSilence
+{
+	FHoudiniScopedGlobalSilence()
+	{
+		bGlobalSilent = GIsSilent;
+		GIsSilent = true;
+	}
+
+	~FHoudiniScopedGlobalSilence()
+	{
+		GIsSilent = bGlobalSilent;
+	}
+
+	bool bGlobalSilent;
+};
+
 
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"
