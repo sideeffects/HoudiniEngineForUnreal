@@ -1049,6 +1049,7 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 				UStaticMesh* StaticMesh = Iter.Key();
 
 				SetStaticMeshGenerationParameters(StaticMesh);
+				FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 				StaticMesh->Build(true);
 				RefreshCollisionChange(StaticMesh);
 			}

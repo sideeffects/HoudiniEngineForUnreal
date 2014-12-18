@@ -1327,6 +1327,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 
 	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
 	StaticMesh->LODGroup = NAME_None;
+	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	StaticMesh->Build(true);
 
 	return StaticMesh;
@@ -1921,6 +1922,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
 				//StaticMesh->PreEditChange(nullptr);
+				FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 				StaticMesh->Build(true);
 				//StaticMesh->PostEditChange();
 
@@ -2109,6 +2111,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	// Assign generation parameters for this static mesh.
 	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
+	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	StaticMesh->Build(true);
 	return StaticMesh;
 }
@@ -2287,6 +2290,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	// Assign generation parameters for this static mesh.
 	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
+	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	StaticMesh->Build(true);
 	return StaticMesh;
 }
@@ -2529,6 +2533,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	HoudiniAssetComponent->SetStaticMeshGenerationParameters(NewStaticMesh);
 
 	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
+	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	NewStaticMesh->Build(true);
 
 	return NewStaticMesh;
