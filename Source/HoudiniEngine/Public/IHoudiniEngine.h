@@ -32,6 +32,9 @@ public:
 	/** Return static mesh reprensenting Houdini logo. **/
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const = 0;
 
+	/** Return true if HAPI version mismatch is detected (between defined and running versions). **/
+	virtual bool CheckHapiVersionMismatch() const = 0;
+
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
 

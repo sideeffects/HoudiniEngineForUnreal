@@ -41,6 +41,13 @@ FHoudiniEngine::GetHoudiniLogoStaticMesh() const
 }
 
 
+bool
+FHoudiniEngine::CheckHapiVersionMismatch() const
+{
+	return bHAPIVersionMismatch;
+}
+
+
 FHoudiniEngine&
 FHoudiniEngine::Get()
 {
@@ -52,7 +59,7 @@ FHoudiniEngine::Get()
 bool
 FHoudiniEngine::IsInitialized()
 {
-	return (FHoudiniEngine::HoudiniEngineInstance != nullptr && (HAPI_RESULT_SUCCESS == HAPI_IsInitialized()));
+	return (FHoudiniEngine::HoudiniEngineInstance != nullptr && FHoudiniEngineUtils::IsInitialized());
 }
 
 
@@ -81,7 +88,59 @@ FHoudiniEngine::UnregisterComponentVisualizers()
 void
 FHoudiniEngine::StartupModule()
 {
+	bHAPIVersionMismatch = false;
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
+
+	// Before starting the module, we need to locate and load HAPI library.
+	{
+		void* HAPILibraryHandle = nullptr;
+
+		// See if we have HFS defined, if so attempt to load HAPI from given HFS.
+		FString HFSPath = TEXT(HOUDINI_ENGINE_HFS_PATH);
+		if(!HFSPath.IsEmpty())
+		{
+			HFSPath += TEXT("/bin");
+			FPlatformProcess::PushDllDirectory(*HFSPath);
+			HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dll"));
+			FPlatformProcess::PopDllDirectory(*HFSPath);
+
+			if(HAPILibraryHandle)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dll from HFS path: %s"), *HFSPath);
+			}
+		}
+
+#if PLATFORM_WINDOWS
+		if(!HAPILibraryHandle)
+		{
+			// Otherwise, attempt to look up location in the registry.
+			FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %s"), TEXT(HOUDINI_ENGINE_HOUDINI_VERSION));
+			FString HoudiniInstallationPath;
+
+			if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
+			{
+				HoudiniInstallationPath += TEXT("/bin");
+				FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
+				HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dll"));
+				FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
+
+				if(HAPILibraryHandle)
+				{
+					HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dll from Registry path: %s"), *HoudiniInstallationPath);
+				}
+			}
+		}
+#endif
+
+		if(HAPILibraryHandle)
+		{
+			FHoudiniApi::InitializeHAPI(HAPILibraryHandle);
+		}
+		else
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Failed locating or loading libHAPI.dll"));
+		}
+	}
 
 	// Create and register asset type actions for Houdini asset.
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -133,44 +192,50 @@ FHoudiniEngine::StartupModule()
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MainMenuExtender);
 	}
 
-	int RunningEngineMajor = 0;
-	int RunningEngineMinor = 0;
-	int RunningEngineApi = 0;
-
-	// Retrieve version numbers for running Houdini Engine.
-	HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
-	HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
-	HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
-
-	// Compare build and running versions.
-	if((HAPI_VERSION_HOUDINI_ENGINE_MAJOR == RunningEngineMajor && 
-		HAPI_VERSION_HOUDINI_ENGINE_MINOR == RunningEngineMinor &&
-		HAPI_VERSION_HOUDINI_ENGINE_API == RunningEngineApi))
+	// Build and running versions match, we can perform HAPI initialization.
+	if(FHoudiniApi::IsHAPIInitialized())
 	{
-		// Build and running versions match, we can perform HAPI initialization.
-		HAPI_CookOptions CookOptions = HAPI_CookOptions_Create();
-		CookOptions.maxVerticesPerPrimitive = 3;
-		CookOptions.splitGeosByGroup = false;
-		CookOptions.refineCurveToLinear = true;
+		// We need to make sure HAPI version is correct.
+		int RunningEngineMajor = 0;
+		int RunningEngineMinor = 0;
+		int RunningEngineApi = 0;
 
-		HAPI_Result Result = HAPI_Initialize("", "", &CookOptions, true, -1);
+		// Retrieve version numbers for running Houdini Engine.
+		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
-		if(HAPI_RESULT_SUCCESS == Result)
+		// Compare defined and running versions.
+		if(RunningEngineMajor == HOUDINI_ENGINE_HOUDINI_ENGINE_MAJOR && 
+		   RunningEngineMinor == HOUDINI_ENGINE_HOUDINI_ENGINE_MINOR &&
+		   RunningEngineApi == HOUDINI_ENGINE_HOUDINI_ENGINE_API)
 		{
-			HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine API module."));
+			HAPI_CookOptions CookOptions;
+			CookOptions.curveRefineLOD = 8.0f;
+			CookOptions.clearErrorsAndWarnings = false;
+			CookOptions.maxVerticesPerPrimitive = 3;
+			CookOptions.splitGeosByGroup = false;
+			CookOptions.refineCurveToLinear = true;
+
+			HAPI_Result Result = FHoudiniApi::Initialize("", "", &CookOptions, true, -1);
+			if(HAPI_RESULT_SUCCESS == Result)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine API module."));
+			}
+			else
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
+			}
 		}
 		else
 		{
-			HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
-		}
-	}
-	else
-	{
-		// Build and running versions do not match.
-		HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
-		HOUDINI_LOG_MESSAGE(TEXT("Build version: %d.%d.api:%d vs Running version: %d.%d.api:%d"), HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
-								HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API, RunningEngineMajor, 
+			bHAPIVersionMismatch = true;
+
+			HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
+			HOUDINI_LOG_MESSAGE(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"), HOUDINI_ENGINE_HOUDINI_ENGINE_MAJOR,
+								HOUDINI_ENGINE_HOUDINI_ENGINE_MINOR, HOUDINI_ENGINE_HOUDINI_ENGINE_API, RunningEngineMajor, 
 								RunningEngineMinor, RunningEngineApi);
+		}
 	}
 
 	// Create HAPI scheduler and processing thread.
@@ -222,12 +287,6 @@ FHoudiniEngine::ShutdownModule()
 	// We no longer need Houdini logo static mesh.
 	HoudiniLogoStaticMesh->RemoveFromRoot();
 
-	// Perform HAPI finalization.
-	if(HAPI_IsInitialized())
-	{
-		HAPI_Cleanup();
-	}
-
 	// Do scheduler and thread clean up.
 	if(HoudiniEngineScheduler)
 	{
@@ -248,6 +307,14 @@ FHoudiniEngine::ShutdownModule()
 		delete HoudiniEngineScheduler;
 		HoudiniEngineScheduler = nullptr;
 	}
+
+	// Perform HAPI finalization.
+	if(FHoudiniApi::IsHAPIInitialized())
+	{
+		FHoudiniApi::Cleanup();
+	}
+
+	FHoudiniApi::FinalizeHAPI();
 }
 
 
@@ -297,7 +364,7 @@ FHoudiniEngine::SaveHIPFile()
 			std::string HIPPathConverted(HIPPath.begin(), HIPPath.end());
 
 			// Save HIP file through Engine.
-			HAPI_SaveHIPFile(HIPPathConverted.c_str());
+			FHoudiniApi::SaveHIPFile(HIPPathConverted.c_str());
 		}
 	}
 }

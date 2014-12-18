@@ -105,7 +105,7 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 
 	// Get the actual value for this property.
 	Values.SetNumZeroed(TupleSize);
-	if(HAPI_RESULT_SUCCESS != HAPI_GetParmFloatValues(InNodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(InNodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -193,7 +193,7 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 bool
 UHoudiniAssetParameterFloat::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != HAPI_SetParmFloatValues(NodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(NodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}

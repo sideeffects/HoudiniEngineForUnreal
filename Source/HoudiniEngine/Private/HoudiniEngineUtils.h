@@ -189,14 +189,6 @@ public:
 										  TArray<FTransform>& Transforms);
 	static bool HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FTransform>& Transforms);
 
-public:
-
-	/** Return array of strings in PATH variable, sepated by platform specific separator. **/
-	static void GetPathStrings(TArray<FString>& PathStrings);
-
-	/** Construct a single string from array of strings and set the PATH variable. **/
-	static void SetPathStrings(const TArray<FString>& PathStrings);
-
 protected:
 
 	/** Create a package for static mesh. **/

@@ -43,6 +43,10 @@ bool
 UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
 
 
+bool
+UHoudiniAssetComponent::bDisplayEngineHapiVersionMismatch = true;
+
+
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
@@ -271,37 +275,58 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	// module as there's no guarantee that necessary modules were initialized.
 	HoudiniEngine.RegisterComponentVisualizers();
 
-	// If this is first time component is instantiated and we do not have Houdini Engine initialized, display message.
-	if(!bIsPreviewComponent && !HoudiniEngine.IsInitialized() && UHoudiniAssetComponent::bDisplayEngineNotInitialized)
+	if(!bIsPreviewComponent)
 	{
-		int RunningEngineMajor = 0;
-		int RunningEngineMinor = 0;
-		int RunningEngineApi = 0;
+		if(HoudiniEngine.IsInitialized())
+		{
+			if(!bLoadedComponent)
+			{
+				StartTaskAssetInstantiation(false, true);
+			}
+		}
+		else
+		{
+			if(UHoudiniAssetComponent::bDisplayEngineHapiVersionMismatch && HoudiniEngine.CheckHapiVersionMismatch())
+			{
+				// We have mismatch in defined and running versions.
+				int RunningEngineMajor = 0;
+				int RunningEngineMinor = 0;
+				int RunningEngineApi = 0;
 
-		// Retrieve version numbers for running Houdini Engine.
-		HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
-		HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
-		HAPI_GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+				// Retrieve version numbers for running Houdini Engine.
+				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
-		FString WarningMessage = FString::Printf(TEXT("Build version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
-												 TEXT("Is your PATH correct? Please update it to match Build version. ")
-												 TEXT("No cooking / instantiation will take place."),
-													HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
-													HAPI_VERSION_HOUDINI_ENGINE_MINOR,
-													HAPI_VERSION_HOUDINI_ENGINE_API,
-													RunningEngineMajor,
-													RunningEngineMinor,
-													RunningEngineApi);
+				FString WarningMessage = FString::Printf(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
+												TEXT("libHAPI.dll was loaded, but has wrong version. ")
+												TEXT("No cooking / instantiation will take place."),
+												HOUDINI_ENGINE_HOUDINI_ENGINE_MAJOR,
+												HOUDINI_ENGINE_HOUDINI_ENGINE_MINOR,
+												HOUDINI_ENGINE_HOUDINI_ENGINE_API,
+												RunningEngineMajor,
+												RunningEngineMinor,
+												RunningEngineApi);
 
-		FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
-		FText WarningTitleText = FText::FromString(WarningTitle);
-		FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
-		UHoudiniAssetComponent::bDisplayEngineNotInitialized = false;
-	}
+				FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
+				FText WarningTitleText = FText::FromString(WarningTitle);
+				FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
 
-	if(!bIsPreviewComponent && !bLoadedComponent)
-	{
-		StartTaskAssetInstantiation(false, true);
+				UHoudiniAssetComponent::bDisplayEngineHapiVersionMismatch = false;
+			}
+			else if(UHoudiniAssetComponent::bDisplayEngineNotInitialized)
+			{
+				// If this is first time component is instantiated and we do not have Houdini Engine initialized, display message.
+				FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
+				FText WarningTitleText = FText::FromString(WarningTitle);
+				FString WarningMessage = TEXT("Houdini Installation was not detected. ")
+										 TEXT("Failed to locate or load libHAPI.dll. ")
+										 TEXT("No cooking / instantiation will take place.");
+				FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
+
+				UHoudiniAssetComponent::bDisplayEngineNotInitialized = false;
+			}
+		}
 	}
 }
 
@@ -1702,22 +1727,22 @@ UHoudiniAssetComponent::CreateParameters()
 	TMap<FString, UHoudiniAssetParameter*> NewParameters;
 
 	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAssetInfo(AssetId, &AssetInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
 
 	HAPI_NodeInfo NodeInfo;
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetNodeInfo(AssetInfo.nodeId, &NodeInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(AssetInfo.nodeId, &NodeInfo), false);
 
 	// Retrieve parameters.
 	TArray<HAPI_ParmInfo> ParmInfos;
 	ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParameters(AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParameters(AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount), false);
 
 	// Retrieve integer values for this asset.
 	TArray<int> ParmValueInts;
 	ParmValueInts.SetNumZeroed(NodeInfo.parmIntValueCount);
 	if(NodeInfo.parmIntValueCount > 0)
 	{
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmIntValues(AssetInfo.nodeId, &ParmValueInts[0], 0, NodeInfo.parmIntValueCount), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIntValues(AssetInfo.nodeId, &ParmValueInts[0], 0, NodeInfo.parmIntValueCount), false);
 	}
 
 	// Retrieve float values for this asset.
@@ -1725,7 +1750,7 @@ UHoudiniAssetComponent::CreateParameters()
 	ParmValueFloats.SetNumZeroed(NodeInfo.parmFloatValueCount);
 	if(NodeInfo.parmFloatValueCount > 0)
 	{
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmFloatValues(AssetInfo.nodeId, &ParmValueFloats[0], 0, NodeInfo.parmFloatValueCount), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmFloatValues(AssetInfo.nodeId, &ParmValueFloats[0], 0, NodeInfo.parmFloatValueCount), false);
 	}
 
 	// Retrieve string values for this asset.
@@ -1733,7 +1758,7 @@ UHoudiniAssetComponent::CreateParameters()
 	ParmValueStrings.SetNumZeroed(NodeInfo.parmStringValueCount);
 	if(NodeInfo.parmStringValueCount > 0)
 	{
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_GetParmStringValues(AssetInfo.nodeId, true, &ParmValueStrings[0], 0, NodeInfo.parmStringValueCount), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmStringValues(AssetInfo.nodeId, true, &ParmValueStrings[0], 0, NodeInfo.parmStringValueCount), false);
 	}
 
 	// Create properties for parameters.
@@ -1993,7 +2018,7 @@ void
 UHoudiniAssetComponent::UpdateLoadedParameter()
 {
 	HAPI_AssetInfo AssetInfo;
-	if(HAPI_RESULT_SUCCESS != HAPI_GetAssetInfo(AssetId, &AssetInfo))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo))
 	{
 		return;
 	}
@@ -2023,7 +2048,7 @@ UHoudiniAssetComponent::CreateInputs()
 
 	HAPI_AssetInfo AssetInfo;
 	int32 InputCount = 0;
-	if((HAPI_RESULT_SUCCESS == HAPI_GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
+	if((HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
 	{
 		InputCount = AssetInfo.geoInputCount;
 	}
