@@ -16,7 +16,7 @@
 
 /*
 
-	Houdini Version: 13.0.629
+	Houdini Version: 13.0.630
 	Houdini Engine Version: 1.8.20
 	Unreal Version: 4.6.0
 
@@ -29,11 +29,12 @@ namespace UnrealBuildTool.Rules
 		public HoudiniEngine(TargetInfo Target)
 		{
 			string HFSPath = "";
-			string HoudiniVersion = "13.0.629";
-			
+			string HoudiniVersion = "13.0.630";
+			string HoudiniEngineVersion = "1.8.20";
+
 			string HAPILib = "";
 			string HAPILibPath = "";
-			
+
 			if ( HFSPath == "" )
 			{
 				if( Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 )
@@ -52,24 +53,46 @@ namespace UnrealBuildTool.Rules
 
 			string HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
 
-			if( Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 )
+			Definitions.Add("HOUDINI_ENGINE_HFS_PATH=\"" + HFSPath + "\"");
+			Definitions.Add("HOUDINI_ENGINE_HOUDINI_VERSION=\"" + HoudiniVersion + "\"");
+
 			{
-				HAPILib = "libHAPI.a";
-				HAPILibPath = HFSPath + "/custom/houdini/dsolib";
+				string[] VersionTokens = HoudiniVersion.Split(new char[] { '.' });
+
+				int HoudiniMajor = 0;
+				int HoudiniMinor = 0;
+				int HoudiniBuild = 0;
+
+				if(3 == VersionTokens.Length)
+				{
+					System.Int32.TryParse(VersionTokens[0], out HoudiniMajor);
+					System.Int32.TryParse(VersionTokens[1], out HoudiniMinor);
+					System.Int32.TryParse(VersionTokens[2], out HoudiniBuild);
+				}
+
+				Definitions.Add(string.Format("HOUDINI_ENGINE_HOUDINI_MAJOR={0}", HoudiniMajor));
+				Definitions.Add(string.Format("HOUDINI_ENGINE_HOUDINI_MINOR={0}", HoudiniMinor));
+				Definitions.Add(string.Format("HOUDINI_ENGINE_HOUDINI_BUILD={0}", HoudiniBuild));
 			}
-			else if( Target.Platform == UnrealTargetPlatform.Mac )
+
 			{
-				HAPILib = "libHAPI.dylib";
-				HAPILibPath = HFSPath + "/dsolib";
+				string[] VersionTokens = HoudiniEngineVersion.Split(new char[] { '.' });
+
+				int HoudiniEngineMajor = 0;
+				int HoudiniEngineMinor = 0;
+				int HoudiniEngineApi = 0;
+
+				if(3 == VersionTokens.Length)
+				{
+					System.Int32.TryParse(VersionTokens[0], out HoudiniEngineMajor);
+					System.Int32.TryParse(VersionTokens[1], out HoudiniEngineMinor);
+					System.Int32.TryParse(VersionTokens[2], out HoudiniEngineApi);
+				}
+
+				Definitions.Add(string.Format("HOUDINI_ENGINE_HOUDINI_ENGINE_MAJOR={0}", HoudiniEngineMajor));
+				Definitions.Add(string.Format("HOUDINI_ENGINE_HOUDINI_ENGINE_MINOR={0}", HoudiniEngineMinor));
+				Definitions.Add(string.Format("HOUDINI_ENGINE_HOUDINI_ENGINE_API={0}", HoudiniEngineApi));
 			}
-			else if( Target.Platform == UnrealTargetPlatform.Linux )
-			{
-				HAPILib = "libHAPI.so";
-				HAPILibPath = HFSPath + "/dsolib";
-			}
-			
-			PublicLibraryPaths.Add(HAPILibPath);
-			PublicAdditionalLibraries.Add(HAPILibPath + "/" + HAPILib);
 
 			PublicIncludePaths.AddRange(
 				new string[] {
