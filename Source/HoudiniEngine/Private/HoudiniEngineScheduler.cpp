@@ -99,13 +99,13 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	std::string AssetNameString;
 	double LastUpdateTime;
 
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
 																HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), void());
 
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssetCount(AssetLibraryId, &AssetCount), void());
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAvailableAssetCount(AssetLibraryId, &AssetCount), void());
 	
 	AssetNames.resize(AssetCount);
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), void());
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), void());
 
 	// If we have assets, instantiate first one.
 	if(AssetCount && FHoudiniEngineUtils::HapiGetString(AssetNames[0], AssetNameString))
@@ -119,7 +119,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		HAPI_AssetId AssetId = -1;
 		
 		// We instantiate without cooking.
-		HOUDINI_CHECK_ERROR_RETURN(HAPI_InstantiateAsset(&AssetNameString[0], false, &AssetId), void());
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InstantiateAsset(&AssetNameString[0], false, &AssetId), void());
 
 		// Add processing notification.
 		FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, -1, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::Processing);
@@ -131,7 +131,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		while(true)
 		{
 			int Status = HAPI_STATE_STARTING_COOK;
-			HOUDINI_CHECK_ERROR(&Result, HAPI_GetStatus(HAPI_STATUS_COOK_STATE, &Status));
+			HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStatus(HAPI_STATUS_COOK_STATE, &Status));
 
 			if(HAPI_STATE_READY == Status)
 			{
@@ -163,9 +163,9 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 
 				// Retrieve status string.
 				int StatusStringBufferLength = 0;
-				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
 				std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
-				HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
 				FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
 
 				FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetInstantiation, EHoudiniEngineTaskState::Processing);
@@ -211,7 +211,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 		return;
 	}
 
-	HOUDINI_CHECK_ERROR_RETURN(HAPI_CookAsset(AssetId, nullptr), void());
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(AssetId, nullptr), void());
 
 	// Add processing notification.
 	FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, EHoudiniEngineTaskState::Processing);
@@ -226,7 +226,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 	while(true)
 	{
 		int Status = HAPI_STATE_STARTING_COOK;
-		HOUDINI_CHECK_ERROR(&Result, HAPI_GetStatus(HAPI_STATUS_COOK_STATE, &Status));
+		HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStatus(HAPI_STATUS_COOK_STATE, &Status));
 
 		if(!Task.AssetComponent.IsValid())
 		{
@@ -260,9 +260,9 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 
 			// Retrieve status string.
 			int StatusStringBufferLength = 0;
-			HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
 			std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
-			HOUDINI_CHECK_ERROR_RETURN(HAPI_GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
 			FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
 
 			FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, EHoudiniEngineTaskState::Processing);

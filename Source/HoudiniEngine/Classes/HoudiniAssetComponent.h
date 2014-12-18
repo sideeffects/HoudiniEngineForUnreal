@@ -324,6 +324,9 @@ private:
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
 	static bool bDisplayEngineNotInitialized;
 
+	/** This flag is used when Hapi version mismatch is detected (between defined and running versions. **/
+	static bool bDisplayEngineHapiVersionMismatch;
+
 public:
 
 	/** Houdini Asset associated with this component. **/

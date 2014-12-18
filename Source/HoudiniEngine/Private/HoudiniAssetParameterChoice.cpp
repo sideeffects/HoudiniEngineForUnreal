@@ -78,7 +78,7 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		// Assign internal Hapi values index.
 		SetValuesIndex(ParmInfo.intValuesIndex);
 
-		if(HAPI_RESULT_SUCCESS != HAPI_GetParmIntValues(NodeId, &CurrentValue, ValuesIndex, TupleSize))
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(NodeId, &CurrentValue, ValuesIndex, TupleSize))
 		{
 			return false;
 		}
@@ -92,7 +92,7 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		SetValuesIndex(ParmInfo.stringValuesIndex);
 
 		HAPI_StringHandle StringHandle;
-		if(HAPI_RESULT_SUCCESS != HAPI_GetParmStringValues(NodeId, false, &StringHandle, ValuesIndex, TupleSize))
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(NodeId, false, &StringHandle, ValuesIndex, TupleSize))
 		{
 			return false;
 		}
@@ -107,7 +107,7 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	// Get choice descriptors.
 	TArray<HAPI_ParmChoiceInfo> ParmChoices;
 	ParmChoices.SetNumZeroed(ParmInfo.choiceCount);
-	if(HAPI_RESULT_SUCCESS != HAPI_GetParmChoiceLists(NodeId, &ParmChoices[0], ParmInfo.choiceIndex, ParmInfo.choiceCount))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmChoiceLists(NodeId, &ParmChoices[0], ParmInfo.choiceIndex, ParmInfo.choiceCount))
 	{
 		return false;
 	}
@@ -225,12 +225,12 @@ UHoudiniAssetParameterChoice::UploadParameterValue()
 		// Get corresponding value.
 		FString* ChoiceValue = StringChoiceValues[CurrentValue].Get();
 		std::string String = TCHAR_TO_UTF8(*(*ChoiceValue));
-		HAPI_SetParmStringValue(NodeId, String.c_str(), ParmId, 0);
+		FHoudiniApi::SetParmStringValue(NodeId, String.c_str(), ParmId, 0);
 	}
 	else
 	{
 		// This is an int choice list.
-		HAPI_SetParmIntValues(NodeId, &CurrentValue, ValuesIndex, TupleSize);
+		FHoudiniApi::SetParmIntValues(NodeId, &CurrentValue, ValuesIndex, TupleSize);
 	}
 
 	return Super::UploadParameterValue();

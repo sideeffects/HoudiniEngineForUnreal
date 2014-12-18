@@ -42,6 +42,7 @@ public:
 
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
+	virtual bool CheckHapiVersionMismatch() const override;
 	virtual void AddTask(const FHoudiniEngineTask& Task) override;
 	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) override;
 	virtual void RemoveTaskInfo(const FGuid HapIGUID) override;
@@ -109,4 +110,7 @@ private:
 
 	/** Scheduler used to schedule HAPI instantiation and cook tasks. **/
 	FHoudiniEngineScheduler* HoudiniEngineScheduler;
+
+	/** Is set to true when mismatch between defined and running HAPI versions is detected. **/
+	bool bHAPIVersionMismatch;
 };
