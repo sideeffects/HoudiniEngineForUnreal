@@ -187,7 +187,7 @@ FHoudiniEngine::StartupModule()
 	// Extend main menu, we will add Houdini section to 'Window' menu tab.
 	{
 		MainMenuExtender = MakeShareable(new FExtender);
-		MainMenuExtender->AddMenuExtension("WindowLocalTabSpawners", EExtensionHook::After, NULL, FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngine::AddHoudiniMenuExtension));
+		MainMenuExtender->AddMenuExtension("FileLoadAndSave", EExtensionHook::After, NULL, FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngine::AddHoudiniMenuExtension));
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MainMenuExtender);
 	}
