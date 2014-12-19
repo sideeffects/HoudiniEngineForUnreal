@@ -34,6 +34,13 @@ FHoudiniEngine::GetHoudiniLogoBrush() const
 }
 
 
+TSharedPtr<ISlateStyle>
+FHoudiniEngine::GetSlateStyle() const
+{
+	return StyleSet;
+}
+
+
 UStaticMesh*
 FHoudiniEngine::GetHoudiniLogoStaticMesh() const
 {
@@ -156,6 +163,20 @@ FHoudiniEngine::StartupModule()
 	// Register details presenter for our component type.
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
+
+	// Create Slate style set.
+	if(!StyleSet.IsValid())
+	{
+		StyleSet = MakeShareable(new FSlateStyleSet("HoudiniEngineStyle"));
+		StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
+		StyleSet->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
+
+		const FVector2D Icon16x16(16.0f, 16.0f);
+		static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/");
+		StyleSet->Set("HoudiniEngine.HoudiniEngineLogo", new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+
+		FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
+	}
 
 	// Create Houdini logo brush.
 	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
@@ -287,6 +308,14 @@ FHoudiniEngine::ShutdownModule()
 	// We no longer need Houdini logo static mesh.
 	HoudiniLogoStaticMesh->RemoveFromRoot();
 
+	// Unregister Slate style set.
+	if(StyleSet.IsValid())
+	{
+		FSlateStyleRegistry::UnRegisterSlateStyle(*StyleSet.Get());
+		ensure(StyleSet.IsUnique());
+		StyleSet.Reset();
+	}
+
 	// Do scheduler and thread clean up.
 	if(HoudiniEngineScheduler)
 	{
@@ -325,8 +354,7 @@ FHoudiniEngine::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("HoudiniMenuEntryTitle", "Save .hip file"),
 			LOCTEXT("HoudiniMenuEntryToolTip", "Saves a .hip file of the current Houdini scene."),
-			//FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tutorials"),
-			FSlateIcon(),
+			FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
 			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngine::SaveHIPFile)));
 	MenuBuilder.EndSection();
 }

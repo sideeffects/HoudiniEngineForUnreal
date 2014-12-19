@@ -16,6 +16,7 @@
 #pragma once
 
 class UStaticMesh;
+class ISlateStyle;
 struct FHoudiniEngineNotificationInfo;
 struct FHoudiniEngineTask;
 
@@ -37,6 +38,9 @@ public:
 
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
+
+	/** Return Slate style set. **/
+	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const = 0;
 
 	/** Register task for execution. **/
 	virtual void AddTask(const FHoudiniEngineTask& Task) = 0;
