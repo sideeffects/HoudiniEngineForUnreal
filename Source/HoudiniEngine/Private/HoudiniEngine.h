@@ -42,6 +42,7 @@ public:
 
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
+	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
 	virtual bool CheckHapiVersionMismatch() const override;
 	virtual void AddTask(const FHoudiniEngineTask& Task) override;
 	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) override;
@@ -98,6 +99,9 @@ private:
 
 	/** Visualizer for our spline component. **/
 	TSharedPtr<FComponentVisualizer> SplineComponentVisualizer;
+
+	/** Slate styleset used by this module. **/
+	TSharedPtr<FSlateStyleSet> StyleSet;
 
 	/** Synchronization primitive. **/
 	FCriticalSection CriticalSection;
