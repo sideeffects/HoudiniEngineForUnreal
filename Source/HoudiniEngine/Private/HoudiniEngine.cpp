@@ -355,8 +355,15 @@ FHoudiniEngine::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
 			LOCTEXT("HoudiniMenuEntryTitle", "Save .hip file"),
 			LOCTEXT("HoudiniMenuEntryToolTip", "Saves a .hip file of the current Houdini scene."),
 			FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
-			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngine::SaveHIPFile)));
+			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngine::SaveHIPFile), FCanExecuteAction::CreateRaw(this, &FHoudiniEngine::CanSaveHIPFile)));
 	MenuBuilder.EndSection();
+}
+
+
+bool
+FHoudiniEngine::CanSaveHIPFile() const
+{
+	return FHoudiniEngine::IsInitialized();
 }
 
 

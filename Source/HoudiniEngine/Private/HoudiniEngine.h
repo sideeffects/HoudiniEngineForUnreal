@@ -75,6 +75,9 @@ public:
 	/** Menu action called to save a HIP file. **/
 	void SaveHIPFile();
 
+	/** Helper delegate used to determine if HIP file save can be executed. **/
+	bool CanSaveHIPFile() const;
+
 private:
 
 	/** Singleton instance of Houdini Engine. **/
