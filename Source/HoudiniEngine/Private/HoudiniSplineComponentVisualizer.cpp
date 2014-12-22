@@ -254,14 +254,26 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewp
 TSharedPtr<SWidget>
 FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
 {
+	FHoudiniEngine& HoudiniEngine = FHoudiniEngine::Get();
+	TSharedPtr<ISlateStyle> StyleSet = HoudiniEngine.GetSlateStyle();
+
 	FMenuBuilder MenuBuilder(true, VisualizerActions);
 	{
 		MenuBuilder.BeginSection("CurveKeyEdit");
 		{
 			if(INDEX_NONE != EditedControlPointIndex)
 			{
-				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandAddControlPoint);
-				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandDeleteControlPoint);
+				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandAddControlPoint, 
+										 NAME_None, 
+										 TAttribute<FText>(), 
+										 TAttribute<FText>(), 
+										 FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
+
+				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandDeleteControlPoint,
+										 NAME_None, 
+										 TAttribute<FText>(), 
+										 TAttribute<FText>(), 
+										 FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
 			}
 		}
 		MenuBuilder.EndSection();
