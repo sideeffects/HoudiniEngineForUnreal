@@ -1223,13 +1223,6 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 
 
 void
-UHoudiniAssetComponent::PreSave()
-{
-	Super::PreSave();
-}
-
-
-void
 UHoudiniAssetComponent::PostLoad()
 {
 	Super::PostLoad();

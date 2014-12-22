@@ -189,7 +189,6 @@ public:
 public:
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void PreSave() override;
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PreEditUndo() override;
