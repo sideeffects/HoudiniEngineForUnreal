@@ -105,7 +105,7 @@ FHoudiniAssetTypeActions::ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset> >
 		UHoudiniAsset* Object = (*ObjIt).Get();
 		if(Object)
 		{
-			//FReimportManager::Instance()->Reimport(Object, true);
+			FReimportManager::Instance()->Reimport(Object, true);
 		}
 	}
 }
