@@ -73,26 +73,6 @@ FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FM
 	auto HoudiniAssets = GetTypedWeakObjectPtrs<UHoudiniAsset>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Cook", "Cook"),
-		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_CookTooltip", "Cook or re-cook selected Houdini Assets."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteCook, HoudiniAssets),
-		FCanExecuteAction()
-		)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Reload", "Reload"),
-		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_ReloadTooltip", "Reload selected Houdini Assets."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteReload, HoudiniAssets),
-			FCanExecuteAction()
-		)
-	);
-
-	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Reimport", "Reimport"),
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_ReimportTooltip", "Reimport selected Houdini Assets."),
 		FSlateIcon(),
@@ -111,38 +91,6 @@ FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FM
 			FCanExecuteAction()
 		)
 	);
-}
-
-
-void 
-FHoudiniAssetTypeActions::ExecuteCook(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets)
-{
-	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		auto Object = (*ObjIt).Get();
-		if(Object)
-		{
-		
-		}
-	}
-}
-
-
-void
-FHoudiniAssetTypeActions::ExecuteReload(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets)
-{
-	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
-	{
-		UHoudiniAsset* Object = (*ObjIt).Get();
-		if(Object)
-		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->OTLFileName, Object);
-			if(INDEX_NONE != SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath))
-			{
-			
-			}
-		}
-	}
 }
 
 

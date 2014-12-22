@@ -34,15 +34,9 @@ public:
 
 protected:
 
-	/** Handler for reload option. **/
-	void ExecuteReload(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
-
 	/** Handler for reimport option. **/
 	void ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
 
 	/** Handler for when find in explorer is selected. */
 	void ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
-
-	/** Handler to cook the asset. **/
-	void ExecuteCook(TArray<TWeakObjectPtr<UHoudiniAsset> > HoudiniAssets);
 };
