@@ -72,10 +72,13 @@ FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FM
 {
 	auto HoudiniAssets = GetTypedWeakObjectPtrs<UHoudiniAsset>(InObjects);
 
+	FHoudiniEngine& HoudiniEngine = FHoudiniEngine::Get();
+	TSharedPtr<ISlateStyle> StyleSet = HoudiniEngine.GetSlateStyle();
+
 	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Reimport", "Reimport"),
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_ReimportTooltip", "Reimport selected Houdini Assets."),
-		FSlateIcon(),
+		FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteReimport, HoudiniAssets),
 			FCanExecuteAction()
@@ -85,7 +88,7 @@ FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FM
 	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorer", "Find Source"),
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
-		FSlateIcon(),
+		FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteFindInExplorer, HoudiniAssets),
 			FCanExecuteAction()
