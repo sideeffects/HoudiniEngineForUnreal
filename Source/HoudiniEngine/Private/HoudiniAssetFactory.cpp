@@ -67,13 +67,12 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	if(!AssetImportData)
 	{
 		AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), HoudiniAsset);
-
-		AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, HoudiniAsset);
-		AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
-		AssetImportData->bDirty = false;
-
 		HoudiniAsset->AssetImportData = AssetImportData;
 	}
+
+	AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, HoudiniAsset);
+	AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
+	AssetImportData->bDirty = false;
 
 	// Broadcast notification that the new asset has been imported.
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
