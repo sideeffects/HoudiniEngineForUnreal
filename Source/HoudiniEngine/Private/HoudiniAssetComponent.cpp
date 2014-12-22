@@ -977,10 +977,6 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 void
 UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
-	// Add pre and post save delegates.
-	FEditorDelegates::PreSaveWorld.AddUObject(this, &UHoudiniAssetComponent::OnPreSaveWorld);
-	FEditorDelegates::PostSaveWorld.AddUObject(this, &UHoudiniAssetComponent::OnPostSaveWorld);
-
 	// Add begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
@@ -990,10 +986,6 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
 void
 UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
-	// Remove pre and post save delegates.
-	FEditorDelegates::PreSaveWorld.RemoveUObject(this, &UHoudiniAssetComponent::OnPreSaveWorld);
-	FEditorDelegates::PostSaveWorld.RemoveUObject(this, &UHoudiniAssetComponent::OnPostSaveWorld);
-
 	// Remove begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
@@ -1211,20 +1203,6 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPart
 	StaticMeshMap.Add(HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh());
 	CreateObjectGeoPartResources(StaticMeshMap);
 	bContainsHoudiniLogoGeometry = true;
-}
-
-
-void
-UHoudiniAssetComponent::OnPreSaveWorld(uint32 SaveFlags, class UWorld* World)
-{
-
-}
-
-
-void
-UHoudiniAssetComponent::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess)
-{
-
 }
 
 

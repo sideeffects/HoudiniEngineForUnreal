@@ -213,8 +213,6 @@ private:
 /** FEditorDelegates delegates. **/
 private:
 
-	void OnPreSaveWorld(uint32 SaveFlags, class UWorld* World);
-	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
 	void OnPIEEventBegin(const bool bIsSimulating);
 	void OnPIEEventEnd(const bool bIsSimulating);
 
