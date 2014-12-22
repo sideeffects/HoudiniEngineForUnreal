@@ -174,8 +174,13 @@ FHoudiniEngine::StartupModule()
 		const FVector2D Icon16x16(16.0f, 16.0f);
 		static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/");
 		StyleSet->Set("HoudiniEngine.HoudiniEngineLogo", new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+		StyleSet->Set("ClassIcon.HoudiniAssetActor", new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
 
+		// Register Slate style.
 		FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
+
+		// Register style set as an icon source.
+		FClassIconFinder::RegisterIconSource(StyleSet.Get());
 	}
 
 	// Create Houdini logo brush.
@@ -311,7 +316,12 @@ FHoudiniEngine::ShutdownModule()
 	// Unregister Slate style set.
 	if(StyleSet.IsValid())
 	{
+		// Unregister style set as an icon source.
+		FClassIconFinder::UnregisterIconSource(StyleSet.Get());
+
+		// Unregister Slate style.
 		FSlateStyleRegistry::UnRegisterSlateStyle(*StyleSet.Get());
+
 		ensure(StyleSet.IsUnique());
 		StyleSet.Reset();
 	}
