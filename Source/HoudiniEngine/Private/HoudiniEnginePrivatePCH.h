@@ -42,6 +42,7 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionVertexColor.h"
+#include "ClassIconFinder.h"
 #include "SAssetDropTarget.h"
 #include "SAssetSearchBox.h"
 #include "SColorBlock.h"
