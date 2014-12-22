@@ -20,6 +20,7 @@
 
 
 class UThumbnailInfo;
+class UAssetImportData;
 class UHoudiniAssetComponent;
 
 
@@ -65,6 +66,13 @@ public:
 	/** Information for thumbnail rendering. */
 	UPROPERTY()
 	UThumbnailInfo* ThumbnailInfo;
+
+#if WITH_EDITORONLY_DATA
+	
+	/** Importing data and options used for this Houdini asset. */
+	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
+	UAssetImportData* AssetImportData;
+#endif
 
 protected:
 
