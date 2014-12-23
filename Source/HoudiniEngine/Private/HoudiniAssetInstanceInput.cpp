@@ -355,8 +355,6 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
-			//.VAlign(VAlign_Center)
-			//.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
 			[
 				SAssignNew(ButtonBox, SHorizontalBox)
@@ -376,13 +374,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 						.Text(StaticMesh->GetName())
 					]
 				]
-			]/*
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(FMargin( 0.0f, 0.0f ))
-			[
-				SNullWidget::NullWidget
-			]*/
+			]
 		];
 
 		// Create tooltip.
@@ -871,7 +863,6 @@ UHoudiniAssetInstanceInput::UpdateInstanceTransforms(int32 Idx)
 		Transform.SetRotation(TransformRotation);
 		Transform.SetScale3D(TransformScale3D);
 
-		//InstancedStaticMeshComponent->UpdateInstanceTransform(InstanceIdx, Transform, false);
 		InstancedStaticMeshComponent->AddInstance(Transform);
 	}
 }

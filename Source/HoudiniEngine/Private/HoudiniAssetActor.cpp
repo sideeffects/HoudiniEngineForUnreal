@@ -41,19 +41,3 @@ AHoudiniAssetActor::IsUsedForPreview() const
 	return HasAnyFlags(RF_Transient);
 }
 
-
-bool
-AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
-{
-	if(HoudiniAssetComponent)
-	{
-		// Retrieve asset associated with this component.
-		UHoudiniAsset* HoudiniAsset = GetHoudiniAssetComponent()->GetHoudiniAsset();
-		if(HoudiniAsset)
-		{
-			Objects.Add(HoudiniAsset);
-		}
-	}
-
-	return true;
-}

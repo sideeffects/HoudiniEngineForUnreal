@@ -294,12 +294,9 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				[
 					SNew(SVerticalBox)
 					+SVerticalBox::Slot()
-					//.VAlign(VAlign_Center)
-					//.VAlign(VAlign_Fill)
 					.HAlign(HAlign_Fill)
 					[
 						SAssignNew(ButtonBox, SHorizontalBox)
-						//.IsEnabled(this, &FHoudiniAssetComponentDetails::CanEdit)
 						+SHorizontalBox::Slot()
 						[
 							SAssignNew(AssetComboButton, SComboButton)
@@ -316,13 +313,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 								.Text(MaterialInterface->GetName())
 							]
 						]
-					]/*
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FMargin( 0.0f, 0.0f ))
-					[
-						SNullWidget::NullWidget
-					]*/
+					]
 				];
 
 				// Create tooltip.
@@ -518,13 +509,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 					.Text(HoudiniAssetName)
 				]
 			]
-		]/*
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(FMargin( 0.0f, 0.0f ))
-		[
-			SNullWidget::NullWidget
-		]*/
+		]
 	];
 
 	ButtonBox->AddSlot()
@@ -856,4 +841,3 @@ FHoudiniAssetComponentDetails::OnResetHoudiniAssetClicked()
 
 	return FReply::Handled();
 }
-
