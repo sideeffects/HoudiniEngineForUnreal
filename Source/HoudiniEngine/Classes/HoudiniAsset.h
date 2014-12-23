@@ -41,6 +41,7 @@ public:
 
 	virtual void FinishDestroy() override;
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 public:
 
@@ -53,15 +54,14 @@ public:
 	/** Returns true if this asset contains Houdini logo. **/
 	bool IsPreviewHoudiniLogo() const;
 
+	/** Return true if file format is matching the latest version. **/
+	bool IsSupportedFileFormat() const;
+
 public:
 
 	/** Filename of the OTL. **/
 	UPROPERTY()
-	FString OTLFileName;
-
-	/** Holds this asset's name. **/
-	UPROPERTY()
-	FString AssetName;
+	FString FileName;
 
 	/** Information for thumbnail rendering. */
 	UPROPERTY()
@@ -77,7 +77,7 @@ public:
 protected:
 
 	/** Current version of the asset. **/
-	static const int32 PersistenceFormatVersion;
+	static const uint32 PersistenceFormatVersion;
 
 protected:
 
@@ -86,6 +86,9 @@ protected:
 
 	/** Field containing the size of raw Houdini OTL data in bytes. **/
 	uint32 AssetBytesCount;
+
+	/** Version of the asset file format. **/
+	uint32 FileFormatVersion;
 
 	/** Flag which is set to true when preview geometry contains Houdini logo. **/
 	bool bPreviewHoudiniLogo;

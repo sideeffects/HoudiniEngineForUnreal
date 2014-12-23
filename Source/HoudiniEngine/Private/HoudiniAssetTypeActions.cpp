@@ -102,10 +102,10 @@ FHoudiniAssetTypeActions::ExecuteReimport(TArray<TWeakObjectPtr<UHoudiniAsset> >
 {
 	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
-		UHoudiniAsset* Object = (*ObjIt).Get();
-		if(Object)
+		UHoudiniAsset* HoudiniAsset = (*ObjIt).Get();
+		if(HoudiniAsset)
 		{
-			FReimportManager::Instance()->Reimport(Object, true);
+			FReimportManager::Instance()->Reimport(HoudiniAsset, true);
 		}
 	}
 }
@@ -116,10 +116,10 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAs
 {
 	for(auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
-		UHoudiniAsset* Object = (*ObjIt).Get();
-		if(Object)
+		UHoudiniAsset* HoudiniAsset = (*ObjIt).Get();
+		if(HoudiniAsset && HoudiniAsset->AssetImportData)
 		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->OTLFileName, Object);
+			const FString SourceFilePath = FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath, HoudiniAsset);
 			if(INDEX_NONE != SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath))
 			{
 				FPlatformProcess::ExploreFolder(*SourceFilePath);

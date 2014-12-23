@@ -16,14 +16,15 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-const int32 
-UHoudiniAsset::PersistenceFormatVersion = 0;
+const uint32 
+UHoudiniAsset::PersistenceFormatVersion = 1u;
 
 
 UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
+	FileFormatVersion(UHoudiniAsset::PersistenceFormatVersion),
 	bPreviewHoudiniLogo(false)
 {
 
@@ -35,9 +36,10 @@ UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer,
 							 const uint8* BufferEnd,
 							 const FString& InFileName) :
 	Super(ObjectInitializer),
-	OTLFileName(InFileName),
+	FileName(InFileName),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
+	FileFormatVersion(UHoudiniAsset::PersistenceFormatVersion),
 	bPreviewHoudiniLogo(false)
 {
 	// Calculate buffer size.
@@ -110,12 +112,11 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 
 	// Properties will get serialized.
 
-	// Read persistence format version.
-	int32 FormatVersion = UHoudiniAsset::PersistenceFormatVersion;
-	Ar << FormatVersion;
+	// Serialize persistence format version.
+	Ar << FileFormatVersion;
 
 	// Make sure persistence format version matches.
-	if(FormatVersion != UHoudiniAsset::PersistenceFormatVersion)
+	if(Ar.IsLoading() && (FileFormatVersion != UHoudiniAsset::PersistenceFormatVersion))
 	{
 		return;
 	}
@@ -147,4 +148,22 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 
 	// Serialize whether we are storing logo preview or not.
 	Ar << bPreviewHoudiniLogo;
+}
+
+
+void
+UHoudiniAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add(FAssetRegistryTag("FileName", FileName, FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add(FAssetRegistryTag("FileFormatVersion", FString::FromInt(FileFormatVersion), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Bytes", FString::FromInt(AssetBytesCount), FAssetRegistryTag::TT_Numerical));
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+
+
+bool
+UHoudiniAsset::IsSupportedFileFormat() const
+{
+	return UHoudiniAsset::PersistenceFormatVersion == FileFormatVersion;
 }
