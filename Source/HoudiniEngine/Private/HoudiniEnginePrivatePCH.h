@@ -255,6 +255,7 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniAssetParameterChoice.h"
 #include "HoudiniAssetParameterColor.h"
+#include "HoudiniAssetParameterLabel.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniSplineComponent.h"
