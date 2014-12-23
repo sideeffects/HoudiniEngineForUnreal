@@ -1430,7 +1430,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			}
 			else if(Ar.IsLoading())
 			{
-				for(int StaticMeshIdx = 0; StaticMeshIdx < NumStaticMeshes; ++StaticMeshIdx)
+				for(int32 StaticMeshIdx = 0; StaticMeshIdx < NumStaticMeshes; ++StaticMeshIdx)
 				{
 					FHoudiniGeoPartObject HoudiniGeoPartObject;
 
@@ -1712,7 +1712,7 @@ UHoudiniAssetComponent::CreateParameters()
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParameters(AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount), false);
 
 		// Create properties for parameters.
-		for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
+		for(int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
 		{
 			// Retrieve param info at this index.
 			const HAPI_ParmInfo& ParmInfo = ParmInfos[ParamIdx];
@@ -1794,6 +1794,12 @@ UHoudiniAssetComponent::CreateParameters()
 				case HAPI_PARMTYPE_COLOR:
 				{
 					HoudiniAssetParameter = UHoudiniAssetParameterColor::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					break;
+				}
+
+				case HAPI_PARMTYPE_LABEL:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterLabel::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
 					break;
 				}
 

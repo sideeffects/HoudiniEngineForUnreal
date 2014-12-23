@@ -27,6 +27,10 @@ float
 FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth = 270;
 
 
+float
+FHoudiniAssetComponentDetails::RowFullWidgetDesiredWidth = 310;
+
+
 TSharedRef<IDetailCustomization>
 FHoudiniAssetComponentDetails::MakeInstance()
 {
@@ -372,7 +376,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 	DetailCategoryBuilder.AddCustomRow(TEXT(""))
 	[
 		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
+		+SVerticalBox::Slot()
 		.Padding(0, 2.0f, 0, 0)
 		.FillHeight(1.0f)
 		.VAlign(VAlign_Center)
