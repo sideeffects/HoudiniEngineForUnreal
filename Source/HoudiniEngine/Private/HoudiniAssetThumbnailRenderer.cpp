@@ -56,13 +56,6 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 		ViewFamily.EngineShowFlags.MotionBlur = 0;
 		ViewFamily.EngineShowFlags.LOD = 0;
 
-		/*
-		ViewFamily.EngineShowFlags.Bloom = 0;
-		ViewFamily.EngineShowFlags.GlobalIllumination = 0;
-		ViewFamily.EngineShowFlags.SceneColorFringe = 0;
-		ViewFamily.EngineShowFlags.AmbientCubemap = 0;
-		*/
-
 		ThumbnailScene->GetView(&ViewFamily, X, Y, Width, Height);
 		GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
 	}

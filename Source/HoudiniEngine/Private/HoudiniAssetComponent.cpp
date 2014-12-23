@@ -1475,12 +1475,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize curves.
 	SerializeCurves(Ar);
 
-	if(Ar.IsLoading())
-	{
-		// We need to recompute bounding volume.
-		//ComputeComponentBoundingVolume();
-	}
-
 	if(Ar.IsLoading() && bIsNativeComponent)
 	{
 		// This component has been loaded.
@@ -1620,9 +1614,9 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(RefinedCurvePositions, CurveDisplayPoints);
 
 		if(!FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), CurvePointsString) ||
-			!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int) EHoudiniSplineComponentType::Bezier, (int&) CurveTypeValue) ||
-			!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, (int) EHoudiniSplineComponentMethod::CVs, (int&) CurveMethodValue) ||
-			!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed))
+		   !FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int) EHoudiniSplineComponentType::Bezier, (int&) CurveTypeValue) ||
+		   !FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, (int) EHoudiniSplineComponentMethod::CVs, (int&) CurveMethodValue) ||
+		   !FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed))
 		{
 			continue;
 		}
@@ -1804,6 +1798,7 @@ UHoudiniAssetComponent::CreateParameters()
 				}
 
 				case HAPI_PARMTYPE_PATH_NODE:
+				case HAPI_PARMTYPE_BUTTON:
 				default:
 				{
 					// Just ignore unsupported types for now.
@@ -1922,19 +1917,6 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 
 		// We want to use all of geometry for collision detection purposes.
 		BodySetup->bMeshCollideAll = true;
-
-		// Disabling collision generation for testing.
-		/*
-		{
-			BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
-			BodySetup->bGenerateMirroredCollision = false;
-			BodySetup->bGenerateNonMirroredCollision = false;
-			BodySetup->bMeshCollideAll = false;
-			BodySetup->bDoubleSidedGeometry = false;
-		}
-		*/
-
-		//RefreshCollisionChange(StaticMesh);
 	}
 }
 
