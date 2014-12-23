@@ -1704,131 +1704,110 @@ UHoudiniAssetComponent::CreateParameters()
 	HAPI_NodeInfo NodeInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(AssetInfo.nodeId, &NodeInfo), false);
 
-	// Retrieve parameters.
-	TArray<HAPI_ParmInfo> ParmInfos;
-	ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParameters(AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount), false);
-
-	// Retrieve integer values for this asset.
-	TArray<int> ParmValueInts;
-	ParmValueInts.SetNumZeroed(NodeInfo.parmIntValueCount);
-	if(NodeInfo.parmIntValueCount > 0)
+	if(NodeInfo.parmCount > 0)
 	{
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIntValues(AssetInfo.nodeId, &ParmValueInts[0], 0, NodeInfo.parmIntValueCount), false);
-	}
+		// Retrieve parameters.
+		TArray<HAPI_ParmInfo> ParmInfos;
+		ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParameters(AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount), false);
 
-	// Retrieve float values for this asset.
-	TArray<float> ParmValueFloats;
-	ParmValueFloats.SetNumZeroed(NodeInfo.parmFloatValueCount);
-	if(NodeInfo.parmFloatValueCount > 0)
-	{
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmFloatValues(AssetInfo.nodeId, &ParmValueFloats[0], 0, NodeInfo.parmFloatValueCount), false);
-	}
-
-	// Retrieve string values for this asset.
-	TArray<HAPI_StringHandle> ParmValueStrings;
-	ParmValueStrings.SetNumZeroed(NodeInfo.parmStringValueCount);
-	if(NodeInfo.parmStringValueCount > 0)
-	{
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmStringValues(AssetInfo.nodeId, true, &ParmValueStrings[0], 0, NodeInfo.parmStringValueCount), false);
-	}
-
-	// Create properties for parameters.
-	for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
-	{
-		// Retrieve param info at this index.
-		const HAPI_ParmInfo& ParmInfo = ParmInfos[ParamIdx];
-
-		// If parameter is invisible, skip it.
-		if(ParmInfo.invisible)
+		// Create properties for parameters.
+		for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
 		{
-			continue;
-		}
+			// Retrieve param info at this index.
+			const HAPI_ParmInfo& ParmInfo = ParmInfos[ParamIdx];
 
-		FString ParameterName;
-		if(!UHoudiniAssetParameter::RetrieveParameterName(ParmInfo, ParameterName))
-		{
-			// We had trouble retrieving name of this parameter, skip it.
-			continue;
-		}
-
-		// See if this parameter has already been created.
-		UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = Parameters.Find(ParameterName);
-		UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
-
-		// If parameter exists, we can reuse it.
-		if(FoundHoudiniAssetParameter)
-		{
-			HoudiniAssetParameter = *FoundHoudiniAssetParameter;
-
-			// Remove parameter from current map.
-			Parameters.Remove(ParameterName);
-
-			// Reinitialize parameter and add it to map.
-			HoudiniAssetParameter->CreateParameter(this, nullptr, AssetInfo.nodeId, ParmInfo);
-			NewParameters.Add(ParameterName, HoudiniAssetParameter);
-			continue;
-		}
-
-		// Skip unsupported param types for now.
-		switch(ParmInfo.type)
-		{
-			case HAPI_PARMTYPE_STRING:
+			// If parameter is invisible, skip it.
+			if(ParmInfo.invisible)
 			{
-				if(!ParmInfo.choiceCount)
-				{
-					HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
-				}
-				else
-				{
-					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
-				}
-
-				break;
-			}
-
-			case HAPI_PARMTYPE_INT:
-			{
-				if(!ParmInfo.choiceCount)
-				{
-					HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
-				}
-				else
-				{
-					HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
-				}
-
-				break;
-			}
-
-			case HAPI_PARMTYPE_FLOAT:
-			{
-				HoudiniAssetParameter = UHoudiniAssetParameterFloat::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
-				break;
-			}
-
-			case HAPI_PARMTYPE_TOGGLE:
-			{
-				HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
-				break;
-			}
-
-			case HAPI_PARMTYPE_COLOR:
-			{
-				HoudiniAssetParameter = UHoudiniAssetParameterColor::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
-				break;
-			}
-
-			case HAPI_PARMTYPE_PATH_NODE:
-			default:
-			{
-				// Just ignore unsupported types for now.
 				continue;
 			}
-		}
 
-		// Add this parameter to the map.
-		NewParameters.Add(ParameterName, HoudiniAssetParameter);
+			FString ParameterName;
+			if(!UHoudiniAssetParameter::RetrieveParameterName(ParmInfo, ParameterName))
+			{
+				// We had trouble retrieving name of this parameter, skip it.
+				continue;
+			}
+
+			// See if this parameter has already been created.
+			UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = Parameters.Find(ParameterName);
+			UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
+
+			// If parameter exists, we can reuse it.
+			if(FoundHoudiniAssetParameter)
+			{
+				HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+
+				// Remove parameter from current map.
+				Parameters.Remove(ParameterName);
+
+				// Reinitialize parameter and add it to map.
+				HoudiniAssetParameter->CreateParameter(this, nullptr, AssetInfo.nodeId, ParmInfo);
+				NewParameters.Add(ParameterName, HoudiniAssetParameter);
+				continue;
+			}
+
+			// Skip unsupported param types for now.
+			switch(ParmInfo.type)
+			{
+				case HAPI_PARMTYPE_STRING:
+				{
+					if(!ParmInfo.choiceCount)
+					{
+						HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					}
+					else
+					{
+						HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					}
+
+					break;
+				}
+
+				case HAPI_PARMTYPE_INT:
+				{
+					if(!ParmInfo.choiceCount)
+					{
+						HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					}
+					else
+					{
+						HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					}
+
+					break;
+				}
+
+				case HAPI_PARMTYPE_FLOAT:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterFloat::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					break;
+				}
+
+				case HAPI_PARMTYPE_TOGGLE:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					break;
+				}
+
+				case HAPI_PARMTYPE_COLOR:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterColor::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					break;
+				}
+
+				case HAPI_PARMTYPE_PATH_NODE:
+				default:
+				{
+					// Just ignore unsupported types for now.
+					continue;
+				}
+			}
+
+			// Add this parameter to the map.
+			NewParameters.Add(ParameterName, HoudiniAssetParameter);
+		}
 	}
 
 	// Remove all unused parameters.
