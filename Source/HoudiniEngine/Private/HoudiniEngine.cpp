@@ -121,7 +121,7 @@ FHoudiniEngine::StartupModule()
 		if(!HAPILibraryHandle)
 		{
 			// Otherwise, attempt to look up location in the registry.
-			FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %s"), TEXT(HOUDINI_ENGINE_HOUDINI_VERSION));
+			FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
 			FString HoudiniInstallationPath;
 
 			if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
@@ -232,9 +232,9 @@ FHoudiniEngine::StartupModule()
 		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 		// Compare defined and running versions.
-		if(RunningEngineMajor == HOUDINI_ENGINE_HOUDINI_ENGINE_MAJOR && 
-		   RunningEngineMinor == HOUDINI_ENGINE_HOUDINI_ENGINE_MINOR &&
-		   RunningEngineApi == HOUDINI_ENGINE_HOUDINI_ENGINE_API)
+		if(RunningEngineMajor == HAPI_VERSION_HOUDINI_ENGINE_MAJOR && 
+		   RunningEngineMinor == HAPI_VERSION_HOUDINI_ENGINE_MINOR &&
+		   RunningEngineApi == HAPI_VERSION_HOUDINI_ENGINE_API)
 		{
 			HAPI_CookOptions CookOptions;
 			CookOptions.curveRefineLOD = 8.0f;
@@ -258,8 +258,8 @@ FHoudiniEngine::StartupModule()
 			bHAPIVersionMismatch = true;
 
 			HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
-			HOUDINI_LOG_MESSAGE(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"), HOUDINI_ENGINE_HOUDINI_ENGINE_MAJOR,
-								HOUDINI_ENGINE_HOUDINI_ENGINE_MINOR, HOUDINI_ENGINE_HOUDINI_ENGINE_API, RunningEngineMajor, 
+			HOUDINI_LOG_MESSAGE(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"), HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
+								HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API, RunningEngineMajor, 
 								RunningEngineMinor, RunningEngineApi);
 		}
 	}
