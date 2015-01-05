@@ -268,8 +268,6 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
-			//.VAlign(VAlign_Center)
-			//.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
 			[
 				SAssignNew(ButtonBox, SHorizontalBox)
@@ -288,13 +286,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 						.Text(MeshName)
 					]
 				]
-			]/*
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(FMargin( 0.0f, 0.0f ))
-			[
-				SNullWidget::NullWidget
-			]*/
+			]
 		];
 
 		// Create tooltip.

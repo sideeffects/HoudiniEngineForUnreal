@@ -301,9 +301,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				FString WarningMessage = FString::Printf(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
 												TEXT("libHAPI.dll was loaded, but has wrong version. ")
 												TEXT("No cooking / instantiation will take place."),
-												HOUDINI_ENGINE_HOUDINI_ENGINE_MAJOR,
-												HOUDINI_ENGINE_HOUDINI_ENGINE_MINOR,
-												HOUDINI_ENGINE_HOUDINI_ENGINE_API,
+												HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
+												HAPI_VERSION_HOUDINI_ENGINE_MINOR,
+												HAPI_VERSION_HOUDINI_ENGINE_API,
 												RunningEngineMajor,
 												RunningEngineMinor,
 												RunningEngineApi);
