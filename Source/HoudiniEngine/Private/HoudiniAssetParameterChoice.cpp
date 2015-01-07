@@ -293,14 +293,6 @@ UHoudiniAssetParameterChoice::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetParameterChoice::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-
-
 TSharedRef<SWidget>
 UHoudiniAssetParameterChoice::CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry)
 {

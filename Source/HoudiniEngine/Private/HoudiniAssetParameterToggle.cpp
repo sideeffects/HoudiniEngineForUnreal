@@ -181,14 +181,6 @@ UHoudiniAssetParameterToggle::Serialize(FArchive& Ar)
 
 
 void
-UHoudiniAssetParameterToggle::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-
-
-void
 UHoudiniAssetParameterToggle::CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx)
 {
 	int32 bState = (ESlateCheckBoxState::Checked == NewState);

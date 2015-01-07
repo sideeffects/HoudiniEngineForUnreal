@@ -106,14 +106,6 @@ UHoudiniAssetParameterString::Serialize(FArchive& Ar)
 
 
 void
-UHoudiniAssetParameterString::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-
-
-void
 UHoudiniAssetParameterString::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	Super::CreateWidget(DetailCategoryBuilder);
