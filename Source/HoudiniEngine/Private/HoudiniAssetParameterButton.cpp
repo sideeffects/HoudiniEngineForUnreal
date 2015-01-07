@@ -60,7 +60,7 @@ UHoudiniAssetParameterButton::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		return false;
 	}
 
-	// We can only handle label type.
+	// We can only handle button type.
 	if(HAPI_PARMTYPE_BUTTON != ParmInfo.type)
 	{
 		return false;
