@@ -131,7 +131,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Value();
 
 			// Set component transformation.
-			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 
 			if(!OriginalStaticMeshes[GeoIdx])
 			{
@@ -180,7 +180,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			const FHoudiniGeoPartObject& HoudiniGeoPartObject = ObjectsToInstance[GeoIdx];
 
 			// Set component transformation.
-			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 
 			if(!OriginalStaticMeshes[GeoIdx])
 			{
@@ -221,7 +221,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 		UInstancedStaticMeshComponent* Component = ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),
 																								  HoudiniAssetComponent->GetOwner(), NAME_None, RF_Transient);
 
-		Component->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+		Component->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 
 		Component->AttachTo(HoudiniAssetComponent);
 

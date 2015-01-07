@@ -415,7 +415,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 			}
 
 			// Transform the component by transformation provided by HAPI.
-			StaticMeshComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+			StaticMeshComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 		}
 	}
 
@@ -1650,7 +1650,7 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		NewSplineComponents.Add(HoudiniGeoPartObject, HoudiniSplineComponent);
 
 		// Transform the component by transformation provided by HAPI.
-		HoudiniSplineComponent->SetRelativeTransform(FTransform(HoudiniGeoPartObject.TransformMatrix));
+		HoudiniSplineComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 
 		// Construct curve from available data.
 		HoudiniSplineComponent->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, (CurveClosed == 1));
