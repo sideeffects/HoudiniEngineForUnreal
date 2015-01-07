@@ -15,8 +15,8 @@
 
 #pragma once
 
-class FMatrix;
 class FArchive;
+class FTransform;
 
 
 struct FHoudiniGeoPartObject
@@ -27,7 +27,7 @@ public:
 	/** Constructors. **/
 	FHoudiniGeoPartObject();
 	FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
-	FHoudiniGeoPartObject(const FMatrix& InTransform, const FString& InObjectName, const FString& InPartName, HAPI_AssetId InAssetId,
+	FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName, HAPI_AssetId InAssetId,
 						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId, bool bInIsVisible = true,
 						  bool bInIsInstancer = false, bool bInIsCurve = false, bool bInIsEditable = false, bool bInHasGeoChanged = false);
 
@@ -79,7 +79,7 @@ public:
 public:
 
 	/** Transform of this geo part object. **/
-	FMatrix TransformMatrix;
+	FTransform TransformMatrix;
 
 	/** Name of associated object. **/
 	FString ObjectName;

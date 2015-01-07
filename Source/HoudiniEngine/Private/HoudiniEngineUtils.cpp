@@ -712,7 +712,6 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPacka
 	NewTexture->AddressY = TA_Clamp;
 	NewTexture->LODGroup = InLODGroup;
 	*/
-
 	// Allocate first mipmap.
 	int32 NumBlocksX = ImageInfo.xRes / GPixelFormats[PixelFormat].BlockSizeX;
 	int32 NumBlocksY = ImageInfo.yRes / GPixelFormats[PixelFormat].BlockSizeY;
@@ -1398,14 +1397,20 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 		FString ObjectName;
 		FHoudiniEngineUtils::GetHoudiniString(ObjectInfo.nameSH, ObjectName);
 
-		// Convert HAPI transform to a matrix form.
-		FMatrix TransformMatrix;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConvertTransformQuatToMatrix(&ObjectTransforms[ObjectIdx], &TransformMatrix.M[0][0]), false);
-		TransformMatrix.ScaleTranslation(FVector(FHoudiniEngineUtils::ScaleFactorTranslate, FHoudiniEngineUtils::ScaleFactorTranslate, 
-												 FHoudiniEngineUtils::ScaleFactorTranslate));
+		// Get transformation for this object.
+		const HAPI_Transform& ObjectTransform = ObjectTransforms[ObjectIdx];
 
-		// We need to swap transforms for Z and Y.
-		Swap(TransformMatrix.M[3][1], TransformMatrix.M[3][2]);
+		FQuat ObjectRotation(-ObjectTransform.rotationQuaternion[0], -ObjectTransform.rotationQuaternion[1],
+							 -ObjectTransform.rotationQuaternion[2], ObjectTransform.rotationQuaternion[3]);
+		Swap(ObjectRotation.Y, ObjectRotation.Z);
+
+		FVector ObjectTranslation(ObjectTransform.position[0], ObjectTransform.position[2], ObjectTransform.position[1]);
+		ObjectTranslation *= FHoudiniEngineUtils::ScaleFactorTranslate;
+
+		FVector ObjectScale3D(ObjectTransform.scale[0], ObjectTransform.scale[1], ObjectTransform.scale[2]);
+		Swap(ObjectScale3D.Y, ObjectScale3D.Z);
+
+		FTransform TransformMatrix(ObjectRotation, ObjectTranslation, ObjectScale3D);
 
 		// Iterate through all Geo informations within this object.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
