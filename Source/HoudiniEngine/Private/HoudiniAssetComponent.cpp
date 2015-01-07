@@ -1797,8 +1797,13 @@ UHoudiniAssetComponent::CreateParameters()
 					break;
 				}
 
-				case HAPI_PARMTYPE_PATH_NODE:
 				case HAPI_PARMTYPE_BUTTON:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterButton::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					break;
+				}
+
+				case HAPI_PARMTYPE_PATH_NODE:
 				default:
 				{
 					// Just ignore unsupported types for now.

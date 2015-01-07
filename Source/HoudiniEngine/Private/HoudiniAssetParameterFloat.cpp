@@ -55,14 +55,6 @@ UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetParameterFloat::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-
-
 UHoudiniAssetParameterFloat*
 UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
 									HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)

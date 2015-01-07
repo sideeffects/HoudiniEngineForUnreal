@@ -44,14 +44,6 @@ UHoudiniAssetParameterColor::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetParameterColor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-
-
 UHoudiniAssetParameterColor*
 UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
 									HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)

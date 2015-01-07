@@ -235,11 +235,3 @@ UHoudiniAssetParameterInt::Serialize(FArchive& Ar)
 	Ar << ValueUIMax;
 }
 
-
-void
-UHoudiniAssetParameterInt::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
-}
-

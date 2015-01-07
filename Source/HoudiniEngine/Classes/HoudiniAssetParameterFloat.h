@@ -47,7 +47,6 @@ public:
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 public:
 

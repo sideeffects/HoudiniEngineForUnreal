@@ -14,23 +14,23 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterColor.generated.h"
+#include "HoudiniAssetParameterButton.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterColor : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterButton : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterColor();
+	virtual ~UHoudiniAssetParameterButton();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterColor* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+	static UHoudiniAssetParameterButton* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
@@ -43,27 +43,8 @@ public:
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue() override;
 
-/** UObject methods. **/
-public:
-
-	virtual void Serialize(FArchive& Ar) override;
-
 protected:
 
-	/** Return color for this color parameter. **/
-	FLinearColor GetColor() const;
-
-	/** Handle mouse click on color box. **/
-	FReply OnColorBlockMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-
-	/** Called when new color is selected. **/
-	void OnPaintColorChanged(FLinearColor InNewColor);
-
-protected:
-
-	/** Color block widget. **/
-	TSharedPtr<SColorBlock> ColorBlock;
-
-	/** Color for this property. **/
-	FLinearColor Color;
+	/** Handler for button click. **/
+	FReply OnButtonClick();
 };
