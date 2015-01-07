@@ -1803,6 +1803,12 @@ UHoudiniAssetComponent::CreateParameters()
 					break;
 				}
 
+				case HAPI_PARMTYPE_SEPARATOR:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterSeparator::Create(this, nullptr, AssetInfo.nodeId, ParmInfo);
+					break;
+				}
+
 				case HAPI_PARMTYPE_PATH_NODE:
 				default:
 				{
