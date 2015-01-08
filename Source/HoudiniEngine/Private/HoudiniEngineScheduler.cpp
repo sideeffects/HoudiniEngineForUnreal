@@ -95,12 +95,12 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	UHoudiniAsset* HoudiniAsset = Task.Asset.Get();
 	HAPI_AssetLibraryId AssetLibraryId = 0;
 	int32 AssetCount = 0;
-	std::vector<int> AssetNames;
+	std::vector<int32> AssetNames;
 	std::string AssetNameString;
 	double LastUpdateTime;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
-																HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), void());
+																	   HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), void());
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAvailableAssetCount(AssetLibraryId, &AssetCount), void());
 	
@@ -162,7 +162,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 				LastUpdateTime = FPlatformTime::Seconds();
 
 				// Retrieve status string.
-				int StatusStringBufferLength = 0;
+				int32 StatusStringBufferLength = 0;
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
 				std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
@@ -225,7 +225,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 	// We need to spin until cooking is finished.
 	while(true)
 	{
-		int Status = HAPI_STATE_STARTING_COOK;
+		int32 Status = HAPI_STATE_STARTING_COOK;
 		HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStatus(HAPI_STATUS_COOK_STATE, &Status));
 
 		if(!Task.AssetComponent.IsValid())
@@ -259,7 +259,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 			LastUpdateTime = FPlatformTime::Seconds();
 
 			// Retrieve status string.
-			int StatusStringBufferLength = 0;
+			int32 StatusStringBufferLength = 0;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusStringBufLength(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
 			std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
