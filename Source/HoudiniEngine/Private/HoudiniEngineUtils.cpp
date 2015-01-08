@@ -1062,12 +1062,24 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	// See if we have normals to upload.
 	if(RawMesh.WedgeTangentZ.Num())
 	{
+		TArray<FVector> ChangedNormals(RawMesh.WedgeTangentZ);
+
+		// We need to re-index UVs for wedges we swapped (due to winding differences).
+		for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+		{
+			FVector TangentZ1 = ChangedNormals[WedgeIdx + 1];
+			FVector TangentZ2 = ChangedNormals[WedgeIdx + 2];
+
+			ChangedNormals[WedgeIdx + 1] = TangentZ2;
+			ChangedNormals[WedgeIdx + 2] = TangentZ1;
+		}
+
 		// Get raw normal data.
-		FVector* RawMeshNormals = RawMesh.WedgeTangentZ.GetData();
+		FVector* RawMeshNormals = ChangedNormals.GetData();
 
 		// Create attribute for normals.
 		HAPI_AttributeInfo AttributeInfoVertex;
-		AttributeInfoVertex.count = RawMesh.WedgeTangentZ.Num();
+		AttributeInfoVertex.count = ChangedNormals.Num();
 		AttributeInfoVertex.tupleSize = 3;
 		AttributeInfoVertex.exists = true;
 		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
@@ -1810,7 +1822,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					{
 						Swap(RawMesh.WedgeTangentZ[VertexIdx + 1], RawMesh.WedgeTangentZ[VertexIdx + 2]);
 					}
-
+					/*
 					if(RawMesh.WedgeTangentX.Num() > 0)
 					{
 						Swap(RawMesh.WedgeTangentX[VertexIdx + 1], RawMesh.WedgeTangentX[VertexIdx + 2]);
@@ -1820,7 +1832,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					{
 						Swap(RawMesh.WedgeTangentY[VertexIdx + 1], RawMesh.WedgeTangentY[VertexIdx + 2]);
 					}
-
+					*/
 				}
 
 				// Transfer vertex positions.
