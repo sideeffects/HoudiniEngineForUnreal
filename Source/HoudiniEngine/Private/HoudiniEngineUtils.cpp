@@ -1722,6 +1722,34 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 				}
 
+				// Transfer colors.
+				if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
+				{
+					int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
+					RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
+					for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
+					{
+						FLinearColor WedgeColor;
+
+						WedgeColor.R = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0], 0.0f, 1.0f);
+						WedgeColor.G = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1], 0.0f, 1.0f);
+						WedgeColor.B = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2], 0.0f, 1.0f);
+
+						if(4 == AttribInfoColors.tupleSize)
+						{
+							// We have alpha.
+							WedgeColor.A = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3], 0.0f, 1.0f);
+						}
+						else
+						{
+							WedgeColor.A = 1.0f;
+						}
+
+						// Convert linear color to fixed color (no sRGB conversion).
+						RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
+					}
+				}
+
 				// Transfer indices.
 				RawMesh.WedgeIndices.SetNumZeroed(VertexList.Num());
 				for(int32 VertexIdx = 0; VertexIdx < VertexList.Num(); VertexIdx += 3)
@@ -1740,6 +1768,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						{
 							Swap(RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1], RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2]);
 						}
+					}
+
+					// Check if we need to patch colors.
+					if(RawMesh.WedgeColors.Num() > 0)
+					{
+						Swap(RawMesh.WedgeColors[VertexIdx + 1], RawMesh.WedgeColors[VertexIdx + 2]);
 					}
 				}
 
@@ -1764,34 +1798,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					// This mesh contains only degenerate triangles, there's nothing we can do.
 					StaticMesh->MarkPendingKill();
 					continue;
-				}
-
-				// Transfer colors.
-				if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
-				{
-					int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
-					RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
-					for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
-					{
-						FLinearColor WedgeColor;
-
-						WedgeColor.R = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0];
-						WedgeColor.G = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1];
-						WedgeColor.B = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2];
-
-						if(4 == AttribInfoColors.tupleSize)
-						{
-							// We have alpha.
-							WedgeColor.A = Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3];
-						}
-						else
-						{
-							WedgeColor.A = 1.0f;
-						}
-
-						// Convert linear color to fixed color (no sRGB conversion).
-						RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
-					}
 				}
 
 				// See if we need to generate tangents, we do this only if normals are present.
