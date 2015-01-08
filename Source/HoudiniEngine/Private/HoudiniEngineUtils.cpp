@@ -305,7 +305,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId Objec
 
 	int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);
 
-	std::vector<int> GroupNameHandles(GroupCount, 0);
+	std::vector<int32> GroupNameHandles(GroupCount, 0);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(AssetId, ObjectId, GeoId, GroupType, &GroupNameHandles[0], GroupCount), false);
 
 	for(int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
@@ -323,7 +323,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId Objec
 
 bool
 FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
-											HAPI_GroupType GroupType, std::string GroupName, std::vector<int>& GroupMembership)
+											HAPI_GroupType GroupType, std::string GroupName, std::vector<int32>& GroupMembership)
 {
 	HAPI_PartInfo PartInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(AssetId, ObjectId, GeoId, PartId, &PartInfo), false);
@@ -339,7 +339,7 @@ FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId 
 
 
 int
-FHoudiniEngineUtils::HapiCheckGroupMembership(const std::vector<int>& GroupMembership)
+FHoudiniEngineUtils::HapiCheckGroupMembership(const std::vector<int32>& GroupMembership)
 {
 	int32 GroupMembershipCount = 0;
 	for(int32 Idx = 0; Idx < GroupMembership.size(); ++Idx)
@@ -486,7 +486,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& Ho
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 												   const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-												   TArray<int>& Data, int32 TupleSize)
+												   TArray<int32>& Data, int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
@@ -529,7 +529,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_Ob
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-												   HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int32 TupleSize)
+												   HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data, int32 TupleSize)
 {
 
 	return FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
@@ -1081,7 +1081,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	// Extract indices from static mesh.
 	if(RawMesh.WedgeIndices.Num())
 	{
-		TArray<int> StaticMeshIndices;
+		TArray<int32> StaticMeshIndices;
 		StaticMeshIndices.SetNumUninitialized(RawMesh.WedgeIndices.Num());
 		for(int32 IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
 		{
@@ -1095,7 +1095,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(ConnectedAssetId, 0, 0, StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num()), false);
 
 		// We need to generate array of face counts.
-		TArray<int> StaticMeshFaceCounts;
+		TArray<int32> StaticMeshFaceCounts;
 		StaticMeshFaceCounts.Init(3, Part.faceCount);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(ConnectedAssetId, 0, 0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
 	}
@@ -1135,7 +1135,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks,
-																	(int*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
+																	(int32*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
 	}
 
 	// Commit the geo.
@@ -1268,7 +1268,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	int32 VertexOffset = RawMesh.VertexPositions.Num();
 	int32 WedgeOffset = RawMesh.WedgeIndices.Num();
 	int32 TriangleOffset = RawMesh.FaceMaterialIndices.Num();
-	int32 WedgeCount = sizeof(FHoudiniLogo::VertexIndices) / sizeof(int);
+	int32 WedgeCount = sizeof(FHoudiniLogo::VertexIndices) / sizeof(int32);
 	int32 VertexCount = sizeof(FHoudiniLogo::Vertices) / sizeof(float);
 
 	// Make sure static mesh has a new lighting guid.

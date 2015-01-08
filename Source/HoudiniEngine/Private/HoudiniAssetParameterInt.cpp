@@ -56,7 +56,7 @@ UHoudiniAssetParameterInt::Create(UHoudiniAssetComponent* InHoudiniAssetComponen
 
 
 bool
-UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
+UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
 										   HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
@@ -134,7 +134,7 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 	{
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
-			SNew(SNumericEntryBox<int>)
+			SNew(SNumericEntryBox<int32>)
 			.AllowSpin(true)
 
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
@@ -234,4 +234,3 @@ UHoudiniAssetParameterInt::Serialize(FArchive& Ar)
 	Ar << ValueUIMin;
 	Ar << ValueUIMax;
 }
-

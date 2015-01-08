@@ -784,8 +784,8 @@ UHoudiniAssetInput::UpdateInputCurve()
 	if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
 	{
 		FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), CurvePointsString);
-		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int) EHoudiniSplineComponentType::Bezier, (int&) CurveTypeValue);
-		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, (int) EHoudiniSplineComponentMethod::CVs, (int&) CurveMethodValue);
+		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, (int32) EHoudiniSplineComponentType::Bezier, (int32&) CurveTypeValue);
+		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, (int32) EHoudiniSplineComponentMethod::CVs, (int32&) CurveMethodValue);
 		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed);
 	}
 
@@ -818,7 +818,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParameters(NodeId, &ParmInfos[0], 0, NodeInfo.parmCount), false);
 
 		// Retrieve integer values for this asset.
-		TArray<int> ParmValueInts;
+		TArray<int32> ParmValueInts;
 		ParmValueInts.SetNumZeroed(NodeInfo.parmIntValueCount);
 		if(NodeInfo.parmIntValueCount > 0)
 		{
