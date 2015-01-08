@@ -299,14 +299,14 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 				FString WarningMessage = FString::Printf(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
-												TEXT("libHAPI.dll was loaded, but has wrong version. ")
-												TEXT("No cooking / instantiation will take place."),
-												HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
-												HAPI_VERSION_HOUDINI_ENGINE_MINOR,
-												HAPI_VERSION_HOUDINI_ENGINE_API,
-												RunningEngineMajor,
-												RunningEngineMinor,
-												RunningEngineApi);
+														 TEXT("libHAPI.dll was loaded, but has wrong version. ")
+														 TEXT("No cooking / instantiation will take place."),
+														 HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
+														 HAPI_VERSION_HOUDINI_ENGINE_MINOR,
+														 HAPI_VERSION_HOUDINI_ENGINE_API,
+														 RunningEngineMajor,
+														 RunningEngineMinor,
+														 RunningEngineApi);
 
 				FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
 				FText WarningTitleText = FText::FromString(WarningTitle);
@@ -512,7 +512,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	if(HapiGUID.IsValid())
 	{
 		// If we have a valid task GUID.
-
 		if(FHoudiniEngine::Get().RetrieveTaskInfo(HapiGUID, TaskInfo))
 		{
 			if(EHoudiniEngineTaskState::None != TaskInfo.TaskState)
@@ -813,7 +812,7 @@ void
 UHoudiniAssetComponent::UpdateEditorProperties()
 {
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
-	if(HoudiniAssetActor && bIsNativeComponent && GEditor)
+	if(GEditor && HoudiniAssetActor && bIsNativeComponent)
 	{
 		// Manually reselect the actor - this will cause details panel to be updated and force our
 		// property changes to be picked up by the UI.
