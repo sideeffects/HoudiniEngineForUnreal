@@ -197,7 +197,7 @@ FHoudiniEngine::StartupModule()
 
 				if(Size.X > 0 && Size.Y > 0)
 				{
-					static const int ProgressIconSize = 32;
+					static const int32 ProgressIconSize = 32;
 					HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(ProgressIconSize, ProgressIconSize)));
 				}
 			}
@@ -222,9 +222,9 @@ FHoudiniEngine::StartupModule()
 	if(FHoudiniApi::IsHAPIInitialized())
 	{
 		// We need to make sure HAPI version is correct.
-		int RunningEngineMajor = 0;
-		int RunningEngineMinor = 0;
-		int RunningEngineApi = 0;
+		int32 RunningEngineMajor = 0;
+		int32 RunningEngineMinor = 0;
+		int32 RunningEngineApi = 0;
 
 		// Retrieve version numbers for running Houdini Engine.
 		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
@@ -232,7 +232,7 @@ FHoudiniEngine::StartupModule()
 		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 		// Compare defined and running versions.
-		if(RunningEngineMajor == HAPI_VERSION_HOUDINI_ENGINE_MAJOR && 
+		if(RunningEngineMajor == HAPI_VERSION_HOUDINI_ENGINE_MAJOR &&
 		   RunningEngineMinor == HAPI_VERSION_HOUDINI_ENGINE_MINOR &&
 		   RunningEngineApi == HAPI_VERSION_HOUDINI_ENGINE_API)
 		{
@@ -259,7 +259,7 @@ FHoudiniEngine::StartupModule()
 
 			HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
 			HOUDINI_LOG_MESSAGE(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"), HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
-								HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API, RunningEngineMajor, 
+								HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API, RunningEngineMajor,
 								RunningEngineMinor, RunningEngineApi);
 		}
 	}
@@ -389,17 +389,17 @@ FHoudiniEngine::SaveHIPFile()
 
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		if(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
 		{
 			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
 		bSaved = DesktopPlatform->SaveFileDialog(ParentWindowWindowHandle,
-			NSLOCTEXT("SaveHIPFile", "SaveHIPFile", "Saves a .hip file of the current Houdini scene.").ToString(), 
-			*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)), 
-			TEXT(""), 
+			NSLOCTEXT("SaveHIPFile", "SaveHIPFile", "Saves a .hip file of the current Houdini scene.").ToString(),
+			*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)),
+			TEXT(""),
 			TEXT("Houdini HIP file|*.hip"),
-			EFileDialogFlags::None, 
+			EFileDialogFlags::None,
 			SaveFilenames);
 
 		if(bSaved && SaveFilenames.Num())
@@ -454,7 +454,7 @@ bool
 FHoudiniEngine::RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo)
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	
+
 	if(TaskInfos.Contains(HapIGUID))
 	{
 		TaskInfo = TaskInfos[HapIGUID];

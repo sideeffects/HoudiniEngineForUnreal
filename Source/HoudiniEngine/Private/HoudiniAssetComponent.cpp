@@ -289,9 +289,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 			if(UHoudiniAssetComponent::bDisplayEngineHapiVersionMismatch && HoudiniEngine.CheckHapiVersionMismatch())
 			{
 				// We have mismatch in defined and running versions.
-				int RunningEngineMajor = 0;
-				int RunningEngineMinor = 0;
-				int RunningEngineApi = 0;
+				int32 RunningEngineMajor = 0;
+				int32 RunningEngineMinor = 0;
+				int32 RunningEngineApi = 0;
 
 				// Retrieve version numbers for running Houdini Engine.
 				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
@@ -341,7 +341,7 @@ UHoudiniAssetComponent::IsNotCookingOrInstantiating() const
 void
 UHoudiniAssetComponent::AssignUniqueActorLabel()
 {
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	if(GEditor && FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
 		AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
 		if(HoudiniAssetActor)
@@ -387,7 +387,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 		{
 			// This geo part is visible and not an instancer and must have static mesh assigned.
 			check(StaticMesh);
-			
+
 			UStaticMeshComponent* StaticMeshComponent = nullptr;
 			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
 
@@ -507,7 +507,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	static float NotificationExpireDuration = 2.0f;
 	static double NotificationUpdateFrequency = 2.0f;
 
-	// Check if Houdini Asset has changed, if it did we need to 
+	// Check if Houdini Asset has changed, if it did we need to
 
 	if(HapiGUID.IsValid())
 	{
@@ -815,7 +815,7 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
 	if(HoudiniAssetActor && bIsNativeComponent && GEditor)
 	{
-		// Manually reselect the actor - this will cause details panel to be updated and force our 
+		// Manually reselect the actor - this will cause details panel to be updated and force our
 		// property changes to be picked up by the UI.
 		GEditor->SelectActor(HoudiniAssetActor, true, true);
 
@@ -1538,7 +1538,7 @@ UHoudiniAssetComponent::LocateStaticMeshes(const FString& ObjectName, TMultiMap<
 
 
 bool
-UHoudiniAssetComponent::LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const
+UHoudiniAssetComponent::LocateStaticMeshes(int32 ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const
 {
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
 	{
@@ -1595,7 +1595,7 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		FString CurvePointsString;
 		EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
 		EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
-		int CurveClosed = 1;
+		int32 CurveClosed = 1;
 
 		HAPI_AttributeInfo AttributeRefinedCurvePositions;
 		TArray<float> RefinedCurvePositions;
@@ -1914,7 +1914,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 		UBodySetup* BodySetup = StaticMesh->BodySetup;
 		check(BodySetup);
 
-		// Set flag whether physics triangle mesh will use double sided faces when doing scene queries. 
+		// Set flag whether physics triangle mesh will use double sided faces when doing scene queries.
 		BodySetup->bDoubleSidedGeometry = bGeneratedDoubleSidedGeometry;
 
 		// Assign physical material for simple collision.
@@ -2005,7 +2005,7 @@ UHoudiniAssetComponent::CreateInputs()
 
 	// Create inputs.
 	Inputs.SetNumZeroed(InputCount);
-	for(int InputIdx = 0; InputIdx < InputCount; ++InputIdx)
+	for(int32 InputIdx = 0; InputIdx < InputCount; ++InputIdx)
 	{
 		Inputs[InputIdx] = UHoudiniAssetInput::Create(this, InputIdx);
 	}
@@ -2326,4 +2326,3 @@ UHoudiniAssetComponent::RemoveStaticMeshComponent(UStaticMesh* StaticMesh)
 		}
 	}
 }
-

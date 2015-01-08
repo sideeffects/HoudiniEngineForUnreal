@@ -108,7 +108,7 @@ FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 const FString
 FHoudiniEngineUtils::GetErrorDescription()
 {
-	int StatusBufferLength = 0;
+	int32 StatusBufferLength = 0;
 	FHoudiniApi::GetStatusStringBufLength(
 		HAPI_STATUS_CALL_RESULT, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
 
@@ -180,7 +180,7 @@ FHoudiniEngineUtils::IsHoudiniAssetValid(HAPI_AssetId AssetId)
 	}
 
 	HAPI_AssetInfo AssetInfo;
-	int ValidationAnswer = 0;
+	int32 ValidationAnswer = 0;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::IsAssetValid(AssetId, AssetInfo.validationId, &ValidationAnswer), false);
@@ -197,7 +197,7 @@ FHoudiniEngineUtils::DestroyHoudiniAsset(HAPI_AssetId AssetId)
 
 
 bool
-FHoudiniEngineUtils::GetHoudiniString(int Name, FString& NameString)
+FHoudiniEngineUtils::GetHoudiniString(int32 Name, FString& NameString)
 {
 	std::string NamePlain;
 
@@ -222,7 +222,7 @@ FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameStri
 
 
 bool
-FHoudiniEngineUtils::HapiGetString(int Name, std::string& NameString)
+FHoudiniEngineUtils::HapiGetString(int32 Name, std::string& NameString)
 {
 	if(Name < 0)
 	{
@@ -230,7 +230,7 @@ FHoudiniEngineUtils::HapiGetString(int Name, std::string& NameString)
 	}
 
 	// For now we will load first asset only.
-	int NameLength = 0;
+	int32 NameLength = 0;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStringBufLength(Name, &NameLength), false);
 
 	if(NameLength)
@@ -246,7 +246,7 @@ FHoudiniEngineUtils::HapiGetString(int Name, std::string& NameString)
 }
 
 
-int
+int32
 FHoudiniEngineUtils::HapiGetGroupCountByType(HAPI_GroupType GroupType, HAPI_GeoInfo& GeoInfo)
 {
 	switch(GroupType)
@@ -271,7 +271,7 @@ FHoudiniEngineUtils::HapiGetGroupCountByType(HAPI_GroupType GroupType, HAPI_GeoI
 }
 
 
-int 
+int32
 FHoudiniEngineUtils::HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HAPI_PartInfo& PartInfo)
 {
 	switch(GroupType)
@@ -297,18 +297,18 @@ FHoudiniEngineUtils::HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HA
 
 
 bool
-FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType, 
+FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
 									   std::vector<std::string>& GroupNames)
 {
 	HAPI_GeoInfo GeoInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(AssetId, ObjectId, GeoId, &GeoInfo), false);
 
-	int GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);	
+	int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);
 
 	std::vector<int> GroupNameHandles(GroupCount, 0);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(AssetId, ObjectId, GeoId, GroupType, &GroupNameHandles[0], GroupCount), false);
 
-	for(int NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
+	for(int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
 	{
 		std::string GroupName;
 		if(FHoudiniEngineUtils::HapiGetString(GroupNameHandles[NameIdx], GroupName))
@@ -322,16 +322,16 @@ FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId Objec
 
 
 bool
-FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, 
+FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											HAPI_GroupType GroupType, std::string GroupName, std::vector<int>& GroupMembership)
 {
 	HAPI_PartInfo PartInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(AssetId, ObjectId, GeoId, PartId, &PartInfo), false);
 
-	int ElementCount = FHoudiniEngineUtils::HapiGetElementCountByGroupType(GroupType, PartInfo);
+	int32 ElementCount = FHoudiniEngineUtils::HapiGetElementCountByGroupType(GroupType, PartInfo);
 
 	GroupMembership.resize(ElementCount);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(AssetId, ObjectId, GeoId, PartId, GroupType, GroupName.c_str(), 
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(AssetId, ObjectId, GeoId, PartId, GroupType, GroupName.c_str(),
 													   &GroupMembership[0], 0, ElementCount), false);
 
 	return true;
@@ -341,8 +341,8 @@ FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId 
 int
 FHoudiniEngineUtils::HapiCheckGroupMembership(const std::vector<int>& GroupMembership)
 {
-	int GroupMembershipCount = 0;
-	for(int Idx = 0; Idx < GroupMembership.size(); ++Idx)
+	int32 GroupMembershipCount = 0;
+	for(int32 Idx = 0; Idx < GroupMembership.size(); ++Idx)
 	{
 		if(GroupMembership[Idx] > 0)
 		{
@@ -361,12 +361,12 @@ FHoudiniEngineUtils::HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>
 
 	Names.resize(ParmInfos.size());
 
-	for(int ParmIdx = 0; ParmIdx < ParmInfos.size(); ++ParmIdx)
+	for(int32 ParmIdx = 0; ParmIdx < ParmInfos.size(); ++ParmIdx)
 	{
 		const HAPI_ParmInfo& NodeParmInfo = ParmInfos[ParmIdx];
 		HAPI_StringHandle NodeParmHandle = NodeParmInfo.nameSH;
 
-		int NodeParmNameLength = 0;
+		int32 NodeParmNameLength = 0;
 		FHoudiniApi::GetStringBufLength(NodeParmHandle, &NodeParmNameLength);
 
 		if(NodeParmNameLength)
@@ -414,10 +414,10 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(const FHoudiniGeoPartObject& Houdi
 }
 
 
-int
+int32
 FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names)
 {
-	for(int Idx = 0; Idx < Names.size(); ++Idx)
+	for(int32 Idx = 0; Idx < Names.size(); ++Idx)
 	{
 		if(!ParmName.compare(0, ParmName.length(), Names[Idx]))
 		{
@@ -432,16 +432,16 @@ FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 												 const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-												 TArray<float>& Data, int TupleSize)
+												 TArray<float>& Data, int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
 	// Reset container size.
 	Data.SetNumUninitialized(0);
 
-	int OriginalTupleSize = TupleSize;
+	int32 OriginalTupleSize = TupleSize;
 	HAPI_AttributeInfo AttributeInfo;
-	for(int AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
 
@@ -475,7 +475,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-											HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int TupleSize)
+											HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int32 TupleSize)
 {
 	return FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
 															HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
@@ -486,16 +486,16 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& Ho
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-											TArray<int>& Data, int TupleSize)
+											TArray<int>& Data, int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
 	// Reset container size.
 	Data.SetNumUninitialized(0);
 
-	int OriginalTupleSize = TupleSize;
+	int32 OriginalTupleSize = TupleSize;
 	HAPI_AttributeInfo AttributeInfo;
-	for(int AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
 
@@ -529,7 +529,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_Ob
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-												   HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int TupleSize)
+												   HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int32 TupleSize)
 {
 
 	return FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
@@ -541,16 +541,16 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 												  const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-												  TArray<FString>& Data, int TupleSize)
+												  TArray<FString>& Data, int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
 	// Reset container size.
 	Data.Empty();
 
-	int OriginalTupleSize = TupleSize;
+	int32 OriginalTupleSize = TupleSize;
 	HAPI_AttributeInfo AttributeInfo;
-	for(int AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
 
@@ -589,7 +589,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_Obj
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-												  HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int TupleSize)
+												  HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int32 TupleSize)
 {
 	return FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
 															 HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
@@ -641,7 +641,7 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_Object
 bool
 FHoudiniEngineUtils::HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FTransform>& Transforms)
 {
-	return FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, 
+	return FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId,
 														  HoudiniGeoPartObject.PartId, Transforms);
 }
 
@@ -672,7 +672,7 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 		return false;
 	}
 
-	int ImageBufferSize = 0;
+	int32 ImageBufferSize = 0;
 	Result = FHoudiniApi::ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, Type.c_str(), &ImageBufferSize);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
@@ -696,7 +696,7 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName, 
+FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName,
 										 EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer)
 {
 	UTexture2D* Texture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Package, *TextureName, RF_Public);
@@ -775,7 +775,7 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if parameter is present.
-	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
+	int32 ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
 
 	if(-1 != ParmNameIdx)
 	{
@@ -792,9 +792,9 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::
 
 
 bool
-FHoudiniEngineUtils::HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int DefaultValue, int& OutValue)
+FHoudiniEngineUtils::HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int32 DefaultValue, int32& OutValue)
 {
-	int Value = DefaultValue;
+	int32 Value = DefaultValue;
 	bool bComputed = false;
 
 	HAPI_NodeInfo NodeInfo;
@@ -810,7 +810,7 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if parameter is present.
-	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
+	int32 ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
 
 	if(-1 != ParmNameIdx)
 	{
@@ -845,13 +845,13 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std:
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if parameter is present.
-	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
+	int32 ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName(ParmName, NodeParamNames);
 
 	if(-1 != ParmNameIdx)
 	{
 		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
 		HAPI_StringHandle StringHandle;
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmStringValues(NodeId, false, &StringHandle, ParmInfo.stringValuesIndex, 1) && 
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmStringValues(NodeId, false, &StringHandle, ParmInfo.stringValuesIndex, 1) &&
 		   FHoudiniEngineUtils::GetHoudiniString(StringHandle, Value))
 		{
 			bComputed = true;
@@ -931,7 +931,7 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 
 
 bool
-FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int InputIndex, UStaticMesh* StaticMesh, HAPI_AssetId& ConnectedAssetId)
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* StaticMesh, HAPI_AssetId& ConnectedAssetId)
 {
 	// If we don't have a static mesh, or host asset is invalid, there's nothing to do.
 	if(!StaticMesh || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
@@ -956,7 +956,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(AssetId, nullptr), false);
 	}
-	
+
 	// Grab base LOD level.
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
 
@@ -982,7 +982,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	// Create point attribute info.
 	HAPI_AttributeInfo AttributeInfoPoint;
 	AttributeInfoPoint.count = RawMesh.VertexPositions.Num();
-	AttributeInfoPoint.tupleSize = 3; 
+	AttributeInfoPoint.tupleSize = 3;
 	AttributeInfoPoint.exists = true;
 	AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
 	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
@@ -993,7 +993,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	// Extract vertices from static mesh.
 	TArray<float> StaticMeshVertices;
 	StaticMeshVertices.SetNumZeroed(RawMesh.VertexPositions.Num() * 3);
-	for(int VertexIdx = 0; VertexIdx < RawMesh.VertexPositions.Num(); ++VertexIdx)
+	for(int32 VertexIdx = 0; VertexIdx < RawMesh.VertexPositions.Num(); ++VertexIdx)
 	{
 		// Grab vertex at this index (we also need to swap Z and Y).
 		const FVector& PositionVector = RawMesh.VertexPositions[VertexIdx];
@@ -1003,7 +1003,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	}
 
 	// Now that we have raw positions, we can upload them for our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint, 
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION, &AttributeInfoPoint,
 														  StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
 
 	// See if we have texture coordinates to upload.
@@ -1048,13 +1048,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 			// Create attribute for UVs
 			HAPI_AttributeInfo AttributeInfoVertex;
 			AttributeInfoVertex.count = StaticMeshUVCount;
-			AttributeInfoVertex.tupleSize = 2; 
+			AttributeInfoVertex.tupleSize = 2;
 			AttributeInfoVertex.exists = true;
 			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex), false);
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex, 
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex,
 																  (float*) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count), false);
 		}
 	}
@@ -1068,13 +1068,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 		// Create attribute for normals.
 		HAPI_AttributeInfo AttributeInfoVertex;
 		AttributeInfoVertex.count = RawMesh.WedgeTangentZ.Num();
-		AttributeInfoVertex.tupleSize = 3; 
+		AttributeInfoVertex.tupleSize = 3;
 		AttributeInfoVertex.exists = true;
 		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL, &AttributeInfoVertex), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL, &AttributeInfoVertex, 
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL, &AttributeInfoVertex,
 														  (float*) RawMeshNormals, 0, AttributeInfoVertex.count), false);
 	}
 
@@ -1083,7 +1083,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 	{
 		TArray<int> StaticMeshIndices;
 		StaticMeshIndices.SetNumUninitialized(RawMesh.WedgeIndices.Num());
-		for(int IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
+		for(int32 IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
 		{
 			// Swap indices to fix winding order.
 			StaticMeshIndices[IndexIdx + 0] = (RawMesh.WedgeIndices[IndexIdx + 0]);
@@ -1149,7 +1149,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int Inp
 
 
 bool
-FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int InputIndex)
+FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex)
 {
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::DisconnectAssetGeometry(HostAssetId, InputIndex), false);
 	return true;
@@ -1177,7 +1177,7 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset,
 		}
 
 		FString BakeGUIDString = BakeGUID.ToString();
-		
+
 		if(ObjectIdx != -1)
 		{
 			MeshName = HoudiniAsset->GetName() + TEXT("_") + FString::FromInt(ObjectIdx) + TEXT("_") + BakeGUIDString;
@@ -1230,7 +1230,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	{
 		return StaticMesh;
 	}
-	
+
 	// Get platform manager LOD specific information.
 	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 	check(CurrentPlatform);
@@ -1290,7 +1290,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	RawMesh.WedgeTexCoords[0].AddZeroed(WedgeCount);
 
 	// Copy vertex positions.
-	for(int VertexIdx = 0; VertexIdx < VertexCount; VertexIdx += 3)
+	for(int32 VertexIdx = 0; VertexIdx < VertexCount; VertexIdx += 3)
 	{
 		FVector VertexPosition;
 		VertexPosition.X = FHoudiniLogo::Vertices[VertexIdx + 0] * ScaleFactor;
@@ -1300,7 +1300,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	}
 
 	// Copy indices.
-	for(int IndexIdx = 0; IndexIdx < WedgeCount; ++IndexIdx)
+	for(int32 IndexIdx = 0; IndexIdx < WedgeCount; ++IndexIdx)
 	{
 		RawMesh.WedgeIndices.Add(FHoudiniLogo::VertexIndices[IndexIdx] - 1);
 	}
@@ -1334,7 +1334,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 
 
 bool
-FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, 
+FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
 														const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 														TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut)
 {
@@ -1464,9 +1464,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Retrieve material information.
 				HAPI_MaterialInfo MaterialInfo;
 				bool bMaterialFound = false;
-				if((HAPI_RESULT_SUCCESS == FHoudiniApi::GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo)) && MaterialInfo.exists)
+				if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, &MaterialInfo))
 				{
-					bMaterialFound = true;
+					if(MaterialInfo.exists)
+					{
+						bMaterialFound = true;
+					}
 				}
 
 				// Retrieve part name.
@@ -1854,7 +1857,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 							// Attempt to load this material.
 							UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
-							
+
 							if(!MaterialInterface)
 							{
 								// Material does not exist, use default material.
@@ -1963,7 +1966,7 @@ FHoudiniEngineUtils::ContainsDegenerateTriangles(const FRawMesh& RawMesh)
 int32
 FHoudiniEngineUtils::CountDegenerateTriangles(const FRawMesh& RawMesh)
 {
-	int DegenerateTriangleCount = 0;
+	int32 DegenerateTriangleCount = 0;
 	int32 WedgeCount = RawMesh.WedgeIndices.Num();
 	for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; WedgeIdx += 3)
 	{
@@ -2133,7 +2136,7 @@ FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& M
 	Ar << RawMesh.WedgeTangentY;
 	Ar << RawMesh.WedgeTangentZ;
 
-	for(int TexCoordIdx = 0; TexCoordIdx < MAX_MESH_TEXTURE_COORDS; ++TexCoordIdx)
+	for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_MESH_TEXTURE_COORDS; ++TexCoordIdx)
 	{
 		Ar << RawMesh.WedgeTexCoords[TexCoordIdx];
 	}
@@ -2523,7 +2526,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
 	{
 		NewStaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
-					
+
 		for(int32 MaterialIndex = 0; MaterialIndex < NewStaticMesh->Materials.Num(); ++MaterialIndex)
 		{
 			FMeshSectionInfo Info = NewStaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
@@ -2566,7 +2569,7 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if texture is available.
-	int ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("ogl_tex1", NodeParamNames);
+	int32 ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName("ogl_tex1", NodeParamNames);
 
 	if(-1 == ParmNameIdx)
 	{
@@ -2834,4 +2837,3 @@ FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
 		RawMesh.WedgeTexCoords[Idx].Reset();
 	}
 }
-
