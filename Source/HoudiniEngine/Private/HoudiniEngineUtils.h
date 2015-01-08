@@ -56,7 +56,7 @@ public:
 	static bool DestroyHoudiniAsset(HAPI_AssetId AssetId);
 
 	/** Return specified string. **/
-	static bool GetHoudiniString(int Name, FString& NameString);
+	static bool GetHoudiniString(int32 Name, FString& NameString);
 
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
@@ -65,7 +65,7 @@ public:
 	static UStaticMesh* CreateStaticMeshHoudiniLogo();
 
 	/** Construct static meshes for a given Houdini asset. Flag controls whether one mesh or multiple meshes will be created. **/
-	static bool CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, 
+	static bool CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
 												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut);
 
@@ -102,13 +102,13 @@ public:
 	static bool HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId& NodeId);
 
 	/** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return new asset id. **/
-	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int InputIndex, UStaticMesh* Mesh, HAPI_AssetId& ConnectedAssetId);
+	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* Mesh, HAPI_AssetId& ConnectedAssetId);
 
 	/** HAPI : Marshaling, disconnect input asset from a given slot. **/
-	static bool HapiDisconnectAsset(HAPI_AssetId HostAssetId, int InputIndex);
+	static bool HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex);
 
 	/** HAPI : Marshaling, connect input asset to a given slot of host asset. **/
-	static bool HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int InputIndex);
+	static bool HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex);
 
 	/** HAPI : Return all group names for a given Geo. **/
 	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
@@ -119,20 +119,20 @@ public:
 								  TArray<FString>& GroupNames);
 
 	/** HAPI : Get string name for a given handle. **/
-	static bool HapiGetString(int Name, std::string& NameString);
+	static bool HapiGetString(int32 Name, std::string& NameString);
 
 	/** HAPI : Retrieve group membership. **/
 	static bool HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
-									   HAPI_GroupType GroupType, std::string GroupName, std::vector<int>& GroupMembership);
+									   HAPI_GroupType GroupType, std::string GroupName, std::vector<int32>& GroupMembership);
 
 	/** HAPI : Get group count by type. **/
-	static int HapiGetGroupCountByType(HAPI_GroupType GroupType, HAPI_GeoInfo& GeoInfo);
+	static int32 HapiGetGroupCountByType(HAPI_GroupType GroupType, HAPI_GeoInfo& GeoInfo);
 
 	/** HAPI : Get element count by group type. **/
-	static int HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HAPI_PartInfo& PartInfo);
+	static int32 HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HAPI_PartInfo& PartInfo);
 
 	/** HAPI : Return group membership count. **/
-	static int HapiCheckGroupMembership(const std::vector<int>& GroupMembership);
+	static int32 HapiCheckGroupMembership(const std::vector<int32>& GroupMembership);
 
 	/** HAPI : Check if given attribute exists. **/
 	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
@@ -142,29 +142,29 @@ public:
 	/** HAPI : Get attribute data as float. **/
 	static bool HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-											TArray<float>& Data, int TupleSize = 0);
+											TArray<float>& Data, int32 TupleSize = 0);
 	static bool HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-											HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int TupleSize = 0);
+											HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int32 TupleSize = 0);
 
 	/** HAPI : Get attribute data as integer. **/
 	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											  const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-											  TArray<int>& Data, int TupleSize = 0);
+											  TArray<int>& Data, int32 TupleSize = 0);
 	static bool HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-											  HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int TupleSize = 0);
+											  HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int32 TupleSize = 0);
 
 	/** HAPI : Get attribute data as string. **/
 	static bool HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-											TArray<FString>& Data, int TupleSize = 0);
+											TArray<FString>& Data, int32 TupleSize = 0);
 	static bool HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-											 HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int TupleSize = 0);
+											 HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int32 TupleSize = 0);
 
 	/** HAPI : Get parameter data as float. **/
 	static bool HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue, float& Value);
 
 	/** HAPI : Get parameter data as integer. **/
-	static bool HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int DefaultValue, int& Value);
+	static bool HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int32 DefaultValue, int32& Value);
 
 	/** HAPI : Get parameter data as string. **/
 	static bool HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName, const FString& DefaultValue, FString& Value);
@@ -173,7 +173,7 @@ public:
 	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names);
 
 	/** HAPI : Look for parameter by name and return its index. Return -1 if not found. **/
-	static int HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names);
+	static int32 HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names);
 
 	/** HAPI : Extract image data. **/
 	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type = "C A");

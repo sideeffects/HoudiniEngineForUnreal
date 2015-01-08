@@ -53,7 +53,7 @@ UHoudiniAssetParameterChoice::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 
 
 bool
-UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
+UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
 											  HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
@@ -117,7 +117,7 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	StringChoiceLabels.Empty();
 
 	bool bMatchedSelectionLabel = false;
-	for(int ChoiceIdx = 0; ChoiceIdx < ParmChoices.Num(); ++ChoiceIdx)
+	for(int32 ChoiceIdx = 0; ChoiceIdx < ParmChoices.Num(); ++ChoiceIdx)
 	{
 		FString* ChoiceValue = new FString();
 		FString* ChoiceLabel = new FString();
@@ -332,7 +332,7 @@ UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESel
 		MarkPreChanged();
 
 		CurrentValue = LabelIdx;
-	
+
 		// Mark this property as changed.
 		MarkChanged();
 	}
@@ -344,4 +344,3 @@ UHoudiniAssetParameterChoice::HandleChoiceContentText() const
 {
 	return StringValue;
 }
-

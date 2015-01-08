@@ -136,7 +136,7 @@ FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) co
 uint32
 FHoudiniGeoPartObject::GetTypeHash() const
 {
-	int HashBuffer[3] = { ObjectId, GeoId, PartId };
+	int32 HashBuffer[3] = { ObjectId, GeoId, PartId };
 	return FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
 }
 

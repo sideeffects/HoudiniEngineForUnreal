@@ -177,7 +177,7 @@ public:
 	bool LocateStaticMeshes(const FString& ObjectName, TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
 
 	/** Locate static mesh by geo part object id. **/
-	bool LocateStaticMeshes(int ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
+	bool LocateStaticMeshes(int32 ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
 
 	/** Locate static mesh for a given geo part. **/
 	UStaticMesh* LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const;
@@ -399,4 +399,3 @@ protected:
 	/** Is set to true when undo is being performed. **/
 	bool bUndoRequested;
 };
-

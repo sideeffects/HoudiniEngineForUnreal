@@ -312,7 +312,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			SNew(SButton)
 			.ToolTipText(LOCTEXT("ResetToBase", "Reset to default static mesh"))
 			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-			.ContentPadding(0) 
+			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnResetStaticMeshClicked))
 			[
@@ -666,7 +666,7 @@ UHoudiniAssetInput::OnGetStaticMeshMenuContent()
 
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(InputObject), true, AllowedClasses, NewAssetFactories,
 		OnShouldFilterStaticMesh,
-		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected), 
+		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected),
 		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::CloseStaticMeshComboButton));
 }
 
@@ -778,7 +778,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 	FString CurvePointsString;
 	EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
 	EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
-	int CurveClosed = 1;
+	int32 CurveClosed = 1;
 
 	HAPI_NodeId NodeId = -1;
 	if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
@@ -842,7 +842,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 		}
 
 		// Create properties for parameters.
-		for(int ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
+		for(int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
 		{
 			// Retrieve param info at this index.
 			const HAPI_ParmInfo& ParmInfo = ParmInfos[ParamIdx];
@@ -1013,4 +1013,3 @@ UHoudiniAssetInput::HandleChoiceContentText() const
 {
 	return ChoiceStringValue;
 }
-
