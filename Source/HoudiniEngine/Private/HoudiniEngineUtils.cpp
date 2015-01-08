@@ -1750,56 +1750,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 				}
 
-				// Transfer indices.
-				RawMesh.WedgeIndices.SetNumZeroed(VertexList.Num());
-				for(int32 VertexIdx = 0; VertexIdx < VertexList.Num(); VertexIdx += 3)
-				{
-					int32 WedgeIndices[3] = { VertexList[VertexIdx + 0], VertexList[VertexIdx + 1], VertexList[VertexIdx + 2] };
-
-					// Flip wedge indices to fix winding order.
-					RawMesh.WedgeIndices[VertexIdx + 0] = WedgeIndices[0];
-					RawMesh.WedgeIndices[VertexIdx + 1] = WedgeIndices[2];
-					RawMesh.WedgeIndices[VertexIdx + 2] = WedgeIndices[1];
-
-					// Check if we need to patch UVs.
-					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-					{
-						if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
-						{
-							Swap(RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1], RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2]);
-						}
-					}
-
-					// Check if we need to patch colors.
-					if(RawMesh.WedgeColors.Num() > 0)
-					{
-						Swap(RawMesh.WedgeColors[VertexIdx + 1], RawMesh.WedgeColors[VertexIdx + 2]);
-					}
-				}
-
-				// Transfer vertex positions.
-				int32 VertexPositionsCount = Positions.Num() / 3;
-				RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
-				for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
-				{
-					FVector VertexPosition;
-					VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * FHoudiniEngineUtils::ScaleFactorPosition;
-					VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
-					VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
-
-					// We need to flip Z and Y coordinate here.
-					Swap(VertexPosition.Y, VertexPosition.Z);
-					RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
-				}
-
-				// We need to check if this mesh contains only degenerate triangles.
-				if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
-				{
-					// This mesh contains only degenerate triangles, there's nothing we can do.
-					StaticMesh->MarkPendingKill();
-					continue;
-				}
-
 				// See if we need to generate tangents, we do this only if normals are present.
 				bool bGenerateTangents = (Normals.Num() > 0);
 
@@ -1827,6 +1777,73 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						RawMesh.WedgeTangentX.Add(TangentX);
 						RawMesh.WedgeTangentY.Add(TangentY);
 					}
+				}
+
+				// Transfer indices.
+				RawMesh.WedgeIndices.SetNumZeroed(VertexList.Num());
+				for(int32 VertexIdx = 0; VertexIdx < VertexList.Num(); VertexIdx += 3)
+				{
+					int32 WedgeIndices[3] = { VertexList[VertexIdx + 0], VertexList[VertexIdx + 1], VertexList[VertexIdx + 2] };
+
+					// Flip wedge indices to fix winding order.
+					RawMesh.WedgeIndices[VertexIdx + 0] = WedgeIndices[0];
+					RawMesh.WedgeIndices[VertexIdx + 1] = WedgeIndices[2];
+					RawMesh.WedgeIndices[VertexIdx + 2] = WedgeIndices[1];
+
+					// Check if we need to patch UVs.
+					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+					{
+						if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
+						{
+							Swap(RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1], RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2]);
+						}
+					}
+
+					// Check if we need to patch colors.
+					if(RawMesh.WedgeColors.Num() > 0)
+					{
+						Swap(RawMesh.WedgeColors[VertexIdx + 1], RawMesh.WedgeColors[VertexIdx + 2]);
+					}
+
+					// Check if we need to patch tangents.
+					if(RawMesh.WedgeTangentZ.Num() > 0)
+					{
+						Swap(RawMesh.WedgeTangentZ[VertexIdx + 1], RawMesh.WedgeTangentZ[VertexIdx + 2]);
+					}
+
+					if(RawMesh.WedgeTangentX.Num() > 0)
+					{
+						Swap(RawMesh.WedgeTangentX[VertexIdx + 1], RawMesh.WedgeTangentX[VertexIdx + 2]);
+					}
+
+					if(RawMesh.WedgeTangentY.Num() > 0)
+					{
+						Swap(RawMesh.WedgeTangentY[VertexIdx + 1], RawMesh.WedgeTangentY[VertexIdx + 2]);
+					}
+
+				}
+
+				// Transfer vertex positions.
+				int32 VertexPositionsCount = Positions.Num() / 3;
+				RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
+				for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
+				{
+					FVector VertexPosition;
+					VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * FHoudiniEngineUtils::ScaleFactorPosition;
+					VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
+					VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
+
+					// We need to flip Z and Y coordinate here.
+					Swap(VertexPosition.Y, VertexPosition.Z);
+					RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
+				}
+
+				// We need to check if this mesh contains only degenerate triangles.
+				if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
+				{
+					// This mesh contains only degenerate triangles, there's nothing we can do.
+					StaticMesh->MarkPendingKill();
+					continue;
 				}
 
 				// Set face specific information and materials.
