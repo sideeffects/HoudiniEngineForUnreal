@@ -149,9 +149,9 @@ public:
 	/** HAPI : Get attribute data as integer. **/
 	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
 											  const char* Name, HAPI_AttributeInfo& ResultAttributeInfo,
-											  TArray<int>& Data, int32 TupleSize = 0);
+											  TArray<int32>& Data, int32 TupleSize = 0);
 	static bool HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-											  HAPI_AttributeInfo& ResultAttributeInfo, TArray<int>& Data, int32 TupleSize = 0);
+											  HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data, int32 TupleSize = 0);
 
 	/** HAPI : Get attribute data as string. **/
 	static bool HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
