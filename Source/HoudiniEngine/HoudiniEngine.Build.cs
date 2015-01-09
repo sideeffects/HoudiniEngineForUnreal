@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 13.0.651
+    Houdini Version: 13.0.652
     Houdini Engine Version: 1.8.20
     Unreal Version: 4.6.0
 
@@ -29,7 +29,7 @@ namespace UnrealBuildTool.Rules
 		public HoudiniEngine(TargetInfo Target)
 		{
 			string HFSPath = "";
-			string HoudiniVersion = "13.0.651";
+			string HoudiniVersion = "13.0.652";
 			string HoudiniEngineVersion = "1.8.20";
 
 			string HAPILib = "";
