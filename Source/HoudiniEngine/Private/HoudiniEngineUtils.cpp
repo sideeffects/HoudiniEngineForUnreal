@@ -1055,7 +1055,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex), false);
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex,
-																		  (float*) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count), false);
+																		  (const float*) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count), false);
 		}
 	}
 
@@ -1074,9 +1074,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			ChangedNormals[WedgeIdx + 2] = TangentZ1;
 		}
 
-		// Get raw normal data.
-		FVector* RawMeshNormals = ChangedNormals.GetData();
-
 		// Create attribute for normals.
 		HAPI_AttributeInfo AttributeInfoVertex;
 		AttributeInfoVertex.count = ChangedNormals.Num();
@@ -1087,7 +1084,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL, &AttributeInfoVertex), false);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL, &AttributeInfoVertex,
-																	  (float*) RawMeshNormals, 0, AttributeInfoVertex.count), false);
+																	  (const float*) ChangedNormals.GetData(), 0, AttributeInfoVertex.count), false);
 	}
 
 	// See if we have colors to upload.
@@ -1104,9 +1101,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			ChangedColors[WedgeIdx + 2] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 1]);
 		}
 
-		// Get raw color data.
-		FLinearColor* RawColors = ChangedColors.GetData();
-
 		// Create attribute for colors.
 		HAPI_AttributeInfo AttributeInfoVertex;
 		AttributeInfoVertex.count = ChangedColors.Num();
@@ -1117,7 +1111,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_COLOR, &AttributeInfoVertex), false);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_COLOR, &AttributeInfoVertex,
-																	  (float*) RawColors, 0, AttributeInfoVertex.count), false);
+																	  (const float*) ChangedColors.GetData(), 0, AttributeInfoVertex.count), false);
 	}
 
 	// Extract indices from static mesh.
@@ -1177,7 +1171,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks,
-																	(int32*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
+																	(const int32*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
 	}
 
 	// Commit the geo.
@@ -1787,8 +1781,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 							WedgeColor.A = 1.0f;
 						}
 
-						// Convert linear color to fixed color (no sRGB conversion).
-						//RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
+						// Convert linear color to fixed color.
 						RawMesh.WedgeColors[WedgeColorIdx] = FColor(WedgeColor);
 					}
 				}
@@ -2059,7 +2052,7 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32
 		TArray<float> VertexData;
 		VertexData.SetNumZeroed(WedgeCount * AttribInfo.tupleSize);
 
-		if(HAPI_ATTROWNER_POINT == AttribInfo.owner || HAPI_ATTROWNER_PRIM == AttribInfo.owner)
+		if(HAPI_ATTROWNER_POINT == AttribInfo.owner || HAPI_ATTROWNER_PRIM == AttribInfo.owner || HAPI_ATTROWNER_DETAIL == AttribInfo.owner)
 		{
 			for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
 			{
@@ -2070,13 +2063,30 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32
 				{
 					float Value = 0.0f;
 
-					if(HAPI_ATTROWNER_POINT == AttribInfo.owner)
+					switch(AttribInfo.owner)
 					{
-						Value = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
-					}
-					else if(HAPI_ATTROWNER_PRIM == AttribInfo.owner)
-					{
-						Value = Data[PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx];
+						case HAPI_ATTROWNER_POINT:
+						{
+							Value = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
+							break;
+						}
+
+						case HAPI_ATTROWNER_PRIM:
+						{
+							Value = Data[PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx];
+							break;
+						}
+
+						case HAPI_ATTROWNER_DETAIL:
+						{
+							Value = Data[AttributeIndexIdx];
+							break;
+						}
+
+						default:
+						{
+							break;
+						}
 					}
 
 					VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Value;
