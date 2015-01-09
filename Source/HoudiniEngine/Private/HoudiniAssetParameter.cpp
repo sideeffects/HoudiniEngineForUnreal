@@ -28,7 +28,6 @@ GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter)
 }
 
 
-
 UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	HoudiniAssetComponent(nullptr),

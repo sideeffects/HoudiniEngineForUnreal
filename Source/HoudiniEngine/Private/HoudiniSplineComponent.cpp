@@ -73,7 +73,6 @@ UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPart
 	CurveMethod = InCurveMethod;
 	bClosedCurve = bInClosedCurve;
 
-	// Perform other construction here.
 	return true;
 }
 

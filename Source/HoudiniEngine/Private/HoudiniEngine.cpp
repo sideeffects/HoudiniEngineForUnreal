@@ -210,7 +210,7 @@ FHoudiniEngine::StartupModule()
 	HoudiniLogoStaticMesh = FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo();
 	HoudiniLogoStaticMesh->AddToRoot();
 
-	// Extend main menu, we will add Houdini section to 'Window' menu tab.
+	// Extend main menu, we will add Houdini section.
 	{
 		MainMenuExtender = MakeShareable(new FExtender);
 		MainMenuExtender->AddMenuExtension("FileLoadAndSave", EExtensionHook::After, NULL, FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngine::AddHoudiniMenuExtension));

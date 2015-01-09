@@ -665,9 +665,9 @@ UHoudiniAssetInput::OnGetStaticMeshMenuContent()
 	TArray<UFactory*> NewAssetFactories;
 
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(InputObject), true, AllowedClasses, NewAssetFactories,
-		OnShouldFilterStaticMesh,
-		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected),
-		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::CloseStaticMeshComboButton));
+																 OnShouldFilterStaticMesh,
+																 FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected),
+																 FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::CloseStaticMeshComboButton));
 }
 
 
