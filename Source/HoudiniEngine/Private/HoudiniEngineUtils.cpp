@@ -1060,11 +1060,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 
 	// See if we have normals to upload.
-	if(RawMesh.WedgeTangentZ.Num())
+	if(RawMesh.WedgeTangentZ.Num() > 0)
 	{
 		TArray<FVector> ChangedNormals(RawMesh.WedgeTangentZ);
 
-		// We need to re-index UVs for wedges we swapped (due to winding differences).
+		// We need to re-index normals for wedges we swapped (due to winding differences).
 		for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
 		{
 			FVector TangentZ1 = ChangedNormals[WedgeIdx + 1];
@@ -1090,8 +1090,38 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 																	  (float*) RawMeshNormals, 0, AttributeInfoVertex.count), false);
 	}
 
+	// See if we have colors to upload.
+	if(RawMesh.WedgeColors.Num() > 0)
+	{
+		TArray<FLinearColor> ChangedColors;
+		ChangedColors.SetNumUninitialized(RawMesh.WedgeColors.Num());
+
+		// We need to re-index colors for wedges we swapped (due to winding differences).
+		for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+		{
+			ChangedColors[WedgeIdx + 0] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 0]);
+			ChangedColors[WedgeIdx + 1] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 2]);
+			ChangedColors[WedgeIdx + 2] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 1]);
+		}
+
+		// Get raw color data.
+		FLinearColor* RawColors = ChangedColors.GetData();
+
+		// Create attribute for colors.
+		HAPI_AttributeInfo AttributeInfoVertex;
+		AttributeInfoVertex.count = ChangedColors.Num();
+		AttributeInfoVertex.tupleSize = 4;
+		AttributeInfoVertex.exists = true;
+		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_ATTRIB_COLOR, &AttributeInfoVertex), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(ConnectedAssetId, 0, 0, HAPI_ATTRIB_COLOR, &AttributeInfoVertex,
+																	  (float*) RawColors, 0, AttributeInfoVertex.count), false);
+	}
+
 	// Extract indices from static mesh.
-	if(RawMesh.WedgeIndices.Num())
+	if(RawMesh.WedgeIndices.Num() > 0)
 	{
 		TArray<int32> StaticMeshIndices;
 		StaticMeshIndices.SetNumUninitialized(RawMesh.WedgeIndices.Num());
@@ -1113,7 +1143,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 
 	// Marshall face material indices.
-	if(RawMesh.FaceMaterialIndices.Num())
+	if(RawMesh.FaceMaterialIndices.Num() > 0)
 	{
 		// Create list of materials, one for each face.
 		TArray<char*> StaticMeshFaceMaterials;
@@ -1136,7 +1166,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 
 	// Marshall face smoothing masks.
-	if(RawMesh.FaceSmoothingMasks.Num())
+	if(RawMesh.FaceSmoothingMasks.Num() > 0)
 	{
 		HAPI_AttributeInfo AttributeInfoSmoothingMasks;
 		AttributeInfoSmoothingMasks.count = RawMesh.FaceSmoothingMasks.Num();
@@ -1758,7 +1788,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						}
 
 						// Convert linear color to fixed color (no sRGB conversion).
-						RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
+						//RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
+						RawMesh.WedgeColors[WedgeColorIdx] = FColor(WedgeColor);
 					}
 				}
 
