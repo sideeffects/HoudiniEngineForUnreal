@@ -17,13 +17,13 @@
 
 
 const uint32
-FHoudiniEngineScheduler::InitialTaskSize = 256;
+FHoudiniEngineScheduler::InitialTaskSize = 256u;
 
 
 FHoudiniEngineScheduler::FHoudiniEngineScheduler() :
 	Tasks(nullptr),
-	PositionWrite(0),
-	PositionRead(0),
+	PositionWrite(0u),
+	PositionRead(0u),
 	bStopping(false)
 {
 	//  Make sure size is power of two.
@@ -95,7 +95,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	UHoudiniAsset* HoudiniAsset = Task.Asset.Get();
 	HAPI_AssetLibraryId AssetLibraryId = 0;
 	int32 AssetCount = 0;
-	std::vector<int32> AssetNames;
+	TArray<int32> AssetNames;
 	std::string AssetNameString;
 	double LastUpdateTime;
 
@@ -104,7 +104,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAvailableAssetCount(AssetLibraryId, &AssetCount), void());
 	
-	AssetNames.resize(AssetCount);
+	AssetNames.SetNumUninitialized(AssetCount);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount), void());
 
 	// If we have assets, instantiate first one.

@@ -27,6 +27,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
+	CollidableName(TEXT("Empty")),
 	AssetId(-1),
 	ObjectId(-1),
 	GeoId(-1),
@@ -36,6 +37,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsCurve(false),
 	bIsEditable(false),
 	bHasGeoChanged(false),
+	bIsCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -46,6 +48,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
+	CollidableName(TEXT("Empty")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
@@ -55,6 +58,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsCurve(),
 	bIsEditable(false),
 	bHasGeoChanged(false),
+	bIsCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -62,20 +66,21 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName,
-											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
-											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve, bool bInIsEditable, bool bInHasGeoChanged) :
+											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
+	CollidableName(TEXT("Empty")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
-	bIsVisible(bInIsVisible),
-	bIsInstancer(bInIsInstancer),
-	bIsCurve(bInIsCurve),
-	bIsEditable(bInIsEditable),
-	bHasGeoChanged(bInHasGeoChanged),
+	bIsVisible(true),
+	bIsInstancer(false),
+	bIsCurve(false),
+	bIsEditable(false),
+	bHasGeoChanged(false),
+	bIsCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -125,6 +130,13 @@ FHoudiniGeoPartObject::HasGeoChanged() const
 
 
 bool
+FHoudiniGeoPartObject::IsCollidable() const
+{
+	return bIsCollidable;
+}
+
+
+bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
 	return (ObjectId == GeoPartObject.ObjectId &&
@@ -147,6 +159,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << TransformMatrix;
 	Ar << ObjectName;
 	Ar << PartName;
+	Ar << CollidableName;
 
 	Ar << AssetId;
 	Ar << ObjectId;
@@ -157,6 +170,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << bIsInstancer;
 	Ar << bIsCurve;
 	Ar << bIsEditable;
+	Ar << bIsCollidable;
 
 	if(Ar.IsLoading())
 	{

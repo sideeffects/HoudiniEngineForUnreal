@@ -28,8 +28,7 @@ public:
 	FHoudiniGeoPartObject();
 	FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 	FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName, HAPI_AssetId InAssetId,
-						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId, bool bInIsVisible = true,
-						  bool bInIsInstancer = false, bool bInIsCurve = false, bool bInIsEditable = false, bool bInHasGeoChanged = false);
+						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
 public:
 
@@ -63,6 +62,9 @@ public:
 	/** Return true if this geo part object is editable. **/
 	bool IsEditable() const;
 
+	/** Return true if this geo part is used for collision. **/
+	bool IsCollidable() const;
+
 	/** Return true if corresponding geometry has changed. **/
 	bool HasGeoChanged() const;
 
@@ -86,6 +88,9 @@ public:
 
 	/** Name of associated part. **/
 	FString PartName;
+
+	/** Name of collidable group, empty if there's none. **/
+	FString CollidableName;
 
 	/** Id of corresponding HAPI Asset. **/
 	HAPI_AssetId AssetId;
@@ -113,6 +118,9 @@ public:
 
 	/** Is set to true when geometry has changed. **/
 	bool bHasGeoChanged;
+
+	/** Is set to true when referenced object is collidable. **/
+	bool bIsCollidable;
 
 	/** Is set to true when referenced object has just been loaded. **/
 	bool bIsLoaded;

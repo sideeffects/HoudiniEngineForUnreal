@@ -1460,8 +1460,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 			if(HAPI_GEOTYPE_CURVE == GeoInfo.type)
 			{
 				// If this geo is a curve, we skip part processing.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, ObjectName, AssetId, ObjectInfo.id, GeoInfo.id, 0,
-														   ObjectInfo.isVisible, false, true, GeoInfo.isEditable, GeoInfo.hasGeoChanged);
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, ObjectName, AssetId, ObjectInfo.id, GeoInfo.id, 0);
+				HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
+				HoudiniGeoPartObject.bIsInstancer = false;
+				HoudiniGeoPartObject.bIsCurve = true;
+				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
+				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
 
 				StaticMesh = nullptr;
 				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
@@ -1476,6 +1480,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 			}
 
 			bool bGeoError = false;
+
+			// Get object / geo group memberships for primitives.
+			TArray<FString> ObjectGeoGroupNames;
+			FHoudiniEngineUtils::HapiGetGroupNames(AssetId, ObjectInfo.id, GeoIdx, HAPI_GROUPTYPE_PRIM, ObjectGeoGroupNames);
 
 			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
 			{
@@ -1512,13 +1520,17 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
 
 				// Get collision membership information for primitives of this part.
-				TArray<int32> PartCollisionGroupMembership;
-				FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM,
-															TEXT(HAPI_UNREAL_ATTRIB_COLLISION), PartCollisionGroupMembership);
+				//TArray<int32> PartCollisionGroupMembership;
+				//FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM,
+				//											TEXT(HAPI_UNREAL_ATTRIB_COLLISION), PartCollisionGroupMembership);
 
 				// Create geo part object identifier.
-				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-														   ObjectInfo.isVisible, ObjectInfo.isInstancer, PartInfo.isCurve, GeoInfo.isEditable, GeoInfo.hasGeoChanged);
+				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id);
+				HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
+				HoudiniGeoPartObject.bIsInstancer = ObjectInfo.isInstancer;
+				HoudiniGeoPartObject.bIsCurve = PartInfo.isCurve;
+				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
+				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
