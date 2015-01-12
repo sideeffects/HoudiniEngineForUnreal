@@ -201,7 +201,7 @@ FHoudiniEngineUtils::GetHoudiniString(int32 Name, FString& NameString)
 {
 	std::string NamePlain;
 
-	if(FHoudiniEngineUtils::HapiGetString(Name, NamePlain))
+	if(FHoudiniEngineUtils::GetHoudiniString(Name, NamePlain))
 	{
 		NameString = UTF8_TO_TCHAR(NamePlain.c_str());
 		return true;
@@ -212,17 +212,7 @@ FHoudiniEngineUtils::GetHoudiniString(int32 Name, FString& NameString)
 
 
 bool
-FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString)
-{
-	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
-
-	return(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.nameSH, NameString));
-}
-
-
-bool
-FHoudiniEngineUtils::HapiGetString(int32 Name, std::string& NameString)
+FHoudiniEngineUtils::GetHoudiniString(int32 Name, std::string& NameString)
 {
 	if(Name < 0)
 	{
@@ -243,6 +233,16 @@ FHoudiniEngineUtils::HapiGetString(int32 Name, std::string& NameString)
 	}
 
 	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString)
+{
+	HAPI_AssetInfo AssetInfo;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
+
+	return(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.nameSH, NameString));
 }
 
 
@@ -298,7 +298,7 @@ FHoudiniEngineUtils::HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HA
 
 bool
 FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
-									   std::vector<std::string>& GroupNames)
+									   TArray<FString>& GroupNames)
 {
 	HAPI_GeoInfo GeoInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(AssetId, ObjectId, GeoId, &GeoInfo), false);
@@ -310,11 +310,9 @@ FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId Objec
 
 	for(int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
 	{
-		std::string GroupName;
-		if(FHoudiniEngineUtils::HapiGetString(GroupNameHandles[NameIdx], GroupName))
-		{
-			GroupNames.push_back(GroupName);
-		}
+		FString GroupName;
+		FHoudiniEngineUtils::GetHoudiniString(GroupNameHandles[NameIdx], GroupName);
+		GroupNames.Add(GroupName);
 	}
 
 	return true;
@@ -323,26 +321,27 @@ FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId Objec
 
 bool
 FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
-											HAPI_GroupType GroupType, std::string GroupName, std::vector<int32>& GroupMembership)
+											HAPI_GroupType GroupType, const FString& GroupName, TArray<int32>& GroupMembership)
 {
 	HAPI_PartInfo PartInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(AssetId, ObjectId, GeoId, PartId, &PartInfo), false);
 
 	int32 ElementCount = FHoudiniEngineUtils::HapiGetElementCountByGroupType(GroupType, PartInfo);
+	std::string ConvertedGroupName = TCHAR_TO_UTF8(*GroupName);
 
-	GroupMembership.resize(ElementCount);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(AssetId, ObjectId, GeoId, PartId, GroupType, GroupName.c_str(),
-													   &GroupMembership[0], 0, ElementCount), false);
+	GroupMembership.SetNumUninitialized(ElementCount);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(AssetId, ObjectId, GeoId, PartId, GroupType, ConvertedGroupName.c_str(),
+							   &GroupMembership[0], 0, ElementCount), false);
 
 	return true;
 }
 
 
-int
-FHoudiniEngineUtils::HapiCheckGroupMembership(const std::vector<int32>& GroupMembership)
+int32
+FHoudiniEngineUtils::HapiCheckGroupMembership(const TArray<int32>& GroupMembership)
 {
 	int32 GroupMembershipCount = 0;
-	for(int32 Idx = 0; Idx < GroupMembership.size(); ++Idx)
+	for(int32 Idx = 0; Idx < GroupMembership.Num(); ++Idx)
 	{
 		if(GroupMembership[Idx] > 0)
 		{
@@ -647,7 +646,7 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(const FHoudiniGeoPartObject& Houd
 
 
 bool
-FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type)
+FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<char>& ImageBuffer, const char* Type)
 {
 	HAPI_Result Result = FHoudiniApi::RenderTextureToImage(MaterialInfo.assetId, MaterialInfo.id, NodeParmId);
 	if(HAPI_RESULT_SUCCESS != Result)
@@ -673,7 +672,7 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 	}
 
 	int32 ImageBufferSize = 0;
-	Result = FHoudiniApi::ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, Type.c_str(), &ImageBufferSize);
+	Result = FHoudiniApi::ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, Type, &ImageBufferSize);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		return false;
@@ -684,7 +683,7 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 		return false;
 	}
 
-	ImageBuffer.resize(ImageBufferSize);
+	ImageBuffer.SetNumUninitialized(ImageBufferSize);
 	Result = FHoudiniApi::GetImageMemoryBuffer(MaterialInfo.assetId, MaterialInfo.id, &ImageBuffer[0], ImageBufferSize);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
@@ -697,7 +696,7 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 
 UTexture2D*
 FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName,
-										 EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer)
+										 EPixelFormat PixelFormat, const TArray<char>& ImageBuffer)
 {
 	UTexture2D* Texture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Package, *TextureName, RF_Public);
 	Texture->PlatformData = new FTexturePlatformData();
@@ -1511,6 +1510,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Retrieve part name.
 				FString PartName;
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
+
+				// Get collision membership information for primitives of this part.
+				TArray<int32> PartCollisionGroupMembership;
+				FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM,
+															TEXT(HAPI_UNREAL_ATTRIB_COLLISION), PartCollisionGroupMembership);
 
 				// Create geo part object identifier.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
@@ -2666,10 +2670,10 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 
 	if(ParmNameIdx >= 0)
 	{
-		std::vector<char> ImageBuffer;
+		TArray<char> ImageBuffer;
 
 		// Retrieve color data.
-		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameIdx].id, MaterialInfo, ImageBuffer, "C A"))
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameIdx].id, MaterialInfo, ImageBuffer, HAPI_UNREAL_MATERIAL_TEXTURE_MAIN))
 		{
 			HAPI_ImageInfo ImageInfo;
 			Result = FHoudiniApi::GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);

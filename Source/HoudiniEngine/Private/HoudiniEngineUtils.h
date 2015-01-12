@@ -58,6 +58,9 @@ public:
 	/** Return specified string. **/
 	static bool GetHoudiniString(int32 Name, FString& NameString);
 
+	/** HAPI : Get string name for a given handle. **/
+	static bool GetHoudiniString(int32 Name, std::string& NameString);
+
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
@@ -112,18 +115,11 @@ public:
 
 	/** HAPI : Return all group names for a given Geo. **/
 	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
-								  std::vector<std::string>& GroupNames);
-
-	/** HAPI : Return all group names for a given Geo. **/
-	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
 								  TArray<FString>& GroupNames);
-
-	/** HAPI : Get string name for a given handle. **/
-	static bool HapiGetString(int32 Name, std::string& NameString);
 
 	/** HAPI : Retrieve group membership. **/
 	static bool HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
-									   HAPI_GroupType GroupType, std::string GroupName, std::vector<int32>& GroupMembership);
+									   HAPI_GroupType GroupType, const FString& GroupName, TArray<int32>& GroupMembership);
 
 	/** HAPI : Get group count by type. **/
 	static int32 HapiGetGroupCountByType(HAPI_GroupType GroupType, HAPI_GeoInfo& GeoInfo);
@@ -132,7 +128,7 @@ public:
 	static int32 HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HAPI_PartInfo& PartInfo);
 
 	/** HAPI : Return group membership count. **/
-	static int32 HapiCheckGroupMembership(const std::vector<int32>& GroupMembership);
+	static int32 HapiCheckGroupMembership(const TArray<int32>& GroupMembership);
 
 	/** HAPI : Check if given attribute exists. **/
 	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
@@ -176,7 +172,7 @@ public:
 	static int32 HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names);
 
 	/** HAPI : Extract image data. **/
-	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, std::vector<char>& ImageBuffer, const std::string Type = "C A");
+	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<char>& ImageBuffer, const char* Type = HAPI_UNREAL_MATERIAL_TEXTURE_MAIN);
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
@@ -223,7 +219,7 @@ protected:
 
 	/** Create a texture from given information. **/
 	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName,
-										   EPixelFormat PixelFormat, const std::vector<char>& ImageBuffer);
+										   EPixelFormat PixelFormat, const TArray<char>& ImageBuffer);
 
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
