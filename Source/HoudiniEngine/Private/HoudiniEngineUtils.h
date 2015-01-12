@@ -76,13 +76,15 @@ public:
 	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Package, FArchive& Ar);
 
 	/** Load raw mesh from archive and create static mesh from it. **/
-	static UStaticMesh* LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, int32 MeshCounter, FArchive& Ar);
+	static UStaticMesh* LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+										  UPackage* Package, FArchive& Ar);
 
 	/** Bake static mesh. **/
-	static UStaticMesh* BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UStaticMesh* StaticMesh, int32 MeshCounter);
+	static UStaticMesh* BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+									   UStaticMesh* StaticMesh);
 
 	/** Bake single static mesh - this will combine individual objects into one, baking in transformations. **/
-	static UStaticMesh* BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents);
+	//static UStaticMesh* BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents);
 
 	/** Extract position information from coords string. **/
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
@@ -172,7 +174,8 @@ public:
 	static int32 HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names);
 
 	/** HAPI : Extract image data. **/
-	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<char>& ImageBuffer, const char* Type = HAPI_UNREAL_MATERIAL_TEXTURE_MAIN);
+	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<char>& ImageBuffer,
+								 const char* Type = HAPI_UNREAL_MATERIAL_TEXTURE_MAIN);
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
@@ -188,7 +191,8 @@ public:
 protected:
 
 	/** Create a package for static mesh. **/
-	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx = -1);
+	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, 
+													FString& MeshName, FGuid& BakeGUID);
 
 	/** Helper routine to serialize FRawMesh. **/
 	static void Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, UPackage* Package, FArchive& Ar);

@@ -1440,7 +1440,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					UStaticMesh* LoadedStaticMesh = nullptr;
 					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
 					{
-						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(this, nullptr, StaticMeshIdx, Ar);
+						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(this, HoudiniGeoPartObject, nullptr, Ar);
 
 						// See if we already have a static mesh for this geo part object.
 						UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
