@@ -32,6 +32,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
+	SplitId(0),
 	bIsVisible(true),
 	bIsInstancer(false),
 	bIsCurve(false),
@@ -53,6 +54,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
+	SplitId(0),
 	bIsVisible(true),
 	bIsInstancer(false),
 	bIsCurve(),
@@ -75,6 +77,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
+	SplitId(0),
 	bIsVisible(true),
 	bIsInstancer(false),
 	bIsCurve(false),
@@ -141,14 +144,15 @@ FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) co
 {
 	return (ObjectId == GeoPartObject.ObjectId &&
 			GeoId == GeoPartObject.GeoId &&
-			PartId == GeoPartObject.PartId);
+			PartId == GeoPartObject.PartId &&
+			SplitId == GeoPartObject.SplitId);
 }
 
 
 uint32
 FHoudiniGeoPartObject::GetTypeHash() const
 {
-	int32 HashBuffer[3] = { ObjectId, GeoId, PartId };
+	int32 HashBuffer[4] = { ObjectId, GeoId, PartId, SplitId };
 	return FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
 }
 
@@ -165,6 +169,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << ObjectId;
 	Ar << GeoId;
 	Ar << PartId;
+	Ar << SplitId;
 
 	Ar << bIsVisible;
 	Ar << bIsInstancer;
