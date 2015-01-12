@@ -601,9 +601,12 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudin
 		// Bake static mesh.
 		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMesh);
 
-		// Notify asset registry that we have created assets. This should update the content browser.
-		FAssetRegistryModule::AssetCreated(OutStaticMesh);
-		//OutStaticMesh->MakePackageDirty();
+		if(OutStaticMesh)
+		{
+			// Notify asset registry that we have created assets. This should update the content browser.
+			FAssetRegistryModule::AssetCreated(OutStaticMesh);
+			//OutStaticMesh->MakePackageDirty();
+		}
 	}
 
 	return FReply::Handled();
@@ -624,8 +627,12 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
 
 			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMesh);
 
-			// Notify asset registry that we have created assets. This should update the content browser.
-			FAssetRegistryModule::AssetCreated(OutStaticMesh);
+			if(OutStaticMesh)
+			{
+				// Notify asset registry that we have created assets. This should update the content browser.
+				FAssetRegistryModule::AssetCreated(OutStaticMesh);
+				//OutStaticMesh->MakePackageDirty();
+			}
 		}
 	}
 

@@ -2177,8 +2177,6 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	FRawMesh RawMesh;
 	FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Package, Ar);
 
-	RawMeshBulkData->SaveRawMesh(RawMesh);
-
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
@@ -2326,6 +2324,12 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	check(HoudiniAsset);
 
+	// We cannot bake curves.
+	if(HoudiniGeoPartObject.IsCurve())
+	{
+		return nullptr;
+	}
+
 	// Get platform manager LOD specific information.
 	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 	check(CurrentPlatform);
@@ -2356,8 +2360,6 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	FStaticMeshSourceModel* InSrcModel = &InStaticMesh->SourceModels[0];
 	FRawMeshBulkData* InRawMeshBulkData = InSrcModel->RawMeshBulkData;
 	InRawMeshBulkData->LoadRawMesh(RawMesh);
-
-	RawMeshBulkData->SaveRawMesh(RawMesh);
 
 	// Some mesh generation settings.
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
