@@ -104,6 +104,9 @@ public:
 	/** Id of corresponding HAPI Part. **/
 	HAPI_PartId PartId;
 
+	/* Id of a split. In most cases this will be 0. **/
+	int32 SplitId;
+
 	/* Is set to true when referenced object is visible. This is typically used by instancers. **/
 	bool bIsVisible;
 
