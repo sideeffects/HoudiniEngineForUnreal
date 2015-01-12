@@ -165,6 +165,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_BINORMAL						"unreal_binormal"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
+#define HAPI_UNREAL_ATTRIB_COLLISION					"collision_geo"
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION			"rot"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE				"scale"
@@ -174,6 +175,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_CURVE_METHOD					"method"
 #define HAPI_UNREAL_PARAM_CURVE_COORDS					"coords"
 #define HAPI_UNREAL_PARAM_CURVE_CLOSED					"close"
+
+#define HAPI_UNREAL_MATERIAL_TEXTURE_MAIN				"C A"
+#define HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL				"N"
 
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
 
