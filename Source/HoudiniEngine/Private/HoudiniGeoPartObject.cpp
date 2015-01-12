@@ -27,6 +27,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
+	CollidableName(TEXT("Empty")),
 	AssetId(-1),
 	ObjectId(-1),
 	GeoId(-1),
@@ -36,6 +37,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsCurve(false),
 	bIsEditable(false),
 	bHasGeoChanged(false),
+	bIsCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -46,6 +48,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
+	CollidableName(TEXT("Empty")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
@@ -55,6 +58,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsCurve(),
 	bIsEditable(false),
 	bHasGeoChanged(false),
+	bIsCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -66,6 +70,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
+	CollidableName(TEXT("Empty")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
@@ -75,6 +80,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsCurve(false),
 	bIsEditable(false),
 	bHasGeoChanged(false),
+	bIsCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -124,6 +130,13 @@ FHoudiniGeoPartObject::HasGeoChanged() const
 
 
 bool
+FHoudiniGeoPartObject::IsCollidable() const
+{
+	return bIsCollidable;
+}
+
+
+bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
 	return (ObjectId == GeoPartObject.ObjectId &&
@@ -146,6 +159,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << TransformMatrix;
 	Ar << ObjectName;
 	Ar << PartName;
+	Ar << CollidableName;
 
 	Ar << AssetId;
 	Ar << ObjectId;
@@ -156,6 +170,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << bIsInstancer;
 	Ar << bIsCurve;
 	Ar << bIsEditable;
+	Ar << bIsCollidable;
 
 	if(Ar.IsLoading())
 	{
