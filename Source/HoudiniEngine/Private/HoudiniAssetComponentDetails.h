@@ -62,7 +62,7 @@ public:
 private:
 
 	/** Button click handlers. **/	
-	FReply OnButtonClickedBakeSingle();
+	//FReply OnButtonClickedBakeSingle();
 
 private:
 
@@ -73,7 +73,7 @@ private:
 	void CreateHoudiniAssetWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
 
 	/** Helper method used to create a single static mesh. **/
-	void CreateSingleStaticMesh();
+	//void CreateSingleStaticMesh();
 
 	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
 	const FSlateBrush* GetStaticMeshThumbnailBorder(UStaticMesh* StaticMesh) const;

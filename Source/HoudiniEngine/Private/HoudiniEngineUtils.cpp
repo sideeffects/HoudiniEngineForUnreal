@@ -1200,7 +1200,8 @@ FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId Ob
 
 
 UPackage*
-FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, UPackage* Package, FString& MeshName, FGuid& BakeGUID, int32 ObjectIdx)
+FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+													UPackage* Package, FString& MeshName, FGuid& BakeGUID)
 {
 	FString PackageName;
 
@@ -1213,14 +1214,12 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset,
 
 		FString BakeGUIDString = BakeGUID.ToString();
 
-		if(ObjectIdx != -1)
-		{
-			MeshName = HoudiniAsset->GetName() + TEXT("_") + FString::FromInt(ObjectIdx) + TEXT("_") + BakeGUIDString;
-		}
-		else
-		{
-			MeshName = HoudiniAsset->GetName() + TEXT("_") + BakeGUIDString;
-		}
+		MeshName = HoudiniAsset->GetName() + TEXT("_") +
+				   FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") + 
+				   FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") + 
+				   FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") + 
+				   FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") + 
+				   BakeGUIDString;
 
 		if(!Package)
 		{
@@ -1420,7 +1419,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 	UStaticMesh* StaticMesh = nullptr;
 	FString MeshName;
 	FGuid MeshGuid;
-	int32 MeshCounter = 0;
 
 	// Iterate through all objects.
 	for(int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx)
@@ -1616,7 +1614,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				{
 					MeshGuid.Invalidate();
 
-					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, Package, MeshName, MeshGuid, MeshCounter);
+					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, 
+																								Package, MeshName, MeshGuid);
 					StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
 				}
 				else
@@ -1624,8 +1623,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					// If it was located, we will just reuse it.
 					StaticMesh = *FoundStaticMesh;
 				}
-
-				MeshCounter++;
 
 				// Create new source model for current static mesh.
 				if(!StaticMesh->SourceModels.Num())
@@ -2139,7 +2136,8 @@ FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Packag
 
 
 UStaticMesh*
-FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, int32 MeshCounter, FArchive& Ar)
+FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+									   UPackage* Package, FArchive& Ar)
 {
 	UStaticMesh* StaticMesh = nullptr;
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
@@ -2163,7 +2161,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 
 	FGuid MeshGuid;
 	FString MeshName;
-	UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, Package, MeshName, MeshGuid, MeshCounter);
+	UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, Package, MeshName, MeshGuid);
 	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
 
 	// Create new source model for current static mesh.
@@ -2322,7 +2320,8 @@ FHoudiniEngineUtils::Serialize(UMaterialInterface*& MaterialInterface, UPackage*
 
 
 UStaticMesh*
-FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, UStaticMesh* InStaticMesh, int32 MeshCounter)
+FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+									UStaticMesh* InStaticMesh)
 {
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	check(HoudiniAsset);
@@ -2335,7 +2334,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 
 	FString MeshName;
 	FGuid BakeGUID;
-	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, nullptr, MeshName, BakeGUID, MeshCounter);
+	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID);
 
 	// Create static mesh.
 	UStaticMesh* StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) UStaticMesh(FObjectInitializer());
@@ -2395,7 +2394,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	return StaticMesh;
 }
 
-
+/*
 UStaticMesh*
 FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents)
 {
@@ -2510,13 +2509,11 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 		NewStaticMesh->ConditionalBeginDestroy();
 		return nullptr;
 	}
-	/*
 	// Pre fill UVs with zero data.
-	for(int32 UVIdx = 0; UVIdx < NewStaticMesh->Materials.Num(); ++UVIdx)
-	{
-		RawMesh.WedgeTexCoords[UVIdx].AddZeroed(FaceCount);
-	}
-	*/
+	//for(int32 UVIdx = 0; UVIdx < NewStaticMesh->Materials.Num(); ++UVIdx)
+	//{
+	//	RawMesh.WedgeTexCoords[UVIdx].AddZeroed(FaceCount);
+	//}
 	for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
 	{
 		UStaticMesh* InStaticMesh = StaticMeshes[MeshIdx];
@@ -2638,7 +2635,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 
 	return NewStaticMesh;
 }
-
+*/
 
 UMaterial*
 FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh)

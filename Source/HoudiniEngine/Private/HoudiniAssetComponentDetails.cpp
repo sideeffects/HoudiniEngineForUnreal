@@ -50,6 +50,7 @@ FHoudiniAssetComponentDetails::~FHoudiniAssetComponentDetails()
 }
 
 
+/*
 void
 FHoudiniAssetComponentDetails::CreateSingleStaticMesh()
 {
@@ -73,6 +74,7 @@ FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
 	CreateSingleStaticMesh();
 	return FReply::Handled();
 }
+*/
 
 
 void
@@ -591,10 +593,14 @@ FHoudiniAssetComponentDetails::OnThumbnailDoubleClick(const FGeometry& InMyGeome
 FReply
 FHoudiniAssetComponentDetails::OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudiniAssetComponent* HoudiniAssetComponent)
 {
-	if(StaticMesh)
+	if(HoudiniAssetComponent && StaticMesh)
 	{
-		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, StaticMesh, -1);
-		
+		// We need to locate corresponding geo part object in component.
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(StaticMesh);
+
+		// Bake static mesh.
+		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMesh);
+
 		// Notify asset registry that we have created assets. This should update the content browser.
 		FAssetRegistryModule::AssetCreated(OutStaticMesh);
 		//OutStaticMesh->MakePackageDirty();
@@ -611,14 +617,12 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
 
-		int32 MeshIdx = 0;
 		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
 		{
 			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
 			UStaticMesh* StaticMesh = Iter.Value();
 
-			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, StaticMesh, MeshIdx);
-			MeshIdx++;
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMesh);
 
 			// Notify asset registry that we have created assets. This should update the content browser.
 			FAssetRegistryModule::AssetCreated(OutStaticMesh);
