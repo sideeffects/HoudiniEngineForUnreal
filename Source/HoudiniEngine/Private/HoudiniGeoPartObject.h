@@ -28,8 +28,7 @@ public:
 	FHoudiniGeoPartObject();
 	FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 	FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName, HAPI_AssetId InAssetId,
-						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId, bool bInIsVisible = true,
-						  bool bInIsInstancer = false, bool bInIsCurve = false, bool bInIsEditable = false, bool bInHasGeoChanged = false);
+						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
 public:
 

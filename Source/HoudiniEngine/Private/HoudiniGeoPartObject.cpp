@@ -62,8 +62,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName,
-											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
-											 bool bInIsVisible, bool bInIsInstancer, bool bInIsCurve, bool bInIsEditable, bool bInHasGeoChanged) :
+											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
@@ -71,11 +70,11 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
-	bIsVisible(bInIsVisible),
-	bIsInstancer(bInIsInstancer),
-	bIsCurve(bInIsCurve),
-	bIsEditable(bInIsEditable),
-	bHasGeoChanged(bInHasGeoChanged),
+	bIsVisible(true),
+	bIsInstancer(false),
+	bIsCurve(false),
+	bIsEditable(false),
+	bHasGeoChanged(false),
 	bIsLoaded(false)
 {
 
