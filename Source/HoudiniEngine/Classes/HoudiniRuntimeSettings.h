@@ -30,6 +30,7 @@ public:
 	/** Destructor. **/
 	virtual ~UHoudiniRuntimeSettings();
 
+/** Cooking options. **/
 public:
 
 	// Enables cooking of assets on parameter or input change.
