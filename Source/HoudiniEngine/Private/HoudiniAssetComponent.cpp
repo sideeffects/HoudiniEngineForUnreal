@@ -765,7 +765,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 		else
 		{
-			if(bFinishedLoadedInstantiation || bUndoRequested)
+			// If we are doing first cook after instantiation after loading or if cooking is enabled and undo is invoked.
+			if(bFinishedLoadedInstantiation || (GetDefault<UHoudiniRuntimeSettings>()->bEnableCooking && bUndoRequested))
 			{
 				// Update parameter node id for all loaded parameters.
 				UpdateLoadedParameter();
@@ -787,14 +788,17 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				bUndoRequested = false;
 			}
 
-			// Upload changed parameters back to HAPI.
-			UploadChangedParameters();
+			if(GetDefault<UHoudiniRuntimeSettings>()->bEnableCooking || bFinishedLoadedInstantiation)
+			{
+				// Upload changed parameters back to HAPI.
+				UploadChangedParameters();
 
-			// Reset curves flag.
-			bCurveChanged = false;
+				// Reset curves flag.
+				bCurveChanged = false;
 
-			// Create asset cooking task object and submit it for processing.
-			StartTaskAssetCooking();
+				// Create asset cooking task object and submit it for processing.
+				StartTaskAssetCooking();
+			}
 		}
 
 		// We do not want to stop ticking system as we have just submitted a task.
