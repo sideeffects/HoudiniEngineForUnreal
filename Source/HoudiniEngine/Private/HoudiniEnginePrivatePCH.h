@@ -250,6 +250,7 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponentDetails.h"
+#include "HoudiniRuntimeSettingsDetails.h"
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineScheduler.h"

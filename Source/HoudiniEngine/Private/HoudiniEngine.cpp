@@ -160,9 +160,10 @@ FHoudiniEngine::StartupModule()
 	// Register thumbnail renderer for Houdini asset.
 	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
 
-	// Register details presenter for our component type.
+	// Register details presenter for our component type and runtime settings.
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
+	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
 
 	// Create Slate style set.
 	if(!StyleSet.IsValid())
@@ -311,11 +312,12 @@ FHoudiniEngine::ShutdownModule()
 		AssetTypeActions.Empty();
 	}
 
-	// Unregister details presentation.
+	// Unregister details presentations.
 	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
+		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
 	}
 
 	// Unregister our component visualizers.
