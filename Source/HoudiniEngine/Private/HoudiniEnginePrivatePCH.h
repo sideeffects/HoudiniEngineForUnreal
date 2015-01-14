@@ -53,6 +53,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "ScopedTransaction.h"
+#include "ISettingsModule.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
@@ -223,6 +224,7 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniGeoPartObject.h"
 
 /** HoudiniEngine Class headers. **/
+#include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterInt.h"
 #include "HoudiniAssetParameterFloat.h"
