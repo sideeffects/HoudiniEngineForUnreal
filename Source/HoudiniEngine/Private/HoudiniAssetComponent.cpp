@@ -1808,6 +1808,13 @@ UHoudiniAssetComponent::CreateParameters()
 					break;
 				}
 
+				case HAPI_PARMTYPE_PATH_FILE:
+				case HAPI_PARMTYPE_PATH_FILE_GEO:
+				case HAPI_PARMTYPE_PATH_FILE_IMAGE:
+				{
+					continue;
+				}
+
 				case HAPI_PARMTYPE_PATH_NODE:
 				default:
 				{

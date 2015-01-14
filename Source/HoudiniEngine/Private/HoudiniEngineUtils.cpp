@@ -1192,7 +1192,7 @@ FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIn
 
 
 bool
-FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int InputIndex)
+FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex)
 {
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(AssetIdFrom, ObjectIdFrom, AssetIdTo, InputIndex), false);
 	return true;

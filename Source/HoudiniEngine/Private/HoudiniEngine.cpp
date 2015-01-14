@@ -183,6 +183,17 @@ FHoudiniEngine::StartupModule()
 		FClassIconFinder::RegisterIconSource(StyleSet.Get());
 	}
 
+	// Register settings.
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if(SettingsModule)
+	{
+		SettingsModule->RegisterSettings("Project", "Plugins", "HoudiniEngine",
+				LOCTEXT("RuntimeSettingsName", "Houdini Engine"),
+				LOCTEXT("RuntimeSettingsDescription", "Configure the HoudiniEngine plugin"),
+				GetMutableDefault<UHoudiniRuntimeSettings>()
+			);
+	}
+
 	// Create Houdini logo brush.
 	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
 	for(auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
@@ -324,6 +335,13 @@ FHoudiniEngine::ShutdownModule()
 
 		ensure(StyleSet.IsUnique());
 		StyleSet.Reset();
+	}
+
+	// Unregister settings.
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if(SettingsModule)
+	{
+		SettingsModule->UnregisterSettings("Project", "Plugins", "HoudiniEngine");
 	}
 
 	// Do scheduler and thread clean up.
