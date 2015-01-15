@@ -255,6 +255,13 @@ FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform& HapiTransform,
 
 
 void
+FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_TransformEuler& HapiTransformEuler, FTransform& UnrealTransform)
+{
+
+}
+
+
+void
 FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_Transform& HapiTransform)
 {
 	HapiTransform.rstOrder = HAPI_SRT;
@@ -278,6 +285,34 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 	HapiTransform.scale[0] = UnrealScale.X;
 	HapiTransform.scale[1] = UnrealScale.Y;
 	HapiTransform.scale[2] = UnrealScale.Z;
+}
+
+
+void
+FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_TransformEuler& HapiTransformEuler)
+{
+	HapiTransformEuler.rstOrder = HAPI_SRT;
+	HapiTransformEuler.rotationOrder = HAPI_XYZ;
+
+	FQuat UnrealRotation = UnrealTransform.GetRotation();
+	Swap(UnrealRotation.Y, UnrealRotation.Z);
+	FRotator Rotator = UnrealRotation.Rotator();
+	HapiTransformEuler.rotationEuler[0] = -Rotator.Pitch;
+	HapiTransformEuler.rotationEuler[1] = -Rotator.Yaw;
+	HapiTransformEuler.rotationEuler[2] = -Rotator.Roll;
+
+	FVector UnrealTranslation = UnrealTransform.GetTranslation();
+	UnrealTranslation /= FHoudiniEngineUtils::ScaleFactorTranslate;
+	Swap(UnrealTranslation.Y, UnrealTranslation.Z);
+	HapiTransformEuler.position[0] = UnrealTranslation.X;
+	HapiTransformEuler.position[1] = UnrealTranslation.Y;
+	HapiTransformEuler.position[2] = UnrealTranslation.Z;
+
+	FVector UnrealScale = UnrealTransform.GetScale3D();
+	Swap(UnrealScale.Y, UnrealScale.Z);
+	HapiTransformEuler.scale[0] = UnrealScale.X;
+	HapiTransformEuler.scale[1] = UnrealScale.Y;
+	HapiTransformEuler.scale[2] = UnrealScale.Z;
 }
 
 
@@ -1461,7 +1496,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 		const HAPI_ObjectInfo& ObjectInfo = ObjectInfos[ObjectIdx];
 
 		// Retrieve object name.
-		FString ObjectName;
+		FString ObjectName = TEXT("");
 		FHoudiniEngineUtils::GetHoudiniString(ObjectInfo.nameSH, ObjectName);
 
 		// Get transformation for this object.
@@ -1476,6 +1511,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 			HAPI_GeoInfo GeoInfo;
 			if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetGeoInfo(AssetId, ObjectInfo.id, GeoIdx, &GeoInfo))
 			{
+				HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d] unable to retrieve GeoInfo, ")
+											TEXT("- skipping."),
+											ObjectIdx, *ObjectName, GeoIdx);
 				continue;
 			}
 
@@ -1491,7 +1529,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				StaticMesh = nullptr;
 				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
-
 				continue;
 			}
 
@@ -1511,19 +1548,26 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 			{
 				// Get part information.
 				HAPI_PartInfo PartInfo;
+				FString PartName = TEXT("");
 
 				if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(AssetId, ObjectInfo.id, GeoInfo.id, PartIdx, &PartInfo))
 				{
 					// Error retrieving part info.
 					bGeoError = true;
-					break;
+					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve PartInfo, ")
+											TEXT("- skipping."),
+											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+					continue;
 				}
 
 				// There are no vertices and no points.
 				if(PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0)
 				{
 					bGeoError = true;
-					break;
+					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found, ")
+											TEXT("- skipping."),
+											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+					continue;
 				}
 
 				// Retrieve material information.
@@ -1538,7 +1582,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				}
 
 				// Retrieve part name.
-				FString PartName;
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
 
 				// Get collision membership information for primitives of this part.
@@ -1566,29 +1609,30 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					}
 					else
 					{
+						// This is an instancer with no points.
 						bGeoError = true;
-						break;
+						HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is instancer but has 0 points ")
+											TEXT("skipping."),
+											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+						continue;
 					}
 				}
-				else
+				else if(PartInfo.isCurve)
 				{
-					if(PartInfo.vertexCount <= 0)
-					{
-						// This is not an instancer, but we do not have vertices, skip.
-						bGeoError = true;
-						break;
-					}
-				}
-
-				/*
-				// Detect curves. Curves like instancers have no associated meshes.
-				if(PartInfo.isCurve)
-				{
+					// This is a curve part.
 					StaticMesh = nullptr;
 					StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 					continue;
 				}
-				*/
+				else if(PartInfo.vertexCount <= 0)
+				{
+					// This is not an instancer, but we do not have vertices, skip.
+					bGeoError = true;
+					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] has 0 vertices and non-zero points, ")
+										TEXT("but is not an intstancer - skipping."),
+										ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+					continue;
+				}
 
 				// Attempt to locate static mesh from previous instantiation.
 				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
@@ -1629,11 +1673,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					{
 						// No mesh located, this is an error.
 						bGeoError = true;
-						break;
+						HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has changed ")
+											TEXT("but static mesh does not exist - skipping."),
+											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+						continue;
 					}
 				}
 
 				// If static mesh was not located, we need to create one.
+				bool bStaticMeshCreated = false;
 				if(!FoundStaticMesh)
 				{
 					MeshGuid.Invalidate();
@@ -1641,6 +1689,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, 
 																								Package, MeshName, MeshGuid);
 					StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
+					bStaticMeshCreated = true;
 				}
 				else
 				{
@@ -1666,7 +1715,17 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				{
 					// Error getting the vertex list.
 					bGeoError = true;
-					break;
+
+					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list ")
+											TEXT("- skipping."),
+											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+
+					if(bStaticMeshCreated)
+					{
+						StaticMesh->MarkPendingKill();
+					}
+
+					continue;
 				}
 
 				// Retrieve position data.
@@ -1676,6 +1735,16 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				{
 					// Error retrieving positions.
 					bGeoError = true;
+
+					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+											TEXT("- skipping."),
+											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+
+					if(bStaticMeshCreated)
+					{
+						StaticMesh->MarkPendingKill();
+					}
+
 					break;
 				}
 
@@ -1915,7 +1984,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
 				{
 					// This mesh contains only degenerate triangles, there's nothing we can do.
-					StaticMesh->MarkPendingKill();
+					if(bStaticMeshCreated)
+					{
+						StaticMesh->MarkPendingKill();
+					}
+
 					continue;
 				}
 
@@ -2351,6 +2424,12 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	// We cannot bake curves.
 	if(HoudiniGeoPartObject.IsCurve())
 	{
+		return nullptr;
+	}
+
+	if(HoudiniGeoPartObject.IsInstancer())
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Baking of instanced static meshes is not supported at the moment."));
 		return nullptr;
 	}
 

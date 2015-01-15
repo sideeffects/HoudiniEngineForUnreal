@@ -64,8 +64,14 @@ public:
 	/** HAPI : Translate HAPI transform to Unreal one. **/
 	static void TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform);
 
-	/** HAPI : Translate Unreal to HAPI one. **/
+	/** HAPI : Translate HAPI Euler transform to Unreal one. **/
+	static void TranslateHapiTransform(const HAPI_TransformEuler& HapiTransformEuler, FTransform& UnrealTransform);
+
+	/** HAPI : Translate Unreal transform to HAPI one. **/
 	static void TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_Transform& HapiTransform);
+
+	/** HAPI : Translate Unreal transform to HAPI Euler one. **/
+	static void TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_TransformEuler& HapiTransformEuler);
 
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);

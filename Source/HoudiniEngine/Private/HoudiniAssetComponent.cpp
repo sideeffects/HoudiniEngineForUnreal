@@ -928,6 +928,26 @@ UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 
 
 void
+UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove)
+{
+	Super::OnUpdateTransform(bSkipPhysicsMove);
+
+	// If enabled, we need to push transform update to HAPI.
+	if(GetDefault<UHoudiniRuntimeSettings>()->bUploadTransformsToHoudiniEngine)
+	{
+		// Retrieve the current component-to-world transform for this component.
+		const FTransform& ComponentWorldTransform = GetComponentTransform();
+
+		// Translate Unreal transform to HAPI one.
+		HAPI_Transform HapiTransform;
+		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, HapiTransform);
+
+		
+	}
+}
+
+
+void
 UHoudiniAssetComponent::ResetHoudiniResources()
 {
 	if(HapiGUID.IsValid())
