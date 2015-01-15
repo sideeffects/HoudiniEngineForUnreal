@@ -236,6 +236,51 @@ FHoudiniEngineUtils::GetHoudiniString(int32 Name, std::string& NameString)
 }
 
 
+void
+FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform)
+{
+	FQuat ObjectRotation(-HapiTransform.rotationQuaternion[0], -HapiTransform.rotationQuaternion[1],
+						 -HapiTransform.rotationQuaternion[2], HapiTransform.rotationQuaternion[3]);
+	Swap(ObjectRotation.Y, ObjectRotation.Z);
+
+	FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
+	ObjectTranslation *= FHoudiniEngineUtils::ScaleFactorTranslate;
+	Swap(ObjectTranslation[2], ObjectTranslation[1]);
+
+	FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
+	Swap(ObjectScale3D.Y, ObjectScale3D.Z);
+
+	UnrealTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
+}
+
+
+void
+FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_Transform& HapiTransform)
+{
+	HapiTransform.rstOrder = HAPI_SRT;
+
+	FQuat UnrealRotation = UnrealTransform.GetRotation();
+	Swap(UnrealRotation.Y, UnrealRotation.Z);
+	HapiTransform.rotationQuaternion[0] = -UnrealRotation.X;
+	HapiTransform.rotationQuaternion[1] = -UnrealRotation.Y;
+	HapiTransform.rotationQuaternion[2] = -UnrealRotation.Z;
+	HapiTransform.rotationQuaternion[3] = UnrealRotation.W;
+
+	FVector UnrealTranslation = UnrealTransform.GetTranslation();
+	UnrealTranslation /= FHoudiniEngineUtils::ScaleFactorTranslate;
+	Swap(UnrealTranslation.Y, UnrealTranslation.Z);
+	HapiTransform.position[0] = UnrealTranslation.X;
+	HapiTransform.position[1] = UnrealTranslation.Y;
+	HapiTransform.position[2] = UnrealTranslation.Z;
+
+	FVector UnrealScale = UnrealTransform.GetScale3D();
+	Swap(UnrealScale.Y, UnrealScale.Z);
+	HapiTransform.scale[0] = UnrealScale.X;
+	HapiTransform.scale[1] = UnrealScale.Y;
+	HapiTransform.scale[2] = UnrealScale.Z;
+}
+
+
 bool
 FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString)
 {
@@ -617,20 +662,9 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_Object
 	for(int32 Idx = 0; Idx < PartInfo.pointCount; ++Idx)
 	{
 		const HAPI_Transform& HapiInstanceTransform = InstanceTransforms[Idx];
-
-		// We need to swap Y and Z axis when going from Houdini to Unreal. Additionally, Houdini is right handed
-		// coordinate system and Unreal is left handed one, so we need to negate rotations.
-		FQuat Rotation(-HapiInstanceTransform.rotationQuaternion[0], -HapiInstanceTransform.rotationQuaternion[1],
-					   -HapiInstanceTransform.rotationQuaternion[2], HapiInstanceTransform.rotationQuaternion[3]);
-		Swap(Rotation.Y, Rotation.Z);
-
-		FVector Translation(HapiInstanceTransform.position[0], HapiInstanceTransform.position[2], HapiInstanceTransform.position[1]);
-		Translation *= ScaleFactorTranslate;
-
-		FVector Scale3D(HapiInstanceTransform.scale[0], HapiInstanceTransform.scale[1], HapiInstanceTransform.scale[2]);
-		Swap(Scale3D.Y, Scale3D.Z);
-
-		Transforms.Add(FTransform(Rotation, Translation, Scale3D));
+		FTransform TransformMatrix;
+		FHoudiniEngineUtils::TranslateHapiTransform(HapiInstanceTransform, TransformMatrix);
+		Transforms.Add(TransformMatrix);
 	}
 
 	return true;
@@ -1432,18 +1466,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 		// Get transformation for this object.
 		const HAPI_Transform& ObjectTransform = ObjectTransforms[ObjectIdx];
-
-		FQuat ObjectRotation(-ObjectTransform.rotationQuaternion[0], -ObjectTransform.rotationQuaternion[1],
-							 -ObjectTransform.rotationQuaternion[2], ObjectTransform.rotationQuaternion[3]);
-		Swap(ObjectRotation.Y, ObjectRotation.Z);
-
-		FVector ObjectTranslation(ObjectTransform.position[0], ObjectTransform.position[2], ObjectTransform.position[1]);
-		ObjectTranslation *= FHoudiniEngineUtils::ScaleFactorTranslate;
-
-		FVector ObjectScale3D(ObjectTransform.scale[0], ObjectTransform.scale[1], ObjectTransform.scale[2]);
-		Swap(ObjectScale3D.Y, ObjectScale3D.Z);
-
-		FTransform TransformMatrix(ObjectRotation, ObjectTranslation, ObjectScale3D);
+		FTransform TransformMatrix;
+		FHoudiniEngineUtils::TranslateHapiTransform(ObjectTransform, TransformMatrix);
 
 		// Iterate through all Geo informations within this object.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)

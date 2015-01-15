@@ -61,6 +61,12 @@ public:
 	/** HAPI : Get string name for a given handle. **/
 	static bool GetHoudiniString(int32 Name, std::string& NameString);
 
+	/** HAPI : Translate HAPI transform to Unreal one. **/
+	static void TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform);
+
+	/** HAPI : Translate Unreal to HAPI one. **/
+	static void TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_Transform& HapiTransform);
+
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
