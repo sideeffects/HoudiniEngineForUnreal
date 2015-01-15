@@ -36,6 +36,14 @@ public:
 	/** Create an instance of this detail layout class. **/
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
+public:
+
+	/** Desired width for row value widget. **/
+	static float RowValueWidgetDesiredWidth;
+
+	/** Desired width for whole row widget. **/
+	static float RowFullWidgetDesiredWidth;
+
 protected:
 
 	/** Used to create Houdini version entry. **/
