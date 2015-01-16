@@ -61,6 +61,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bIsPlayModeActive(false),
 	bParametersChanged(false),
 	bCurveChanged(false),
+	bTransformRequiresRecook(false),
 	bUndoRequested(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
@@ -747,7 +748,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bCurveChanged))
+	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bCurveChanged || bTransformRequiresRecook))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -786,13 +787,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				bUndoRequested = false;
 			}
 
+			// Reset curves flag.
+			bCurveChanged = false;
+
+			// Reset transformation recook flag.
+			bTransformRequiresRecook = false;
+
 			if(GetDefault<UHoudiniRuntimeSettings>()->bEnableCooking || bFinishedLoadedInstantiation)
 			{
 				// Upload changed parameters back to HAPI.
 				UploadChangedParameters();
-
-				// Reset curves flag.
-				bCurveChanged = false;
 
 				// Create asset cooking task object and submit it for processing.
 				StartTaskAssetCooking();
@@ -960,7 +964,8 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 		// If cooking on transform is enabled.
 		if(GetDefault<UHoudiniRuntimeSettings>()->bTransformChangeTriggersCooks)
 		{
-			
+			// Flag asset for recooking.
+			bTransformRequiresRecook = true;
 		}
 	}
 	*/

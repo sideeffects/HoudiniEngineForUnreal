@@ -397,6 +397,9 @@ protected:
 	/** Is set to true when curve information has changed and requires reuploading. This will trigger recook. **/
 	bool bCurveChanged;
 
+	/** Is set to true when transformation has changed and asset requires recooking. **/
+	bool bTransformRequiresRecook;
+
 	/** Is set to true when undo is being performed. **/
 	bool bUndoRequested;
 };
