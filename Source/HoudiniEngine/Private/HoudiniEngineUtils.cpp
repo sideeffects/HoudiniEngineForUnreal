@@ -295,11 +295,10 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 	HapiTransformEuler.rotationOrder = HAPI_XYZ;
 
 	FQuat UnrealRotation = UnrealTransform.GetRotation();
-	Swap(UnrealRotation.Y, UnrealRotation.Z);
 	FRotator Rotator = UnrealRotation.Rotator();
-	HapiTransformEuler.rotationEuler[0] = -Rotator.Pitch;
+	HapiTransformEuler.rotationEuler[0] = -Rotator.Roll;
 	HapiTransformEuler.rotationEuler[1] = -Rotator.Yaw;
-	HapiTransformEuler.rotationEuler[2] = -Rotator.Roll;
+	HapiTransformEuler.rotationEuler[2] = -Rotator.Pitch;
 
 	FVector UnrealTranslation = UnrealTransform.GetTranslation();
 	UnrealTranslation /= FHoudiniEngineUtils::ScaleFactorTranslate;

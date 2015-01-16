@@ -2031,6 +2031,18 @@ UHoudiniAssetComponent::UploadChangedParameters()
 void
 UHoudiniAssetComponent::UploadChangedTransform()
 {
+	// Retrieve the current component-to-world transform for this component.
+	const FTransform& ComponentWorldTransform = GetComponentTransform();
+
+	// Translate Unreal transform to HAPI Euler one.
+	HAPI_TransformEuler TransformEuler;
+	FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, TransformEuler);
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetAssetTransform(GetAssetId(), &TransformEuler))
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Failed Uploading Transformation change back to HAPI."));
+	}
+
 	// We no longer have changed transform.
 	bComponentTransformHasChanged = false;
 }
