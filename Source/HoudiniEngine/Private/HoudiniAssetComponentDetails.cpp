@@ -365,7 +365,6 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 	}
 
 	TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
-	TSharedRef<SButton> ButtonRecook = SNew(SButton);
 	DetailCategoryBuilder.AddCustomRow(TEXT(""))
 	[
 		SNew(SVerticalBox)
@@ -391,7 +390,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 		.Text(LOCTEXT("BakeHoudiniActor", "Bake All"))
 		.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake all generated static meshes"))
 	];
-
+	/*
 	HorizontalButtonBox->AddSlot()
 	.AutoWidth()
 	.Padding(2.0f, 0.0f)
@@ -405,7 +404,6 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 		.Text(LOCTEXT("RecookHoudiniActor", "Recook"))
 		.ToolTipText( LOCTEXT("RecookHoudiniActorToolTip", "Recook Houdini asset"))
 	];
-
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
@@ -415,6 +413,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 	{
 		ButtonRecook->SetEnabled(false);
 	}
+	*/
 }
 
 
@@ -438,12 +437,13 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	UHoudiniAsset* HoudiniAsset = nullptr;
+	UHoudiniAssetComponent* HoudiniAssetComponent = nullptr;
 	FString HoudiniAssetPathName = TEXT("");
 	FString HoudiniAssetName = TEXT("");
 
 	if(HoudiniAssetComponents.Num() > 0)
 	{
-		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+		HoudiniAssetComponent = HoudiniAssetComponents[0];
 		HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 		if(HoudiniAsset)
@@ -459,6 +459,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 	TSharedPtr<SHorizontalBox> ButtonBox;
+	TSharedRef<SButton> ButtonRecook = SNew(SButton);
 
 	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 	[
@@ -468,6 +469,72 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		[
 			SAssignNew(HorizontalBox, SHorizontalBox)
 		]
+	];
+
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SCheckBox)
+		.OnCheckStateChanged(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCooking, HoudiniAssetComponent)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniEnableCookingOnParamChange", "Enable Cooking on Parameter Change"))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SCheckBox)
+		.OnCheckStateChanged(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUploadTransform, HoudiniAssetComponent)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniUploadTransformsToHoudiniEngine", "Upload Transforms to Houdini Engine"))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SCheckBox)
+		.OnCheckStateChanged(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking, HoudiniAssetComponent)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniTransformChangeTriggersCooks", "Transform Change Triggers Cooks"))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
+	TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
+	DetailCategoryBuilder.AddCustomRow(TEXT(""))
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(0, 2.0f, 0, 0)
+		.FillHeight(1.0f)
+		.VAlign(VAlign_Center)
+		[
+			SAssignNew(HorizontalButtonBox, SHorizontalBox)
+		]
+	];
+
+	HorizontalButtonBox->AddSlot()
+	.AutoWidth()
+	.Padding(2.0f, 0.0f)
+	.VAlign(VAlign_Center)
+	.HAlign(HAlign_Center)
+	[
+		SAssignNew(ButtonRecook, SButton)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.OnClicked(this, &FHoudiniAssetComponentDetails::OnRecookAsset)
+		.Text(LOCTEXT("RecookHoudiniActor", "Recook"))
+		.ToolTipText( LOCTEXT("RecookHoudiniActorToolTip", "Recook Houdini asset"))
 	];
 
 	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
@@ -650,7 +717,7 @@ FHoudiniAssetComponentDetails::OnRecookAsset()
 		// If component is not cooking or instancing, we can start recook.
 		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
 		{
-			HoudiniAssetComponent->StartTaskAssetCooking(true);
+			HoudiniAssetComponent->StartTaskAssetCookingManual();
 		}
 	}
 
@@ -856,4 +923,70 @@ FHoudiniAssetComponentDetails::OnResetHoudiniAssetClicked()
 	}
 
 	return FReply::Handled();
+}
+
+
+ESlateCheckBoxState::Type
+FHoudiniAssetComponentDetails::IsCheckedComponentSettingCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const
+{
+	if(HoudiniAssetComponent && HoudiniAssetComponent->bEnableCooking)
+	{
+		return ESlateCheckBoxState::Checked;
+	}
+
+	return ESlateCheckBoxState::Unchecked;
+}
+
+
+ESlateCheckBoxState::Type
+FHoudiniAssetComponentDetails::IsCheckedComponentSettingUploadTransform(UHoudiniAssetComponent* HoudiniAssetComponent) const
+{
+	if(HoudiniAssetComponent && HoudiniAssetComponent->bUploadTransformsToHoudiniEngine)
+	{
+		return ESlateCheckBoxState::Checked;
+	}
+
+	return ESlateCheckBoxState::Unchecked;
+}
+
+
+ESlateCheckBoxState::Type
+FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const
+{
+	if(HoudiniAssetComponent && HoudiniAssetComponent->bTransformChangeTriggersCooks)
+	{
+		return ESlateCheckBoxState::Checked;
+	}
+
+	return ESlateCheckBoxState::Unchecked;
+}
+
+
+void
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->bEnableCooking = (ESlateCheckBoxState::Checked == NewState);
+	}
+}
+
+
+void
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->bUploadTransformsToHoudiniEngine = (ESlateCheckBoxState::Checked == NewState);
+	}
+}
+
+
+void
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->bTransformChangeTriggersCooks = (ESlateCheckBoxState::Checked == NewState);
+	}
 }

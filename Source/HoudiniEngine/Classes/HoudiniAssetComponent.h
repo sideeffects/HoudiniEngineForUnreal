@@ -193,6 +193,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
+	virtual void PostInitProperties() override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -320,6 +321,9 @@ private:
 	/** Start asset cooking task. **/
 	void StartTaskAssetCooking(bool bStartTicking = false);
 
+	/** Start manual asset cooking task. **/
+	void StartTaskAssetCookingManual();
+
 private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
@@ -373,6 +377,15 @@ protected:
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;
 
+	/** Enables cooking for this Houdini Asset. **/
+	bool bEnableCooking;
+
+	/** Enables uploading of transformation changes back to Houdini Engine. **/
+	bool bUploadTransformsToHoudiniEngine;
+
+	/** Enables cooking upon transformation changes. **/
+	bool bTransformChangeTriggersCooks;
+
 	/** Is set to true when this component contains Houdini logo geometry. **/
 	bool bContainsHoudiniLogoGeometry;
 
@@ -405,4 +418,7 @@ protected:
 
 	/** Is set to true when undo is being performed. **/
 	bool bUndoRequested;
+
+	/** Is set to true when manual recook is requested. **/
+	bool bManualRecook;
 };

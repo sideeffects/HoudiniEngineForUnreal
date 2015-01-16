@@ -1438,7 +1438,8 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 bool
 FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
 														const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
-														TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut)
+														TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut,
+														FTransform& ComponentTransform)
 {
 	HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
@@ -1458,6 +1459,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 	HAPI_AssetInfo AssetInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
+
+	// Retrieve asset transform.
+	HAPI_TransformEuler AssetEulerTransform;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetTransform(AssetId, HAPI_SRT, HAPI_XYZ, &AssetEulerTransform), false);
+
+	// Convert HAPI Euler transform to Unreal one.
+	FTransform AssetUnrealTransform;
+	TranslateHapiTransform(AssetEulerTransform, AssetUnrealTransform);
+	ComponentTransform = AssetUnrealTransform;
 
 	// Retrieve information about each object contained within our asset.
 	TArray<HAPI_ObjectInfo> ObjectInfos;

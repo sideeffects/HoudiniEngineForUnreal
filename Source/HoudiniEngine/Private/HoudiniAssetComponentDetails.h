@@ -136,6 +136,16 @@ private:
 	/** Handler for reset Houdini asset button. **/
 	FReply OnResetHoudiniAssetClicked();
 
+	/** Checks whether checkbox is checked. **/
+	ESlateCheckBoxState::Type IsCheckedComponentSettingCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+	ESlateCheckBoxState::Type IsCheckedComponentSettingUploadTransform(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+	ESlateCheckBoxState::Type IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+
+	/** Handle change in Checkbox. **/
+	void CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent);
+	void CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent);
+	void CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent);
+
 private:
 
 	/** Components which are being customized. **/

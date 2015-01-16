@@ -44,15 +44,15 @@ protected:
 /** Cooking options. **/
 public:
 
-	// Enables cooking of assets on parameter or input change.
+	// Enables cooking on parameter or input change for new Houdini Assets.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Cooking)
 	bool bEnableCooking;
 
-	// Enables uploading of transformation changes back to Houdini Engine.
+	// Enables uploading of transformation changes back to Houdini Engine for new Houdini Assets.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Cooking)
 	bool bUploadTransformsToHoudiniEngine;
 
-	// Enables cooking upon transformation changes.
+	// Enables cooking upon transformation changes for new Houdini Assets.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Cooking)
 	bool bTransformChangeTriggersCooks;
 
