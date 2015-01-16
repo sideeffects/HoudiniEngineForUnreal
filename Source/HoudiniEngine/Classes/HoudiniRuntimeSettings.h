@@ -30,6 +30,17 @@ public:
 	/** Destructor. **/
 	virtual ~UHoudiniRuntimeSettings();
 
+/** UObject methods. **/
+public:
+
+	virtual void PostInitProperties() override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
+protected:
+
+	/** Locate property of this class by name. **/
+	UProperty* LocateProperty(const FString& PropertyName);
+
 /** Cooking options. **/
 public:
 
