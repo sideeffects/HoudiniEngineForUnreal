@@ -507,8 +507,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	static float NotificationExpireDuration = 2.0f;
 	static double NotificationUpdateFrequency = 2.0f;
 
-	// Check if Houdini Asset has changed, if it did we need to
-
 	if(HapiGUID.IsValid())
 	{
 		// If we have a valid task GUID.
@@ -932,18 +930,40 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 {
 	Super::OnUpdateTransform(bSkipPhysicsMove);
 
-	// If enabled, we need to push transform update to HAPI.
-	if(GetDefault<UHoudiniRuntimeSettings>()->bUploadTransformsToHoudiniEngine)
+	// If we have a valid asset id.
+	/*
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
-		// Retrieve the current component-to-world transform for this component.
-		const FTransform& ComponentWorldTransform = GetComponentTransform();
+		// If transform update push to HAPI is enabled.
+		if(GetDefault<UHoudiniRuntimeSettings>()->bUploadTransformsToHoudiniEngine)
+		{
+			// Retrieve the current component-to-world transform for this component.
+			const FTransform& ComponentWorldTransform = GetComponentTransform();
 
-		// Translate Unreal transform to HAPI one.
-		HAPI_Transform HapiTransform;
-		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, HapiTransform);
+			// Translate Unreal transform to HAPI Quaternion one.
+			HAPI_Transform HapiTransformQuat;
+			FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, HapiTransformQuat);
 
-		
+			// Translate HAPI quaternion transform to HAPI Euler transform.
+			HAPI_TransformEuler HapiTransformEuler;
+			if(HAPI_RESULT_SUCCESS != HAPI_ConvertTransformQuatToTransformEuler(&HapiTransformQuat, HAPI_XYZ, &HapiTransformEuler))
+			{
+				return;
+			}
+
+			if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetAssetTransform(GetAssetId(), &HapiTransformEuler))
+			{
+				return;
+			}
+		}
+
+		// If cooking on transform is enabled.
+		if(GetDefault<UHoudiniRuntimeSettings>()->bTransformChangeTriggersCooks)
+		{
+			
+		}
 	}
+	*/
 }
 
 
