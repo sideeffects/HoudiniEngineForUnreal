@@ -82,7 +82,8 @@ public:
 	/** Construct static meshes for a given Houdini asset. Flag controls whether one mesh or multiple meshes will be created. **/
 	static bool CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
 												   const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
-												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut);
+												   TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut,
+												   FTransform& ComponentTransform);
 
 	/** Save a given static mesh in raw form. **/
 	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Package, FArchive& Ar);

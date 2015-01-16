@@ -52,6 +52,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	HoudiniAsset(nullptr),
 	AssetId(-1),
 	HapiNotificationStarted(0.0),
+	bEnableCooking(true),
+	bUploadTransformsToHoudiniEngine(true),
+	bTransformChangeTriggersCooks(false),
 	bContainsHoudiniLogoGeometry(false),
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false),
@@ -62,7 +65,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bParametersChanged(false),
 	bCurveChanged(false),
 	bComponentTransformHasChanged(false),
-	bUndoRequested(false)
+	bUndoRequested(false),
+	bManualRecook(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -598,9 +602,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						CreateInputs();
 
 						{
+							FTransform ComponentTransform;
 							TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
-							//if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, nullptr, StaticMeshes, NewStaticMeshes))
-							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, GetOutermost(), StaticMeshes, NewStaticMeshes))
+							if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, GetOutermost(), StaticMeshes, NewStaticMeshes, ComponentTransform))
 							{
 								// Remove all duplicates. After this operation, old map will have meshes which we need to deallocate.
 								for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(NewStaticMeshes); Iter; ++Iter)
@@ -768,7 +772,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		else
 		{
 			// If we are doing first cook after instantiation after loading or if cooking is enabled and undo is invoked.
-			if(bFinishedLoadedInstantiation || (HoudiniRuntimeSettings->bEnableCooking && bUndoRequested))
+			if(bFinishedLoadedInstantiation || (bEnableCooking && bUndoRequested))
 			{
 				// Update parameter node id for all loaded parameters.
 				UpdateLoadedParameter();
@@ -806,7 +810,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				{
 					UploadChangedTransform();
 
-					if(HoudiniRuntimeSettings->bTransformChangeTriggersCooks)
+					if(bTransformChangeTriggersCooks)
 					{
 						bTransformRecook = true;
 					}
@@ -815,7 +819,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				// Compute whether we need to cook.
 				if(bInstantiated || bParametersChanged || bTransformRecook || bCurveChanged)
 				{
-					if(HoudiniRuntimeSettings->bEnableCooking || bInstantiated)
+					if(bEnableCooking || bManualRecook || bInstantiated)
 					{
 						// Upload changed parameters back to HAPI.
 						UploadChangedParameters();
@@ -827,6 +831,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						bCurveChanged = false;
 					}
 				}
+
+				// Reset manual recook flag.
+				bManualRecook = false;
 			}
 		}
 
@@ -933,6 +940,14 @@ UHoudiniAssetComponent::StartTaskAssetCooking(bool bStartTicking)
 }
 
 
+void
+UHoudiniAssetComponent::StartTaskAssetCookingManual()
+{
+	bManualRecook = true;
+	StartTaskAssetCooking(true);
+}
+
+
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
@@ -961,14 +976,11 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 {
 	Super::OnUpdateTransform(bSkipPhysicsMove);
 
-	// Get settings.
-	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-
 	// If we have a valid asset id and asset has been cooked.
 	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && !bInstantiated)
 	{
 		// If transform update push to HAPI is enabled.
-		if(HoudiniRuntimeSettings->bUploadTransformsToHoudiniEngine)
+		if(bUploadTransformsToHoudiniEngine)
 		{
 			// Flag asset for recooking.
 			bComponentTransformHasChanged = true;
@@ -1535,8 +1547,17 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		bLoadedComponent = true;
 	}
 
-	// Store whether we are in PIE mode.
+	// Serialize whether we are in PIE mode.
 	Ar << bIsPlayModeActive;
+
+	// Serialize whether we want to enable cooking for this component / asset.
+	Ar << bEnableCooking;
+
+	// Serialize whether we need to push transformations to HAPI.
+	Ar << bUploadTransformsToHoudiniEngine;
+
+	// Serialize whether we need to cook upon transformation change.
+	Ar << bTransformChangeTriggersCooks;
 }
 
 
@@ -1559,6 +1580,20 @@ UHoudiniAssetComponent::PostEditUndo()
 
 		StartHoudiniTicking();
 	}
+}
+
+
+void
+UHoudiniAssetComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	// Copy defaults from settings.
+	bEnableCooking = HoudiniRuntimeSettings->bEnableCooking;
+	bUploadTransformsToHoudiniEngine = HoudiniRuntimeSettings->bUploadTransformsToHoudiniEngine;
+	bTransformChangeTriggersCooks = HoudiniRuntimeSettings->bTransformChangeTriggersCooks;
 }
 
 

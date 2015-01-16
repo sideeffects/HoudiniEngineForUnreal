@@ -55,12 +55,12 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		IDetailCategoryBuilder& InformationCategoryBuilder = DetailBuilder.EditCategory(InformationCategory);
 
 		// Add built Houdini version.
-		CreateHoudiniEntry(LOCTEXT("HInformationBuilt", "Houdini Built"),
+		CreateHoudiniEntry(LOCTEXT("HInformationBuilt", "Built against Houdini"),
 						   InformationCategoryBuilder, HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR,
 						   HAPI_VERSION_HOUDINI_BUILD, HAPI_VERSION_HOUDINI_PATCH);
 
 		// Add built against Houdini Engine version.
-		CreateHoudiniEngineEntry(LOCTEXT("HEngineInformationBuilt", "Houdini Engine Built"),
+		CreateHoudiniEngineEntry(LOCTEXT("HEngineInformationBuilt", "Built against Houdini Engine"),
 								 InformationCategoryBuilder, HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
 								 HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API);
 
@@ -80,7 +80,7 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_PATCH, &RunningPatch);
 			}
 
-			CreateHoudiniEntry(LOCTEXT("HInformationRunning", "Houdini Built"),
+			CreateHoudiniEntry(LOCTEXT("HInformationRunning", "Running against Houdini"),
 							   InformationCategoryBuilder, RunningMajor, RunningMinor, RunningBuild, RunningPatch);
 		}
 
@@ -98,7 +98,7 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 			}
 
-			CreateHoudiniEngineEntry(LOCTEXT("HEngineInformationRunning", "Houdini Engine Running"),
+			CreateHoudiniEngineEntry(LOCTEXT("HEngineInformationRunning", "Running against Houdini Engine"),
 									 InformationCategoryBuilder, RunningEngineMajor, RunningEngineMinor,
 									 RunningEngineApi);
 		}

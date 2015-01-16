@@ -74,6 +74,7 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 		return;
 	}
 
+	/*
 	if(Property->GetName() == TEXT("bEnableCooking"))
 	{
 		// Cooking is disabled, we need to disable transform change triggers cooks option is as well.
@@ -126,4 +127,5 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 			}
 		}
 	}
+	*/
 }
