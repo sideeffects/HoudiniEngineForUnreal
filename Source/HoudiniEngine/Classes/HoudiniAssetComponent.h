@@ -266,6 +266,9 @@ private:
 	/** Upload changed parameters back to HAPI. **/
 	void UploadChangedParameters();
 
+	/** Upload changed transformation back to HAPI. **/
+	void UploadChangedTransform();
+
 	/** If parameters were loaded, they need to be updated with proper ids after HAPI instantiation. **/
 	void UpdateLoadedParameter();
 
@@ -397,8 +400,8 @@ protected:
 	/** Is set to true when curve information has changed and requires reuploading. This will trigger recook. **/
 	bool bCurveChanged;
 
-	/** Is set to true when transformation has changed and asset requires recooking. **/
-	bool bTransformRequiresRecook;
+	/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
+	bool bComponentTransformHasChanged;
 
 	/** Is set to true when undo is being performed. **/
 	bool bUndoRequested;

@@ -61,7 +61,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bIsPlayModeActive(false),
 	bParametersChanged(false),
 	bCurveChanged(false),
-	bTransformRequiresRecook(false),
+	bComponentTransformHasChanged(false),
 	bUndoRequested(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
@@ -500,6 +500,9 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 void
 UHoudiniAssetComponent::TickHoudiniComponent()
 {
+	// Get settings.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
 	FHoudiniEngineTaskInfo TaskInfo;
 	bool bStopTicking = false;
 	bool bFinishedLoadedInstantiation = false;
@@ -748,7 +751,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bCurveChanged || bTransformRequiresRecook))
+	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bCurveChanged || bComponentTransformHasChanged))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -765,7 +768,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		else
 		{
 			// If we are doing first cook after instantiation after loading or if cooking is enabled and undo is invoked.
-			if(bFinishedLoadedInstantiation || (GetDefault<UHoudiniRuntimeSettings>()->bEnableCooking && bUndoRequested))
+			if(bFinishedLoadedInstantiation || (HoudiniRuntimeSettings->bEnableCooking && bUndoRequested))
 			{
 				// Update parameter node id for all loaded parameters.
 				UpdateLoadedParameter();
@@ -787,19 +790,43 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				bUndoRequested = false;
 			}
 
-			// Reset curves flag.
-			bCurveChanged = false;
-
-			// Reset transformation recook flag.
-			bTransformRequiresRecook = false;
-
-			if(GetDefault<UHoudiniRuntimeSettings>()->bEnableCooking || bFinishedLoadedInstantiation)
+			if(bFinishedLoadedInstantiation)
 			{
 				// Upload changed parameters back to HAPI.
 				UploadChangedParameters();
 
 				// Create asset cooking task object and submit it for processing.
 				StartTaskAssetCooking();
+			}
+			else
+			{
+				// If we have changed transformation, we need to upload it. Also record flag of whether we need to recook.
+				bool bTransformRecook = false;
+				if(bComponentTransformHasChanged)
+				{
+					UploadChangedTransform();
+
+					if(HoudiniRuntimeSettings->bTransformChangeTriggersCooks)
+					{
+						bTransformRecook = true;
+					}
+				}
+
+				// Compute whether we need to cook.
+				if(bInstantiated || bParametersChanged || bTransformRecook || bCurveChanged)
+				{
+					if(HoudiniRuntimeSettings->bEnableCooking || bInstantiated)
+					{
+						// Upload changed parameters back to HAPI.
+						UploadChangedParameters();
+
+						// Create asset cooking task object and submit it for processing.
+						StartTaskAssetCooking();
+
+						// Reset curves flag.
+						bCurveChanged = false;
+					}
+				}
 			}
 		}
 
@@ -934,41 +961,20 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 {
 	Super::OnUpdateTransform(bSkipPhysicsMove);
 
-	// If we have a valid asset id.
-	/*
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	// Get settings.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	// If we have a valid asset id and asset has been cooked.
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && !bInstantiated)
 	{
 		// If transform update push to HAPI is enabled.
-		if(GetDefault<UHoudiniRuntimeSettings>()->bUploadTransformsToHoudiniEngine)
-		{
-			// Retrieve the current component-to-world transform for this component.
-			const FTransform& ComponentWorldTransform = GetComponentTransform();
-
-			// Translate Unreal transform to HAPI Quaternion one.
-			HAPI_Transform HapiTransformQuat;
-			FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, HapiTransformQuat);
-
-			// Translate HAPI quaternion transform to HAPI Euler transform.
-			HAPI_TransformEuler HapiTransformEuler;
-			if(HAPI_RESULT_SUCCESS != HAPI_ConvertTransformQuatToTransformEuler(&HapiTransformQuat, HAPI_XYZ, &HapiTransformEuler))
-			{
-				return;
-			}
-
-			if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetAssetTransform(GetAssetId(), &HapiTransformEuler))
-			{
-				return;
-			}
-		}
-
-		// If cooking on transform is enabled.
-		if(GetDefault<UHoudiniRuntimeSettings>()->bTransformChangeTriggersCooks)
+		if(HoudiniRuntimeSettings->bUploadTransformsToHoudiniEngine)
 		{
 			// Flag asset for recooking.
-			bTransformRequiresRecook = true;
+			bComponentTransformHasChanged = true;
+			StartHoudiniTicking();
 		}
 	}
-	*/
 }
 
 
@@ -1990,32 +1996,43 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 void
 UHoudiniAssetComponent::UploadChangedParameters()
 {
-	// Upload inputs.
-	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
+	if(bParametersChanged)
 	{
-		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
-
-		// If input has changed, upload it to HAPI.
-		if(HoudiniAssetInput->HasChanged())
+		// Upload inputs.
+		for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
 		{
-			HoudiniAssetInput->UploadParameterValue();
+			UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+
+			// If input has changed, upload it to HAPI.
+			if(HoudiniAssetInput->HasChanged())
+			{
+				HoudiniAssetInput->UploadParameterValue();
+			}
 		}
-	}
 
-	// Upload parameters.
-	for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
-	{
-		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-
-		// If parameter has changed, upload it to HAPI.
-		if(HoudiniAssetParameter->HasChanged())
+		// Upload parameters.
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 		{
-			HoudiniAssetParameter->UploadParameterValue();
+			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+			// If parameter has changed, upload it to HAPI.
+			if(HoudiniAssetParameter->HasChanged())
+			{
+				HoudiniAssetParameter->UploadParameterValue();
+			}
 		}
 	}
 
 	// We no longer have changed parameters.
 	bParametersChanged = false;
+}
+
+
+void
+UHoudiniAssetComponent::UploadChangedTransform()
+{
+	// We no longer have changed transform.
+	bComponentTransformHasChanged = false;
 }
 
 
