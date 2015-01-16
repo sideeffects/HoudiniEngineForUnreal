@@ -646,7 +646,12 @@ FHoudiniAssetComponentDetails::OnRecookAsset()
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-		HoudiniAssetComponent->StartTaskAssetCooking(true);
+
+		// If component is not cooking or instancing, we can start recook.
+		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+		{
+			HoudiniAssetComponent->StartTaskAssetCooking(true);
+		}
 	}
 
 	return FReply::Handled();
