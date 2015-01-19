@@ -46,8 +46,9 @@ FHoudiniRuntimeSettingsDetails::~FHoudiniRuntimeSettingsDetails()
 void
 FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	// Create Cooking category.
+	// Create basic categories.
 	DetailBuilder.EditCategory("Cooking", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("CollisionGeneration", TEXT(""), ECategoryPriority::Important);
 
 	// Create Plugin Information category.
 	{
