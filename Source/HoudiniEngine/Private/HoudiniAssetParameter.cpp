@@ -37,6 +37,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	TupleSize(1),
 	ValuesIndex(-1),
 	bIsSpare(false),
+	bIsDisabled(false),
 	bChanged(false)
 {
 	ParameterName = TEXT("");
@@ -56,7 +57,7 @@ bool
 UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
 										HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	// If parameter has has changed, we do not need to recreate it.
+	// If parameter has changed, we do not need to recreate it.
 	if(bChanged)
 	{
 		return false;
@@ -82,6 +83,9 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 
 	// Set spare flag.
 	bIsSpare = ParmInfo.spare;
+
+	// Set disabled flag.
+	bIsDisabled = ParmInfo.disabled;
 
 	// Set component.
 	HoudiniAssetComponent = InHoudiniAssetComponent;
@@ -204,6 +208,7 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	Ar << ValuesIndex;
 
 	Ar << bIsSpare;
+	Ar << bIsDisabled;
 
 	if(Ar.IsLoading())
 	{
@@ -429,3 +434,11 @@ UHoudiniAssetParameter::IsSpare() const
 {
 	return bIsSpare;
 }
+
+
+bool
+UHoudiniAssetParameter::IsDisabled() const
+{
+	return bIsDisabled;
+}
+

@@ -136,6 +136,9 @@ protected:
 	/** Return true if parameter is spare, that is, created by Houdini Engine only. **/
 	bool IsSpare() const;
 
+	/** Return true if parameter is disabled. **/
+	bool IsDisabled() const;
+
 protected:
 
 	/** Print parameter information for debugging. **/
@@ -172,6 +175,9 @@ protected:
 
 	/** Is set to true if this parameter is spare, that is, created by Houdini Engine only. **/
 	bool bIsSpare;
+
+	/** Is set to true if this parameter is disabled. **/
+	bool bIsDisabled;
 
 	/** Is set to true if value of this parameter has been changed by user. **/
 	bool bChanged;
