@@ -557,6 +557,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Assign unique actor label based on asset name.
 						AssignUniqueActorLabel();
 
+						// Create default preset buffer.
+						CreateDefaultPreset();
+
 						if(NotificationPtr.IsValid())
 						{
 							TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
@@ -689,6 +692,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					{
 						// Compute number of inputs.
 						CreateInputs();
+
+						// Create default preset buffer.
+						CreateDefaultPreset();
 
 						// Update properties panel.
 						UpdateEditorProperties();
@@ -943,8 +949,47 @@ UHoudiniAssetComponent::StartTaskAssetCooking(bool bStartTicking)
 void
 UHoudiniAssetComponent::StartTaskAssetCookingManual()
 {
-	bManualRecook = true;
-	StartTaskAssetCooking(true);
+	if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
+	{
+		StartTaskAssetCooking(true);
+		bManualRecook = true;
+	}
+	else
+	{
+		if(bLoadedComponent)
+		{
+			// This is a loaded component which requires instantiation.
+			StartTaskAssetInstantiation(true, true);
+			bManualRecook = true;
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::StartTaskAssetResetManual()
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
+	{
+		if(FHoudiniEngineUtils::SetAssetPreset(GetAssetId(), DefaultPresetBuffer))
+		{
+			UnmarkChangedParameters();
+			StartTaskAssetCookingManual();
+		}
+	}
+	else
+	{
+		if(bLoadedComponent)
+		{
+			// This is a loaded component which requires instantiation.
+			bLoadedComponentRequiresInstantiation = true;
+			bParametersChanged = true;
+
+			// Replace serialized preset buffer with default preset buffer.
+			PresetBuffer = DefaultPresetBuffer;
+			StartHoudiniTicking();
+		}
+	}
 }
 
 
@@ -1434,6 +1479,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		return;
 	}
 
+	// Serialization of default preset.
+	Ar << DefaultPresetBuffer;
+
 	// Serialization of preset.
 	{
 		bool bPresetSaved = false;
@@ -1669,6 +1717,19 @@ UHoudiniAssetComponent::LocateGeoPartObject(UStaticMesh* StaticMesh) const
 	}
 
 	return GeoPartObject;
+}
+
+
+void
+UHoudiniAssetComponent::CreateDefaultPreset()
+{
+	if(!bLoadedComponent)
+	{
+		if(!FHoudiniEngineUtils::GetAssetPreset(GetAssetId(), DefaultPresetBuffer))
+		{
+			DefaultPresetBuffer.Empty();
+		}
+	}
 }
 
 
@@ -2037,6 +2098,25 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 
 		// We want to use all of geometry for collision detection purposes.
 		BodySetup->bMeshCollideAll = true;
+	}
+}
+
+
+void
+UHoudiniAssetComponent::UnmarkChangedParameters()
+{
+	if(bParametersChanged)
+	{
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+		{
+			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+			// If parameter has changed, unmark it.
+			if(HoudiniAssetParameter->HasChanged())
+			{
+				HoudiniAssetParameter->UnmarkChanged();
+			}
+		}
 	}
 }
 

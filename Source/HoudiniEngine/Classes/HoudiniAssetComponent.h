@@ -252,6 +252,9 @@ private:
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
+	/** Create default preset buffer. **/
+	void CreateDefaultPreset();
+
 	/** Create curves. **/
 	void CreateCurves(const TArray<FHoudiniGeoPartObject>& Curves);
 
@@ -263,6 +266,9 @@ private:
 
 	/** Clear all parameters. **/
 	void ClearParameters();
+
+	/** Unmark all changed parameters. **/
+	void UnmarkChangedParameters();
 
 	/** Upload changed parameters back to HAPI. **/
 	void UploadChangedParameters();
@@ -324,6 +330,9 @@ private:
 	/** Start manual asset cooking task. **/
 	void StartTaskAssetCookingManual();
 
+	/** Start manual asset reset task. **/
+	void StartTaskAssetResetManual();
+
 private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/
@@ -357,6 +366,9 @@ protected:
 
 	/** Buffer to hold preset data for serialization purposes. Used only during serialization. **/
 	TArray<char> PresetBuffer;
+
+	/** Buffer to hold default preset for reset purposes. **/
+	TArray<char> DefaultPresetBuffer;
 
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;

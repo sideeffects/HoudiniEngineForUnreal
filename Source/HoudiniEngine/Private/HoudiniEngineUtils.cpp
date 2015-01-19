@@ -145,11 +145,17 @@ FHoudiniEngineUtils::ComputeAssetPresetBufferLength(HAPI_AssetId AssetId, int32&
 bool
 FHoudiniEngineUtils::SetAssetPreset(HAPI_AssetId AssetId, const TArray<char>& PresetBuffer)
 {
-	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPreset(AssetInfo.nodeId, &PresetBuffer[0], PresetBuffer.Num()), false);
+	if(PresetBuffer.Num() > 0)
+	{
+		HAPI_AssetInfo AssetInfo;
+		
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPreset(AssetInfo.nodeId, &PresetBuffer[0], PresetBuffer.Num()), false);
 
-	return true;
+		return true;
+	}
+
+	return false;
 }
 
 

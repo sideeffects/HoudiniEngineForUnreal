@@ -459,7 +459,9 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 	TSharedPtr<SHorizontalBox> ButtonBox;
+
 	TSharedRef<SButton> ButtonRecook = SNew(SButton);
+	TSharedRef<SButton> ButtonReset = SNew(SButton);
 
 	VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 	[
@@ -533,8 +535,22 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
 		.OnClicked(this, &FHoudiniAssetComponentDetails::OnRecookAsset)
-		.Text(LOCTEXT("RecookHoudiniActor", "Recook"))
+		.Text(LOCTEXT("RecookHoudiniActor", "Recook Asset"))
 		.ToolTipText( LOCTEXT("RecookHoudiniActorToolTip", "Recook Houdini asset"))
+	];
+
+	HorizontalButtonBox->AddSlot()
+	.AutoWidth()
+	.Padding(2.0f, 0.0f)
+	.VAlign(VAlign_Center)
+	.HAlign(HAlign_Center)
+	[
+		SAssignNew(ButtonReset, SButton)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.OnClicked(this, &FHoudiniAssetComponentDetails::OnResetAsset)
+		.Text(LOCTEXT("ResetHoudiniActor", "Reset Parameters and Recook"))
+		.ToolTipText( LOCTEXT("ResetHoudiniActorToolTip", "Reset Parameters and Recook"))
 	];
 
 	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
@@ -718,6 +734,24 @@ FHoudiniAssetComponentDetails::OnRecookAsset()
 		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
 		{
 			HoudiniAssetComponent->StartTaskAssetCookingManual();
+		}
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnResetAsset()
+{
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+
+		// If component is not cooking or instancing, we can start reset.
+		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+		{
+			HoudiniAssetComponent->StartTaskAssetResetManual();
 		}
 	}
 

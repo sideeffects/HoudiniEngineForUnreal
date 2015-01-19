@@ -357,6 +357,13 @@ UHoudiniAssetParameter::MarkChanged()
 }
 
 
+void
+UHoudiniAssetParameter::UnmarkChanged()
+{
+	bChanged = false;
+}
+
+
 int32
 UHoudiniAssetParameter::GetTupleSize() const
 {

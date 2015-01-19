@@ -91,6 +91,9 @@ private:
 	/** Handler for recook action. **/
 	FReply OnRecookAsset();
 
+	/** Handler for reset action. **/
+	FReply OnResetAsset();
+
 	/** Delegate used to detect if valid object has been dragged and dropped. **/
 	bool OnMaterialInterfaceDraggedOver(const UObject* InObject) const;
 
