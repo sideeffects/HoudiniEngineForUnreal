@@ -202,6 +202,13 @@ FHoudiniEngineUtils::DestroyHoudiniAsset(HAPI_AssetId AssetId)
 }
 
 
+void
+FHoudiniEngineUtils::ConvertUnrealString(const FString& UnrealString, std::string& String)
+{
+	String = TCHAR_TO_UTF8(*UnrealString);
+}
+
+
 bool
 FHoudiniEngineUtils::GetHoudiniString(int32 Name, FString& NameString)
 {
@@ -1030,6 +1037,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(AssetId, nullptr), false);
 	}
 
+	// Get runtime settings.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
 	// Grab base LOD level.
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
 
@@ -1216,6 +1226,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		TArray<char*> StaticMeshFaceMaterials;
 		FHoudiniEngineUtils::CreateFaceMaterialArray(StaticMesh->Materials, RawMesh.FaceMaterialIndices, StaticMeshFaceMaterials);
 
+		// Get name of attribute used for marshalling materials.
+		std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
+		if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial, MarshallingAttributeName);
+		}
+
 		// Create attribute for materials.
 		HAPI_AttributeInfo AttributeInfoMaterial;
 		AttributeInfoMaterial.count = RawMesh.FaceMaterialIndices.Num();
@@ -1224,8 +1241,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
 		AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
 		AttributeInfoMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_MATERIAL, &AttributeInfoMaterial,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfoMaterial), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfoMaterial,
 																	   (const char**) StaticMeshFaceMaterials.GetData(), 0, StaticMeshFaceMaterials.Num()), false);
 
 		// Delete material names.
@@ -1235,6 +1252,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	// Marshall face smoothing masks.
 	if(RawMesh.FaceSmoothingMasks.Num() > 0)
 	{
+		// Get name of attribute used for marshalling face smoothing masks.
+		std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
+		if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask, MarshallingAttributeName);
+		}
+
 		HAPI_AttributeInfo AttributeInfoSmoothingMasks;
 		AttributeInfoSmoothingMasks.count = RawMesh.FaceSmoothingMasks.Num();
 		AttributeInfoSmoothingMasks.tupleSize = 1;
@@ -1242,8 +1266,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
 		AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
 		AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks,
 																	(const int32*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
 	}
 
@@ -1454,6 +1478,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 	{
 		return false;
 	}
+
+	// Get runtime settings.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	// Get platform manager LOD specific information.
 	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
@@ -1746,7 +1773,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Retrieve position data.
 				HAPI_AttributeInfo AttribInfoPositions;
 				if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
+																	 HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
 				{
 					// Error retrieving positions.
 					bGeoError = true;
@@ -1763,14 +1790,24 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					break;
 				}
 
+				// Get name of attribute used for marshalling materials.
 				HAPI_AttributeInfo AttribFaceMaterials;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-																  HAPI_UNREAL_ATTRIB_MATERIAL, AttribFaceMaterials, FaceMaterials);
+
+				{
+					std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
+					if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+					{
+						FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial, MarshallingAttributeName);
+					}
+
+					FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+																	  MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
+				}
 
 				// Retrieve color data.
 				HAPI_AttributeInfo AttribInfoColors;
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
+																 HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
 
 				// See if we need to transfer color point attributes to vertex attributes.
 				FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoColors, Colors);
@@ -1782,8 +1819,17 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				// Retrieve face smoothing data.
 				HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
+
+				{
+					std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
+					if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+					{
+						FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask, MarshallingAttributeName);
+					}
+
+					FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+																	   MarshallingAttributeName.c_str(), AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
+				}
 
 				// See if we need to transfer normal point attributes to vertex attributes.
 				FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoNormals, Normals);

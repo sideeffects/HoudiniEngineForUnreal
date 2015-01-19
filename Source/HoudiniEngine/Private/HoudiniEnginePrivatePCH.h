@@ -162,11 +162,14 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 	HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
 
 /** HAPI related attribute definitions. **/
+
+/** Names of attributes used for marshalling Unreal data into Houdini Engine. **/
 #define HAPI_UNREAL_ATTRIB_TANGENT						"unreal_tangent"
 #define HAPI_UNREAL_ATTRIB_BINORMAL						"unreal_binormal"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 
+/** Names of other Houdini Engine attributes. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION			"rot"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE				"scale"

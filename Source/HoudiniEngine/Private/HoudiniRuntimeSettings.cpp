@@ -28,6 +28,12 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	CollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),
 	RenderedCollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION)),
 
+	/** Geometry marshalling. **/
+	MarshallingAttributeTangent(TEXT(HAPI_UNREAL_ATTRIB_TANGENT)),
+	MarshallingAttributeBinormal(TEXT(HAPI_UNREAL_ATTRIB_BINORMAL)),
+	MarshallingAttributeMaterial(TEXT(HAPI_UNREAL_ATTRIB_MATERIAL)),
+	MarshallingAttributeFaceSmoothingMask(TEXT(HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK)),
+
 	/** Generated StaticMesh settings. **/
 	bDoubleSidedGeometry(false),
 	PhysMaterial(nullptr),
