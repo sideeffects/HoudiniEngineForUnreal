@@ -1590,10 +1590,23 @@ UHoudiniAssetComponent::PostInitProperties()
 
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	// Copy defaults from settings.
+	// Copy cooking defaults from settings.
 	bEnableCooking = HoudiniRuntimeSettings->bEnableCooking;
 	bUploadTransformsToHoudiniEngine = HoudiniRuntimeSettings->bUploadTransformsToHoudiniEngine;
 	bTransformChangeTriggersCooks = HoudiniRuntimeSettings->bTransformChangeTriggersCooks;
+
+	// Copy static mesh generation parameters from settings.
+	bGeneratedDoubleSidedGeometry = HoudiniRuntimeSettings->bDoubleSidedGeometry;
+	GeneratedPhysMaterial = HoudiniRuntimeSettings->PhysMaterial;
+	GeneratedCollisionTraceFlag = HoudiniRuntimeSettings->CollisionTraceFlag;
+	GeneratedLpvBiasMultiplier = HoudiniRuntimeSettings->LpvBiasMultiplier;
+	GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
+	GeneratedLightMapCoordinateIndex = HoudiniRuntimeSettings->LightMapCoordinateIndex;
+	bGeneratedUseMaximumStreamingTexelRatio = HoudiniRuntimeSettings->bUseMaximumStreamingTexelRatio;
+	GeneratedStreamingDistanceMultiplier = HoudiniRuntimeSettings->StreamingDistanceMultiplier;
+	GeneratedWalkableSlopeOverride = HoudiniRuntimeSettings->WalkableSlopeOverride;
+	GeneratedFoliageDefaultSettings = HoudiniRuntimeSettings->FoliageDefaultSettings;
+	GeneratedAssetUserData = HoudiniRuntimeSettings->AssetUserData;
 }
 
 
