@@ -166,7 +166,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_BINORMAL						"unreal_binormal"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
-#define HAPI_UNREAL_ATTRIB_COLLISION					"collision_geo"
+
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION			"rot"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE				"scale"
@@ -180,10 +180,17 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_MATERIAL_TEXTURE_MAIN				"C A"
 #define HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL				"N"
 
+/** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
 
 /** Suffix for all Unreal materials which are generated from Houdini. **/
 #define HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX			TEXT("_houdini_material")
+
+/** Group name used for collision geometry generation. **/
+#define HAPI_UNREAL_GROUP_GEOMETRY_COLLISION			"collision_geo"
+
+/** Group name used for rendered collision geometry generation. **/
+#define HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION	"rendered_collision_geo"
 
 /** Helper function to serialize enumerations. **/
 template <typename TEnum>

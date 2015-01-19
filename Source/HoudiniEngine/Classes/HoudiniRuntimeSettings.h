@@ -56,6 +56,17 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Cooking)
 	bool bTransformChangeTriggersCooks;
 
+/** Collision generation. **/
+public:
+
+	// Group name used for collision geometry generation. 
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=CollisionGeneration)
+	FString CollisionGroupName;
+
+	// Group name used for rendered collision geometry generation.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=CollisionGeneration)
+	FString RenderedCollisionGroupName;
+
 public:
 
 #if WITH_EDITORONLY_DATA
