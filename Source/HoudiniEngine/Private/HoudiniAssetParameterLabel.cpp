@@ -78,13 +78,20 @@ UHoudiniAssetParameterLabel::CreateWidget(IDetailCategoryBuilder& DetailCategory
 {
 	Super::CreateWidget(DetailCategoryBuilder);
 
+	TSharedPtr<STextBlock> TextBlock;
+
 	DetailCategoryBuilder.AddCustomRow(TEXT(""))
 	[
-		SNew(STextBlock)
+		SAssignNew(TextBlock, STextBlock)
 		.Text(GetParameterLabel())
 		.ToolTipText(GetParameterLabel())
 		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		.WrapTextAt(FHoudiniAssetComponentDetails::RowFullWidgetDesiredWidth)
 	];
+
+	if(TextBlock.IsValid())
+	{
+		TextBlock->SetEnabled(!bIsDisabled);
+	}
 }
 

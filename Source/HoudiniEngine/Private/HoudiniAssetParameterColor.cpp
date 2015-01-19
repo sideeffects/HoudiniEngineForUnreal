@@ -123,6 +123,11 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 		.OnMouseButtonDown(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown))
 	];
 
+	if(ColorBlock.IsValid())
+	{
+		ColorBlock->SetEnabled(!bIsDisabled);
+	}
+
 	Row.ValueWidget.Widget = VerticalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }

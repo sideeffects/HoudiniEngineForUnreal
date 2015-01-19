@@ -121,15 +121,22 @@ UHoudiniAssetParameterString::CreateWidget(IDetailCategoryBuilder& DetailCategor
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
+		TSharedPtr<SEditableTextBox> EditableTextBox;
+
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
-			SNew(SEditableTextBox)
+			SAssignNew(EditableTextBox, SEditableTextBox)
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 
 			.Text(FText::FromString(Values[Idx]))
 			.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetParameterString::SetValue, Idx))
 			.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetParameterString::SetValueCommitted, Idx))
 		];
+
+		if(EditableTextBox.IsValid())
+		{
+			EditableTextBox->SetEnabled(!bIsDisabled);
+		}
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;

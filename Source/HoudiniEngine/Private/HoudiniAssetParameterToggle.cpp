@@ -98,9 +98,11 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
+		TSharedPtr<SCheckBox> CheckBox;
+
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
-			SNew(SCheckBox)
+			SAssignNew(CheckBox, SCheckBox)
 			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, &UHoudiniAssetParameterToggle::CheckStateChanged, Idx))
 			.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, &UHoudiniAssetParameterToggle::IsChecked, Idx)))
 			.Content()
@@ -111,6 +113,11 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
+
+		if(CheckBox.IsValid())
+		{
+			CheckBox->SetEnabled(!bIsDisabled);
+		}
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;

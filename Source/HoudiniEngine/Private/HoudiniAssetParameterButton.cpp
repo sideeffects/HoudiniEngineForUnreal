@@ -98,15 +98,22 @@ UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategor
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+	TSharedPtr<SButton> Button;
+
 	HorizontalBox->AddSlot().Padding(1, 2, 4, 2)
 	[
-		SNew(SButton)
+		SAssignNew(Button, SButton)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
 		.Text(GetParameterLabel())
 		.ToolTipText(GetParameterLabel())
 		.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterButton::OnButtonClick))
 	];
+
+	if(Button.IsValid())
+	{
+		Button->SetEnabled(!bIsDisabled);
+	}
 
 	Row.ValueWidget.Widget = HorizontalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);

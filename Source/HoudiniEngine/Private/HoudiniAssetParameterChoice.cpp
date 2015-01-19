@@ -166,9 +166,11 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+	TSharedPtr<SComboBox<TSharedPtr<FString> > > ComboBox;
+
 	HorizontalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
-		SNew(SComboBox<TSharedPtr<FString> >)
+		SAssignNew(ComboBox, SComboBox<TSharedPtr<FString> >)
 		.OptionsSource(&StringChoiceLabels)
 		.InitiallySelectedItem(StringChoiceLabels[CurrentValue])
 		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
@@ -179,6 +181,11 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 	];
+
+	if(ComboBox.IsValid())
+	{
+		ComboBox->SetEnabled(!bIsDisabled);
+	}
 
 	Row.ValueWidget.Widget = HorizontalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
