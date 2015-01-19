@@ -18,11 +18,25 @@
 
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
+
+	/** Cooking options. **/
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(true),
 	bTransformChangeTriggersCooks(false),
+
+	/** Collision generation. **/
 	CollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),
-	RenderedCollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION))
+	RenderedCollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION)),
+
+	/** Generated StaticMesh settings. **/
+	bDoubleSidedGeometry(false),
+	PhysMaterial(nullptr),
+	CollisionTraceFlag(CTF_UseDefault),
+	LpvBiasMultiplier(1.0f),
+	LightMapResolution(32),
+	LightMapCoordinateIndex(1),
+	bUseMaximumStreamingTexelRatio(false),
+	StreamingDistanceMultiplier(1.0f)
 {
 #if WITH_EDITORONLY_DATA
 	if(!IsRunningCommandlet())
