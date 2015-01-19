@@ -133,6 +133,9 @@ protected:
 	/** Assigns a unique parameter name. **/
 	void AssignUniqueParameterName();
 
+	/** Return true if parameter is spare, that is, created by Houdini Engine only. **/
+	bool IsSpare() const;
+
 protected:
 
 	/** Print parameter information for debugging. **/
@@ -166,6 +169,9 @@ protected:
 
 	/** Internal HAPI cached value index. **/
 	int32 ValuesIndex;
+
+	/** Is set to true if this parameter is spare, that is, created by Houdini Engine only. **/
+	bool bIsSpare;
 
 	/** Is set to true if value of this parameter has been changed by user. **/
 	bool bChanged;

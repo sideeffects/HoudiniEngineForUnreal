@@ -36,6 +36,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	ParmId(-1),
 	TupleSize(1),
 	ValuesIndex(-1),
+	bIsSpare(false),
 	bChanged(false)
 {
 	ParameterName = TEXT("");
@@ -78,6 +79,9 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 
 	// Set tuple count.
 	TupleSize = ParmInfo.size;
+
+	// Set spare flag.
+	bIsSpare = ParmInfo.spare;
 
 	// Set component.
 	HoudiniAssetComponent = InHoudiniAssetComponent;
@@ -198,6 +202,8 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 
 	Ar << TupleSize;
 	Ar << ValuesIndex;
+
+	Ar << bIsSpare;
 
 	if(Ar.IsLoading())
 	{
@@ -415,4 +421,11 @@ void
 UHoudiniAssetParameter::PrintParameterInfo()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Parameter Change: %s"), *ParameterName);
+}
+
+
+bool
+UHoudiniAssetParameter::IsSpare() const
+{
+	return bIsSpare;
 }
