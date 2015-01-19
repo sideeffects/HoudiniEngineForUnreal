@@ -30,6 +30,7 @@ GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter)
 
 UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
+	DetailCategoryBuilder(nullptr),
 	HoudiniAssetComponent(nullptr),
 	ParentParameter(nullptr),
 	NodeId(-1),
@@ -98,9 +99,10 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 
 
 void
-UHoudiniAssetParameter::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
+UHoudiniAssetParameter::CreateWidget(IDetailCategoryBuilder& InDetailCategoryBuilder)
 {
-	// Default implementation does nothing.
+	// Store category builder.
+	DetailCategoryBuilder = &InDetailCategoryBuilder;
 }
 
 
