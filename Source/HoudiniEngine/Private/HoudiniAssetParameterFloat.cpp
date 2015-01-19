@@ -154,9 +154,11 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
+		TSharedPtr<SNumericEntryBox<float> > NumericEntryBox;
+
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
-			SNew(SNumericEntryBox<float>)
+			SAssignNew(NumericEntryBox, SNumericEntryBox<float>)
 			.AllowSpin(true)
 
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
@@ -175,6 +177,11 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 
 			.SliderExponent(1.0f)
 		];
+
+		if(NumericEntryBox.IsValid())
+		{
+			NumericEntryBox->SetEnabled(!bIsDisabled);
+		}
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
