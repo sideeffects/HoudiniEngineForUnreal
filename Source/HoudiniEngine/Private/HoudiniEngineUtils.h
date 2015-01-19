@@ -61,6 +61,9 @@ public:
 	/** HAPI : Get string name for a given handle. **/
 	static bool GetHoudiniString(int32 Name, std::string& NameString);
 
+	/** HAPI : Convert Unreal string to ascii one. **/
+	static void ConvertUnrealString(const FString& UnrealString, std::string& String);
+
 	/** HAPI : Translate HAPI transform to Unreal one. **/
 	static void TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform);
 
