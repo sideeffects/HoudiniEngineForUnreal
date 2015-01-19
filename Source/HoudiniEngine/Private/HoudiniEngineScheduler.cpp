@@ -100,7 +100,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	double LastUpdateTime;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
-																	   HoudiniAsset->GetAssetBytesCount(), &AssetLibraryId), void());
+																	   HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId), void());
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAvailableAssetCount(AssetLibraryId, &AssetCount), void());
 	

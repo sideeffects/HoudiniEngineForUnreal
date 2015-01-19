@@ -90,10 +90,10 @@ struct FHoudiniApi
 	typedef HAPI_Result (*IsAssetValidFuncPtr)(HAPI_AssetId asset_id, int asset_validation_id, int * answer);
 	static IsAssetValidFuncPtr IsAssetValid;
 
-	typedef HAPI_Result (*LoadAssetLibraryFromFileFuncPtr)(const char * file_path, HAPI_AssetLibraryId* library_id);
+	typedef HAPI_Result (*LoadAssetLibraryFromFileFuncPtr)(const char * file_path, bool allow_overwrite, HAPI_AssetLibraryId* library_id);
 	static LoadAssetLibraryFromFileFuncPtr LoadAssetLibraryFromFile;
 
-	typedef HAPI_Result (*LoadAssetLibraryFromMemoryFuncPtr)(const char * library_buffer, int library_buffer_size, HAPI_AssetLibraryId * library_id);
+	typedef HAPI_Result (*LoadAssetLibraryFromMemoryFuncPtr)(const char * library_buffer, int library_buffer_size, bool allow_overwrite, HAPI_AssetLibraryId * library_id);
 	static LoadAssetLibraryFromMemoryFuncPtr LoadAssetLibraryFromMemory;
 
 	typedef HAPI_Result (*GetAvailableAssetCountFuncPtr)(HAPI_AssetLibraryId library_id, int * asset_count);
