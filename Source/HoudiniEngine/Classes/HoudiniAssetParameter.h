@@ -79,6 +79,9 @@ public:
 	/** Update parameter's node id. This is necessary after parameter is loaded. **/
 	void SetNodeId(HAPI_NodeId InNodeId);
 
+	/** Mark this parameter as unchanged. **/
+	void UnmarkChanged();
+
 public:
 
 	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
