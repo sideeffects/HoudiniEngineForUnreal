@@ -39,7 +39,7 @@ public:
 	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 	/** Create widget for this parameter and add it to a given category. **/
-	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
+	virtual void CreateWidget(IDetailCategoryBuilder& InDetailCategoryBuilder);
 
 	/** Create widget for this parameter inside a given box. **/
 	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
@@ -148,6 +148,9 @@ protected:
 	virtual void PrintParameterInfo();
 
 protected:
+
+	/** Builder used in construction of this parameter. **/
+	IDetailCategoryBuilder* DetailCategoryBuilder;
 
 	/** Owner component. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;
