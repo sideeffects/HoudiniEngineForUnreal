@@ -654,10 +654,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						}
 
 						// Update properties panel after instantiation.
-						if(bInstantiated)
-						{
-							UpdateEditorProperties();
-						}
+						UpdateEditorProperties();
 					}
 					else
 					{
@@ -860,12 +857,11 @@ UHoudiniAssetComponent::UpdateEditorProperties()
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
 	if(GEditor && HoudiniAssetActor && bIsNativeComponent)
 	{
-		// Manually reselect the actor - this will cause details panel to be updated and force our
-		// property changes to be picked up by the UI.
-		GEditor->SelectActor(HoudiniAssetActor, true, true);
+		TArray<UObject*> SelectedActor;
+		SelectedActor.Add(HoudiniAssetActor);
 
-		// Notify the editor about selection change.
-		GEditor->NoteSelectionChange();
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UpdatePropertyViews(SelectedActor);
 	}
 }
 
@@ -1371,10 +1367,7 @@ UHoudiniAssetComponent::PostLoad()
 	}
 
 	// Update properties panel after instantiation.
-	if(bInstantiated)
-	{
-		UpdateEditorProperties();
-	}
+	UpdateEditorProperties();
 }
 
 
@@ -1972,6 +1965,12 @@ UHoudiniAssetComponent::CreateParameters()
 					break;
 				}
 
+				case HAPI_PARMTYPE_FOLDERLIST:
+				case HAPI_PARMTYPE_FOLDER:
+				{
+					continue;
+				}
+
 				case HAPI_PARMTYPE_PATH_FILE:
 				case HAPI_PARMTYPE_PATH_FILE_GEO:
 				case HAPI_PARMTYPE_PATH_FILE_IMAGE:
@@ -1980,6 +1979,10 @@ UHoudiniAssetComponent::CreateParameters()
 				}
 
 				case HAPI_PARMTYPE_PATH_NODE:
+				{
+					continue;
+				}
+
 				default:
 				{
 					// Just ignore unsupported types for now.
