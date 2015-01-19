@@ -20,7 +20,9 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	Super(ObjectInitializer),
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(true),
-	bTransformChangeTriggersCooks(false)
+	bTransformChangeTriggersCooks(false),
+	CollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),
+	RenderedCollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION))
 {
 #if WITH_EDITORONLY_DATA
 	if(!IsRunningCommandlet())
@@ -58,6 +60,19 @@ void
 UHoudiniRuntimeSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
+
+	// Disable Collision generation options for now.
+	{
+		if(UProperty* Property = LocateProperty(TEXT("CollisionGroupName")))
+		{
+			Property->SetPropertyFlags(CPF_EditConst);
+		}
+
+		if(UProperty* Property = LocateProperty(TEXT("RenderedCollisionGroupName")))
+		{
+			Property->SetPropertyFlags(CPF_EditConst);
+		}
+	}
 }
 
 
