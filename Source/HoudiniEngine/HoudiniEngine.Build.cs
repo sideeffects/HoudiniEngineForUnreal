@@ -22,93 +22,94 @@
 
 */
 
-namespace UnrealBuildTool.Rules
+using UnrealBuildTool;
+
+public class HoudiniEngine : ModuleRules
 {
-	public class HoudiniEngine : ModuleRules
+	public HoudiniEngine( TargetInfo Target )
 	{
-		public HoudiniEngine(TargetInfo Target)
+		string HFSPath = "";
+		string HoudiniVersion = "14.0.221";
+
+		if ( HFSPath == "" )
 		{
-			string HFSPath = "";
-			string HoudiniVersion = "14.0.221";
-			string HoudiniEngineVersion = "1.9.8";
-
-			string HAPILib = "";
-			string HAPILibPath = "";
-
-			if ( HFSPath == "" )
+			if( Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 )
 			{
-				if( Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 )
-				{
-					HFSPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
-				}
-				else if( Target.Platform == UnrealTargetPlatform.Mac )
-				{
-					HFSPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion;
-				}
-				else if( Target.Platform == UnrealTargetPlatform.Linux )
-				{
-					HFSPath = "/opt/hfs" + HoudiniVersion;
-				}
+				HFSPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
 			}
-
-			string HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
-
-			Definitions.Add("HOUDINI_ENGINE_HFS_PATH=\"" + HFSPath + "\"");
-
-			PublicIncludePaths.AddRange(
-				new string[] {
-					// ... add public include paths required here ...
-					HAPIIncludePath
-				}
-				);
-
-			PrivateIncludePaths.AddRange(
-				new string[] {
-					"HoudiniEngine/Private"
-					// ... add other private include paths required here ...
-				}
-				);
-
-			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"Core",
-					"CoreUObject",
-					"Engine",
-					"RenderCore",
-					"ShaderCore",
-					"InputCore",
-					"RHI",
-					"AssetTools",
-					"UnrealEd",
-					"Slate",
-					"SlateCore",
-					"Projects",
-					"PropertyEditor",
-					"ContentBrowser",
-					"RawMesh",
-					"TargetPlatform",
-					"LevelEditor",
-					"MainFrame",
-					"EditorStyle",
-					"EditorWidgets",
-					"AppFramework"
-				}
-				);
-
-			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
-					// ... add private dependencies that you statically link with here ...
-				}
-				);
-
-			DynamicallyLoadedModuleNames.AddRange(
-				new string[]
-				{
-					// ... add any modules that your module loads dynamically here ...
-				}
-				);
+			else if( Target.Platform == UnrealTargetPlatform.Mac )
+			{
+				HFSPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion + "/Resources";
+			}
+			else if( Target.Platform == UnrealTargetPlatform.Linux )
+			{
+				HFSPath = "/opt/hfs" + HoudiniVersion;
+			}
 		}
+
+		string HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
+
+		if ( HFSPath != "" )
+		{
+			if( Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 )
+			{
+				Definitions.Add( "HOUDINI_ENGINE_HFS_PATH=\"" + HFSPath + "\"" );
+			}
+		}
+
+		PublicIncludePaths.AddRange(
+			new string[] {
+				// ... add public include paths required here ...
+				HAPIIncludePath
+			}
+			);
+
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"HoudiniEngine/Private"
+				// ... add other private include paths required here ...
+			}
+			);
+
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"RenderCore",
+				"ShaderCore",
+				"InputCore",
+				"RHI",
+				"AssetTools",
+				"UnrealEd",
+				"Slate",
+				"SlateCore",
+				"Projects",
+				"PropertyEditor",
+				"ContentBrowser",
+				"RawMesh",
+				"TargetPlatform",
+				"LevelEditor",
+				"MainFrame",
+				"EditorStyle",
+				"EditorWidgets",
+				"AppFramework"
+			}
+			);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
+				// ... add private dependencies that you statically link with here ...
+			}
+			);
+
+		DynamicallyLoadedModuleNames.AddRange(
+			new string[]
+			{
+				// ... add any modules that your module loads dynamically here ...
+			}
+			);
 	}
 }
