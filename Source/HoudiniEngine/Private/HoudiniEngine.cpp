@@ -103,7 +103,7 @@ FHoudiniEngine::StartupModule()
 		void* HAPILibraryHandle = nullptr;
 
 		// See if we have HFS defined, if so attempt to load HAPI from given HFS.
-		FString HFSPath = TEXT(HOUDINI_ENGINE_HFS_PATH);
+		FString HFSPath = HOUDINI_ENGINE_HFS_PATH;
 		if(!HFSPath.IsEmpty())
 		{
 			HFSPath += TEXT("/bin");

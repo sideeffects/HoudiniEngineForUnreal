@@ -106,7 +106,7 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 
 		// Add path of libHAPI.
 		{
-			FString HFSPath = TEXT(HOUDINI_ENGINE_HFS_PATH);
+			FString HFSPath = HOUDINI_ENGINE_HFS_PATH;
 			if(!HFSPath.IsEmpty())
 			{
 				HFSPath += TEXT("/bin");
