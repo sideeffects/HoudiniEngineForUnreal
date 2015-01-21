@@ -61,6 +61,12 @@ public:
 	/** Return hash value for this object, used when using this object as a key inside hashing containers. **/
 	uint32 GetTypeHash() const;
 
+	/** Return parameter id of this parameter. **/
+	HAPI_ParmId GetParmId() const;
+
+	/** Return parameter id of a parent of this parameter. **/
+	HAPI_ParmId GetParmParentId() const;
+
 	/** Set component for this parameter. **/
 	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent);
 
@@ -72,9 +78,6 @@ public:
 
 	/** Return label name. **/
 	const FString& GetParameterLabel() const;
-
-	/** Return parent parameter name, if no parent is present will return empty string. **/
-	const FString& GetParentParameterName() const;
 
 	/** Update parameter's node id. This is necessary after parameter is loaded. **/
 	void SetNodeId(HAPI_NodeId InNodeId);
@@ -164,14 +167,14 @@ protected:
 	/** Label of this parameter. **/
 	FString ParameterLabel;
 
-	/** Name of parent parameter, used for serialization purposes. **/
-	FString ParentParameterName;
-
 	/** Node this parameter belongs to. **/
 	HAPI_NodeId NodeId;
 
 	/** Id of this parameter. **/
 	HAPI_ParmId ParmId;
+
+	/** Id of parent parameter, -1 if root is parent. **/
+	HAPI_ParmId ParmParentId;
 
 	/** Tuple size - arrays. **/
 	int32 TupleSize;
