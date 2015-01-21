@@ -114,18 +114,19 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 			}
 			else
 			{
+				FString HoudiniInstallationPath = TEXT("Not Found");
+
+#if PLATFORM_WINDOWS
 				FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
-				FString HoudiniInstallationPath;
 
 				if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
 				{
 					HoudiniInstallationPath += TEXT("/bin");
-					CreateHAPILibraryPathEntry(HoudiniInstallationPath, InformationCategoryBuilder);
 				}
-				else
-				{
-					CreateHAPILibraryPathEntry(TEXT("Not Found"), InformationCategoryBuilder);
-				}
+#elif PLATFORM_MAC
+				HoudiniInstallationPath = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Resources/bin"));
+#endif
+				CreateHAPILibraryPathEntry(HoudiniInstallationPath, InformationCategoryBuilder);
 			}
 		}
 	}

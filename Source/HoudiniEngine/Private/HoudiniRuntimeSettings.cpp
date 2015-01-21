@@ -38,8 +38,8 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	bDoubleSidedGeometry(false),
 	PhysMaterial(nullptr),
 	CollisionTraceFlag(CTF_UseDefault),
-	LpvBiasMultiplier(1.0f),
 	LightMapResolution(32),
+	LpvBiasMultiplier(1.0f),
 	LightMapCoordinateIndex(1),
 	bUseMaximumStreamingTexelRatio(false),
 	StreamingDistanceMultiplier(1.0f)
