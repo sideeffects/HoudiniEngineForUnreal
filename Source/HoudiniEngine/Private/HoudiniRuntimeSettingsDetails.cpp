@@ -131,8 +131,9 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 
 				FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
 					HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+				FString CheckLibHAPILocation = HoudiniLocation + TEXT("/libHAPI.dylib");
 
-				if(FPaths::FileExists(HoudiniLocation))
+				if(FPaths::FileExists(CheckLibHAPILocation))
 				{
 					LibHAPILocation = HoudiniLocation;
 				}
