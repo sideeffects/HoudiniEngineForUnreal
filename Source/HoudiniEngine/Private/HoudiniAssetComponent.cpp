@@ -304,7 +304,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 				FString WarningMessage = FString::Printf(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
-														 TEXT("libHAPI.dll was loaded, but has wrong version. ")
+														 TEXT("libHAPI was loaded, but has wrong version. "),
 														 TEXT("No cooking / instantiation will take place."),
 														 HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
 														 HAPI_VERSION_HOUDINI_ENGINE_MINOR,
@@ -325,7 +325,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
 				FText WarningTitleText = FText::FromString(WarningTitle);
 				FString WarningMessage = TEXT("Houdini Installation was not detected. ")
-										 TEXT("Failed to locate or load libHAPI.dll. ")
+										 TEXT("Failed to locate or load libHAPI. ")
 										 TEXT("No cooking / instantiation will take place.");
 				FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
 

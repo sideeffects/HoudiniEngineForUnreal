@@ -153,8 +153,9 @@ FHoudiniEngine::StartupModule()
 			// Attempt to load from standard Mac OS X installation.
 			FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
 				HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+			FString HoudiniLibHAPILocation = HoudiniLocation + TEXT("/libHAPI.dylib");
 
-			if(FPaths::FileExists(HoudiniLocation))
+			if(FPaths::FileExists(HoudiniLibHAPILocation))
 			{
 				FPlatformProcess::PushDllDirectory(*HoudiniLocation);
 				HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dylib"));
