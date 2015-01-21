@@ -156,9 +156,9 @@ FHoudiniEngine::StartupModule()
 
 			if(FPaths::FileExists(HoudiniLocation))
 			{
-				FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
+				FPlatformProcess::PushDllDirectory(*HoudiniLocation);
 				HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dylib"));
-				FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
+				FPlatformProcess::PopDllDirectory(*HoudiniLocation);
 
 				if(HAPILibraryHandle)
 				{
