@@ -114,19 +114,32 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 			}
 			else
 			{
-				FString HoudiniInstallationPath = TEXT("Not Found");
+				FString LibHAPILocation = TEXT("Not Found");
 
 #if PLATFORM_WINDOWS
-				FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+
+				FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"),
+					HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+				FString HoudiniInstallationPath;
 
 				if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
 				{
-					HoudiniInstallationPath += TEXT("/bin");
+					LibHAPILocation = FString::Printf(TEXT("%s/bin"), *HoudiniInstallationPath);
 				}
+
 #elif PLATFORM_MAC
-				HoudiniInstallationPath = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Resources/bin"));
+
+				FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
+					HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+
+				if(FPaths::FileExists(HoudiniLocation))
+				{
+					LibHAPILocation = HoudiniLocation;
+				}
+
 #endif
-				CreateHAPILibraryPathEntry(HoudiniInstallationPath, InformationCategoryBuilder);
+
+				CreateHAPILibraryPathEntry(LibHAPILocation, InformationCategoryBuilder);
 			}
 		}
 	}
