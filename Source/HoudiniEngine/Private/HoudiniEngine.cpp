@@ -106,6 +106,9 @@ FHoudiniEngine::StartupModule()
 		FString HFSPath = HOUDINI_ENGINE_HFS_PATH;
 		if(!HFSPath.IsEmpty())
 		{
+
+#if PLATFORM_WINDOWS
+
 			HFSPath += TEXT("/bin");
 			FPlatformProcess::PushDllDirectory(*HFSPath);
 			HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dll"));
@@ -115,11 +118,19 @@ FHoudiniEngine::StartupModule()
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dll from HFS path: %s"), *HFSPath);
 			}
+
+#elif PLATFORM_MAC
+
+			// Do not support loading HFS build on Mac OS X for now due to bug in Unreal build system.
+
+#endif
 		}
 
-#if PLATFORM_WINDOWS
 		if(!HAPILibraryHandle)
 		{
+
+#if PLATFORM_WINDOWS
+
 			// Otherwise, attempt to look up location in the registry.
 			FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
 			FString HoudiniInstallationPath;
@@ -133,11 +144,31 @@ FHoudiniEngine::StartupModule()
 
 				if(HAPILibraryHandle)
 				{
-					HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dll from Registry path: %s"), *HoudiniInstallationPath);
+					HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dll from Registry path %s"), *HoudiniInstallationPath);
 				}
 			}
-		}
+
+#elif PLATFORM_MAC
+
+			// Attempt to load from standard Mac OS X installation.
+			FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
+				HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+
+			if(FPaths::FileExists(HoudiniLocation))
+			{
+				FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
+				HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dylib"));
+				FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
+
+				if(HAPILibraryHandle)
+				{
+					HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dylib from %s"), *HoudiniLocation);
+				}
+			}
+
 #endif
+
+		}
 
 		if(HAPILibraryHandle)
 		{
