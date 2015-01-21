@@ -16,22 +16,22 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-UHoudiniAssetParameterSeparator::UHoudiniAssetParameterSeparator(const FObjectInitializer& ObjectInitializer) :
+UHoudiniAssetParameterFolder::UHoudiniAssetParameterFolder(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
 
 }
 
 
-UHoudiniAssetParameterSeparator::~UHoudiniAssetParameterSeparator()
+UHoudiniAssetParameterFolder::~UHoudiniAssetParameterFolder()
 {
 
 }
 
 
-UHoudiniAssetParameterSeparator*
-UHoudiniAssetParameterSeparator::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
-										HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterFolder*
+UHoudiniAssetParameterFolder::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
+									 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
 	if(!Outer)
@@ -44,40 +44,41 @@ UHoudiniAssetParameterSeparator::Create(UHoudiniAssetComponent* InHoudiniAssetCo
 		}
 	}
 
-	UHoudiniAssetParameterSeparator* HoudiniAssetParameterSeparator = NewObject<UHoudiniAssetParameterSeparator>(Outer);
+	UHoudiniAssetParameterFolder* HoudiniAssetParameterFolder = NewObject<UHoudiniAssetParameterFolder>(Outer);
 
-	HoudiniAssetParameterSeparator->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
-	return HoudiniAssetParameterSeparator;
+	HoudiniAssetParameterFolder->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
+	return HoudiniAssetParameterFolder;
 }
 
 
 bool
-UHoudiniAssetParameterSeparator::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
-												 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterFolder::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
+											  HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
 		return false;
 	}
 
-	// We can only handle separator type.
-	if(HAPI_PARMTYPE_SEPARATOR != ParmInfo.type)
+	// We can only handle folder and folder list types.
+	if(HAPI_PARMTYPE_FOLDER != ParmInfo.type)
 	{
 		return false;
 	}
 
 	// Assign internal Hapi values index.
-	SetValuesIndex(ParmInfo.stringValuesIndex);
+	SetValuesIndex(ParmInfo.intValuesIndex);
 
 	return true;
 }
 
 
 void
-UHoudiniAssetParameterSeparator::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
+UHoudiniAssetParameterFolder::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	Super::CreateWidget(DetailCategoryBuilder);
 
+	/*
 	TSharedPtr<SSeparator> Separator;
 
 	DetailCategoryBuilder.AddCustomRow(TEXT(""))
@@ -95,5 +96,6 @@ UHoudiniAssetParameterSeparator::CreateWidget(IDetailCategoryBuilder& DetailCate
 	{
 		Separator->SetEnabled(!bIsDisabled);
 	}
+	*/
 }
 

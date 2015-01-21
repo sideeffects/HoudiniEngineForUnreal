@@ -349,7 +349,7 @@ public:
 protected:
 
 	/** Parameters for this component's asset, indexed by parameter name. **/
-	TMap<FString, UHoudiniAssetParameter*> Parameters;
+	TMap<HAPI_ParmId, UHoudiniAssetParameter*> Parameters;
 
 	/** Inputs for this component's asset. **/
 	TArray<UHoudiniAssetInput*> Inputs;

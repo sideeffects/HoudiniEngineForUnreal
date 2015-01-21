@@ -35,6 +35,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	ParentParameter(nullptr),
 	NodeId(-1),
 	ParmId(-1),
+	ParmParentId(-1),
 	TupleSize(1),
 	ValuesIndex(-1),
 	bIsSpare(false),
@@ -43,8 +44,6 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 {
 	ParameterName = TEXT("");
 	ParameterLabel = TEXT("");
-
-	ParentParameterName = TEXT("");
 }
 
 
@@ -78,6 +77,9 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 
 	// Set ids.
 	SetNodeParmIds(InNodeId, ParmInfo.id);
+
+	// Set parent id.
+	ParmParentId = ParmInfo.parentId;
 
 	// Set tuple count.
 	TupleSize = ParmInfo.size;
@@ -154,6 +156,11 @@ void
 UHoudiniAssetParameter::SetParentParameter(UHoudiniAssetParameter* InParentParameter)
 {
 	ParentParameter = InParentParameter;
+
+	if(ParentParameter)
+	{
+		ParmParentId = ParentParameter->GetParmId();
+	}
 }
 
 
@@ -162,6 +169,20 @@ UHoudiniAssetParameter::GetTypeHash() const
 {
 	// We do hashing based on parameter name.
 	return ::GetTypeHash(ParameterName);
+}
+
+
+HAPI_ParmId
+UHoudiniAssetParameter::GetParmId() const
+{
+	return ParmId;
+}
+
+
+HAPI_ParmId
+UHoudiniAssetParameter::GetParmParentId() const
+{
+	return ParmParentId;
 }
 
 
@@ -189,15 +210,6 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
-	// Serialize name of parent.
-	bool bParentPresent = (ParentParameter != nullptr);
-	Ar << bParentPresent;
-
-	if(bParentPresent)
-	{
-		Ar << ParentParameterName;
-	}
-
 	// Component will be assigned separately upon loading.
 
 	Ar << ParameterName;
@@ -205,6 +217,8 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 
 	Ar << NodeId;
 	Ar << ParmId;
+
+	Ar << ParmParentId;
 
 	Ar << TupleSize;
 	Ar << ValuesIndex;
@@ -398,13 +412,6 @@ const FString&
 UHoudiniAssetParameter::GetParameterLabel() const
 {
 	return ParameterLabel;
-}
-
-
-const FString&
-UHoudiniAssetParameter::GetParentParameterName() const
-{
-	return ParentParameterName;
 }
 
 
