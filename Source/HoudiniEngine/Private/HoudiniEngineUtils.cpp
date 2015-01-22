@@ -3092,3 +3092,181 @@ FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
 		RawMesh.WedgeTexCoords[Idx].Reset();
 	}
 }
+
+
+FString
+FHoudiniEngineUtils::HoudiniGetLibHAPIName()
+{
+	static const FString LibHAPIName =
+
+#if PLATFORM_WINDOWS
+
+		TEXT("libHAPI.dll");
+
+#elif PLATFORM_MAC
+
+		TEXT("libHAPI.dylib");
+
+#elif PLATFORM_LINUX
+
+		TEXT("libHAPI.so");
+
+#else
+
+		TEXT("");
+
+#endif
+
+	return LibHAPIName;
+}
+
+
+void*
+FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
+{
+	void* HAPILibraryHandle = nullptr;
+
+	// Before doing anything platform specific, check if HFS environment variable is defined.
+	TCHAR HFS_ENV_VARIABLE[MAX_PATH];
+	FPlatformMisc::GetEnvironmentVariable(TEXT("HFS"), HFS_ENV_VARIABLE, MAX_PATH);
+	FString HFSPath = HFS_ENV_VARIABLE;
+
+	// Get platform specific name of libHAPI.
+	FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
+
+	// We have HFS environment variable defined, attempt to load libHAPI from it.
+	if(!HFSPath.IsEmpty())
+	{
+
+#if PLATFORM_WINDOWS
+
+		HFSPath += TEXT("/bin");
+
+#elif PLATFORM_MAC || PLATFORM_LINUX
+
+		HFSPath += TEXT("/dsolib");
+
+#endif
+
+		// Create full path to libHAPI binary.
+		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HFSPath, *LibHAPIName);
+
+		if(FPaths::FileExists(LibHAPIPath))
+		{
+			// libHAPI binary exists at specified location, attempt to load it.
+			FPlatformProcess::PushDllDirectory(*HFSPath);
+
+#if PLATFORM_WINDOWS
+
+			HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIName);
+
+#elif PLATFORM_MAC || PLATFORM_LINUX
+
+			HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIPath);
+
+#endif
+
+			FPlatformProcess::PopDllDirectory(*HFSPath);
+
+			// If library has been loaded successfully we can stop.
+			if(HAPILibraryHandle)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from HFS environment path %s"), *LibHAPIName, *HFSPath);
+				StoredLibHAPILocation = HFSPath;
+				return HAPILibraryHandle;
+			}
+		}
+	}
+
+	// Otherwise, we will attempt to detect Houdini installation.
+#if PLATFORM_WINDOWS
+
+	// On Windows, we have also hardcoded HFS path in plugin configuration file; attempt to load from it.
+	HFSPath = HOUDINI_ENGINE_HFS_PATH;
+
+	if(!HFSPath.IsEmpty())
+	{
+		HFSPath += TEXT("/bin");
+
+		// Create full path to libHAPI binary.
+		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HFSPath, *LibHAPIName);
+
+		if(FPaths::FileExists(LibHAPIPath))
+		{
+			FPlatformProcess::PushDllDirectory(*HFSPath);
+			HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIName);
+			FPlatformProcess::PopDllDirectory(*HFSPath);
+
+			if(HAPILibraryHandle)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from Plugin defined HFS path %s"), *LibHAPIName, *HFSPath);
+				StoredLibHAPILocation = HFSPath;
+				return HAPILibraryHandle;
+			}
+		}
+	}
+
+	// Otherwise on Windows, we look up standard Houdini installation in the registry.
+	FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+	FString HoudiniInstallationPath;
+
+	if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
+	{
+		HoudiniInstallationPath += TEXT("/bin");
+
+		// Create full path to libHAPI binary.
+		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HoudiniInstallationPath, *LibHAPIName);
+
+		if(FPaths::FileExists(LibHAPIPath))
+		{
+			FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
+			HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIName);
+			FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
+
+			if(HAPILibraryHandle)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from Registry path %s"), *LibHAPIName, *HoudiniInstallationPath);
+				StoredLibHAPILocation = HoudiniInstallationPath;
+				return HAPILibraryHandle;
+			}
+		}
+	}
+
+#else
+
+#	if PLATFORM_MAC
+
+	// Attempt to load from standard Mac OS X installation.
+	FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
+											  HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+
+#	elif PLATFORM_LINUX
+
+	// Attempt to load from standard Mac OS X installation.
+	FString HoudiniLocation = FString::Printf(TEXT("/opt/dev%d.%d.%d/dsolib"), 
+											  HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+
+#	endif
+
+	// Create full path to libHAPI binary.
+	FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HoudiniLocation, *LibHAPIName);
+
+	if(FPaths::FileExists(LibHAPIPath))
+	{
+		FPlatformProcess::PushDllDirectory(*HoudiniLocation);
+		HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIPath);
+		FPlatformProcess::PopDllDirectory(*HoudiniLocation);
+
+		if(HAPILibraryHandle)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from expected installation %s"), *LibHAPIName, *HoudiniLocation);
+			StoredLibHAPILocation = HoudiniLocation;
+			return HAPILibraryHandle;
+		}
+	}
+
+#endif
+
+	StoredLibHAPILocation = TEXT("");
+	return HAPILibraryHandle;
+}

@@ -55,6 +55,13 @@ FHoudiniEngine::CheckHapiVersionMismatch() const
 }
 
 
+const FString&
+FHoudiniEngine::GetLibHAPILocation() const
+{
+	return LibHAPILocation;
+}
+
+
 FHoudiniEngine&
 FHoudiniEngine::Get()
 {
@@ -100,80 +107,7 @@ FHoudiniEngine::StartupModule()
 
 	// Before starting the module, we need to locate and load HAPI library.
 	{
-		void* HAPILibraryHandle = nullptr;
-
-		// See if we have HFS defined, if so attempt to load HAPI from given HFS.
-		FString HFSPath = HOUDINI_ENGINE_HFS_PATH;
-		if(!HFSPath.IsEmpty())
-		{
-
-#if PLATFORM_WINDOWS
-
-			HFSPath += TEXT("/bin");
-			FPlatformProcess::PushDllDirectory(*HFSPath);
-			HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dll"));
-			FPlatformProcess::PopDllDirectory(*HFSPath);
-
-			if(HAPILibraryHandle)
-			{
-				HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dll from HFS path: %s"), *HFSPath);
-			}
-
-#elif PLATFORM_MAC
-
-			// We load HFS from environment variable on mac.
-			/*
-			TCHAR HFSPATH[MAX_PATH];
-			FPlatformMisc::GetEnvironmentVariable(TEXT("HFS"), HFSPATH, MAX_PATH);
-			FString HfsPath = HFSPATH;
-			*/
-#endif
-		}
-
-		if(!HAPILibraryHandle)
-		{
-
-#if PLATFORM_WINDOWS
-
-			// Otherwise, attempt to look up location in the registry.
-			FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
-			FString HoudiniInstallationPath;
-
-			if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
-			{
-				HoudiniInstallationPath += TEXT("/bin");
-				FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
-				HAPILibraryHandle = FPlatformProcess::GetDllHandle(TEXT("libHAPI.dll"));
-				FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
-
-				if(HAPILibraryHandle)
-				{
-					HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dll from Registry path %s"), *HoudiniInstallationPath);
-				}
-			}
-
-#elif PLATFORM_MAC
-
-			// Attempt to load from standard Mac OS X installation.
-			FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
-				HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
-			FString HoudiniLibHAPILocation = HoudiniLocation + TEXT("/libHAPI.dylib");
-
-			if(FPaths::FileExists(HoudiniLibHAPILocation))
-			{
-				FPlatformProcess::PushDllDirectory(*HoudiniLocation);
-				HAPILibraryHandle = FPlatformProcess::GetDllHandle(*HoudiniLibHAPILocation);
-				FPlatformProcess::PopDllDirectory(*HoudiniLocation);
-
-				if(HAPILibraryHandle)
-				{
-					HOUDINI_LOG_MESSAGE(TEXT("Loaded libHAPI.dylib from %s"), *HoudiniLocation);
-				}
-			}
-
-#endif
-
-		}
+		void* HAPILibraryHandle = FHoudiniEngineUtils::LoadLibHAPI(LibHAPILocation);
 
 		if(HAPILibraryHandle)
 		{
