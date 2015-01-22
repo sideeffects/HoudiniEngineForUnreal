@@ -121,8 +121,12 @@ FHoudiniEngine::StartupModule()
 
 #elif PLATFORM_MAC
 
-			// Do not support loading HFS build on Mac OS X for now due to bug in Unreal build system.
-
+			// We load HFS from environment variable on mac.
+			/*
+			TCHAR HFSPATH[MAX_PATH];
+			FPlatformMisc::GetEnvironmentVariable(TEXT("HFS"), HFSPATH, MAX_PATH);
+			FString HfsPath = HFSPATH;
+			*/
 #endif
 		}
 
