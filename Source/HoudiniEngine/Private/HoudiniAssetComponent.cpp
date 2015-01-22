@@ -1277,7 +1277,7 @@ UHoudiniAssetComponent::OnRegister()
 			HoudiniAssetInstanceInput->RecreateRenderStates();
 
 			// Recreate physics state.
-			//HoudiniAssetInstanceInput->RecreatePhysicsStates();
+			HoudiniAssetInstanceInput->RecreatePhysicsStates();
 		}
 	}
 }
