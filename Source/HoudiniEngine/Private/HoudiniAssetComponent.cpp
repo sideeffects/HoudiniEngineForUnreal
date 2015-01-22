@@ -303,15 +303,19 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
 				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
+				// Get platform specific name of libHAPI.
+				FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
+
 				FString WarningMessage = FString::Printf(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
-														 TEXT("libHAPI was loaded, but has wrong version. "),
+														 TEXT("%s was loaded, but has wrong version. "),
 														 TEXT("No cooking / instantiation will take place."),
 														 HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
 														 HAPI_VERSION_HOUDINI_ENGINE_MINOR,
 														 HAPI_VERSION_HOUDINI_ENGINE_API,
 														 RunningEngineMajor,
 														 RunningEngineMinor,
-														 RunningEngineApi);
+														 RunningEngineApi,
+														 *LibHAPIName);
 
 				FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
 				FText WarningTitleText = FText::FromString(WarningTitle);
@@ -321,12 +325,17 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 			}
 			else if(UHoudiniAssetComponent::bDisplayEngineNotInitialized)
 			{
+				// Get platform specific name of libHAPI.
+				FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
+
 				// If this is first time component is instantiated and we do not have Houdini Engine initialized, display message.
 				FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
 				FText WarningTitleText = FText::FromString(WarningTitle);
-				FString WarningMessage = TEXT("Houdini Installation was not detected. ")
-										 TEXT("Failed to locate or load libHAPI. ")
-										 TEXT("No cooking / instantiation will take place.");
+				FString WarningMessage = FString::Printf(TEXT("Houdini Installation was not detected. ")
+														 TEXT("Failed to locate or load %s. ")
+														 TEXT("No cooking / instantiation will take place."),
+														 *LibHAPIName);
+
 				FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
 
 				UHoudiniAssetComponent::bDisplayEngineNotInitialized = false;
