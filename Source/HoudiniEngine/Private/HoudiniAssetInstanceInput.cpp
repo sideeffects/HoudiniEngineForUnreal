@@ -222,7 +222,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 																								  HoudiniAssetComponent->GetOwner(), NAME_None, RF_Transient);
 
 		Component->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
-
 		Component->AttachTo(HoudiniAssetComponent);
 
 		SetComponentInstanceTransformations(Component, InstancedTransforms[Idx], Idx);
@@ -241,6 +240,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 		Component->SetStaticMesh(StaticMeshes[Idx]);
 		Component->SetVisibility(true);
 		Component->RegisterComponent();
+		Component->GetBodyInstance()->bAutoWeld = false;
 	}
 
 	GeoPartObjects.Empty();
@@ -737,6 +737,7 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 			Component->AttachTo(HoudiniAssetComponent);
 			Component->RegisterComponent();
 			Component->SetVisibility(true);
+			Component->GetBodyInstance()->bAutoWeld = false;
 
 			InstancedStaticMeshComponents[Idx] = Component;
 			StaticMeshes[Idx] = nullptr;
