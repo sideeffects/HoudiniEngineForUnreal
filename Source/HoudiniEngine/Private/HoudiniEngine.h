@@ -44,6 +44,7 @@ public:
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
 	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
 	virtual bool CheckHapiVersionMismatch() const override;
+	virtual const FString& GetLibHAPILocation() const override;
 	virtual void AddTask(const FHoudiniEngineTask& Task) override;
 	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) override;
 	virtual void RemoveTaskInfo(const FGuid HapIGUID) override;
@@ -117,6 +118,9 @@ private:
 
 	/** Scheduler used to schedule HAPI instantiation and cook tasks. **/
 	FHoudiniEngineScheduler* HoudiniEngineScheduler;
+
+	/** Location of libHAPI binary. **/
+	FString LibHAPILocation;
 
 	/** Is set to true when mismatch between defined and running HAPI versions is detected. **/
 	bool bHAPIVersionMismatch;

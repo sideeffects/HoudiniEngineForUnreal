@@ -111,6 +111,19 @@ public:
 	/** Given raw positions incoming from HAPI, convert them to Unreal's FVector and perform necessary flipping and scaling. **/
 	static void ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw, TArray<FVector>& DataOut);
 
+	/** Returns platform specific name of libHAPI. **/
+	static FString HoudiniGetLibHAPIName();
+
+	/** Load libHAPI and return handle to it, also store location of loaded libHAPI in passed argument. **/
+	static void* LoadLibHAPI(FString& StoredLibHAPILocation);
+
+
+	/** Return HFS path, returns empty if not defined. **/
+	//static FString HoudiniGetHFSPath();
+
+	/** Return full path to libHAPI. **/
+	//static FString HoudiniGetLibHAPIPath();
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/

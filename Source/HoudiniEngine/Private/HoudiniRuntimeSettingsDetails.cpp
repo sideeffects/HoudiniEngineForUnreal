@@ -106,42 +106,13 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 
 		// Add path of libHAPI.
 		{
-			FString HFSPath = HOUDINI_ENGINE_HFS_PATH;
-			if(!HFSPath.IsEmpty())
+			FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
+			if(LibHAPILocation.IsEmpty())
 			{
-				HFSPath += TEXT("/bin");
-				CreateHAPILibraryPathEntry(HFSPath, InformationCategoryBuilder);
+				LibHAPILocation = TEXT("Not Found");
 			}
-			else
-			{
-				FString LibHAPILocation = TEXT("Not Found");
 
-#if PLATFORM_WINDOWS
-
-				FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"),
-					HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
-				FString HoudiniInstallationPath;
-
-				if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
-				{
-					LibHAPILocation = FString::Printf(TEXT("%s/bin"), *HoudiniInstallationPath);
-				}
-
-#elif PLATFORM_MAC
-
-				FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
-					HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
-				FString CheckLibHAPILocation = HoudiniLocation + TEXT("/libHAPI.dylib");
-
-				if(FPaths::FileExists(CheckLibHAPILocation))
-				{
-					LibHAPILocation = HoudiniLocation;
-				}
-
-#endif
-
-				CreateHAPILibraryPathEntry(LibHAPILocation, InformationCategoryBuilder);
-			}
+			CreateHAPILibraryPathEntry(LibHAPILocation, InformationCategoryBuilder);
 		}
 	}
 }
@@ -273,18 +244,10 @@ FHoudiniRuntimeSettingsDetails::CreateHAPILibraryPathEntry(const FString& LibHAP
 {
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
-	FString LibHAPIExtensionName = TEXT("Location of libHAPI");
-
-#if PLATFORM_WINDOWS
-	LibHAPIExtensionName += TEXT(".dll");
-#elif PLATFORM_MAC
-	LibHAPIExtensionName += TEXT(".dylib");
-#elif PLATFORM_LINUX
-	LibHAPIExtensionName += TEXT(".so");
-#endif
+	FString LibHAPIName = FString::Printf(TEXT("Location of %s"), *FHoudiniEngineUtils::HoudiniGetLibHAPIName());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(LibHAPIExtensionName)
+							.Text(LibHAPIName)
 							.Font(IDetailLayoutBuilder::GetDetailFont());
 
 	TSharedRef<STextBlock> TextBlock = SNew(STextBlock)
