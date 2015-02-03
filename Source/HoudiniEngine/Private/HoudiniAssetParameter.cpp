@@ -108,6 +108,12 @@ UHoudiniAssetParameter::CreateWidget(IDetailCategoryBuilder& InDetailCategoryBui
 {
 	// Store category builder.
 	DetailCategoryBuilder = &InDetailCategoryBuilder;
+
+	// Recursively create all child parameters.
+	for(TArray<UHoudiniAssetParameter*>::TIterator IterParameter(ChildParameters); IterParameter; ++IterParameter)
+	{
+		(*IterParameter)->CreateWidget(InDetailCategoryBuilder);
+	}
 }
 
 
@@ -168,6 +174,13 @@ UHoudiniAssetParameter::SetParentParameter(UHoudiniAssetParameter* InParentParam
 		// Add this parameter to parent collection of child parameters.
 		ParentParameter->AddChildParameter(this);
 	}
+}
+
+
+bool
+UHoudiniAssetParameter::IsChildParameter() const
+{
+	return ParentParameter != nullptr;
 }
 
 

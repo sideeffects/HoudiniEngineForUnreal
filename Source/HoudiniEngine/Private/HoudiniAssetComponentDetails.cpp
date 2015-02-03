@@ -142,7 +142,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 	}
 
-	// Create Houdini properties.
+	// Create Houdini parameters.
 	{
 		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniParameters", TEXT(""), ECategoryPriority::Important);
 		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
@@ -151,7 +151,12 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
 			{
 				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-				HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
+
+				// We want to create root parameters here; they will recursively create child parameters.
+				if(!HoudiniAssetParameter->IsChildParameter())
+				{
+					HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
+				}
 			}
 		}
 	}
