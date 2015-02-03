@@ -73,6 +73,9 @@ public:
 	/** Set parent parameter for this parameter. **/
 	void SetParentParameter(UHoudiniAssetParameter* InParentParameter);
 
+	/** Return true if parent parameter exists for this parameter. **/
+	bool IsChildParameter() const;
+
 	/** Return parameter name. **/
 	const FString& GetParameterName() const;
 
