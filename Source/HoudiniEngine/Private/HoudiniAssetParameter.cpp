@@ -57,6 +57,9 @@ bool
 UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
 										HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
+	// We need to reset child parameters.
+	ResetChildParameters();
+
 	// If parameter has changed, we do not need to recreate it.
 	if(bChanged)
 	{
@@ -159,7 +162,21 @@ UHoudiniAssetParameter::SetParentParameter(UHoudiniAssetParameter* InParentParam
 
 	if(ParentParameter)
 	{
+		// Retrieve parent parameter id.
 		ParmParentId = ParentParameter->GetParmId();
+
+		// Add this parameter to parent collection of child parameters.
+		ParentParameter->AddChildParameter(this);
+	}
+}
+
+
+void
+UHoudiniAssetParameter::AddChildParameter(UHoudiniAssetParameter* HoudiniAssetParameter)
+{
+	if(HoudiniAssetParameter)
+	{
+		ChildParameters.Add(HoudiniAssetParameter);
 	}
 }
 
@@ -377,6 +394,13 @@ void
 UHoudiniAssetParameter::UnmarkChanged()
 {
 	bChanged = false;
+}
+
+
+void
+UHoudiniAssetParameter::ResetChildParameters()
+{
+	ChildParameters.Empty();
 }
 
 
