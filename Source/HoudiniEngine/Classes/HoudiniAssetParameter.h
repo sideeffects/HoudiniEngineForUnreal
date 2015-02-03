@@ -85,6 +85,12 @@ public:
 	/** Mark this parameter as unchanged. **/
 	void UnmarkChanged();
 
+	/** Reset array containing all child parameters. **/
+	void ResetChildParameters();
+
+	/** Add a child parameter. **/
+	void AddChildParameter(UHoudiniAssetParameter* HoudiniAssetParameter);
+
 public:
 
 	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
@@ -151,6 +157,9 @@ protected:
 	virtual void PrintParameterInfo();
 
 protected:
+
+	/** Array containing all child parameters. **/
+	TArray<UHoudiniAssetParameter*> ChildParameters;
 
 	/** Builder used in construction of this parameter. **/
 	IDetailCategoryBuilder* DetailCategoryBuilder;
