@@ -3242,7 +3242,7 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 #	elif PLATFORM_LINUX
 
-	// Attempt to load from standard Mac OS X installation.
+	// Attempt to load from standard Linux installation.
 	FString HoudiniLocation = FString::Printf(TEXT("/opt/dev%d.%d.%d/dsolib"), 
 											  HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
 
