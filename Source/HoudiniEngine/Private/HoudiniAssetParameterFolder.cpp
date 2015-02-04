@@ -77,25 +77,5 @@ void
 UHoudiniAssetParameterFolder::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	Super::CreateWidget(DetailCategoryBuilder);
-
-	/*
-	TSharedPtr<SSeparator> Separator;
-
-	DetailCategoryBuilder.AddCustomRow(TEXT(""))
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.Padding(0, 0, 5, 0)
-		[
-			SAssignNew(Separator, SSeparator)
-			.Thickness(2.0f)
-		]
-	];
-
-	if(Separator.IsValid())
-	{
-		Separator->SetEnabled(!bIsDisabled);
-	}
-	*/
 }
 
