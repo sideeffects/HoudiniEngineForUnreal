@@ -2006,10 +2006,11 @@ UHoudiniAssetComponent::CreateParameters()
 
 			// Locate corresponding parameter.
 			UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = NewParameters.Find(ParmInfo.id);
+			UHoudiniAssetParameter* HoudiniAssetParentParameter = nullptr;
+
 			if(FoundHoudiniAssetParameter)
 			{
 				UHoudiniAssetParameter* HoudiniAssetParameter = *FoundHoudiniAssetParameter;
-				UHoudiniAssetParameter* HoudiniAssetParentParameter = nullptr;
 
 				// Get parent parm id.
 				HAPI_ParmId ParentParmId = HoudiniAssetParameter->GetParmParentId();
@@ -2025,6 +2026,25 @@ UHoudiniAssetComponent::CreateParameters()
 
 				// Set parent for this parameter.
 				HoudiniAssetParameter->SetParentParameter(HoudiniAssetParentParameter);
+
+				if(HAPI_PARMTYPE_FOLDERLIST == ParmInfo.type)
+				{
+					// For folder lists we need to add children manually.
+					HoudiniAssetParameter->ResetChildParameters();
+
+					for(int32 ChildIdx = 0; ChildIdx < ParmInfo.size; ++ChildIdx)
+					{
+						// Children folder parm infos come after folder list parm info.
+						const HAPI_ParmInfo& ChildParmInfo = ParmInfos[ParamIdx + ChildIdx + 1];
+
+						UHoudiniAssetParameter* const* FoundHoudiniAssetParameterChild = NewParameters.Find(ChildParmInfo.id);
+						if(FoundHoudiniAssetParameterChild)
+						{
+							UHoudiniAssetParameter* HoudiniAssetParameterChild = *FoundHoudiniAssetParameterChild;
+							HoudiniAssetParameterChild->SetParentParameter(HoudiniAssetParameter);
+						}
+					}
+				}
 			}
 		}
 	}
