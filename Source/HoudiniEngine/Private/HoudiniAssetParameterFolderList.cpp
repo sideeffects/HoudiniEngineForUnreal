@@ -76,26 +76,30 @@ UHoudiniAssetParameterFolderList::CreateParameter(UHoudiniAssetComponent* InHoud
 void
 UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
-	Super::CreateWidget(DetailCategoryBuilder);
-
-	/*
-	TSharedPtr<SSeparator> Separator;
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 
 	DetailCategoryBuilder.AddCustomRow(TEXT(""))
 	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.Padding(0, 0, 5, 0)
-		[
-			SAssignNew(Separator, SSeparator)
-			.Thickness(2.0f)
-		]
+		SAssignNew(HorizontalBox, SHorizontalBox)
 	];
 
-	if(Separator.IsValid())
+	for(TArray<UHoudiniAssetParameter*>::TIterator IterParameter(ChildParameters); IterParameter; ++IterParameter)
 	{
-		Separator->SetEnabled(!bIsDisabled);
+		UHoudiniAssetParameter* HoudiniAssetParameterChild = *IterParameter;
+		if(HoudiniAssetParameterChild->IsA(UHoudiniAssetParameterFolder::StaticClass()))
+		{
+			HorizontalBox->AddSlot().Padding(1, 2, 4, 2)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Text(HoudiniAssetParameterChild->GetParameterLabel())
+				.ToolTipText(HoudiniAssetParameterChild->GetParameterLabel())
+				//.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterButton::OnButtonClick))
+			];
+		}
 	}
-	*/
+
+	Super::CreateWidget(DetailCategoryBuilder);
 }
 

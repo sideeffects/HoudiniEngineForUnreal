@@ -164,15 +164,23 @@ UHoudiniAssetParameter::SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudi
 void
 UHoudiniAssetParameter::SetParentParameter(UHoudiniAssetParameter* InParentParameter)
 {
-	ParentParameter = InParentParameter;
-
-	if(ParentParameter)
+	if(ParentParameter != InParentParameter)
 	{
-		// Retrieve parent parameter id.
-		ParmParentId = ParentParameter->GetParmId();
+		ParentParameter = InParentParameter;
 
-		// Add this parameter to parent collection of child parameters.
-		ParentParameter->AddChildParameter(this);
+		if(ParentParameter)
+		{
+			// Retrieve parent parameter id. We ignore folder lists, they are artificial parents created by us.
+			ParmParentId = ParentParameter->GetParmId();
+
+			// Add this parameter to parent collection of child parameters.
+			ParentParameter->AddChildParameter(this);
+		}
+		else
+		{
+			// Reset parent parm id.
+			ParmParentId = -1;
+		}
 	}
 }
 
