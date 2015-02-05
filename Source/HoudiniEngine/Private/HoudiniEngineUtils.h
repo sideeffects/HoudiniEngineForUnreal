@@ -189,6 +189,9 @@ public:
 	/** HAPI : Get parameter data as string. **/
 	static bool HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName, const FString& DefaultValue, FString& Value);
 
+	/** HAPI : Retrieve parameter name. **/
+	static void HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName);
+
 	/** HAPI : Retrieve names of all parameters. **/
 	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names);
 

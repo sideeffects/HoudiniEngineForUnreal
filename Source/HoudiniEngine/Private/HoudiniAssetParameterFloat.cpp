@@ -113,6 +113,8 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		ValueMax = ParmInfo.max;
 	}
 
+	bool bUsesDefaultMinMax = false;
+
 	// Set min and max for UI for this property.
 	if(ParmInfo.hasUIMin)
 	{
@@ -129,6 +131,7 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		{
 			// Min value Houdini uses by default.
 			ValueUIMin = 0.0f;
+			bUsesDefaultMinMax = true;
 		}
 	}
 
@@ -147,6 +150,35 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		{
 			// Max value Houdini uses by default.
 			ValueUIMax = 10.0f;
+			bUsesDefaultMinMax = true;
+		}
+	}
+
+	if(bUsesDefaultMinMax)
+	{
+		// If we are using defaults, we can detect some most common parameter names and alter defaults.
+
+		FString ParameterName;
+		FHoudiniEngineUtils::HapiRetrieveParameterName(ParmInfo, ParameterName);
+
+		static const FString ParameterNameTranslate(TEXT(HAPI_UNREAL_PARAM_TRANSLATE));
+		static const FString ParameterNameRotate(TEXT(HAPI_UNREAL_PARAM_ROTATE));
+		static const FString ParameterNameScale(TEXT(HAPI_UNREAL_PARAM_SCALE));
+		static const FString ParameterNamePivot(TEXT(HAPI_UNREAL_PARAM_PIVOT));
+
+		if(!ParameterName.IsEmpty())
+		{
+			if(ParameterName.Equals(ParameterNameTranslate) || ParameterName.Equals(ParameterNameScale) ||
+			   ParameterName.Equals(ParameterNamePivot))
+			{
+				ValueUIMin = -1.0f;
+				ValueUIMax = -1.0f;
+			}
+			else if(ParameterName.Equals(ParameterNameRotate))
+			{
+				ValueUIMin = 0.0f;
+				ValueUIMax = 360.0f;
+			}
 		}
 	}
 
