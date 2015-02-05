@@ -170,16 +170,23 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 
-/** Names of other Houdini Engine attributes. **/
+/** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION			"rot"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE				"scale"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_POSITION			"P"
 #define HAPI_UNREAL_ATTRIB_POSITION						"P"
+
 #define HAPI_UNREAL_PARAM_CURVE_TYPE					"type"
 #define HAPI_UNREAL_PARAM_CURVE_METHOD					"method"
 #define HAPI_UNREAL_PARAM_CURVE_COORDS					"coords"
 #define HAPI_UNREAL_PARAM_CURVE_CLOSED					"close"
+
+#define HAPI_UNREAL_PARAM_TRANSLATE						"t"
+#define HAPI_UNREAL_PARAM_ROTATE						"r"
+#define HAPI_UNREAL_PARAM_SCALE							"s"
+#define HAPI_UNREAL_PARAM_PIVOT							"p"
+#define HAPI_UNREAL_PARAM_UNIFORMSCALE					"scale"
 
 #define HAPI_UNREAL_MATERIAL_TEXTURE_MAIN				"C A"
 #define HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL				"N"
