@@ -446,6 +446,19 @@ FHoudiniEngineUtils::HapiCheckGroupMembership(const TArray<int32>& GroupMembersh
 
 
 void
+FHoudiniEngineUtils::HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName)
+{
+	HAPI_StringHandle ParmNameHandle = ParmInfo.nameSH;
+	if(ParmNameHandle >= 0 && FHoudiniEngineUtils::GetHoudiniString(ParmNameHandle, ParameterName))
+	{
+		return;
+	}
+
+	ParameterName = TEXT("");
+}
+
+
+void
 FHoudiniEngineUtils::HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names)
 {
 	static const std::string InvalidParameterName("Invalid Parameter Name");
