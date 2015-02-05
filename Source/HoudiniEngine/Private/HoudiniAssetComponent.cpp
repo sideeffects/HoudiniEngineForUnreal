@@ -258,7 +258,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
 	{
-		UpdateEditorProperties();
+		UpdateEditorProperties(false);
 		return;
 	}
 
@@ -479,6 +479,39 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 
 
 void
+UHoudiniAssetComponent::StartHoudiniUIUpdateTicking()
+{
+	// If we have no timer delegate spawned for ui update, spawn one.
+	if(!TimerDelegateUIUpdate.IsBound() && GEditor)
+	{
+		TimerDelegateUIUpdate = FTimerDelegate::CreateUObject(this, &UHoudiniAssetComponent::TickHoudiniUIUpdate);
+
+		// We need to register delegate with the timer system.
+		static const float TickTimerDelay = 0.25f;
+		GEditor->GetTimerManager()->SetTimer(TimerDelegateUIUpdate, TickTimerDelay, true);
+	}
+}
+
+
+void
+UHoudiniAssetComponent::StopHoudiniUIUpdateTicking()
+{
+	if(TimerDelegateUIUpdate.IsBound() && GEditor)
+	{
+		GEditor->GetTimerManager()->ClearTimer(TimerDelegateUIUpdate);
+		TimerDelegateUIUpdate.Unbind();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::TickHoudiniUIUpdate()
+{
+	UpdateEditorProperties(true);
+}
+
+
+void
 UHoudiniAssetComponent::StartHoudiniTicking()
 {
 	// If we have no timer delegate spawned for this component, spawn one.
@@ -663,7 +696,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						}
 
 						// Update properties panel after instantiation.
-						UpdateEditorProperties();
+						UpdateEditorProperties(true);
 					}
 					else
 					{
@@ -703,7 +736,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						CreateDefaultPreset();
 
 						// Update properties panel.
-						UpdateEditorProperties();
+						UpdateEditorProperties(true);
 					}
 				}
 
@@ -861,17 +894,26 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 
 void
-UHoudiniAssetComponent::UpdateEditorProperties()
+UHoudiniAssetComponent::UpdateEditorProperties(bool bConditionalUpdate)
 {
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
 	if(GEditor && HoudiniAssetActor && bIsNativeComponent)
 	{
+		if(bConditionalUpdate && FSlateApplication::Get().HasAnyMouseCaptor())
+		{
+			// We want to avoid UI update if this is a conditional update and widget has captured the mouse.
+			StartHoudiniUIUpdateTicking();
+			return;
+		}
+
 		TArray<UObject*> SelectedActor;
 		SelectedActor.Add(HoudiniAssetActor);
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UpdatePropertyViews(SelectedActor);
 	}
+
+	StopHoudiniUIUpdateTicking();
 }
 
 
@@ -1376,7 +1418,7 @@ UHoudiniAssetComponent::PostLoad()
 	}
 
 	// Update properties panel after instantiation.
-	UpdateEditorProperties();
+	UpdateEditorProperties(false);
 }
 
 

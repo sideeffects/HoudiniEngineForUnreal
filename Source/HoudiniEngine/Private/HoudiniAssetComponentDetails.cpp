@@ -783,7 +783,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 		// We need to update editor to reflect changes.
 		if(HoudiniAssetComponents.Num() > 0)
 		{
-			HoudiniAssetComponents[0]->UpdateEditorProperties();
+			HoudiniAssetComponents[0]->UpdateEditorProperties(false);
 		}
 	}
 }
