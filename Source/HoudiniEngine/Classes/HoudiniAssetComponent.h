@@ -134,6 +134,10 @@ public:
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
 
+	/** Ticking function to check whether UI update can be performed. This is necessary so that widget which has **/
+	/** captured the mouse does not lose it. **/
+	void TickHoudiniUIUpdate();
+
 	/** Used to differentiate native components from dynamic ones. **/
 	void SetNative(bool InbIsNativeComponent);
 
@@ -166,7 +170,7 @@ public:
 	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
 
 	/** Refresh editor's detail panel and update properties. **/
-	void UpdateEditorProperties();
+	void UpdateEditorProperties(bool bConditionalUpdate);
 
 	/** Return all static meshes used by this component. For both instanced and uinstanced components. **/
 	void GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticMeshes);
@@ -231,11 +235,17 @@ private:
 	/** Update rendering information. **/
 	void UpdateRenderingInformation();
 
-	/** Start ticking. **/
+	/** Start cooking / instantiation ticking. **/
 	void StartHoudiniTicking();
 
-	/** Stop ticking. **/
+	/** Stop cooking / instantiation ticking. **/
 	void StopHoudiniTicking();
+
+	/** Start UI update ticking. **/
+	void StartHoudiniUIUpdateTicking();
+
+	/** Stop UI update ticking. **/
+	void StopHoudiniUIUpdateTicking();
 
 	/** Assign actor label based on asset instance name. **/
 	void AssignUniqueActorLabel();
@@ -379,9 +389,8 @@ protected:
 	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
 	FTimerDelegate TimerDelegateCooking;
 
-	/** Timer delegate, used during asset change. This is necessary when asset is changed through properties. In this **/
-	/** case we cannot update right away as it would require changing properties on which update was fired.			  **/
-	FTimerDelegate TimerDelegateAssetChange;
+	/** Timer delegate, we use it for checking if details panel update can be performed. **/
+	FTimerDelegate TimerDelegateUIUpdate;
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;

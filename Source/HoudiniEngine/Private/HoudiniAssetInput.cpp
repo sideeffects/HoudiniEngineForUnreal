@@ -613,7 +613,7 @@ UHoudiniAssetInput::OnStaticMeshDropped(UObject* Object)
 		bStaticMeshChanged = true;
 		MarkChanged();
 
-		HoudiniAssetComponent->UpdateEditorProperties();
+		HoudiniAssetComponent->UpdateEditorProperties(false);
 	}
 }
 
@@ -919,7 +919,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 	if(bSwitchedToCurve)
 	{
 		// We need to trigger details panel update.
-		HoudiniAssetComponent->UpdateEditorProperties();
+		HoudiniAssetComponent->UpdateEditorProperties(false);
 		bSwitchedToCurve = false;
 	}
 }
@@ -980,7 +980,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			}
 
 			// We need to trigger details panel update.
-			HoudiniAssetComponent->UpdateEditorProperties();
+			HoudiniAssetComponent->UpdateEditorProperties(false);
 		}
 		else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 		{
