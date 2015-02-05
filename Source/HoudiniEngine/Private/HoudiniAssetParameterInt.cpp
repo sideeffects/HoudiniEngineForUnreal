@@ -99,7 +99,15 @@ UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAsse
 	else
 	{
 		// If it is not set, use supplied min.
-		ValueUIMin = ValueMin;
+		if(ParmInfo.hasMin)
+		{
+			ValueUIMin = ValueMin;
+		}
+		else
+		{
+			// Min value Houdini uses by default.
+			ValueUIMin = 0;
+		}
 	}
 
 	if(ParmInfo.hasUIMax)
@@ -109,7 +117,15 @@ UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAsse
 	else
 	{
 		// If it is not set, use supplied max.
-		ValueUIMax = ValueMax;
+		if(ParmInfo.hasMax)
+		{
+			ValueUIMax = ValueMax;
+		}
+		else
+		{
+			// Max value Houdini uses by default.
+			ValueUIMax = 10;
+		}
 	}
 
 	return true;
