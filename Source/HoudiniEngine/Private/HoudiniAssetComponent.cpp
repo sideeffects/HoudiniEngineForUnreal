@@ -417,6 +417,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 				// Add to map of components.
 				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
 
+				// Attach created static mesh component to our Houdini component.
 				StaticMeshComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
 
 				//StaticMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
@@ -426,6 +427,21 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 				StaticMeshComponent->SetStaticMesh(StaticMesh);
 				StaticMeshComponent->SetVisibility(true);
 				StaticMeshComponent->RegisterComponent();
+
+				/*
+				//StaticMeshComponent->SetSimulatePhysics(true);
+
+				FBodyInstance* BodyInstance = StaticMeshComponent->GetBodyInstance();
+				if(BodyInstance)
+				{
+					BodyInstance->bSimulatePhysics = true;
+					BodyInstance->bStartAwake = true;
+					BodyInstance->bEnableGravity = true;
+					//BodyInstance->bAutoWeld = true;
+				}
+
+				//StaticMeshComponent->WakeRigidBody();
+				*/
 			}
 
 			// Transform the component by transformation provided by HAPI.
