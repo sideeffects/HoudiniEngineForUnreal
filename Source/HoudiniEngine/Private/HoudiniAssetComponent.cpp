@@ -47,6 +47,10 @@ bool
 UHoudiniAssetComponent::bDisplayEngineHapiVersionMismatch = true;
 
 
+const uint32
+UHoudiniAssetComponent::PersistenceFormatVersion = 1u;
+
+
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
@@ -1482,6 +1486,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			}
 		}
 	}
+
+	// Serialize format version.
+	uint32 FormatVersion = UHoudiniAssetComponent::PersistenceFormatVersion;
+	Ar << FormatVersion;
 
 	// Serialize component state.
 	SerializeEnumeration<EHoudiniAssetComponentState::Enum>(Ar, ComponentState);
