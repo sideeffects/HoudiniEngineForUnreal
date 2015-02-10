@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 14.5.19
+    Houdini Version: 14.5.20
     Houdini Engine Version: 1.9.8
     Unreal Version: 4.6.1
 
@@ -29,7 +29,7 @@ public class HoudiniEngine : ModuleRules
 	public HoudiniEngine( TargetInfo Target )
 	{
 		string HFSPath = "";
-		string HoudiniVersion = "14.5.19";
+		string HoudiniVersion = "14.5.20";
 
 		if ( HFSPath == "" )
 		{
