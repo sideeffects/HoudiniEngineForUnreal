@@ -351,6 +351,9 @@ private:
 	/** This flag is used when Hapi version mismatch is detected (between defined and running versions. **/
 	static bool bDisplayEngineHapiVersionMismatch;
 
+	/** Current version of the plugin. **/
+	static const uint32 PersistenceFormatVersion;
+
 public:
 
 	/** Houdini Asset associated with this component. **/
