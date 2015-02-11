@@ -39,6 +39,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsEditable(false),
 	bHasGeoChanged(false),
 	bIsCollidable(false),
+	bIsRenderCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -61,6 +62,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsEditable(false),
 	bHasGeoChanged(false),
 	bIsCollidable(false),
+	bIsRenderCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -84,6 +86,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsEditable(false),
 	bHasGeoChanged(false),
 	bIsCollidable(false),
+	bIsRenderCollidable(false),
 	bIsLoaded(false)
 {
 
@@ -140,6 +143,13 @@ FHoudiniGeoPartObject::IsCollidable() const
 
 
 bool
+FHoudiniGeoPartObject::IsRenderCollidable() const
+{
+	return bIsRenderCollidable;
+}
+
+
+bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
 	return (ObjectId == GeoPartObject.ObjectId &&
@@ -176,6 +186,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << bIsCurve;
 	Ar << bIsEditable;
 	Ar << bIsCollidable;
+	Ar << bIsRenderCollidable;
 
 	if(Ar.IsLoading())
 	{
