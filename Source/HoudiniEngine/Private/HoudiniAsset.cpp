@@ -22,6 +22,7 @@ UHoudiniAsset::PersistenceFormatVersion = 2u;
 
 UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
+	AssetFileName(TEXT("")),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
 	FileFormatVersion(UHoudiniAsset::PersistenceFormatVersion),
@@ -36,7 +37,7 @@ UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer,
 							 const uint8* BufferEnd,
 							 const FString& InFileName) :
 	Super(ObjectInitializer),
-	FileName(InFileName),
+	AssetFileName(InFileName),
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
 	FileFormatVersion(UHoudiniAsset::PersistenceFormatVersion),
@@ -63,6 +64,13 @@ const uint8*
 UHoudiniAsset::GetAssetBytes() const
 {
 	return AssetBytes;
+}
+
+
+const FString&
+UHoudiniAsset::GetAssetFileName() const
+{
+	return AssetFileName;
 }
 
 
@@ -150,14 +158,14 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 	Ar << bPreviewHoudiniLogo;
 
 	// Serialize asset file path.
-	Ar << FileName;
+	Ar << AssetFileName;
 }
 
 
 void
 UHoudiniAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add(FAssetRegistryTag("FileName", FileName, FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add(FAssetRegistryTag("FileName", AssetFileName, FAssetRegistryTag::TT_Alphabetical));
 	OutTags.Add(FAssetRegistryTag("FileFormatVersion", FString::FromInt(FileFormatVersion), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag("Bytes", FString::FromInt(AssetBytesCount), FAssetRegistryTag::TT_Numerical));
 

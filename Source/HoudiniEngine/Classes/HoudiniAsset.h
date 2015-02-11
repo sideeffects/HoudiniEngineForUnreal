@@ -48,6 +48,9 @@ public:
 	/** Return buffer containing the raw Houdini OTL data. **/
 	const uint8* GetAssetBytes() const;
 
+	/** Return path of the corresponding OTL/HDA file. **/
+	const FString& GetAssetFileName() const;
+
 	/** Return the size in bytes of raw Houdini OTL data. **/
 	uint32 GetAssetBytesCount() const;
 
@@ -61,7 +64,7 @@ public:
 
 	/** Filename of the OTL. **/
 	UPROPERTY()
-	FString FileName;
+	FString AssetFileName;
 
 	/** Information for thumbnail rendering. */
 	UPROPERTY()
