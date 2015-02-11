@@ -65,6 +65,9 @@ public:
 	/** Return true if this geo part is used for collision. **/
 	bool IsCollidable() const;
 
+	/** Return true if this geo part is used for collision and is renderable. **/
+	bool IsRenderCollidable() const;
+
 	/** Return true if corresponding geometry has changed. **/
 	bool HasGeoChanged() const;
 
@@ -124,6 +127,9 @@ public:
 
 	/** Is set to true when referenced object is collidable. **/
 	bool bIsCollidable;
+
+	/** Is set to true when referenced object is collidable and is renderable. **/
+	bool bIsRenderCollidable;
 
 	/** Is set to true when referenced object has just been loaded. **/
 	bool bIsLoaded;

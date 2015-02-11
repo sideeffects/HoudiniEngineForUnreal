@@ -1599,6 +1599,29 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 			TArray<FString> ObjectGeoGroupNames;
 			FHoudiniEngineUtils::HapiGetGroupNames(AssetId, ObjectInfo.id, GeoIdx, HAPI_GROUPTYPE_PRIM, ObjectGeoGroupNames);
 
+			bool bIsRenderCollidable = false;
+			bool bIsCollidable = false;
+
+			if(HoudiniRuntimeSettings)
+			{
+				// Detect if this object has collision geo or rendered collision geo.
+				for(int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx)
+				{
+					const FString& GroupName = ObjectGeoGroupNames[GeoGroupNameIdx];
+
+					if(!HoudiniRuntimeSettings->RenderedCollisionGroupName.IsEmpty() &&
+						GroupName.Equals(HoudiniRuntimeSettings->RenderedCollisionGroupName, ESearchCase::IgnoreCase))
+					{
+						bIsRenderCollidable = true;
+					}
+					else if(!HoudiniRuntimeSettings->CollisionGroupName.IsEmpty() &&
+						GroupName.Equals(HoudiniRuntimeSettings->CollisionGroupName, ESearchCase::IgnoreCase))
+					{
+						bIsCollidable = true;
+					}
+				}
+			}
+
 			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
 			{
 				// Get part information.
@@ -1642,7 +1665,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Get collision membership information for primitives of this part.
 				//TArray<int32> PartCollisionGroupMembership;
 				//FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM,
-				//											TEXT(HAPI_UNREAL_ATTRIB_COLLISION), PartCollisionGroupMembership);
+				//											TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION), PartCollisionGroupMembership);
 
 				// Create geo part object identifier.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id);
@@ -1651,6 +1674,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				HoudiniGeoPartObject.bIsCurve = PartInfo.isCurve;
 				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
 				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
+
+				// Record collision information for this geo part object.
+				HoudiniGeoPartObject.bIsRenderCollidable = bIsRenderCollidable;
+				HoudiniGeoPartObject.bIsCollidable = bIsCollidable;
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
