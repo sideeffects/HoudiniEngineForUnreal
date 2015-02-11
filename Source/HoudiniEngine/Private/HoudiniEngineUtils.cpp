@@ -3219,28 +3219,58 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 		}
 	}
 
-	// Otherwise on Windows, we look up standard Houdini installation in the registry.
-	FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
-	FString HoudiniInstallationPath;
-
-	if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
+	// Otherwise on Windows, we try to look up location of Houdini Engine in the registry first.
 	{
-		HoudiniInstallationPath += TEXT("/bin");
+		FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini Engine %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+		FString HoudiniInstallationPath;
 
-		// Create full path to libHAPI binary.
-		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HoudiniInstallationPath, *LibHAPIName);
-
-		if(FPaths::FileExists(LibHAPIPath))
+		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
 		{
-			FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
-			HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIName);
-			FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
+			HoudiniInstallationPath += TEXT("/bin");
 
-			if(HAPILibraryHandle)
+			// Create full path to libHAPI binary.
+			FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HoudiniInstallationPath, *LibHAPIName);
+
+			if(FPaths::FileExists(LibHAPIPath))
 			{
-				HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from Registry path %s"), *LibHAPIName, *HoudiniInstallationPath);
-				StoredLibHAPILocation = HoudiniInstallationPath;
-				return HAPILibraryHandle;
+				FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
+				HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIName);
+				FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
+
+				if(HAPILibraryHandle)
+				{
+					HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from Registry path %s"), *LibHAPIName, *HoudiniInstallationPath);
+					StoredLibHAPILocation = HoudiniInstallationPath;
+					return HAPILibraryHandle;
+				}
+			}
+		}
+	}
+
+	// If Houdini Engine was not found in the registry, attempt to locate installation of Houdini in the registry.
+	{
+		FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+		FString HoudiniInstallationPath;
+
+		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), HoudiniInstallationPath))
+		{
+			HoudiniInstallationPath += TEXT("/bin");
+
+			// Create full path to libHAPI binary.
+			FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HoudiniInstallationPath, *LibHAPIName);
+
+			if(FPaths::FileExists(LibHAPIPath))
+			{
+				FPlatformProcess::PushDllDirectory(*HoudiniInstallationPath);
+				HAPILibraryHandle = FPlatformProcess::GetDllHandle(*LibHAPIName);
+				FPlatformProcess::PopDllDirectory(*HoudiniInstallationPath);
+
+				if(HAPILibraryHandle)
+				{
+					HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from Registry path %s"), *LibHAPIName, *HoudiniInstallationPath);
+					StoredLibHAPILocation = HoudiniInstallationPath;
+					return HAPILibraryHandle;
+				}
 			}
 		}
 	}
