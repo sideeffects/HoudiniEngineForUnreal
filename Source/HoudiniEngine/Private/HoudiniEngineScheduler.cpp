@@ -99,8 +99,22 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	std::string AssetNameString;
 	double LastUpdateTime;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
-																	   HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId), void());
+	// We will try to instantiate asset from file if it exists.
+	const FString& AssetFileName = HoudiniAsset->GetAssetFileName();
+	if(!AssetFileName.IsEmpty() && FPaths::FileExists(AssetFileName))
+	{
+		// File does exist, we can load asset from file.
+		std::string AssetFileNamePlain;
+		FHoudiniEngineUtils::ConvertUnrealString(AssetFileName, AssetFileNamePlain);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::LoadAssetLibraryFromFile(AssetFileNamePlain.c_str(), true, &AssetLibraryId), void());
+	}
+	else
+	{
+		// Otherwise we will try to load from buffer we've cached.
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::LoadAssetLibraryFromMemory(reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
+																	       HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId), void());
+	}
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAvailableAssetCount(AssetLibraryId, &AssetCount), void());
 	
