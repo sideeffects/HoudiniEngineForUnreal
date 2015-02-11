@@ -17,7 +17,7 @@
 
 
 const uint32 
-UHoudiniAsset::PersistenceFormatVersion = 1u;
+UHoudiniAsset::PersistenceFormatVersion = 2u;
 
 
 UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
@@ -148,6 +148,9 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 
 	// Serialize whether we are storing logo preview or not.
 	Ar << bPreviewHoudiniLogo;
+
+	// Serialize asset file path.
+	Ar << FileName;
 }
 
 
