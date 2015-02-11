@@ -13,7 +13,7 @@ Currently, the supported Unreal Engine versions are:
 02. Clone the Houdini Engine Unreal plugin into this folder. Make sure the checked out folder is named HoudiniEngine .
 03. Download and install the correct build of 64-bit Houdini.
 04. Verify you have Houdini installed and it matches the version our Plugin is using. Easiest way is to look in commit history or look inside Source/HoudiniEngine/HoudiniEngine.Build.cs file (Houdini Version field). We no longer require you to add Houdini bin folder to PATH as we now load libHAPI dynamically.
-05. Generate Visual Studio solution (by running GenerateProjectFiles.bat) and build Unreal Engine.
+05. Generate Visual Studio solution (by running GenerateProjectFiles.bat) and build Unreal Engine (either x64 Debug_Editor/UE4Editor-Debug or x64 Develop_Editor/UE4Editor).
 06. When starting Unreal Engine editor, go to Plugins menu and enable HoudiniEngine plugin (it's in Rendering section).
 07. Restart Unreal Engine.
 08. You should now be able to load (import OTL files and drop OTL files into Content Browser) Houdini Digital Assets.
