@@ -547,7 +547,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 	HAPI_AttributeInfo AttributeInfo;
 	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
 	{
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, 
+								   (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
 
 		if(AttributeInfo.exists)
 		{
@@ -569,7 +570,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 	Data.SetNumUninitialized(AttributeInfo.count * AttributeInfo.tupleSize);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo,
-		&Data[0], 0, AttributeInfo.count), false);
+							   &Data[0], 0, AttributeInfo.count), false);
 
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
@@ -623,7 +624,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_Ob
 	Data.SetNumUninitialized(AttributeInfo.count * AttributeInfo.tupleSize);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeIntData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo,
-		&Data[0], 0, AttributeInfo.count), false);
+							   &Data[0], 0, AttributeInfo.count), false);
 
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
@@ -1567,8 +1568,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 			if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetGeoInfo(AssetId, ObjectInfo.id, GeoIdx, &GeoInfo))
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d] unable to retrieve GeoInfo, ")
-											TEXT("- skipping."),
-											ObjectIdx, *ObjectName, GeoIdx);
+									TEXT("- skipping."),
+									ObjectIdx, *ObjectName, GeoIdx);
 				continue;
 			}
 
@@ -1633,8 +1634,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					// Error retrieving part info.
 					bGeoError = true;
 					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve PartInfo, ")
-											TEXT("- skipping."),
-											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+										TEXT("- skipping."),
+										ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
 					continue;
 				}
 
@@ -1643,8 +1644,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				{
 					bGeoError = true;
 					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found, ")
-											TEXT("- skipping."),
-											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+										TEXT("- skipping."),
+										ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
 					continue;
 				}
 
@@ -1799,8 +1800,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					bGeoError = true;
 
 					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list ")
-											TEXT("- skipping."),
-											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+										TEXT("- skipping."),
+										ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
 
 					if(bStaticMeshCreated)
 					{
@@ -1819,8 +1820,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					bGeoError = true;
 
 					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
-											TEXT("- skipping."),
-											ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+										TEXT("- skipping."),
+										ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
 
 					if(bStaticMeshCreated)
 					{
@@ -1855,7 +1856,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Retrieve normal data.
 				HAPI_AttributeInfo AttribInfoNormals;
 				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
+																 HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
 
 				// Retrieve face smoothing data.
 				HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
