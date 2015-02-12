@@ -1060,6 +1060,46 @@ UHoudiniAssetComponent::StartTaskAssetResetManual()
 }
 
 
+void
+UHoudiniAssetComponent::StartTaskAssetRebuildManual()
+{
+	bool bInstantiate = false;
+
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		if(FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
+		{
+			// We need to delete the asset and request a new one.
+			StartTaskAssetDeletion();
+
+			// We need to instantiate.
+			bInstantiate = true;
+		}
+	}
+	else
+	{
+		if(bLoadedComponent)
+		{
+			// We need to instantiate.
+			bInstantiate = true;
+		}
+	}
+
+	if(bInstantiate)
+	{
+		HapiGUID = FGuid::NewGuid();
+
+		// If this is a loaded component, then we just need to instantiate.
+		bLoadedComponentRequiresInstantiation = true;
+		bParametersChanged = true;
+
+		// Replace serialized preset buffer with default preset buffer.
+		PresetBuffer = DefaultPresetBuffer;
+		StartHoudiniTicking();
+	}
+}
+
+
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 {

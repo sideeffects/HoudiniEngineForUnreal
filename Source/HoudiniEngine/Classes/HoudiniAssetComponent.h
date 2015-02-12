@@ -343,6 +343,9 @@ private:
 	/** Start manual asset reset task. **/
 	void StartTaskAssetResetManual();
 
+	/** Start manual asset rebuild task. **/
+	void StartTaskAssetRebuildManual();
+
 private:
 
 	/** This flag is used when Houdini engine is not initialized to display a popup message once. **/

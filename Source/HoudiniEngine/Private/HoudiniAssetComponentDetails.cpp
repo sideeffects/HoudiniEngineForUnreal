@@ -550,6 +550,20 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	.VAlign(VAlign_Center)
 	.HAlign(HAlign_Center)
 	[
+		SAssignNew(ButtonRecook, SButton)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.OnClicked(this, &FHoudiniAssetComponentDetails::OnRebuildAsset)
+		.Text(LOCTEXT("RebuildHoudiniActor", "Rebuild Asset"))
+		.ToolTipText( LOCTEXT("RebuildHoudiniActorToolTip", "Rebuild Houdini asset"))
+	];
+
+	HorizontalButtonBox->AddSlot()
+	.AutoWidth()
+	.Padding(2.0f, 0.0f)
+	.VAlign(VAlign_Center)
+	.HAlign(HAlign_Center)
+	[
 		SAssignNew(ButtonReset, SButton)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
@@ -739,6 +753,24 @@ FHoudiniAssetComponentDetails::OnRecookAsset()
 		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
 		{
 			HoudiniAssetComponent->StartTaskAssetCookingManual();
+		}
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnRebuildAsset()
+{
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+
+		// If component is not cooking or instancing, we can start recook.
+		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+		{
+			HoudiniAssetComponent->StartTaskAssetRebuildManual();
 		}
 	}
 
