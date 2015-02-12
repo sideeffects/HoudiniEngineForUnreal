@@ -91,6 +91,16 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryMarshalling)
 	FString MarshallingAttributeFaceSmoothingMask;
 
+/** Geometry scaling. **/
+
+	// Scale factor of generated Houdini geometry.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryScaling)
+	float GeneratedGeometryScaleFactor;
+
+	// Scale factor of Houdini transformations.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryScaling)
+	float TransformScaleFactor;
+
 /** Generated StaticMesh settings. **/
 public:
 

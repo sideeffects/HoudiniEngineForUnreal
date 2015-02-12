@@ -34,6 +34,10 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	MarshallingAttributeMaterial(TEXT(HAPI_UNREAL_ATTRIB_MATERIAL)),
 	MarshallingAttributeFaceSmoothingMask(TEXT(HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK)),
 
+	/** Geometry scaling. **/
+	GeneratedGeometryScaleFactor(50.0f),
+	TransformScaleFactor(50.0f),
+
 	/** Generated StaticMesh settings. **/
 	bDoubleSidedGeometry(false),
 	PhysMaterial(nullptr),
@@ -107,6 +111,15 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	if(!Property)
 	{
 		return;
+	}
+
+	if(Property->GetName() == TEXT("GeneratedGeometryScaleFactor"))
+	{
+		GeneratedGeometryScaleFactor = FMath::Clamp(GeneratedGeometryScaleFactor, KINDA_SMALL_NUMBER, 10000.0f);
+	}
+	else if(Property->GetName() == TEXT("TransformScaleFactor"))
+	{
+		GeneratedGeometryScaleFactor = FMath::Clamp(GeneratedGeometryScaleFactor, KINDA_SMALL_NUMBER, 10000.0f);
 	}
 
 	/*

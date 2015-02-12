@@ -252,12 +252,20 @@ FHoudiniEngineUtils::GetHoudiniString(int32 Name, std::string& NameString)
 void
 FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform)
 {
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	if(HoudiniRuntimeSettings)
+	{
+		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+	}
+
 	FQuat ObjectRotation(-HapiTransform.rotationQuaternion[0], -HapiTransform.rotationQuaternion[1],
 						 -HapiTransform.rotationQuaternion[2], HapiTransform.rotationQuaternion[3]);
 	Swap(ObjectRotation.Y, ObjectRotation.Z);
 
 	FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
-	ObjectTranslation *= FHoudiniEngineUtils::ScaleFactorTranslate;
+	ObjectTranslation *= TransformScaleFactor;
 	Swap(ObjectTranslation[2], ObjectTranslation[1]);
 
 	FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
@@ -277,6 +285,14 @@ FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_TransformEuler& HapiTrans
 void
 FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_Transform& HapiTransform)
 {
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	if(HoudiniRuntimeSettings)
+	{
+		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+	}
+
 	HapiTransform.rstOrder = HAPI_SRT;
 
 	FQuat UnrealRotation = UnrealTransform.GetRotation();
@@ -287,7 +303,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 	HapiTransform.rotationQuaternion[3] = UnrealRotation.W;
 
 	FVector UnrealTranslation = UnrealTransform.GetTranslation();
-	UnrealTranslation /= FHoudiniEngineUtils::ScaleFactorTranslate;
+	UnrealTranslation /= TransformScaleFactor;
 	Swap(UnrealTranslation.Y, UnrealTranslation.Z);
 	HapiTransform.position[0] = UnrealTranslation.X;
 	HapiTransform.position[1] = UnrealTranslation.Y;
@@ -304,6 +320,14 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 void
 FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_TransformEuler& HapiTransformEuler)
 {
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	if(HoudiniRuntimeSettings)
+	{
+		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+
+	}
 	HapiTransformEuler.rstOrder = HAPI_SRT;
 	HapiTransformEuler.rotationOrder = HAPI_XYZ;
 
@@ -314,7 +338,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 	HapiTransformEuler.rotationEuler[2] = -Rotator.Pitch;
 
 	FVector UnrealTranslation = UnrealTransform.GetTranslation();
-	UnrealTranslation /= FHoudiniEngineUtils::ScaleFactorTranslate;
+	UnrealTranslation /= TransformScaleFactor;
 	Swap(UnrealTranslation.Y, UnrealTranslation.Z);
 	HapiTransformEuler.position[0] = UnrealTranslation.X;
 	HapiTransformEuler.position[1] = UnrealTranslation.Y;
@@ -1054,6 +1078,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	// Get runtime settings.
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
+	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+	}
+
 	// Grab base LOD level.
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
 
@@ -1094,9 +1124,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	{
 		// Grab vertex at this index (we also need to swap Z and Y).
 		const FVector& PositionVector = RawMesh.VertexPositions[VertexIdx];
-		StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / FHoudiniEngineUtils::ScaleFactorPosition;
-		StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / FHoudiniEngineUtils::ScaleFactorPosition;
-		StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / FHoudiniEngineUtils::ScaleFactorPosition;
+		StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
+		StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / GeneratedGeometryScaleFactor;
+		StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / GeneratedGeometryScaleFactor;
 	}
 
 	// Now that we have raw positions, we can upload them for our attribute.
@@ -1496,6 +1526,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 	// Get runtime settings.
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
+	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+	}
+
 	// Get platform manager LOD specific information.
 	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 	check(CurrentPlatform);
@@ -1616,7 +1652,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						bIsRenderCollidable = true;
 					}
 					else if(!HoudiniRuntimeSettings->CollisionGroupName.IsEmpty() &&
-						GroupName.StartsWith(HoudiniRuntimeSettings->CollisionGroupName, ESearchCase::IgnoreCase))
+							GroupName.StartsWith(HoudiniRuntimeSettings->CollisionGroupName, ESearchCase::IgnoreCase))
 					{
 						bIsCollidable = true;
 					}
@@ -2073,9 +2109,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
 				{
 					FVector VertexPosition;
-					VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * FHoudiniEngineUtils::ScaleFactorPosition;
-					VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * FHoudiniEngineUtils::ScaleFactorPosition;
-					VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * FHoudiniEngineUtils::ScaleFactorPosition;
+					VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * GeneratedGeometryScaleFactor;
+					VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * GeneratedGeometryScaleFactor;
+					VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * GeneratedGeometryScaleFactor;
 
 					// We need to flip Z and Y coordinate here.
 					Swap(VertexPosition.Y, VertexPosition.Z);
@@ -3066,6 +3102,14 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 		TEXT(","),
 	};
 
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+	}
+
 	int32 NumCoords = Positions.ParseIntoArray(&PointStrings, PositionSeparators, 2);
 	for(int32 CoordIdx = 0; CoordIdx < NumCoords; CoordIdx += 3)
 	{
@@ -3075,7 +3119,7 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 		Position.Y = FCString::Atof(*PointStrings[CoordIdx + 1]);
 		Position.Z = FCString::Atof(*PointStrings[CoordIdx + 2]);
 
-		Position *= FHoudiniEngineUtils::ScaleFactorPosition;
+		Position *= GeneratedGeometryScaleFactor;
 		Swap(Position.Y, Position.Z);
 
 		OutPositions.Add(Position);
@@ -3088,11 +3132,19 @@ FHoudiniEngineUtils::CreatePositionsString(const TArray<FVector>& Positions, FSt
 {
 	PositionString = TEXT("");
 
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+	}
+
 	for(int32 Idx = 0; Idx < Positions.Num(); ++Idx)
 	{
 		FVector Position = Positions[Idx];
 		Swap(Position.Z, Position.Y);
-		Position /= FHoudiniEngineUtils::ScaleFactorPosition;
+		Position /= GeneratedGeometryScaleFactor;
 
 		PositionString += FString::Printf(TEXT("%f, %f, %f "), Position.X, Position.Y, Position.Z);
 	}
@@ -3102,11 +3154,19 @@ FHoudiniEngineUtils::CreatePositionsString(const TArray<FVector>& Positions, FSt
 void
 FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw, TArray<FVector>& DataOut)
 {
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+	}
+
 	for(int32 Idx = 0; Idx < DataRaw.Num(); Idx += 3)
 	{
 		FVector Point(DataRaw[Idx + 0], DataRaw[Idx + 1], DataRaw[Idx + 2]);
 
-		Point *= FHoudiniEngineUtils::ScaleFactorPosition;
+		Point *= GeneratedGeometryScaleFactor;
 		Swap(Point.Z, Point.Y);
 
 		DataOut.Add(Point);

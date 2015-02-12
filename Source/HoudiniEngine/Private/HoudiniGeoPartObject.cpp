@@ -33,6 +33,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	GeoId(-1),
 	PartId(-1),
 	SplitId(0),
+	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
+	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
 	bIsVisible(true),
 	bIsInstancer(false),
 	bIsCurve(false),
@@ -42,7 +44,12 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsRenderCollidable(false),
 	bIsLoaded(false)
 {
-
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+	}
 }
 
 
@@ -56,6 +63,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	GeoId(InGeoId),
 	PartId(InPartId),
 	SplitId(0),
+	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
+	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
 	bIsVisible(true),
 	bIsInstancer(false),
 	bIsCurve(),
@@ -65,7 +74,12 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsRenderCollidable(false),
 	bIsLoaded(false)
 {
-
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+	}
 }
 
 
@@ -80,6 +94,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	GeoId(InGeoId),
 	PartId(InPartId),
 	SplitId(0),
+	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
+	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
 	bIsVisible(true),
 	bIsInstancer(false),
 	bIsCurve(false),
@@ -89,7 +105,12 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsRenderCollidable(false),
 	bIsLoaded(false)
 {
-
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+	}
 }
 
 
@@ -171,6 +192,7 @@ void
 FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 {
 	Ar << TransformMatrix;
+
 	Ar << ObjectName;
 	Ar << PartName;
 	Ar << SplitName;
@@ -180,6 +202,9 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << GeoId;
 	Ar << PartId;
 	Ar << SplitId;
+
+	Ar << GeneratedGeometryScaleFactor;
+	Ar << TransformScaleFactor;
 
 	Ar << bIsVisible;
 	Ar << bIsInstancer;
