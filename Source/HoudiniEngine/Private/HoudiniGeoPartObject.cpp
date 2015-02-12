@@ -27,7 +27,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
-	CollidableName(TEXT("Empty")),
+	SplitName(TEXT("")),
 	AssetId(-1),
 	ObjectId(-1),
 	GeoId(-1),
@@ -50,7 +50,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
-	CollidableName(TEXT("Empty")),
+	SplitName(TEXT("")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
@@ -74,7 +74,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
-	CollidableName(TEXT("Empty")),
+	SplitName(TEXT("")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
@@ -173,7 +173,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << TransformMatrix;
 	Ar << ObjectName;
 	Ar << PartName;
-	Ar << CollidableName;
+	Ar << SplitName;
 
 	Ar << AssetId;
 	Ar << ObjectId;
