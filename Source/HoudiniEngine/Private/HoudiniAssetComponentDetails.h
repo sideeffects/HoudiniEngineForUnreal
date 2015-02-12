@@ -91,6 +91,9 @@ private:
 	/** Handler for recook action. **/
 	FReply OnRecookAsset();
 
+	/** Handler for rebuild action. **/
+	FReply OnRebuildAsset();
+
 	/** Handler for reset action. **/
 	FReply OnResetAsset();
 
