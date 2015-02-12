@@ -2452,6 +2452,12 @@ UHoudiniAssetComponent::CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>
 			HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create(this, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId);
 		}
 
+		if(!HoudiniAssetInstanceInput)
+		{
+			// Invalid instance input.
+			continue;
+		}
+
 		// Add input to new map.
 		NewInstanceInputs.Add(HoudiniGeoPartObject.ObjectId, HoudiniAssetInstanceInput);
 
