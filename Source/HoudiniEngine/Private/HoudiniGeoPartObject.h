@@ -92,8 +92,8 @@ public:
 	/** Name of associated part. **/
 	FString PartName;
 
-	/** Name of collidable group, empty if there's none. **/
-	FString CollidableName;
+	/** Name of group which was used for splitting, empty if there's none. **/
+	FString SplitName;
 
 	/** Id of corresponding HAPI Asset. **/
 	HAPI_AssetId AssetId;
