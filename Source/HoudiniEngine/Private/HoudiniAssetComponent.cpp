@@ -55,6 +55,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
 	AssetId(-1),
+	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
+	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
 	HapiNotificationStarted(0.0),
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(true),
@@ -78,6 +80,14 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	if(ObjectOuter->IsA(AHoudiniAssetActor::StaticClass()))
 	{
 		bIsNativeComponent = true;
+	}
+
+	// Set scaling information.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
 	}
 
 	// Set component properties.
@@ -954,6 +964,21 @@ UHoudiniAssetComponent::GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticM
 }
 
 
+bool
+UHoudiniAssetComponent::CheckGlobalSettingScaleFactors() const
+{
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings)
+	{
+		return (GeneratedGeometryScaleFactor == HoudiniRuntimeSettings->GeneratedGeometryScaleFactor &&
+				TransformScaleFactor == HoudiniRuntimeSettings->TransformScaleFactor);
+	}
+
+	return (GeneratedGeometryScaleFactor == FHoudiniEngineUtils::ScaleFactorPosition &&
+			TransformScaleFactor == FHoudiniEngineUtils::ScaleFactorTranslate);
+}
+
+
 void
 UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool bStartTicking)
 {
@@ -1533,6 +1558,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize component state.
 	SerializeEnumeration<EHoudiniAssetComponentState::Enum>(Ar, ComponentState);
+
+	// Serialize scaling information.
+	Ar << GeneratedGeometryScaleFactor;
+	Ar << TransformScaleFactor;
 
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)

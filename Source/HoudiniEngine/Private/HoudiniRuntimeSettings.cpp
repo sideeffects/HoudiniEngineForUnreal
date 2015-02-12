@@ -25,8 +25,8 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	bTransformChangeTriggersCooks(false),
 
 	/** Collision generation. **/
-	CollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),
-	RenderedCollisionGroupName(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION)),
+	CollisionGroupNamePrefix(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),
+	RenderedCollisionGroupNamePrefix(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION)),
 
 	/** Geometry marshalling. **/
 	MarshallingAttributeTangent(TEXT(HAPI_UNREAL_ATTRIB_TANGENT)),
@@ -87,12 +87,12 @@ UHoudiniRuntimeSettings::PostInitProperties()
 
 	// Disable Collision generation options for now.
 	{
-		if(UProperty* Property = LocateProperty(TEXT("CollisionGroupName")))
+		if(UProperty* Property = LocateProperty(TEXT("CollisionGroupNamePrefix")))
 		{
 			Property->SetPropertyFlags(CPF_EditConst);
 		}
 
-		if(UProperty* Property = LocateProperty(TEXT("RenderedCollisionGroupName")))
+		if(UProperty* Property = LocateProperty(TEXT("RenderedCollisionGroupNamePrefix")))
 		{
 			Property->SetPropertyFlags(CPF_EditConst);
 		}
