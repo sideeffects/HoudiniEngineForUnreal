@@ -1646,13 +1646,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				{
 					const FString& GroupName = ObjectGeoGroupNames[GeoGroupNameIdx];
 
-					if(!HoudiniRuntimeSettings->RenderedCollisionGroupName.IsEmpty() &&
-						GroupName.StartsWith(HoudiniRuntimeSettings->RenderedCollisionGroupName, ESearchCase::IgnoreCase))
+					if(!HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
+						GroupName.StartsWith(HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix, ESearchCase::IgnoreCase))
 					{
 						bIsRenderCollidable = true;
 					}
-					else if(!HoudiniRuntimeSettings->CollisionGroupName.IsEmpty() &&
-							GroupName.StartsWith(HoudiniRuntimeSettings->CollisionGroupName, ESearchCase::IgnoreCase))
+					else if(!HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() &&
+							GroupName.StartsWith(HoudiniRuntimeSettings->CollisionGroupNamePrefix, ESearchCase::IgnoreCase))
 					{
 						bIsCollidable = true;
 					}
@@ -1756,8 +1756,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Attempt to locate static mesh from previous instantiation.
 				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
 
-				// See if geometry has changed for this part.
-				if(!GeoInfo.hasGeoChanged)
+				// See if geometry has changed for this part (and global scaling has not changed).
+				if(!GeoInfo.hasGeoChanged && !HoudiniAssetComponent->CheckGlobalSettingScaleFactors())
 				{
 					// If geometry has not changed.
 					if(FoundStaticMesh)

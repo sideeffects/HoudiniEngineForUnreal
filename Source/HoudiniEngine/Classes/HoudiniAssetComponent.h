@@ -175,6 +175,9 @@ public:
 	/** Return all static meshes used by this component. For both instanced and uinstanced components. **/
 	void GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticMeshes);
 
+	/** Return true if global setting scale factors are different from the ones used for this component. **/
+	bool CheckGlobalSettingScaleFactors() const;
+
 public:
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
@@ -400,6 +403,12 @@ protected:
 
 	/** Id of corresponding Houdini asset. **/
 	HAPI_AssetId AssetId;
+
+	/** Scale factor used for generated geometry of this component. **/
+	float GeneratedGeometryScaleFactor;
+
+	/** Scale factor used for geo transforms of this component. **/
+	float TransformScaleFactor;
 
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;

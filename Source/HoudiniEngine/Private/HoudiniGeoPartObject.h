@@ -110,12 +110,6 @@ public:
 	/** Id of a split. In most cases this will be 0. **/
 	int32 SplitId;
 
-	/** Scale factor used for generated geometry of this geo part object. **/
-	float GeneratedGeometryScaleFactor;
-
-	/** Scale factor used for transforms of this geo part object. **/
-	float TransformScaleFactor;
-
 	/* Is set to true when referenced object is visible. This is typically used by instancers. **/
 	bool bIsVisible;
 

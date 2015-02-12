@@ -66,11 +66,11 @@ public:
 
 	// Group name prefix used for collision geometry generation. 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=CollisionGeneration)
-	FString CollisionGroupName;
+	FString CollisionGroupNamePrefix;
 
 	// Group name prefix used for rendered collision geometry generation.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=CollisionGeneration)
-	FString RenderedCollisionGroupName;
+	FString RenderedCollisionGroupNamePrefix;
 
 /** Geometry marshalling. **/
 public:
