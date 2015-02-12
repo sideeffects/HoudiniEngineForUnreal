@@ -253,7 +253,7 @@ protected:
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
 
-protected:
+public:
 
 	/** Geometry scale values. **/
 	static const float ScaleFactorPosition;
