@@ -36,7 +36,9 @@ UHoudiniAssetFactory::UHoudiniAssetFactory(const FObjectInitializer& ObjectIniti
 
 	// Add supported formats.
 	Formats.Add(TEXT("otl;Houdini Engine Asset"));
+	Formats.Add(TEXT("otllc;Houdini Engine Asset"));
 	Formats.Add(TEXT("hda;Houdini Engine Asset"));
+	Formats.Add(TEXT("hdalc;Houdini Engine Asset"));
 }
 
 
