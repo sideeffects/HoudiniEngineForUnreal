@@ -64,11 +64,11 @@ public:
 /** Collision generation. **/
 public:
 
-	// Group name used for collision geometry generation. 
+	// Group name prefix used for collision geometry generation. 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=CollisionGeneration)
 	FString CollisionGroupName;
 
-	// Group name used for rendered collision geometry generation.
+	// Group name prefix used for rendered collision geometry generation.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=CollisionGeneration)
 	FString RenderedCollisionGroupName;
 
