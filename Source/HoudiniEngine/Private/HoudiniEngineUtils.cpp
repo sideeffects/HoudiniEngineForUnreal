@@ -1610,12 +1610,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					const FString& GroupName = ObjectGeoGroupNames[GeoGroupNameIdx];
 
 					if(!HoudiniRuntimeSettings->RenderedCollisionGroupName.IsEmpty() &&
-						GroupName.Equals(HoudiniRuntimeSettings->RenderedCollisionGroupName, ESearchCase::IgnoreCase))
+						GroupName.StartsWith(HoudiniRuntimeSettings->RenderedCollisionGroupName, ESearchCase::IgnoreCase))
 					{
 						bIsRenderCollidable = true;
 					}
 					else if(!HoudiniRuntimeSettings->CollisionGroupName.IsEmpty() &&
-						GroupName.Equals(HoudiniRuntimeSettings->CollisionGroupName, ESearchCase::IgnoreCase))
+						GroupName.StartsWith(HoudiniRuntimeSettings->CollisionGroupName, ESearchCase::IgnoreCase))
 					{
 						bIsCollidable = true;
 					}
