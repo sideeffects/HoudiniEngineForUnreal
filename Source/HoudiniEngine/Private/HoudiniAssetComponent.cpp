@@ -1118,8 +1118,6 @@ UHoudiniAssetComponent::StartTaskAssetRebuildManual()
 		bLoadedComponentRequiresInstantiation = true;
 		bParametersChanged = true;
 
-		// Replace serialized preset buffer with default preset buffer.
-		PresetBuffer = DefaultPresetBuffer;
 		StartHoudiniTicking();
 	}
 }
