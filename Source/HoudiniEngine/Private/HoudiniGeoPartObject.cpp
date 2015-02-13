@@ -40,7 +40,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bHasGeoChanged(false),
 	bIsCollidable(false),
 	bIsRenderCollidable(false),
-	bIsLoaded(false)
+	bIsLoaded(false),
+	bHasNativeHoudiniMaterial(false),
+	bHasUnrealMaterialAssigned(false)
 {
 	
 }
@@ -63,7 +65,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bHasGeoChanged(false),
 	bIsCollidable(false),
 	bIsRenderCollidable(false),
-	bIsLoaded(false)
+	bIsLoaded(false),
+	bHasNativeHoudiniMaterial(false),
+	bHasUnrealMaterialAssigned(false)
 {
 
 }
@@ -87,7 +91,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bHasGeoChanged(false),
 	bIsCollidable(false),
 	bIsRenderCollidable(false),
-	bIsLoaded(false)
+	bIsLoaded(false),
+	bHasNativeHoudiniMaterial(false),
+	bHasUnrealMaterialAssigned(false)
 {
 
 }
@@ -182,12 +188,7 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	Ar << PartId;
 	Ar << SplitId;
 
-	Ar << bIsVisible;
-	Ar << bIsInstancer;
-	Ar << bIsCurve;
-	Ar << bIsEditable;
-	Ar << bIsCollidable;
-	Ar << bIsRenderCollidable;
+	Ar << HoudiniGeoPartObjectFlagsPacked;
 
 	if(Ar.IsLoading())
 	{

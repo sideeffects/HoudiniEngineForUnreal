@@ -1724,23 +1724,14 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize curves.
 	SerializeCurves(Ar);
 
+	// Serialize component flags.
+	Ar << HoudiniAssetComponentFlagsPacked;
+
 	if(Ar.IsLoading() && bIsNativeComponent)
 	{
 		// This component has been loaded.
 		bLoadedComponent = true;
 	}
-
-	// Serialize whether we are in PIE mode.
-	Ar << bIsPlayModeActive;
-
-	// Serialize whether we want to enable cooking for this component / asset.
-	Ar << bEnableCooking;
-
-	// Serialize whether we need to push transformations to HAPI.
-	Ar << bUploadTransformsToHoudiniEngine;
-
-	// Serialize whether we need to cook upon transformation change.
-	Ar << bTransformChangeTriggersCooks;
 }
 
 
