@@ -110,29 +110,44 @@ public:
 	/** Id of a split. In most cases this will be 0. **/
 	int32 SplitId;
 
-	/* Is set to true when referenced object is visible. This is typically used by instancers. **/
-	bool bIsVisible;
+	/** Flags used by geo part object. **/
+	union
+	{
+		struct
+		{
+			/* Is set to true when referenced object is visible. This is typically used by instancers. **/
+			uint32 bIsVisible : 1;
 
-	/** Is set to true when referenced object is an instancer. **/
-	bool bIsInstancer;
+			/** Is set to true when referenced object is an instancer. **/
+			uint32 bIsInstancer : 1;
 
-	/** Is set to true when referenced object is a curve. **/
-	bool bIsCurve;
+			/** Is set to true when referenced object is a curve. **/
+			uint32 bIsCurve : 1;
 
-	/** Is set to true when referenced object is editable. **/
-	bool bIsEditable;
+			/** Is set to true when referenced object is editable. **/
+			uint32 bIsEditable : 1;
 
-	/** Is set to true when geometry has changed. **/
-	bool bHasGeoChanged;
+			/** Is set to true when geometry has changed. **/
+			uint32 bHasGeoChanged : 1;
 
-	/** Is set to true when referenced object is collidable. **/
-	bool bIsCollidable;
+			/** Is set to true when referenced object is collidable. **/
+			uint32 bIsCollidable : 1;
 
-	/** Is set to true when referenced object is collidable and is renderable. **/
-	bool bIsRenderCollidable;
+			/** Is set to true when referenced object is collidable and is renderable. **/
+			uint32 bIsRenderCollidable : 1;
 
-	/** Is set to true when referenced object has just been loaded. **/
-	bool bIsLoaded;
+			/** Is set to true when referenced object has just been loaded. **/
+			uint32 bIsLoaded : 1;
+
+			/** Is set to true if referenced Geo Part Object object has native Houdini material. **/
+			uint32 bHasNativeHoudiniMaterial : 1;
+
+			/** Is set to true if referenced object has Unreal material assigned. **/
+			uint32 bHasUnrealMaterialAssigned : 1;
+		};
+
+		uint32 HoudiniGeoPartObjectFlagsPacked;
+	};
 };
 
 

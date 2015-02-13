@@ -413,48 +413,57 @@ protected:
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;
 
-	/** Enables cooking for this Houdini Asset. **/
-	bool bEnableCooking;
+	/** Flags used by Houdini component. **/
+	union
+	{
+		struct
+		{
+			/** Enables cooking for this Houdini Asset. **/
+			uint32 bEnableCooking : 1;
 
-	/** Enables uploading of transformation changes back to Houdini Engine. **/
-	bool bUploadTransformsToHoudiniEngine;
+			/** Enables uploading of transformation changes back to Houdini Engine. **/
+			uint32 bUploadTransformsToHoudiniEngine : 1;
 
-	/** Enables cooking upon transformation changes. **/
-	bool bTransformChangeTriggersCooks;
+			/** Enables cooking upon transformation changes. **/
+			uint32 bTransformChangeTriggersCooks : 1;
 
-	/** Is set to true when this component contains Houdini logo geometry. **/
-	bool bContainsHoudiniLogoGeometry;
+			/** Is set to true when this component contains Houdini logo geometry. **/
+			uint32 bContainsHoudiniLogoGeometry : 1;
 
-	/** Is set to true when this component is native and false is when it is dynamic. **/
-	bool bIsNativeComponent;
+			/** Is set to true when this component is native and false is when it is dynamic. **/
+			uint32 bIsNativeComponent : 1;
 
-	/** Is set to true when this component belongs to a preview actor. **/
-	bool bIsPreviewComponent;
+			/** Is set to true when this component belongs to a preview actor. **/
+			uint32 bIsPreviewComponent : 1;
 
-	/** Is set to true if this component has been loaded. **/
-	bool bLoadedComponent;
+			/** Is set to true if this component has been loaded. **/
+			uint32 bLoadedComponent : 1;
 
-	/** Is set to true when component is loaded and no instantiation / cooking is necessary. **/
-	bool bLoadedComponentRequiresInstantiation;
+			/** Is set to true when component is loaded and no instantiation / cooking is necessary. **/
+			uint32 bLoadedComponentRequiresInstantiation : 1;
 
-	/** Is set to true when asset has been instantiated, but not cooked. **/
-	bool bInstantiated;
+			/** Is set to true when asset has been instantiated, but not cooked. **/
+			uint32 bInstantiated : 1;
 
-	/** Is set to true when PIE mode is on (either play or simulate.) **/
-	bool bIsPlayModeActive;
+			/** Is set to true when PIE mode is on (either play or simulate.) **/
+			uint32 bIsPlayModeActive : 1;
 
-	/** Is set to true when one of the parameters for this component has been modified. This will trigger recook. **/
-	bool bParametersChanged;
+			/** Is set to true when one of the parameters for this component has been modified. This will trigger recook. **/
+			uint32 bParametersChanged : 1;
 
-	/** Is set to true when curve information has changed and requires reuploading. This will trigger recook. **/
-	bool bCurveChanged;
+			/** Is set to true when curve information has changed and requires reuploading. This will trigger recook. **/
+			uint32 bCurveChanged : 1;
 
-	/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
-	bool bComponentTransformHasChanged;
+			/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
+			uint32 bComponentTransformHasChanged : 1;
 
-	/** Is set to true when undo is being performed. **/
-	bool bUndoRequested;
+			/** Is set to true when undo is being performed. **/
+			uint32 bUndoRequested : 1;
 
-	/** Is set to true when manual recook is requested. **/
-	bool bManualRecook;
+			/** Is set to true when manual recook is requested. **/
+			uint32 bManualRecook : 1;
+		};
+
+		uint32 HoudiniAssetComponentFlagsPacked;
+	};
 };
