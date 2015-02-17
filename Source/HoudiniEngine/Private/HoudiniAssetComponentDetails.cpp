@@ -276,8 +276,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				[
 					SNew(SAssetDropTarget)
 					.OnIsAssetAcceptableForDrop(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDraggedOver)
-					.OnAssetDropped(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped, StaticMesh, 
-						&HoudiniGeoPartObject, MaterialIdx)
+					.OnAssetDropped(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped, 
+						StaticMesh, &HoudiniGeoPartObject, MaterialIdx)
 					[
 						SAssignNew(HorizontalBox, SHorizontalBox)
 					]
@@ -841,8 +841,23 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 	UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(InObject);
 	if(MaterialInterface)
 	{
-		// Replace material.
+		// Replace material on static mesh.
 		StaticMesh->Materials[MaterialIdx] = MaterialInterface;
+
+		// Replace material on component using this static mesh.
+		for(TArray<UHoudiniAssetComponent*>::TIterator 
+		IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+			if(HoudiniAssetComponent)
+			{
+				UStaticMeshComponent* StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);
+				if(StaticMeshComponent)
+				{
+					StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
+				}
+			}
+		}
 
 		// Mark geo part object - material has been replaced.
 		HoudiniGeoPartObject->SetUnrealMaterialAssigned();
