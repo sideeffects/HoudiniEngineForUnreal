@@ -2632,6 +2632,23 @@ UHoudiniAssetComponent::LocateStaticMeshComponent(UStaticMesh* StaticMesh) const
 
 
 void
+UHoudiniAssetComponent::UpdateInstancedStaticMeshComponentMaterial(UStaticMesh* StaticMesh, int32 MaterialIdx, 
+	UMaterialInterface* MaterialInterface)
+{
+	// Go through all instance inputs.
+	for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator 
+		IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
+	{
+		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
+		if(HoudiniAssetInstanceInput)
+		{
+			HoudiniAssetInstanceInput->UpdateStaticMeshMaterial(StaticMesh, MaterialIdx, MaterialInterface);
+		}
+	}
+}
+
+
+void
 UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
 {
 	// If we are loading, we want to clean up all existing parameters.

@@ -50,6 +50,10 @@ public:
 	/** Recreates physics states for used instanced static mesh components. **/
 	void RecreatePhysicsStates();
 
+	/** Update material for a given mesh and index. **/
+	void UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx, 
+		UMaterialInterface* MaterialInterface);
+
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
