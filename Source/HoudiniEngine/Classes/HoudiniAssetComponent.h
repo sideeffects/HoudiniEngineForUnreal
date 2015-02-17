@@ -201,6 +201,9 @@ public:
 	/** Locate static mesh for a given geo part. **/
 	UStaticMesh* LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) const;
 
+	/** Locate static mesh component for given static mesh. **/
+	UStaticMeshComponent* LocateStaticMeshComponent(UStaticMesh* StaticMesh) const;
+
 	/** Locate geo part object for given static mesh. Reverse map search. **/
 	FHoudiniGeoPartObject LocateGeoPartObject(UStaticMesh* StaticMesh) const;
 

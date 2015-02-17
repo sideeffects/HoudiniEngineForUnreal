@@ -2581,6 +2581,21 @@ UHoudiniAssetComponent::LocateStaticMesh(const FHoudiniGeoPartObject& HoudiniGeo
 }
 
 
+UStaticMeshComponent* 
+UHoudiniAssetComponent::LocateStaticMeshComponent(UStaticMesh* StaticMesh) const
+{
+	UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+	UStaticMeshComponent* StaticMeshComponent = nullptr;
+
+	if(FoundStaticMeshComponent)
+	{
+		StaticMeshComponent = *FoundStaticMeshComponent;
+	}
+
+	return StaticMeshComponent;
+}
+
+
 void
 UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
 {
