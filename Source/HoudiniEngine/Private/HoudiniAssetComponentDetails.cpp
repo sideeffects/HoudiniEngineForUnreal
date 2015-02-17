@@ -851,7 +851,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 
 		// Replace material on component using this static mesh.
 		for(TArray<UHoudiniAssetComponent*>::TIterator 
-		IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 			if(HoudiniAssetComponent)
@@ -861,6 +861,10 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 				{
 					StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
 				}
+
+				// Update instanced as well.
+				HoudiniAssetComponent->UpdateInstancedStaticMeshComponentMaterial(StaticMesh, MaterialIdx, 
+					MaterialInterface);
 			}
 		}
 

@@ -1165,3 +1165,20 @@ UHoudiniAssetInstanceInput::IsChecked(int32 Idx) const
 	return ESlateCheckBoxState::Unchecked;
 }
 
+
+void
+UHoudiniAssetInstanceInput::UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx, 
+	UMaterialInterface* MaterialInterface)
+{
+	for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
+	{
+		UStaticMesh* StaticMesh = StaticMeshes[MeshIdx];
+
+		if(StaticMesh == OtherStaticMesh)
+		{
+			UStaticMeshComponent* StaticMeshComponent = InstancedStaticMeshComponents[MeshIdx];
+			StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
+		}
+	}
+}
+
