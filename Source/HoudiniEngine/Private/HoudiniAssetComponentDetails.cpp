@@ -197,6 +197,11 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 			UStaticMesh* StaticMesh = IterMeshes.Value();
 			FHoudiniGeoPartObject& HoudiniGeoPartObject = IterMeshes.Key();
 
+			if(!StaticMesh)
+			{
+				continue;
+			}
+
 			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
 			FString Label = FString::Printf(TEXT("Static Mesh %d"), MeshIdx);
