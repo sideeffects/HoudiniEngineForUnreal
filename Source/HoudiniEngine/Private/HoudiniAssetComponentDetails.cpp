@@ -101,13 +101,15 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Asset category.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+		IDetailCategoryBuilder& DetailCategoryBuilder = 
+			DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
 		CreateHoudiniAssetWidget(DetailCategoryBuilder);
 	}
 
 	// Create category for generated static meshes and their materials.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniGeneratedMeshes", TEXT(""), ECategoryPriority::Important);
+		IDetailCategoryBuilder& DetailCategoryBuilder = 
+			DetailBuilder.EditCategory("HoudiniGeneratedMeshes", TEXT(""), ECategoryPriority::Important);
 		CreateStaticMeshAndMaterialWidgets(DetailCategoryBuilder);
 	}
 
@@ -116,11 +118,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Inputs.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
-		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		IDetailCategoryBuilder& DetailCategoryBuilder = 
+			DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator 
+			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-			for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(HoudiniAssetComponent->Inputs); IterInputs; ++IterInputs)
+			for(TArray<UHoudiniAssetInput*>::TIterator 
+				IterInputs(HoudiniAssetComponent->Inputs); IterInputs; ++IterInputs)
 			{
 				UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
 				HoudiniAssetInput->CreateWidget(DetailCategoryBuilder);
@@ -130,11 +135,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Instanced Inputs category.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), ECategoryPriority::Important);
-		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), 
+			ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator 
+			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-			for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator IterInstancedInputs(HoudiniAssetComponent->InstanceInputs); IterInstancedInputs; ++IterInstancedInputs)
+			for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator 
+				IterInstancedInputs(HoudiniAssetComponent->InstanceInputs); IterInstancedInputs; ++IterInstancedInputs)
 			{
 				UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstancedInputs.Value();
 				HoudiniAssetInstanceInput->CreateWidget(DetailCategoryBuilder);
@@ -144,11 +152,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini parameters.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniParameters", TEXT(""), ECategoryPriority::Important);
-		for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		IDetailCategoryBuilder& DetailCategoryBuilder = 
+			DetailBuilder.EditCategory("HoudiniParameters", TEXT(""), ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator 
+			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-			for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
+			for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator 
+				IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
 			{
 				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
@@ -174,18 +185,17 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
-	for(TArray<UHoudiniAssetComponent*>::TIterator IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+	for(TArray<UHoudiniAssetComponent*>::TIterator 
+		IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 	{
 		int32 MeshIdx = 0;
 		UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 
-		// Get all static meshes used by this component.
-		TArray<UStaticMesh*> UsedStaticMeshes;
-		HoudiniAssetComponent->GetAllUsedStaticMeshes(UsedStaticMeshes);
-
-		for(TArray<UStaticMesh*>::TIterator IterMeshes(UsedStaticMeshes); IterMeshes; ++IterMeshes)
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator 
+			IterMeshes(HoudiniAssetComponent->StaticMeshes); IterMeshes; ++IterMeshes)
 		{
-			UStaticMesh* StaticMesh = *IterMeshes;
+			UStaticMesh* StaticMesh = IterMeshes.Value();
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = IterMeshes.Key();
 
 			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
@@ -196,7 +206,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 									.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 			// Create thumbnail for this mesh.
-			TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(new FAssetThumbnail(StaticMesh, 64, 64, AssetThumbnailPool));
+			TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(new FAssetThumbnail(StaticMesh, 64, 64, 
+				AssetThumbnailPool));
 
 			TSharedPtr<SBorder> StaticMeshThumbnailBorder;
 			TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
@@ -210,7 +221,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 					SAssignNew(StaticMeshThumbnailBorder, SBorder)
 					.Padding(5.0f)
 					.BorderImage(this, &FHoudiniAssetComponentDetails::GetStaticMeshThumbnailBorder, StaticMesh)
-					.OnMouseDoubleClick(this, &FHoudiniAssetComponentDetails::OnThumbnailDoubleClick, (UObject*) StaticMesh)
+					.OnMouseDoubleClick(this, &FHoudiniAssetComponentDetails::OnThumbnailDoubleClick, 
+						(UObject*) StaticMesh)
 					[
 						SNew(SBox)
 						.WidthOverride(64)
@@ -237,7 +249,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 							.VAlign(VAlign_Center)
 							.HAlign(HAlign_Center)
 							.Text(LOCTEXT("Bake", "Bake"))
-							.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeStaticMesh, StaticMesh, HoudiniAssetComponent)
+							.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeStaticMesh, StaticMesh, 
+								HoudiniAssetComponent)
 							.ToolTipText(LOCTEXT("HoudiniStaticMeshBakeButton", "Bake this generated static mesh"))
 						]
 					]
@@ -256,13 +269,15 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 				
 				// Create thumbnail for this material.
-				TSharedPtr<FAssetThumbnail> MaterialInterfaceThumbnail = MakeShareable(new FAssetThumbnail(MaterialInterface, 64, 64, AssetThumbnailPool));
+				TSharedPtr<FAssetThumbnail> MaterialInterfaceThumbnail = 
+					MakeShareable(new FAssetThumbnail(MaterialInterface, 64, 64, AssetThumbnailPool));
 
 				VerticalBox->AddSlot().Padding(0, 2)
 				[
 					SNew(SAssetDropTarget)
 					.OnIsAssetAcceptableForDrop(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDraggedOver)
-					.OnAssetDropped(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped, StaticMesh, MaterialIdx)
+					.OnAssetDropped(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped, StaticMesh, 
+						&HoudiniGeoPartObject, MaterialIdx)
 					[
 						SAssignNew(HorizontalBox, SHorizontalBox)
 					]
@@ -272,8 +287,10 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				[
 					SAssignNew(MaterialThumbnailBorder, SBorder)
 					.Padding(5.0f)
-					.BorderImage(this, &FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder, StaticMesh, MaterialIdx)
-					.OnMouseDoubleClick(this, &FHoudiniAssetComponentDetails::OnThumbnailDoubleClick, (UObject*) MaterialInterface)
+					.BorderImage(this, &FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder, StaticMesh, 
+						MaterialIdx)
+					.OnMouseDoubleClick(this, 
+						&FHoudiniAssetComponentDetails::OnThumbnailDoubleClick, (UObject*) MaterialInterface)
 					[
 						SNew(SBox)
 						.WidthOverride(64)
@@ -307,10 +324,11 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 						+SHorizontalBox::Slot()
 						[
 							SAssignNew(AssetComboButton, SComboButton)
-							//.ToolTipText(this, &FHoudiniAssetComponentDetails::OnGetToolTip )
+							//.ToolTipText(this, &FHoudiniAssetComponentDetails::OnGetToolTip)
 							.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 							.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
-							.OnGetMenuContent(this, &FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent, MaterialInterface, StaticMesh, MaterialIdx)
+							.OnGetMenuContent(this, &FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent, 
+								MaterialInterface, StaticMesh, &HoudiniGeoPartObject, MaterialIdx)
 							.ContentPadding(2.0f)
 							.ButtonContent()
 							[
@@ -326,7 +344,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				// Create tooltip.
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("Asset"), FText::FromString(MaterialInterface->GetName()));
-				FText MaterialTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+				FText MaterialTooltip = FText::Format(
+					LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
 
 				ButtonBox->AddSlot()
 				.AutoWidth()
@@ -334,7 +353,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				.VAlign(VAlign_Center)
 				[
 					PropertyCustomizationHelpers::MakeBrowseButton(
-						FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceBrowse, MaterialInterface),
+						FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceBrowse, 
+							MaterialInterface),
 						TAttribute<FText>(MaterialTooltip))
 				];
 
@@ -348,7 +368,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 					.ContentPadding(0) 
 					.Visibility(EVisibility::Visible)
-					.OnClicked(this, &FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked, StaticMesh, MaterialIdx)
+					.OnClicked(this, &FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked, 
+						StaticMesh, &HoudiniGeoPartObject, MaterialIdx)
 					[
 						SNew(SImage)
 						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
@@ -459,7 +480,8 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	}
 
 	// Create thumbnail for this Houdini asset.
-	TSharedPtr<FAssetThumbnail> HoudiniAssetThumbnail = MakeShareable(new FAssetThumbnail(HoudiniAsset, 64, 64, AssetThumbnailPool));
+	TSharedPtr<FAssetThumbnail> HoudiniAssetThumbnail = 
+		MakeShareable(new FAssetThumbnail(HoudiniAsset, 64, 64, AssetThumbnailPool));
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
@@ -481,7 +503,8 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
 		SNew(SCheckBox)
-		.OnCheckStateChanged(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking, HoudiniAssetComponent)
+		.OnCheckStateChanged(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking, 
+			HoudiniAssetComponent)
 		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCooking, HoudiniAssetComponent)
 		.Content()
 		[
@@ -494,8 +517,10 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
 		SNew(SCheckBox)
-		.OnCheckStateChanged(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform, HoudiniAssetComponent)
-		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUploadTransform, HoudiniAssetComponent)
+		.OnCheckStateChanged(this, 
+			&FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUploadTransform, 
+			HoudiniAssetComponent)
 		.Content()
 		[
 			SNew(STextBlock)
@@ -507,8 +532,10 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
 		SNew(SCheckBox)
-		.OnCheckStateChanged(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking, HoudiniAssetComponent)
-		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking, HoudiniAssetComponent)
+		.OnCheckStateChanged(this, 
+			&FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking, 
+			HoudiniAssetComponent)
 		.Content()
 		[
 			SNew(STextBlock)
@@ -681,7 +708,8 @@ FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder(UStaticMesh* 
 
 
 FReply
-FHoudiniAssetComponentDetails::OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object)
+FHoudiniAssetComponentDetails::OnThumbnailDoubleClick(const FGeometry& InMyGeometry, 
+	const FPointerEvent& InMouseEvent, UObject* Object)
 {
 	if(Object && GEditor)
 	{
@@ -701,7 +729,8 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudin
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(StaticMesh);
 
 		// Bake static mesh.
-		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMesh);
+		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, 
+			StaticMesh);
 
 		if(OutStaticMesh)
 		{
@@ -722,12 +751,14 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
 
-		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator 
+			Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
 		{
 			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
 			UStaticMesh* StaticMesh = Iter.Value();
 
-			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMesh);
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, 
+				HoudiniGeoPartObject, StaticMesh);
 
 			if(OutStaticMesh)
 			{
@@ -804,13 +835,17 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDraggedOver(const UObject* InO
 
 
 void
-FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 MaterialIdx)
+FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, UStaticMesh* StaticMesh, 
+	FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx)
 {
 	UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(InObject);
 	if(MaterialInterface)
 	{
 		// Replace material.
 		StaticMesh->Materials[MaterialIdx] = MaterialInterface;
+
+		// Mark geo part object - material has been replaced.
+		HoudiniGeoPartObject->SetUnrealMaterialAssigned();
 
 		// We need to update editor to reflect changes.
 		if(HoudiniAssetComponents.Num() > 0)
@@ -822,21 +857,25 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 
 
 TSharedRef<SWidget>
-FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent(UMaterialInterface* MaterialInterface, UStaticMesh* StaticMesh, int32 MaterialIdx)
+FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent(UMaterialInterface* MaterialInterface, 
+	UStaticMesh* StaticMesh, FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx)
 {
 	TArray<const UClass*> AllowedClasses;
 	AllowedClasses.Add(UMaterialInterface::StaticClass());
 
 	TArray<UFactory*> NewAssetFactories;
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(MaterialInterface), true, AllowedClasses, NewAssetFactories, OnShouldFilterMaterialInterface,
-		FOnAssetSelected::CreateSP(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected, StaticMesh, MaterialIdx), 
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(MaterialInterface), true, AllowedClasses, 
+		NewAssetFactories, OnShouldFilterMaterialInterface,
+		FOnAssetSelected::CreateSP(this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected, 
+			StaticMesh, HoudiniGeoPartObject, MaterialIdx), 
 		FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::CloseMaterialInterfaceComboButton));
 }
 
 
 void
-FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, int32 MaterialIdx)
+FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, 
+	FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx)
 {
 	TPairInitializer<UStaticMesh*, int32> Pair(StaticMesh, MaterialIdx);
 	TSharedPtr<SComboButton> AssetComboButton = MaterialInterfaceComboButtons[Pair];
@@ -845,7 +884,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(const FAssetData& Ass
 		AssetComboButton->SetIsOpen(false);
 
 		UObject* Object = AssetData.GetAsset();
-		OnMaterialInterfaceDropped(Object, StaticMesh, MaterialIdx);
+		OnMaterialInterfaceDropped(Object, StaticMesh, HoudiniGeoPartObject, MaterialIdx);
 	}
 }
 
@@ -870,13 +909,14 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceBrowse(UMaterialInterface* Mat
 
 
 FReply
-FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, int32 MaterialIdx)
+FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, 
+	FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx)
 {
 	UMaterialInterface* MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
 	if(MaterialInterface)
 	{
 		// Replace material with default.
-		OnMaterialInterfaceDropped(MaterialInterface, StaticMesh, MaterialIdx);
+		OnMaterialInterfaceDropped(MaterialInterface, StaticMesh, HoudiniGeoPartObject, MaterialIdx);
 	}
 
 	return FReply::Handled();
@@ -935,8 +975,8 @@ FHoudiniAssetComponentDetails::OnGetHoudiniAssetMenuContent()
 		HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	}
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(HoudiniAsset), true, AllowedClasses, NewAssetFactories,
-		OnShouldFilterHoudiniAsset,
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(HoudiniAsset), true, 
+		AllowedClasses, NewAssetFactories, OnShouldFilterHoudiniAsset,
 		FOnAssetSelected::CreateSP(this, &FHoudiniAssetComponentDetails::OnHoudiniAssetSelected), 
 		FSimpleDelegate::CreateSP(this, &FHoudiniAssetComponentDetails::CloseHoudiniAssetComboButton));
 }
@@ -1034,7 +1074,8 @@ FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking(UHoudin
 
 
 void
-FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent)
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, 
+	UHoudiniAssetComponent* HoudiniAssetComponent)
 {
 	if(HoudiniAssetComponent)
 	{
@@ -1044,7 +1085,8 @@ FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ESlateCh
 
 
 void
-FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent)
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, 
+	UHoudiniAssetComponent* HoudiniAssetComponent)
 {
 	if(HoudiniAssetComponent)
 	{
@@ -1054,7 +1096,8 @@ FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform(
 
 
 void
-FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent)
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, 
+	UHoudiniAssetComponent* HoudiniAssetComponent)
 {
 	if(HoudiniAssetComponent)
 	{

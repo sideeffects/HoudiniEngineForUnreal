@@ -48,7 +48,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 }
 
 
-FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
+	HAPI_PartId InPartId) :
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
@@ -73,8 +74,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 }
 
 
-FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName,
-											 HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId) :
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, 
+	const FString& InPartName, HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
+	HAPI_PartId InPartId) :
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),
 	PartName(InPartName),
@@ -252,4 +254,18 @@ FHoudiniGeoPartObject::HasParameters(HAPI_AssetId InAssetId) const
 	FHoudiniApi::GetNodeInfo(NodeId, &NodeInfo);
 
 	return (NodeInfo.parmCount > 0);
+}
+
+
+void
+FHoudiniGeoPartObject::SetUnrealMaterialAssigned()
+{
+	bHasUnrealMaterialAssigned = true;
+}
+
+
+bool
+FHoudiniGeoPartObject::HasUnrealMaterialAssigned() const
+{
+	return bHasUnrealMaterialAssigned;
 }

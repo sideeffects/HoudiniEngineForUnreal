@@ -101,13 +101,16 @@ private:
 	bool OnMaterialInterfaceDraggedOver(const UObject* InObject) const;
 
 	/** Delegate used when valid material has been drag and dropped. **/
-	void OnMaterialInterfaceDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 MaterialIdx);
+	void OnMaterialInterfaceDropped(UObject* InObject, UStaticMesh* StaticMesh, 
+		FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx);
 
 	/** Construct drop down menu content for material. **/
-	TSharedRef<SWidget> OnGetMaterialInterfaceMenuContent(UMaterialInterface* MaterialInterface, UStaticMesh* StaticMesh, int32 MaterialIdx);
+	TSharedRef<SWidget> OnGetMaterialInterfaceMenuContent(UMaterialInterface* MaterialInterface, 
+		UStaticMesh* StaticMesh, FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx);
 
 	/** Delegate for handling selection in content browser. **/
-	void OnMaterialInterfaceSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, int32 MaterialIdx);
+	void OnMaterialInterfaceSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, 
+		FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx);
 
 	/** Closes the combo button. **/
 	void CloseMaterialInterfaceComboButton();
@@ -116,7 +119,8 @@ private:
 	void OnMaterialInterfaceBrowse(UMaterialInterface* MaterialInterface);
 
 	/** Handler for reset material interface button. **/
-	FReply OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, int32 MaterialIdx);
+	FReply OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, FHoudiniGeoPartObject* HoudiniGeoPartObject, 
+		int32 MaterialIdx);
 
 	/** Delegate used when Houdini asset has been drag and dropped. **/
 	void OnHoudiniAssetDropped(UObject* InObject);
@@ -143,14 +147,24 @@ private:
 	FReply OnResetHoudiniAssetClicked();
 
 	/** Checks whether checkbox is checked. **/
-	ESlateCheckBoxState::Type IsCheckedComponentSettingCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
-	ESlateCheckBoxState::Type IsCheckedComponentSettingUploadTransform(UHoudiniAssetComponent* HoudiniAssetComponent) const;
-	ESlateCheckBoxState::Type IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+	ESlateCheckBoxState::Type 
+		IsCheckedComponentSettingCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+	
+	ESlateCheckBoxState::Type 
+		IsCheckedComponentSettingUploadTransform(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+	
+	ESlateCheckBoxState::Type 
+		IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
 	/** Handle change in Checkbox. **/
-	void CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent);
-	void CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent);
-	void CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, UHoudiniAssetComponent* HoudiniAssetComponent);
+	void CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, 
+		UHoudiniAssetComponent* HoudiniAssetComponent);
+
+	void CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, 
+		UHoudiniAssetComponent* HoudiniAssetComponent);
+
+	void CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, 
+		UHoudiniAssetComponent* HoudiniAssetComponent);
 
 private:
 
