@@ -2205,7 +2205,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				if(bMaterialFound)
 				{
-					if(MaterialInfo.hasChanged || (!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
+					if(MaterialInfo.hasChanged || HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch ||
+						(!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
 					{
 						// If material has not been replaced by Unreal material.
 						if(!HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
@@ -2221,6 +2222,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 							// Remove previous materials.
 							StaticMesh->Materials.Empty();
 							StaticMesh->Materials.Add(Material);
+
+							// Reset refetch flag.
+							HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch = false;
 						}
 					}
 				}

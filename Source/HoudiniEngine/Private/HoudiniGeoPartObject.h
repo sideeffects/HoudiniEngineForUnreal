@@ -78,6 +78,12 @@ public:
 	/** Return true if this object has Unreal material assigned. **/
 	bool HasUnrealMaterialAssigned() const;
 
+	/** Reset flag which specifies that Unreal material has been assigned. **/
+	void ResetUnrealMaterialAssigned();
+
+	/** Return true if this object has native Houdini material. **/
+	bool HasNativeHoudiniMaterial() const;
+
 public:
 
 	/** Get node id for this geo part object. **/
@@ -151,6 +157,9 @@ public:
 
 			/** Is set to true if referenced object has Unreal material assigned. **/
 			uint32 bHasUnrealMaterialAssigned : 1;
+
+			/** Is set to true when native material needs to be refetched. **/
+			uint32 bNativeHoudiniMaterialRefetch : 1;
 		};
 
 		uint32 HoudiniGeoPartObjectFlagsPacked;
