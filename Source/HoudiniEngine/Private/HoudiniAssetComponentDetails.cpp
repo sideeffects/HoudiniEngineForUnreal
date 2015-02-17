@@ -364,7 +364,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
-					.ToolTipText(LOCTEXT("ResetToBase", "Reset to base material"))
+					.ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
 					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 					.ContentPadding(0) 
 					.Visibility(EVisibility::Visible)
@@ -927,11 +927,23 @@ FReply
 FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, 
 	FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx)
 {
-	UMaterialInterface* MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
-	if(MaterialInterface)
+	if(HoudiniGeoPartObject->HasNativeHoudiniMaterial())
 	{
-		// Replace material with default.
-		OnMaterialInterfaceDropped(MaterialInterface, StaticMesh, HoudiniGeoPartObject, MaterialIdx);
+		// Geo part does have native Houdini material.
+
+		HoudiniGeoPartObject->ResetUnrealMaterialAssigned();
+		OnRecookAsset();
+	}
+	else
+	{
+		// Geo part does not have native Houdini material, we just use default Unreal material in this case.
+
+		UMaterialInterface* MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+		if(MaterialInterface)
+		{
+			// Replace material with default.
+			OnMaterialInterfaceDropped(MaterialInterface, StaticMesh, HoudiniGeoPartObject, MaterialIdx);
+		}
 	}
 
 	return FReply::Handled();

@@ -42,7 +42,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsRenderCollidable(false),
 	bIsLoaded(false),
 	bHasNativeHoudiniMaterial(false),
-	bHasUnrealMaterialAssigned(false)
+	bHasUnrealMaterialAssigned(false),
+	bNativeHoudiniMaterialRefetch(false)
 {
 	
 }
@@ -68,7 +69,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsRenderCollidable(false),
 	bIsLoaded(false),
 	bHasNativeHoudiniMaterial(false),
-	bHasUnrealMaterialAssigned(false)
+	bHasUnrealMaterialAssigned(false),
+	bNativeHoudiniMaterialRefetch(false)
 {
 
 }
@@ -95,7 +97,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsRenderCollidable(false),
 	bIsLoaded(false),
 	bHasNativeHoudiniMaterial(false),
-	bHasUnrealMaterialAssigned(false)
+	bHasUnrealMaterialAssigned(false),
+	bNativeHoudiniMaterialRefetch(false)
 {
 
 }
@@ -268,4 +271,19 @@ bool
 FHoudiniGeoPartObject::HasUnrealMaterialAssigned() const
 {
 	return bHasUnrealMaterialAssigned;
+}
+
+
+void
+FHoudiniGeoPartObject::ResetUnrealMaterialAssigned()
+{
+	bHasUnrealMaterialAssigned = false;
+	bNativeHoudiniMaterialRefetch = true;
+}
+
+
+bool
+FHoudiniGeoPartObject::HasNativeHoudiniMaterial() const
+{
+	return bHasNativeHoudiniMaterial;
 }

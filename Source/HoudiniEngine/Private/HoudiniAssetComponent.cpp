@@ -466,6 +466,39 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 				*/
 			}
 
+			// Update materials and update rendering information.
+			if(StaticMesh)
+			{
+				bool bMaterialsNeedUpdate = false;
+
+				// See if materials between static mesh and static mesh component are different.
+				if(StaticMesh->Materials.Num() != StaticMeshComponent->Materials.Num())
+				{
+					bMaterialsNeedUpdate = true;
+				}
+				else
+				{
+					for(int32 MeshMatIdx = 0; MeshMatIdx < StaticMesh->Materials.Num(); ++MeshMatIdx)
+					{
+						UMaterialInterface* MeshMaterialInstance = StaticMesh->Materials[MeshMatIdx];
+						UMaterialInterface* MeshComponentMaterialInstance = StaticMeshComponent->Materials[MeshMatIdx];
+
+						if(MeshMaterialInstance != MeshComponentMaterialInstance)
+						{
+							bMaterialsNeedUpdate = true;
+							break;
+						}
+					}
+				}
+
+				if(bMaterialsNeedUpdate)
+				{
+					StaticMeshComponent->Materials.Empty();
+					StaticMeshComponent->Materials.Append(StaticMesh->Materials);
+					StaticMeshComponent->MarkRenderStateDirty();
+				}
+			}
+
 			// Transform the component by transformation provided by HAPI.
 			StaticMeshComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 		}
@@ -1879,6 +1912,8 @@ UHoudiniAssetComponent::CheckMaterialInformationChanged(FHoudiniGeoPartObject& O
 		{
 			OtherHoudiniGeoPartObject.bHasNativeHoudiniMaterial = HoudiniGeoPartObject.bHasNativeHoudiniMaterial;
 			OtherHoudiniGeoPartObject.bHasUnrealMaterialAssigned = HoudiniGeoPartObject.bHasUnrealMaterialAssigned;
+			OtherHoudiniGeoPartObject.bNativeHoudiniMaterialRefetch = 
+				HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch;
 
 			return true;
 		}
