@@ -27,8 +27,9 @@ public:
 	/** Constructors. **/
 	FHoudiniGeoPartObject();
 	FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
-	FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName, HAPI_AssetId InAssetId,
-						  HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
+
+	FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName, 
+		HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
 public:
 
@@ -70,6 +71,12 @@ public:
 
 	/** Return true if corresponding geometry has changed. **/
 	bool HasGeoChanged() const;
+
+	/** Set to true flag which specifies that Unreal material has been assigned. **/
+	void SetUnrealMaterialAssigned();
+
+	/** Return true if this object has Unreal material assigned. **/
+	bool HasUnrealMaterialAssigned() const;
 
 public:
 

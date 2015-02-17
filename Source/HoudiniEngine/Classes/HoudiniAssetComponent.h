@@ -65,7 +65,8 @@ namespace EHoudiniAssetComponentState
 }
 
 
-UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew)
+UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), 
+	ShowCategories=(Mobility), editinlinenew)
 class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 {
 	friend class FHoudiniMeshSceneProxy;
@@ -80,11 +81,13 @@ class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
 public:
 
 	/** If true, the physics triangle mesh will use double sided faces when doing scene queries. */
-	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Double Sided Geometry"))
+	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Double Sided Geometry"))
 	uint32 bGeneratedDoubleSidedGeometry : 1;
 
 	/** Physical material to use for simple collision on this body. Encodes information about density, friction etc. */
-	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Simple Collision Physical Material"))
+	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Simple Collision Physical Material"))
 	UPhysicalMaterial* GeneratedPhysMaterial;
 
 	/** Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate. */
@@ -92,35 +95,43 @@ public:
 	TEnumAsByte<enum ECollisionTraceFlag> GeneratedCollisionTraceFlag;
 
 	/** Resolution of lightmap. */
-	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Light Map Resolution", FixedIncrement="4.0"))
+	UPROPERTY(EditAnywhere, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Light Map Resolution", FixedIncrement="4.0"))
 	int32 GeneratedLightMapResolution;
 
 	/** Bias multiplier for Light Propagation Volume lighting. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Lpv Bias Multiplier", UIMin="0.0", UIMax="3.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Lpv Bias Multiplier", UIMin="0.0", UIMax="3.0"))
 	float GeneratedLpvBiasMultiplier;
 
 	/** Custom walkable slope setting for generated mesh's body. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Walkable Slope Override"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Walkable Slope Override"))
 	FWalkableSlopeOverride GeneratedWalkableSlopeOverride;
 
 	/** The light map coordinate index. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Light map coordinate index"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Light map coordinate index"))
 	int32 GeneratedLightMapCoordinateIndex;
 
 	/** True if mesh should use a less-conservative method of mip LOD texture factor computation. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Use Maximum Streaming Texel Ratio"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Use Maximum Streaming Texel Ratio"))
 	uint32 bGeneratedUseMaximumStreamingTexelRatio:1;
 
 	/** Allows artists to adjust the distance where textures using UV 0 are streamed in/out. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Streaming Distance Multiplier"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Streaming Distance Multiplier"))
 	float GeneratedStreamingDistanceMultiplier;
 
 	/** Default settings when using this mesh for instanced foliage. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Foliage Default Settings"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Foliage Default Settings"))
 	UFoliageType_InstancedStaticMesh* GeneratedFoliageDefaultSettings;
 
 	/** Array of user data stored with the asset. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=HoudiniGeneratedStaticMeshSettings, meta=(DisplayName="Asset User Data"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=HoudiniGeneratedStaticMeshSettings, 
+		meta=(DisplayName="Asset User Data"))
 	TArray<UAssetUserData*> GeneratedAssetUserData;
 
 public:
@@ -181,7 +192,8 @@ public:
 public:
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
-	bool LocateStaticMeshes(const FString& ObjectName, TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
+	bool LocateStaticMeshes(const FString& ObjectName, 
+		TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
 
 	/** Locate static mesh by geo part object id. **/
 	bool LocateStaticMeshes(int32 ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;
@@ -191,6 +203,9 @@ public:
 
 	/** Locate geo part object for given static mesh. Reverse map search. **/
 	FHoudiniGeoPartObject LocateGeoPartObject(UStaticMesh* StaticMesh) const;
+
+	/** Check if material information has changed for this geo part object. **/
+	bool CheckMaterialInformationChanged(FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 /** UObject methods. **/
 public:
@@ -448,10 +463,10 @@ protected:
 			/** Is set to true when PIE mode is on (either play or simulate.) **/
 			uint32 bIsPlayModeActive : 1;
 
-			/** Is set to true when one of the parameters for this component has been modified. This will trigger recook. **/
+			/** Is set to true when one of the parameters has been modified. This will trigger recook. **/
 			uint32 bParametersChanged : 1;
 
-			/** Is set to true when curve information has changed and requires reuploading. This will trigger recook. **/
+			/** Is set to true when curve information requires reuploading. This will trigger recook. **/
 			uint32 bCurveChanged : 1;
 
 			/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
