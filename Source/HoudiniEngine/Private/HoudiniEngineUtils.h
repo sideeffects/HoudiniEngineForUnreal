@@ -228,6 +228,11 @@ public:
 	static bool HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
 		TArray<FTransform>& Transforms);
 
+	/** HAPI : Given vertex list, retrieve new vertex list for a scpecified group. **/
+	static void HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
+		HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList, 
+		TArray<int32>& NewVertexList, TArray<int32>& AllVertexList);
+
 protected:
 
 	/** Create a package for static mesh. **/
