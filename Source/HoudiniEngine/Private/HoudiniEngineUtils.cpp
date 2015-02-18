@@ -1696,6 +1696,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				}
 			}
 
+			// Keep track of split id.
+			int32 SplitId = 0;
+
 			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
 			{
 				// Get part information.
@@ -1755,9 +1758,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
 				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
 
-				// Record collision information for this geo part object.
-				HoudiniGeoPartObject.bIsRenderCollidable = bIsRenderCollidable;
-				HoudiniGeoPartObject.bIsCollidable = bIsCollidable;
+				// Reset collision information for this geo part object.
+				HoudiniGeoPartObject.bIsRenderCollidable = false;
+				HoudiniGeoPartObject.bIsCollidable = false;
+
+				// Reset split info.
+				HoudiniGeoPartObject.SplitId = 0;
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
@@ -1796,6 +1802,76 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						TEXT("but is not an intstancer - skipping."),
 						ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
 					continue;
+				}
+
+				// Retrieve all vertex indices.
+				VertexList.SetNumUninitialized(PartInfo.vertexCount);
+
+				if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
+					&VertexList[0], 0, PartInfo.vertexCount))
+				{
+					// Error getting the vertex list.
+					bGeoError = true;
+
+					HOUDINI_LOG_MESSAGE(
+						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list ")
+						TEXT("- skipping."),
+						ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+
+					continue;
+				}
+
+				// See if we require splitting.
+				TMap<FString, TArray<int32> > GroupSplitFaces;
+				TArray<int32> GroupSplitFacesRemaining;
+
+				if(bIsRenderCollidable || bIsCollidable)
+				{
+					// Set holding all vertex indices used for collision. We need this to figure out all vertex
+					// indices that are not part of collision geos.
+					TArray<int32> AllCollisionVertexList;
+					AllCollisionVertexList.SetNumZeroed(VertexList.Num());
+
+					for(int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx)
+					{
+						const FString& GroupName = ObjectGeoGroupNames[GeoGroupNameIdx];
+
+						if((!HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
+								GroupName.StartsWith(HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix, 
+								ESearchCase::IgnoreCase)) || 
+							(!HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() &&
+								GroupName.StartsWith(HoudiniRuntimeSettings->CollisionGroupNamePrefix, 
+								ESearchCase::IgnoreCase)))
+						{
+							// New vertex list just for this group.
+							TArray<int32> GroupVertexList;
+							FHoudiniEngineUtils::HapiGetVertexListForGroup(AssetId, ObjectInfo.id, GeoInfo.id, 
+								PartInfo.id, GroupName, VertexList, GroupVertexList, AllCollisionVertexList);
+
+							if(GroupVertexList.Num() > 0)
+							{
+								// If list is not empty, we store it for this group - this will define new mesh.
+								GroupSplitFaces.Add(GroupName, GroupVertexList);
+							}
+						}
+					}
+
+					// We also need to figure out / construct vertex list for everything that's not collision geometry
+					// or rendered collision geometry.
+					for(int32 CollisionVertexIdx = 0; CollisionVertexIdx < AllCollisionVertexList.Num(); 
+						++CollisionVertexIdx)
+					{
+						int32 VertexIndex = AllCollisionVertexList[CollisionVertexIdx];
+						if(0 == VertexIndex)
+						{
+							// This is unused index, we need to add it to unused vertex list.
+							GroupSplitFacesRemaining.Add(VertexList[CollisionVertexIdx]);
+						}
+					}
+				}
+				else
+				{
+					GroupSplitFacesRemaining = VertexList;
 				}
 
 				// Attempt to locate static mesh from previous instantiation.
@@ -1888,6 +1964,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Load existing raw model. This will be empty as we are constructing a new mesh.
 				FRawMesh RawMesh;
 
+				/*
 				// Retrieve vertex information for this part.
 				VertexList.SetNumUninitialized(PartInfo.vertexCount);
 				if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
@@ -1908,6 +1985,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 					continue;
 				}
+				*/
 
 				// Retrieve position data.
 				HAPI_AttributeInfo AttribInfoPositions;
@@ -3517,4 +3595,34 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 	StoredLibHAPILocation = TEXT("");
 	return HAPILibraryHandle;
+}
+
+
+void
+FHoudiniEngineUtils::HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
+	HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList, TArray<int32>& NewVertexList,
+	TArray<int32>& AllVertexList)
+{
+	NewVertexList.Empty();
+
+	TArray<int32> PartGroupMembership;
+	FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, 
+		PartGroupMembership);
+
+	// Go through all primitives.
+	for(int32 FaceIdx = 0; FaceIdx < PartGroupMembership.Num(); ++FaceIdx)
+	{
+		if(PartGroupMembership[FaceIdx] > 0)
+		{
+			// This face is a member of specified group.
+			NewVertexList.Add(FullVertexList[FaceIdx * 3 + 0]);
+			NewVertexList.Add(FullVertexList[FaceIdx * 3 + 1]);
+			NewVertexList.Add(FullVertexList[FaceIdx * 3 + 2]);
+
+			// Mark these vertex indices as used.
+			AllVertexList[FaceIdx * 3 + 0] = 1;
+			AllVertexList[FaceIdx * 3 + 1] = 1;
+			AllVertexList[FaceIdx * 3 + 2] = 1;
+		}
+	}
 }
