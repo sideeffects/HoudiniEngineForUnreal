@@ -326,13 +326,18 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				// Get platform specific name of libHAPI.
 				FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
 
+				// Some sanity checks.
+				int32 BuiltEngineMajor = FMath::Max(0, HAPI_VERSION_HOUDINI_ENGINE_MAJOR);
+				int32 BuiltEngineMinor = FMath::Max(0, HAPI_VERSION_HOUDINI_ENGINE_MINOR);
+				int32 BuiltEngineApi = FMath::Max(0, HAPI_VERSION_HOUDINI_ENGINE_API);
+
 				FString WarningMessage = FString::Printf(
 					TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. ")
 					TEXT("%s was loaded, but has wrong version. "),
 					TEXT("No cooking / instantiation will take place."),
-					HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
-					HAPI_VERSION_HOUDINI_ENGINE_MINOR,
-					HAPI_VERSION_HOUDINI_ENGINE_API,
+					BuiltEngineMajor,
+					BuiltEngineMinor,
+					BuiltEngineApi,
 					RunningEngineMajor,
 					RunningEngineMinor,
 					RunningEngineApi,
