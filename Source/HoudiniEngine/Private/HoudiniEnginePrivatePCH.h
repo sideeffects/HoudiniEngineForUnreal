@@ -197,11 +197,14 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Suffix for all Unreal materials which are generated from Houdini. **/
 #define HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX			TEXT("_houdini_material")
 
-/** Group name used for collision geometry generation. **/
+/** Group name prefix used for collision geometry generation. **/
 #define HAPI_UNREAL_GROUP_GEOMETRY_COLLISION			"collision_geo"
 
-/** Group name used for rendered collision geometry generation. **/
+/** Group name prefix used for rendered collision geometry generation. **/
 #define HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION	"rendered_collision_geo"
+
+/** Group name used to mark everything that is not a member of collision or rendered collision group. **/
+#define HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION		"not_collision_geo"
 
 /** Helper function to serialize enumerations. **/
 template <typename TEnum>

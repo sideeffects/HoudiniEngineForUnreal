@@ -1696,9 +1696,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				}
 			}
 
-			// Keep track of split id.
-			int32 SplitId = 0;
-
 			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
 			{
 				// Get part information.
@@ -1759,11 +1756,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
 
 				// Reset collision information for this geo part object.
-				HoudiniGeoPartObject.bIsRenderCollidable = false;
-				HoudiniGeoPartObject.bIsCollidable = false;
+				//HoudiniGeoPartObject.bIsRenderCollidable = false;
+				//HoudiniGeoPartObject.bIsCollidable = false;
 
 				// Reset split info.
-				HoudiniGeoPartObject.SplitId = 0;
+				//HoudiniGeoPartObject.SplitId = 0;
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
@@ -1823,7 +1820,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				// See if we require splitting.
 				TMap<FString, TArray<int32> > GroupSplitFaces;
-				TArray<int32> GroupSplitFacesRemaining;
+				static const FString RemainingGroupName = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION);
 
 				if(bIsRenderCollidable || bIsCollidable)
 				{
@@ -1858,6 +1855,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 					// We also need to figure out / construct vertex list for everything that's not collision geometry
 					// or rendered collision geometry.
+					TArray<int32> GroupSplitFacesRemaining;
+
 					for(int32 CollisionVertexIdx = 0; CollisionVertexIdx < AllCollisionVertexList.Num(); 
 						++CollisionVertexIdx)
 					{
@@ -1868,42 +1867,449 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 							GroupSplitFacesRemaining.Add(VertexList[CollisionVertexIdx]);
 						}
 					}
+
+					// We store remaining geo vertex list as a special name.
+					if(GroupSplitFacesRemaining.Num() > 0)
+					{
+						GroupSplitFaces.Add(RemainingGroupName, GroupSplitFacesRemaining);
+					}
 				}
 				else
 				{
-					GroupSplitFacesRemaining = VertexList;
+					GroupSplitFaces.Add(RemainingGroupName, VertexList);
 				}
 
-				// Attempt to locate static mesh from previous instantiation.
-				UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
+				// Keep track of split id.
+				int32 SplitId = 0;
 
-				// See if materials have changed for this geo part object.
-				HoudiniAssetComponent->CheckMaterialInformationChanged(HoudiniGeoPartObject);
-
-				// See if geometry has changed for this part (and global scaling has not changed).
-				if(!GeoInfo.hasGeoChanged && !HoudiniAssetComponent->CheckGlobalSettingScaleFactors())
+				// Iterate through all detected split groups we care about and split geometry.
+				for(TMap<FString, TArray<int32> >::TIterator IterGroups(GroupSplitFaces); IterGroups; ++IterGroups)
 				{
-					// If geometry has not changed.
-					if(FoundStaticMesh)
-					{
-						StaticMesh = *FoundStaticMesh;
+					const FString& SplitGroupName = IterGroups.Key();
+					TArray<int32>& SplitGroupVertexList = IterGroups.Value();
 
-						// If there's material and material has changed.
-						if(bMaterialFound && MaterialInfo.hasChanged)
+					// Record split id in geo part.
+					HoudiniGeoPartObject.SplitId = SplitId;
+
+					// Reset collision flags.
+					HoudiniGeoPartObject.bIsRenderCollidable = false;
+					HoudiniGeoPartObject.bIsCollidable = false;
+
+					// Increment split id.
+					SplitId++;
+
+					if(!HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
+						SplitGroupName.StartsWith(HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix, 
+							ESearchCase::IgnoreCase))
+					{
+						HoudiniGeoPartObject.bIsRenderCollidable = true;
+					}
+					else if(!HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() &&
+							SplitGroupName.StartsWith(HoudiniRuntimeSettings->CollisionGroupNamePrefix, 
+								ESearchCase::IgnoreCase))
+					{
+						HoudiniGeoPartObject.bIsCollidable = true;
+					}
+
+					// Record split group name.
+					HoudiniGeoPartObject.SplitName = SplitGroupName;
+
+					// Attempt to locate static mesh from previous instantiation.
+					UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
+
+					// See if materials have changed for this geo part object.
+					HoudiniAssetComponent->CheckMaterialInformationChanged(HoudiniGeoPartObject);
+
+					// See if geometry has changed for this part (and global scaling has not changed).
+					if(!GeoInfo.hasGeoChanged && !HoudiniAssetComponent->CheckGlobalSettingScaleFactors())
+					{
+						// If geometry has not changed.
+						if(FoundStaticMesh)
 						{
-							// Also make sure material has not been replaced by Unreal material.
+							StaticMesh = *FoundStaticMesh;
+
+							// If there's material and material has changed.
+							if(bMaterialFound && MaterialInfo.hasChanged)
+							{
+								// Also make sure material has not been replaced by Unreal material.
+								if(!HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
+								{
+									// Grab current source model and load existing raw model. This will be empty as we are 
+									// constructing a new mesh.
+									FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
+									FRawMesh RawMesh;
+									SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
+
+									// Even though geometry did not change, material requires update.
+									MeshName = StaticMesh->GetName();
+									UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, 
+										MeshName, RawMesh);
+
+									// Flag that we have Houdini material.
+									HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
+
+									// Remove previous materials.
+									StaticMesh->Materials.Empty();
+									StaticMesh->Materials.Add(Material);
+								}
+							}
+							else
+							{
+								// Material hasn't changed, we do not need to change anything.
+								check(StaticMesh->Materials.Num() > 0);
+							}
+
+							// We can reuse previously created geometry.
+							StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
+							continue;
+						}
+						else
+						{
+							// No mesh located, this is an error.
+							bGeoError = true;
+							HOUDINI_LOG_MESSAGE(
+								TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has changed ")
+								TEXT("but static mesh does not exist - skipping."),
+								ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+							continue;
+						}
+					}
+
+					// If static mesh was not located, we need to create one.
+					bool bStaticMeshCreated = false;
+					if(!FoundStaticMesh)
+					{
+						MeshGuid.Invalidate();
+
+						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, 
+							HoudiniGeoPartObject, Package, MeshName, MeshGuid);
+						StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
+						bStaticMeshCreated = true;
+					}
+					else
+					{
+						// If it was located, we will just reuse it.
+						StaticMesh = *FoundStaticMesh;
+					}
+
+					// Create new source model for current static mesh.
+					if(!StaticMesh->SourceModels.Num())
+					{
+						new(StaticMesh->SourceModels) FStaticMeshSourceModel();
+					}
+
+					// Grab current source model.
+					FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
+
+					// Load existing raw model. This will be empty as we are constructing a new mesh.
+					FRawMesh RawMesh;
+
+					// Retrieve position data.
+					HAPI_AttributeInfo AttribInfoPositions;
+					if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+						HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
+					{
+						// Error retrieving positions.
+						bGeoError = true;
+
+						HOUDINI_LOG_MESSAGE(
+							TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+							TEXT("- skipping."),
+							ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+
+						if(bStaticMeshCreated)
+						{
+							StaticMesh->MarkPendingKill();
+						}
+
+						break;
+					}
+
+					// Get name of attribute used for marshalling materials.
+					HAPI_AttributeInfo AttribFaceMaterials;
+
+					{
+						std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
+						if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+						{
+							FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial, 
+								MarshallingAttributeName);
+						}
+
+						FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+							MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
+					}
+
+					// Retrieve color data.
+					HAPI_AttributeInfo AttribInfoColors;
+					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+						HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
+
+					// See if we need to transfer color point attributes to vertex attributes.
+					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoColors, Colors);
+
+					// Retrieve normal data.
+					HAPI_AttributeInfo AttribInfoNormals;
+					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+						HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
+
+					// Retrieve face smoothing data.
+					HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
+
+					{
+						std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
+						if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+						{
+							FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask, 
+								MarshallingAttributeName);
+						}
+
+						FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+							MarshallingAttributeName.c_str(), AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
+					}
+
+					// See if we need to transfer normal point attributes to vertex attributes.
+					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoNormals, Normals);
+
+					// Retrieve UVs.
+					HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
+					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+					{
+						std::string UVAttributeName = HAPI_ATTRIB_UV;
+
+						if(TexCoordIdx > 0)
+						{
+							UVAttributeName += std::to_string(TexCoordIdx + 1);
+						}
+
+						const char* UVAttributeNameString = UVAttributeName.c_str();
+						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
+							UVAttributeNameString, AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx], 2);
+
+						// See if we need to transfer uv point attributes to vertex attributes.
+						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, 
+							AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx]);
+					}
+
+					// We can transfer attributes to raw mesh.
+
+					// Compute number of faces.
+					int32 FaceCount = PartInfo.vertexCount / 3;
+
+					// Set face smoothing masks.
+					RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
+
+					if(FaceSmoothingMasks.Num())
+					{
+						for(int32 FaceSmoothingMaskIdx = 0; 
+							FaceSmoothingMaskIdx < FaceSmoothingMasks.Num(); ++FaceSmoothingMaskIdx)
+						{
+							RawMesh.FaceSmoothingMasks[FaceSmoothingMaskIdx] = FaceSmoothingMasks[FaceSmoothingMaskIdx];
+						}
+					}
+
+					// Transfer UVs.
+					int32 UVChannelCount = 0;
+					int32 FirstUVChannelIndex = -1;
+					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+					{
+						TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
+						if(TextureCoordinate.Num() > 0)
+						{
+							int32 WedgeUVCount = TextureCoordinate.Num() / 2;
+							RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
+							for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
+							{
+								// We need to flip V coordinate when it's coming from HAPI.
+								FVector2D WedgeUV;
+								WedgeUV.X = TextureCoordinate[WedgeUVIdx * 2 + 0];
+								WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
+
+								RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
+							}
+
+							UVChannelCount++;
+							if(-1 == FirstUVChannelIndex)
+							{
+								FirstUVChannelIndex = TexCoordIdx;
+							}
+						}
+						else
+						{
+							RawMesh.WedgeTexCoords[TexCoordIdx].Empty();
+						}
+					}
+
+					switch(UVChannelCount)
+					{
+						case 0:
+						{
+							// We have to have at least one UV channel. If there's none, create one with zero data.
+							RawMesh.WedgeTexCoords[0].SetNumZeroed(SplitGroupVertexList.Num());
+							StaticMesh->LightMapCoordinateIndex = 0;
+							break;
+						}
+
+						case 1:
+						{
+							// We have only one UV channel.
+							StaticMesh->LightMapCoordinateIndex = FirstUVChannelIndex;
+							break;
+						}
+
+						default:
+						{
+							StaticMesh->LightMapCoordinateIndex = 1;
+							break;
+						}
+					}
+
+					// Transfer colors.
+					if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
+					{
+						int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
+						RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
+						for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
+						{
+							FLinearColor WedgeColor;
+
+							WedgeColor.R = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0], 0.0f, 1.0f);
+							WedgeColor.G = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1], 0.0f, 1.0f);
+							WedgeColor.B = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2], 0.0f, 1.0f);
+
+							if(4 == AttribInfoColors.tupleSize)
+							{
+								// We have alpha.
+								WedgeColor.A = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3], 
+									0.0f, 1.0f);
+							}
+							else
+							{
+								WedgeColor.A = 1.0f;
+							}
+
+							// Convert linear color to fixed color.
+							RawMesh.WedgeColors[WedgeColorIdx] = FColor(WedgeColor);
+						}
+					}
+
+					// See if we need to generate tangents, we do this only if normals are present.
+					bool bGenerateTangents = (Normals.Num() > 0);
+
+					// Transfer normals.
+					int32 WedgeNormalCount = Normals.Num() / 3;
+					RawMesh.WedgeTangentZ.SetNumZeroed(WedgeNormalCount);
+					for(int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx)
+					{
+						FVector WedgeTangentZ;
+
+						WedgeTangentZ.X = Normals[WedgeTangentZIdx * 3 + 0];
+						WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
+						WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
+
+						// We need to flip Z and Y coordinate here.
+						Swap(WedgeTangentZ.Y, WedgeTangentZ.Z);
+						RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
+
+						// If we need to generate tangents.
+						if(bGenerateTangents)
+						{
+							FVector TangentX, TangentY;
+							WedgeTangentZ.FindBestAxisVectors(TangentX, TangentY);
+
+							RawMesh.WedgeTangentX.Add(TangentX);
+							RawMesh.WedgeTangentY.Add(TangentY);
+						}
+					}
+
+					// Transfer indices.
+					RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexList.Num());
+					for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
+					{
+						int32 WedgeIndices[3] = { SplitGroupVertexList[VertexIdx + 0], SplitGroupVertexList[VertexIdx + 1], 
+							SplitGroupVertexList[VertexIdx + 2] };
+
+						// Flip wedge indices to fix winding order.
+						RawMesh.WedgeIndices[VertexIdx + 0] = WedgeIndices[0];
+						RawMesh.WedgeIndices[VertexIdx + 1] = WedgeIndices[2];
+						RawMesh.WedgeIndices[VertexIdx + 2] = WedgeIndices[1];
+
+						// Check if we need to patch UVs.
+						for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+						{
+							if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
+							{
+								Swap(RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1], 
+									RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2]);
+							}
+						}
+
+						// Check if we need to patch colors.
+						if(RawMesh.WedgeColors.Num() > 0)
+						{
+							Swap(RawMesh.WedgeColors[VertexIdx + 1], RawMesh.WedgeColors[VertexIdx + 2]);
+						}
+
+						// Check if we need to patch tangents.
+						if(RawMesh.WedgeTangentZ.Num() > 0)
+						{
+							Swap(RawMesh.WedgeTangentZ[VertexIdx + 1], RawMesh.WedgeTangentZ[VertexIdx + 2]);
+						}
+						/*
+						if(RawMesh.WedgeTangentX.Num() > 0)
+						{
+							Swap(RawMesh.WedgeTangentX[VertexIdx + 1], RawMesh.WedgeTangentX[VertexIdx + 2]);
+						}
+
+						if(RawMesh.WedgeTangentY.Num() > 0)
+						{
+							Swap(RawMesh.WedgeTangentY[VertexIdx + 1], RawMesh.WedgeTangentY[VertexIdx + 2]);
+						}
+						*/
+					}
+
+					// Transfer vertex positions.
+					int32 VertexPositionsCount = Positions.Num() / 3;
+					RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
+					for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
+					{
+						FVector VertexPosition;
+						VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * GeneratedGeometryScaleFactor;
+						VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * GeneratedGeometryScaleFactor;
+						VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * GeneratedGeometryScaleFactor;
+
+						// We need to flip Z and Y coordinate here.
+						Swap(VertexPosition.Y, VertexPosition.Z);
+						RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
+					}
+
+					// We need to check if this mesh contains only degenerate triangles.
+					if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
+					{
+						// This mesh contains only degenerate triangles, there's nothing we can do.
+						if(bStaticMeshCreated)
+						{
+							StaticMesh->MarkPendingKill();
+						}
+
+						continue;
+					}
+
+					// Set face specific information and materials.
+					RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+
+					if(bMaterialFound)
+					{
+						if(MaterialInfo.hasChanged || HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch ||
+							(!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
+						{
+							// If material has not been replaced by Unreal material.
 							if(!HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
 							{
-								// Grab current source model and load existing raw model. This will be empty as we are 
-								// constructing a new mesh.
-								FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
-								FRawMesh RawMesh;
-								SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
-
-								// Even though geometry did not change, material requires update.
+								// Material requires update.
 								MeshName = StaticMesh->GetName();
-								UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, 
-									MeshName, RawMesh);
+								UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, 
+									RawMesh);
 
 								// Flag that we have Houdini material.
 								HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
@@ -1911,505 +2317,127 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 								// Remove previous materials.
 								StaticMesh->Materials.Empty();
 								StaticMesh->Materials.Add(Material);
+
+								// Reset refetch flag.
+								HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch = false;
 							}
 						}
-						else
-						{
-							// Material hasn't changed, we do not need to change anything.
-							check(StaticMesh->Materials.Num() > 0);
-						}
-
-						// We can reuse previously created geometry.
-						StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
-						continue;
 					}
 					else
 					{
-						// No mesh located, this is an error.
-						bGeoError = true;
-						HOUDINI_LOG_MESSAGE(
-							TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has changed ")
-							TEXT("but static mesh does not exist - skipping."),
-							ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
-						continue;
-					}
-				}
-
-				// If static mesh was not located, we need to create one.
-				bool bStaticMeshCreated = false;
-				if(!FoundStaticMesh)
-				{
-					MeshGuid.Invalidate();
-
-					UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, 
-						HoudiniGeoPartObject, Package, MeshName, MeshGuid);
-					StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
-					bStaticMeshCreated = true;
-				}
-				else
-				{
-					// If it was located, we will just reuse it.
-					StaticMesh = *FoundStaticMesh;
-				}
-
-				// Create new source model for current static mesh.
-				if(!StaticMesh->SourceModels.Num())
-				{
-					new(StaticMesh->SourceModels) FStaticMeshSourceModel();
-				}
-
-				// Grab current source model.
-				FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
-
-				// Load existing raw model. This will be empty as we are constructing a new mesh.
-				FRawMesh RawMesh;
-
-				/*
-				// Retrieve vertex information for this part.
-				VertexList.SetNumUninitialized(PartInfo.vertexCount);
-				if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetVertexList(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
-					&VertexList[0], 0, PartInfo.vertexCount))
-				{
-					// Error getting the vertex list.
-					bGeoError = true;
-
-					HOUDINI_LOG_MESSAGE(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list ")
-						TEXT("- skipping."),
-						ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
-
-					if(bStaticMeshCreated)
-					{
-						StaticMesh->MarkPendingKill();
-					}
-
-					continue;
-				}
-				*/
-
-				// Retrieve position data.
-				HAPI_AttributeInfo AttribInfoPositions;
-				if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
-				{
-					// Error retrieving positions.
-					bGeoError = true;
-
-					HOUDINI_LOG_MESSAGE(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
-						TEXT("- skipping."),
-						ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
-
-					if(bStaticMeshCreated)
-					{
-						StaticMesh->MarkPendingKill();
-					}
-
-					break;
-				}
-
-				// Get name of attribute used for marshalling materials.
-				HAPI_AttributeInfo AttribFaceMaterials;
-
-				{
-					std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
-					if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
-					{
-						FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial, 
-							MarshallingAttributeName);
-					}
-
-					FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-						MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
-				}
-
-				// Retrieve color data.
-				HAPI_AttributeInfo AttribInfoColors;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
-
-				// See if we need to transfer color point attributes to vertex attributes.
-				FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoColors, Colors);
-
-				// Retrieve normal data.
-				HAPI_AttributeInfo AttribInfoNormals;
-				FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-					HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
-
-				// Retrieve face smoothing data.
-				HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
-
-				{
-					std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
-					if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
-					{
-						FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask, 
-							MarshallingAttributeName);
-					}
-
-					FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-						MarshallingAttributeName.c_str(), AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
-				}
-
-				// See if we need to transfer normal point attributes to vertex attributes.
-				FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, AttribInfoNormals, Normals);
-
-				// Retrieve UVs.
-				HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
-				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-				{
-					std::string UVAttributeName = HAPI_ATTRIB_UV;
-
-					if(TexCoordIdx > 0)
-					{
-						UVAttributeName += std::to_string(TexCoordIdx + 1);
-					}
-
-					const char* UVAttributeNameString = UVAttributeName.c_str();
-					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
-						UVAttributeNameString, AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx], 2);
-
-					// See if we need to transfer uv point attributes to vertex attributes.
-					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(VertexList, 
-						AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx]);
-				}
-
-				// We can transfer attributes to raw mesh.
-
-				// Compute number of faces.
-				int32 FaceCount = PartInfo.vertexCount / 3;
-
-				// Set face smoothing masks.
-				RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
-
-				if(FaceSmoothingMasks.Num())
-				{
-					for(int32 FaceSmoothingMaskIdx = 0; 
-						FaceSmoothingMaskIdx < FaceSmoothingMasks.Num(); ++FaceSmoothingMaskIdx)
-					{
-						RawMesh.FaceSmoothingMasks[FaceSmoothingMaskIdx] = FaceSmoothingMasks[FaceSmoothingMaskIdx];
-					}
-				}
-
-				// Transfer UVs.
-				int32 UVChannelCount = 0;
-				int32 FirstUVChannelIndex = -1;
-				for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-				{
-					TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
-					if(TextureCoordinate.Num() > 0)
-					{
-						int32 WedgeUVCount = TextureCoordinate.Num() / 2;
-						RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
-						for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
+						if(FaceMaterials.Num())
 						{
-							// We need to flip V coordinate when it's coming from HAPI.
-							FVector2D WedgeUV;
-							WedgeUV.X = TextureCoordinate[WedgeUVIdx * 2 + 0];
-							WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
-
-							RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
-						}
-
-						UVChannelCount++;
-						if(-1 == FirstUVChannelIndex)
-						{
-							FirstUVChannelIndex = TexCoordIdx;
-						}
-					}
-					else
-					{
-						RawMesh.WedgeTexCoords[TexCoordIdx].Empty();
-					}
-				}
-
-				switch(UVChannelCount)
-				{
-					case 0:
-					{
-						// We have to have at least one UV channel. If there's none, create one with zero data.
-						RawMesh.WedgeTexCoords[0].SetNumZeroed(VertexList.Num());
-						StaticMesh->LightMapCoordinateIndex = 0;
-						break;
-					}
-
-					case 1:
-					{
-						// We have only one UV channel.
-						StaticMesh->LightMapCoordinateIndex = FirstUVChannelIndex;
-						break;
-					}
-
-					default:
-					{
-						StaticMesh->LightMapCoordinateIndex = 1;
-						break;
-					}
-				}
-
-				// Transfer colors.
-				if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
-				{
-					int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
-					RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
-					for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
-					{
-						FLinearColor WedgeColor;
-
-						WedgeColor.R = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0], 0.0f, 1.0f);
-						WedgeColor.G = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1], 0.0f, 1.0f);
-						WedgeColor.B = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2], 0.0f, 1.0f);
-
-						if(4 == AttribInfoColors.tupleSize)
-						{
-							// We have alpha.
-							WedgeColor.A = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3], 
-								0.0f, 1.0f);
-						}
-						else
-						{
-							WedgeColor.A = 1.0f;
-						}
-
-						// Convert linear color to fixed color.
-						RawMesh.WedgeColors[WedgeColorIdx] = FColor(WedgeColor);
-					}
-				}
-
-				// See if we need to generate tangents, we do this only if normals are present.
-				bool bGenerateTangents = (Normals.Num() > 0);
-
-				// Transfer normals.
-				int32 WedgeNormalCount = Normals.Num() / 3;
-				RawMesh.WedgeTangentZ.SetNumZeroed(WedgeNormalCount);
-				for(int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx)
-				{
-					FVector WedgeTangentZ;
-
-					WedgeTangentZ.X = Normals[WedgeTangentZIdx * 3 + 0];
-					WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
-					WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
-
-					// We need to flip Z and Y coordinate here.
-					Swap(WedgeTangentZ.Y, WedgeTangentZ.Z);
-					RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
-
-					// If we need to generate tangents.
-					if(bGenerateTangents)
-					{
-						FVector TangentX, TangentY;
-						WedgeTangentZ.FindBestAxisVectors(TangentX, TangentY);
-
-						RawMesh.WedgeTangentX.Add(TangentX);
-						RawMesh.WedgeTangentY.Add(TangentY);
-					}
-				}
-
-				// Transfer indices.
-				RawMesh.WedgeIndices.SetNumZeroed(VertexList.Num());
-				for(int32 VertexIdx = 0; VertexIdx < VertexList.Num(); VertexIdx += 3)
-				{
-					int32 WedgeIndices[3] = { VertexList[VertexIdx + 0], VertexList[VertexIdx + 1], 
-						VertexList[VertexIdx + 2] };
-
-					// Flip wedge indices to fix winding order.
-					RawMesh.WedgeIndices[VertexIdx + 0] = WedgeIndices[0];
-					RawMesh.WedgeIndices[VertexIdx + 1] = WedgeIndices[2];
-					RawMesh.WedgeIndices[VertexIdx + 2] = WedgeIndices[1];
-
-					// Check if we need to patch UVs.
-					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-					{
-						if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
-						{
-							Swap(RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1], 
-								RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2]);
-						}
-					}
-
-					// Check if we need to patch colors.
-					if(RawMesh.WedgeColors.Num() > 0)
-					{
-						Swap(RawMesh.WedgeColors[VertexIdx + 1], RawMesh.WedgeColors[VertexIdx + 2]);
-					}
-
-					// Check if we need to patch tangents.
-					if(RawMesh.WedgeTangentZ.Num() > 0)
-					{
-						Swap(RawMesh.WedgeTangentZ[VertexIdx + 1], RawMesh.WedgeTangentZ[VertexIdx + 2]);
-					}
-					/*
-					if(RawMesh.WedgeTangentX.Num() > 0)
-					{
-						Swap(RawMesh.WedgeTangentX[VertexIdx + 1], RawMesh.WedgeTangentX[VertexIdx + 2]);
-					}
-
-					if(RawMesh.WedgeTangentY.Num() > 0)
-					{
-						Swap(RawMesh.WedgeTangentY[VertexIdx + 1], RawMesh.WedgeTangentY[VertexIdx + 2]);
-					}
-					*/
-				}
-
-				// Transfer vertex positions.
-				int32 VertexPositionsCount = Positions.Num() / 3;
-				RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
-				for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
-				{
-					FVector VertexPosition;
-					VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * GeneratedGeometryScaleFactor;
-					VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * GeneratedGeometryScaleFactor;
-					VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * GeneratedGeometryScaleFactor;
-
-					// We need to flip Z and Y coordinate here.
-					Swap(VertexPosition.Y, VertexPosition.Z);
-					RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
-				}
-
-				// We need to check if this mesh contains only degenerate triangles.
-				if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
-				{
-					// This mesh contains only degenerate triangles, there's nothing we can do.
-					if(bStaticMeshCreated)
-					{
-						StaticMesh->MarkPendingKill();
-					}
-
-					continue;
-				}
-
-				// Set face specific information and materials.
-				RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-
-				if(bMaterialFound)
-				{
-					if(MaterialInfo.hasChanged || HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch ||
-						(!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
-					{
-						// If material has not been replaced by Unreal material.
-						if(!HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
-						{
-							// Material requires update.
-							MeshName = StaticMesh->GetName();
-							UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, 
-								RawMesh);
-
-							// Flag that we have Houdini material.
-							HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
-
-							// Remove previous materials.
+							// We regenerate materials.
 							StaticMesh->Materials.Empty();
-							StaticMesh->Materials.Add(Material);
 
-							// Reset refetch flag.
-							HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch = false;
-						}
-					}
-				}
-				else
-				{
-					if(FaceMaterials.Num())
-					{
-						// We regenerate materials.
-						StaticMesh->Materials.Empty();
+							TSet<FString> UniqueFaceMaterials(FaceMaterials);
+							TMap<FString, int32> UniqueFaceMaterialMap;
 
-						TSet<FString> UniqueFaceMaterials(FaceMaterials);
-						TMap<FString, int32> UniqueFaceMaterialMap;
-
-						int32 UniqueFaceMaterialsIdx = 0;
-						for(TSet<FString>::TIterator Iter = UniqueFaceMaterials.CreateIterator(); Iter; ++Iter)
-						{
-							const FString& MaterialName = *Iter;
-							UniqueFaceMaterialMap.Add(MaterialName, UniqueFaceMaterialsIdx);
-
-							// Attempt to load this material.
-							UMaterialInterface* MaterialInterface = 
-								Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, 
-									*MaterialName, nullptr, LOAD_NoWarn, nullptr));
-
-							if(!MaterialInterface)
+							int32 UniqueFaceMaterialsIdx = 0;
+							for(TSet<FString>::TIterator Iter = UniqueFaceMaterials.CreateIterator(); Iter; ++Iter)
 							{
-								// Material does not exist, use default material.
-								MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+								const FString& MaterialName = *Iter;
+								UniqueFaceMaterialMap.Add(MaterialName, UniqueFaceMaterialsIdx);
+
+								// Attempt to load this material.
+								UMaterialInterface* MaterialInterface = 
+									Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, 
+										*MaterialName, nullptr, LOAD_NoWarn, nullptr));
+
+								if(!MaterialInterface)
+								{
+									// Material does not exist, use default material.
+									MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+								}
+
+								StaticMesh->Materials.Add(MaterialInterface);
+								UniqueFaceMaterialsIdx++;
 							}
 
-							StaticMesh->Materials.Add(MaterialInterface);
-							UniqueFaceMaterialsIdx++;
-						}
-
-						for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < FaceMaterials.Num(); ++FaceMaterialIdx)
-						{
-							const FString& MaterialName = FaceMaterials[FaceMaterialIdx];
-							RawMesh.FaceMaterialIndices[FaceMaterialIdx] = UniqueFaceMaterialMap[MaterialName];
-						}
-					}
-					else
-					{
-						if(0 == StaticMesh->Materials.Num())
-						{
-							UMaterial* Material = nullptr;
-
-							if(RawMesh.WedgeColors.Num() > 0 && !HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
+							for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < FaceMaterials.Num(); ++FaceMaterialIdx)
 							{
-								// We have colors.
-								MeshName = StaticMesh->GetName();
-								Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, 
-									RawMesh);
-
-								// Flag that we have Houdini material.
-								HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
+								const FString& MaterialName = FaceMaterials[FaceMaterialIdx];
+								RawMesh.FaceMaterialIndices[FaceMaterialIdx] = UniqueFaceMaterialMap[MaterialName];
 							}
-							else
-							{
-								// We just use default material if we do not have any.
-								Material = UMaterial::GetDefaultMaterial(MD_Surface);
-							}
-
-							StaticMesh->Materials.Add(Material);
 						}
+						else
+						{
+							if(0 == StaticMesh->Materials.Num())
+							{
+								UMaterial* Material = nullptr;
 
-						// Otherwise reuse materials from previous mesh.
+								if(RawMesh.WedgeColors.Num() > 0 && !HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
+								{
+									// We have colors.
+									MeshName = StaticMesh->GetName();
+									Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName, 
+										RawMesh);
+
+									// Flag that we have Houdini material.
+									HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
+								}
+								else
+								{
+									// We just use default material if we do not have any.
+									Material = UMaterial::GetDefaultMaterial(MD_Surface);
+								}
+
+								StaticMesh->Materials.Add(Material);
+							}
+
+							// Otherwise reuse materials from previous mesh.
+						}
 					}
-				}
 
-				// Some mesh generation settings.
-				SrcModel->BuildSettings.bRemoveDegenerates = true;
-				SrcModel->BuildSettings.bRecomputeTangents = (0 == RawMesh.WedgeTangentX.Num() || 
-					0 == RawMesh.WedgeTangentY.Num());
-				SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
+					// Some mesh generation settings.
+					SrcModel->BuildSettings.bRemoveDegenerates = true;
+					SrcModel->BuildSettings.bRecomputeTangents = (0 == RawMesh.WedgeTangentX.Num() || 
+						0 == RawMesh.WedgeTangentY.Num());
+					SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
-				// Store the new raw mesh.
-				SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
+					// Store the new raw mesh.
+					SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
 
-				while(StaticMesh->SourceModels.Num() < NumLODs)
-				{
-					new(StaticMesh->SourceModels) FStaticMeshSourceModel();
-				}
-
-				for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
-				{
-					StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = 
-						LODGroup.GetDefaultSettings(ModelLODIndex);
-
-					for(int32 MaterialIndex = 0; MaterialIndex < StaticMesh->Materials.Num(); ++MaterialIndex)
+					while(StaticMesh->SourceModels.Num() < NumLODs)
 					{
-						FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
-						Info.MaterialIndex = MaterialIndex;
-						Info.bEnableCollision = true;
-						Info.bCastShadow = true;
-						StaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
+						new(StaticMesh->SourceModels) FStaticMeshSourceModel();
 					}
+
+					for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
+					{
+						StaticMesh->SourceModels[ModelLODIndex].ReductionSettings = 
+							LODGroup.GetDefaultSettings(ModelLODIndex);
+
+						for(int32 MaterialIndex = 0; MaterialIndex < StaticMesh->Materials.Num(); ++MaterialIndex)
+						{
+							FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
+							Info.MaterialIndex = MaterialIndex;
+							Info.bEnableCollision = true;
+							Info.bCastShadow = true;
+							StaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
+						}
+					}
+
+					// Assign generation parameters for this static mesh.
+					HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
+
+					// See if we need to enable collisions.
+					if(HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
+					{
+						UBodySetup* BodySetup = StaticMesh->BodySetup;
+						check(BodySetup);
+
+						// Enable collisions for this static mesh.
+						BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+					}
+
+					//StaticMesh->PreEditChange(nullptr);
+					FHoudiniScopedGlobalSilence ScopedGlobalSilence;
+					StaticMesh->Build(true);
+					//StaticMesh->PostEditChange();
+
+					StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 				}
-
-				// Assign generation parameters for this static mesh.
-				HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
-
-				//StaticMesh->PreEditChange(nullptr);
-				FHoudiniScopedGlobalSilence ScopedGlobalSilence;
-				StaticMesh->Build(true);
-				//StaticMesh->PostEditChange();
-
-				StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
 			}
 		}
 	}
@@ -2613,6 +2641,16 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	// Assign generation parameters for this static mesh.
 	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
+	// See if we need to enable collisions.
+	if(HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
+	{
+		UBodySetup* BodySetup = StaticMesh->BodySetup;
+		check(BodySetup);
+
+		// Enable collisions for this static mesh.
+		BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+	}
+
 	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	StaticMesh->Build(true);
 	return StaticMesh;
@@ -2806,6 +2844,15 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 
 	// Assign generation parameters for this static mesh.
 	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
+
+	if(HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
+	{
+		UBodySetup* BodySetup = StaticMesh->BodySetup;
+		check(BodySetup);
+
+		// Enable collisions for this static mesh.
+		BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+	}
 
 	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	StaticMesh->Build(true);
