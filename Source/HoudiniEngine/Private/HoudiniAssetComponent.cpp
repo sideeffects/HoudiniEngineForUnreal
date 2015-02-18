@@ -471,6 +471,12 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 				*/
 			}
 
+			// If this is a collision geo, we need to make it invisible.
+			if(HoudiniGeoPartObject.IsCollidable())
+			{
+				StaticMeshComponent->SetVisibility(false);
+			}
+
 			// Update materials and update rendering information.
 			if(StaticMesh)
 			{
