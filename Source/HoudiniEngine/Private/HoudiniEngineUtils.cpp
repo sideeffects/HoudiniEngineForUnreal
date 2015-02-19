@@ -575,7 +575,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, 
-								   (HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
+			(HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
 
 		if(AttributeInfo.exists)
 		{
@@ -1391,6 +1391,7 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset,
 				   FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") + 
 				   FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") + 
 				   FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") + 
+				   HoudiniGeoPartObject.SplitName + TEXT("_") + 
 				   BakeGUIDString;
 
 		if(!Package)
@@ -1740,11 +1741,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Retrieve part name.
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
 
-				// Get collision membership information for primitives of this part.
-				//TArray<int32> PartCollisionGroupMembership;
-				//FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, HAPI_GROUPTYPE_PRIM,
-				//											TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION), PartCollisionGroupMembership);
-
 				// Create geo part object identifier.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId, 
 					ObjectInfo.id, GeoInfo.id, PartInfo.id);
@@ -1754,13 +1750,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				HoudiniGeoPartObject.bIsCurve = PartInfo.isCurve;
 				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
 				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
-
-				// Reset collision information for this geo part object.
-				//HoudiniGeoPartObject.bIsRenderCollidable = false;
-				//HoudiniGeoPartObject.bIsCollidable = false;
-
-				// Reset split info.
-				//HoudiniGeoPartObject.SplitId = 0;
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
@@ -1820,6 +1809,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 				// See if we require splitting.
 				TMap<FString, TArray<int32> > GroupSplitFaces;
+				TMap<FString, int32 > GroupSplitFaceCounts;
+				int32 GroupVertexListCount = 0;
 				static const FString RemainingGroupName = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION);
 
 				if(bIsRenderCollidable || bIsCollidable)
@@ -1842,13 +1833,17 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						{
 							// New vertex list just for this group.
 							TArray<int32> GroupVertexList;
-							FHoudiniEngineUtils::HapiGetVertexListForGroup(AssetId, ObjectInfo.id, GeoInfo.id, 
-								PartInfo.id, GroupName, VertexList, GroupVertexList, AllCollisionVertexList);
 
-							if(GroupVertexList.Num() > 0)
+							// Extract vertex indices for this split.
+							GroupVertexListCount = FHoudiniEngineUtils::HapiGetVertexListForGroup(AssetId, 
+								ObjectInfo.id, GeoInfo.id, PartInfo.id, GroupName, VertexList, GroupVertexList, 
+								AllCollisionVertexList);
+
+							if(GroupVertexListCount > 0)
 							{
 								// If list is not empty, we store it for this group - this will define new mesh.
 								GroupSplitFaces.Add(GroupName, GroupVertexList);
+								GroupSplitFaceCounts.Add(GroupName, GroupVertexListCount);
 							}
 						}
 					}
@@ -1856,6 +1851,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					// We also need to figure out / construct vertex list for everything that's not collision geometry
 					// or rendered collision geometry.
 					TArray<int32> GroupSplitFacesRemaining;
+					GroupSplitFacesRemaining.Init(-1, VertexList.Num());
+					bool bMainSplitGroup = false;
+					GroupVertexListCount = 0;
 
 					for(int32 CollisionVertexIdx = 0; CollisionVertexIdx < AllCollisionVertexList.Num(); 
 						++CollisionVertexIdx)
@@ -1864,19 +1862,24 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						if(0 == VertexIndex)
 						{
 							// This is unused index, we need to add it to unused vertex list.
-							GroupSplitFacesRemaining.Add(VertexList[CollisionVertexIdx]);
+							//GroupSplitFacesRemaining.Add(VertexList[CollisionVertexIdx]);
+							GroupSplitFacesRemaining[CollisionVertexIdx] = VertexList[CollisionVertexIdx];
+							bMainSplitGroup = true;
+							GroupVertexListCount++;
 						}
 					}
 
 					// We store remaining geo vertex list as a special name.
-					if(GroupSplitFacesRemaining.Num() > 0)
+					if(bMainSplitGroup)
 					{
 						GroupSplitFaces.Add(RemainingGroupName, GroupSplitFacesRemaining);
+						GroupSplitFaceCounts.Add(RemainingGroupName, GroupVertexListCount);
 					}
 				}
 				else
 				{
 					GroupSplitFaces.Add(RemainingGroupName, VertexList);
+					GroupSplitFaceCounts.Add(RemainingGroupName, VertexList.Num());
 				}
 
 				// Keep track of split id.
@@ -1885,8 +1888,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				// Iterate through all detected split groups we care about and split geometry.
 				for(TMap<FString, TArray<int32> >::TIterator IterGroups(GroupSplitFaces); IterGroups; ++IterGroups)
 				{
+					// Get split group name and vertex indices.
 					const FString& SplitGroupName = IterGroups.Key();
 					TArray<int32>& SplitGroupVertexList = IterGroups.Value();
+
+					// Get valid count of vertex indices for this split.
+					int32 SplitGroupVertexListCount = GroupSplitFaceCounts[SplitGroupName];
 
 					// Record split id in geo part.
 					HoudiniGeoPartObject.SplitId = SplitId;
@@ -2094,11 +2101,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					// We can transfer attributes to raw mesh.
 
 					// Compute number of faces.
-					int32 FaceCount = PartInfo.vertexCount / 3;
+					int32 FaceCount = SplitGroupVertexListCount / 3;
 
 					// Set face smoothing masks.
 					RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
 
+					/*
 					if(FaceSmoothingMasks.Num())
 					{
 						for(int32 FaceSmoothingMaskIdx = 0; 
@@ -2107,6 +2115,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 							RawMesh.FaceSmoothingMasks[FaceSmoothingMaskIdx] = FaceSmoothingMasks[FaceSmoothingMaskIdx];
 						}
 					}
+					*/
 
 					// Transfer UVs.
 					int32 UVChannelCount = 0;
@@ -2145,7 +2154,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						case 0:
 						{
 							// We have to have at least one UV channel. If there's none, create one with zero data.
-							RawMesh.WedgeTexCoords[0].SetNumZeroed(SplitGroupVertexList.Num());
+							RawMesh.WedgeTexCoords[0].SetNumZeroed(SplitGroupVertexListCount);
 							StaticMesh->LightMapCoordinateIndex = 0;
 							break;
 						}
@@ -2222,50 +2231,64 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						}
 					}
 
+
 					// Transfer indices.
-					RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexList.Num());
+					//RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexList.Num());
+					RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexListCount);
+					int32 ValidVertexId = 0;
 					for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
 					{
-						int32 WedgeIndices[3] = { SplitGroupVertexList[VertexIdx + 0], SplitGroupVertexList[VertexIdx + 1], 
-							SplitGroupVertexList[VertexIdx + 2] };
+						int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
+						if(-1 == WedgeCheck)
+						{
+							continue;
+						}
+
+						int32 WedgeIndices[3] = { 
+							SplitGroupVertexList[VertexIdx + 0], 
+							SplitGroupVertexList[VertexIdx + 1], 
+							SplitGroupVertexList[VertexIdx + 2] 
+						};
 
 						// Flip wedge indices to fix winding order.
-						RawMesh.WedgeIndices[VertexIdx + 0] = WedgeIndices[0];
-						RawMesh.WedgeIndices[VertexIdx + 1] = WedgeIndices[2];
-						RawMesh.WedgeIndices[VertexIdx + 2] = WedgeIndices[1];
+						RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
+						RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[2];
+						RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[1];
 
 						// Check if we need to patch UVs.
 						for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 						{
 							if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
 							{
-								Swap(RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 1], 
-									RawMesh.WedgeTexCoords[TexCoordIdx][VertexIdx + 2]);
+								Swap(RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 1], 
+									RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 2]);
 							}
 						}
 
 						// Check if we need to patch colors.
 						if(RawMesh.WedgeColors.Num() > 0)
 						{
-							Swap(RawMesh.WedgeColors[VertexIdx + 1], RawMesh.WedgeColors[VertexIdx + 2]);
+							Swap(RawMesh.WedgeColors[ValidVertexId + 1], RawMesh.WedgeColors[ValidVertexId + 2]);
 						}
 
 						// Check if we need to patch tangents.
 						if(RawMesh.WedgeTangentZ.Num() > 0)
 						{
-							Swap(RawMesh.WedgeTangentZ[VertexIdx + 1], RawMesh.WedgeTangentZ[VertexIdx + 2]);
+							Swap(RawMesh.WedgeTangentZ[ValidVertexId + 1], RawMesh.WedgeTangentZ[ValidVertexId + 2]);
 						}
 						/*
 						if(RawMesh.WedgeTangentX.Num() > 0)
 						{
-							Swap(RawMesh.WedgeTangentX[VertexIdx + 1], RawMesh.WedgeTangentX[VertexIdx + 2]);
+							Swap(RawMesh.WedgeTangentX[ValidVertexId + 1], RawMesh.WedgeTangentX[ValidVertexId + 2]);
 						}
 
 						if(RawMesh.WedgeTangentY.Num() > 0)
 						{
-							Swap(RawMesh.WedgeTangentY[VertexIdx + 1], RawMesh.WedgeTangentY[VertexIdx + 2]);
+							Swap(RawMesh.WedgeTangentY[ValidVertexId + 1], RawMesh.WedgeTangentY[ValidVertexId + 2]);
 						}
 						*/
+
+						ValidVertexId += 3;
 					}
 
 					// Transfer vertex positions.
@@ -2354,11 +2377,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 								UniqueFaceMaterialsIdx++;
 							}
 
+							/*
 							for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < FaceMaterials.Num(); ++FaceMaterialIdx)
 							{
 								const FString& MaterialName = FaceMaterials[FaceMaterialIdx];
 								RawMesh.FaceMaterialIndices[FaceMaterialIdx] = UniqueFaceMaterialMap[MaterialName];
 							}
+							*/
 						}
 						else
 						{
@@ -2487,61 +2512,86 @@ FHoudiniEngineUtils::CountDegenerateTriangles(const FRawMesh& RawMesh)
 }
 
 
-void
+int32
 FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, 
 	const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data)
 {
+	int32 ValidWedgeCount = 0;
+
 	if(AttribInfo.exists && AttribInfo.tupleSize)
 	{
+		// Future optimization - see if we can do direct vertex transfer.
+
 		int32 WedgeCount = VertexList.Num();
 		TArray<float> VertexData;
 		VertexData.SetNumZeroed(WedgeCount * AttribInfo.tupleSize);
 
-		if(HAPI_ATTROWNER_POINT == AttribInfo.owner || HAPI_ATTROWNER_PRIM == AttribInfo.owner || 
-			HAPI_ATTROWNER_DETAIL == AttribInfo.owner)
+		int32 LastValidWedgeIdx = 0;
+		for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
 		{
-			for(int32 WedgeIdx = 0; WedgeIdx < WedgeCount; ++WedgeIdx)
+			int32 VertexId = VertexList[WedgeIdx];
+
+			if(-1 == VertexId)
 			{
-				int32 VertexId = VertexList[WedgeIdx];
-				int32 PrimIdx = WedgeIdx / 3;
-
-				for(int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx)
-				{
-					float Value = 0.0f;
-
-					switch(AttribInfo.owner)
-					{
-						case HAPI_ATTROWNER_POINT:
-						{
-							Value = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
-							break;
-						}
-
-						case HAPI_ATTROWNER_PRIM:
-						{
-							Value = Data[PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx];
-							break;
-						}
-
-						case HAPI_ATTROWNER_DETAIL:
-						{
-							Value = Data[AttributeIndexIdx];
-							break;
-						}
-
-						default:
-						{
-							break;
-						}
-					}
-
-					VertexData[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx] = Value;
-				}
+				// This is an index/wedge we are skipping due to split.
+				continue;
 			}
 
-			Data = VertexData;
+			// Increment wedge count, since this is a valid wedge.
+			ValidWedgeCount++;
+
+			int32 PrimIdx = WedgeIdx / 3;
+			int32 SaveIdx = 0;
+			float Value = 0.0f;
+
+			for(int32 AttributeIndexIdx = 0; AttributeIndexIdx < AttribInfo.tupleSize; ++AttributeIndexIdx)
+			{
+				switch(AttribInfo.owner)
+				{
+					case HAPI_ATTROWNER_POINT:
+					{
+						Value = Data[VertexId * AttribInfo.tupleSize + AttributeIndexIdx];
+						break;
+					}
+
+					case HAPI_ATTROWNER_PRIM:
+					{
+						Value = Data[PrimIdx * AttribInfo.tupleSize + AttributeIndexIdx];
+						break;
+					}
+
+					case HAPI_ATTROWNER_DETAIL:
+					{
+						Value = Data[AttributeIndexIdx];
+						break;
+					}
+
+					case HAPI_ATTROWNER_VERTEX:
+					{
+						Value = Data[WedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx];
+						break;
+					}
+
+					default:
+					{
+						check(false);
+						continue;
+					}
+				}
+
+				SaveIdx = LastValidWedgeIdx * AttribInfo.tupleSize + AttributeIndexIdx;
+				VertexData[SaveIdx] = Value;
+			}
+
+			// We are re-indexing wedges.
+			LastValidWedgeIdx++;
 		}
+
+		VertexData.SetNumZeroed(ValidWedgeCount * AttribInfo.tupleSize);
+		Data = VertexData;
 	}
+
+	return ValidWedgeCount;
 }
 
 
@@ -3645,12 +3695,13 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 }
 
 
-void
+int32
 FHoudiniEngineUtils::HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
 	HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList, TArray<int32>& NewVertexList,
 	TArray<int32>& AllVertexList)
 {
-	NewVertexList.Empty();
+	NewVertexList.Init(-1, FullVertexList.Num());
+	int32 ProcessedWedges = 0;
 
 	TArray<int32> PartGroupMembership;
 	FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, 
@@ -3662,14 +3713,22 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_Object
 		if(PartGroupMembership[FaceIdx] > 0)
 		{
 			// This face is a member of specified group.
-			NewVertexList.Add(FullVertexList[FaceIdx * 3 + 0]);
-			NewVertexList.Add(FullVertexList[FaceIdx * 3 + 1]);
-			NewVertexList.Add(FullVertexList[FaceIdx * 3 + 2]);
+			//NewVertexList.Add(FullVertexList[FaceIdx * 3 + 0]);
+			//NewVertexList.Add(FullVertexList[FaceIdx * 3 + 1]);
+			//NewVertexList.Add(FullVertexList[FaceIdx * 3 + 2]);
+
+			NewVertexList[FaceIdx * 3 + 0] = FullVertexList[FaceIdx * 3 + 0];
+			NewVertexList[FaceIdx * 3 + 1] = FullVertexList[FaceIdx * 3 + 1];
+			NewVertexList[FaceIdx * 3 + 2] = FullVertexList[FaceIdx * 3 + 2];
 
 			// Mark these vertex indices as used.
 			AllVertexList[FaceIdx * 3 + 0] = 1;
 			AllVertexList[FaceIdx * 3 + 1] = 1;
 			AllVertexList[FaceIdx * 3 + 2] = 1;
+
+			ProcessedWedges += 3;
 		}
 	}
+
+	return ProcessedWedges;
 }

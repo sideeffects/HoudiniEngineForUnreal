@@ -18,6 +18,7 @@
 
 
 class UStaticMesh;
+struct FHoudiniGeoPartObject;
 class UInstancedStaticMeshComponent;
 
 
@@ -34,7 +35,8 @@ public:
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetInstanceInput* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
+	static UHoudiniAssetInstanceInput* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 public:
 
@@ -56,8 +58,10 @@ public:
 
 public:
 
-	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+	/** Create this parameter from HAPI information - this implementation does nothing as this is not	**/
+	/** a true parameter.																				**/
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
@@ -77,7 +81,8 @@ public:
 	/** Return true if this is an attribute instancer. **/
 	bool IsAttributeInstancer() const;
 
-	/** Return true if this is an object instancer. Attribute instancer and object instancers are not mutually exclusive. **/
+	/** Return true if this is an object instancer. Attribute instancer and object instancers are	**/
+	/** not mutually exclusive.																		**/
 	bool IsObjectInstancer() const;
 
 protected:
@@ -89,10 +94,12 @@ protected:
 	void AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize);
 
 	/** Sets instance transformations for a given component. **/
-	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, const TArray<FTransform>& InstanceTransforms, int32 Idx);
+	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, 
+		const TArray<FTransform>& InstanceTransforms, int32 Idx);
 
 	/** Retrieve all transforms for a given path. Used by attribute instancer. **/
-	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues, const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms);
+	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues, 
+		const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms);
 
 	/** Used to update the component at given index when static mesh changes. **/
 	void ChangeInstancedStaticMeshComponentMesh(int32 Idx);
@@ -103,7 +110,8 @@ protected:
 protected:
 
 	/** Checks existance of special instance attribute for this instancer. **/
-	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
+	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
+		HAPI_PartId InPartId);
 
 	/** Delegate used when static mesh has been drag and dropped. **/
 	void OnStaticMeshDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 StaticMeshIdx);
@@ -160,7 +168,8 @@ protected:
 
 protected:
 
-	/** Epsilon value used as a check for scale / inverse transform computations. This is necessary due to bug in Unreal. **/
+	/** Epsilon value used as a check for scale / inverse transform computations.	**/
+	/** This is necessary due to bug in Unreal.										**/
 	static const float ScaleSmallValue;
 
 protected:
@@ -213,6 +222,15 @@ protected:
 	/** Corresponding part id. **/
 	HAPI_PartId PartId;
 
-	/** Set to true if this is an attribute instancer. **/
-	bool bAttributeInstancer;
+	/** Flags used by this input. **/
+	union
+	{
+		struct
+		{
+			/* Set to true if this is an attribute instancer. **/
+			uint32 bIsAttributeInstancer : 1;
+		};
+
+		uint32 HoudiniAssetInstanceInputFlagsPacked;
+	};
 };

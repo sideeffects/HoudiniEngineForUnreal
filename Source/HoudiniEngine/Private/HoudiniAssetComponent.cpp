@@ -2576,8 +2576,7 @@ UHoudiniAssetComponent::CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>
 		else
 		{
 			// Otherwise we need to create new instance input.
-			HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create(this, HoudiniGeoPartObject.ObjectId, 
-				HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId);
+			HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create(this, HoudiniGeoPartObject);
 		}
 
 		if(!HoudiniAssetInstanceInput)

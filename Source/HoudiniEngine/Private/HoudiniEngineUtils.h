@@ -228,8 +228,9 @@ public:
 	static bool HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
 		TArray<FTransform>& Transforms);
 
-	/** HAPI : Given vertex list, retrieve new vertex list for a scpecified group. **/
-	static void HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
+	/** HAPI : Given vertex list, retrieve new vertex list for a scpecified group.									**/
+	/** Return number of processed valid index vertices for this split.												**/
+	static int32 HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
 		HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList, 
 		TArray<int32>& NewVertexList, TArray<int32>& AllVertexList);
 
@@ -245,8 +246,8 @@ protected:
 	/** Helper routine to serialize Material interface. **/
 	static void Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar);
 
-	/** Helper function to extract colors and store them in a given RawMesh. **/
-	static void TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, 
+	/** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
+	static int32 TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, 
 		const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
 
 	/** Helper routine to check if Raw Mesh contains degenerate triangles. **/
