@@ -2195,7 +2195,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 						default:
 						{
+							// We have more than one channel, by convention use 2nd set for lightmaps.
 							StaticMesh->LightMapCoordinateIndex = 1;
+
 							break;
 						}
 					}
@@ -2445,6 +2447,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					SrcModel->BuildSettings.bRecomputeTangents = (0 == RawMesh.WedgeTangentX.Num() || 
 						0 == RawMesh.WedgeTangentY.Num());
 					SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
+
+					// If we have more than one UV set, disable lightmap generation - we want to use provided set.
+					if(FHoudiniEngineUtils::CountUVSets(RawMesh) > 1)
+					{
+						SrcModel->BuildSettings.bGenerateLightmapUVs = false;
+					}
 
 					// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
 					// zero UV sets when building lightmaps.
@@ -2709,6 +2717,12 @@ FHoudiniEngineUtils::LoadRawStaticMesh(
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
+	// If we have more than one UV set, disable lightmap generation - we want to use provided set.
+	if(FHoudiniEngineUtils::CountUVSets(RawMesh) > 1)
+	{
+		SrcModel->BuildSettings.bGenerateLightmapUVs = false;
+	}
+
 	// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
 	// zero UV sets when building lightmaps.
 	if(SrcModel->BuildSettings.bGenerateLightmapUVs)
@@ -2929,6 +2943,12 @@ FHoudiniEngineUtils::BakeStaticMesh(
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
+
+	// If we have more than one UV set, disable lightmap generation - we want to use provided set.
+	if(FHoudiniEngineUtils::CountUVSets(RawMesh) > 1)
+	{
+		SrcModel->BuildSettings.bGenerateLightmapUVs = false;
+	}
 
 	// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
 	// zero UV sets when building lightmaps.
@@ -3818,7 +3838,7 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 }
 
 
-bool 
+bool
 FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32 LightmapSourceIdx)
 {
 	const TArray<FVector2D>& LightmapUVs = RawMesh.WedgeTexCoords[LightmapSourceIdx];
@@ -3845,4 +3865,22 @@ FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32
 
 	// Otherwise there are no invalid lightmap faces.
 	return false;
+}
+
+
+int32
+FHoudiniEngineUtils::CountUVSets(const FRawMesh& RawMesh)
+{
+	int32 UVSetCount = 0;
+
+	for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_MESH_TEXTURE_COORDS; ++TexCoordIdx)
+	{
+		const TArray<FVector2D>& WedgeTexCoords = RawMesh.WedgeTexCoords[TexCoordIdx];
+		if(WedgeTexCoords.Num() > 0)
+		{
+			UVSetCount++;
+		}
+	}
+
+	return UVSetCount;
 }
