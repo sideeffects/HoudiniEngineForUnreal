@@ -426,8 +426,9 @@ FHoudiniEngineUtils::HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HA
 
 
 bool
-FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-	HAPI_GroupType GroupType, TArray<FString>& GroupNames)
+FHoudiniEngineUtils::HapiGetGroupNames(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType, 
+	TArray<FString>& GroupNames)
 {
 	HAPI_GeoInfo GeoInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(AssetId, ObjectId, GeoId, &GeoInfo), false);
@@ -450,8 +451,9 @@ FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId Objec
 
 
 bool
-FHoudiniEngineUtils::HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-	HAPI_PartId PartId, HAPI_GroupType GroupType, const FString& GroupName, TArray<int32>& GroupMembership)
+FHoudiniEngineUtils::HapiGetGroupMembership(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, HAPI_GroupType GroupType, 
+	const FString& GroupName, TArray<int32>& GroupMembership)
 {
 	HAPI_PartInfo PartInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(AssetId, ObjectId, GeoId, PartId, &PartInfo), false);
@@ -497,8 +499,8 @@ FHoudiniEngineUtils::HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FS
 
 
 void
-FHoudiniEngineUtils::HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, 
-	std::vector<std::string>& Names)
+FHoudiniEngineUtils::HapiRetrieveParameterNames(
+	const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names)
 {
 	static const std::string InvalidParameterName("Invalid Parameter Name");
 
@@ -535,8 +537,9 @@ FHoudiniEngineUtils::HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>
 
 
 bool
-FHoudiniEngineUtils::HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
-	HAPI_PartId PartId, const char* Name, HAPI_AttributeOwner Owner)
+FHoudiniEngineUtils::HapiCheckAttributeExists(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, const char* Name, 
+	HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttribInfo;
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, Owner, &AttribInfo))
@@ -549,8 +552,8 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectI
 
 
 bool
-FHoudiniEngineUtils::HapiCheckAttributeExists(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, 
-	HAPI_AttributeOwner Owner)
+FHoudiniEngineUtils::HapiCheckAttributeExists(
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, HAPI_AttributeOwner Owner)
 {
 	return FHoudiniEngineUtils::HapiCheckAttributeExists(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
 		HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name, Owner);
@@ -573,8 +576,9 @@ FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const 
 
 
 bool
-FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
-	const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int32 TupleSize)
+FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, const char* Name, 
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
@@ -585,8 +589,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 	HAPI_AttributeInfo AttributeInfo;
 	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
 	{
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, 
-			(HAPI_AttributeOwner) AttrIdx, &AttributeInfo), false);
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::GetAttributeInfo(AssetId, ObjectId, GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, 
+			&AttributeInfo), false);
 
 		if(AttributeInfo.exists)
 		{
@@ -607,8 +612,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 	// Allocate sufficient buffer for data.
 	Data.SetNumUninitialized(AttributeInfo.count * AttributeInfo.tupleSize);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(AssetId, ObjectId, GeoId, PartId, Name, 
-		&AttributeInfo, &Data[0], 0, AttributeInfo.count), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(
+		AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo, &Data[0], 0, AttributeInfo.count), false);
 
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
@@ -617,8 +622,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 
 
 bool
-FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int32 TupleSize)
+FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, 
+	TArray<float>& Data, int32 TupleSize)
 {
 	return FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
 		HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name, ResultAttributeInfo, Data, TupleSize);
@@ -626,9 +632,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& Ho
 
 
 bool
-FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-	HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data, 
-	int32 TupleSize)
+FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, const char* Name, 
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data, int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
@@ -671,8 +677,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_Ob
 
 
 bool
-FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-	HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data, int32 TupleSize)
+FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, 
+	TArray<int32>& Data, int32 TupleSize)
 {
 
 	return FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
@@ -682,9 +689,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& 
 
 
 bool
-FHoudiniEngineUtils::HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-	HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, 
-	int32 TupleSize)
+FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, const char* Name, 
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
@@ -733,8 +740,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_Obj
 
 
 bool
-FHoudiniEngineUtils::HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
-	HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int32 TupleSize)
+FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, 
+	TArray<FString>& Data, int32 TupleSize)
 {
 	return FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniGeoPartObject.AssetId, 
 		HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
@@ -743,8 +751,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& H
 
 
 bool
-FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-	HAPI_PartId PartId, TArray<FTransform>& Transforms)
+FHoudiniEngineUtils::HapiGetInstanceTransforms(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, TArray<FTransform>& Transforms)
 {
 	Transforms.Empty();
 
@@ -775,8 +783,8 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_Object
 
 
 bool
-FHoudiniEngineUtils::HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
-	TArray<FTransform>& Transforms)
+FHoudiniEngineUtils::HapiGetInstanceTransforms(
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, TArray<FTransform>& Transforms)
 {
 	return FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, 
 		HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Transforms);
@@ -784,8 +792,8 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(const FHoudiniGeoPartObject& Houd
 
 
 bool
-FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, 
-	TArray<char>& ImageBuffer, const char* Type)
+FHoudiniEngineUtils::HapiExtractImage(
+	HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<char>& ImageBuffer, const char* Type)
 {
 	HAPI_Result Result = FHoudiniApi::RenderTextureToImage(MaterialInfo.assetId, MaterialInfo.id, NodeParmId);
 	if(HAPI_RESULT_SUCCESS != Result)
@@ -835,8 +843,9 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName,
-										 EPixelFormat PixelFormat, const TArray<char>& ImageBuffer)
+FHoudiniEngineUtils::CreateUnrealTexture(
+	const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName, EPixelFormat PixelFormat, 
+	const TArray<char>& ImageBuffer)
 {
 	UTexture2D* Texture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Package, *TextureName, RF_Public);
 	Texture->PlatformData = new FTexturePlatformData();
@@ -932,8 +941,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::
 
 
 bool
-FHoudiniEngineUtils::HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int32 DefaultValue, 
-	int32& OutValue)
+FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+	HAPI_NodeId NodeId, const std::string ParmName, int32 DefaultValue, int32& OutValue)
 {
 	int32 Value = DefaultValue;
 	bool bComputed = false;
@@ -968,8 +977,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std
 
 
 bool
-FHoudiniEngineUtils::HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName, 
-	const FString& DefaultValue, FString& OutValue)
+FHoudiniEngineUtils::HapiGetParameterDataAsString(
+	HAPI_NodeId NodeId, const std::string ParmName, const FString& DefaultValue, FString& OutValue)
 {
 	FString Value;
 	bool bComputed = false;
@@ -1074,8 +1083,8 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 
 
 bool
-FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* StaticMesh, 
-	HAPI_AssetId& ConnectedAssetId)
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(
+	HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* StaticMesh, HAPI_AssetId& ConnectedAssetId)
 {
 	// If we don't have a static mesh, or host asset is invalid, there's nothing to do.
 	if(!StaticMesh || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
@@ -1373,8 +1382,8 @@ FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIn
 
 
 bool
-FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, 
-	int32 InputIndex)
+FHoudiniEngineUtils::HapiConnectAsset(
+	HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex)
 {
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(AssetIdFrom, ObjectIdFrom, AssetIdTo, InputIndex), 
 		false);
@@ -1383,8 +1392,9 @@ FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId Ob
 
 
 UPackage*
-FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, const FHoudiniGeoPartObject& 
-	HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID)
+FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(
+	UHoudiniAsset* HoudiniAsset, const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, 
+	FString& MeshName, FGuid& BakeGUID)
 {
 	FString PackageName;
 
@@ -1529,6 +1539,9 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	SrcModel.BuildSettings.bRecomputeNormals = true;
 	SrcModel.BuildSettings.bRecomputeTangents = true;
 
+	// Disable lightmap generation.
+	SrcModel.BuildSettings.bGenerateLightmapUVs = false;
+
 	// Store the new raw mesh.
 	SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
 
@@ -1553,8 +1566,9 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 
 
 bool
-FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, 
-	UPackage* Package, const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
+FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+	UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package, 
+	const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 	TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut, FTransform& ComponentTransform)
 {
 	HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
@@ -2167,6 +2181,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 							// We have to have at least one UV channel. If there's none, create one with zero data.
 							RawMesh.WedgeTexCoords[0].SetNumZeroed(SplitGroupVertexListCount);
 							StaticMesh->LightMapCoordinateIndex = 0;
+
 							break;
 						}
 
@@ -2174,6 +2189,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						{
 							// We have only one UV channel.
 							StaticMesh->LightMapCoordinateIndex = FirstUVChannelIndex;
+
 							break;
 						}
 
@@ -2244,7 +2260,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 
 					// Transfer indices.
-					//RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexList.Num());
 					RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexListCount);
 					int32 ValidVertexId = 0;
 					for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
@@ -2431,6 +2446,22 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 						0 == RawMesh.WedgeTangentY.Num());
 					SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
+					// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
+					// zero UV sets when building lightmaps.
+					if(SrcModel->BuildSettings.bGenerateLightmapUVs)
+					{
+						// See if we need to disable lightmap generation because of bad UVs.
+						if(FHoudiniEngineUtils::ContainsInvalidLightmapFaces(RawMesh, StaticMesh->LightMapCoordinateIndex))
+						{
+							SrcModel->BuildSettings.bGenerateLightmapUVs = false;
+
+							HOUDINI_LOG_MESSAGE(
+								TEXT("Skipping Lightmap Generation: Object [%d %s], Geo [%d], Part [%d %s] invalid face detected ")
+								TEXT("- skipping."),
+								ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+						}
+					}
+
 					// Store the new raw mesh.
 					SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
 
@@ -2524,8 +2555,8 @@ FHoudiniEngineUtils::CountDegenerateTriangles(const FRawMesh& RawMesh)
 
 
 int32
-FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, 
-	const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data)
+FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+	const TArray<int32>& VertexList, const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data)
 {
 	int32 ValidWedgeCount = 0;
 
@@ -2630,8 +2661,9 @@ FHoudiniEngineUtils::SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Packag
 
 
 UStaticMesh*
-FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, 
-	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FArchive& Ar)
+FHoudiniEngineUtils::LoadRawStaticMesh(
+	UHoudiniAssetComponent* HoudiniAssetComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+	UPackage* Package, FArchive& Ar)
 {
 	UStaticMesh* StaticMesh = nullptr;
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
@@ -2677,6 +2709,22 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
 
+	// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
+	// zero UV sets when building lightmaps.
+	if(SrcModel->BuildSettings.bGenerateLightmapUVs)
+	{
+		// See if we need to disable lightmap generation because of bad UVs.
+		if(FHoudiniEngineUtils::ContainsInvalidLightmapFaces(RawMesh, StaticMesh->LightMapCoordinateIndex))
+		{
+			SrcModel->BuildSettings.bGenerateLightmapUVs = false;
+
+			HOUDINI_LOG_MESSAGE(
+				TEXT("Skipping Lightmap Generation: Object %s invalid face detected ")
+				TEXT("- skipping."),
+				*MeshName);
+		}
+	}
+
 	// Store the new raw mesh.
 	RawMeshBulkData->SaveRawMesh(RawMesh);
 
@@ -2719,8 +2767,8 @@ FHoudiniEngineUtils::LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetCompo
 
 
 void
-FHoudiniEngineUtils::Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, UPackage* Package, 
-	FArchive& Ar)
+FHoudiniEngineUtils::Serialize(
+	FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, UPackage* Package, FArchive& Ar)
 {
 	Ar << RawMesh.FaceMaterialIndices;
 	Ar << RawMesh.FaceSmoothingMasks;
@@ -2826,8 +2874,9 @@ FHoudiniEngineUtils::Serialize(UMaterialInterface*& MaterialInterface, UPackage*
 
 
 UStaticMesh*
-FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, 
-	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UStaticMesh* InStaticMesh)
+FHoudiniEngineUtils::BakeStaticMesh(
+	UHoudiniAssetComponent* HoudiniAssetComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+	UStaticMesh* InStaticMesh)
 {
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	check(HoudiniAsset);
@@ -2880,6 +2929,22 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	SrcModel->BuildSettings.bRemoveDegenerates = true;
 	SrcModel->BuildSettings.bRecomputeTangents = true;
 	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
+
+	// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
+	// zero UV sets when building lightmaps.
+	if(SrcModel->BuildSettings.bGenerateLightmapUVs)
+	{
+		// See if we need to disable lightmap generation because of bad UVs.
+		if(FHoudiniEngineUtils::ContainsInvalidLightmapFaces(RawMesh, StaticMesh->LightMapCoordinateIndex))
+		{
+			SrcModel->BuildSettings.bGenerateLightmapUVs = false;
+
+			HOUDINI_LOG_MESSAGE(
+				TEXT("Skipping Lightmap Generation: Object %s invalid face detected ")
+				TEXT("- skipping."),
+				*MeshName);
+		}
+	}
 
 	// Store the new raw mesh.
 	RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -3164,8 +3229,8 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 */
 
 UMaterial*
-FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, 
-	const FString& MeshName, const FRawMesh& RawMesh)
+FHoudiniEngineUtils::HapiCreateMaterial(
+	const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh)
 {
 	UMaterial* Material = nullptr;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -3321,6 +3386,7 @@ FHoudiniEngineUtils::ExtractMaterialName(UMaterialInterface* MaterialInterface)
 	// Allocate space for unique string.
 	int32 UniqueNameBytes = ConvertedString.size() + 1;
 	char* UniqueName = static_cast<char*>(FMemory::Malloc(UniqueNameBytes));
+
 	FMemory::Memzero(UniqueName, UniqueNameBytes);
 	FMemory::Memcpy(UniqueName, ConvertedString.c_str(), ConvertedString.size());
 
@@ -3329,8 +3395,9 @@ FHoudiniEngineUtils::ExtractMaterialName(UMaterialInterface* MaterialInterface)
 
 
 void
-FHoudiniEngineUtils::CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials, 
-	const TArray<int32>& FaceMaterialIndices, TArray<char*>& OutStaticMeshFaceMaterials)
+FHoudiniEngineUtils::CreateFaceMaterialArray(
+	const TArray<UMaterialInterface*>& Materials, const TArray<int32>& FaceMaterialIndices, 
+	TArray<char*>& OutStaticMeshFaceMaterials)
 {
 	// We need to create list of unique materials.
 	TArray<char*> UniqueMaterialList;
@@ -3606,8 +3673,10 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 	// Otherwise on Windows, we try to look up location of Houdini Engine in the registry first.
 	{
 		FString HoudiniRegistryLocation = 
-			FString::Printf(TEXT("Software\\Side Effects Software\\Houdini Engine %d.%d.%d"), 
+			FString::Printf(
+				TEXT("Software\\Side Effects Software\\Houdini Engine %d.%d.%d"), 
 				HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+
 		FString HoudiniInstallationPath;
 
 		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), 
@@ -3626,8 +3695,10 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 				if(HAPILibraryHandle)
 				{
-					HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from Registry path %s"), *LibHAPIName, 
+					HOUDINI_LOG_MESSAGE(
+						TEXT("Loaded %s from Registry path %s"), *LibHAPIName, 
 						*HoudiniInstallationPath);
+
 					StoredLibHAPILocation = HoudiniInstallationPath;
 					return HAPILibraryHandle;
 				}
@@ -3637,8 +3708,10 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 	// If Houdini Engine was not found in the registry, attempt to locate installation of Houdini in the registry.
 	{
-		FString HoudiniRegistryLocation = FString::Printf(TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), 
+		FString HoudiniRegistryLocation = FString::Printf(
+			TEXT("Software\\Side Effects Software\\Houdini %d.%d.%d"), 
 			HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
+
 		FString HoudiniInstallationPath;
 
 		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"), 
@@ -3657,8 +3730,10 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 				if(HAPILibraryHandle)
 				{
-					HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from Registry path %s"), *LibHAPIName, 
+					HOUDINI_LOG_MESSAGE(
+						TEXT("Loaded %s from Registry path %s"), *LibHAPIName, 
 						*HoudiniInstallationPath);
+
 					StoredLibHAPILocation = HoudiniInstallationPath;
 					return HAPILibraryHandle;
 				}
@@ -3671,13 +3746,15 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 #	if PLATFORM_MAC
 
 	// Attempt to load from standard Mac OS X installation.
-	FString HoudiniLocation = FString::Printf(TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
+	FString HoudiniLocation = FString::Printf(
+		TEXT("/Library/Frameworks/Houdini.framework/Versions/%d.%d.%d/Libraries"), 
 		HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
 
 #	elif PLATFORM_LINUX
 
 	// Attempt to load from standard Linux installation.
-	FString HoudiniLocation = FString::Printf(TEXT("/opt/dev%d.%d.%d/dsolib"), 
+	FString HoudiniLocation = FString::Printf(
+		TEXT("/opt/dev%d.%d.%d/dsolib"), 
 		HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
 
 #	endif
@@ -3707,16 +3784,16 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 
 int32
-FHoudiniEngineUtils::HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-	HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList, TArray<int32>& NewVertexList,
-	TArray<int32>& AllVertexList)
+FHoudiniEngineUtils::HapiGetVertexListForGroup(
+	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, const FString& GroupName, 
+	const TArray<int32>& FullVertexList, TArray<int32>& NewVertexList, TArray<int32>& AllVertexList)
 {
 	NewVertexList.Init(-1, FullVertexList.Num());
 	int32 ProcessedWedges = 0;
 
 	TArray<int32> PartGroupMembership;
-	FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, 
-		PartGroupMembership);
+	FHoudiniEngineUtils::HapiGetGroupMembership(
+		AssetId, ObjectId, GeoId, PartId, HAPI_GROUPTYPE_PRIM, GroupName, PartGroupMembership);
 
 	// Go through all primitives.
 	for(int32 FaceIdx = 0; FaceIdx < PartGroupMembership.Num(); ++FaceIdx)
@@ -3724,10 +3801,6 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_Object
 		if(PartGroupMembership[FaceIdx] > 0)
 		{
 			// This face is a member of specified group.
-			//NewVertexList.Add(FullVertexList[FaceIdx * 3 + 0]);
-			//NewVertexList.Add(FullVertexList[FaceIdx * 3 + 1]);
-			//NewVertexList.Add(FullVertexList[FaceIdx * 3 + 2]);
-
 			NewVertexList[FaceIdx * 3 + 0] = FullVertexList[FaceIdx * 3 + 0];
 			NewVertexList[FaceIdx * 3 + 1] = FullVertexList[FaceIdx * 3 + 1];
 			NewVertexList[FaceIdx * 3 + 2] = FullVertexList[FaceIdx * 3 + 2];
@@ -3742,4 +3815,34 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_Object
 	}
 
 	return ProcessedWedges;
+}
+
+
+bool 
+FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32 LightmapSourceIdx)
+{
+	const TArray<FVector2D>& LightmapUVs = RawMesh.WedgeTexCoords[LightmapSourceIdx];
+	const TArray<uint32>& Indices = RawMesh.WedgeIndices;
+
+	if(LightmapUVs.Num() != Indices.Num())
+	{
+		// This is invalid raw mesh; by design we consider that it contains invalid lightmap faces.
+		return true;
+	}
+
+	for(int32 Idx = 0; Idx < Indices.Num(); Idx += 3)
+	{
+		const FVector2D& uv0 = LightmapUVs[Indices[Idx + 0]];
+		const FVector2D& uv1 = LightmapUVs[Indices[Idx + 1]];
+		const FVector2D& uv2 = LightmapUVs[Indices[Idx + 2]];
+
+		if(uv0 == uv1 && uv1 == uv2)
+		{
+			// Detect invalid lightmap face, can stop.
+			return true;
+		}
+	}
+
+	// Otherwise there are no invalid lightmap faces.
+	return false;
 }

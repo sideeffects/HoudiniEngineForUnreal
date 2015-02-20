@@ -256,6 +256,9 @@ protected:
 	/** Helper routine to count number of degenerate triangles. **/
 	static int32 CountDegenerateTriangles(const FRawMesh& RawMesh);
 
+	/** Helper routine to check invalid lightmap faces. **/
+	static bool ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32 LightmapSourceIdx);
+
 	/** Helper function to extract a material name from given material interface. **/
 	static char* ExtractMaterialName(UMaterialInterface* MaterialInterface);
 
