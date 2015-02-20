@@ -189,13 +189,13 @@ struct FHoudiniApi
 	typedef HAPI_Result (*GetHandleBindingInfoFuncPtr)(HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_infos, int start, int length);
 	static GetHandleBindingInfoFuncPtr GetHandleBindingInfo;
 
-	typedef HAPI_Result (*GetPresetBufLengthFuncPtr)(HAPI_NodeId node_id, int * buffer_length);
+	typedef HAPI_Result (*GetPresetBufLengthFuncPtr)(HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
 	static GetPresetBufLengthFuncPtr GetPresetBufLength;
 
 	typedef HAPI_Result (*GetPresetFuncPtr)(HAPI_NodeId node_id, char * buffer, int buffer_length);
 	static GetPresetFuncPtr GetPreset;
 
-	typedef HAPI_Result (*SetPresetFuncPtr)(HAPI_NodeId node_id, const char * buffer, int buffer_length);
+	typedef HAPI_Result (*SetPresetFuncPtr)(HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length);
 	static SetPresetFuncPtr SetPreset;
 
 	typedef HAPI_Result (*GetObjectsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos, int start, int length);
@@ -293,6 +293,9 @@ struct FHoudiniApi
 
 	typedef HAPI_Result (*GetMaterialOnPartFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
 	static GetMaterialOnPartFuncPtr GetMaterialOnPart;
+
+	typedef HAPI_Result (*GetMaterialOnGroupFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info);
+	static GetMaterialOnGroupFuncPtr GetMaterialOnGroup;
 
 	typedef HAPI_Result (*RenderMaterialToImageFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ShaderType shader_type);
 	static RenderMaterialToImageFuncPtr RenderMaterialToImage;
