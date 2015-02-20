@@ -287,6 +287,9 @@ FHoudiniApi::DisconnectAssetGeometry = nullptr;
 FHoudiniApi::GetMaterialOnPartFuncPtr
 FHoudiniApi::GetMaterialOnPart = nullptr;
 
+FHoudiniApi::GetMaterialOnGroupFuncPtr
+FHoudiniApi::GetMaterialOnGroup = nullptr;
+
 FHoudiniApi::RenderMaterialToImageFuncPtr
 FHoudiniApi::RenderMaterialToImage = nullptr;
 
@@ -479,6 +482,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::ConnectAssetGeometry = (ConnectAssetGeometryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConnectAssetGeometry"));
 	FHoudiniApi::DisconnectAssetGeometry = (DisconnectAssetGeometryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectAssetGeometry"));
 	FHoudiniApi::GetMaterialOnPart = (GetMaterialOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPart"));
+	FHoudiniApi::GetMaterialOnGroup = (GetMaterialOnGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroup"));
 	FHoudiniApi::RenderMaterialToImage = (RenderMaterialToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderMaterialToImage"));
 	FHoudiniApi::RenderTextureToImage = (RenderTextureToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderTextureToImage"));
 	FHoudiniApi::GetSupportedImageFileFormatCount = (GetSupportedImageFileFormatCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSupportedImageFileFormatCount"));
@@ -607,6 +611,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::ConnectAssetGeometry = nullptr;
 	FHoudiniApi::DisconnectAssetGeometry = nullptr;
 	FHoudiniApi::GetMaterialOnPart = nullptr;
+	FHoudiniApi::GetMaterialOnGroup = nullptr;
 	FHoudiniApi::RenderMaterialToImage = nullptr;
 	FHoudiniApi::RenderTextureToImage = nullptr;
 	FHoudiniApi::GetSupportedImageFileFormatCount = nullptr;
