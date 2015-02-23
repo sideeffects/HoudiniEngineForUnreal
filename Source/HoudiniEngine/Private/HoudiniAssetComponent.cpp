@@ -187,8 +187,9 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 		}
 
 		// Retrieve asset associated with this component and add reference to it.
+		// Also do not add reference if it is being referenced by preview component.
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-		if(HoudiniAsset)
+		if(HoudiniAsset && !HoudiniAssetComponent->bIsPreviewComponent)
 		{
 			// Manually add a reference to Houdini asset from this component.
 			Collector.AddReferencedObject(HoudiniAsset, InThis);
