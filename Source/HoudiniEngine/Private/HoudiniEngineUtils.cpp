@@ -682,7 +682,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 	TArray<int32>& Data, int32 TupleSize)
 {
 
-	return FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
+	return FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
 		HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name,
 		ResultAttributeInfo, Data, TupleSize);
 }
@@ -2092,16 +2093,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
 						if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
 						{
-							FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask, 
+							FHoudiniEngineUtils::ConvertUnrealString(
+								HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask, 
 								MarshallingAttributeName);
 						}
 
-						FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							MarshallingAttributeName.c_str(), AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
+						FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+							AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, MarshallingAttributeName.c_str(), 
+							AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
 					}
 
 					// See if we need to transfer normal point attributes to vertex attributes.
-					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoNormals, Normals);
+					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+						SplitGroupVertexList, AttribInfoNormals, Normals);
 
 					// Retrieve UVs.
 					HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
@@ -2115,12 +2119,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						}
 
 						const char* UVAttributeNameString = UVAttributeName.c_str();
-						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
-							UVAttributeNameString, AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx], 2);
+						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+							AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, UVAttributeNameString, 
+							AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx], 2);
 
 						// See if we need to transfer uv point attributes to vertex attributes.
-						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, 
-							AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx]);
+						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+							SplitGroupVertexList, AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx]);
 					}
 
 					// We can transfer attributes to raw mesh.
@@ -2129,18 +2134,25 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					int32 FaceCount = SplitGroupVertexListCount / 3;
 
 					// Set face smoothing masks.
-					RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
-
-					/*
-					if(FaceSmoothingMasks.Num())
 					{
-						for(int32 FaceSmoothingMaskIdx = 0; 
-							FaceSmoothingMaskIdx < FaceSmoothingMasks.Num(); ++FaceSmoothingMaskIdx)
+						RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
+
+						if(FaceSmoothingMasks.Num())
 						{
-							RawMesh.FaceSmoothingMasks[FaceSmoothingMaskIdx] = FaceSmoothingMasks[FaceSmoothingMaskIdx];
+							int32 ValidFaceIdx = 0;
+							for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
+							{
+								int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
+								if(-1 == WedgeCheck)
+								{
+									continue;
+								}
+
+								RawMesh.FaceSmoothingMasks[ValidFaceIdx] = FaceSmoothingMasks[VertexIdx / 3];
+								ValidFaceIdx++;
+							}
 						}
 					}
-					*/
 
 					// Transfer UVs.
 					int32 UVChannelCount = 0;
