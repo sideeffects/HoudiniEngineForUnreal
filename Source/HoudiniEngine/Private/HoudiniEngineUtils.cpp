@@ -2404,8 +2404,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 								// Attempt to load this material.
 								UMaterialInterface* MaterialInterface = 
-									Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, 
-										*MaterialName, nullptr, LOAD_NoWarn, nullptr));
+									Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), 
+										nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
 
 								if(!MaterialInterface)
 								{
@@ -2417,13 +2417,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 								UniqueFaceMaterialsIdx++;
 							}
 
-							/*
-							for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < FaceMaterials.Num(); ++FaceMaterialIdx)
+							int32 ValidFaceIdx = 0;
+							for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
 							{
-								const FString& MaterialName = FaceMaterials[FaceMaterialIdx];
-								RawMesh.FaceMaterialIndices[FaceMaterialIdx] = UniqueFaceMaterialMap[MaterialName];
+								int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
+								if(-1 == WedgeCheck)
+								{
+									continue;
+								}
+
+								const FString& MaterialName = FaceMaterials[VertexIdx / 3];
+								RawMesh.FaceMaterialIndices[ValidFaceIdx] = UniqueFaceMaterialMap[MaterialName];
+								ValidFaceIdx++;
 							}
-							*/
 						}
 						else
 						{
