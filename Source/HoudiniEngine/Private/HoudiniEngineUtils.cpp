@@ -119,6 +119,20 @@ FHoudiniEngineUtils::GetErrorDescription()
 }
 
 
+const FString
+FHoudiniEngineUtils::GetCookState()
+{
+	int32 StatusBufferLength = 0;
+	FHoudiniApi::GetStatusStringBufLength(
+		HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
+
+	std::vector<char> StatusStringBuffer(StatusBufferLength, 0);
+	FHoudiniApi::GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]);
+
+	return FString(UTF8_TO_TCHAR(&StatusStringBuffer[0]));
+}
+
+
 bool
 FHoudiniEngineUtils::IsInitialized()
 {
