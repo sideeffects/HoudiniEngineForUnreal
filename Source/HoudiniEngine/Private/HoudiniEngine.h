@@ -49,6 +49,8 @@ public:
 	virtual void AddTaskInfo(const FGuid HapIGUID, const FHoudiniEngineTaskInfo& TaskInfo) override;
 	virtual void RemoveTaskInfo(const FGuid HapIGUID) override;
 	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) override;
+	virtual HAPI_Result GetHapiState() const override;
+	virtual void SetHapiState(HAPI_Result Result) override;
 
 public:
 
@@ -121,6 +123,9 @@ private:
 
 	/** Location of libHAPI binary. **/
 	FString LibHAPILocation;
+
+	/** Keep current state of HAPI. **/
+	HAPI_Result HAPIState;
 
 	/** Is set to true when mismatch between defined and running HAPI versions is detected. **/
 	bool bHAPIVersionMismatch;

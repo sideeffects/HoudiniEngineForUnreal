@@ -61,13 +61,13 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 
 		// Add built Houdini version.
 		CreateHoudiniEntry(LOCTEXT("HInformationBuilt", "Built against Houdini"),
-						   InformationCategoryBuilder, HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR,
-						   HAPI_VERSION_HOUDINI_BUILD, HAPI_VERSION_HOUDINI_PATCH);
+			InformationCategoryBuilder, HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR,
+			HAPI_VERSION_HOUDINI_BUILD, HAPI_VERSION_HOUDINI_PATCH);
 
 		// Add built against Houdini Engine version.
 		CreateHoudiniEngineEntry(LOCTEXT("HEngineInformationBuilt", "Built against Houdini Engine"),
-								 InformationCategoryBuilder, HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
-								 HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API);
+			InformationCategoryBuilder, HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
+			HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API);
 
 		// Add running against Houdini version.
 		{
@@ -86,7 +86,7 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 			}
 
 			CreateHoudiniEntry(LOCTEXT("HInformationRunning", "Running against Houdini"),
-							   InformationCategoryBuilder, RunningMajor, RunningMinor, RunningBuild, RunningPatch);
+				InformationCategoryBuilder, RunningMajor, RunningMinor, RunningBuild, RunningPatch);
 		}
 
 		// Add running against Houdini Engine version.
@@ -104,8 +104,7 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 			}
 
 			CreateHoudiniEngineEntry(LOCTEXT("HEngineInformationRunning", "Running against Houdini Engine"),
-									 InformationCategoryBuilder, RunningEngineMajor, RunningEngineMinor,
-									 RunningEngineApi);
+				InformationCategoryBuilder, RunningEngineMajor, RunningEngineMinor, RunningEngineApi);
 		}
 
 		// Add path of libHAPI.
@@ -118,14 +117,15 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 
 			CreateHAPILibraryPathEntry(LibHAPILocation, InformationCategoryBuilder);
 		}
+
+		// Add licensing info.
 	}
 }
 
 
 void
 FHoudiniRuntimeSettingsDetails::CreateHoudiniEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
-												   int32 VersionMajor, int32 VersionMinor, int32 VersionBuild,
-												   int32 VersionPatch)
+	int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, int32 VersionPatch)
 {
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
@@ -190,8 +190,7 @@ FHoudiniRuntimeSettingsDetails::CreateHoudiniEntry(const FText& EntryName, IDeta
 
 void
 FHoudiniRuntimeSettingsDetails::CreateHoudiniEngineEntry(const FText& EntryName,
-														 IDetailCategoryBuilder& DetailCategoryBuilder,
-														 int32 VersionMajor, int32 VersionMinor, int32 VersionApi)
+	IDetailCategoryBuilder& DetailCategoryBuilder, int32 VersionMajor, int32 VersionMinor, int32 VersionApi)
 {
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 
@@ -244,7 +243,7 @@ FHoudiniRuntimeSettingsDetails::CreateHoudiniEngineEntry(const FText& EntryName,
 
 void
 FHoudiniRuntimeSettingsDetails::CreateHAPILibraryPathEntry(const FString& LibHAPIPath,
-														   IDetailCategoryBuilder& DetailCategoryBuilder)
+	IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 

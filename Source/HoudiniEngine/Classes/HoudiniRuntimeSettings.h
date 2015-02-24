@@ -30,7 +30,7 @@ class UFoliageType_InstancedStaticMesh;
 UENUM()
 enum EHoudiniRuntimeSettingsRecomputeFlag
 {
-	// Default is to recompute always.
+	// Recompute always.
 	HRSRF_Always UMETA(DisplayName="Always"),
 
 	// Recompute only if missing.
