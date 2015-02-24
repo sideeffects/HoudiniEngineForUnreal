@@ -251,17 +251,24 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 		HOUDINI_LOG_ERROR(TEXT("TaskCookAsset failed: %s"), 
 			*FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
 
+		AddResponseMessageTaskInfo(HAPI_RESULT_NOT_INITIALIZED, EHoudiniEngineTaskType::AssetCooking,
+			EHoudiniEngineTaskState::FinishedCookingWithErrors, -1, Task, TEXT("HAPI is not initialized."));
+
 		return;
 	}
 
 	if(!Task.AssetComponent.IsValid())
 	{
 		// Asset component is no longer valid, return.
+		AddResponseMessageTaskInfo(HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetCooking,
+			EHoudiniEngineTaskState::FinishedCookingWithErrors, -1, Task, TEXT("Asset is no longer valid."));
+
 		return;
 	}
 
 	// Retrieve asset id.
 	HAPI_AssetId AssetId = Task.AssetComponent->GetAssetId();
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	HOUDINI_LOG_MESSAGE(
 		TEXT("HAPI Asynchronous Cooking Started. Component = 0x%x, HoudiniAsset = 0x%x, ")
@@ -272,21 +279,28 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 	{
 		// We have an invalid asset id.
 		HOUDINI_LOG_ERROR(TEXT("TaskCookAsset failed: Invalid Asset Id."));
+
+		AddResponseMessageTaskInfo(HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetCooking,
+			EHoudiniEngineTaskState::FinishedCookingWithErrors, -1, Task, TEXT("Asset has invalid id."));
+
 		return;
 	}
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(AssetId, nullptr), void());
+	Result = FHoudiniApi::CookAsset(AssetId, nullptr);
+	if(HAPI_RESULT_SUCCESS != Result)
+	{
+		AddResponseMessageTaskInfo(Result, EHoudiniEngineTaskType::AssetCooking,
+			EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task, TEXT("Error cooking asset."));
+
+		return;
+	}
 
 	// Add processing notification.
-	FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, 
-		EHoudiniEngineTaskState::Processing);
-
-	TaskDescription(TaskInfo, Task.ActorName, TEXT("Started Cooking"));
-	FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+	AddResponseMessageTaskInfo(HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetCooking,
+		EHoudiniEngineTaskState::Processing, AssetId, Task, TEXT("Started Cooking"));
 
 	// Initialize last update time.
 	double LastUpdateTime = FPlatformTime::Seconds();
-	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	// We need to spin until cooking is finished.
 	while(true)
@@ -296,28 +310,28 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 
 		if(!Task.AssetComponent.IsValid())
 		{
+			AddResponseMessageTaskInfo(HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetCooking,
+				EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task, 
+				TEXT("Component is no longer valid."));
+
 			break;
 		}
 
 		if(HAPI_STATE_READY == Status)
 		{
 			// Cooking has been successful.
-			FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, 
-				EHoudiniEngineTaskState::FinishedCooking);
-
-			TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Cooking"));
-			FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+			AddResponseMessageTaskInfo(HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetCooking,
+				EHoudiniEngineTaskState::FinishedCooking, AssetId, Task, 
+				TEXT("Finished Cooking"));
 
 			break;
 		}
 		else if(HAPI_STATE_READY_WITH_FATAL_ERRORS == Status || HAPI_STATE_READY_WITH_COOK_ERRORS == Status)
 		{
 			// There was an error while instantiating.
-			FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, 
-				EHoudiniEngineTaskState::FinishedCookingWithErrors);
-
-			TaskDescription(TaskInfo, Task.ActorName, TEXT("Finished Cooking with Errors"));
-			FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+			AddResponseMessageTaskInfo(HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetCooking,
+				EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task, 
+				TEXT("Finished Cooking with Errors"));
 
 			break;
 		}
@@ -329,22 +343,11 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 			LastUpdateTime = FPlatformTime::Seconds();
 
 			// Retrieve status string.
-			int32 StatusStringBufferLength = 0;
-			HOUDINI_CHECK_ERROR_RETURN(
-				FHoudiniApi::GetStatusStringBufLength(
-					HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusStringBufferLength), void());
+			const FString& CookStateMessage = FHoudiniEngineUtils::GetCookState();
 
-			std::vector<char> StatusStringBuffer(StatusStringBufferLength, '\0');
-			HOUDINI_CHECK_ERROR_RETURN(
-				FHoudiniApi::GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]), void());
-
-			FString StatusString = ANSI_TO_TCHAR(&StatusStringBuffer[0]);
-
-			FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, AssetId, EHoudiniEngineTaskType::AssetCooking, 
-				EHoudiniEngineTaskState::Processing);
-
-			TaskDescription(TaskInfo, Task.ActorName, StatusString);
-			FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
+			AddResponseMessageTaskInfo(HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetCooking,
+				EHoudiniEngineTaskState::Processing, AssetId, Task,
+				CookStateMessage);
 		}
 
 		// We want to yield.
