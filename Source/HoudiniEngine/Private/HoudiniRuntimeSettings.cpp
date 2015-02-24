@@ -46,7 +46,17 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	LpvBiasMultiplier(1.0f),
 	LightMapCoordinateIndex(1),
 	bUseMaximumStreamingTexelRatio(false),
-	StreamingDistanceMultiplier(1.0f)
+	StreamingDistanceMultiplier(1.0f),
+
+	/**  Static Mesh build settings. **/
+	bUseFullPrecisionUVs(false),
+	SrcLightmapIndex(0),
+	DstLightmapIndex(1),
+	MinLightmapResolution(64),
+	bRemoveDegenerates(true),
+	GenerateLightmapUVsFlag(HRSRF_OnlyIfMissing),
+	RecomputeNormalsFlag(HRSRF_OnlyIfMissing),
+	RecomputeTangentsFlag(HRSRF_OnlyIfMissing)
 {
 #if WITH_EDITORONLY_DATA
 	if(!IsRunningCommandlet())
@@ -176,4 +186,83 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 		}
 	}
 	*/
+}
+
+
+void
+UHoudiniRuntimeSettings::SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSettings, FRawMesh& RawMesh) const
+{
+	// Removing degenerate triangles.
+	MeshBuildSettings.bRemoveDegenerates = bRemoveDegenerates;
+
+	// Recomputing normals.
+	switch(RecomputeNormalsFlag)
+	{
+		case HRSRF_Always:
+		{
+			MeshBuildSettings.bRecomputeNormals = true;
+			break;
+		}
+
+		case HRSRF_OnlyIfMissing:
+		{
+			MeshBuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
+			break;
+		}
+
+		case HRSRF_Nothing:
+		default:
+		{
+			MeshBuildSettings.bRecomputeNormals = false;
+			break;
+		}
+	}
+
+	// Recomputing tangents.
+	switch(RecomputeTangentsFlag)
+	{
+		case HRSRF_Always:
+		{
+			MeshBuildSettings.bRecomputeTangents = true;
+			break;
+		}
+
+		case HRSRF_OnlyIfMissing:
+		{
+			MeshBuildSettings.bRecomputeTangents = (0 == RawMesh.WedgeTangentX.Num() || 0 == RawMesh.WedgeTangentY.Num());
+			break;
+		}
+
+		case HRSRF_Nothing:
+		default:
+		{
+			MeshBuildSettings.bRecomputeTangents = false;
+			break;
+		}
+	}
+
+	// Lightmap UV generation.
+	bool bHasLightmapUVSet = (FHoudiniEngineUtils::CountUVSets(RawMesh) > 1);
+
+	switch(GenerateLightmapUVsFlag)
+	{
+		case HRSRF_Always:
+		{
+			MeshBuildSettings.bGenerateLightmapUVs = true;
+			break;
+		}
+
+		case HRSRF_OnlyIfMissing:
+		{
+			MeshBuildSettings.bGenerateLightmapUVs = !bHasLightmapUVSet;
+			break;
+		}
+
+		case HRSRF_Nothing:
+		default:
+		{
+			MeshBuildSettings.bGenerateLightmapUVs = false;
+			break;
+		}
+	}
 }
