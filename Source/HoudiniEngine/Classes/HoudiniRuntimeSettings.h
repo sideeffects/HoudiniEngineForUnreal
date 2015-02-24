@@ -20,9 +20,27 @@
 #include "HoudiniRuntimeSettings.generated.h"
 
 
+struct FRawMesh;
 class UAssetUserData;
 class UPhysicalMaterial;
+struct FMeshBuildSettings;
 class UFoliageType_InstancedStaticMesh;
+
+
+UENUM()
+enum EHoudiniRuntimeSettingsRecomputeFlag
+{
+	// Default is to recompute always.
+	HRSRF_Always UMETA(DisplayName="Always"),
+
+	// Recompute only if missing.
+	HRSRF_OnlyIfMissing UMETA(DisplayName="Only if missing"),
+
+	// Do not recompute.
+	HRSRF_Nothing UMETA(DisplayName="Never"),
+
+	HRSRF_MAX,
+};
 
 
 UCLASS(config = Engine, defaultconfig)
@@ -45,6 +63,11 @@ protected:
 
 	/** Locate property of this class by name. **/
 	UProperty* LocateProperty(const FString& PropertyName);
+
+public:
+
+	/** Fill static mesh build settings structure based on assigned settings. **/
+	void SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSettings, FRawMesh& RawMesh) const;
 
 /** Cooking options. **/
 public:
@@ -92,6 +115,7 @@ public:
 	FString MarshallingAttributeFaceSmoothingMask;
 
 /** Geometry scaling. **/
+public:
 
 	// Scale factor of generated Houdini geometry.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryScaling)
@@ -147,6 +171,41 @@ public:
 	// Array of user data stored with the new Houdini Asset.
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Asset User Data"))
 	TArray<UAssetUserData*> AssetUserData;
+
+/** Static Mesh build settings. **/
+public:
+
+	// If true, UVs will be stored at full floating point precision.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings)
+	bool bUseFullPrecisionUVs;
+
+	// Source UV set for lightmaps.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings, meta=(DisplayName="Source Lightmap Index"))
+	int32 SrcLightmapIndex;
+
+	// Destination UV set for lightmap.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings, meta=(DisplayName="Destination Lightmap Index"))
+	int32 DstLightmapIndex;
+
+	// Min lightmap resolution value.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings)
+	int32 MinLightmapResolution;
+
+	// If true, degenerate triangles will be removed.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings)
+	bool bRemoveDegenerates;
+
+	// Action to take when lightmaps are missing.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings,  meta=(DisplayName="Generate Lightmap UVs"))
+	TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> GenerateLightmapUVsFlag;
+
+	// Action to take when normals are missing.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings, meta=(DisplayName="Recompute Normals"))
+	TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> RecomputeNormalsFlag;
+
+	// Action to take when tangents are missing.
+	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings, meta=(DisplayName="Recompute Tangents"))
+	TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> RecomputeTangentsFlag;
 
 public:
 

@@ -1582,6 +1582,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 	// Get runtime settings.
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	check(HoudiniRuntimeSettings);
 
 	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
 	if(HoudiniRuntimeSettings)
@@ -2461,16 +2462,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					}
 
 					// Some mesh generation settings.
-					SrcModel->BuildSettings.bRemoveDegenerates = true;
-					SrcModel->BuildSettings.bRecomputeTangents = (0 == RawMesh.WedgeTangentX.Num() || 
-						0 == RawMesh.WedgeTangentY.Num());
-					SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
-
-					// If we have more than one UV set, disable lightmap generation - we want to use provided set.
-					if(FHoudiniEngineUtils::CountUVSets(RawMesh) > 1)
-					{
-						SrcModel->BuildSettings.bGenerateLightmapUVs = false;
-					}
+					HoudiniRuntimeSettings->SetMeshBuildSettings(SrcModel->BuildSettings, RawMesh);
 
 					// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
 					// zero UV sets when building lightmaps.
@@ -2705,6 +2697,10 @@ FHoudiniEngineUtils::LoadRawStaticMesh(
 		Package = GetTransientPackage();
 	}
 
+	// Get runtime settings.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	check(HoudiniRuntimeSettings);
+
 	// Get platform manager LOD specific information.
 	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
 	check(CurrentPlatform);
@@ -2731,15 +2727,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(
 	FHoudiniEngineUtils::Serialize(RawMesh, StaticMesh->Materials, Package, Ar);
 
 	// Some mesh generation settings.
-	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeTangents = true;
-	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
-
-	// If we have more than one UV set, disable lightmap generation - we want to use provided set.
-	if(FHoudiniEngineUtils::CountUVSets(RawMesh) > 1)
-	{
-		SrcModel->BuildSettings.bGenerateLightmapUVs = false;
-	}
+	HoudiniRuntimeSettings->SetMeshBuildSettings(SrcModel->BuildSettings, RawMesh);
 
 	// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
 	// zero UV sets when building lightmaps.
@@ -2931,6 +2919,11 @@ FHoudiniEngineUtils::BakeStaticMesh(
 	const FStaticMeshLODGroup& LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(NAME_None);
 	int32 NumLODs = LODGroup.GetDefaultNumLODs();
 
+	// Get runtime settings.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	check(HoudiniRuntimeSettings);
+
+
 	FString MeshName;
 	FGuid BakeGUID;
 	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID);
@@ -2958,15 +2951,7 @@ FHoudiniEngineUtils::BakeStaticMesh(
 	InRawMeshBulkData->LoadRawMesh(RawMesh);
 
 	// Some mesh generation settings.
-	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeTangents = true;
-	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
-
-	// If we have more than one UV set, disable lightmap generation - we want to use provided set.
-	if(FHoudiniEngineUtils::CountUVSets(RawMesh) > 1)
-	{
-		SrcModel->BuildSettings.bGenerateLightmapUVs = false;
-	}
+	HoudiniRuntimeSettings->SetMeshBuildSettings(SrcModel->BuildSettings, RawMesh);
 
 	// We need to check light map uv set for correctness. Unreal seems to have occasional issues with
 	// zero UV sets when building lightmaps.
@@ -2978,7 +2963,7 @@ FHoudiniEngineUtils::BakeStaticMesh(
 			SrcModel->BuildSettings.bGenerateLightmapUVs = false;
 
 			HOUDINI_LOG_MESSAGE(
-				TEXT("Skipping Lightmap Generation: Object %s invalid face detected ")
+				TEXT("Skipping Lightmap Generation: Object %s ")
 				TEXT("- skipping."),
 				*MeshName);
 		}

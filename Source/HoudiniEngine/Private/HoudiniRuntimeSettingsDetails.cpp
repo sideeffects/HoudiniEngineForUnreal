@@ -51,6 +51,8 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 	DetailBuilder.EditCategory("CollisionGeneration", TEXT(""), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("GeometryMarshalling", TEXT(""), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("GeometryScaling", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("GeneratedStaticMeshSettings", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("StaticMeshBuildSettings", TEXT(""), ECategoryPriority::Important);
 
 	// Create Plugin Information category.
 	{
