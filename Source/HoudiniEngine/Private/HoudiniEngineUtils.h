@@ -118,6 +118,9 @@ public:
 	/** Load libHAPI and return handle to it, also store location of loaded libHAPI in passed argument. **/
 	static void* LoadLibHAPI(FString& StoredLibHAPILocation);
 
+	/** Helper function to count number of UV sets in raw mesh. **/
+	static int32 CountUVSets(const FRawMesh& RawMesh);
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/
@@ -258,9 +261,6 @@ protected:
 
 	/** Helper routine to check invalid lightmap faces. **/
 	static bool ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32 LightmapSourceIdx);
-
-	/** Helper function to count number of UV sets in raw mesh. **/
-	static int32 CountUVSets(const FRawMesh& RawMesh);
 
 	/** Helper function to extract a material name from given material interface. **/
 	static char* ExtractMaterialName(UMaterialInterface* MaterialInterface);
