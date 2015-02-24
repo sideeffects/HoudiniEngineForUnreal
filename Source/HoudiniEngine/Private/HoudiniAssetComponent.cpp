@@ -706,6 +706,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						{
 							bFinishedLoadedInstantiation = true;
 						}
+
+						FHoudiniEngine::Get().SetHapiState(HAPI_RESULT_SUCCESS);
 					}
 					else
 					{
@@ -831,6 +833,44 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
 				{
 					HOUDINI_LOG_MESSAGE(TEXT("    FinishedInstantiationWithErrors."));
+
+					bool bLicensingIssue = false;
+					switch(TaskInfo.Result)
+					{
+						case HAPI_RESULT_NO_LICENSE_FOUND:
+						{
+							FHoudiniEngine::Get().SetHapiState(HAPI_RESULT_NO_LICENSE_FOUND);
+
+							bLicensingIssue = true;
+							break;
+						}
+
+						case HAPI_RESULT_DISALLOWED_NC_LICENSE_FOUND:
+						case HAPI_RESULT_DISALLOWED_NC_ASSET_WITH_C_LICENSE:
+						case HAPI_RESULT_DISALLOWED_NC_ASSET_WITH_LC_LICENSE:
+						case HAPI_RESULT_DISALLOWED_LC_ASSET_WITH_C_LICENSE:
+						{
+							bLicensingIssue = true;
+							break;
+						}
+
+						default:
+						{
+							break;
+						}
+					}
+
+					if(bLicensingIssue)
+					{
+						const FString& StatusMessage = TaskInfo.StatusText.ToString();
+						HOUDINI_LOG_MESSAGE(TEXT("%s"), *StatusMessage);
+
+						FString WarningTitle = TEXT("Houdini Engine Plugin Warning");
+						FText WarningTitleText = FText::FromString(WarningTitle);
+						FString WarningMessage = FString::Printf(TEXT("Houdini License issue - %s."), *StatusMessage);
+
+						FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
+					}
 
 					if(NotificationPtr.IsValid())
 					{

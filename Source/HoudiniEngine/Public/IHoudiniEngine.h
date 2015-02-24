@@ -36,6 +36,12 @@ public:
 	/** Return true if HAPI version mismatch is detected (between defined and running versions). **/
 	virtual bool CheckHapiVersionMismatch() const = 0;
 
+	/** Return current HAPI state. **/
+	virtual HAPI_Result GetHapiState() const = 0;
+
+	/** Set HAPI state. **/
+	virtual void SetHapiState(HAPI_Result Result) = 0;
+
 	/** Return location of libHAPI binary. **/
 	virtual const FString& GetLibHAPILocation() const = 0;
 
