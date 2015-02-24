@@ -48,11 +48,11 @@ protected:
 
 	/** Used to create Houdini version entry. **/
 	void CreateHoudiniEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
-						    int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, int32 VersionPatch);
+		int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, int32 VersionPatch);
 
 	/** Used to create Houdini Engine version entry. **/
 	void CreateHoudiniEngineEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
-								  int32 VersionMajor, int32 VersionMinor, int32 VersionApi);
+		int32 VersionMajor, int32 VersionMinor, int32 VersionApi);
 
 	/** Used to create libHAPI dynamic library path entry. **/
 	void CreateHAPILibraryPathEntry(const FString& LibHAPIPath, IDetailCategoryBuilder& DetailCategoryBuilder);

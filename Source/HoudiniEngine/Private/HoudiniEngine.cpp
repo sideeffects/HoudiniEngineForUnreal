@@ -62,6 +62,20 @@ FHoudiniEngine::GetLibHAPILocation() const
 }
 
 
+HAPI_Result
+FHoudiniEngine::GetHapiState() const
+{
+	return HAPIState;
+}
+
+
+void
+FHoudiniEngine::SetHapiState(HAPI_Result Result)
+{
+	HAPIState = Result;
+}
+
+
 FHoudiniEngine&
 FHoudiniEngine::Get()
 {
@@ -103,6 +117,8 @@ void
 FHoudiniEngine::StartupModule()
 {
 	bHAPIVersionMismatch = false;
+	HAPIState = HAPI_RESULT_NOT_INITIALIZED;
+
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
 
 	// Before starting the module, we need to locate and load HAPI library.
