@@ -37,7 +37,16 @@ public:
 
 public:
 
+	/** Add a task. **/
 	void AddTask(const FHoudiniEngineTask& Task);
+
+	/** Add instantiation response task info. **/
+	void AddResponseTaskInfo(HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
+		EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask& Task);
+
+	void AddResponseMessageTaskInfo(HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, 
+		EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask& Task, 
+		const FString& ErrorMessage);
 
 protected:
 
