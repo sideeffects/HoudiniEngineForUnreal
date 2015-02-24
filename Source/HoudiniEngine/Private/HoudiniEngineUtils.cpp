@@ -3869,9 +3869,9 @@ FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32
 
 	for(int32 Idx = 0; Idx < Indices.Num(); Idx += 3)
 	{
-		const FVector2D& uv0 = LightmapUVs[Indices[Idx + 0]];
-		const FVector2D& uv1 = LightmapUVs[Indices[Idx + 1]];
-		const FVector2D& uv2 = LightmapUVs[Indices[Idx + 2]];
+		const FVector2D& uv0 = LightmapUVs[Idx + 0];
+		const FVector2D& uv1 = LightmapUVs[Idx + 1];
+		const FVector2D& uv2 = LightmapUVs[Idx + 2];
 
 		if(uv0 == uv1 && uv1 == uv2)
 		{
