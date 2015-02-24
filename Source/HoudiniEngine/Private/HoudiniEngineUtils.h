@@ -37,6 +37,9 @@ public:
 	/** Return a string error description. **/
 	static const FString GetErrorDescription();
 
+	/** Return a string indicating cook state. **/
+	static const FString GetCookState();
+
 	/** Return true if module has been properly initialized. **/
 	static bool IsInitialized();
 
