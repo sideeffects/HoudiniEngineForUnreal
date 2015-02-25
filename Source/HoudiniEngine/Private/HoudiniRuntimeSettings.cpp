@@ -21,7 +21,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 
 	/** Cooking options. **/
 	bEnableCooking(true),
-	bUploadTransformsToHoudiniEngine(true),
+	bUploadTransformsToHoudiniEngine(false),
 	bTransformChangeTriggersCooks(false),
 
 	/** Collision generation. **/
