@@ -35,7 +35,8 @@ UHoudiniAssetParameterInt::~UHoudiniAssetParameterInt()
 
 
 UHoudiniAssetParameterInt*
-UHoudiniAssetParameterInt::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterInt::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
 	if(!Outer)
@@ -56,8 +57,8 @@ UHoudiniAssetParameterInt::Create(UHoudiniAssetComponent* InHoudiniAssetComponen
 
 
 bool
-UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
-										   HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
@@ -163,11 +164,16 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 			.MinSliderValue(ValueUIMin)
 			.MaxSliderValue(ValueUIMax)
 
-			.Value(TAttribute<TOptional<int32> >::Create(TAttribute<TOptional<int32> >::FGetter::CreateUObject(this, &UHoudiniAssetParameterInt::GetValue, Idx)))
-			.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(this, &UHoudiniAssetParameterInt::SetValue, Idx))
-			.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(this, &UHoudiniAssetParameterInt::SetValueCommitted, Idx))
-			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx))
-			.OnEndSliderMovement(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(this, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx))
+			.Value(TAttribute<TOptional<int32> >::Create(TAttribute<TOptional<int32> >::FGetter::CreateUObject(this, 
+				&UHoudiniAssetParameterInt::GetValue, Idx)))
+			.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(this, 
+				&UHoudiniAssetParameterInt::SetValue, Idx))
+			.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(this, 
+				&UHoudiniAssetParameterInt::SetValueCommitted, Idx))
+			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this, 
+				&UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx))
+			.OnEndSliderMovement(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(this, 
+				&UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx))
 
 			.SliderExponent(1.0f)
 		];
