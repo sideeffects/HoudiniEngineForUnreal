@@ -32,7 +32,8 @@ UHoudiniAssetParameterChoice::~UHoudiniAssetParameterChoice()
 
 
 UHoudiniAssetParameterChoice*
-UHoudiniAssetParameterChoice::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterChoice::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
 	if(!Outer)
@@ -53,8 +54,8 @@ UHoudiniAssetParameterChoice::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 
 
 bool
-UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
-											  HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
@@ -107,7 +108,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	// Get choice descriptors.
 	TArray<HAPI_ParmChoiceInfo> ParmChoices;
 	ParmChoices.SetNumZeroed(ParmInfo.choiceCount);
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmChoiceLists(NodeId, &ParmChoices[0], ParmInfo.choiceIndex, ParmInfo.choiceCount))
+	if(HAPI_RESULT_SUCCESS != 
+		FHoudiniApi::GetParmChoiceLists(NodeId, &ParmChoices[0], ParmInfo.choiceIndex, ParmInfo.choiceCount))
 	{
 		return false;
 	}
@@ -173,11 +175,14 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 		SAssignNew(ComboBox, SComboBox<TSharedPtr<FString> >)
 		.OptionsSource(&StringChoiceLabels)
 		.InitiallySelectedItem(StringChoiceLabels[CurrentValue])
-		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
-		.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetParameterChoice::OnChoiceChange))
+		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, 
+			&UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
+		.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, 
+			&UHoudiniAssetParameterChoice::OnChoiceChange))
 		[
 			SNew(STextBlock)
-			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, &UHoudiniAssetParameterChoice::HandleChoiceContentText)))
+			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, 
+				&UHoudiniAssetParameterChoice::HandleChoiceContentText)))
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 	];
@@ -212,11 +217,14 @@ UHoudiniAssetParameterChoice::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 			SNew(SComboBox<TSharedPtr<FString> >)
 			.OptionsSource(&StringChoiceLabels)
 			.InitiallySelectedItem(StringChoiceLabels[CurrentValue])
-			.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
-			.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, &UHoudiniAssetParameterChoice::OnChoiceChange))
+			.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, 
+				&UHoudiniAssetParameterChoice::CreateChoiceEntryWidget))
+			.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, 
+				&UHoudiniAssetParameterChoice::OnChoiceChange))
 			[
 				SNew(STextBlock)
-				.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, &UHoudiniAssetParameterChoice::HandleChoiceContentText)))
+				.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, 
+					&UHoudiniAssetParameterChoice::HandleChoiceContentText)))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		]

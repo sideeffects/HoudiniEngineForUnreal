@@ -30,8 +30,8 @@ UHoudiniAssetParameterButton::~UHoudiniAssetParameterButton()
 
 
 UHoudiniAssetParameterButton*
-UHoudiniAssetParameterButton::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
-									 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterButton::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
 	if(!Outer)
@@ -52,8 +52,8 @@ UHoudiniAssetParameterButton::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 
 
 bool
-UHoudiniAssetParameterButton::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
-											  HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterButton::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{

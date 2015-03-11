@@ -45,8 +45,8 @@ UHoudiniAssetParameterColor::Serialize(FArchive& Ar)
 
 
 UHoudiniAssetParameterColor*
-UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
-									HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
 	if(!Outer)
@@ -67,8 +67,8 @@ UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetCompon
 
 
 bool
-UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
-											 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
@@ -119,8 +119,10 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
 		SAssignNew(ColorBlock, SColorBlock)
-		.Color(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateUObject(this, &UHoudiniAssetParameterColor::GetColor)))
-		.OnMouseButtonDown(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown))
+		.Color(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateUObject(this, 
+			&UHoudiniAssetParameterColor::GetColor)))
+		.OnMouseButtonDown(FPointerEventHandler::CreateUObject(this, 
+			&UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown))
 	];
 
 	if(ColorBlock.IsValid())
@@ -163,8 +165,10 @@ UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeom
 	FColorPickerArgs PickerArgs;
 	PickerArgs.ParentWidget = ColorBlock;
 	PickerArgs.bUseAlpha = true;
-	PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
-	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(this, &UHoudiniAssetParameterColor::OnPaintColorChanged);
+	PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine, 
+		&UEngine::GetDisplayGamma));
+	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(this, 
+		&UHoudiniAssetParameterColor::OnPaintColorChanged);
 	PickerArgs.InitialColorOverride = GetColor();
 	PickerArgs.bOnlyRefreshOnOk = true;
 

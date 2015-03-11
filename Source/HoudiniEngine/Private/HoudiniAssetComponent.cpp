@@ -2311,6 +2311,7 @@ UHoudiniAssetComponent::CreateParameters()
 
 						UHoudiniAssetParameter* const* FoundHoudiniAssetParameterChild = 
 							NewParameters.Find(ChildParmInfo.id);
+
 						if(FoundHoudiniAssetParameterChild)
 						{
 							UHoudiniAssetParameter* HoudiniAssetParameterChild = *FoundHoudiniAssetParameterChild;

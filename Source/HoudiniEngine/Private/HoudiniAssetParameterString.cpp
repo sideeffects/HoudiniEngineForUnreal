@@ -30,8 +30,8 @@ UHoudiniAssetParameterString::~UHoudiniAssetParameterString()
 
 
 UHoudiniAssetParameterString*
-UHoudiniAssetParameterString::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
-									 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterString::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
 	if(!Outer)
@@ -52,8 +52,8 @@ UHoudiniAssetParameterString::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 
 
 bool
-UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter,
-											  HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
@@ -72,7 +72,8 @@ UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	// Get the actual value for this property.
 	TArray<HAPI_StringHandle> StringHandles;
 	StringHandles.SetNum(TupleSize);
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(InNodeId, false, &StringHandles[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != 
+		FHoudiniApi::GetParmStringValues(InNodeId, false, &StringHandles[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -130,7 +131,8 @@ UHoudiniAssetParameterString::CreateWidget(IDetailCategoryBuilder& DetailCategor
 
 			.Text(FText::FromString(Values[Idx]))
 			.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetParameterString::SetValue, Idx))
-			.OnTextCommitted(FOnTextCommitted::CreateUObject(this, &UHoudiniAssetParameterString::SetValueCommitted, Idx))
+			.OnTextCommitted(FOnTextCommitted::CreateUObject(this, 
+				&UHoudiniAssetParameterString::SetValueCommitted, Idx))
 		];
 
 		if(EditableTextBox.IsValid())

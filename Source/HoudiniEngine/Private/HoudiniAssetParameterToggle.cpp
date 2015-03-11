@@ -31,8 +31,8 @@ UHoudiniAssetParameterToggle::~UHoudiniAssetParameterToggle()
 
 
 UHoudiniAssetParameterToggle*
-UHoudiniAssetParameterToggle::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
-									 HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterToggle::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
 	if(!Outer)
@@ -53,8 +53,8 @@ UHoudiniAssetParameterToggle::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 
 
 bool
-UHoudiniAssetParameterToggle::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, 
-											  HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterToggle::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
 	{
@@ -103,8 +103,11 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
 			SAssignNew(CheckBox, SCheckBox)
-			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, &UHoudiniAssetParameterToggle::CheckStateChanged, Idx))
-			.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, &UHoudiniAssetParameterToggle::IsChecked, Idx)))
+			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, 
+				&UHoudiniAssetParameterToggle::CheckStateChanged, Idx))
+			.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(
+				TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, 
+					&UHoudiniAssetParameterToggle::IsChecked, Idx)))
 			.Content()
 			[
 				SNew(STextBlock)
@@ -145,8 +148,11 @@ UHoudiniAssetParameterToggle::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 			+SHorizontalBox::Slot()
 			[
 				SNew(SCheckBox)
-				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, &UHoudiniAssetParameterToggle::CheckStateChanged, Idx))
-				.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, &UHoudiniAssetParameterToggle::IsChecked, Idx)))
+				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, 
+					&UHoudiniAssetParameterToggle::CheckStateChanged, Idx))
+				.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(
+					TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, 
+						&UHoudiniAssetParameterToggle::IsChecked, Idx)))
 				.Content()
 				[
 					SNew(STextBlock)
