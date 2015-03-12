@@ -45,7 +45,7 @@ public:
 
 public:
 
-	/** Create sintance of this class. **/
+	/** Create intance of this class. **/
 	static UHoudiniAssetInput* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int32 InInputIndex);
 
 public:
@@ -56,7 +56,8 @@ public:
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
@@ -203,12 +204,21 @@ protected:
 	/** Choice selection. **/
 	EHoudiniAssetInputType::Enum ChoiceIndex;
 
-	/** Is set to true when static mesh used for geometry input has changed. **/
-	bool bStaticMeshChanged;
+	/** Flags used by this input. **/
+	union
+	{
+		struct
+		{
+			/** Is set to true when static mesh used for geometry input has changed. **/
+			uint32 bStaticMeshChanged : 1;
 
-	/** Is set to true when choice switches to curve mode. **/
-	bool bSwitchedToCurve;
+			/** Is set to true when choice switches to curve mode. **/
+			uint32 bSwitchedToCurve : 1;
 
-	/** Is set to true if this parameter has been loaded. **/
-	bool bLoadedParameter;
+			/** Is set to true if this parameter has been loaded. **/
+			uint32 bLoadedParameter : 1;
+		};
+
+		uint32 HoudiniAssetInputFlagsPacked;
+	};
 };

@@ -250,6 +250,13 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 
 	// Component will be assigned separately upon loading.
 
+	Ar << HoudiniAssetParameterFlagsPacked;
+
+	if(Ar.IsLoading())
+	{
+		bChanged = false;
+	}
+
 	Ar << ParameterName;
 	Ar << ParameterLabel;
 
@@ -260,14 +267,6 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 
 	Ar << TupleSize;
 	Ar << ValuesIndex;
-
-	Ar << bIsSpare;
-	Ar << bIsDisabled;
-
-	if(Ar.IsLoading())
-	{
-		bChanged = false;
-	}
 }
 
 

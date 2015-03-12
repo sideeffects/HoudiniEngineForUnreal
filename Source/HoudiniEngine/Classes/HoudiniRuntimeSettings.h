@@ -129,47 +129,58 @@ public:
 public:
 
 	// If true, the physics triangle mesh will use double sided faces for new Houdini Assets when doing scene queries.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Double Sided Geometry"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Double Sided Geometry"))
 	uint32 bDoubleSidedGeometry : 1;
 
 	// Physical material to use for simple collision of new Houdini Assets. Encodes information about density, friction etc.
-	UPROPERTY(EditAnywhere, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Simple Collision Physical Material"))
+	UPROPERTY(EditAnywhere, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Simple Collision Physical Material"))
 	UPhysicalMaterial* PhysMaterial;
 
 	//* Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate for new Houdini Assets.
-	UPROPERTY(GlobalConfig, VisibleDefaultsOnly, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Collision Complexity"))
+	UPROPERTY(GlobalConfig, VisibleDefaultsOnly, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Collision Complexity"))
 	TEnumAsByte<enum ECollisionTraceFlag> CollisionTraceFlag;
 
 	// Resolution of lightmap for new Houdini Assets.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Light Map Resolution", FixedIncrement="4.0"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Light Map Resolution", FixedIncrement="4.0"))
 	int32 LightMapResolution;
 
 	// Bias multiplier for Light Propagation Volume lighting for new Houdini Assets.
-	UPROPERTY(GlobalConfig, EditAnywhere, BlueprintReadOnly, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Lpv Bias Multiplier", UIMin="0.0", UIMax="3.0"))
+	UPROPERTY(GlobalConfig, EditAnywhere, BlueprintReadOnly, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Lpv Bias Multiplier", UIMin="0.0", UIMax="3.0"))
 	float LpvBiasMultiplier;
 
 	// Custom walkable slope setting for bodies of new Houdini Assets.
-	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Walkable Slope Override"))
+	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Walkable Slope Override"))
 	FWalkableSlopeOverride WalkableSlopeOverride;
 
 	// The light map coordinate index for new Houdini Assets.
-	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Light map coordinate index"))
+	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Light map coordinate index"))
 	int32 LightMapCoordinateIndex;
 
 	// True if mesh should use a less-conservative method of mip LOD texture factor computation for new Houdini Assets.
-	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Use Maximum Streaming Texel Ratio"))
+	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Use Maximum Streaming Texel Ratio"))
 	uint32 bUseMaximumStreamingTexelRatio:1;
 
 	// Allows artists to adjust the distance where textures using UV 0 are streamed in/out for new Houdini Assets.
-	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Streaming Distance Multiplier"))
+	UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Streaming Distance Multiplier"))
 	float StreamingDistanceMultiplier;
 
 	// Default settings when using new Houdini Asset mesh for instanced foliage.
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Foliage Default Settings"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Foliage Default Settings"))
 	UFoliageType_InstancedStaticMesh* FoliageDefaultSettings;
 
 	// Array of user data stored with the new Houdini Asset.
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=GeneratedStaticMeshSettings, meta=(DisplayName="Asset User Data"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=GeneratedStaticMeshSettings, 
+		meta=(DisplayName="Asset User Data"))
 	TArray<UAssetUserData*> AssetUserData;
 
 /** Static Mesh build settings. **/

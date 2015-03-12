@@ -93,6 +93,15 @@ protected:
 	/** Version of the asset file format. **/
 	uint32 FileFormatVersion;
 
-	/** Flag which is set to true when preview geometry contains Houdini logo. **/
-	bool bPreviewHoudiniLogo;
+	/** Flags used by this asset. **/
+	union
+	{
+		struct
+		{
+			/** Flag which is set to true when preview geometry contains Houdini logo. **/
+			uint32 bPreviewHoudiniLogo : 1;
+		};
+
+		uint32 HoudiniAssetFlagsPacked;
+	};
 };

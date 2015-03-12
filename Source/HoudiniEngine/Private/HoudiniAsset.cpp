@@ -33,9 +33,7 @@ UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
 
 
 UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer,
-							 const uint8*& BufferStart,
-							 const uint8* BufferEnd,
-							 const FString& InFileName) :
+	const uint8*& BufferStart, const uint8* BufferEnd, const FString& InFileName) :
 	Super(ObjectInitializer),
 	AssetFileName(InFileName),
 	AssetBytes(nullptr),
@@ -94,7 +92,9 @@ UHoudiniAsset::FinishDestroy()
 	FThumbnailRenderingInfo* RenderInfo = UThumbnailManager::Get().GetRenderingInfo(this);
 	if(RenderInfo)
 	{
-		UHoudiniAssetThumbnailRenderer* ThumbnailRenderer = CastChecked<UHoudiniAssetThumbnailRenderer>(RenderInfo->Renderer);
+		UHoudiniAssetThumbnailRenderer* ThumbnailRenderer = 
+			CastChecked<UHoudiniAssetThumbnailRenderer>(RenderInfo->Renderer);
+
 		if(ThumbnailRenderer)
 		{
 			ThumbnailRenderer->RemoveAssetThumbnail(this);
@@ -154,8 +154,8 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 		}
 	}
 
-	// Serialize whether we are storing logo preview or not.
-	Ar << bPreviewHoudiniLogo;
+	// Serialize flags.
+	Ar << HoudiniAssetFlagsPacked;
 
 	// Serialize asset file path.
 	Ar << AssetFileName;
@@ -166,7 +166,8 @@ void
 UHoudiniAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	OutTags.Add(FAssetRegistryTag("FileName", AssetFileName, FAssetRegistryTag::TT_Alphabetical));
-	OutTags.Add(FAssetRegistryTag("FileFormatVersion", FString::FromInt(FileFormatVersion), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("FileFormatVersion", FString::FromInt(FileFormatVersion), 
+		FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag("Bytes", FString::FromInt(AssetBytesCount), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);

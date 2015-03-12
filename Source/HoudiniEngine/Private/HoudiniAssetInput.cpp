@@ -461,6 +461,8 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	// Serialize current choice selection.
 	SerializeEnumeration(Ar, ChoiceIndex);
 
+	Ar << HoudiniAssetInputFlagsPacked;
+
 	// Create necessary widget resources.
 	if(Ar.IsLoading())
 	{
