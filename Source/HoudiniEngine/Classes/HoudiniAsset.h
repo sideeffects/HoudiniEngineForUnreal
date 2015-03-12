@@ -31,10 +31,8 @@ class HOUDINIENGINE_API UHoudiniAsset : public UObject
 
 public:
 
-	UHoudiniAsset(const FObjectInitializer& ObjectInitializer,
-				  const uint8*& BufferStart,
-				  const uint8* BufferEnd,
-				  const FString& InFileName);
+	UHoudiniAsset(const FObjectInitializer& ObjectInitializer, const uint8*& BufferStart, const uint8* BufferEnd,
+		const FString& InFileName);
 
 /** UObject methods. **/
 public:

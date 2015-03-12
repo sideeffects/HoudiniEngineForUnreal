@@ -29,6 +29,7 @@ class USplineComponent;
 class UPhysicalMaterial;
 class UHoudiniAssetInput;
 class AHoudiniAssetActor;
+class UHoudiniAssetHandle;
 class UStaticMeshComponent;
 class UHoudiniAssetParameter;
 class UHoudiniSplineComponent;
@@ -320,6 +321,12 @@ private:
 	/** Clear all inputs. **/
 	void ClearInputs();
 
+	/** Create handles. **/
+	bool CreateHandles();
+
+	/** Clear all handles. **/
+	void ClearHandles();
+
 	/** If inputs were loaded, they need to be updated and assigned geos need to be connected. **/
 	void UpdateLoadedInputs();
 
@@ -343,6 +350,9 @@ private:
 
 	/** Serialize curves. **/
 	void SerializeCurves(FArchive& Ar);
+
+	/** Serialize handles. **/
+	void SerializeHandles(FArchive& Ar);
 
 	/** Used to perform post loading initializtion of curve / spline components. **/
 	void PostLoadCurves();
@@ -397,6 +407,9 @@ protected:
 
 	/** Instance inputs for this component's asset. Object id is used as key. **/
 	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*> InstanceInputs;
+
+	/** Handles for this component's asset. **/
+	TMap<FString, UHoudiniAssetHandle*> Handles;
 
 	/** Map of HAPI objects and corresponding static meshes. Also map of static meshes and corresponding components. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
