@@ -359,9 +359,6 @@ FHoudiniApi::SetVolumeTileIntData = nullptr;
 FHoudiniApi::GetCurveInfoFuncPtr
 FHoudiniApi::GetCurveInfo = nullptr;
 
-FHoudiniApi::GetCurveVerticesFuncPtr
-FHoudiniApi::GetCurveVertices = nullptr;
-
 FHoudiniApi::GetCurveCountsFuncPtr
 FHoudiniApi::GetCurveCounts = nullptr;
 
@@ -506,7 +503,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetVolumeTileFloatData = (SetVolumeTileFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileFloatData"));
 	FHoudiniApi::SetVolumeTileIntData = (SetVolumeTileIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileIntData"));
 	FHoudiniApi::GetCurveInfo = (GetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveInfo"));
-	FHoudiniApi::GetCurveVertices = (GetCurveVerticesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveVertices"));
 	FHoudiniApi::GetCurveCounts = (GetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveCounts"));
 	FHoudiniApi::GetCurveOrders = (GetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveOrders"));
 	FHoudiniApi::GetCurveKnots = (GetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveKnots"));
@@ -635,7 +631,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetVolumeTileFloatData = nullptr;
 	FHoudiniApi::SetVolumeTileIntData = nullptr;
 	FHoudiniApi::GetCurveInfo = nullptr;
-	FHoudiniApi::GetCurveVertices = nullptr;
 	FHoudiniApi::GetCurveCounts = nullptr;
 	FHoudiniApi::GetCurveOrders = nullptr;
 	FHoudiniApi::GetCurveKnots = nullptr;
