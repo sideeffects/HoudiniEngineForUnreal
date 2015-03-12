@@ -2543,7 +2543,41 @@ UHoudiniAssetComponent::CreateHandles()
 		return false;
 	}
 
+	HAPI_AssetInfo AssetInfo;
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo))
+	{
+		return false;
+	}
+
+	TArray<HAPI_HandleInfo> HandleInfos;
+	HandleInfos.SetNumZeroed(AssetInfo.handleCount);
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(AssetId, &HandleInfos[0], 0, AssetInfo.handleCount))
+	{
+		return false;
+	}
+
 	TMap<FString, UHoudiniAssetHandle*> NewHandles;
+
+	for(int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx)
+	{
+		// Retrieve handle info for this index.
+		const HAPI_HandleInfo& HandleInfo = HandleInfos[HandleIdx];
+
+		// Retrieve name of this handle.
+		FString HandleName;
+		if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
+		{
+			continue;
+		}
+
+		// Construct new handle parameter.
+		UHoudiniAssetHandle* HoudiniAssetHandle = UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx);
+		if(HoudiniAssetHandle)
+		{
+			NewHandles.Add(HandleName, HoudiniAssetHandle);
+		}
+	}
 
 	ClearHandles();
 	Handles = NewHandles;

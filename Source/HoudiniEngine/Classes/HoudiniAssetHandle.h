@@ -20,6 +20,9 @@
 #include "HoudiniAssetHandle.generated.h"
 
 
+struct HAPI_HandleInfo;
+
+
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetHandle : public UHoudiniAssetParameter
 {
@@ -33,7 +36,8 @@ public:
 public:
 
 	/** Create intance of this class. **/
-	//static UHoudiniAssetHandle* Create(UHoudiniAssetComponent* InHoudiniAssetComponent);
+	static UHoudiniAssetHandle* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+		const HAPI_HandleInfo& HandleInfo, int32 HandleIdx);
 
 public:
 
@@ -76,5 +80,12 @@ protected:
 
 protected:
 
-	
+	/** List of parameter ids of parameters driven by this handle. **/
+	TArray<HAPI_ParmId> ParameterIds;
+
+	/** List of parameter names driven by this handle. **/
+	TArray<FString> ParameterNames;
+
+	/** Index of this handle. **/
+	int32 HandleIdx;
 };
