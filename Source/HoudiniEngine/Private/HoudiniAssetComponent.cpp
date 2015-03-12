@@ -270,6 +270,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	// Release all curve related resources.
 	ClearCurves();
 
+	// Clear all handles.
+	ClearHandles();
+
 	// Set Houdini logo to be default geometry.
 	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
@@ -730,6 +733,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Create parameters and inputs.
 						CreateParameters();
 						CreateInputs();
+						CreateHandles();
 
 						{
 							FTransform ComponentTransform;
@@ -1473,6 +1477,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	// Destroy all instance inputs.
 	ClearInstanceInputs();
 
+	// Destroy all handles.
+	ClearHandles();
+
 	// Unsubscribe from Editor events.
 	UnsubscribeEditorDelegates();
 
@@ -1827,6 +1834,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize curves.
 	SerializeCurves(Ar);
+
+	// Serialize handles.
+	SerializeHandles(Ar);
 
 	// Serialize component flags.
 	Ar << HoudiniAssetComponentFlagsPacked;
@@ -2524,6 +2534,37 @@ UHoudiniAssetComponent::UpdateLoadedParameter()
 }
 
 
+bool
+UHoudiniAssetComponent::CreateHandles()
+{
+	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		// There's no Houdini asset, we can return.
+		return false;
+	}
+
+	TMap<FString, UHoudiniAssetHandle*> NewHandles;
+
+	ClearHandles();
+	Handles = NewHandles;
+
+	return true;
+}
+
+
+void
+UHoudiniAssetComponent::ClearHandles()
+{
+	for(TMap<FString, UHoudiniAssetHandle*>::TIterator IterHandles(Handles); IterHandles; ++IterHandles)
+	{
+		UHoudiniAssetHandle* HoudiniAssetHandle = IterHandles.Value();
+		HoudiniAssetHandle->ConditionalBeginDestroy();
+	}
+
+	Handles.Empty();
+}
+
+
 void
 UHoudiniAssetComponent::CreateInputs()
 {
@@ -2867,6 +2908,16 @@ UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
 			// We need to store geo part to spline component mapping.
 			SplineComponents.Add(HoudiniGeoPartObject, HoudiniSplineComponent);
 		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
+{
+	if(Ar.IsLoading())
+	{
+		ClearHandles();
 	}
 }
 
