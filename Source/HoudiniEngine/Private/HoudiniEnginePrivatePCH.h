@@ -260,6 +260,7 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniAssetParameterFolderList.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetInstanceInput.h"
+#include "HoudiniAssetHandle.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"

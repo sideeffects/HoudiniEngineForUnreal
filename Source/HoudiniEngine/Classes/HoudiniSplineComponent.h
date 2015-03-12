@@ -55,8 +55,9 @@ class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 public:
 
 	/** Construct spline from given information. Resets any existing state. **/
-	bool Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,
-				   EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
+	bool Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints, 
+		const TArray<FVector>& InCurveDisplayPoints, EHoudiniSplineComponentType::Enum InCurveType, 
+		EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
 
 	/** Return the type of this curve. **/
 	EHoudiniSplineComponentType::Enum GetCurveType() const;

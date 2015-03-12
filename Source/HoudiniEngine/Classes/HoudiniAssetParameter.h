@@ -36,7 +36,8 @@ public:
 public:
 
 	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& InDetailCategoryBuilder);
@@ -194,14 +195,23 @@ protected:
 	/** Internal HAPI cached value index. **/
 	int32 ValuesIndex;
 
-	/** Is set to true if this parameter is spare, that is, created by Houdini Engine only. **/
-	bool bIsSpare;
+	/** Flags used by this parameter. **/
+	union
+	{
+		struct
+		{
+			/** Is set to true if this parameter is spare, that is, created by Houdini Engine only. **/
+			uint32 bIsSpare : 1;
 
-	/** Is set to true if this parameter is disabled. **/
-	bool bIsDisabled;
+			/** Is set to true if this parameter is disabled. **/
+			uint32 bIsDisabled : 1;
 
-	/** Is set to true if value of this parameter has been changed by user. **/
-	bool bChanged;
+			/** Is set to true if value of this parameter has been changed by user. **/
+			uint32 bChanged : 1;
+		};
+
+		uint32 HoudiniAssetParameterFlagsPacked;
+	};
 };
 
 
