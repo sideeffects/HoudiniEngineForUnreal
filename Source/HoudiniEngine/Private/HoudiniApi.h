@@ -366,9 +366,6 @@ struct FHoudiniApi
 	typedef HAPI_Result (*GetCurveInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info);
 	static GetCurveInfoFuncPtr GetCurveInfo;
 
-	typedef HAPI_Result (*GetCurveVerticesFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float * vertices, int start, int length);
-	static GetCurveVerticesFuncPtr GetCurveVertices;
-
 	typedef HAPI_Result (*GetCurveCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * counts, int start, int length);
 	static GetCurveCountsFuncPtr GetCurveCounts;
 
