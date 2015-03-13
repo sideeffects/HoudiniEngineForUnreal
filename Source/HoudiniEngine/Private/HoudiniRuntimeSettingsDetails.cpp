@@ -124,8 +124,9 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 
 
 void
-FHoudiniRuntimeSettingsDetails::CreateHoudiniEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
-	int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, int32 VersionPatch)
+FHoudiniRuntimeSettingsDetails::CreateHoudiniEntry(const FText& EntryName, 
+	IDetailCategoryBuilder& DetailCategoryBuilder, int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, 
+	int32 VersionPatch)
 {
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
 

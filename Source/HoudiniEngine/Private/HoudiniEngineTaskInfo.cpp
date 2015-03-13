@@ -28,8 +28,7 @@ FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo() :
 
 
 FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetId InAssetId,
-												EHoudiniEngineTaskType::Type InTaskType,
-												EHoudiniEngineTaskState::Type InTaskState) :
+	EHoudiniEngineTaskType::Type InTaskType, EHoudiniEngineTaskState::Type InTaskState) :
 	Result(InResult),
 	AssetId(InAssetId),
 	TaskType(InTaskType),

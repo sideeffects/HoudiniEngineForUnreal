@@ -30,7 +30,8 @@ public:
 /** FThumbnailPreviewScene methods. **/
 protected:
 
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, 
+		float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
 private:
 

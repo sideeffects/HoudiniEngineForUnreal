@@ -57,9 +57,10 @@ UHoudiniSplineComponent::SerializeRaw(FArchive& Ar)
 
 
 bool
-UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints,
-								   const TArray<FVector>& InCurveDisplayPoints, EHoudiniSplineComponentType::Enum InCurveType,
-								   EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve)
+UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, 
+	const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints, 
+	EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod, 
+	bool bInClosedCurve)
 {
 	HoudiniGeoPartObject = InHoudiniGeoPartObject;
 
