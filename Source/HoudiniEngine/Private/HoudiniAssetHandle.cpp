@@ -111,3 +111,43 @@ UHoudiniAssetHandle::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCompo
 	check(false);
 	return false;
 }
+
+
+void
+UHoudiniAssetHandle::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UHoudiniAssetHandle* HoudiniAssetHandle = Cast<UHoudiniAssetHandle>(InThis);
+	if(HoudiniAssetHandle && !HoudiniAssetHandle->IsPendingKill())
+	{
+		/*
+		UStaticMesh* StaticMesh = nullptr;
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = nullptr;
+
+		// Add references to all used objects.
+		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInput->GetTupleSize(); ++Idx)
+		{
+			StaticMesh = HoudiniAssetInstanceInput->StaticMeshes[Idx];
+			if(StaticMesh)
+			{
+				Collector.AddReferencedObject(StaticMesh, InThis);
+			}
+
+			StaticMesh = HoudiniAssetInstanceInput->OriginalStaticMeshes[Idx];
+			if(StaticMesh)
+			{
+				Collector.AddReferencedObject(StaticMesh, InThis);
+			}
+
+			InstancedStaticMeshComponent = HoudiniAssetInstanceInput->InstancedStaticMeshComponents[Idx];
+			if(InstancedStaticMeshComponent)
+			{
+				Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
+			}
+		}
+		*/
+	}
+
+	// Call base implementation.
+	Super::AddReferencedObjects(InThis, Collector);
+}
+

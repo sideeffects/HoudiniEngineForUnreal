@@ -2557,33 +2557,37 @@ UHoudiniAssetComponent::CreateHandles()
 		return false;
 	}
 
-	TArray<HAPI_HandleInfo> HandleInfos;
-	HandleInfos.SetNumZeroed(AssetInfo.handleCount);
-
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(AssetId, &HandleInfos[0], 0, AssetInfo.handleCount))
-	{
-		return false;
-	}
-
 	TMap<FString, UHoudiniAssetHandle*> NewHandles;
 
-	for(int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx)
+	// If we have handles.
+	if(AssetInfo.handleCount > 0)
 	{
-		// Retrieve handle info for this index.
-		const HAPI_HandleInfo& HandleInfo = HandleInfos[HandleIdx];
+		TArray<HAPI_HandleInfo> HandleInfos;
+		HandleInfos.SetNumZeroed(AssetInfo.handleCount);
 
-		// Retrieve name of this handle.
-		FString HandleName;
-		if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(AssetId, &HandleInfos[0], 0, AssetInfo.handleCount))
 		{
-			continue;
+			return false;
 		}
 
-		// Construct new handle parameter.
-		UHoudiniAssetHandle* HoudiniAssetHandle = UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx, HandleName);
-		if(HoudiniAssetHandle)
+		for(int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx)
 		{
-			NewHandles.Add(HandleName, HoudiniAssetHandle);
+			// Retrieve handle info for this index.
+			const HAPI_HandleInfo& HandleInfo = HandleInfos[HandleIdx];
+
+			// Retrieve name of this handle.
+			FString HandleName;
+			if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
+			{
+				continue;
+			}
+
+			// Construct new handle parameter.
+			UHoudiniAssetHandle* HoudiniAssetHandle = UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx, HandleName);
+			if(HoudiniAssetHandle)
+			{
+				NewHandles.Add(HandleName, HoudiniAssetHandle);
+			}
 		}
 	}
 
@@ -2960,6 +2964,19 @@ UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
 	if(Ar.IsLoading())
 	{
 		ClearHandles();
+	}
+
+	// Serialize number of handles.
+	int32 HandleCount = Handles.Num();
+	Ar << HandleCount;
+
+	if(Ar.IsSaving())
+	{
+
+	}
+	else if(Ar.IsLoading())
+	{
+
 	}
 }
 
