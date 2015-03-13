@@ -156,6 +156,14 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(HoudiniAssetInstanceInput, InThis);
 		}
 
+		// Add references to all handles.
+		for(TMap<FString, UHoudiniAssetHandle*>::TIterator 
+			IterHandles(HoudiniAssetComponent->Handles); IterHandles; ++IterHandles)
+		{
+			UHoudiniAssetHandle* HoudiniAssetHandle = IterHandles.Value();
+			Collector.AddReferencedObject(HoudiniAssetHandle, InThis);
+		}
+
 		// Add references to all static meshes and corresponding geo parts.
 		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator 
 			Iter(HoudiniAssetComponent->StaticMeshes); Iter; ++Iter)
@@ -2572,7 +2580,7 @@ UHoudiniAssetComponent::CreateHandles()
 		}
 
 		// Construct new handle parameter.
-		UHoudiniAssetHandle* HoudiniAssetHandle = UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx);
+		UHoudiniAssetHandle* HoudiniAssetHandle = UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx, HandleName);
 		if(HoudiniAssetHandle)
 		{
 			NewHandles.Add(HandleName, HoudiniAssetHandle);

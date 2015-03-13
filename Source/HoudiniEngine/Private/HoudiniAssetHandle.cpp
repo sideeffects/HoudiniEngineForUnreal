@@ -17,7 +17,10 @@
 
 
 UHoudiniAssetHandle::UHoudiniAssetHandle(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer)
+	Super(ObjectInitializer),
+	HandleName(TEXT("")),
+	HandleType(TEXT("")),
+	HandleIdx(-1)
 {
 
 }
@@ -31,7 +34,7 @@ UHoudiniAssetHandle::~UHoudiniAssetHandle()
 
 UHoudiniAssetHandle*
 UHoudiniAssetHandle::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, const HAPI_HandleInfo& HandleInfo,
-	int32 HandleIdx)
+	int32 HandleIdx, const FString& HandleName)
 {
 	UHoudiniAssetHandle* HoudiniAssetHandle = nullptr;
 
@@ -44,36 +47,57 @@ UHoudiniAssetHandle::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, con
 		return HoudiniAssetHandle;
 	}
 
-	TArray<HAPI_ParmId> ParameterIds;
-	TArray<FString> ParameterNames;
+	// Retrieve type of this handle.
+	FString HandleType;
+	if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.typeNameSH, HandleType))
+	{
+		return HoudiniAssetHandle;
+	}
+
+	TArray<HAPI_ParmId> AssetParameterIds;
+	TArray<FString> AssetParameterNames;
+	TArray<FString> HandleParameterNames;
 
 	for(int32 HandleBindingIdx = 0; HandleBindingIdx < HandleInfo.bindingsCount; ++HandleBindingIdx)
 	{
 		const HAPI_HandleBindingInfo& HandleBindingInfo = BindingInfos[HandleBindingIdx];
 
 		// Store parameter id.
-		ParameterIds.Add(HandleBindingInfo.assetParmId);
+		AssetParameterIds.Add(HandleBindingInfo.assetParmId);
 
-		FString ParmName;
-		if(!FHoudiniEngineUtils::GetHoudiniString(HandleBindingInfo.assetParmNameSH, ParmName))
+		FString AssetParmName;
+		if(!FHoudiniEngineUtils::GetHoudiniString(HandleBindingInfo.assetParmNameSH, AssetParmName))
 		{
 			return HoudiniAssetHandle;
 		}
 
-		ParameterNames.Add(ParmName);
+		FString AssetHandleName;
+		if(!FHoudiniEngineUtils::GetHoudiniString(HandleBindingInfo.handleParmNameSH, AssetHandleName))
+		{
+			return HoudiniAssetHandle;
+		}
+
+		// Store asset parameter name.
+		AssetParameterNames.Add(AssetParmName);
+
+		// Store handle parameter name.
+		HandleParameterNames.Add(AssetHandleName);
 	}
 
 	HoudiniAssetHandle = NewObject<UHoudiniAssetHandle>(InHoudiniAssetComponent);
 
-	// Store handle index.
+	// Store handle index and name and type.
 	HoudiniAssetHandle->HandleIdx = HandleIdx;
+	HoudiniAssetHandle->HandleName = HandleName;
+	HoudiniAssetHandle->HandleType = HandleType;
 
 	// Set component and other information.
 	HoudiniAssetHandle->HoudiniAssetComponent = InHoudiniAssetComponent;
 
 	// Store controlled parameter ids and names.
-	HoudiniAssetHandle->ParameterIds = ParameterIds;
-	HoudiniAssetHandle->ParameterNames = ParameterNames;
+	HoudiniAssetHandle->AssetParameterIds = AssetParameterIds;
+	HoudiniAssetHandle->AssetParameterNames = AssetParameterNames;
+	HoudiniAssetHandle->HandleParameterNames = HandleParameterNames;
 
 	return HoudiniAssetHandle;
 }
