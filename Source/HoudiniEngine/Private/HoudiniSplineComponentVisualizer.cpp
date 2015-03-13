@@ -27,7 +27,8 @@ HHoudiniSplineVisProxy::HHoudiniSplineVisProxy(const UActorComponent* InComponen
 }
 
 
-HHoudiniSplineControlPointVisProxy::HHoudiniSplineControlPointVisProxy(const UActorComponent* InComponent, int32 InControlPointIndex) :
+HHoudiniSplineControlPointVisProxy::HHoudiniSplineControlPointVisProxy(const UActorComponent* InComponent, 
+	int32 InControlPointIndex) :
 	HHoudiniSplineVisProxy(InComponent),
 	ControlPointIndex(InControlPointIndex)
 {
@@ -50,8 +51,11 @@ FHoudiniSplineComponentVisualizerCommands::FHoudiniSplineComponentVisualizerComm
 void
 FHoudiniSplineComponentVisualizerCommands::RegisterCommands()
 {
-	UI_COMMAND(CommandAddControlPoint, "Add Control Point", "Add Control Point.", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(CommandDeleteControlPoint, "Delete Control Point", "Delete Control Point.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(CommandAddControlPoint, "Add Control Point", "Add Control Point.", 
+		EUserInterfaceActionType::Button, FInputGesture());
+
+	UI_COMMAND(CommandDeleteControlPoint, "Delete Control Point", "Delete Control Point.", 
+		EUserInterfaceActionType::Button, FInputGesture());
 }
 
 
@@ -90,7 +94,8 @@ FHoudiniSplineComponentVisualizer::OnRegister()
 
 
 void
-FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI)
+FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View, 
+	FPrimitiveDrawInterface* PDI)
 {
 	const UHoudiniSplineComponent* HoudiniSplineComponent = Cast<const UHoudiniSplineComponent>(Component);
 	if(HoudiniSplineComponent && HoudiniSplineComponent->IsValidCurve())
@@ -115,7 +120,8 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 		for(int32 DisplayPointIdx = 0; DisplayPointIdx < NumDisplayPoints; ++DisplayPointIdx)
 		{
 			// Get point for this index.
-			const FVector& DisplayPoint = HoudiniSplineComponentTransform.TransformPosition(CurveDisplayPoints[DisplayPointIdx]);
+			const FVector& DisplayPoint = 
+				HoudiniSplineComponentTransform.TransformPosition(CurveDisplayPoints[DisplayPointIdx]);
 
 			if(DisplayPointIdx > 0)
 			{
@@ -128,7 +134,8 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 			}
 
 			// If this is last point and curve is closed, draw link from last to first.
-			if(HoudiniSplineComponent->IsClosedCurve() && (NumDisplayPoints > 1) && (DisplayPointIdx + 1 == NumDisplayPoints))
+			if(HoudiniSplineComponent->IsClosedCurve() && (NumDisplayPoints > 1) && 
+				(DisplayPointIdx + 1 == NumDisplayPoints))
 			{
 				PDI->DrawLine(DisplayPointFirst, DisplayPoint, ColorNormal, SDPG_Foreground);
 			}
@@ -159,13 +166,16 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 
 
 bool
-FHoudiniSplineComponentVisualizer::VisProxyHandleClick(FLevelEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click)
+FHoudiniSplineComponentVisualizer::VisProxyHandleClick(FLevelEditorViewportClient* InViewportClient, 
+	HComponentVisProxy* VisProxy, const FViewportClick& Click)
 {
 	bCurveEditing = false;
 
 	if(VisProxy && VisProxy->Component.IsValid())
 	{
-		const UHoudiniSplineComponent* HoudiniSplineComponent = CastChecked<const UHoudiniSplineComponent>(VisProxy->Component.Get());
+		const UHoudiniSplineComponent* HoudiniSplineComponent = 
+			CastChecked<const UHoudiniSplineComponent>(VisProxy->Component.Get());
+
 		EditedHoudiniSplineComponent = const_cast<UHoudiniSplineComponent*>(HoudiniSplineComponent);
 
 		if(HoudiniSplineComponent)
@@ -192,14 +202,16 @@ FHoudiniSplineComponentVisualizer::EndEditing()
 
 
 bool
-FHoudiniSplineComponentVisualizer::GetWidgetLocation(const FEditorViewportClient* ViewportClient, FVector& OutLocation) const
+FHoudiniSplineComponentVisualizer::GetWidgetLocation(const FEditorViewportClient* ViewportClient, 
+	FVector& OutLocation) const
 {
 	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
 	{
 		// Get curve points.
 		const TArray<FVector>& CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
 		check(EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num());
-		OutLocation = EditedHoudiniSplineComponent->ComponentToWorld.TransformPosition(CurvePoints[EditedControlPointIndex]);
+		OutLocation = 
+			EditedHoudiniSplineComponent->ComponentToWorld.TransformPosition(CurvePoints[EditedControlPointIndex]);
 		
 		return true;
 	}
@@ -209,7 +221,8 @@ FHoudiniSplineComponentVisualizer::GetWidgetLocation(const FEditorViewportClient
 
 
 bool
-FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale)
+FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, 
+	FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale)
 {
 	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
 	{
@@ -260,22 +273,20 @@ FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
 	FMenuBuilder MenuBuilder(true, VisualizerActions);
 	{
 		MenuBuilder.BeginSection("CurveKeyEdit");
+
 		{
 			if(INDEX_NONE != EditedControlPointIndex)
 			{
 				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandAddControlPoint, 
-										 NAME_None, 
-										 TAttribute<FText>(), 
-										 TAttribute<FText>(), 
-										 FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
+					NAME_None, TAttribute<FText>(), TAttribute<FText>(), 
+					FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
 
 				MenuBuilder.AddMenuEntry(FHoudiniSplineComponentVisualizerCommands::Get().CommandDeleteControlPoint,
-										 NAME_None, 
-										 TAttribute<FText>(), 
-										 TAttribute<FText>(), 
-										 FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
+					NAME_None, TAttribute<FText>(), TAttribute<FText>(), 
+					FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
 			}
 		}
+
 		MenuBuilder.EndSection();
 	}
 
@@ -295,7 +306,9 @@ FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
 		}
 		else
 		{
-			UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+			UHoudiniAssetComponent* HoudiniAssetComponent = 
+				Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+
 			if(HoudiniAssetComponent)
 			{
 				HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);

@@ -97,7 +97,9 @@ FHoudiniEngine::RegisterComponentVisualizers()
 	if(GUnrealEd && !SplineComponentVisualizer.IsValid())
 	{
 		SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
-		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(), SplineComponentVisualizer);
+		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(), 
+			SplineComponentVisualizer);
+
 		SplineComponentVisualizer->OnRegister();
 	}
 }
@@ -151,8 +153,10 @@ FHoudiniEngine::StartupModule()
 
 	// Register details presenter for our component type and runtime settings.
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
-	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"), FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
+	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"), 
+		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
+	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"), 
+		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
 
 	// Create Slate style set.
 	if(!StyleSet.IsValid())
@@ -163,8 +167,10 @@ FHoudiniEngine::StartupModule()
 
 		const FVector2D Icon16x16(16.0f, 16.0f);
 		static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/");
-		StyleSet->Set("HoudiniEngine.HoudiniEngineLogo", new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
-		StyleSet->Set("ClassIcon.HoudiniAssetActor", new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+		StyleSet->Set("HoudiniEngine.HoudiniEngineLogo", 
+			new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
+		StyleSet->Set("ClassIcon.HoudiniAssetActor", 
+			new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
 
 		// Register Slate style.
 		FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
@@ -199,7 +205,8 @@ FHoudiniEngine::StartupModule()
 				if(Size.X > 0 && Size.Y > 0)
 				{
 					static const int32 ProgressIconSize = 32;
-					HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(ProgressIconSize, ProgressIconSize)));
+					HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, 
+						FVector2D(ProgressIconSize, ProgressIconSize)));
 				}
 			}
 
@@ -214,7 +221,8 @@ FHoudiniEngine::StartupModule()
 	// Extend main menu, we will add Houdini section.
 	{
 		MainMenuExtender = MakeShareable(new FExtender);
-		MainMenuExtender->AddMenuExtension("FileLoadAndSave", EExtensionHook::After, NULL, FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngine::AddHoudiniMenuExtension));
+		MainMenuExtender->AddMenuExtension("FileLoadAndSave", EExtensionHook::After, NULL, 
+			FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngine::AddHoudiniMenuExtension));
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MainMenuExtender);
 	}
@@ -251,7 +259,8 @@ FHoudiniEngine::StartupModule()
 			}
 			else
 			{
-				HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
+				HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: %s"), 
+					*FHoudiniEngineUtils::GetErrorDescription(Result));
 			}
 		}
 		else
@@ -267,7 +276,8 @@ FHoudiniEngine::StartupModule()
 
 	// Create HAPI scheduler and processing thread.
 	HoudiniEngineScheduler = new FHoudiniEngineScheduler();
-	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniTaskCookAsset"), 0, TPri_Normal);
+	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniTaskCookAsset"), 0, 
+		TPri_Normal);
 
 	// Store the instance.
 	FHoudiniEngine::HoudiniEngineInstance = this;
@@ -304,7 +314,9 @@ FHoudiniEngine::ShutdownModule()
 	// Unregister details presentations.
 	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
-		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FPropertyEditorModule& PropertyModule = 
+			FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
 	}
@@ -370,11 +382,14 @@ void
 FHoudiniEngine::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.BeginSection("Houdini", LOCTEXT("HoudiniLabel", "Houdini Engine"));
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("HoudiniMenuEntryTitle", "Save .hip file"),
 			LOCTEXT("HoudiniMenuEntryToolTip", "Saves a .hip file of the current Houdini scene."),
 			FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
-			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngine::SaveHIPFile), FCanExecuteAction::CreateRaw(this, &FHoudiniEngine::CanSaveHIPFile)));
+			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngine::SaveHIPFile), 
+				FCanExecuteAction::CreateRaw(this, &FHoudiniEngine::CanSaveHIPFile)));
+
 	MenuBuilder.EndSection();
 }
 

@@ -24,7 +24,8 @@ UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const FObjectInit
 
 
 void
-UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas)
+UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, 
+	FRenderTarget* RenderTarget, FCanvas* Canvas)
 {
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Object);
 	if(HoudiniAsset && !HoudiniAsset->IsPendingKill())
@@ -49,7 +50,8 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 		ThumbnailScene->SetHoudiniAsset(HoudiniAsset);
 		ThumbnailScene->GetScene()->UpdateSpeedTreeWind(0.0);
 		
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
+		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(RenderTarget, 
+			ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
 			.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime));
 
 		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
@@ -65,7 +67,8 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 void
 UHoudiniAssetThumbnailRenderer::BeginDestroy()
 {
-	for(TMap<UHoudiniAsset*, FHoudiniAssetThumbnailScene*>::TConstIterator ParamIter(ThumbnailScenes); ParamIter; ++ParamIter)
+	for(TMap<UHoudiniAsset*, FHoudiniAssetThumbnailScene*>::TConstIterator 
+		ParamIter(ThumbnailScenes); ParamIter; ++ParamIter)
 	{
 		FHoudiniAssetThumbnailScene* ThumbnailScene = ParamIter.Value();
 		delete ThumbnailScene;

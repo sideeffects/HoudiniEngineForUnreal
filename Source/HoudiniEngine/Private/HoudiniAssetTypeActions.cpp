@@ -87,7 +87,8 @@ FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FM
 
 	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorer", "Find Source"),
-		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
+		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorerTooltip", 
+			"Opens explorer at the location of this asset."),
 		FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteFindInExplorer, HoudiniAssets),
@@ -119,7 +120,9 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAs
 		UHoudiniAsset* HoudiniAsset = (*ObjIt).Get();
 		if(HoudiniAsset && HoudiniAsset->AssetImportData)
 		{
-			const FString SourceFilePath = FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath, HoudiniAsset);
+			const FString SourceFilePath = 
+				FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath, HoudiniAsset);
+
 			if(INDEX_NONE != SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath))
 			{
 				FPlatformProcess::ExploreFolder(*SourceFilePath);

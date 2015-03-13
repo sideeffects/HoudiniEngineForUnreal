@@ -54,7 +54,8 @@ FHoudiniEngineScheduler::~FHoudiniEngineScheduler()
 
 
 void 
-FHoudiniEngineScheduler::TaskDescription(FHoudiniEngineTaskInfo& TaskInfo, const FString& ActorName, const FString& StatusString)
+FHoudiniEngineScheduler::TaskDescription(FHoudiniEngineTaskInfo& TaskInfo, const FString& ActorName, 
+	const FString& StatusString)
 {
 	FFormatNamedArguments Args;
 

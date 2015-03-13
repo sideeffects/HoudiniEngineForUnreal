@@ -22,7 +22,9 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializ
 	bCanBeDamaged = false;
 
 	// Create Houdini component and attach it to a root component.
-	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
+	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, 
+		TEXT("HoudiniAssetComponent"));
+
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	RootComponent = HoudiniAssetComponent;
 }
