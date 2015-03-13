@@ -60,7 +60,7 @@ public:
 	//virtual void BeginDestroy();
 	//virtual void Serialize(FArchive& Ar) override;
 	//virtual void PostLoad() override;
-	//static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 public:
 
