@@ -37,7 +37,7 @@ public:
 
 	/** Create intance of this class. **/
 	static UHoudiniAssetHandle* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
-		const HAPI_HandleInfo& HandleInfo, int32 HandleIdx);
+		const HAPI_HandleInfo& HandleInfo, int32 HandleIdx, const FString& HandleName);
 
 public:
 
@@ -81,10 +81,19 @@ protected:
 protected:
 
 	/** List of parameter ids of parameters driven by this handle. **/
-	TArray<HAPI_ParmId> ParameterIds;
+	TArray<HAPI_ParmId> AssetParameterIds;
 
-	/** List of parameter names driven by this handle. **/
-	TArray<FString> ParameterNames;
+	/** List of asset parameter names driven by this handle. **/
+	TArray<FString> AssetParameterNames;
+
+	/** List of handle parameter names driven by this handle. **/
+	TArray<FString> HandleParameterNames;
+
+	/** Name of this handle. **/
+	FString HandleName;
+
+	/** Type of this handle. **/
+	FString HandleType;
 
 	/** Index of this handle. **/
 	int32 HandleIdx;
