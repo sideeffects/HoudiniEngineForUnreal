@@ -318,7 +318,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		{
 			if(!bLoadedComponent)
 			{
-				StartTaskAssetInstantiation(false, true);
+				StartTaskAssetInstantiation( false, true );
 			}
 		}
 		else
