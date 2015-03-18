@@ -102,24 +102,24 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	// Create Houdini Asset category.
 	{
 		IDetailCategoryBuilder& DetailCategoryBuilder = 
-			DetailBuilder.EditCategory("HoudiniAsset", TEXT(""), ECategoryPriority::Important);
+			DetailBuilder.EditCategory("HoudiniAsset", FText::GetEmpty(), ECategoryPriority::Important);
 		CreateHoudiniAssetWidget(DetailCategoryBuilder);
 	}
 
 	// Create category for generated static meshes and their materials.
 	{
 		IDetailCategoryBuilder& DetailCategoryBuilder = 
-			DetailBuilder.EditCategory("HoudiniGeneratedMeshes", TEXT(""), ECategoryPriority::Important);
+			DetailBuilder.EditCategory("HoudiniGeneratedMeshes", FText::GetEmpty(), ECategoryPriority::Important);
 		CreateStaticMeshAndMaterialWidgets(DetailCategoryBuilder);
 	}
 
 	// Create Houdini Generated Static mesh settings category.
-	DetailBuilder.EditCategory("HoudiniGeneratedStaticMeshSettings", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("HoudiniGeneratedStaticMeshSettings", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// Create Houdini Inputs.
 	{
 		IDetailCategoryBuilder& DetailCategoryBuilder = 
-			DetailBuilder.EditCategory("HoudiniInputs", TEXT(""), ECategoryPriority::Important);
+			DetailBuilder.EditCategory("HoudiniInputs", FText::GetEmpty(), ECategoryPriority::Important);
 		for(TArray<UHoudiniAssetComponent*>::TIterator 
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
@@ -135,7 +135,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Instanced Inputs category.
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", TEXT(""), 
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", FText::GetEmpty(), 
 			ECategoryPriority::Important);
 		for(TArray<UHoudiniAssetComponent*>::TIterator 
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
@@ -153,7 +153,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	// Create Houdini parameters.
 	{
 		IDetailCategoryBuilder& DetailCategoryBuilder = 
-			DetailBuilder.EditCategory("HoudiniParameters", TEXT(""), ECategoryPriority::Important);
+			DetailBuilder.EditCategory("HoudiniParameters", FText::GetEmpty(), ECategoryPriority::Important);
 		for(TArray<UHoudiniAssetComponent*>::TIterator 
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
@@ -202,7 +202,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 				continue;
 			}
 
-			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 			FString Label = FString::Printf(TEXT("Static Mesh %d"), MeshIdx);
 			Row.NameWidget.Widget = SNew(STextBlock)
@@ -396,7 +396,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 	}
 
 	TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
-	DetailCategoryBuilder.AddCustomRow(TEXT(""))
+	DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
@@ -459,7 +459,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
-	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 	FString Label = TEXT("Houdini Asset");
 	Row.NameWidget.Widget = SNew(STextBlock)
@@ -550,7 +550,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	];
 
 	TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
-	DetailCategoryBuilder.AddCustomRow(TEXT(""))
+	DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()

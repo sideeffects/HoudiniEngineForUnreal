@@ -80,7 +80,7 @@ UHoudiniAssetParameterSeparator::CreateWidget(IDetailCategoryBuilder& DetailCate
 
 	TSharedPtr<SSeparator> Separator;
 
-	DetailCategoryBuilder.AddCustomRow(TEXT(""))
+	DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()

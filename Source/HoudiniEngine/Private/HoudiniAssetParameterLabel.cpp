@@ -80,7 +80,7 @@ UHoudiniAssetParameterLabel::CreateWidget(IDetailCategoryBuilder& DetailCategory
 
 	TSharedPtr<STextBlock> TextBlock;
 
-	DetailCategoryBuilder.AddCustomRow(TEXT(""))
+	DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SAssignNew(TextBlock, STextBlock)
 		.Text(GetParameterLabel())

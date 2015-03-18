@@ -200,7 +200,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
-	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
 							.Text(GetParameterLabel())
