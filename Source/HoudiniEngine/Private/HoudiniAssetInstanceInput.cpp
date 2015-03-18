@@ -332,7 +332,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	{
 		UStaticMesh* StaticMesh = StaticMeshes[StaticMeshIdx];
 
-		FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+		FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 		FString Label = FString::Printf(TEXT("Static Mesh Instance %d"), StaticMeshIdx);
 		Row.NameWidget.Widget = SNew(STextBlock)
 								.Text(Label)

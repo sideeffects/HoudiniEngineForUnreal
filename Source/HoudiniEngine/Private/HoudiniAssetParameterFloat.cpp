@@ -191,7 +191,7 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 {
 	Super::CreateWidget(DetailCategoryBuilder);
 
-	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
 							.Text(GetParameterLabel())

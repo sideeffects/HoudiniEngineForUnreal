@@ -47,12 +47,12 @@ void
 FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	// Create basic categories.
-	DetailBuilder.EditCategory("Cooking", TEXT(""), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("CollisionGeneration", TEXT(""), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("GeometryMarshalling", TEXT(""), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("GeometryScaling", TEXT(""), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("GeneratedStaticMeshSettings", TEXT(""), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("StaticMeshBuildSettings", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("Cooking", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("CollisionGeneration", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("GeometryMarshalling", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("GeometryScaling", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("GeneratedStaticMeshSettings", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("StaticMeshBuildSettings", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// Create Plugin Information category.
 	{
@@ -128,7 +128,7 @@ FHoudiniRuntimeSettingsDetails::CreateHoudiniEntry(const FText& EntryName,
 	IDetailCategoryBuilder& DetailCategoryBuilder, int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, 
 	int32 VersionPatch)
 {
-	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
 							.Text(EntryName)
@@ -193,7 +193,7 @@ void
 FHoudiniRuntimeSettingsDetails::CreateHoudiniEngineEntry(const FText& EntryName,
 	IDetailCategoryBuilder& DetailCategoryBuilder, int32 VersionMajor, int32 VersionMinor, int32 VersionApi)
 {
-	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
 							.Text(EntryName)
@@ -246,7 +246,7 @@ void
 FHoudiniRuntimeSettingsDetails::CreateHAPILibraryPathEntry(const FString& LibHAPIPath,
 	IDetailCategoryBuilder& DetailCategoryBuilder)
 {
-	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(TEXT(""));
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 	FString LibHAPIName = FString::Printf(TEXT("Location of %s"), *FHoudiniEngineUtils::HoudiniGetLibHAPIName());
 
