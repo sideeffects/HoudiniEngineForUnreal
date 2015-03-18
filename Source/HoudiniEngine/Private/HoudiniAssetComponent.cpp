@@ -490,6 +490,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 			}
 
 			// Update materials and update rendering information.
+			/*
 			if(StaticMesh)
 			{
 				bool bMaterialsNeedUpdate = false;
@@ -521,6 +522,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 					StaticMeshComponent->MarkRenderStateDirty();
 				}
 			}
+			*/
 
 			// Transform the component by transformation provided by HAPI.
 			StaticMeshComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
