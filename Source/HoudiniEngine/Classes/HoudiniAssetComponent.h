@@ -21,7 +21,6 @@
 class UClass;
 class UProperty;
 class UMaterial;
-class FTransform;
 class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
@@ -36,6 +35,7 @@ class UHoudiniSplineComponent;
 class UHoudiniAssetInstanceInput;
 class UFoliageType_InstancedStaticMesh;
 
+struct FTransform;
 struct FPropertyChangedEvent;
 struct FWalkableSlopeOverride;
 

@@ -16,7 +16,7 @@
 #pragma once
 
 class FArchive;
-class FTransform;
+struct FTransform;
 
 
 struct FHoudiniGeoPartObject
