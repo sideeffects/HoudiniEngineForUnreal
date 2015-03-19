@@ -600,8 +600,8 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
 		.OnClicked(this, &FHoudiniAssetComponentDetails::OnResetAsset)
-		.Text(LOCTEXT("ResetHoudiniActor", "Reset Parameters and Recook"))
-		.ToolTipText( LOCTEXT("ResetHoudiniActorToolTip", "Reset Parameters and Recook"))
+		.Text(LOCTEXT("ResetHoudiniActor", "Reset Parameters"))
+		.ToolTipText( LOCTEXT("ResetHoudiniActorToolTip", "Reset Parameters"))
 	];
 
 	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
