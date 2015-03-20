@@ -430,6 +430,12 @@ protected:
 	/** GUID used to track asynchronous cooking requests. **/
 	FGuid HapiGUID;
 
+	/** Delegate handle returned by Begin play mode in editor delegate. **/
+	FDelegateHandle DelegateHandleBeginPIE;
+
+	/** Delegate handle returned by End play mode in editor delegate. **/
+	FDelegateHandle DelegateHandleEndPIE;
+
 	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
 	FTimerDelegate TimerDelegateCooking;
 
