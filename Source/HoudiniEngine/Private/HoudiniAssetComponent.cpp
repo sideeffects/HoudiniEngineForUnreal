@@ -1333,8 +1333,8 @@ void
 UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
 	// Add begin and end delegates for play-in-editor.
-	FEditorDelegates::BeginPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
-	FEditorDelegates::EndPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
+	DelegateHandleBeginPIE = FEditorDelegates::BeginPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
+	DelegateHandleEndPIE = FEditorDelegates::EndPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
 }
 
 
@@ -1342,8 +1342,8 @@ void
 UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
 	// Remove begin and end delegates for play-in-editor.
-	FEditorDelegates::BeginPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
-	FEditorDelegates::EndPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
+	FEditorDelegates::BeginPIE.Remove(DelegateHandleBeginPIE);
+	FEditorDelegates::EndPIE.Remove(DelegateHandleEndPIE);
 }
 
 
