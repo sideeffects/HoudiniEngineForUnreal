@@ -283,3 +283,4 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetThumbnailScene.h"
+#include "HoudiniAssetCookLog.h"
