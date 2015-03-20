@@ -31,23 +31,26 @@ SHoudiniAssetCookLog::Construct(const FArguments& InArgs)
 	this->ChildSlot
 	[
 		SNew(SBorder)
-		. BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
-		. Content()
+		.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
+		.Content()
 		[
 			SNew(SVerticalBox)
 
 			+SVerticalBox::Slot()
 			[
 				SNew(SRichTextBlock)
-					.Text(this, &SHoudiniAssetCookLog::GetCookLogText)
-					.AutoWrapText(true)
+				.Text(this, &SHoudiniAssetCookLog::GetCookLogText)
+				.AutoWrapText(true)
 			]
 
-			+SVerticalBox::Slot().HAlign(HAlign_Center).AutoHeight()
+			+SVerticalBox::Slot()
+			.HAlign(HAlign_Center)
+			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
 
 				+SHorizontalBox::Slot()
+				.AutoWidth()
 				.Padding(0.0f, 4.0f, 4.0f, 4.0f)
 				[
 					SNew(SButton)
@@ -58,8 +61,8 @@ SHoudiniAssetCookLog::Construct(const FArguments& InArgs)
 				]
 
 				+SHorizontalBox::Slot()
+				.AutoWidth()
 				.Padding(0.0f, 4.0f, 4.0f, 4.0f)
-				.MaxWidth(80.0f)
 				[
 					SNew(SButton)
 					.VAlign(VAlign_Center)
