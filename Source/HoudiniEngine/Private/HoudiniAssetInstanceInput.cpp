@@ -522,8 +522,8 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			SNew(SCheckBox)
 			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this, 
 				&UHoudiniAssetInstanceInput::CheckStateChanged, StaticMeshIdx))
-			.IsChecked(TAttribute<ESlateCheckBoxState::Type>::Create(
-				TAttribute<ESlateCheckBoxState::Type>::FGetter::CreateUObject(this, 
+			.IsChecked(TAttribute<ECheckBoxState>::Create(
+				TAttribute<ECheckBoxState>::FGetter::CreateUObject(this, 
 					&UHoudiniAssetInstanceInput::IsChecked, StaticMeshIdx)))
 			.Content()
 			[
@@ -1219,24 +1219,24 @@ UHoudiniAssetInstanceInput::SetScaleZ(float Value, int32 Idx)
 
 
 void
-UHoudiniAssetInstanceInput::CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx)
+UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState, int32 Idx)
 {
 	check(Idx >= 0 && Idx < ScaleOffsetsLinearly.Num())
-	ScaleOffsetsLinearly[Idx] =  (ESlateCheckBoxState::Checked == NewState);
+	ScaleOffsetsLinearly[Idx] = (ECheckBoxState::Checked == NewState);
 }
 
 
-ESlateCheckBoxState::Type
+ECheckBoxState
 UHoudiniAssetInstanceInput::IsChecked(int32 Idx) const
 {
 	check(Idx >= 0 && Idx < ScaleOffsetsLinearly.Num())
 
 	if(ScaleOffsetsLinearly[Idx])
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
-	
-	return ESlateCheckBoxState::Unchecked;
+
+	return ECheckBoxState::Unchecked;
 }
 
 

@@ -161,10 +161,10 @@ protected:
 	void SetScaleZ(float Value, int32 Idx);
 
 	/** Return true if given index must scale linearly. **/
-	ESlateCheckBoxState::Type IsChecked(int32 Idx) const;
+	ECheckBoxState IsChecked(int32 Idx) const;
 
 	/** Set option for whether scale should be linear. **/
-	void CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx);
+	void CheckStateChanged(ECheckBoxState NewState, int32 Idx);
 
 protected:
 

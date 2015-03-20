@@ -194,9 +194,9 @@ UHoudiniAssetParameterToggle::Serialize(FArchive& Ar)
 
 
 void
-UHoudiniAssetParameterToggle::CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx)
+UHoudiniAssetParameterToggle::CheckStateChanged(ECheckBoxState NewState, int32 Idx)
 {
-	int32 bState = (ESlateCheckBoxState::Checked == NewState);
+	int32 bState = (ECheckBoxState::Checked == NewState);
 
 	if(Values[Idx] != bState)
 	{
@@ -210,14 +210,14 @@ UHoudiniAssetParameterToggle::CheckStateChanged(ESlateCheckBoxState::Type NewSta
 }
 
 
-ESlateCheckBoxState::Type
+ECheckBoxState
 UHoudiniAssetParameterToggle::IsChecked(int32 Idx) const
 {
 	if(Values[Idx])
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 	
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 

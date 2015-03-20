@@ -56,10 +56,10 @@ public:
 public:
 
 	/** Get value of this property, used by Slate. **/
-	void CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx);
+	void CheckStateChanged(ECheckBoxState NewState, int32 Idx);
 
 	/** Return checked state of this property, used by Slate. **/
-	ESlateCheckBoxState::Type IsChecked(int32 Idx) const;
+	ECheckBoxState IsChecked(int32 Idx) const;
 
 protected:
 

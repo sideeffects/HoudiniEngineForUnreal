@@ -1488,7 +1488,7 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	}
 
 	// Create new static mesh.
-	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
+	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Public);
 
 	// Create one LOD level.
 	new(StaticMesh->SourceModels) FStaticMeshSourceModel();
@@ -2025,7 +2025,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, 
 							HoudiniGeoPartObject, Package, MeshName, MeshGuid);
-						StaticMesh = new(MeshPackage, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
+						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Public);
 						bStaticMeshCreated = true;
 					}
 					else
@@ -2719,7 +2719,7 @@ FHoudiniEngineUtils::LoadRawStaticMesh(
 	FString MeshName;
 	UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, 
 		Package, MeshName, MeshGuid);
-	StaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
+	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Public);
 
 	// Create new source model for current static mesh.
 	if(!StaticMesh->SourceModels.Num())
@@ -2937,8 +2937,7 @@ FHoudiniEngineUtils::BakeStaticMesh(
 	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID);
 
 	// Create static mesh.
-	UStaticMesh* StaticMesh = new(Package, FName(*MeshName), RF_Standalone | RF_Public) 
-		UStaticMesh(FObjectInitializer());
+	UStaticMesh* StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
 
 	// Copy materials.
 	StaticMesh->Materials = InStaticMesh->Materials;
@@ -3296,7 +3295,7 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 	// Update context for generated materials (will trigger when object goes out of scope).
 	FMaterialUpdateContext MaterialUpdateContext;
 
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FObjectInitializer());
+	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 	FString MaterialName = FString::Printf(TEXT("%s_%s"), *MeshName, HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX);
 	Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName, 
 		RF_Public, NULL, GWarn);
