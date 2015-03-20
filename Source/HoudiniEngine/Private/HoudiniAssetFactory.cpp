@@ -66,8 +66,8 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
 	// Create a new asset.
-	UHoudiniAsset* HoudiniAsset = new(InParent, InName, Flags) UHoudiniAsset(FObjectInitializer(), Buffer, BufferEnd, 
-		UFactory::CurrentFilename);
+	UHoudiniAsset* HoudiniAsset = NewNamedObject<UHoudiniAsset>(InParent, InName, Flags);
+	HoudiniAsset->CreateAsset(Buffer, BufferEnd, UFactory::CurrentFilename);
 
 	// Create reimport information.
 	UAssetImportData* AssetImportData = HoudiniAsset->AssetImportData;
