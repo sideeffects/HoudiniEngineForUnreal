@@ -549,60 +549,91 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		]
 	];
 
-	TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
-	DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.Padding(0, 2.0f, 0, 0)
-		.FillHeight(1.0f)
-		.VAlign(VAlign_Center)
+	{
+		TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
+		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
 		[
-			SAssignNew(HorizontalButtonBox, SHorizontalBox)
-		]
-	];
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.Padding(0, 2.0f, 0, 0)
+			.FillHeight(1.0f)
+			.VAlign(VAlign_Center)
+			[
+				SAssignNew(HorizontalButtonBox, SHorizontalBox)
+			]
+		];
 
-	HorizontalButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding(2.0f, 0.0f)
-	.VAlign(VAlign_Center)
-	.HAlign(HAlign_Center)
-	[
-		SAssignNew(ButtonRecook, SButton)
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
-		.OnClicked(this, &FHoudiniAssetComponentDetails::OnRecookAsset)
-		.Text(LOCTEXT("RecookHoudiniActor", "Recook Asset"))
-		.ToolTipText( LOCTEXT("RecookHoudiniActorToolTip", "Recook Houdini asset"))
-	];
+		[
+			SAssignNew(ButtonRecook, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnRecookAsset)
+			.Text(LOCTEXT("RecookHoudiniActor", "Recook Asset"))
+			.ToolTipText( LOCTEXT("RecookHoudiniActorToolTip", "Recook Houdini asset"))
+		];
 
-	HorizontalButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding(2.0f, 0.0f)
-	.VAlign(VAlign_Center)
-	.HAlign(HAlign_Center)
-	[
-		SAssignNew(ButtonRecook, SButton)
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
-		.OnClicked(this, &FHoudiniAssetComponentDetails::OnRebuildAsset)
-		.Text(LOCTEXT("RebuildHoudiniActor", "Rebuild Asset"))
-		.ToolTipText( LOCTEXT("RebuildHoudiniActorToolTip", "Rebuild Houdini asset"))
-	];
+		[
+			SAssignNew(ButtonRecook, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnRebuildAsset)
+			.Text(LOCTEXT("RebuildHoudiniActor", "Rebuild Asset"))
+			.ToolTipText( LOCTEXT("RebuildHoudiniActorToolTip", "Rebuild Houdini asset"))
+		];
 
-	HorizontalButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding(2.0f, 0.0f)
-	.VAlign(VAlign_Center)
-	.HAlign(HAlign_Center)
-	[
-		SAssignNew(ButtonReset, SButton)
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
-		.OnClicked(this, &FHoudiniAssetComponentDetails::OnResetAsset)
-		.Text(LOCTEXT("ResetHoudiniActor", "Reset Parameters"))
-		.ToolTipText( LOCTEXT("ResetHoudiniActorToolTip", "Reset Parameters"))
-	];
+		[
+			SAssignNew(ButtonReset, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnResetAsset)
+			.Text(LOCTEXT("ResetHoudiniActor", "Reset Parameters"))
+			.ToolTipText( LOCTEXT("ResetHoudiniActorToolTip", "Reset Parameters"))
+		];
+	}
+
+	{
+		TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
+		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.Padding(0, 2.0f, 0, 0)
+			.FillHeight(1.0f)
+			.VAlign(VAlign_Center)
+			[
+				SAssignNew(HorizontalButtonBox, SHorizontalBox)
+			]
+		];
+
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SAssignNew(ButtonReset, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnFetchCookLog)
+			.Text(LOCTEXT("FetchCookLogHoudiniActor", "Fetch Cook Log"))
+			.ToolTipText( LOCTEXT("FetchCookLogHoudiniActorToolTip", "Fetch Cook Log"))
+		];
+	}
 
 	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
 	[
@@ -826,6 +857,39 @@ FHoudiniAssetComponentDetails::OnResetAsset()
 		{
 			HoudiniAssetComponent->StartTaskAssetResetManual();
 		}
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnFetchCookLog()
+{
+	TSharedPtr<SWindow> ParentWindow;
+
+	// Get fetch cook status.
+	FString CookLogString = FHoudiniEngineUtils::GetCookResult();
+
+	// Check if the main frame is loaded. When using the old main frame it may not be.
+	if(FModuleManager::Get().IsModuleLoaded("MainFrame"))
+	{
+		IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+		ParentWindow = MainFrame.GetParentWindow();
+	}
+
+	if(ParentWindow.IsValid())
+	{
+		TSharedPtr<SHoudiniAssetCookLog> HoudiniAssetCookLog;
+
+		TSharedRef<SWindow> Window = SNew(SWindow)
+									.Title(LOCTEXT("WindowTitle", "Houdini Cook Log"))
+									.ClientSize(FVector2D(640, 480));
+
+		Window->SetContent(SAssignNew(HoudiniAssetCookLog, SHoudiniAssetCookLog).CookLogText(CookLogString)
+			.WidgetWindow(Window));
+
+		FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
 	}
 
 	return FReply::Handled();

@@ -40,6 +40,9 @@ public:
 	/** Return a string indicating cook state. **/
 	static const FString GetCookState();
 
+	/** Return a string representing cooking result. **/
+	static const FString GetCookResult();
+
 	/** Return true if module has been properly initialized. **/
 	static bool IsInitialized();
 
@@ -274,6 +277,9 @@ protected:
 
 	/** Delete helper array of material names. **/
 	static void DeleteFaceMaterialArray(TArray<char*>& OutStaticMeshFaceMaterials);
+
+	/** Return a specified HAPI status string. **/
+	static const FString GetStatusString(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity);
 
 protected:
 

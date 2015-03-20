@@ -97,6 +97,9 @@ private:
 	/** Handler for reset action. **/
 	FReply OnResetAsset();
 
+	/** Handler for fetch log action. **/
+	FReply OnFetchCookLog();
+
 	/** Delegate used to detect if valid object has been dragged and dropped. **/
 	bool OnMaterialInterfaceDraggedOver(const UObject* InObject) const;
 
@@ -149,10 +152,10 @@ private:
 	/** Checks whether checkbox is checked. **/
 	ESlateCheckBoxState::Type 
 		IsCheckedComponentSettingCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
-	
+
 	ESlateCheckBoxState::Type 
 		IsCheckedComponentSettingUploadTransform(UHoudiniAssetComponent* HoudiniAssetComponent) const;
-	
+
 	ESlateCheckBoxState::Type 
 		IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
