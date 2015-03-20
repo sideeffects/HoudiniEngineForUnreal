@@ -108,28 +108,21 @@ FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 const FString
 FHoudiniEngineUtils::GetErrorDescription()
 {
-	int32 StatusBufferLength = 0;
-	FHoudiniApi::GetStatusStringBufLength(
-		HAPI_STATUS_CALL_RESULT, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
-
-	std::vector<char> StatusStringBuffer(StatusBufferLength, 0);
-	FHoudiniApi::GetStatusString(HAPI_STATUS_CALL_RESULT, &StatusStringBuffer[0]);
-
-	return FString(UTF8_TO_TCHAR(&StatusStringBuffer[0]));
+	return FHoudiniEngineUtils::GetStatusString(HAPI_STATUS_CALL_RESULT, HAPI_STATUSVERBOSITY_ERRORS);
 }
 
 
 const FString
 FHoudiniEngineUtils::GetCookState()
 {
-	int32 StatusBufferLength = 0;
-	FHoudiniApi::GetStatusStringBufLength(
-		HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS, &StatusBufferLength);
+	return FHoudiniEngineUtils::GetStatusString(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS);
+}
 
-	std::vector<char> StatusStringBuffer(StatusBufferLength, 0);
-	FHoudiniApi::GetStatusString(HAPI_STATUS_COOK_STATE, &StatusStringBuffer[0]);
 
-	return FString(UTF8_TO_TCHAR(&StatusStringBuffer[0]));
+const FString
+FHoudiniEngineUtils::GetCookResult()
+{
+	return FHoudiniEngineUtils::GetStatusString(HAPI_STATUS_COOK_RESULT, HAPI_STATUSVERBOSITY_MESSAGES);
 }
 
 
@@ -169,6 +162,7 @@ FHoudiniEngineUtils::SetAssetPreset(
 		
 		HOUDINI_CHECK_ERROR_RETURN(
 			FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo), false);
+
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPreset(
 			AssetInfo.nodeId, HAPI_PRESETTYPE_BINARY, NULL,
 			&PresetBuffer[0], PresetBuffer.Num()), 
@@ -3900,4 +3894,24 @@ FHoudiniEngineUtils::CountUVSets(const FRawMesh& RawMesh)
 	}
 
 	return UVSetCount;
+}
+
+
+const FString
+FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity)
+{
+	int32 StatusBufferLength = 0;
+	FHoudiniApi::GetStatusStringBufLength(
+		status_type, verbosity, &StatusBufferLength);
+
+	if(StatusBufferLength > 0)
+	{
+		TArray<char> StatusStringBuffer;
+		StatusStringBuffer.SetNumZeroed(StatusBufferLength);
+		FHoudiniApi::GetStatusString(status_type, &StatusStringBuffer[0]);
+
+		return FString(UTF8_TO_TCHAR(&StatusStringBuffer[0]));
+	}
+
+	return FString(TEXT(""));
 }
