@@ -150,23 +150,23 @@ private:
 	FReply OnResetHoudiniAssetClicked();
 
 	/** Checks whether checkbox is checked. **/
-	ESlateCheckBoxState::Type 
+	ECheckBoxState
 		IsCheckedComponentSettingCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
-	ESlateCheckBoxState::Type 
+	ECheckBoxState
 		IsCheckedComponentSettingUploadTransform(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
-	ESlateCheckBoxState::Type 
+	ECheckBoxState
 		IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
 	/** Handle change in Checkbox. **/
-	void CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, 
+	void CheckStateChangedComponentSettingCooking(ECheckBoxState NewState, 
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
-	void CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, 
+	void CheckStateChangedComponentSettingUploadTransform(ECheckBoxState NewState, 
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
-	void CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, 
+	void CheckStateChangedComponentSettingTransformCooking(ECheckBoxState NewState, 
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
 private:

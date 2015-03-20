@@ -1137,70 +1137,70 @@ FHoudiniAssetComponentDetails::OnResetHoudiniAssetClicked()
 }
 
 
-ESlateCheckBoxState::Type
+ECheckBoxState
 FHoudiniAssetComponentDetails::IsCheckedComponentSettingCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const
 {
 	if(HoudiniAssetComponent && HoudiniAssetComponent->bEnableCooking)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
-ESlateCheckBoxState::Type
+ECheckBoxState
 FHoudiniAssetComponentDetails::IsCheckedComponentSettingUploadTransform(UHoudiniAssetComponent* HoudiniAssetComponent) const
 {
 	if(HoudiniAssetComponent && HoudiniAssetComponent->bUploadTransformsToHoudiniEngine)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
-ESlateCheckBoxState::Type
+ECheckBoxState
 FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const
 {
 	if(HoudiniAssetComponent && HoudiniAssetComponent->bTransformChangeTriggersCooks)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
 void
-FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ESlateCheckBoxState::Type NewState, 
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ECheckBoxState NewState, 
 	UHoudiniAssetComponent* HoudiniAssetComponent)
 {
 	if(HoudiniAssetComponent)
 	{
-		HoudiniAssetComponent->bEnableCooking = (ESlateCheckBoxState::Checked == NewState);
-	}
-}
-
-
-void
-FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform(ESlateCheckBoxState::Type NewState, 
-	UHoudiniAssetComponent* HoudiniAssetComponent)
-{
-	if(HoudiniAssetComponent)
-	{
-		HoudiniAssetComponent->bUploadTransformsToHoudiniEngine = (ESlateCheckBoxState::Checked == NewState);
+		HoudiniAssetComponent->bEnableCooking = (ECheckBoxState::Checked == NewState);
 	}
 }
 
 
 void
-FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking(ESlateCheckBoxState::Type NewState, 
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform(ECheckBoxState NewState, 
 	UHoudiniAssetComponent* HoudiniAssetComponent)
 {
 	if(HoudiniAssetComponent)
 	{
-		HoudiniAssetComponent->bTransformChangeTriggersCooks = (ESlateCheckBoxState::Checked == NewState);
+		HoudiniAssetComponent->bUploadTransformsToHoudiniEngine = (ECheckBoxState::Checked == NewState);
+	}
+}
+
+
+void
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking(ECheckBoxState NewState, 
+	UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->bTransformChangeTriggersCooks = (ECheckBoxState::Checked == NewState);
 	}
 }
