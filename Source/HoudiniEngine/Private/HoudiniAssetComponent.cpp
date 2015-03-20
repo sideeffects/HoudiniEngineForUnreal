@@ -584,7 +584,7 @@ UHoudiniAssetComponent::StartHoudiniUIUpdateTicking()
 
 		// We need to register delegate with the timer system.
 		static const float TickTimerDelay = 0.25f;
-		GEditor->GetTimerManager()->SetTimer(TimerDelegateUIUpdate, TickTimerDelay, true);
+		GEditor->GetTimerManager()->SetTimer(TimerHandleUIUpdate, TimerDelegateUIUpdate, TickTimerDelay, true);
 	}
 }
 
@@ -594,7 +594,7 @@ UHoudiniAssetComponent::StopHoudiniUIUpdateTicking()
 {
 	if(TimerDelegateUIUpdate.IsBound() && GEditor)
 	{
-		GEditor->GetTimerManager()->ClearTimer(TimerDelegateUIUpdate);
+		GEditor->GetTimerManager()->ClearTimer(TimerHandleUIUpdate);
 		TimerDelegateUIUpdate.Unbind();
 	}
 }
@@ -617,7 +617,7 @@ UHoudiniAssetComponent::StartHoudiniTicking()
 
 		// We need to register delegate with the timer system.
 		static const float TickTimerDelay = 0.25f;
-		GEditor->GetTimerManager()->SetTimer(TimerDelegateCooking, TickTimerDelay, true);
+		GEditor->GetTimerManager()->SetTimer(TimerHandleCooking, TimerDelegateCooking, TickTimerDelay, true);
 
 		// Grab current time for delayed notification.
 		HapiNotificationStarted = FPlatformTime::Seconds();
@@ -630,7 +630,7 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 {
 	if(TimerDelegateCooking.IsBound() && GEditor)
 	{
-		GEditor->GetTimerManager()->ClearTimer(TimerDelegateCooking);
+		GEditor->GetTimerManager()->ClearTimer(TimerHandleCooking);
 		TimerDelegateCooking.Unbind();
 
 		// Reset time for delayed notification.

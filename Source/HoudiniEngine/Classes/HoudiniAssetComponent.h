@@ -436,8 +436,14 @@ protected:
 	/** Delegate handle returned by End play mode in editor delegate. **/
 	FDelegateHandle DelegateHandleEndPIE;
 
+	/** Timer handle, this timer is used for cooking. **/
+	FTimerHandle TimerHandleCooking;
+
 	/** Timer delegate, we use it for ticking during cooking or instantiation. **/
 	FTimerDelegate TimerDelegateCooking;
+
+	/** Timer handle, this timer is used for UI updates. **/
+	FTimerHandle TimerHandleUIUpdate;
 
 	/** Timer delegate, we use it for checking if details panel update can be performed. **/
 	FTimerDelegate TimerDelegateUIUpdate;
