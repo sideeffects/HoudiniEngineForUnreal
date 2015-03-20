@@ -29,11 +29,6 @@ class HOUDINIENGINE_API UHoudiniAsset : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-public:
-
-	UHoudiniAsset(const FObjectInitializer& ObjectInitializer, const uint8*& BufferStart, const uint8* BufferEnd,
-		const FString& InFileName);
-
 /** UObject methods. **/
 public:
 
@@ -42,6 +37,9 @@ public:
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 public:
+
+	/** Initialize this asset from given buffer / file. **/
+	void CreateAsset(const uint8*& BufferStart, const uint8* BufferEnd, const FString& InFileName);
 
 	/** Return buffer containing the raw Houdini OTL data. **/
 	const uint8* GetAssetBytes() const;

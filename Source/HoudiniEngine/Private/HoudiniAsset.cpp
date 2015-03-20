@@ -32,15 +32,11 @@ UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
 }
 
 
-UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer,
-	const uint8*& BufferStart, const uint8* BufferEnd, const FString& InFileName) :
-	Super(ObjectInitializer),
-	AssetFileName(InFileName),
-	AssetBytes(nullptr),
-	AssetBytesCount(0),
-	FileFormatVersion(UHoudiniAsset::PersistenceFormatVersion),
-	bPreviewHoudiniLogo(false)
+void
+UHoudiniAsset::CreateAsset(const uint8*& BufferStart, const uint8* BufferEnd, const FString& InFileName)
 {
+	AssetFileName = InFileName;
+
 	// Calculate buffer size.
 	AssetBytesCount = BufferEnd - BufferStart;
 
