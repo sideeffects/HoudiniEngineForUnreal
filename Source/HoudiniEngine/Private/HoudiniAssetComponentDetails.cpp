@@ -633,6 +633,20 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 			.Text(LOCTEXT("FetchCookLogHoudiniActor", "Fetch Cook Log"))
 			.ToolTipText( LOCTEXT("FetchCookLogHoudiniActorToolTip", "Fetch Cook Log"))
 		];
+
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SAssignNew(ButtonReset, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnFetchAssetHelp, HoudiniAssetComponent)
+			.Text(LOCTEXT("FetchAssetHelpHoudiniActor", "Asset Help"))
+			.ToolTipText( LOCTEXT("FetchAssetHelpHoudiniActorToolTip", "Asset Help"))
+		];
 	}
 
 	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
@@ -890,6 +904,52 @@ FHoudiniAssetComponentDetails::OnFetchCookLog()
 			.WidgetWindow(Window));
 
 		FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnFetchAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HAPI_AssetInfo AssetInfo;
+		HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+
+		if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+		{
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo))
+			{
+				FString HelpLogString;
+				if(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.helpTextSH, HelpLogString))
+				{
+					TSharedPtr<SWindow> ParentWindow;
+
+					// Check if the main frame is loaded. When using the old main frame it may not be.
+					if(FModuleManager::Get().IsModuleLoaded("MainFrame"))
+					{
+						IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+						ParentWindow = MainFrame.GetParentWindow();
+					}
+
+					if(ParentWindow.IsValid())
+					{
+						TSharedPtr<SHoudiniAssetLogWidget> HoudiniAssetHelpLog;
+
+						TSharedRef<SWindow> Window = SNew(SWindow)
+													.Title(LOCTEXT("WindowTitle", "Houdini Asset Help"))
+													.ClientSize(FVector2D(640, 480));
+
+						Window->SetContent(SAssignNew(HoudiniAssetHelpLog, SHoudiniAssetLogWidget).LogText(HelpLogString)
+							.WidgetWindow(Window));
+
+						FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
+					}
+				}
+			}
+		}
 	}
 
 	return FReply::Handled();
