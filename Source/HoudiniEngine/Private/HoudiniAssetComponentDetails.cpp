@@ -880,13 +880,13 @@ FHoudiniAssetComponentDetails::OnFetchCookLog()
 
 	if(ParentWindow.IsValid())
 	{
-		TSharedPtr<SHoudiniAssetCookLog> HoudiniAssetCookLog;
+		TSharedPtr<SHoudiniAssetLogWidget> HoudiniAssetCookLog;
 
 		TSharedRef<SWindow> Window = SNew(SWindow)
 									.Title(LOCTEXT("WindowTitle", "Houdini Cook Log"))
 									.ClientSize(FVector2D(640, 480));
 
-		Window->SetContent(SAssignNew(HoudiniAssetCookLog, SHoudiniAssetCookLog).CookLogText(CookLogString)
+		Window->SetContent(SAssignNew(HoudiniAssetCookLog, SHoudiniAssetLogWidget).LogText(CookLogString)
 			.WidgetWindow(Window));
 
 		FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
