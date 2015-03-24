@@ -16,17 +16,17 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-SHoudiniAssetCookLog::SHoudiniAssetCookLog()
+SHoudiniAssetLogWidget::SHoudiniAssetLogWidget()
 {
 
 }
 
 
 void
-SHoudiniAssetCookLog::Construct(const FArguments& InArgs)
+SHoudiniAssetLogWidget::Construct(const FArguments& InArgs)
 {
 	WidgetWindow = InArgs._WidgetWindow;
-	CookLogText = InArgs._CookLogText;
+	LogText = InArgs._LogText;
 
 	this->ChildSlot
 	[
@@ -39,7 +39,7 @@ SHoudiniAssetCookLog::Construct(const FArguments& InArgs)
 			+SVerticalBox::Slot()
 			[
 				SNew(SRichTextBlock)
-				.Text(this, &SHoudiniAssetCookLog::GetCookLogText)
+				.Text(this, &SHoudiniAssetLogWidget::GetLogText)
 				.AutoWrapText(true)
 			]
 
@@ -56,8 +56,8 @@ SHoudiniAssetCookLog::Construct(const FArguments& InArgs)
 					SNew(SButton)
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("HoudiniAssetCookLog_CopyToClipboard", "Copy"))
-					.OnClicked(this, &SHoudiniAssetCookLog::OnButtonCopyToClipboard)
+					.Text(LOCTEXT("HoudiniAssetLogWidget_CopyToClipboard", "Copy"))
+					.OnClicked(this, &SHoudiniAssetLogWidget::OnButtonCopyToClipboard)
 				]
 
 				+SHorizontalBox::Slot()
@@ -67,8 +67,8 @@ SHoudiniAssetCookLog::Construct(const FArguments& InArgs)
 					SNew(SButton)
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("HoudiniAssetCookLog_OK", "Accept"))
-					.OnClicked(this, &SHoudiniAssetCookLog::OnButtonOk)
+					.Text(LOCTEXT("HoudiniAssetLogWidget_OK", "Accept"))
+					.OnClicked(this, &SHoudiniAssetLogWidget::OnButtonOk)
 				]
 			]
 		]
@@ -77,7 +77,7 @@ SHoudiniAssetCookLog::Construct(const FArguments& InArgs)
 
 
 FReply
-SHoudiniAssetCookLog::OnButtonOk()
+SHoudiniAssetLogWidget::OnButtonOk()
 {
 	WidgetWindow->HideWindow();
 	WidgetWindow->RequestDestroyWindow();
@@ -87,15 +87,15 @@ SHoudiniAssetCookLog::OnButtonOk()
 
 
 FText
-SHoudiniAssetCookLog::GetCookLogText() const
+SHoudiniAssetLogWidget::GetLogText() const
 {
-	return FText::FromString(CookLogText);
+	return FText::FromString(LogText);
 }
 
 
 FReply
-SHoudiniAssetCookLog::OnButtonCopyToClipboard()
+SHoudiniAssetLogWidget::OnButtonCopyToClipboard()
 {
-	FPlatformMisc::ClipboardCopy(*CookLogText);
+	FPlatformMisc::ClipboardCopy(*LogText);
 	return FReply::Handled();
 }

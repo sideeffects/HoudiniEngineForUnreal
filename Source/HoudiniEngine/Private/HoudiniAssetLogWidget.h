@@ -18,26 +18,26 @@
 
 class SWindow;
 
-class SHoudiniAssetCookLog : public SCompoundWidget
+class SHoudiniAssetLogWidget : public SCompoundWidget
 {
 	public:
 
-		SLATE_BEGIN_ARGS(SHoudiniAssetCookLog) 
-			: _WidgetWindow(), _CookLogText(TEXT(""))
+		SLATE_BEGIN_ARGS(SHoudiniAssetLogWidget) 
+			: _WidgetWindow(), _LogText(TEXT(""))
 		{}
 
 		SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
-		SLATE_ARGUMENT(FString, CookLogText)
+		SLATE_ARGUMENT(FString, LogText)
 		SLATE_END_ARGS()
 
 	public:
 
-		SHoudiniAssetCookLog();
+		SHoudiniAssetLogWidget();
 
 	public:
 
-		/** Get cook log text. **/
-		FText GetCookLogText() const;
+		/** Get log text. **/
+		FText GetLogText() const;
 
 	public:
 
@@ -58,5 +58,5 @@ class SHoudiniAssetCookLog : public SCompoundWidget
 		TSharedPtr<SWindow> WidgetWindow;
 
 		/** Text of the log. **/
-		FString CookLogText;
+		FString LogText;
 };
