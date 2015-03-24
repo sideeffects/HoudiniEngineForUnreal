@@ -100,6 +100,9 @@ private:
 	/** Handler for fetch log action. **/
 	FReply OnFetchCookLog();
 
+	/** Handler for fetch asset help action. **/
+	FReply OnFetchAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent);
+
 	/** Delegate used to detect if valid object has been dragged and dropped. **/
 	bool OnMaterialInterfaceDraggedOver(const UObject* InObject) const;
 
