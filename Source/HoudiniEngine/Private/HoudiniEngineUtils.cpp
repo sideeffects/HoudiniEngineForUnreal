@@ -1462,11 +1462,22 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	static const FString MeshName = TEXT("HoudiniLogo");
 	static const FString HoudiniLogoStaticMeshPath(TEXT("/Engine/HoudiniLogo.HoudiniLogo"));
 
-	UStaticMesh* StaticMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL, 
-		*HoudiniLogoStaticMeshPath));
-	if(StaticMesh)
+	UStaticMesh* StaticMesh = nullptr;
+
+	FString PackageName = FPackageName::GetLongPackagePath(GetTransientPackage()->GetName()) + TEXT("/") + MeshName;
+	PackageName = PackageTools::SanitizePackageName(PackageName);
+
+	// See if package exists.
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+
+	if(Package)
 	{
-		return StaticMesh;
+		StaticMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, 
+			*HoudiniLogoStaticMeshPath, nullptr, LOAD_NoWarn));
+		if(StaticMesh)
+		{
+			return StaticMesh;
+		}
 	}
 
 	// Get platform manager LOD specific information.
@@ -1474,12 +1485,6 @@ FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo()
 	check(CurrentPlatform);
 	const FStaticMeshLODGroup& LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(NAME_None);
 	int32 NumLODs = LODGroup.GetDefaultNumLODs();
-
-	FString PackageName = FPackageName::GetLongPackagePath(GetTransientPackage()->GetName()) + TEXT("/") + MeshName;
-	PackageName = PackageTools::SanitizePackageName(PackageName);
-
-	// See if package exists.
-	UPackage* Package = FindPackage(nullptr, *PackageName);
 
 	if(!Package)
 	{
