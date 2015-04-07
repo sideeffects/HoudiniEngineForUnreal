@@ -73,6 +73,9 @@ private:
 	/** Add menu extension for our module. **/
 	void AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder);
 
+	/** Return true if running in commandlet. **/
+	bool IsRunningInCommandlet() const;
+
 public:
 
 	/** Menu action called to save a HIP file. **/

@@ -191,26 +191,29 @@ FHoudiniEngine::StartupModule()
 	}
 
 	// Create Houdini logo brush.
-	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
-	for(auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
+	if(!IsRunningInCommandlet())
 	{
-		const FPluginStatus& PluginStatus = *PluginIt;
-		if(PluginStatus.Name == TEXT("HoudiniEngine"))
+		const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
+		for(auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
 		{
-			if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*PluginStatus.Icon128FilePath))
+			const FPluginStatus& PluginStatus = *PluginIt;
+			if(PluginStatus.Name == TEXT("HoudiniEngine"))
 			{
-				const FName BrushName(*PluginStatus.Icon128FilePath);
-				const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
-
-				if(Size.X > 0 && Size.Y > 0)
+				if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*PluginStatus.Icon128FilePath))
 				{
-					static const int32 ProgressIconSize = 32;
-					HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, 
-						FVector2D(ProgressIconSize, ProgressIconSize)));
-				}
-			}
+					const FName BrushName(*PluginStatus.Icon128FilePath);
+					const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
 
-			break;
+					if(Size.X > 0 && Size.Y > 0)
+					{
+						static const int32 ProgressIconSize = 32;
+						HoudiniLogoBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, 
+							FVector2D(ProgressIconSize, ProgressIconSize)));
+					}
+				}
+
+				break;
+			}
 		}
 	}
 
@@ -219,6 +222,7 @@ FHoudiniEngine::StartupModule()
 	HoudiniLogoStaticMesh->AddToRoot();
 
 	// Extend main menu, we will add Houdini section.
+	if(!IsRunningInCommandlet())
 	{
 		MainMenuExtender = MakeShareable(new FExtender);
 		MainMenuExtender->AddMenuExtension("FileLoadAndSave", EExtensionHook::After, NULL, 
@@ -391,6 +395,13 @@ FHoudiniEngine::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
 				FCanExecuteAction::CreateRaw(this, &FHoudiniEngine::CanSaveHIPFile)));
 
 	MenuBuilder.EndSection();
+}
+
+
+bool
+FHoudiniEngine::IsRunningInCommandlet() const
+{
+	return IsRunningCommandlet();
 }
 
 
