@@ -601,6 +601,11 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 	{
 		bool bValidComponent = false;
 
+		if(!Ar.IsSaving() && !Ar.IsLoading())
+		{
+			continue;
+		}
+
 		if(Ar.IsSaving())
 		{
 			bValidComponent = (InstancedStaticMeshComponents[Idx] != nullptr);
