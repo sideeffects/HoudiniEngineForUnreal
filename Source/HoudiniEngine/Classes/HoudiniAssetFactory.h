@@ -22,7 +22,7 @@ class UObject;
 class FFeedbackContext;
 
 
-UCLASS()
+UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniAssetFactory : public UFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()
@@ -33,7 +33,7 @@ private:
 	virtual bool DoesSupportClass(UClass* Class) override;
 	virtual FText GetDisplayName() const override;
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags,
-		UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, 
+		UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd,
 		FFeedbackContext* Warn) override;
 
 /** FReimportHandler methods. **/

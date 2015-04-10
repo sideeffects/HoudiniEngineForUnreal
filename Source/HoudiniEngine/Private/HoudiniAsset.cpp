@@ -16,7 +16,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 
-const uint32 
+const uint32
 UHoudiniAsset::PersistenceFormatVersion = 2u;
 
 
@@ -85,10 +85,12 @@ UHoudiniAsset::IsPreviewHoudiniLogo() const
 void
 UHoudiniAsset::FinishDestroy()
 {
+#if WITH_EDITOR
+
 	FThumbnailRenderingInfo* RenderInfo = UThumbnailManager::Get().GetRenderingInfo(this);
 	if(RenderInfo)
 	{
-		UHoudiniAssetThumbnailRenderer* ThumbnailRenderer = 
+		UHoudiniAssetThumbnailRenderer* ThumbnailRenderer =
 			CastChecked<UHoudiniAssetThumbnailRenderer>(RenderInfo->Renderer);
 
 		if(ThumbnailRenderer)
@@ -96,6 +98,8 @@ UHoudiniAsset::FinishDestroy()
 			ThumbnailRenderer->RemoveAssetThumbnail(this);
 		}
 	}
+
+#endif
 
 	// Release buffer which was used to store raw OTL data.
 	if(AssetBytes)
@@ -162,7 +166,7 @@ void
 UHoudiniAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	OutTags.Add(FAssetRegistryTag("FileName", AssetFileName, FAssetRegistryTag::TT_Alphabetical));
-	OutTags.Add(FAssetRegistryTag("FileFormatVersion", FString::FromInt(FileFormatVersion), 
+	OutTags.Add(FAssetRegistryTag("FileFormatVersion", FString::FromInt(FileFormatVersion),
 		FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag("Bytes", FString::FromInt(AssetBytesCount), FAssetRegistryTag::TT_Numerical));
 

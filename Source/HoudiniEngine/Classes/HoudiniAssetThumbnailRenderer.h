@@ -24,7 +24,7 @@ class UHoudiniAsset;
 class FHoudiniAssetThumbnailScene;
 
 
-UCLASS(config = Editor)
+UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniAssetThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
 	GENERATED_UCLASS_BODY()
@@ -32,7 +32,7 @@ class HOUDINIENGINE_API UHoudiniAssetThumbnailRenderer : public UDefaultSizedThu
 /** ThumbnailRenderer methods. **/
 public:
 
-	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, 
+	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget,
 		FCanvas* Canvas) override;
 
 /** UObject methods. **/
