@@ -384,6 +384,8 @@ UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, 
 void
 UHoudiniAssetParameter::MarkPreChanged()
 {
+#if WITH_EDITOR
+
 	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->NotifyParameterWillChange(this);
@@ -393,6 +395,8 @@ UHoudiniAssetParameter::MarkPreChanged()
 	{
 		ParentParameter->NotifyChildParameterWillChange(this);
 	}
+
+#endif
 }
 
 
@@ -401,6 +405,8 @@ UHoudiniAssetParameter::MarkChanged()
 {
 	// Set changed flag.
 	bChanged = true;
+
+#if WITH_EDITOR
 
 	// Notify component about change.
 	if(HoudiniAssetComponent)
@@ -413,6 +419,8 @@ UHoudiniAssetParameter::MarkChanged()
 	{
 		ParentParameter->NotifyChildParameterChanged(this);
 	}
+
+#endif
 }
 
 
