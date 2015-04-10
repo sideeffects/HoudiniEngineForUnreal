@@ -30,7 +30,7 @@ UHoudiniAssetParameterFolderList::~UHoudiniAssetParameterFolderList()
 
 
 UHoudiniAssetParameterFolderList*
-UHoudiniAssetParameterFolderList::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterFolderList::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
@@ -44,7 +44,7 @@ UHoudiniAssetParameterFolderList::Create(UHoudiniAssetComponent* InHoudiniAssetC
 		}
 	}
 
-	UHoudiniAssetParameterFolderList* HoudiniAssetParameterFolderList = 
+	UHoudiniAssetParameterFolderList* HoudiniAssetParameterFolderList =
 		NewObject<UHoudiniAssetParameterFolderList>(Outer);
 
 	HoudiniAssetParameterFolderList->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
@@ -53,7 +53,7 @@ UHoudiniAssetParameterFolderList::Create(UHoudiniAssetComponent* InHoudiniAssetC
 
 
 bool
-UHoudiniAssetParameterFolderList::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterFolderList::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
@@ -73,6 +73,8 @@ UHoudiniAssetParameterFolderList::CreateParameter(UHoudiniAssetComponent* InHoud
 	return true;
 }
 
+
+#if WITH_EDITOR
 
 void
 UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
@@ -105,3 +107,4 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 	Super::CreateWidget(DetailCategoryBuilder);
 }
 
+#endif

@@ -30,17 +30,21 @@ public:
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterColor* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	static UHoudiniAssetParameterColor* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
 	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+
+#if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
+
+#endif
 
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue() override;
@@ -55,16 +59,24 @@ protected:
 	/** Return color for this color parameter. **/
 	FLinearColor GetColor() const;
 
+#if WITH_EDITOR
+
 	/** Handle mouse click on color box. **/
 	FReply OnColorBlockMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+#endif
 
 	/** Called when new color is selected. **/
 	void OnPaintColorChanged(FLinearColor InNewColor);
 
 protected:
 
+#if WITH_EDITOR
+
 	/** Color block widget. **/
 	TSharedPtr<SColorBlock> ColorBlock;
+
+#endif
 
 	/** Color for this property. **/
 	FLinearColor Color;

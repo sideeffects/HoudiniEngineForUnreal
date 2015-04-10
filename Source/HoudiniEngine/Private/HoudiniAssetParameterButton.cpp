@@ -30,7 +30,7 @@ UHoudiniAssetParameterButton::~UHoudiniAssetParameterButton()
 
 
 UHoudiniAssetParameterButton*
-UHoudiniAssetParameterButton::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterButton::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
@@ -52,7 +52,7 @@ UHoudiniAssetParameterButton::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 
 
 bool
-UHoudiniAssetParameterButton::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterButton::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
@@ -85,6 +85,8 @@ UHoudiniAssetParameterButton::UploadParameterValue()
 	return Super::UploadParameterValue();
 }
 
+
+#if WITH_EDITOR
 
 void
 UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
@@ -119,6 +121,8 @@ UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
 
+#endif
+
 
 FReply
 UHoudiniAssetParameterButton::OnButtonClick()
@@ -128,4 +132,3 @@ UHoudiniAssetParameterButton::OnButtonClick()
 
 	return FReply::Handled();
 }
-

@@ -30,15 +30,19 @@ public:
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterFolderList* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	static UHoudiniAssetParameterFolderList* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
 	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+
+#if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
+
+#endif
 };

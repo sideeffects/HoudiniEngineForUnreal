@@ -23,14 +23,16 @@ GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter)
 	{
 		return HoudiniAssetParameter->GetTypeHash();
 	}
-	
+
 	return 0;
 }
 
 
 UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
+#if WITH_EDITOR
 	DetailCategoryBuilder(nullptr),
+#endif
 	HoudiniAssetComponent(nullptr),
 	ParentParameter(nullptr),
 	NodeId(-1),
@@ -54,7 +56,7 @@ UHoudiniAssetParameter::~UHoudiniAssetParameter()
 
 
 bool
-UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	// We need to reset child parameters.
@@ -103,6 +105,8 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameter::CreateWidget(IDetailCategoryBuilder& InDetailCategoryBuilder)
 {
@@ -122,6 +126,8 @@ UHoudiniAssetParameter::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 {
 	// Default implementation does nothing.
 }
+
+#endif
 
 
 void
@@ -319,7 +325,7 @@ UHoudiniAssetParameter::SetNameAndLabel(HAPI_StringHandle StringHandle)
 		ParameterLabel = ParameterName;
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -501,4 +507,3 @@ UHoudiniAssetParameter::IsDisabled() const
 {
 	return bIsDisabled;
 }
-
