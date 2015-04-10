@@ -35,7 +35,7 @@ public:
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetInstanceInput* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	static UHoudiniAssetInstanceInput* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 public:
@@ -53,18 +53,22 @@ public:
 	void RecreatePhysicsStates();
 
 	/** Update material for a given mesh and index. **/
-	void UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx, 
+	void UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx,
 		UMaterialInterface* MaterialInterface);
 
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not	**/
 	/** a true parameter.																				**/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+
+#if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
+
+#endif
 
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
@@ -94,11 +98,11 @@ protected:
 	void AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize);
 
 	/** Sets instance transformations for a given component. **/
-	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent, 
+	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent,
 		const TArray<FTransform>& InstanceTransforms, int32 Idx);
 
 	/** Retrieve all transforms for a given path. Used by attribute instancer. **/
-	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues, 
+	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues,
 		const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms);
 
 	/** Used to update the component at given index when static mesh changes. **/
@@ -110,8 +114,12 @@ protected:
 protected:
 
 	/** Checks existance of special instance attribute for this instancer. **/
-	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
+	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
 		HAPI_PartId InPartId);
+
+protected:
+
+#if WITH_EDITOR
 
 	/** Delegate used when static mesh has been drag and dropped. **/
 	void OnStaticMeshDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 StaticMeshIdx);
@@ -166,6 +174,8 @@ protected:
 	/** Set option for whether scale should be linear. **/
 	void CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx);
 
+#endif
+
 protected:
 
 	/** Epsilon value used as a check for scale / inverse transform computations.	**/
@@ -173,6 +183,8 @@ protected:
 	static const float ScaleSmallValue;
 
 protected:
+
+#if WITH_EDITOR
 
 	/** Map of static meshes and corresponding thumbnail borders. **/
 	TMap<int32, TSharedPtr<SBorder> > StaticMeshThumbnailBorders;
@@ -182,6 +194,8 @@ protected:
 
 	/** Widget used for dragging and input. **/
 	TArray<TSharedPtr<SAssetSearchBox> > InputWidgets;
+
+#endif
 
 	/** Corresponding instanced static mesh components. **/
 	TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
@@ -207,8 +221,12 @@ protected:
 	/** Temporary geo part information, this is used during loading. **/
 	TArray<FHoudiniGeoPartObject> GeoPartObjects;
 
+#if WITH_EDITOR
+
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
+
+#endif
 
 	/** Corresponding object id. **/
 	HAPI_ObjectId ObjectId;
