@@ -58,12 +58,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	RecomputeNormalsFlag(HRSRF_OnlyIfMissing),
 	RecomputeTangentsFlag(HRSRF_OnlyIfMissing)
 {
-#if WITH_EDITORONLY_DATA
-	if(!IsRunningCommandlet())
-	{
-
-	}
-#endif
+	
 }
 
 

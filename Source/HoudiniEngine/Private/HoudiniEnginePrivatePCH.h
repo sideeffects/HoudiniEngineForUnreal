@@ -99,7 +99,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 	HOUDINI_LOG_HELPER(Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
 
 #define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT, ...)								\
-	HOUDINI_LOG_HELPER(Display, HOUDINI_LOG_TEXT, ##__VA_ARGS__)	
+	HOUDINI_LOG_HELPER(Display, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
 
 #else
 
@@ -274,7 +274,11 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponentDetails.h"
+
+#if WITH_EDITOR
 #include "HoudiniRuntimeSettingsDetails.h"
+#endif
+
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineScheduler.h"
