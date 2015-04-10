@@ -46,7 +46,7 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 
 	// Get name of this input. For the time being we only support geometry inputs.
 	HAPI_StringHandle InputStringHandle;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetInputName(InHoudiniAssetComponent->GetAssetId(), 
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetInputName(InHoudiniAssetComponent->GetAssetId(),
 		InInputIndex, HAPI_INPUT_GEOMETRY, &InputStringHandle))
 	{
 		return HoudiniAssetInput;
@@ -181,7 +181,7 @@ UHoudiniAssetInput::ConnectInputAsset()
 
 
 bool
-UHoudiniAssetInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	// This implementation is not a true parameter. This method should not be called.
@@ -189,6 +189,8 @@ UHoudiniAssetInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCompon
 	return false;
 }
 
+
+#if WITH_EDITOR
 
 void
 UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
@@ -220,13 +222,13 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		SNew(SComboBox<TSharedPtr<FString> >)
 		.OptionsSource(&StringChoiceLabels)
 		.InitiallySelectedItem(StringChoiceLabels[ChoiceIndex])
-		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this, 
+		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this,
 			&UHoudiniAssetInput::CreateChoiceEntryWidget))
-		.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this, 
+		.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this,
 			&UHoudiniAssetInput::OnChoiceChange))
 		[
 			SNew(STextBlock)
-			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this, 
+			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this,
 				&UHoudiniAssetInput::HandleChoiceContentText)))
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
@@ -237,9 +239,9 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 		[
 			SNew(SAssetDropTarget)
-			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this, 
+			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this,
 				&UHoudiniAssetInput::OnStaticMeshDraggedOver))
-			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this, 
+			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this,
 				&UHoudiniAssetInput::OnStaticMeshDropped))
 			[
 				SAssignNew(HorizontalBox, SHorizontalBox)
@@ -251,7 +253,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			SAssignNew(StaticMeshThumbnailBorder, SBorder)
 			.Padding(5.0f)
 			.BorderImage(TAttribute<const FSlateBrush*>::Create(
-				TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this, 
+				TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this,
 					&UHoudiniAssetInput::GetStaticMeshThumbnailBorder)))
 			.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetInput::OnThumbnailDoubleClick))
 			[
@@ -286,7 +288,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 					SAssignNew(StaticMeshComboButton, SComboButton)
 					.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 					.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
-					.OnGetMenuContent(FOnGetContent::CreateUObject(this, 
+					.OnGetMenuContent(FOnGetContent::CreateUObject(this,
 						&UHoudiniAssetInput::OnGetStaticMeshMenuContent))
 					.ContentPadding(2.0f)
 					.ButtonContent()
@@ -303,7 +305,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		// Create tooltip.
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Asset"), FText::FromString(MeshName));
-		FText StaticMeshTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser", 
+		FText StaticMeshTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser",
 			"Browse to '{Asset}' in Content Browser"), Args);
 
 		ButtonBox->AddSlot()
@@ -335,7 +337,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
-		for(TMap<FString, UHoudiniAssetParameter*>::TIterator 
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator
 			IterParams(InputCurveParameters); IterParams; ++IterParams)
 		{
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
@@ -346,6 +348,8 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	Row.ValueWidget.Widget = VerticalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
+
+#endif
 
 
 bool
@@ -361,7 +365,7 @@ UHoudiniAssetInput::UploadParameterValue()
 			if(bStaticMeshChanged || bLoadedParameter)
 			{
 				bStaticMeshChanged = false;
-				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh, 
+				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh,
 					GeometryAssetId))
 				{
 					bChanged = false;
@@ -382,7 +386,7 @@ UHoudiniAssetInput::UploadParameterValue()
 		// If we have no curve asset, create it.
 		if(!FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
 		{
-			if(!FHoudiniEngineUtils::HapiCreateCurve(CurveAssetId) || 
+			if(!FHoudiniEngineUtils::HapiCreateCurve(CurveAssetId) ||
 				!FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
 			{
 				bChanged = false;
@@ -402,7 +406,7 @@ UHoudiniAssetInput::UploadParameterValue()
 			FHoudiniApi::GetAssetInfo(CurveAssetId, &CurveAssetInfo);
 
 			// If we just loaded our curve, we need to set parameters.
-			for(TMap<FString, UHoudiniAssetParameter*>::TIterator 
+			for(TMap<FString, UHoudiniAssetParameter*>::TIterator
 				IterParams(InputCurveParameters); IterParams; ++IterParams)
 			{
 				UHoudiniAssetParameter* Parameter = IterParams.Value();
@@ -514,7 +518,7 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 		UStaticMesh* StaticMeshInput = nullptr;
 		if(bMeshAssigned)
 		{
-			InputObject = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName, 
+			InputObject = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName,
 				nullptr, LOAD_NoWarn, nullptr));
 		}
 	}
@@ -527,7 +531,7 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	{
 		if(Ar.IsLoading())
 		{
-			InputCurve = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(), 
+			InputCurve = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(),
 				HoudiniAssetComponent, NAME_None, RF_Transient);
 
 			InputCurve->AddToRoot();
@@ -550,7 +554,7 @@ UHoudiniAssetInput::SerializeInputCurveParameters(FArchive& Ar)
 
 	if(Ar.IsSaving())
 	{
-		for(TMap<FString, UHoudiniAssetParameter*>::TIterator 
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator
 			IterParams(InputCurveParameters); IterParams; ++IterParams)
 		{
 			FString ParameterKey = IterParams.Key();
@@ -600,7 +604,7 @@ UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 		}
 
 		// Add references for all curve input parameters.
-		for(TMap<FString, UHoudiniAssetParameter*>::TIterator 
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator
 			IterParams(HoudiniAssetInput->InputCurveParameters); IterParams; ++IterParams)
 		{
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
@@ -625,6 +629,8 @@ UHoudiniAssetInput::ClearInputCurveParameters()
 	InputCurveParameters.Empty();
 }
 
+
+#if WITH_EDITOR
 
 void
 UHoudiniAssetInput::OnStaticMeshDropped(UObject* Object)
@@ -687,7 +693,7 @@ UHoudiniAssetInput::OnGetStaticMeshMenuContent()
 
 	TArray<UFactory*> NewAssetFactories;
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(InputObject), true, AllowedClasses, 
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(InputObject), true, AllowedClasses,
 		NewAssetFactories, OnShouldFilterStaticMesh,
 		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected),
 		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::CloseStaticMeshComboButton));
@@ -707,10 +713,13 @@ UHoudiniAssetInput::OnStaticMeshSelected(const FAssetData& AssetData)
 }
 
 
-void
-UHoudiniAssetInput::CloseStaticMeshComboButton()
+TSharedRef<SWidget>
+UHoudiniAssetInput::CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry)
 {
-
+	return SNew(STextBlock)
+		   .Text(*ChoiceEntry)
+		   .ToolTipText(*ChoiceEntry)
+		   .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 }
 
 
@@ -726,12 +735,96 @@ UHoudiniAssetInput::OnStaticMeshBrowse()
 }
 
 
+void
+UHoudiniAssetInput::CloseStaticMeshComboButton()
+{
+
+}
+
+
 FReply
 UHoudiniAssetInput::OnResetStaticMeshClicked()
 {
 	OnStaticMeshDropped(nullptr);
 	return FReply::Handled();
 }
+
+
+void
+UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+{
+	if(!NewChoice.IsValid())
+	{
+		return;
+	}
+
+	bool bChanged = false;
+	ChoiceStringValue = *(NewChoice.Get());
+
+	// We need to match selection based on label.
+	int32 LabelIdx = 0;
+	for(; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
+	{
+		FString* ChoiceLabel = StringChoiceLabels[LabelIdx].Get();
+
+		if(ChoiceLabel->Equals(ChoiceStringValue))
+		{
+			bChanged = true;
+			break;
+		}
+	}
+
+	if(bChanged)
+	{
+		// We are switching modes.
+		ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(LabelIdx);
+
+		// We need to disconnect currently connected asset, if we have one.
+		DisconnectInputAsset();
+
+		if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
+		{
+			// If we have spline, delete it.
+			if(InputCurve)
+			{
+				InputCurve->DetachFromParent();
+				InputCurve->UnregisterComponent();
+				InputCurve->DestroyComponent();
+
+				InputCurve = nullptr;
+			}
+
+			// We need to trigger details panel update.
+			HoudiniAssetComponent->UpdateEditorProperties(false);
+		}
+		else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
+		{
+			if(!InputCurve)
+			{
+				// Create new spline component.
+				UHoudiniSplineComponent* HoudiniSplineComponent =
+					ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(),
+						HoudiniAssetComponent, NAME_None, RF_Transient);
+				HoudiniSplineComponent->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+				HoudiniSplineComponent->RegisterComponent();
+				HoudiniSplineComponent->SetVisibility(true);
+				HoudiniSplineComponent->SetHoudiniAssetInput(this);
+
+				// Store this component as input curve.
+				InputCurve = HoudiniSplineComponent;
+			}
+
+			bSwitchedToCurve = true;
+		}
+
+		// If we have input object and geometry asset, we need to connect it back.
+		MarkPreChanged();
+		ConnectInputAsset();
+		MarkChanged();
+	}
+}
+
+#endif
 
 
 HAPI_AssetId
@@ -806,11 +899,11 @@ UHoudiniAssetInput::UpdateInputCurve()
 	HAPI_NodeId NodeId = -1;
 	if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
 	{
-		FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""), 
+		FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""),
 			CurvePointsString);
-		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, 
+		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE,
 			(int32) EHoudiniSplineComponentType::Bezier, (int32&) CurveTypeValue);
-		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, 
+		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD,
 			(int32) EHoudiniSplineComponentMethod::CVs, (int32&) CurveMethodValue);
 		FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed);
 	}
@@ -821,7 +914,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
 	HAPI_AttributeInfo AttributeRefinedCurvePositions;
 	TArray<float> RefinedCurvePositions;
-	FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION, 
+	FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION,
 		AttributeRefinedCurvePositions, RefinedCurvePositions);
 
 	// Process coords string and extract positions.
@@ -831,7 +924,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 	TArray<FVector> CurveDisplayPoints;
 	FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(RefinedCurvePositions, CurveDisplayPoints);
 
-	InputCurve->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue, 
+	InputCurve->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
 		(CurveClosed == 1));
 
 	// We also need to construct curve parameters we care about.
@@ -843,7 +936,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
 		TArray<HAPI_ParmInfo> ParmInfos;
 		ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParameters(NodeId, &ParmInfos[0], 0, NodeInfo.parmCount), 
+		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParameters(NodeId, &ParmInfos[0], 0, NodeInfo.parmCount),
 			false);
 
 		// Retrieve integer values for this asset.
@@ -851,7 +944,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 		ParmValueInts.SetNumZeroed(NodeInfo.parmIntValueCount);
 		if(NodeInfo.parmIntValueCount > 0)
 		{
-			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmIntValues(NodeId, &ParmValueInts[0], 0, 
+			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmIntValues(NodeId, &ParmValueInts[0], 0,
 				NodeInfo.parmIntValueCount), false);
 		}
 
@@ -860,7 +953,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 		ParmValueFloats.SetNumZeroed(NodeInfo.parmFloatValueCount);
 		if(NodeInfo.parmFloatValueCount > 0)
 		{
-			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmFloatValues(NodeId, &ParmValueFloats[0], 0, 
+			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmFloatValues(NodeId, &ParmValueFloats[0], 0,
 				NodeInfo.parmFloatValueCount), false);
 		}
 
@@ -869,7 +962,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 		ParmValueStrings.SetNumZeroed(NodeInfo.parmStringValueCount);
 		if(NodeInfo.parmStringValueCount > 0)
 		{
-			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmStringValues(NodeId, true, &ParmValueStrings[0], 0, 
+			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmStringValues(NodeId, true, &ParmValueStrings[0], 0,
 				NodeInfo.parmStringValueCount), false);
 		}
 
@@ -953,91 +1046,6 @@ UHoudiniAssetInput::UpdateInputCurve()
 		// We need to trigger details panel update.
 		HoudiniAssetComponent->UpdateEditorProperties(false);
 		bSwitchedToCurve = false;
-	}
-}
-
-
-TSharedRef<SWidget>
-UHoudiniAssetInput::CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry)
-{
-	return SNew(STextBlock)
-		   .Text(*ChoiceEntry)
-		   .ToolTipText(*ChoiceEntry)
-		   .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-}
-
-
-void
-UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
-{
-	if(!NewChoice.IsValid())
-	{
-		return;
-	}
-
-	bool bChanged = false;
-	ChoiceStringValue = *(NewChoice.Get());
-
-	// We need to match selection based on label.
-	int32 LabelIdx = 0;
-	for(; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
-	{
-		FString* ChoiceLabel = StringChoiceLabels[LabelIdx].Get();
-
-		if(ChoiceLabel->Equals(ChoiceStringValue))
-		{
-			bChanged = true;
-			break;
-		}
-	}
-
-	if(bChanged)
-	{
-		// We are switching modes.
-		ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(LabelIdx);
-
-		// We need to disconnect currently connected asset, if we have one.
-		DisconnectInputAsset();
-
-		if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
-		{
-			// If we have spline, delete it.
-			if(InputCurve)
-			{
-				InputCurve->DetachFromParent();
-				InputCurve->UnregisterComponent();
-				InputCurve->DestroyComponent();
-
-				InputCurve = nullptr;
-			}
-
-			// We need to trigger details panel update.
-			HoudiniAssetComponent->UpdateEditorProperties(false);
-		}
-		else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
-		{
-			if(!InputCurve)
-			{
-				// Create new spline component.
-				UHoudiniSplineComponent* HoudiniSplineComponent = 
-					ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(), 
-						HoudiniAssetComponent, NAME_None, RF_Transient);
-				HoudiniSplineComponent->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
-				HoudiniSplineComponent->RegisterComponent();
-				HoudiniSplineComponent->SetVisibility(true);
-				HoudiniSplineComponent->SetHoudiniAssetInput(this);
-
-				// Store this component as input curve.
-				InputCurve = HoudiniSplineComponent;
-			}
-
-			bSwitchedToCurve = true;
-		}
-
-		// If we have input object and geometry asset, we need to connect it back.
-		MarkPreChanged();
-		ConnectInputAsset();
-		MarkChanged();
 	}
 }
 

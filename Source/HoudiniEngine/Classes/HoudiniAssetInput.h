@@ -56,11 +56,15 @@ public:
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+
+#if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
+
+#endif
 
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
@@ -104,6 +108,8 @@ public:
 
 protected:
 
+#if WITH_EDITOR
+
 	/** Delegate used when static mesh has been drag and dropped. **/
 	void OnStaticMeshDropped(UObject* InObject);
 
@@ -137,6 +143,8 @@ protected:
 	/** Called when change of selection is triggered. **/
 	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
 
+#endif
+
 	/** Called to retrieve the name of selected item. **/
 	FString HandleChoiceContentText() const;
 
@@ -168,6 +176,8 @@ protected:
 	/** Choice labels for this property. **/
 	TArray<TSharedPtr<FString> > StringChoiceLabels;
 
+#if WITH_EDITOR
+
 	/** Thumbnail border used by static mesh. **/
 	TSharedPtr<SBorder> StaticMeshThumbnailBorder;
 
@@ -177,8 +187,7 @@ protected:
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
-	/** Widget used for dragging and input. **/
-	TSharedPtr<SAssetSearchBox> InputWidget;
+#endif
 
 	/** Value of choice option. **/
 	FString ChoiceStringValue;
