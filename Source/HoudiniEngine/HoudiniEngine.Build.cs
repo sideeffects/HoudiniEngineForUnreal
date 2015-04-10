@@ -36,7 +36,7 @@ public class HoudiniEngine : ModuleRules
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
 			Target.Platform != UnrealTargetPlatform.Mac )
 		{
-			string Err = string.Format("Houdini Engine : Compiling on unsupported platform.");
+			string Err = string.Format( "Houdini Engine : Compiling on unsupported platform." );
 			System.Console.WriteLine( Err );
 			throw new BuildException( Err );
 		}
@@ -86,14 +86,14 @@ public class HoudiniEngine : ModuleRules
 				// ... add public include paths required here ...
 				HAPIIncludePath
 			}
-			);
+		);
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"HoudiniEngine/Private"
 				// ... add other private include paths required here ...
 			}
-			);
+		);
 
 		// Add common dependencies.
 		PublicDependencyModuleNames.Add( "Core" );
