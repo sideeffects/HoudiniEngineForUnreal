@@ -24,7 +24,7 @@ class UAssetImportData;
 class UHoudiniAssetComponent;
 
 
-UCLASS(Blueprintable, BlueprintType, EditInlineNew, config=Editor)
+UCLASS(EditInlineNew, config=Engine)
 class HOUDINIENGINE_API UHoudiniAsset : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -71,6 +71,7 @@ public:
 	/** Importing data and options used for this Houdini asset. */
 	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
 	UAssetImportData* AssetImportData;
+	
 #endif
 
 protected:
