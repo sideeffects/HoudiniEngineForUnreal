@@ -273,10 +273,13 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniApi.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
-#include "HoudiniAssetComponentDetails.h"
 
 #if WITH_EDITOR
+
+#include "HoudiniAssetComponentDetails.h"
 #include "HoudiniRuntimeSettingsDetails.h"
+#include "HoudiniAssetLogWidget.h"
+
 #endif
 
 #include "HoudiniSplineComponentVisualizer.h"
@@ -287,4 +290,3 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetThumbnailScene.h"
-#include "HoudiniAssetLogWidget.h"
