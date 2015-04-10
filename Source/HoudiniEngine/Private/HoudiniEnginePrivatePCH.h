@@ -265,9 +265,12 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
-#include "HoudiniAssetActorFactory.h"
+
+#if WITH_EDITOR
 #include "HoudiniAssetFactory.h"
+#include "HoudiniAssetActorFactory.h"
 #include "HoudiniAssetThumbnailRenderer.h"
+#endif
 
 /** HoudiniEngine Private headers. **/
 #include "HoudiniApi.h"
@@ -275,18 +278,16 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniEngineTaskInfo.h"
 
 #if WITH_EDITOR
-
 #include "HoudiniAssetComponentDetails.h"
 #include "HoudiniRuntimeSettingsDetails.h"
 #include "HoudiniAssetLogWidget.h"
-
-#endif
-
-#include "HoudiniSplineComponentVisualizer.h"
-#include "HoudiniEngine.h"
-#include "HoudiniEngineScheduler.h"
 #include "HoudiniAssetTypeActions.h"
-#include "HoudiniLogo.h"
-#include "HoudiniEngineUtils.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetThumbnailScene.h"
+#include "HoudiniSplineComponentVisualizer.h"
+#endif
+
+#include "HoudiniEngine.h"
+#include "HoudiniEngineScheduler.h"
+#include "HoudiniLogo.h"
+#include "HoudiniEngineUtils.h"

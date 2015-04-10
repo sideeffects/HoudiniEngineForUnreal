@@ -24,11 +24,21 @@ class IHoudiniEngine : public IModuleInterface
 {
 public:
 
+#if WITH_EDITOR
+
 	/** Register component visualizers used by this module. **/
 	virtual void RegisterComponentVisualizers() {}
 
 	/** Unregister components visualizers used by this module. **/
 	virtual void UnregisterComponentVisualizers() {}
+
+	/** Return Houdini logo brush. **/
+	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
+
+	/** Return Slate style set. **/
+	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const = 0;
+
+#endif
 
 	/** Return static mesh reprensenting Houdini logo. **/
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const = 0;
@@ -44,12 +54,6 @@ public:
 
 	/** Return location of libHAPI binary. **/
 	virtual const FString& GetLibHAPILocation() const = 0;
-
-	/** Return Houdini logo brush. **/
-	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
-
-	/** Return Slate style set. **/
-	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const = 0;
 
 	/** Register task for execution. **/
 	virtual void AddTask(const FHoudiniEngineTask& Task) = 0;

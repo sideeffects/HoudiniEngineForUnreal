@@ -42,11 +42,16 @@ namespace EHoudiniSplineComponentMethod
 class UHoudiniAssetInput;
 
 
-UCLASS(config=Editor)
+UCLASS(config=Engine)
 class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 {
 	friend class UHoudiniAssetComponent;
+
+#if WITH_EDITOR
+
 	friend class FHoudiniSplineComponentVisualizer;
+
+#endif
 
 	GENERATED_UCLASS_BODY()
 
@@ -55,8 +60,8 @@ class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
 public:
 
 	/** Construct spline from given information. Resets any existing state. **/
-	bool Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints, 
-		const TArray<FVector>& InCurveDisplayPoints, EHoudiniSplineComponentType::Enum InCurveType, 
+	bool Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints,
+		const TArray<FVector>& InCurveDisplayPoints, EHoudiniSplineComponentType::Enum InCurveType,
 		EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
 
 	/** Return the type of this curve. **/
@@ -139,4 +144,3 @@ protected:
 	/** Whether this spline is closed. **/
 	bool bClosedCurve;
 };
-
