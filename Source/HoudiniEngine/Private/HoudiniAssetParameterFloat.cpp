@@ -56,7 +56,7 @@ UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
 
 
 UHoudiniAssetParameterFloat*
-UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
@@ -78,7 +78,7 @@ UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetCompon
 
 
 bool
-UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
@@ -186,6 +186,8 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
@@ -217,15 +219,15 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 			.MinSliderValue(ValueUIMin)
 			.MaxSliderValue(ValueUIMax)
 
-			.Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this, 
+			.Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
 				&UHoudiniAssetParameterFloat::GetValue, Idx)))
-			.OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this, 
+			.OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this,
 				&UHoudiniAssetParameterFloat::SetValue, Idx))
-			.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(this, 
+			.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(this,
 				&UHoudiniAssetParameterFloat::SetValueCommitted, Idx))
-			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this, 
+			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this,
 				&UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx))
-			.OnEndSliderMovement(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this, 
+			.OnEndSliderMovement(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this,
 				&UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx))
 
 			.SliderExponent(1.0f)
@@ -240,6 +242,8 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 	Row.ValueWidget.Widget = VerticalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
+
+#endif
 
 
 bool
@@ -304,7 +308,7 @@ UHoudiniAssetParameterFloat::PrintParameterInfo()
 	{
 		case 3:
 		{
-			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f, %f, %f"), *ParameterName, Values[0], 
+			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f, %f, %f"), *ParameterName, Values[0],
 				Values[1], Values[2]);
 			break;
 		}
