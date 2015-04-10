@@ -45,7 +45,7 @@ UHoudiniAssetParameterColor::Serialize(FArchive& Ar)
 
 
 UHoudiniAssetParameterColor*
-UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	UObject* Outer = InHoudiniAssetComponent;
@@ -67,7 +67,7 @@ UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetCompon
 
 
 bool
-UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
 	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
@@ -100,6 +100,8 @@ UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
@@ -119,9 +121,9 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
 		SAssignNew(ColorBlock, SColorBlock)
-		.Color(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateUObject(this, 
+		.Color(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateUObject(this,
 			&UHoudiniAssetParameterColor::GetColor)))
-		.OnMouseButtonDown(FPointerEventHandler::CreateUObject(this, 
+		.OnMouseButtonDown(FPointerEventHandler::CreateUObject(this,
 			&UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown))
 	];
 
@@ -133,6 +135,8 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 	Row.ValueWidget.Widget = VerticalBox;
 	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
 }
+
+#endif
 
 
 bool
@@ -154,6 +158,8 @@ UHoudiniAssetParameterColor::GetColor() const
 }
 
 
+#if WITH_EDITOR
+
 FReply
 UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -165,9 +171,9 @@ UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeom
 	FColorPickerArgs PickerArgs;
 	PickerArgs.ParentWidget = ColorBlock;
 	PickerArgs.bUseAlpha = true;
-	PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine, 
+	PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine,
 		&UEngine::GetDisplayGamma));
-	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(this, 
+	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(this,
 		&UHoudiniAssetParameterColor::OnPaintColorChanged);
 	PickerArgs.InitialColorOverride = GetColor();
 	PickerArgs.bOnlyRefreshOnOk = true;
@@ -176,6 +182,8 @@ UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeom
 
 	return FReply::Handled();
 }
+
+#endif
 
 
 void
@@ -191,4 +199,3 @@ UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor)
 		MarkChanged();
 	}
 }
-

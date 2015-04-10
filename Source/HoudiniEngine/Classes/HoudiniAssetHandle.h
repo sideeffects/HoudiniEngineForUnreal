@@ -36,17 +36,21 @@ public:
 public:
 
 	/** Create intance of this class. **/
-	static UHoudiniAssetHandle* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	static UHoudiniAssetHandle* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		const HAPI_HandleInfo& HandleInfo, int32 HandleIdx, const FString& HandleName);
 
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+
+#if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
 	//virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
+
+#endif
 
 	/** Upload parameter value to HAPI. **/
 	//virtual bool UploadParameterValue();
@@ -57,26 +61,7 @@ public:
 /** UObject methods. **/
 public:
 
-	//virtual void BeginDestroy();
-	//virtual void Serialize(FArchive& Ar) override;
-	//virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-
-public:
-
-	/** Called by attached spline component whenever its state changes. **/
-	//void OnInputCurveChanged();
-
-protected:
-
-	/** Clear input curve parameters. **/
-	//void ClearInputCurveParameters();
-
-	/** Create necessary resources for this input. **/
-	//void CreateWidgetResources();
-
-	/** Serialize input curve related parameters. **/
-	//void SerializeInputCurveParameters(FArchive& Ar);
 
 protected:
 

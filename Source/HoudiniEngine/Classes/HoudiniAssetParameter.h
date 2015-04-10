@@ -36,14 +36,18 @@ public:
 public:
 
 	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+
+#if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& InDetailCategoryBuilder);
 
 	/** Create widget for this parameter inside a given box. **/
 	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
+
+#endif
 
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
@@ -165,8 +169,12 @@ protected:
 	/** Array containing all child parameters. **/
 	TArray<UHoudiniAssetParameter*> ChildParameters;
 
+#if WITH_EDITOR
+
 	/** Builder used in construction of this parameter. **/
 	IDetailCategoryBuilder* DetailCategoryBuilder;
+
+#endif
 
 	/** Owner component. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;

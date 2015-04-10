@@ -30,20 +30,24 @@ public:
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterChoice* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	static UHoudiniAssetParameterChoice* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
 	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+
+#if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
 	/** Create widget for this parameter inside a given box. **/
 	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
+
+#endif
 
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue() override;
@@ -55,8 +59,12 @@ public:
 
 public:
 
+#if WITH_EDITOR
+
 	/** Helper method used to generate choice entry widget. **/
 	TSharedRef<SWidget> CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry);
+
+#endif
 
 	/** Called when change of selection is triggered. **/
 	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
