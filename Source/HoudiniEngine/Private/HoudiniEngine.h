@@ -37,12 +37,18 @@ public:
 /** IHoudiniEngine methods. **/
 public:
 
+	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
+
+#if WITH_EDITOR
+
 	virtual void RegisterComponentVisualizers() override;
 	virtual void UnregisterComponentVisualizers() override;
 
-	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
 	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
+
+#endif
+
 	virtual bool CheckHapiVersionMismatch() const override;
 	virtual const FString& GetLibHAPILocation() const override;
 	virtual void AddTask(const FHoudiniEngineTask& Task) override;
@@ -67,22 +73,27 @@ public:
 
 private:
 
+#if WITH_EDITOR
+
 	/** Register AssetType action. **/
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
 
 	/** Add menu extension for our module. **/
 	void AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder);
 
-	/** Return true if running in commandlet. **/
-	bool IsRunningInCommandlet() const;
+#endif
 
 public:
+
+#if WITH_EDITOR
 
 	/** Menu action called to save a HIP file. **/
 	void SaveHIPFile();
 
 	/** Helper delegate used to determine if HIP file save can be executed. **/
 	bool CanSaveHIPFile() const;
+
+#endif
 
 private:
 
@@ -91,11 +102,13 @@ private:
 
 private:
 
-	/** AssetType actions associated with Houdini asset. **/
-	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
-
 	/** Static mesh used for Houdini logo rendering. **/
 	UStaticMesh* HoudiniLogoStaticMesh;
+
+#if WITH_EDITOR
+
+	/** AssetType actions associated with Houdini asset. **/
+	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
 
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
@@ -111,6 +124,8 @@ private:
 
 	/** Slate styleset used by this module. **/
 	TSharedPtr<FSlateStyleSet> StyleSet;
+
+#endif
 
 	/** Synchronization primitive. **/
 	FCriticalSection CriticalSection;
