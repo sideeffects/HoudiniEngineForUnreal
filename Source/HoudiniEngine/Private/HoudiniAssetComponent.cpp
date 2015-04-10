@@ -268,6 +268,8 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	// Houdini Asset has been changed, we need to reset corresponding HDA and relevant resources.
 	ResetHoudiniResources();
 
+#endif
+
 	// Clear all created parameters.
 	ClearParameters();
 
@@ -282,8 +284,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 	// Clear all handles.
 	ClearHandles();
-
-#endif
 
 	// Set Houdini logo to be default geometry.
 	ReleaseObjectGeoPartResources(StaticMeshes);
@@ -1476,6 +1476,11 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	// Release all Houdini related resources.
 	ResetHoudiniResources();
 
+	// Unsubscribe from Editor events.
+	UnsubscribeEditorDelegates();
+
+#endif
+
 	// Release all curve related resources.
 	ClearCurves();
 
@@ -1490,11 +1495,6 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Destroy all handles.
 	ClearHandles();
-
-	// Unsubscribe from Editor events.
-	UnsubscribeEditorDelegates();
-
-#endif
 
 	Super::OnComponentDestroyed();
 }
@@ -2147,22 +2147,6 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 }
 
 
-void
-UHoudiniAssetComponent::ClearCurves()
-{
-	for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
-	{
-		UHoudiniSplineComponent* SplineComponent = Iter.Value();
-
-		SplineComponent->DetachFromParent();
-		SplineComponent->UnregisterComponent();
-		SplineComponent->DestroyComponent();
-	}
-
-	SplineComponents.Empty();
-}
-
-
 bool
 UHoudiniAssetComponent::CreateParameters()
 {
@@ -2394,19 +2378,6 @@ UHoudiniAssetComponent::CreateParameters()
 
 
 void
-UHoudiniAssetComponent::ClearParameters()
-{
-	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
-	{
-		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-		HoudiniAssetParameter->ConditionalBeginDestroy();
-	}
-
-	Parameters.Empty();
-}
-
-
-void
 UHoudiniAssetComponent::NotifyParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
 	FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
@@ -2588,19 +2559,6 @@ UHoudiniAssetComponent::CreateHandles()
 
 
 void
-UHoudiniAssetComponent::ClearHandles()
-{
-	for(TMap<FString, UHoudiniAssetHandle*>::TIterator IterHandles(Handles); IterHandles; ++IterHandles)
-	{
-		UHoudiniAssetHandle* HoudiniAssetHandle = IterHandles.Value();
-		HoudiniAssetHandle->ConditionalBeginDestroy();
-	}
-
-	Handles.Empty();
-}
-
-
-void
 UHoudiniAssetComponent::CreateInputs()
 {
 	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId))
@@ -2628,22 +2586,6 @@ UHoudiniAssetComponent::CreateInputs()
 	{
 		Inputs[InputIdx] = UHoudiniAssetInput::Create(this, InputIdx);
 	}
-}
-
-
-void
-UHoudiniAssetComponent::ClearInputs()
-{
-	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
-	{
-		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
-
-		// Destroy connected Houdini asset.
-		HoudiniAssetInput->DestroyHoudiniAssets();
-		HoudiniAssetInput->ConditionalBeginDestroy();
-	}
-
-	Inputs.Empty();
 }
 
 
@@ -2714,6 +2656,8 @@ UHoudiniAssetComponent::CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>
 	InstanceInputs = NewInstanceInputs;
 }
 
+#endif
+
 
 void
 UHoudiniAssetComponent::ClearInstanceInputs()
@@ -2728,7 +2672,63 @@ UHoudiniAssetComponent::ClearInstanceInputs()
 	InstanceInputs.Empty();
 }
 
-#endif
+
+void
+UHoudiniAssetComponent::ClearCurves()
+{
+	for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
+	{
+		UHoudiniSplineComponent* SplineComponent = Iter.Value();
+
+		SplineComponent->DetachFromParent();
+		SplineComponent->UnregisterComponent();
+		SplineComponent->DestroyComponent();
+	}
+
+	SplineComponents.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::ClearParameters()
+{
+	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+		HoudiniAssetParameter->ConditionalBeginDestroy();
+	}
+
+	Parameters.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::ClearHandles()
+{
+	for(TMap<FString, UHoudiniAssetHandle*>::TIterator IterHandles(Handles); IterHandles; ++IterHandles)
+	{
+		UHoudiniAssetHandle* HoudiniAssetHandle = IterHandles.Value();
+		HoudiniAssetHandle->ConditionalBeginDestroy();
+	}
+
+	Handles.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::ClearInputs()
+{
+	for(TArray<UHoudiniAssetInput*>::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
+	{
+		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+
+		// Destroy connected Houdini asset.
+		HoudiniAssetInput->DestroyHoudiniAssets();
+		HoudiniAssetInput->ConditionalBeginDestroy();
+	}
+
+	Inputs.Empty();
+}
 
 
 UStaticMesh*
