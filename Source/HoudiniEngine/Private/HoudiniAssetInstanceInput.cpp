@@ -14,6 +14,8 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetInstanceInput.h"
+#include "HoudiniAssetComponent.h"
 
 
 const float

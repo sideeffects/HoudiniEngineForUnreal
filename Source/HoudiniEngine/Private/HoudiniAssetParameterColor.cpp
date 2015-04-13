@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetParameterColor.h"
 
 
 UHoudiniAssetParameterColor::UHoudiniAssetParameterColor(const FObjectInitializer& ObjectInitializer) :

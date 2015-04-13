@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterFolderList.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterButton.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterFolderList : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterButton : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterFolderList();
+	virtual ~UHoudiniAssetParameterButton();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterFolderList* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterButton* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
@@ -45,4 +46,12 @@ public:
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
 #endif
+
+	/** Upload parameter value to HAPI. **/
+	virtual bool UploadParameterValue() override;
+
+protected:
+
+	/** Handler for button click. **/
+	FReply OnButtonClick();
 };

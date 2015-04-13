@@ -14,6 +14,10 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetInput.h"
+#include "HoudiniSplineComponent.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetComponent.h"
 
 
 UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :

@@ -252,31 +252,8 @@ struct FHoudiniScopedGlobalSilence
 #include "HoudiniGeoPartObject.h"
 
 /** HoudiniEngine Class headers. **/
-#include "HoudiniRuntimeSettings.h"
-#include "HoudiniAssetParameter.h"
-#include "HoudiniAssetParameterInt.h"
-#include "HoudiniAssetParameterFloat.h"
-#include "HoudiniAssetParameterString.h"
-#include "HoudiniAssetParameterToggle.h"
-#include "HoudiniAssetParameterChoice.h"
-#include "HoudiniAssetParameterColor.h"
-#include "HoudiniAssetParameterLabel.h"
-#include "HoudiniAssetParameterButton.h"
-#include "HoudiniAssetParameterSeparator.h"
-#include "HoudiniAssetParameterFolder.h"
-#include "HoudiniAssetParameterFolderList.h"
-#include "HoudiniAssetInput.h"
-#include "HoudiniAssetInstanceInput.h"
-#include "HoudiniAssetHandle.h"
-#include "HoudiniSplineComponent.h"
-#include "HoudiniAssetComponent.h"
-#include "HoudiniAsset.h"
-#include "HoudiniAssetActor.h"
 
 #if WITH_EDITOR
-#include "HoudiniAssetFactory.h"
-#include "HoudiniAssetActorFactory.h"
-#include "HoudiniAssetThumbnailRenderer.h"
 #endif
 
 /** HoudiniEngine Private headers. **/

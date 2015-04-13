@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetParameterButton.h"
 
 
 UHoudiniAssetParameterButton::UHoudiniAssetParameterButton(const FObjectInitializer& ObjectInitializer) :

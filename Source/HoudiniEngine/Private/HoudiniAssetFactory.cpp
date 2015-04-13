@@ -13,9 +13,8 @@
  *
  */
 
-#if WITH_EDITOR
-
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetFactory.h"
 
 
 UHoudiniAssetFactory::UHoudiniAssetFactory(const FObjectInitializer& ObjectInitializer) :
@@ -155,5 +154,3 @@ UHoudiniAssetFactory::Reimport(UObject* Obj)
 	HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimport has failed."));
 	return EReimportResult::Failed;
 }
-
-#endif

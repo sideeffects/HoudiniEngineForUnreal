@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetParameter.h"
 
 
 uint32

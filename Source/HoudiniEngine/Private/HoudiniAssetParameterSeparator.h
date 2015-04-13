@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterButton.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterSeparator.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterButton : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterSeparator : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterButton();
+	virtual ~UHoudiniAssetParameterSeparator();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterButton* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterSeparator* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
@@ -46,11 +47,4 @@ public:
 
 #endif
 
-	/** Upload parameter value to HAPI. **/
-	virtual bool UploadParameterValue() override;
-
-protected:
-
-	/** Handler for button click. **/
-	FReply OnButtonClick();
 };

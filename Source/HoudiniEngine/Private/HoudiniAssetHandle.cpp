@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetHandle.h"
 
 
 UHoudiniAssetHandle::UHoudiniAssetHandle(const FObjectInitializer& ObjectInitializer) :
