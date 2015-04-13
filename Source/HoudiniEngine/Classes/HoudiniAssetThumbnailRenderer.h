@@ -15,7 +15,7 @@
 
 #pragma once
 #include "HoudiniAssetThumbnailRenderer.generated.h"
-#if HOUDINI_ENGINE_EDITOR_BUILD
+#if WITH_EDITOR
 
 
 class UObject;
