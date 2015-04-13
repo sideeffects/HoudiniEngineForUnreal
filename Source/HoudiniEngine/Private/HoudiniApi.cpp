@@ -15,6 +15,7 @@
 */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniApi.h"
 
 
 FHoudiniApi::IsInitializedFuncPtr

@@ -20,6 +20,7 @@
 #include "StaticMeshResources.h"
 
 #include "HoudiniRuntimeSettings.h"
+#include "HoudiniApi.h"
 
 
 const FString kResultStringSuccess(TEXT("Success"));

@@ -15,6 +15,7 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniSplineComponent.h"
+#include "HoudiniApi.h"
 
 
 UHoudiniSplineComponent::UHoudiniSplineComponent(const FObjectInitializer& ObjectInitializer) :

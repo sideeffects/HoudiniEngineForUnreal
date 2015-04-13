@@ -35,6 +35,7 @@
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniSplineComponent.h"
+#include "HoudiniApi.h"
 
 
 // Macro to update given property on all components.
