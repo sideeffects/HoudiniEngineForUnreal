@@ -17,6 +17,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInput.h"
+#include "HoudiniApi.h"
 
 
 uint32

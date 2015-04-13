@@ -251,13 +251,9 @@ struct FHoudiniScopedGlobalSilence
 /** HoudiniEngine Special headers. **/
 #include "HoudiniGeoPartObject.h"
 
-/** HoudiniEngine Class headers. **/
-
-#if WITH_EDITOR
-#endif
 
 /** HoudiniEngine Private headers. **/
-#include "HoudiniApi.h"
+
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 

@@ -15,6 +15,7 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniAssetParameterToggle.h"
+#include "HoudiniApi.h"
 
 
 UHoudiniAssetParameterToggle::UHoudiniAssetParameterToggle(const FObjectInitializer& ObjectInitializer) :

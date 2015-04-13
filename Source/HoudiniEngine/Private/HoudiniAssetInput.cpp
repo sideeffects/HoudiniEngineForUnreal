@@ -18,6 +18,7 @@
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniApi.h"
 
 
 UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :
