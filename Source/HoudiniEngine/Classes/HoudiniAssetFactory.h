@@ -15,6 +15,7 @@
 
 #pragma once
 #include "HoudiniAssetFactory.generated.h"
+#if HOUDINI_ENGINE_EDITOR_BUILD
 
 
 class UClass;
@@ -43,3 +44,5 @@ public:
 	virtual void SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths) override;
 	virtual EReimportResult::Type Reimport(UObject* Obj) override;
 };
+
+#endif

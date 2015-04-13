@@ -15,6 +15,8 @@
 
 #pragma once
 #include "HoudiniAssetActorFactory.generated.h"
+#if HOUDINI_ENGINE_EDITOR_BUILD
+
 
 class FText;
 class AActor;
@@ -42,3 +44,5 @@ public:
 	/** update the blueprint's CDO properties with state from the asset for this factory.									**/
 	virtual void PostCreateBlueprint(UObject* Asset, AActor* CDO) override;
 };
+
+#endif

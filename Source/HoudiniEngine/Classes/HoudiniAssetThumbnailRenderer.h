@@ -15,6 +15,7 @@
 
 #pragma once
 #include "HoudiniAssetThumbnailRenderer.generated.h"
+#if HOUDINI_ENGINE_EDITOR_BUILD
 
 
 class UObject;
@@ -50,3 +51,5 @@ private:
 	/** Map of scenes managed by this thumbnail renderer, one for each asset. **/
 	TMap<UHoudiniAsset*, FHoudiniAssetThumbnailScene*> ThumbnailScenes;
 };
+
+#endif
