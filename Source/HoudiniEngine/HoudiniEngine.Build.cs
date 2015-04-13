@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 14.0.300
+    Houdini Version: 14.0.303
     Houdini Engine Version: 1.9.17
     Unreal Version: 4.6.1
 
@@ -30,13 +30,13 @@ public class HoudiniEngine : ModuleRules
 	public HoudiniEngine( TargetInfo Target )
 	{
 		string HFSPath = "";
-		string HoudiniVersion = "14.0.300";
+		string HoudiniVersion = "14.0.303";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
 			Target.Platform != UnrealTargetPlatform.Mac )
 		{
-			string Err = string.Format("Houdini Engine : Compiling on unsupported platform.");
+			string Err = string.Format( "Houdini Engine : Compiling on unsupported platform." );
 			System.Console.WriteLine( Err );
 			throw new BuildException( Err );
 		}
@@ -86,14 +86,14 @@ public class HoudiniEngine : ModuleRules
 				// ... add public include paths required here ...
 				HAPIIncludePath
 			}
-			);
+		);
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"HoudiniEngine/Private"
 				// ... add other private include paths required here ...
 			}
-			);
+		);
 
 		// Add common dependencies.
 		PublicDependencyModuleNames.Add( "Core" );
@@ -112,6 +112,8 @@ public class HoudiniEngine : ModuleRules
 		// Add editor specific dependencies.
 		if( UEBuildConfiguration.bBuildEditor == true )
 		{
+			Definitions.Add( "HOUDINI_ENGINE_EDITOR_BUILD" );
+			
 			PublicDependencyModuleNames.Add( "Slate" );
 			PublicDependencyModuleNames.Add( "SlateCore" );
 			PublicDependencyModuleNames.Add( "AssetTools");
