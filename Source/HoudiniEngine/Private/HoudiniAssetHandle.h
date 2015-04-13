@@ -17,6 +17,7 @@
  */
 
 #pragma once
+#include "HoudiniAssetParameter.h"
 #include "HoudiniAssetHandle.generated.h"
 
 

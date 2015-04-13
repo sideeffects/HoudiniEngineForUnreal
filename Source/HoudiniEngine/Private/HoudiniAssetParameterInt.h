@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterChoice.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterInt.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterChoice : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterInt : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterChoice();
+	virtual ~UHoudiniAssetParameterInt();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterChoice* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterInt* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
@@ -44,9 +45,6 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
-	/** Create widget for this parameter inside a given box. **/
-	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
-
 #endif
 
 	/** Upload parameter value to HAPI. **/
@@ -59,33 +57,31 @@ public:
 
 public:
 
-#if WITH_EDITOR
+	/** Get value of this property, used by Slate. **/
+	TOptional<int32> GetValue(int32 Idx) const;
 
-	/** Helper method used to generate choice entry widget. **/
-	TSharedRef<SWidget> CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry);
+	/** Set value of this property, used by Slate. **/
+	void SetValue(int32 InValue, int32 Idx);
 
-#endif
+	/** Set value of this property through commit action, used by Slate. **/
+	void SetValueCommitted(int32 InValue, ETextCommit::Type CommitType, int32 Idx);
 
-	/** Called when change of selection is triggered. **/
-	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
+	/** Delegate fired when slider for this property begins moving. **/
+	void OnSliderMovingBegin(int32 Idx);
 
-	/** Called to retrieve the name of selected item. **/
-	FString HandleChoiceContentText() const;
+	/** Delegate fired when slider for this property has finished moving. **/
+	void OnSliderMovingFinish(int32 InValue, int32 Idx);
 
 protected:
 
-	/** Choice values for this property. **/
-	TArray<TSharedPtr<FString> > StringChoiceValues;
+	/** Values of this property. **/
+	TArray<int32> Values;
 
-	/** Choice labels for this property. **/
-	TArray<TSharedPtr<FString> > StringChoiceLabels;
+	/** Min and Max values for this property. **/
+	int32 ValueMin;
+	int32 ValueMax;
 
-	/** Value of this property. **/
-	FString StringValue;
-
-	/** Current value for this property. **/
-	int32 CurrentValue;
-
-	/** Is set to true when this choice list is a string choice list. **/
-	bool bStringChoiceList;
+	/** Min and Max values for UI for this property. **/
+	int32 ValueUIMin;
+	int32 ValueUIMax;
 };

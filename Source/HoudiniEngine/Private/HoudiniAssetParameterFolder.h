@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterSeparator.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterFolder.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterSeparator : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterFolder : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterSeparator();
+	virtual ~UHoudiniAssetParameterFolder();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterSeparator* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterFolder* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
@@ -45,5 +46,4 @@ public:
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
 #endif
-
 };
