@@ -15,19 +15,14 @@
 
 #pragma once
 
-/** Unreal headers. **/
-#include "CoreUObject.h"
+/** Unreal Editor headers. **/
+#if WITH_EDITOR
 #include "UnrealEd.h"
 #include "ObjectTools.h"
 #include "AssetTypeActions_Base.h"
-#include "ModuleManager.h"
-#include "EngineModule.h"
-#include "Core.h"
-#include "AssetData.h"
 #include "ComponentAssetBroker.h"
 #include "PackageTools.h"
 #include "ThumbnailHelpers.h"
-#include "AssetRegistryModule.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
@@ -35,13 +30,6 @@
 #include "IDetailPropertyRow.h"
 #include "LevelEditor.h"
 #include "IMainFrameModule.h"
-#include "DesktopPlatformModule.h"
-#include "RawMesh.h"
-#include "StaticMeshResources.h"
-#include "ComponentReregisterContext.h"
-#include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialExpressionTextureCoordinate.h"
-#include "Materials/MaterialExpressionVertexColor.h"
 #include "ClassIconFinder.h"
 #include "SAssetDropTarget.h"
 #include "SAssetSearchBox.h"
@@ -52,11 +40,30 @@
 #include "SVectorInputBox.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
-#include "ScopedTransaction.h"
-#include "ISettingsModule.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#endif
+
+/** Other Unreal headers. **/
+#include "CoreUObject.h"
+#include "ModuleManager.h"
+#include "EngineModule.h"
+#include "Engine/EngineTypes.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "MaterialShared.h"
+#include "Core.h"
+#include "AssetData.h"
+#include "AssetRegistryModule.h"
+#include "DesktopPlatformModule.h"
+#include "RawMesh.h"
+#include "StaticMeshResources.h"
+#include "ComponentReregisterContext.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionVertexColor.h"
+#include "ScopedTransaction.h"
+#include "ISettingsModule.h"
 
 /** Houdini Engine headers. **/
 #include <vector>
