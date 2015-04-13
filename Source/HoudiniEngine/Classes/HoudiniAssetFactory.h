@@ -15,7 +15,7 @@
 
 #pragma once
 #include "HoudiniAssetFactory.generated.h"
-#if HOUDINI_ENGINE_EDITOR_BUILD
+#if WITH_EDITOR
 
 
 class UClass;
