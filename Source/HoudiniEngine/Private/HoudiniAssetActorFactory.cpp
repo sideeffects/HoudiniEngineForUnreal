@@ -14,12 +14,9 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniAssetActorFactory.h"
-#include "HoudiniAssetComponent.h"
-#include "HoudiniAssetActor.h"
 
 
-UHoudiniAssetActorFactory::UHoudiniAssetActorFactory(const FObjectInitializer& ObjectInitializer) :
+UHoudiniAssetActorFactory::UHoudiniAssetActorFactory(const FObjectInitializer& ObjectInitializer) : 
 	Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("HoudiniAssetDisplayName", "Houdini Engine Asset");
