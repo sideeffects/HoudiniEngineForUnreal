@@ -14,8 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniAssetParameterFolderList.h"
-#include "HoudiniApi.h"
 
 
 UHoudiniAssetParameterFolderList::UHoudiniAssetParameterFolderList(const FObjectInitializer& ObjectInitializer) :

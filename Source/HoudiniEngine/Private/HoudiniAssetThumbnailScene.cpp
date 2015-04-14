@@ -14,9 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniAsset.h"
-#include "HoudiniAssetActor.h"
-#include "HoudiniAssetComponent.h"
 
 
 FHoudiniAssetThumbnailScene::FHoudiniAssetThumbnailScene()
@@ -62,7 +59,7 @@ FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 
 
 void
-FHoudiniAssetThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin,
+FHoudiniAssetThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, 
 	float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
 {
 	check(PreviewHoudiniAssetActor);

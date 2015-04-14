@@ -14,8 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniAssetParameterFloat.h"
-#include "HoudiniApi.h"
 
 
 UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat(const FObjectInitializer& ObjectInitializer) :

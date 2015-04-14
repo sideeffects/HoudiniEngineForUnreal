@@ -14,8 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniAsset.h"
-#include "HoudiniAssetThumbnailRenderer.h"
 
 
 const uint32
@@ -100,7 +98,7 @@ UHoudiniAsset::FinishDestroy()
 			ThumbnailRenderer->RemoveAssetThumbnail(this);
 		}
 	}
-
+	
 #endif
 
 	// Release buffer which was used to store raw OTL data.

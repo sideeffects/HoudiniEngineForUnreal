@@ -14,7 +14,6 @@
 */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniApi.h"
 
 
 uint32
@@ -46,11 +45,11 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bHasUnrealMaterialAssigned(false),
 	bNativeHoudiniMaterialRefetch(false)
 {
-
+	
 }
 
 
-FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
 	HAPI_PartId InPartId) :
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
@@ -77,8 +76,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 }
 
 
-FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName,
-	const FString& InPartName, HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, 
+	const FString& InPartName, HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, 
 	HAPI_PartId InPartId) :
 	TransformMatrix(InTransform),
 	ObjectName(InObjectName),

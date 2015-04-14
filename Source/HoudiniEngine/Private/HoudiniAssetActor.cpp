@@ -14,8 +14,6 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniAssetActor.h"
-#include "HoudiniAssetComponent.h"
 
 
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializer) :
@@ -24,7 +22,7 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializ
 	bCanBeDamaged = false;
 
 	// Create Houdini component and attach it to a root component.
-	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this,
+	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, 
 		TEXT("HoudiniAssetComponent"));
 
 	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
@@ -44,3 +42,4 @@ AHoudiniAssetActor::IsUsedForPreview() const
 {
 	return HasAnyFlags(RF_Transient);
 }
+
