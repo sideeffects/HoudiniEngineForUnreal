@@ -14,6 +14,8 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniAsset.h"
 
 
 FHoudiniAssetBroker::~FHoudiniAssetBroker()
