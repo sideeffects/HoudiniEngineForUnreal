@@ -14,6 +14,28 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniAsset.h"
+#include "HoudiniAssetActor.h"
+#include "HoudiniRuntimeSettings.h"
+#include "HoudiniAssetInstanceInput.h"
+#include "HoudiniAssetInput.h"
+#include "HoudiniAssetInstanceInput.h"
+#include "HoudiniAssetHandle.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterButton.h"
+#include "HoudiniAssetParameterChoice.h"
+#include "HoudiniAssetParameterColor.h"
+#include "HoudiniAssetParameterFloat.h"
+#include "HoudiniAssetParameterFolder.h"
+#include "HoudiniAssetParameterFolderList.h"
+#include "HoudiniAssetParameterInt.h"
+#include "HoudiniAssetParameterLabel.h"
+#include "HoudiniAssetParameterSeparator.h"
+#include "HoudiniAssetParameterString.h"
+#include "HoudiniAssetParameterToggle.h"
+#include "HoudiniSplineComponent.h"
+#include "HoudiniApi.h"
 
 
 // Macro to update given property on all components.

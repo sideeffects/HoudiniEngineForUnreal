@@ -14,6 +14,8 @@
 */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniSplineComponent.h"
+#include "HoudiniApi.h"
 
 
 UHoudiniSplineComponent::UHoudiniSplineComponent(const FObjectInitializer& ObjectInitializer) :
@@ -57,9 +59,9 @@ UHoudiniSplineComponent::SerializeRaw(FArchive& Ar)
 
 
 bool
-UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, 
-	const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints, 
-	EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod, 
+UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject,
+	const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,
+	EHoudiniSplineComponentType::Enum InCurveType, EHoudiniSplineComponentMethod::Enum InCurveMethod,
 	bool bInClosedCurve)
 {
 	HoudiniGeoPartObject = InHoudiniGeoPartObject;
