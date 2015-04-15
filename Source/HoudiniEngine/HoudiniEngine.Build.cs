@@ -96,36 +96,32 @@ public class HoudiniEngine : ModuleRules
 		);
 
 		// Add common dependencies.
-		PublicDependencyModuleNames.Add( "Core" );
-		PublicDependencyModuleNames.Add( "CoreUObject" );
-		PublicDependencyModuleNames.Add( "Engine" );
-		PublicDependencyModuleNames.Add( "RenderCore" );
-		PublicDependencyModuleNames.Add( "ShaderCore" );
-		PublicDependencyModuleNames.Add( "InputCore" );
-		PublicDependencyModuleNames.Add( "RHI" );
-		PublicDependencyModuleNames.Add( "Settings" );
-		PublicDependencyModuleNames.Add( "RawMesh" );
-		PublicDependencyModuleNames.Add( "TargetPlatform" );
-		PublicDependencyModuleNames.Add( "AppFramework" );
-		PublicDependencyModuleNames.Add( "Projects" );
-
-		// Add editor specific dependencies.
-		if( UEBuildConfiguration.bBuildEditor == true )
-		{
-			Definitions.Add( "HOUDINI_ENGINE_EDITOR_BUILD" );
-			
-			PublicDependencyModuleNames.Add( "Slate" );
-			PublicDependencyModuleNames.Add( "SlateCore" );
-			PublicDependencyModuleNames.Add( "AssetTools");
-
-			PublicDependencyModuleNames.Add( "UnrealEd" );
-			PublicDependencyModuleNames.Add( "LevelEditor" );
-			PublicDependencyModuleNames.Add( "MainFrame" );
-			PublicDependencyModuleNames.Add( "EditorStyle" );
-			PublicDependencyModuleNames.Add( "EditorWidgets" );
-			PublicDependencyModuleNames.Add( "ContentBrowser" );
-			PublicDependencyModuleNames.Add( "PropertyEditor" );
-		}
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"RenderCore",
+				"ShaderCore",
+				"InputCore",
+				"RHI",
+				"AssetTools",
+				"UnrealEd",
+				"Slate",
+				"SlateCore",
+				"Projects",
+				"PropertyEditor",
+				"ContentBrowser",
+				"RawMesh",
+				"TargetPlatform",
+				"LevelEditor",
+				"MainFrame",
+				"EditorStyle",
+				"EditorWidgets",
+				"AppFramework"
+			}
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
