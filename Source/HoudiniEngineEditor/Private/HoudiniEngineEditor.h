@@ -18,6 +18,8 @@
 
 
 class UStaticMesh;
+class FRunnableThread;
+class FHoudiniEngineScheduler;
 
 class FHoudiniEngineEditor : public IHoudiniEngineEditor
 {
@@ -48,4 +50,12 @@ private:
 
 	/** Singleton instance of Houdini Engine runtime. **/
 	static FHoudiniEngineEditor* HoudiniEngineEditorInstance;
+
+private:
+
+	/** Thread used to execute the scheduler. **/
+	FRunnableThread* HoudiniEngineSchedulerThread;
+
+	/** Scheduler used to schedule HAPI tasks. **/
+	FHoudiniEngineScheduler* HoudiniEngineScheduler;
 };
