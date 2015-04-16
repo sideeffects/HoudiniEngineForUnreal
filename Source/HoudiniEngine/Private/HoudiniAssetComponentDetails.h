@@ -22,7 +22,6 @@ struct FGeometry;
 struct FSlateBrush;
 struct FPointerEvent;
 
-
 class FAssetData;
 class UStaticMesh;
 class IDetailLayoutBuilder;

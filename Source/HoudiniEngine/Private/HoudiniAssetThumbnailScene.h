@@ -19,7 +19,6 @@
 class UHoudiniAsset;
 class AHoudiniAssetActor;
 
-
 class HOUDINIENGINE_API FHoudiniAssetThumbnailScene : public FThumbnailPreviewScene
 {
 public:

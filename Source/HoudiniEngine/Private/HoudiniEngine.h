@@ -25,7 +25,6 @@ class IAssetTypeActions;
 class IComponentAssetBroker;
 class FHoudiniEngineScheduler;
 
-
 class FHoudiniEngine : public IHoudiniEngine
 {
 

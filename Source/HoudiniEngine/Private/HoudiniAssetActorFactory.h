@@ -23,7 +23,6 @@ class AActor;
 class UObject;
 class FAssetData;
 
-
 UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniAssetActorFactory : public UActorFactory
 {
