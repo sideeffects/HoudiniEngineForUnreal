@@ -15,7 +15,6 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
-#include "HoudiniEngineScheduler.h"
 
 
 const FName
@@ -52,9 +51,6 @@ FHoudiniEngineEditor::StartupModule()
 	// Load Houdini Engine Runtime module.
 	//IHoudiniEngine& HoudiniEngine = FModuleManager::LoadModuleChecked<FHoudiniEngine>("HoudiniEngine").Get();
 
-	HoudiniEngineScheduler = new FHoudiniEngineScheduler();
-	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniScheduler"), 0, TPri_Normal);
-
 	// Store the instance.
 	FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
 }
@@ -64,25 +60,4 @@ void
 FHoudiniEngineEditor::ShutdownModule()
 {
 	HOUDINI_EDITOR_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
-
-	// Do scheduler and thread clean up.
-	if(HoudiniEngineScheduler)
-	{
-		HoudiniEngineScheduler->Stop();
-	}
-
-	if(HoudiniEngineSchedulerThread)
-	{
-		//HoudiniEngineSchedulerThread->Kill(true);
-		HoudiniEngineSchedulerThread->WaitForCompletion();
-
-		delete HoudiniEngineSchedulerThread;
-		HoudiniEngineSchedulerThread = nullptr;
-	}
-
-	if(HoudiniEngineScheduler)
-	{
-		delete HoudiniEngineScheduler;
-		HoudiniEngineScheduler = nullptr;
-	}
 }
