@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngineScheduler.h"
 
 
 const FName
@@ -32,26 +33,56 @@ FHoudiniEngineEditor::HoudiniEngineEditorInstance = nullptr;
 FHoudiniEngineEditor&
 FHoudiniEngineEditor::Get()
 {
-    return *HoudiniEngineEditorInstance;
+	return *HoudiniEngineEditorInstance;
 }
 
 
 bool
 FHoudiniEngineEditor::IsInitialized()
 {
-    return FHoudiniEngineEditor::HoudiniEngineEditorInstance != nullptr;
+	return FHoudiniEngineEditor::HoudiniEngineEditorInstance != nullptr;
 }
 
 
 void
 FHoudiniEngineEditor::StartupModule()
 {
+	HOUDINI_EDITOR_LOG_MESSAGE(TEXT("Starting the Houdini Engine Editor module."));
 
+	// Load Houdini Engine Runtime module.
+	//IHoudiniEngine& HoudiniEngine = FModuleManager::LoadModuleChecked<FHoudiniEngine>("HoudiniEngine").Get();
+
+	HoudiniEngineScheduler = new FHoudiniEngineScheduler();
+	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniScheduler"), 0, TPri_Normal);
+
+	// Store the instance.
+	FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
 }
 
 
 void
 FHoudiniEngineEditor::ShutdownModule()
 {
-    
+	HOUDINI_EDITOR_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
+
+	// Do scheduler and thread clean up.
+	if(HoudiniEngineScheduler)
+	{
+		HoudiniEngineScheduler->Stop();
+	}
+
+	if(HoudiniEngineSchedulerThread)
+	{
+		//HoudiniEngineSchedulerThread->Kill(true);
+		HoudiniEngineSchedulerThread->WaitForCompletion();
+
+		delete HoudiniEngineSchedulerThread;
+		HoudiniEngineSchedulerThread = nullptr;
+	}
+
+	if(HoudiniEngineScheduler)
+	{
+		delete HoudiniEngineScheduler;
+		HoudiniEngineScheduler = nullptr;
+	}
 }

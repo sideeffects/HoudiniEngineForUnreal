@@ -27,6 +27,8 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log, All);
 #define LOCTEXT_NAMESPACE "HoudiniEngineEditor"
 
+#define HOUDINI_EDITOR_LOG_MESSAGE(...)
+
 /** Definitions coming from UBT. **/
 #ifndef HOUDINI_ENGINE_HFS_PATH
 #define HOUDINI_ENGINE_HFS_PATH ""
