@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterToggle.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterSeparator.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterToggle : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterSeparator : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterToggle();
+	virtual ~UHoudiniAssetParameterSeparator();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterToggle* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterSeparator* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
@@ -44,29 +45,5 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
-	/** Create widget for this parameter inside a given box. **/
-	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
-
 #endif
-
-	/** Upload parameter value to HAPI. **/
-	virtual bool UploadParameterValue() override;
-
-/** UObject methods. **/
-public:
-
-	virtual void Serialize(FArchive& Ar) override;
-
-public:
-
-	/** Get value of this property, used by Slate. **/
-	void CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx);
-
-	/** Return checked state of this property, used by Slate. **/
-	ESlateCheckBoxState::Type IsChecked(int32 Idx) const;
-
-protected:
-
-	/** Values of this property. **/
-	TArray<int32> Values;
 };

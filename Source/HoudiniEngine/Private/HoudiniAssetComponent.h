@@ -14,14 +14,15 @@
  */
 
 #pragma once
+
 #include "HAPI.h"
+#include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetComponent.generated.h"
 
 
 class UClass;
 class UProperty;
 class UMaterial;
-class FTransform;
 class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
@@ -36,6 +37,7 @@ class UHoudiniSplineComponent;
 class UHoudiniAssetInstanceInput;
 class UFoliageType_InstancedStaticMesh;
 
+class FTransform;
 struct FPropertyChangedEvent;
 struct FWalkableSlopeOverride;
 

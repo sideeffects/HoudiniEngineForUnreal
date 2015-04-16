@@ -14,6 +14,9 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineTask.h"
+#include "HoudiniAsset.h"
+#include "HoudiniAssetComponent.h"
 
 
 FHoudiniEngineTask::FHoudiniEngineTask() :

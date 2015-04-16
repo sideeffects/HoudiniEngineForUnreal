@@ -14,6 +14,9 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniAssetHandle.h"
+#include "HoudiniApi.h"
 
 
 UHoudiniAssetHandle::UHoudiniAssetHandle(const FObjectInitializer& ObjectInitializer) :
@@ -119,7 +122,7 @@ UHoudiniAssetHandle::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 	UHoudiniAssetHandle* HoudiniAssetHandle = Cast<UHoudiniAssetHandle>(InThis);
 	if(HoudiniAssetHandle && !HoudiniAssetHandle->IsPendingKill())
 	{
-		
+
 	}
 
 	// Call base implementation.

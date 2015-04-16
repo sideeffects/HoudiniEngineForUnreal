@@ -14,6 +14,7 @@
  */
 
 #pragma once
+#include "HoudiniAssetParameter.h"
 #include "HoudiniAssetInstanceInput.generated.h"
 
 

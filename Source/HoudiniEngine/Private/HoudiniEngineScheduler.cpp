@@ -14,6 +14,9 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniEngine.h"
+#include "HoudiniApi.h"
 
 
 const uint32
@@ -53,24 +56,24 @@ FHoudiniEngineScheduler::~FHoudiniEngineScheduler()
 }
 
 
-void 
-FHoudiniEngineScheduler::TaskDescription(FHoudiniEngineTaskInfo& TaskInfo, const FString& ActorName, 
+void
+FHoudiniEngineScheduler::TaskDescription(FHoudiniEngineTaskInfo& TaskInfo, const FString& ActorName,
 	const FString& StatusString)
 {
 	FFormatNamedArguments Args;
 
 	if(!ActorName.IsEmpty())
-	{	
+	{
 		Args.Add(TEXT("AssetName"), FText::FromString(ActorName));
 		Args.Add(TEXT("AssetStatus"), FText::FromString(StatusString));
-		TaskInfo.StatusText = 
+		TaskInfo.StatusText =
 			FText::Format(
 				NSLOCTEXT("TaskDescription", "TaskDescriptionProgress", "({AssetName}) : ({AssetStatus})"), Args);
 	}
 	else
 	{
 		Args.Add(TEXT("AssetStatus"), FText::FromString(StatusString));
-		TaskInfo.StatusText = 
+		TaskInfo.StatusText =
 			FText::Format(NSLOCTEXT("TaskDescription", "TaskDescriptionProgress", "({AssetStatus})"), Args);
 	}
 }
@@ -85,7 +88,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
-		HOUDINI_LOG_ERROR(TEXT("TaskInstantiateAsset failed: %s"), 
+		HOUDINI_LOG_ERROR(TEXT("TaskInstantiateAsset failed: %s"),
 			*FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
 
 		AddResponseMessageTaskInfo(HAPI_RESULT_NOT_INITIALIZED, EHoudiniEngineTaskType::AssetInstantiation,
@@ -146,7 +149,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 
 		return;
 	}
-	
+
 	AssetNames.SetNumUninitialized(AssetCount);
 	Result = FHoudiniApi::GetAvailableAssets(AssetLibraryId, &AssetNames[0], AssetCount);
 	if(HAPI_RESULT_SUCCESS != Result)
@@ -185,7 +188,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		}
 
 		// Add processing notification.
-		FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, -1, EHoudiniEngineTaskType::AssetInstantiation, 
+		FHoudiniEngineTaskInfo TaskInfo(HAPI_RESULT_SUCCESS, -1, EHoudiniEngineTaskType::AssetInstantiation,
 			EHoudiniEngineTaskState::Processing);
 
 		TaskInfo.bLoadedComponent = Task.bLoadedComponent;
@@ -202,7 +205,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 			{
 				// Cooking has been successful.
 				AddResponseMessageTaskInfo(HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetInstantiation,
-					EHoudiniEngineTaskState::FinishedInstantiation, AssetId, Task, 
+					EHoudiniEngineTaskState::FinishedInstantiation, AssetId, Task,
 					TEXT("Finished Instantiation."));
 
 				break;
@@ -249,7 +252,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 {
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
-		HOUDINI_LOG_ERROR(TEXT("TaskCookAsset failed: %s"), 
+		HOUDINI_LOG_ERROR(TEXT("TaskCookAsset failed: %s"),
 			*FHoudiniEngineUtils::GetErrorDescription(HAPI_RESULT_NOT_INITIALIZED));
 
 		AddResponseMessageTaskInfo(HAPI_RESULT_NOT_INITIALIZED, EHoudiniEngineTaskType::AssetCooking,
@@ -312,7 +315,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 		if(!Task.AssetComponent.IsValid())
 		{
 			AddResponseMessageTaskInfo(HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetCooking,
-				EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task, 
+				EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task,
 				TEXT("Component is no longer valid."));
 
 			break;
@@ -322,7 +325,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 		{
 			// Cooking has been successful.
 			AddResponseMessageTaskInfo(HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetCooking,
-				EHoudiniEngineTaskState::FinishedCooking, AssetId, Task, 
+				EHoudiniEngineTaskState::FinishedCooking, AssetId, Task,
 				TEXT("Finished Cooking"));
 
 			break;
@@ -331,7 +334,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 		{
 			// There was an error while instantiating.
 			AddResponseMessageTaskInfo(HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetCooking,
-				EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task, 
+				EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task,
 				TEXT("Finished Cooking with Errors"));
 
 			break;
@@ -370,14 +373,14 @@ FHoudiniEngineScheduler::TaskDeleteAsset(const FHoudiniEngineTask& Task)
 		FHoudiniEngineUtils::DestroyHoudiniAsset(Task.AssetId);
 	}
 
-	// We do not insert task info as this is a fire and forget operation. 
+	// We do not insert task info as this is a fire and forget operation.
 	// At this point component most likely does not exist.
 }
 
 
 void
 FHoudiniEngineScheduler::AddResponseTaskInfo(
-	HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, EHoudiniEngineTaskState::Type TaskState, 
+	HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, EHoudiniEngineTaskState::Type TaskState,
 	HAPI_AssetId AssetId, const FHoudiniEngineTask& Task)
 {
 	FHoudiniEngineTaskInfo TaskInfo(Result, AssetId, TaskType, TaskState);
@@ -391,7 +394,7 @@ FHoudiniEngineScheduler::AddResponseTaskInfo(
 
 void
 FHoudiniEngineScheduler::AddResponseMessageTaskInfo(
-	HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, EHoudiniEngineTaskState::Type TaskState, 
+	HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, EHoudiniEngineTaskState::Type TaskState,
 	HAPI_AssetId AssetId, const FHoudiniEngineTask& Task, const FString& ErrorMessage)
 {
 	FHoudiniEngineTaskInfo TaskInfo(Result, AssetId, TaskType, TaskState);
@@ -491,7 +494,7 @@ FHoudiniEngineScheduler::AddTask(const FHoudiniEngineTask& Task)
 		uint32 NextTaskCount = FPlatformMath::RoundUpToPowerOfTwo(TaskCount + 1);
 
 		// Allocate new buffer.
-		FHoudiniEngineTask* Buffer = 
+		FHoudiniEngineTask* Buffer =
 			static_cast<FHoudiniEngineTask*>(FMemory::Malloc(NextTaskCount * sizeof(FHoudiniEngineTask)));
 
 		if(!Buffer)

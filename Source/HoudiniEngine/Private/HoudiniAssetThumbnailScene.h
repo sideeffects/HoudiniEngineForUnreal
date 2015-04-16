@@ -15,7 +15,9 @@
 
 #pragma once
 
+
 class UHoudiniAsset;
+class AHoudiniAssetActor;
 
 class HOUDINIENGINE_API FHoudiniAssetThumbnailScene : public FThumbnailPreviewScene
 {
@@ -30,7 +32,7 @@ public:
 /** FThumbnailPreviewScene methods. **/
 protected:
 
-	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, 
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch,
 		float& OutOrbitYaw, float& OutOrbitZoom) const override;
 
 private:

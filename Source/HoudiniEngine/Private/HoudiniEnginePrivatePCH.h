@@ -64,6 +64,7 @@
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "ScopedTransaction.h"
 #include "ISettingsModule.h"
+#include "TargetPlatform.h"
 
 /** Houdini Engine headers. **/
 #include <vector>
@@ -246,55 +247,3 @@ struct FHoudiniScopedGlobalSilence
 
 	bool bGlobalSilent;
 };
-
-
-/** HoudiniEngine Special headers. **/
-#include "HoudiniGeoPartObject.h"
-
-/** HoudiniEngine Class headers. **/
-#include "HoudiniRuntimeSettings.h"
-#include "HoudiniAssetParameter.h"
-#include "HoudiniAssetParameterInt.h"
-#include "HoudiniAssetParameterFloat.h"
-#include "HoudiniAssetParameterString.h"
-#include "HoudiniAssetParameterToggle.h"
-#include "HoudiniAssetParameterChoice.h"
-#include "HoudiniAssetParameterColor.h"
-#include "HoudiniAssetParameterLabel.h"
-#include "HoudiniAssetParameterButton.h"
-#include "HoudiniAssetParameterSeparator.h"
-#include "HoudiniAssetParameterFolder.h"
-#include "HoudiniAssetParameterFolderList.h"
-#include "HoudiniAssetInput.h"
-#include "HoudiniAssetInstanceInput.h"
-#include "HoudiniAssetHandle.h"
-#include "HoudiniSplineComponent.h"
-#include "HoudiniAssetComponent.h"
-#include "HoudiniAsset.h"
-#include "HoudiniAssetActor.h"
-
-#if WITH_EDITOR
-#include "HoudiniAssetFactory.h"
-#include "HoudiniAssetActorFactory.h"
-#include "HoudiniAssetThumbnailRenderer.h"
-#endif
-
-/** HoudiniEngine Private headers. **/
-#include "HoudiniApi.h"
-#include "HoudiniEngineTask.h"
-#include "HoudiniEngineTaskInfo.h"
-
-#if WITH_EDITOR
-#include "HoudiniAssetComponentDetails.h"
-#include "HoudiniRuntimeSettingsDetails.h"
-#include "HoudiniAssetLogWidget.h"
-#include "HoudiniAssetTypeActions.h"
-#include "HoudiniAssetBroker.h"
-#include "HoudiniAssetThumbnailScene.h"
-#include "HoudiniSplineComponentVisualizer.h"
-#endif
-
-#include "HoudiniEngine.h"
-#include "HoudiniEngineScheduler.h"
-#include "HoudiniLogo.h"
-#include "HoudiniEngineUtils.h"

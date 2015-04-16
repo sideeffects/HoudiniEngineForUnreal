@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include "HoudiniEngineTask.h"
+
+
 namespace EHoudiniEngineTaskState
 {
 	enum Type

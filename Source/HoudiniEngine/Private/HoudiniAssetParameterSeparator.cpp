@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetParameterSeparator.h"
 
 
 UHoudiniAssetParameterSeparator::UHoudiniAssetParameterSeparator(const FObjectInitializer& ObjectInitializer) :

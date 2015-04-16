@@ -14,6 +14,8 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAsset.h"
+#include "HoudiniAssetThumbnailRenderer.h"
 
 
 const uint32

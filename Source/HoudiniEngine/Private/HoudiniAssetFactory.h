@@ -22,7 +22,6 @@ class UClass;
 class UObject;
 class FFeedbackContext;
 
-
 UCLASS(config=Editor)
 class HOUDINIENGINE_API UHoudiniAssetFactory : public UFactory, public FReimportHandler
 {

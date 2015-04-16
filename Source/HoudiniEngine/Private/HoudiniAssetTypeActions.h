@@ -15,8 +15,11 @@
 
 #pragma once
 
+
 class UClass;
 class UObject;
+class UObject;
+class UHoudiniAsset;
 class UThumbnailInfo;
 
 class FHoudiniAssetTypeActions : public FAssetTypeActions_Base

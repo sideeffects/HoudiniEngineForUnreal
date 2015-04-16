@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterFolderList.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterLabel.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterFolderList : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterLabel : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterFolderList();
+	virtual ~UHoudiniAssetParameterLabel();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterFolderList* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterLabel* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:

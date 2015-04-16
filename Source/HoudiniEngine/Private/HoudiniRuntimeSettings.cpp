@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniRuntimeSettings.h"
 
 
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& ObjectInitializer) :
@@ -58,7 +59,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	RecomputeNormalsFlag(HRSRF_OnlyIfMissing),
 	RecomputeTangentsFlag(HRSRF_OnlyIfMissing)
 {
-	
+
 }
 
 

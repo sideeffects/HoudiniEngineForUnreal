@@ -19,6 +19,7 @@ class UStaticMesh;
 class ISlateStyle;
 struct FHoudiniEngineNotificationInfo;
 struct FHoudiniEngineTask;
+struct FHoudiniEngineTaskInfo;
 
 class IHoudiniEngine : public IModuleInterface
 {

@@ -14,6 +14,12 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetParameterChoice.h"
+#include "HoudiniApi.h"
+
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#endif
 
 
 UHoudiniAssetParameterChoice::UHoudiniAssetParameterChoice(const FObjectInitializer& ObjectInitializer) :

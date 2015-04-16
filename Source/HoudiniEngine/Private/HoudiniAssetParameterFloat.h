@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterInt.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterFloat.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterInt : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterFloat : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterInt();
+	virtual ~UHoudiniAssetParameterFloat();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterInt* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterFloat* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
@@ -57,30 +58,35 @@ public:
 public:
 
 	/** Get value of this property, used by Slate. **/
-	TOptional<int32> GetValue(int32 Idx) const;
+	TOptional<float> GetValue(int32 Idx) const;
 
 	/** Set value of this property, used by Slate. **/
-	void SetValue(int32 InValue, int32 Idx);
+	void SetValue(float InValue, int32 Idx);
 
 	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(int32 InValue, ETextCommit::Type CommitType, int32 Idx);
+	void SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx);
 
 	/** Delegate fired when slider for this property begins moving. **/
 	void OnSliderMovingBegin(int32 Idx);
 
 	/** Delegate fired when slider for this property has finished moving. **/
-	void OnSliderMovingFinish(int32 InValue, int32 Idx);
+	void OnSliderMovingFinish(float InValue, int32 Idx);
+
+protected:
+
+	/** Print parameter information for debugging. **/
+	virtual void PrintParameterInfo();
 
 protected:
 
 	/** Values of this property. **/
-	TArray<int32> Values;
+	TArray<float> Values;
 
 	/** Min and Max values for this property. **/
-	int32 ValueMin;
-	int32 ValueMax;
+	float ValueMin;
+	float ValueMax;
 
 	/** Min and Max values for UI for this property. **/
-	int32 ValueUIMin;
-	int32 ValueUIMax;
+	float ValueUIMin;
+	float ValueUIMax;
 };

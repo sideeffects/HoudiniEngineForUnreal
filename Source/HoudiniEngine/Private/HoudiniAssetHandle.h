@@ -17,11 +17,11 @@
  */
 
 #pragma once
+#include "HoudiniAssetParameter.h"
 #include "HoudiniAssetHandle.generated.h"
 
 
 struct HAPI_HandleInfo;
-
 
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetHandle : public UHoudiniAssetParameter

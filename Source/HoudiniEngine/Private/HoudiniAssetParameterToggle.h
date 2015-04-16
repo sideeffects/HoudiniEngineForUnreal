@@ -14,23 +14,24 @@
  */
 
 #pragma once
-#include "HoudiniAssetParameterString.generated.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterToggle.generated.h"
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterString : public UHoudiniAssetParameter
+class HOUDINIENGINE_API UHoudiniAssetParameterToggle : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterString();
+	virtual ~UHoudiniAssetParameterToggle();
 
 public:
 
 	/** Create sintance of this class. **/
-	static UHoudiniAssetParameterString* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterToggle* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
@@ -44,6 +45,9 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
+	/** Create widget for this parameter inside a given box. **/
+	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
+
 #endif
 
 	/** Upload parameter value to HAPI. **/
@@ -56,14 +60,14 @@ public:
 
 public:
 
-	/** Set value of this property, used by Slate. **/
-	void SetValue(const FText& InValue, int32 Idx);
+	/** Get value of this property, used by Slate. **/
+	void CheckStateChanged(ESlateCheckBoxState::Type NewState, int32 Idx);
 
-	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx);
+	/** Return checked state of this property, used by Slate. **/
+	ESlateCheckBoxState::Type IsChecked(int32 Idx) const;
 
 protected:
 
 	/** Values of this property. **/
-	TArray<FString> Values;
+	TArray<int32> Values;
 };

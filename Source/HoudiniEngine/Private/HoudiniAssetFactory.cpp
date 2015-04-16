@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetFactory.h"
 
 
 UHoudiniAssetFactory::UHoudiniAssetFactory(const FObjectInitializer& ObjectInitializer) :
@@ -59,7 +60,7 @@ UHoudiniAssetFactory::GetDisplayName() const
 
 
 UObject*
-UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, 
+UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags,
 	UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn)
 {
 	// Broadcast notification that a new asset is being imported.
@@ -94,7 +95,7 @@ UHoudiniAssetFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
 	if(HoudiniAsset && HoudiniAsset->AssetImportData)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath, 
+		OutFilenames.Add(FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath,
 			HoudiniAsset));
 		return true;
 	}
@@ -109,7 +110,7 @@ UHoudiniAssetFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewR
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
 	if(HoudiniAsset && (1 == NewReimportPaths.Num()))
 	{
-		HoudiniAsset->AssetImportData->SourceFilePath = FReimportManager::ResolveImportFilename(NewReimportPaths[0], 
+		HoudiniAsset->AssetImportData->SourceFilePath = FReimportManager::ResolveImportFilename(NewReimportPaths[0],
 			HoudiniAsset);
 	}
 }
@@ -125,7 +126,7 @@ UHoudiniAssetFactory::Reimport(UObject* Obj)
 	}
 
 	// Make sure file is valid and exists.
-	const FString Filename = FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath, 
+	const FString Filename = FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath,
 		HoudiniAsset);
 
 	if(!Filename.Len() || (INDEX_NONE == IFileManager::Get().FileSize(*Filename)))
@@ -133,7 +134,7 @@ UHoudiniAssetFactory::Reimport(UObject* Obj)
 		return EReimportResult::Failed;
 	}
 
-	if(UFactory::StaticImportObject(HoudiniAsset->GetClass(), HoudiniAsset->GetOuter(), *HoudiniAsset->GetName(), 
+	if(UFactory::StaticImportObject(HoudiniAsset->GetClass(), HoudiniAsset->GetOuter(), *HoudiniAsset->GetName(),
 		RF_Public | RF_Standalone, *Filename, NULL, this))
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimported successfully."));
@@ -146,7 +147,7 @@ UHoudiniAssetFactory::Reimport(UObject* Obj)
 		{
 			HoudiniAsset->MarkPackageDirty();
 		}
-		
+
 		return EReimportResult::Succeeded;
 	}
 

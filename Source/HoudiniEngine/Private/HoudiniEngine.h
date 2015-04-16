@@ -15,6 +15,7 @@
 
 #pragma once
 #include "IHoudiniEngine.h"
+#include "HoudiniEngineTaskInfo.h"
 
 
 class UStaticMesh;
@@ -23,7 +24,6 @@ class FRunnableThread;
 class IAssetTypeActions;
 class IComponentAssetBroker;
 class FHoudiniEngineScheduler;
-
 
 class FHoudiniEngine : public IHoudiniEngine
 {

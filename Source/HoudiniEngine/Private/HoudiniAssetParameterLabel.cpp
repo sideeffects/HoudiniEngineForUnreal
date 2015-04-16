@@ -14,6 +14,11 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetParameterLabel.h"
+
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#endif
 
 
 UHoudiniAssetParameterLabel::UHoudiniAssetParameterLabel(const FObjectInitializer& ObjectInitializer) :
