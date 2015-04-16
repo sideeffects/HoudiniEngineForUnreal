@@ -23,7 +23,6 @@
 
 struct HAPI_HandleInfo;
 
-
 UCLASS()
 class HOUDINIENGINE_API UHoudiniAssetHandle : public UHoudiniAssetParameter
 {

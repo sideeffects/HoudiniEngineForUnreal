@@ -17,7 +17,6 @@
 #include "HoudiniAssetParameterChoice.h"
 #include "HoudiniApi.h"
 
-
 #if WITH_EDITOR
 #include "HoudiniAssetComponentDetails.h"
 #endif
