@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "HoudiniGeoPartObject.h"
+
 
 class FArchive;
 class UTexture2D;
@@ -98,11 +100,11 @@ public:
 	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Package, FArchive& Ar);
 
 	/** Load raw mesh from archive and create static mesh from it. **/
-	static UStaticMesh* LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, 
+	static UStaticMesh* LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FArchive& Ar);
 
 	/** Bake static mesh. **/
-	static UStaticMesh* BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, 
+	static UStaticMesh* BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UStaticMesh* StaticMesh);
 
 	/** Bake single static mesh - this will combine individual objects into one, baking in transformations. **/
@@ -140,22 +142,22 @@ public:
 
 	/** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return	**/
 	/** new asset id.																								**/
-	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* Mesh, 
+	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* Mesh,
 		HAPI_AssetId& ConnectedAssetId);
 
 	/** HAPI : Marshaling, disconnect input asset from a given slot. **/
 	static bool HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex);
 
 	/** HAPI : Marshaling, connect input asset to a given slot of host asset. **/
-	static bool HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, 
+	static bool HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo,
 		int32 InputIndex);
 
 	/** HAPI : Return all group names for a given Geo. **/
-	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
+	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		HAPI_GroupType GroupType, TArray<FString>& GroupNames);
 
 	/** HAPI : Retrieve group membership. **/
-	static bool HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
+	static bool HapiGetGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		HAPI_PartId PartId, HAPI_GroupType GroupType, const FString& GroupName, TArray<int32>& GroupMembership);
 
 	/** HAPI : Get group count by type. **/
@@ -168,85 +170,85 @@ public:
 	static int32 HapiCheckGroupMembership(const TArray<int32>& GroupMembership);
 
 	/** HAPI : Check if given attribute exists. **/
-	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
+	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		HAPI_PartId PartId, const char* Name, HAPI_AttributeOwner Owner);
-	static bool HapiCheckAttributeExists(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name, 
+	static bool HapiCheckAttributeExists(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
 		HAPI_AttributeOwner Owner);
 
 	/** HAPI : Get attribute data as float. **/
-	static bool HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-		HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, 
+	static bool HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+		HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data,
 		int32 TupleSize = 0);
 
 	static bool HapiGetAttributeDataAsFloat(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
 		HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& Data, int32 TupleSize = 0);
 
 	/** HAPI : Get attribute data as integer. **/
-	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-		HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data, 
+	static bool HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+		HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data,
 		int32 TupleSize = 0);
 
 	static bool HapiGetAttributeDataAsInteger(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
 		HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& Data, int32 TupleSize = 0);
 
 	/** HAPI : Get attribute data as string. **/
-	static bool HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-		HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, 
+	static bool HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+		HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data,
 		int32 TupleSize = 0);
 
 	static bool HapiGetAttributeDataAsString(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const char* Name,
 		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int32 TupleSize = 0);
 
 	/** HAPI : Get parameter data as float. **/
-	static bool HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue, 
+	static bool HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue,
 		float& Value);
 
 	/** HAPI : Get parameter data as integer. **/
-	static bool HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int32 DefaultValue, 
+	static bool HapiGetParameterDataAsInteger(HAPI_NodeId NodeId, const std::string ParmName, int32 DefaultValue,
 		int32& Value);
 
 	/** HAPI : Get parameter data as string. **/
-	static bool HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName, 
+	static bool HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName,
 		const FString& DefaultValue, FString& Value);
 
 	/** HAPI : Retrieve parameter name. **/
 	static void HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName);
 
 	/** HAPI : Retrieve names of all parameters. **/
-	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos, 
+	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos,
 		std::vector<std::string>& Names);
 
 	/** HAPI : Look for parameter by name and return its index. Return -1 if not found. **/
 	static int32 HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names);
 
 	/** HAPI : Extract image data. **/
-	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, 
+	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
 		TArray<char>& ImageBuffer, const char* Type = HAPI_UNREAL_MATERIAL_TEXTURE_MAIN);
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
 
 	/** HAPI : Create Unreal material and necessary textures. **/
-	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, 
+	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package,
 		const FString& MeshName, const FRawMesh& RawMesh);
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
-	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
+	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		HAPI_PartId PartId, TArray<FTransform>& Transforms);
 
-	static bool HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+	static bool HapiGetInstanceTransforms(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
 		TArray<FTransform>& Transforms);
 
 	/** HAPI : Given vertex list, retrieve new vertex list for a scpecified group.									**/
 	/** Return number of processed valid index vertices for this split.												**/
-	static int32 HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, 
-		HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList, 
+	static int32 HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+		HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList,
 		TArray<int32>& NewVertexList, TArray<int32>& AllVertexList);
 
 protected:
 
 	/** Create a package for static mesh. **/
-	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset, 
+	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID);
 
 	/** Helper routine to serialize FRawMesh. **/
@@ -256,7 +258,7 @@ protected:
 	static void Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar);
 
 	/** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
-	static int32 TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList, 
+	static int32 TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList,
 		const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
 
 	/** Helper routine to check if Raw Mesh contains degenerate triangles. **/
@@ -272,7 +274,7 @@ protected:
 	static char* ExtractMaterialName(UMaterialInterface* MaterialInterface);
 
 	/** Create helper array of material names, we use it for marshalling. **/
-	static void CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials, 
+	static void CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials,
 		const TArray<int32>& FaceMaterialIndices, TArray<char*>& OutStaticMeshFaceMaterials);
 
 	/** Delete helper array of material names. **/
@@ -284,7 +286,7 @@ protected:
 protected:
 
 	/** Create a texture from given information. **/
-	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package, 
+	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package,
 		const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer);
 
 	/** Reset streams used by the given RawMesh. **/

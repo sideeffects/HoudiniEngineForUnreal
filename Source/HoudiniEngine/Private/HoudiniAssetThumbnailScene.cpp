@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetThumbnailScene.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"

@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetLogWidget.h"
 
 
 SHoudiniAssetLogWidget::SHoudiniAssetLogWidget()

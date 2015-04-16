@@ -14,6 +14,8 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniEngine.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
@@ -36,6 +38,8 @@
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineTask.h"
+#include "HoudiniEngineTaskInfo.h"
 
 
 // Macro to update given property on all components.

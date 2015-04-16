@@ -14,7 +14,9 @@
  */
 
 #pragma once
+
 #include "HAPI.h"
+#include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetComponent.generated.h"
 
 

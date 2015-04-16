@@ -64,6 +64,7 @@
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "ScopedTransaction.h"
 #include "ISettingsModule.h"
+#include "TargetPlatform.h"
 
 /** Houdini Engine headers. **/
 #include <vector>
@@ -246,28 +247,3 @@ struct FHoudiniScopedGlobalSilence
 
 	bool bGlobalSilent;
 };
-
-
-/** HoudiniEngine Special headers. **/
-#include "HoudiniGeoPartObject.h"
-
-
-/** HoudiniEngine Private headers. **/
-
-#include "HoudiniEngineTask.h"
-#include "HoudiniEngineTaskInfo.h"
-
-#if WITH_EDITOR
-#include "HoudiniAssetComponentDetails.h"
-#include "HoudiniRuntimeSettingsDetails.h"
-#include "HoudiniAssetLogWidget.h"
-#include "HoudiniAssetTypeActions.h"
-#include "HoudiniAssetBroker.h"
-#include "HoudiniAssetThumbnailScene.h"
-#include "HoudiniSplineComponentVisualizer.h"
-#endif
-
-#include "HoudiniEngine.h"
-#include "HoudiniEngineScheduler.h"
-#include "HoudiniLogo.h"
-#include "HoudiniEngineUtils.h"

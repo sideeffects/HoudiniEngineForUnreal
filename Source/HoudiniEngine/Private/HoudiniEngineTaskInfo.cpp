@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineTaskInfo.h"
 
 
 FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo() :

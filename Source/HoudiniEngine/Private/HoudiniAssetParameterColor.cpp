@@ -17,6 +17,10 @@
 #include "HoudiniAssetParameterColor.h"
 #include "HoudiniApi.h"
 
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#endif
+
 
 UHoudiniAssetParameterColor::UHoudiniAssetParameterColor(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)

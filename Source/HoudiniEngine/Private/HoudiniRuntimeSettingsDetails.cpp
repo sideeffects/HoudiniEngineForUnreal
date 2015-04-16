@@ -14,6 +14,9 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniRuntimeSettingsDetails.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniEngine.h"
 #include "HoudiniApi.h"
 
 

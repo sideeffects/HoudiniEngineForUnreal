@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include "HoudiniGeoPartObject.h"
+
 
 struct FGeometry;
 struct FSlateBrush;
@@ -61,7 +63,7 @@ public:
 
 private:
 
-	/** Button click handlers. **/	
+	/** Button click handlers. **/
 	//FReply OnButtonClickedBakeSingle();
 
 private:
@@ -107,15 +109,15 @@ private:
 	bool OnMaterialInterfaceDraggedOver(const UObject* InObject) const;
 
 	/** Delegate used when valid material has been drag and dropped. **/
-	void OnMaterialInterfaceDropped(UObject* InObject, UStaticMesh* StaticMesh, 
+	void OnMaterialInterfaceDropped(UObject* InObject, UStaticMesh* StaticMesh,
 		FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx);
 
 	/** Construct drop down menu content for material. **/
-	TSharedRef<SWidget> OnGetMaterialInterfaceMenuContent(UMaterialInterface* MaterialInterface, 
+	TSharedRef<SWidget> OnGetMaterialInterfaceMenuContent(UMaterialInterface* MaterialInterface,
 		UStaticMesh* StaticMesh, FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx);
 
 	/** Delegate for handling selection in content browser. **/
-	void OnMaterialInterfaceSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, 
+	void OnMaterialInterfaceSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh,
 		FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx);
 
 	/** Closes the combo button. **/
@@ -125,7 +127,7 @@ private:
 	void OnMaterialInterfaceBrowse(UMaterialInterface* MaterialInterface);
 
 	/** Handler for reset material interface button. **/
-	FReply OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, FHoudiniGeoPartObject* HoudiniGeoPartObject, 
+	FReply OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh, FHoudiniGeoPartObject* HoudiniGeoPartObject,
 		int32 MaterialIdx);
 
 	/** Delegate used when Houdini asset has been drag and dropped. **/
@@ -163,13 +165,13 @@ private:
 		IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
 	/** Handle change in Checkbox. **/
-	void CheckStateChangedComponentSettingCooking(ECheckBoxState NewState, 
+	void CheckStateChangedComponentSettingCooking(ECheckBoxState NewState,
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
-	void CheckStateChangedComponentSettingUploadTransform(ECheckBoxState NewState, 
+	void CheckStateChangedComponentSettingUploadTransform(ECheckBoxState NewState,
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
-	void CheckStateChangedComponentSettingTransformCooking(ECheckBoxState NewState, 
+	void CheckStateChangedComponentSettingTransformCooking(ECheckBoxState NewState,
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
 private:

@@ -14,11 +14,16 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineUtils.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
+
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#endif
 
 
 UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :
