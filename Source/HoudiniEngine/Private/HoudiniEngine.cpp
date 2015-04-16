@@ -14,7 +14,19 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineScheduler.h"
+#include "HoudiniEngineTask.h"
+#include "HoudiniEngineTaskInfo.h"
+
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#include "HoudiniAssetBroker.h"
+#include "HoudiniAssetTypeActions.h"
+#include "HoudiniRuntimeSettingsDetails.h"
+#include "HoudiniSplineComponentVisualizer.h"
+#endif
 
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));

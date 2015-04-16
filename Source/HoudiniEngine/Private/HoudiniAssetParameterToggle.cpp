@@ -17,6 +17,10 @@
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniApi.h"
 
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#endif
+
 
 UHoudiniAssetParameterToggle::UHoudiniAssetParameterToggle(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)

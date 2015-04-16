@@ -14,6 +14,7 @@
 */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniLogo.h"
 
 
 const float

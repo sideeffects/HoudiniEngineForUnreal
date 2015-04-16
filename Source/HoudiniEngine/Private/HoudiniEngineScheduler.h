@@ -15,6 +15,10 @@
 
 #pragma once
 
+#include "HoudiniEngineTask.h"
+#include "HoudiniEngineTaskInfo.h"
+
+
 class FHoudiniEngineScheduler : public FRunnable, FSingleThreadRunnable
 {
 
@@ -44,8 +48,8 @@ public:
 	void AddResponseTaskInfo(HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
 		EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask& Task);
 
-	void AddResponseMessageTaskInfo(HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, 
-		EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask& Task, 
+	void AddResponseMessageTaskInfo(HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
+		EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask& Task,
 		const FString& ErrorMessage);
 
 protected:

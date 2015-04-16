@@ -14,10 +14,13 @@
  */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniAssetComponentDetails.h"
+#include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniApi.h"
+#include "HoudiniAssetLogWidget.h"
 
 
 uint32

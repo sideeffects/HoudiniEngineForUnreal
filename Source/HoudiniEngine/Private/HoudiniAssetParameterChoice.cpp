@@ -18,6 +18,11 @@
 #include "HoudiniApi.h"
 
 
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#endif
+
+
 UHoudiniAssetParameterChoice::UHoudiniAssetParameterChoice(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	CurrentValue(0),

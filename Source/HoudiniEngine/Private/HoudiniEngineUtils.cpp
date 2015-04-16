@@ -14,13 +14,10 @@
 */
 
 #include "HoudiniEnginePrivatePCH.h"
-
-#include "RawMesh.h"
-#include "TargetPlatform.h"
-#include "StaticMeshResources.h"
-
+#include "HoudiniEngineUtils.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniApi.h"
+#include "HoudiniLogo.h"
 
 
 const FString kResultStringSuccess(TEXT("Success"));

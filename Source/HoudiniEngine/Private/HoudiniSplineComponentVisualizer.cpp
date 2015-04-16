@@ -14,6 +14,8 @@
 */
 
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniSplineComponentVisualizer.h"
+#include "HoudiniEngine.h"
 #include "HoudiniSplineComponent.h"
 
 

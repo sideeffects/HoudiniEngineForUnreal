@@ -17,6 +17,10 @@
 #include "HoudiniAssetParameterButton.h"
 #include "HoudiniApi.h"
 
+#if WITH_EDITOR
+#include "HoudiniAssetComponentDetails.h"
+#endif
+
 
 UHoudiniAssetParameterButton::UHoudiniAssetParameterButton(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
