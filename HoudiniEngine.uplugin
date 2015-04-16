@@ -18,12 +18,6 @@
 			"Name" : "HoudiniEngine",
 			"Type" : "Runtime",
 			"WhitelistPlatforms" : [ "Win64", "Mac" ]
-		},
-
-		{
-			"Name" : "HoudiniEngineEditor",
-			"Type" : "Editor",
-			"WhitelistPlatforms" : [ "Win64", "Mac" ]
 		}
 	],
 
