@@ -3912,7 +3912,7 @@ FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVer
 	{
 		TArray<char> StatusStringBuffer;
 		StatusStringBuffer.SetNumZeroed(StatusBufferLength);
-		FHoudiniApi::GetStatusString(status_type, &StatusStringBuffer[0]);
+		FHoudiniApi::GetStatusString(status_type, &StatusStringBuffer[0], StatusBufferLength);
 
 		return FString(UTF8_TO_TCHAR(&StatusStringBuffer[0]));
 	}

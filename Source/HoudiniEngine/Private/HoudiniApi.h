@@ -42,7 +42,7 @@ struct FHoudiniApi
 	typedef HAPI_Result (*GetStatusStringBufLengthFuncPtr)(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_size);
 	static GetStatusStringBufLengthFuncPtr GetStatusStringBufLength;
 
-	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * buffer);
+	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * buffer, int buffer_length);
 	static GetStatusStringFuncPtr GetStatusString;
 
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(int * count);
