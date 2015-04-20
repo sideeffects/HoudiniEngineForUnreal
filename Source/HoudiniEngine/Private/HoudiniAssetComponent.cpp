@@ -1954,6 +1954,13 @@ UHoudiniAssetComponent::PostEditUndo()
 	}
 }
 
+
+void
+UHoudiniAssetComponent::PostEditImport()
+{
+	Super::PostEditImport();
+}
+
 #endif
 
 
