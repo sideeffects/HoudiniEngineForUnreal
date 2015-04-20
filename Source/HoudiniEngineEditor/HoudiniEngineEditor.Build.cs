@@ -25,9 +25,9 @@
 using UnrealBuildTool;
 using System.IO;
 
-public class HoudiniEngine : ModuleRules
+public class HoudiniEngineEditor : ModuleRules
 {
-	public HoudiniEngine( TargetInfo Target )
+	public HoudiniEngineEditor( TargetInfo Target )
 	{
 		string HFSPath = "";
 		string HoudiniVersion = "14.5.89";
@@ -36,7 +36,7 @@ public class HoudiniEngine : ModuleRules
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
 			Target.Platform != UnrealTargetPlatform.Mac )
 		{
-			string Err = string.Format( "Houdini Engine : Compiling on unsupported platform." );
+			string Err = string.Format( "Houdini Engine Runtime: Compiling on unsupported platform." );
 			System.Console.WriteLine( Err );
 			throw new BuildException( Err );
 		}
@@ -53,7 +53,7 @@ public class HoudiniEngine : ModuleRules
 					HFSPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
 					if( !Directory.Exists( HFSPath ) )
 					{
-						string Err = string.Format( "Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion );
+						string Err = string.Format( "Houdini Engine Runtime: Please install Houdini or Houdini Engine {0}", HoudiniVersion );
 						System.Console.WriteLine( Err );
 						throw new BuildException( Err );
 					}
@@ -64,7 +64,7 @@ public class HoudiniEngine : ModuleRules
 				HFSPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion + "/Resources";
 				if( !Directory.Exists( HFSPath ) )
 				{
-					string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
+					string Err = string.Format( "Houdini Engine Runtime: Please install Houdini {0}", HoudiniVersion );
 					System.Console.WriteLine( Err );
 					throw new BuildException( Err );
 				}
@@ -90,6 +90,7 @@ public class HoudiniEngine : ModuleRules
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
+				"HoudiniEngineEditor/Private",
 				"HoudiniEngine/Private"
 				// ... add other private include paths required here ...
 			}
@@ -119,7 +120,8 @@ public class HoudiniEngine : ModuleRules
 				"MainFrame",
 				"EditorStyle",
 				"EditorWidgets",
-				"AppFramework"
+				"AppFramework",
+				"HoudiniEngine"
 			}
 		);
 
