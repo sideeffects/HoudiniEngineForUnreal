@@ -18,6 +18,8 @@
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniApi.h"
 #include "HoudiniLogo.h"
+#include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
 
 
 const FString kResultStringSuccess(TEXT("Success"));
@@ -3918,4 +3920,38 @@ FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVer
 	}
 
 	return FString(TEXT(""));
+}
+
+
+AHoudiniAssetActor*
+FHoudiniEngineUtils::LocateClipboardActor()
+{
+	FString PasteString;
+	FPlatformMisc::ClipboardPaste(PasteString);
+	const TCHAR* Paste = *PasteString;
+
+	AHoudiniAssetActor* HoudiniAssetActor = nullptr;
+	FString ActorName = TEXT("");
+
+	FString StrLine;
+	while(FParse::Line(&Paste, StrLine))
+	{
+		const TCHAR* Str = *StrLine;
+		FString ClassName;
+
+		if(GetBEGIN(&Str, TEXT("Actor")) && FParse::Value(Str, TEXT("Class="), ClassName))
+		{
+			if(ClassName == *AHoudiniAssetActor::StaticClass()->GetFName().ToString())
+			{
+				if(FParse::Value(Str, TEXT("Name="), ActorName))
+				{
+					HoudiniAssetActor = Cast<AHoudiniAssetActor>(StaticFindObject(AHoudiniAssetActor::StaticClass(), ANY_PACKAGE,
+						*ActorName));
+					break;
+				}
+			}
+		}
+	}
+
+	return HoudiniAssetActor;
 }
