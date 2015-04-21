@@ -98,7 +98,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bCurveChanged(false),
 	bComponentTransformHasChanged(false),
 	bUndoRequested(false),
-	bManualRecook(false)
+	bManualRecook(false),
+	bComponentCopyImported(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -1259,6 +1260,9 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
 	// Add begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.AddUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
+
+	// Add delegate for asset post import.
+	FEditorDelegates::OnAssetPostImport.AddUObject(this, &UHoudiniAssetComponent::OnAssetPostImport);
 }
 
 
@@ -1268,6 +1272,9 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 	// Remove begin and end delegates for play-in-editor.
 	FEditorDelegates::BeginPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventBegin);
 	FEditorDelegates::EndPIE.RemoveUObject(this, &UHoudiniAssetComponent::OnPIEEventEnd);
+
+	// Remove delegate for asset post import.
+	FEditorDelegates::OnAssetPostImport.RemoveUObject(this, &UHoudiniAssetComponent::OnAssetPostImport);
 }
 
 
@@ -1375,6 +1382,52 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 
 void
+UHoudiniAssetComponent::RemoveAllAttachedComponents()
+{
+	while(AttachChildren.Num() != 0)
+	{
+		USceneComponent* Component = AttachChildren[AttachChildren.Num() - 1];
+
+		Component->DetachFromParent();
+		Component->UnregisterComponent();
+		Component->DestroyComponent();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(!HoudiniAssetComponent)
+	{
+		return;
+	}
+
+	if(bIsNativeComponent)
+	{
+		// This component has been loaded.
+		bLoadedComponent = true;
+	}
+
+	// Mark this component as imported.
+	bComponentCopyImported = true;
+
+	// Set Houdini asset.
+	HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+
+	// Copy preset buffers.
+	PresetBuffer = HoudiniAssetComponent->PresetBuffer;
+	DefaultPresetBuffer = HoudiniAssetComponent->DefaultPresetBuffer;
+
+	// Copy parameters.
+	{
+		ClearParameters();
+		HoudiniAssetComponent->DuplicateParameters(this, Parameters);
+	}
+}
+
+
+void
 UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
 {
 	// We are now in PIE mode.
@@ -1387,6 +1440,20 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 {
 	// We are no longer in PIE mode.
 	bIsPlayModeActive = false;
+}
+
+
+void
+UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
+{
+	if(bComponentCopyImported)
+	{
+		// Mark this component as no longer copy imported.
+		bComponentCopyImported = false;
+
+		// Clean up all generated and auto-attached components.
+		RemoveAllAttachedComponents();
+	}
 }
 
 
@@ -1904,6 +1971,12 @@ void
 UHoudiniAssetComponent::PostEditImport()
 {
 	Super::PostEditImport();
+
+	AHoudiniAssetActor* CopiedActor = FHoudiniEngineUtils::LocateClipboardActor();
+	if(CopiedActor)
+	{
+		OnComponentClipboardCopy(CopiedActor->HoudiniAssetComponent);
+	}
 }
 
 #endif
@@ -2551,7 +2624,7 @@ UHoudiniAssetComponent::CreateHandles()
 	}
 
 	TMap<FString, UHoudiniAssetHandle*> NewHandles;
-
+/*
 	// If we have handles.
 	if(AssetInfo.handleCount > 0)
 	{
@@ -2583,7 +2656,7 @@ UHoudiniAssetComponent::CreateHandles()
 			}
 		}
 	}
-
+*/
 	ClearHandles();
 	Handles = NewHandles;
 
@@ -2687,6 +2760,29 @@ UHoudiniAssetComponent::CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>
 
 	ClearInstanceInputs();
 	InstanceInputs = NewInstanceInputs;
+}
+
+
+void
+UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
+	TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters)
+{
+	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		HAPI_ParmId HoudiniAssetParameterKey = IterParams.Key();
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+		if(-1 != HoudiniAssetParameterKey)
+		{
+			// Duplicate parameter.
+			UHoudiniAssetParameter* DuplicatedHoudiniAssetParameter =
+				DuplicateObject(HoudiniAssetParameter, DuplicatedHoudiniComponent);
+
+			DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
+
+			InParameters.Add(HoudiniAssetParameterKey, DuplicatedHoudiniAssetParameter);
+		}
+	}
 }
 
 #endif
