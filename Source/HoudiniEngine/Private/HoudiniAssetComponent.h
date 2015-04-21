@@ -267,9 +267,18 @@ private:
 
 #if WITH_EDITOR
 
+	/** Remove all attached components. **/
+	void RemoveAllAttachedComponents();
+
+	/** If we are being copied from a component, transfer necessary state. **/
+	void OnComponentClipboardCopy(UHoudiniAssetComponent* HoudiniAssetComponent);
+
 	/** Play mode delegate events. **/
 	void OnPIEEventBegin(const bool bIsSimulating);
 	void OnPIEEventEnd(const bool bIsSimulating);
+
+	/** Delegate for asset post import. **/
+	void OnAssetPostImport(UFactory* Factory, UObject* Object);
 
 	/** Subscribe to Editor events. **/
 	void SubscribeEditorDelegates();
@@ -348,6 +357,10 @@ private:
 
 	/** Create instance inputs. **/
 	void CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>& Instancers);
+
+	/** Duplicate all parameters. Used during copying. **/
+	void DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
+		TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters);
 
 #endif
 
@@ -460,6 +473,9 @@ protected:
 	/** Delegate handle returned by End play mode in editor delegate. **/
 	FDelegateHandle DelegateHandleEndPIE;
 
+	/** Delegate handle returned by editor asset post import delegate. **/
+	FDelegateHandle DelegateHandleAssetPostImport;
+
 	/** Timer handle, this timer is used for cooking. **/
 	FTimerHandle TimerHandleCooking;
 
@@ -533,6 +549,9 @@ protected:
 
 			/** Is set to true when manual recook is requested. **/
 			uint32 bManualRecook : 1;
+
+			/** Is set to true when component has been created as result of copying / import. **/
+			uint32 bComponentCopyImported : 1;
 		};
 
 		uint32 HoudiniAssetComponentFlagsPacked;
