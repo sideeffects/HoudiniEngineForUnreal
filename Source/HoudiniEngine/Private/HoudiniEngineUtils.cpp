@@ -3937,10 +3937,12 @@ FHoudiniEngineUtils::LocateClipboardActor()
 	FString StrLine;
 	while(FParse::Line(&Paste, StrLine))
 	{
+		StrLine = StrLine.Trim();
+
 		const TCHAR* Str = *StrLine;
 		FString ClassName;
 
-		if(GetBEGIN(&Str, TEXT("Actor")) && FParse::Value(Str, TEXT("Class="), ClassName))
+		if(StrLine.StartsWith(TEXT("Begin Actor")) && FParse::Value(Str, TEXT("Class="), ClassName))
 		{
 			if(ClassName == *AHoudiniAssetActor::StaticClass()->GetFName().ToString())
 			{
