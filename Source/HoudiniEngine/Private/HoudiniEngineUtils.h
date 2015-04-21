@@ -20,6 +20,7 @@ class FArchive;
 class UTexture2D;
 class UStaticMesh;
 class UHoudiniAsset;
+class AHoudiniAssetActor;
 class UHoudiniAssetMaterial;
 class UHoudiniAssetComponent;
 class FHoudiniAssetObjectGeo;
@@ -125,6 +126,9 @@ public:
 
 	/** Helper function to count number of UV sets in raw mesh. **/
 	static int32 CountUVSets(const FRawMesh& RawMesh);
+
+	/** Helper function to extract copied Houdini actor from clipboard. **/
+	static AHoudiniAssetActor* LocateClipboardActor();
 
 public:
 
