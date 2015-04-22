@@ -106,6 +106,35 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 }
 
 
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPartObject, bool bCopyLoaded) :
+	TransformMatrix(GeoPartObject.TransformMatrix),
+	ObjectName(GeoPartObject.ObjectName),
+	PartName(GeoPartObject.PartName),
+	SplitName(GeoPartObject.SplitName),
+	AssetId(GeoPartObject.AssetId),
+	ObjectId(GeoPartObject.ObjectId),
+	GeoId(GeoPartObject.GeoId),
+	PartId(GeoPartObject.PartId),
+	SplitId(GeoPartObject.SplitId),
+	bIsVisible(GeoPartObject.bIsVisible),
+	bIsInstancer(GeoPartObject.bIsInstancer),
+	bIsCurve(GeoPartObject.bIsCurve),
+	bIsEditable(GeoPartObject.bIsEditable),
+	bHasGeoChanged(GeoPartObject.bHasGeoChanged),
+	bIsCollidable(GeoPartObject.bIsCollidable),
+	bIsRenderCollidable(GeoPartObject.bIsRenderCollidable),
+	bIsLoaded(GeoPartObject.bIsLoaded),
+	bHasNativeHoudiniMaterial(GeoPartObject.bHasNativeHoudiniMaterial),
+	bHasUnrealMaterialAssigned(GeoPartObject.bHasUnrealMaterialAssigned),
+	bNativeHoudiniMaterialRefetch(GeoPartObject.bNativeHoudiniMaterialRefetch)
+{
+	if(bCopyLoaded)
+	{
+		bIsLoaded = true;
+	}
+}
+
+
 bool
 FHoudiniGeoPartObject::IsVisible() const
 {
