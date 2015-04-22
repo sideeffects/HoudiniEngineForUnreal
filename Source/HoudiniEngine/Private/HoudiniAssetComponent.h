@@ -362,6 +362,9 @@ private:
 	void DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
 		TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters);
 
+	/** Duplicate inputs. Used during copying. **/
+	void DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent, TArray<UHoudiniAssetInput*>& InInputs);
+
 #endif
 
 	/** Clear all spline related resources. **/
