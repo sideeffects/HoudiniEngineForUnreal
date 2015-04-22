@@ -1452,12 +1452,43 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 			CopiedHoudiniComponent->DuplicateParameters(this, Parameters);
 		}
 
+		// Clean up all generated and auto-attached components.
+		RemoveAllAttachedComponents();
+
+		// Release static mesh related resources.
+		ReleaseObjectGeoPartResources(StaticMeshes);
+		StaticMeshes.Empty();
+		StaticMeshComponents.Empty();
+
+		// We need to reconstruct geometry.
+		{
+			for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes); Iter; ++Iter)
+			{
+				FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+				UStaticMesh* StaticMesh = Iter.Value();
+
+				UStaticMesh* DuplicatedStaticMesh = nullptr;
+				if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
+				{
+					TArray<uint8> Buffer;
+					FMemoryWriter RawSaver(Buffer);
+					FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, nullptr, RawSaver);
+
+					FMemoryReader RawLoader(Buffer);
+					DuplicatedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(this, HoudiniGeoPartObject, nullptr, RawLoader);
+				}
+
+				// Store this duplicated mesh.
+				StaticMeshes.Add(FHoudiniGeoPartObject(HoudiniGeoPartObject, true), DuplicatedStaticMesh);
+			}
+		}
+
+		// Perform any necessary post loading.
+		PostLoad();
+
 		// Mark this component as no longer copy imported and reset copied component.
 		bComponentCopyImported = false;
 		CopiedHoudiniComponent = nullptr;
-
-		// Clean up all generated and auto-attached components.
-		RemoveAllAttachedComponents();
 	}
 }
 
