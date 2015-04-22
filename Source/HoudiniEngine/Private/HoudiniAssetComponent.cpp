@@ -80,6 +80,11 @@ UHoudiniAssetComponent::PersistenceFormatVersion = 1u;
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
+#if WITH_EDITOR
+
+	CopiedHoudiniComponent(nullptr),
+
+#endif
 	AssetId(-1),
 	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
 	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
@@ -1399,10 +1404,8 @@ UHoudiniAssetComponent::RemoveAllAttachedComponents()
 void
 UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* HoudiniAssetComponent)
 {
-	if(!HoudiniAssetComponent)
-	{
-		return;
-	}
+	// Store copied component.
+	CopiedHoudiniComponent = HoudiniAssetComponent;
 
 	if(bIsNativeComponent)
 	{
@@ -1412,19 +1415,6 @@ UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* Houdini
 
 	// Mark this component as imported.
 	bComponentCopyImported = true;
-
-	// Set Houdini asset.
-	HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-
-	// Copy preset buffers.
-	PresetBuffer = HoudiniAssetComponent->PresetBuffer;
-	DefaultPresetBuffer = HoudiniAssetComponent->DefaultPresetBuffer;
-
-	// Copy parameters.
-	{
-		ClearParameters();
-		HoudiniAssetComponent->DuplicateParameters(this, Parameters);
-	}
 }
 
 
@@ -1447,10 +1437,24 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 void
 UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 {
-	if(bComponentCopyImported)
+	if(bComponentCopyImported && CopiedHoudiniComponent)
 	{
-		// Mark this component as no longer copy imported.
+		// Set Houdini asset.
+		HoudiniAsset = CopiedHoudiniComponent->HoudiniAsset;
+
+		// Copy preset buffers.
+		PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
+		DefaultPresetBuffer = CopiedHoudiniComponent->DefaultPresetBuffer;
+
+		// Copy parameters.
+		{
+			ClearParameters();
+			CopiedHoudiniComponent->DuplicateParameters(this, Parameters);
+		}
+
+		// Mark this component as no longer copy imported and reset copied component.
 		bComponentCopyImported = false;
+		CopiedHoudiniComponent = nullptr;
 
 		// Clean up all generated and auto-attached components.
 		RemoveAllAttachedComponents();

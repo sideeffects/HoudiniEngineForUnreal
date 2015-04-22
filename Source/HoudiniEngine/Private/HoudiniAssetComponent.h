@@ -462,6 +462,9 @@ protected:
 	/** Notification used by this component. **/
 	TWeakPtr<SNotificationItem> NotificationPtr;
 
+	/** Component from which this component has been copied. **/
+	UHoudiniAssetComponent* CopiedHoudiniComponent;
+
 #endif
 
 	/** GUID used to track asynchronous cooking requests. **/
