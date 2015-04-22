@@ -1418,6 +1418,12 @@ UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* Houdini
 			CopiedHoudiniComponent->DuplicateParameters(this, Parameters);
 		}
 
+		// Copy inputs.
+		{
+			ClearInputs();
+			CopiedHoudiniComponent->DuplicateInputs(this, Inputs);
+		}
+
 		// Clean up all generated and auto-attached components.
 		RemoveAllAttachedComponents();
 
@@ -2809,12 +2815,24 @@ UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHo
 			// Duplicate parameter.
 			UHoudiniAssetParameter* DuplicatedHoudiniAssetParameter =
 				DuplicateObject(HoudiniAssetParameter, DuplicatedHoudiniComponent);
-
 			DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
-
 			InParameters.Add(HoudiniAssetParameterKey, DuplicatedHoudiniAssetParameter);
 		}
 	}
+}
+
+
+void
+UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent, TArray<UHoudiniAssetInput*>& InInputs)
+{
+	// Retrieve input at this index.
+	UHoudiniAssetInput* AssetInput = Inputs[InputIdx];
+
+	// Duplicate input.
+	UHoudiniAssetInput* DuplicatedAssetInput = DuplicateObject(AssetInput, DuplicatedHoudiniComponent);
+	DuplicatedAssetInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
+
+	InInputs.Add(DuplicatedAssetInput);
 }
 
 #endif
