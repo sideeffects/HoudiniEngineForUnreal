@@ -31,6 +31,8 @@ public:
 	FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName,
 		HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 
+	FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPartObject, bool bCopyLoaded = false);
+
 public:
 
 	/** Return hash value for this object, used when using this object as a key inside hashing containers. **/
