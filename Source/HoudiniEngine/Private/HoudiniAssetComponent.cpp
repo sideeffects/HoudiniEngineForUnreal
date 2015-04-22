@@ -80,6 +80,11 @@ UHoudiniAssetComponent::PersistenceFormatVersion = 1u;
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
+#if WITH_EDITOR
+
+	CopiedHoudiniComponent(nullptr),
+
+#endif
 	AssetId(-1),
 	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
 	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
@@ -1398,31 +1403,27 @@ UHoudiniAssetComponent::RemoveAllAttachedComponents()
 void
 UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* HoudiniAssetComponent)
 {
-	if(!HoudiniAssetComponent)
+	if(bComponentCopyImported && CopiedHoudiniComponent)
 	{
-		return;
-	}
+		// Set Houdini asset.
+		HoudiniAsset = CopiedHoudiniComponent->HoudiniAsset;
 
-	if(bIsNativeComponent)
-	{
-		// This component has been loaded.
-		bLoadedComponent = true;
-	}
+		// Copy preset buffers.
+		PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
+		DefaultPresetBuffer = CopiedHoudiniComponent->DefaultPresetBuffer;
 
-	// Mark this component as imported.
-	bComponentCopyImported = true;
+		// Copy parameters.
+		{
+			ClearParameters();
+			CopiedHoudiniComponent->DuplicateParameters(this, Parameters);
+		}
 
-	// Set Houdini asset.
-	HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+		// Mark this component as no longer copy imported and reset copied component.
+		bComponentCopyImported = false;
+		CopiedHoudiniComponent = nullptr;
 
-	// Copy preset buffers.
-	PresetBuffer = HoudiniAssetComponent->PresetBuffer;
-	DefaultPresetBuffer = HoudiniAssetComponent->DefaultPresetBuffer;
-
-	// Copy parameters.
-	{
-		ClearParameters();
-		HoudiniAssetComponent->DuplicateParameters(this, Parameters);
+		// Clean up all generated and auto-attached components.
+		RemoveAllAttachedComponents();
 	}
 }
 
