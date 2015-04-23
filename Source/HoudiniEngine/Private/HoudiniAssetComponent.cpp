@@ -2825,14 +2825,17 @@ UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHo
 void
 UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent, TArray<UHoudiniAssetInput*>& InInputs)
 {
-	// Retrieve input at this index.
-	UHoudiniAssetInput* AssetInput = Inputs[InputIdx];
+	for(int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
+	{
+		// Retrieve input at this index.
+		UHoudiniAssetInput* AssetInput = Inputs[InputIdx];
 
-	// Duplicate input.
-	UHoudiniAssetInput* DuplicatedAssetInput = DuplicateObject(AssetInput, DuplicatedHoudiniComponent);
-	DuplicatedAssetInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
+		// Duplicate input.
+		UHoudiniAssetInput* DuplicatedAssetInput = DuplicateObject(AssetInput, DuplicatedHoudiniComponent);
+		DuplicatedAssetInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
 
-	InInputs.Add(DuplicatedAssetInput);
+		InInputs.Add(DuplicatedAssetInput);
+	}
 }
 
 #endif
