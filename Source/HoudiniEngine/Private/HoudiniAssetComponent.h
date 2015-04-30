@@ -365,6 +365,10 @@ private:
 	/** Duplicate inputs. Used during copying. **/
 	void DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent, TArray<UHoudiniAssetInput*>& InInputs);
 
+	/** Duplicate instance inputs. Used during copying. **/
+	void DuplicateInstanceInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
+		TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>& InInstanceInputs);
+
 #endif
 
 	/** Clear all spline related resources. **/
