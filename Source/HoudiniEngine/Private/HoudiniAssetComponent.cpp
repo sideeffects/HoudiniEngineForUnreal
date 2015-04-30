@@ -1460,7 +1460,7 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		// Copy instance inputs.
 		{
 			ClearInstanceInputs();
-
+			CopiedHoudiniComponent->DuplicateInstanceInputs(this, InstanceInputs);
 		}
 
 		// Clean up all generated and auto-attached components.
@@ -2855,6 +2855,25 @@ UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudin
 		DuplicatedAssetInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
 
 		InInputs.Add(DuplicatedAssetInput);
+	}
+}
+
+
+void
+UHoudiniAssetComponent::DuplicateInstanceInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
+	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>& InInstanceInputs)
+{
+	for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator
+		IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
+	{
+		HAPI_ObjectId HoudiniInstanceInputKey = IterInstanceInputs.Key();
+		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
+
+		UHoudiniAssetInstanceInput* DuplicatedHoudiniAssetInstanceInput =
+			DuplicateObject(HoudiniAssetInstanceInput, DuplicatedHoudiniComponent);
+
+		DuplicatedHoudiniAssetInstanceInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
+		InInstanceInputs.Add(HoudiniInstanceInputKey, DuplicatedHoudiniAssetInstanceInput);
 	}
 }
 
