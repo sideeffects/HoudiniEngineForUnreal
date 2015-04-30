@@ -1403,6 +1403,39 @@ UHoudiniAssetComponent::RemoveAllAttachedComponents()
 void
 UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* HoudiniAssetComponent)
 {
+	// Store copied component.
+	CopiedHoudiniComponent = HoudiniAssetComponent;
+
+	if(bIsNativeComponent)
+	{
+		// This component has been loaded.
+		bLoadedComponent = true;
+	}
+
+	// Mark this component as imported.
+	bComponentCopyImported = true;
+}
+
+
+void
+UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
+{
+	// We are now in PIE mode.
+	bIsPlayModeActive = true;
+}
+
+
+void
+UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
+{
+	// We are no longer in PIE mode.
+	bIsPlayModeActive = false;
+}
+
+
+void
+UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
+{
 	if(bComponentCopyImported && CopiedHoudiniComponent)
 	{
 		// Set Houdini asset.
@@ -1422,6 +1455,12 @@ UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* Houdini
 		{
 			ClearInputs();
 			CopiedHoudiniComponent->DuplicateInputs(this, Inputs);
+		}
+
+		// Copy instance inputs.
+		{
+			ClearInstanceInputs();
+
 		}
 
 		// Clean up all generated and auto-attached components.
@@ -1472,36 +1511,6 @@ UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* Houdini
 		// Mark this component as no longer copy imported and reset copied component.
 		bComponentCopyImported = false;
 		CopiedHoudiniComponent = nullptr;
-	}
-}
-
-
-void
-UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
-{
-	// We are now in PIE mode.
-	bIsPlayModeActive = true;
-}
-
-
-void
-UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
-{
-	// We are no longer in PIE mode.
-	bIsPlayModeActive = false;
-}
-
-
-void
-UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
-{
-	if(bComponentCopyImported)
-	{
-		// Mark this component as no longer copy imported.
-		bComponentCopyImported = false;
-
-		// Clean up all generated and auto-attached components.
-		RemoveAllAttachedComponents();
 	}
 }
 
