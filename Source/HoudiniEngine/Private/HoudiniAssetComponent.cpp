@@ -1466,6 +1466,9 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		StaticMeshes.Empty();
 		StaticMeshComponents.Empty();
 
+		TArray<FHoudiniGeoPartObject> FoundInstancers;
+		TArray<FHoudiniGeoPartObject> FoundCurves;
+
 		// We need to reconstruct geometry.
 		{
 			for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes); Iter; ++Iter)
@@ -1474,7 +1477,16 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 				UStaticMesh* StaticMesh = Iter.Value();
 
 				UStaticMesh* DuplicatedStaticMesh = nullptr;
-				if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
+
+				if(HoudiniGeoPartObject.IsCurve())
+				{
+					FoundCurves.Add(HoudiniGeoPartObject);
+				}
+				else if(HoudiniGeoPartObject.IsInstancer())
+				{
+					FoundInstancers.Add(HoudiniGeoPartObject);
+				}
+				else
 				{
 					TArray<uint8> Buffer;
 					FMemoryWriter RawSaver(Buffer);
