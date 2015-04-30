@@ -1432,9 +1432,6 @@ UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* Houdini
 		StaticMeshes.Empty();
 		StaticMeshComponents.Empty();
 
-		TArray<FHoudiniGeoPartObject> FoundInstancers;
-		TArray<FHoudiniGeoPartObject> FoundCurves;
-
 		// We need to reconstruct geometry.
 		{
 			for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes); Iter; ++Iter)
@@ -1444,15 +1441,7 @@ UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* Houdini
 
 				UStaticMesh* DuplicatedStaticMesh = nullptr;
 
-				if(HoudiniGeoPartObject.IsCurve())
-				{
-					FoundCurves.Add(HoudiniGeoPartObject);
-				}
-				else if(HoudiniGeoPartObject.IsInstancer())
-				{
-					FoundInstancers.Add(HoudiniGeoPartObject);
-				}
-				else
+				if(!HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer())
 				{
 					TArray<uint8> Buffer;
 					FMemoryWriter RawSaver(Buffer);
@@ -1465,6 +1454,16 @@ UHoudiniAssetComponent::OnComponentClipboardCopy(UHoudiniAssetComponent* Houdini
 				// Store this duplicated mesh.
 				StaticMeshes.Add(FHoudiniGeoPartObject(HoudiniGeoPartObject, true), DuplicatedStaticMesh);
 			}
+		}
+
+		// We need to reconstruct splines.
+		{
+			TArray<uint8> Buffer;
+			FMemoryWriter RawSaver(Buffer);
+			CopiedHoudiniComponent->SerializeCurves(RawSaver);
+
+			FMemoryReader RawLoader(Buffer);
+			SerializeCurves(RawLoader);
 		}
 
 		// Perform any necessary post loading.
