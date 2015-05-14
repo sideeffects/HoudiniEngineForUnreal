@@ -147,14 +147,29 @@ FHoudiniApi::GetGlobalNodes = nullptr;
 FHoudiniApi::GetParametersFuncPtr
 FHoudiniApi::GetParameters = nullptr;
 
+FHoudiniApi::GetParmInfoFuncPtr
+FHoudiniApi::GetParmInfo = nullptr;
+
 FHoudiniApi::GetParmIdFromNameFuncPtr
 FHoudiniApi::GetParmIdFromName = nullptr;
+
+FHoudiniApi::GetParmInfoFromNameFuncPtr
+FHoudiniApi::GetParmInfoFromName = nullptr;
+
+FHoudiniApi::GetParmIntValueFuncPtr
+FHoudiniApi::GetParmIntValue = nullptr;
 
 FHoudiniApi::GetParmIntValuesFuncPtr
 FHoudiniApi::GetParmIntValues = nullptr;
 
+FHoudiniApi::GetParmFloatValueFuncPtr
+FHoudiniApi::GetParmFloatValue = nullptr;
+
 FHoudiniApi::GetParmFloatValuesFuncPtr
 FHoudiniApi::GetParmFloatValues = nullptr;
+
+FHoudiniApi::GetParmStringValueFuncPtr
+FHoudiniApi::GetParmStringValue = nullptr;
 
 FHoudiniApi::GetParmStringValuesFuncPtr
 FHoudiniApi::GetParmStringValues = nullptr;
@@ -162,8 +177,14 @@ FHoudiniApi::GetParmStringValues = nullptr;
 FHoudiniApi::GetParmChoiceListsFuncPtr
 FHoudiniApi::GetParmChoiceLists = nullptr;
 
+FHoudiniApi::SetParmIntValueFuncPtr
+FHoudiniApi::SetParmIntValue = nullptr;
+
 FHoudiniApi::SetParmIntValuesFuncPtr
 FHoudiniApi::SetParmIntValues = nullptr;
+
+FHoudiniApi::SetParmFloatValueFuncPtr
+FHoudiniApi::SetParmFloatValue = nullptr;
 
 FHoudiniApi::SetParmFloatValuesFuncPtr
 FHoudiniApi::SetParmFloatValues = nullptr;
@@ -285,11 +306,11 @@ FHoudiniApi::ConnectAssetGeometry = nullptr;
 FHoudiniApi::DisconnectAssetGeometryFuncPtr
 FHoudiniApi::DisconnectAssetGeometry = nullptr;
 
-FHoudiniApi::GetMaterialOnPartFuncPtr
-FHoudiniApi::GetMaterialOnPart = nullptr;
+FHoudiniApi::GetMaterialIdsOnFacesFuncPtr
+FHoudiniApi::GetMaterialIdsOnFaces = nullptr;
 
-FHoudiniApi::GetMaterialOnGroupFuncPtr
-FHoudiniApi::GetMaterialOnGroup = nullptr;
+FHoudiniApi::GetMaterialInfoFuncPtr
+FHoudiniApi::GetMaterialInfo = nullptr;
 
 FHoudiniApi::RenderMaterialToImageFuncPtr
 FHoudiniApi::RenderMaterialToImage = nullptr;
@@ -369,6 +390,18 @@ FHoudiniApi::GetCurveOrders = nullptr;
 FHoudiniApi::GetCurveKnotsFuncPtr
 FHoudiniApi::GetCurveKnots = nullptr;
 
+FHoudiniApi::SetCurveInfoFuncPtr
+FHoudiniApi::SetCurveInfo = nullptr;
+
+FHoudiniApi::SetCurveCountsFuncPtr
+FHoudiniApi::SetCurveCounts = nullptr;
+
+FHoudiniApi::SetCurveOrdersFuncPtr
+FHoudiniApi::SetCurveOrders = nullptr;
+
+FHoudiniApi::SetCurveKnotsFuncPtr
+FHoudiniApi::SetCurveKnots = nullptr;
+
 FHoudiniApi::SaveGeoToFileFuncPtr
 FHoudiniApi::SaveGeoToFile = nullptr;
 
@@ -383,6 +416,12 @@ FHoudiniApi::SaveGeoToMemory = nullptr;
 
 FHoudiniApi::LoadGeoFromMemoryFuncPtr
 FHoudiniApi::LoadGeoFromMemory = nullptr;
+
+FHoudiniApi::GetMaterialOnPartFuncPtr
+FHoudiniApi::GetMaterialOnPart = nullptr;
+
+FHoudiniApi::GetMaterialOnGroupFuncPtr
+FHoudiniApi::GetMaterialOnGroup = nullptr;
 
 
 void
@@ -433,12 +472,19 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
 	FHoudiniApi::GetGlobalNodes = (GetGlobalNodesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGlobalNodes"));
 	FHoudiniApi::GetParameters = (GetParametersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParameters"));
+	FHoudiniApi::GetParmInfo = (GetParmInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmInfo"));
 	FHoudiniApi::GetParmIdFromName = (GetParmIdFromNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmIdFromName"));
+	FHoudiniApi::GetParmInfoFromName = (GetParmInfoFromNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmInfoFromName"));
+	FHoudiniApi::GetParmIntValue = (GetParmIntValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmIntValue"));
 	FHoudiniApi::GetParmIntValues = (GetParmIntValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmIntValues"));
+	FHoudiniApi::GetParmFloatValue = (GetParmFloatValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmFloatValue"));
 	FHoudiniApi::GetParmFloatValues = (GetParmFloatValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmFloatValues"));
+	FHoudiniApi::GetParmStringValue = (GetParmStringValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValue"));
 	FHoudiniApi::GetParmStringValues = (GetParmStringValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValues"));
 	FHoudiniApi::GetParmChoiceLists = (GetParmChoiceListsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmChoiceLists"));
+	FHoudiniApi::SetParmIntValue = (SetParmIntValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmIntValue"));
 	FHoudiniApi::SetParmIntValues = (SetParmIntValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmIntValues"));
+	FHoudiniApi::SetParmFloatValue = (SetParmFloatValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmFloatValue"));
 	FHoudiniApi::SetParmFloatValues = (SetParmFloatValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmFloatValues"));
 	FHoudiniApi::SetParmStringValue = (SetParmStringValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmStringValue"));
 	FHoudiniApi::InsertMultiparmInstance = (InsertMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_InsertMultiparmInstance"));
@@ -479,8 +525,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::DisconnectAssetTransform = (DisconnectAssetTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectAssetTransform"));
 	FHoudiniApi::ConnectAssetGeometry = (ConnectAssetGeometryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConnectAssetGeometry"));
 	FHoudiniApi::DisconnectAssetGeometry = (DisconnectAssetGeometryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectAssetGeometry"));
-	FHoudiniApi::GetMaterialOnPart = (GetMaterialOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPart"));
-	FHoudiniApi::GetMaterialOnGroup = (GetMaterialOnGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroup"));
+	FHoudiniApi::GetMaterialIdsOnFaces = (GetMaterialIdsOnFacesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialIdsOnFaces"));
+	FHoudiniApi::GetMaterialInfo = (GetMaterialInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialInfo"));
 	FHoudiniApi::RenderMaterialToImage = (RenderMaterialToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderMaterialToImage"));
 	FHoudiniApi::RenderTextureToImage = (RenderTextureToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderTextureToImage"));
 	FHoudiniApi::GetSupportedImageFileFormatCount = (GetSupportedImageFileFormatCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSupportedImageFileFormatCount"));
@@ -507,11 +553,17 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetCurveCounts = (GetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveCounts"));
 	FHoudiniApi::GetCurveOrders = (GetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveOrders"));
 	FHoudiniApi::GetCurveKnots = (GetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveKnots"));
+	FHoudiniApi::SetCurveInfo = (SetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveInfo"));
+	FHoudiniApi::SetCurveCounts = (SetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveCounts"));
+	FHoudiniApi::SetCurveOrders = (SetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrders"));
+	FHoudiniApi::SetCurveKnots = (SetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnots"));
 	FHoudiniApi::SaveGeoToFile = (SaveGeoToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToFile"));
 	FHoudiniApi::LoadGeoFromFile = (LoadGeoFromFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromFile"));
 	FHoudiniApi::GetGeoSize = (GetGeoSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSize"));
 	FHoudiniApi::SaveGeoToMemory = (SaveGeoToMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToMemory"));
 	FHoudiniApi::LoadGeoFromMemory = (LoadGeoFromMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromMemory"));
+	FHoudiniApi::GetMaterialOnPart = (GetMaterialOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPart"));
+	FHoudiniApi::GetMaterialOnGroup = (GetMaterialOnGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroup"));
 }
 
 
@@ -561,12 +613,19 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNodeInfo = nullptr;
 	FHoudiniApi::GetGlobalNodes = nullptr;
 	FHoudiniApi::GetParameters = nullptr;
+	FHoudiniApi::GetParmInfo = nullptr;
 	FHoudiniApi::GetParmIdFromName = nullptr;
+	FHoudiniApi::GetParmInfoFromName = nullptr;
+	FHoudiniApi::GetParmIntValue = nullptr;
 	FHoudiniApi::GetParmIntValues = nullptr;
+	FHoudiniApi::GetParmFloatValue = nullptr;
 	FHoudiniApi::GetParmFloatValues = nullptr;
+	FHoudiniApi::GetParmStringValue = nullptr;
 	FHoudiniApi::GetParmStringValues = nullptr;
 	FHoudiniApi::GetParmChoiceLists = nullptr;
+	FHoudiniApi::SetParmIntValue = nullptr;
 	FHoudiniApi::SetParmIntValues = nullptr;
+	FHoudiniApi::SetParmFloatValue = nullptr;
 	FHoudiniApi::SetParmFloatValues = nullptr;
 	FHoudiniApi::SetParmStringValue = nullptr;
 	FHoudiniApi::InsertMultiparmInstance = nullptr;
@@ -607,8 +666,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::DisconnectAssetTransform = nullptr;
 	FHoudiniApi::ConnectAssetGeometry = nullptr;
 	FHoudiniApi::DisconnectAssetGeometry = nullptr;
-	FHoudiniApi::GetMaterialOnPart = nullptr;
-	FHoudiniApi::GetMaterialOnGroup = nullptr;
+	FHoudiniApi::GetMaterialIdsOnFaces = nullptr;
+	FHoudiniApi::GetMaterialInfo = nullptr;
 	FHoudiniApi::RenderMaterialToImage = nullptr;
 	FHoudiniApi::RenderTextureToImage = nullptr;
 	FHoudiniApi::GetSupportedImageFileFormatCount = nullptr;
@@ -635,11 +694,17 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetCurveCounts = nullptr;
 	FHoudiniApi::GetCurveOrders = nullptr;
 	FHoudiniApi::GetCurveKnots = nullptr;
+	FHoudiniApi::SetCurveInfo = nullptr;
+	FHoudiniApi::SetCurveCounts = nullptr;
+	FHoudiniApi::SetCurveOrders = nullptr;
+	FHoudiniApi::SetCurveKnots = nullptr;
 	FHoudiniApi::SaveGeoToFile = nullptr;
 	FHoudiniApi::LoadGeoFromFile = nullptr;
 	FHoudiniApi::GetGeoSize = nullptr;
 	FHoudiniApi::SaveGeoToMemory = nullptr;
 	FHoudiniApi::LoadGeoFromMemory = nullptr;
+	FHoudiniApi::GetMaterialOnPart = nullptr;
+	FHoudiniApi::GetMaterialOnGroup = nullptr;
 }
 
 
