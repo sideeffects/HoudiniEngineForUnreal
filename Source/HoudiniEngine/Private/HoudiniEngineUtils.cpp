@@ -445,15 +445,18 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 
 	int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);
 
-	std::vector<int32> GroupNameHandles(GroupCount, 0);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(AssetId, ObjectId, GeoId, GroupType, &GroupNameHandles[0],
-		GroupCount), false);
-
-	for(int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
+	if(GroupCount > 0)
 	{
-		FString GroupName;
-		FHoudiniEngineUtils::GetHoudiniString(GroupNameHandles[NameIdx], GroupName);
-		GroupNames.Add(GroupName);
+		std::vector<int32> GroupNameHandles(GroupCount, 0);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(AssetId, ObjectId, GeoId, GroupType, &GroupNameHandles[0],
+			GroupCount), false);
+
+		for(int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
+		{
+			FString GroupName;
+			FHoudiniEngineUtils::GetHoudiniString(GroupNameHandles[NameIdx], GroupName);
+			GroupNames.Add(GroupName);
+		}
 	}
 
 	return true;
