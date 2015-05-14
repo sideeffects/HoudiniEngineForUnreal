@@ -138,7 +138,7 @@ struct FHoudiniApi
 	typedef HAPI_Result (*CheckForNewAssetsFuncPtr)(int * new_asset_count);
 	static CheckForNewAssetsFuncPtr CheckForNewAssets;
 
-	typedef HAPI_Result (*GetNewAssetIdsFuncPtr)(HAPI_AssetId * asset_ids);
+	typedef HAPI_Result (*GetNewAssetIdsFuncPtr)(HAPI_AssetId * asset_ids_array, int length);
 	static GetNewAssetIdsFuncPtr GetNewAssetIds;
 
 	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const char * file_path);
@@ -291,7 +291,7 @@ struct FHoudiniApi
 	typedef HAPI_Result (*AddGroupFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name);
 	static AddGroupFuncPtr AddGroup;
 
-	typedef HAPI_Result (*SetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, int * membership, int start, int length);
+	typedef HAPI_Result (*SetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership, int start, int length);
 	static SetGroupMembershipFuncPtr SetGroupMembership;
 
 	typedef HAPI_Result (*CommitGeoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
