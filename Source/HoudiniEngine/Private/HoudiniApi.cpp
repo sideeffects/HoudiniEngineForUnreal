@@ -144,6 +144,27 @@ FHoudiniApi::GetNodeInfo = nullptr;
 FHoudiniApi::GetGlobalNodesFuncPtr
 FHoudiniApi::GetGlobalNodes = nullptr;
 
+FHoudiniApi::GetEditableNodeNetworksFuncPtr
+FHoudiniApi::GetEditableNodeNetworks = nullptr;
+
+FHoudiniApi::GetNodeNetworkChildrenFuncPtr
+FHoudiniApi::GetNodeNetworkChildren = nullptr;
+
+FHoudiniApi::CreateNodeFuncPtr
+FHoudiniApi::CreateNode = nullptr;
+
+FHoudiniApi::DeleteNodeFuncPtr
+FHoudiniApi::DeleteNode = nullptr;
+
+FHoudiniApi::ConnectNodeInputFuncPtr
+FHoudiniApi::ConnectNodeInput = nullptr;
+
+FHoudiniApi::DisconnectNodeInputFuncPtr
+FHoudiniApi::DisconnectNodeInput = nullptr;
+
+FHoudiniApi::QueryNodeInputFuncPtr
+FHoudiniApi::QueryNodeInput = nullptr;
+
 FHoudiniApi::GetParametersFuncPtr
 FHoudiniApi::GetParameters = nullptr;
 
@@ -257,6 +278,12 @@ FHoudiniApi::GetGroupNames = nullptr;
 
 FHoudiniApi::GetGroupMembershipFuncPtr
 FHoudiniApi::GetGroupMembership = nullptr;
+
+FHoudiniApi::GetInstancedPartIdsFuncPtr
+FHoudiniApi::GetInstancedPartIds = nullptr;
+
+FHoudiniApi::GetInstancerPartTransformsFuncPtr
+FHoudiniApi::GetInstancerPartTransforms = nullptr;
 
 FHoudiniApi::SetGeoInfoFuncPtr
 FHoudiniApi::SetGeoInfo = nullptr;
@@ -471,6 +498,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SaveHIPFile = (SaveHIPFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveHIPFile"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
 	FHoudiniApi::GetGlobalNodes = (GetGlobalNodesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGlobalNodes"));
+	FHoudiniApi::GetEditableNodeNetworks = (GetEditableNodeNetworksFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEditableNodeNetworks"));
+	FHoudiniApi::GetNodeNetworkChildren = (GetNodeNetworkChildrenFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeNetworkChildren"));
+	FHoudiniApi::CreateNode = (CreateNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateNode"));
+	FHoudiniApi::DeleteNode = (DeleteNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DeleteNode"));
+	FHoudiniApi::ConnectNodeInput = (ConnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConnectNodeInput"));
+	FHoudiniApi::DisconnectNodeInput = (DisconnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectNodeInput"));
+	FHoudiniApi::QueryNodeInput = (QueryNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeInput"));
 	FHoudiniApi::GetParameters = (GetParametersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParameters"));
 	FHoudiniApi::GetParmInfo = (GetParmInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmInfo"));
 	FHoudiniApi::GetParmIdFromName = (GetParmIdFromNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmIdFromName"));
@@ -509,6 +543,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetAttributeStringData = (GetAttributeStringDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeStringData"));
 	FHoudiniApi::GetGroupNames = (GetGroupNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNames"));
 	FHoudiniApi::GetGroupMembership = (GetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembership"));
+	FHoudiniApi::GetInstancedPartIds = (GetInstancedPartIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedPartIds"));
+	FHoudiniApi::GetInstancerPartTransforms = (GetInstancerPartTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancerPartTransforms"));
 	FHoudiniApi::SetGeoInfo = (SetGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGeoInfo"));
 	FHoudiniApi::SetPartInfo = (SetPartInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetPartInfo"));
 	FHoudiniApi::SetFaceCounts = (SetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetFaceCounts"));
@@ -612,6 +648,13 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SaveHIPFile = nullptr;
 	FHoudiniApi::GetNodeInfo = nullptr;
 	FHoudiniApi::GetGlobalNodes = nullptr;
+	FHoudiniApi::GetEditableNodeNetworks = nullptr;
+	FHoudiniApi::GetNodeNetworkChildren = nullptr;
+	FHoudiniApi::CreateNode = nullptr;
+	FHoudiniApi::DeleteNode = nullptr;
+	FHoudiniApi::ConnectNodeInput = nullptr;
+	FHoudiniApi::DisconnectNodeInput = nullptr;
+	FHoudiniApi::QueryNodeInput = nullptr;
 	FHoudiniApi::GetParameters = nullptr;
 	FHoudiniApi::GetParmInfo = nullptr;
 	FHoudiniApi::GetParmIdFromName = nullptr;
@@ -650,6 +693,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetAttributeStringData = nullptr;
 	FHoudiniApi::GetGroupNames = nullptr;
 	FHoudiniApi::GetGroupMembership = nullptr;
+	FHoudiniApi::GetInstancedPartIds = nullptr;
+	FHoudiniApi::GetInstancerPartTransforms = nullptr;
 	FHoudiniApi::SetGeoInfo = nullptr;
 	FHoudiniApi::SetPartInfo = nullptr;
 	FHoudiniApi::SetFaceCounts = nullptr;

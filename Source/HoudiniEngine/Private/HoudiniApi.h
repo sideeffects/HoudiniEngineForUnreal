@@ -150,6 +150,27 @@ struct FHoudiniApi
 	typedef HAPI_Result (*GetGlobalNodesFuncPtr)(HAPI_GlobalNodes * global_nodes);
 	static GetGlobalNodesFuncPtr GetGlobalNodes;
 
+	typedef HAPI_Result (*GetEditableNodeNetworksFuncPtr)(HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count);
+	static GetEditableNodeNetworksFuncPtr GetEditableNodeNetworks;
+
+	typedef HAPI_Result (*GetNodeNetworkChildrenFuncPtr)(HAPI_NodeId network_node_id, HAPI_NodeId * child_node_ids_array, int count);
+	static GetNodeNetworkChildrenFuncPtr GetNodeNetworkChildren;
+
+	typedef HAPI_Result (*CreateNodeFuncPtr)(HAPI_NodeId parent_node_id, const char * operator_name, HAPI_NodeId * new_node_id);
+	static CreateNodeFuncPtr CreateNode;
+
+	typedef HAPI_Result (*DeleteNodeFuncPtr)(HAPI_NodeId node_id);
+	static DeleteNodeFuncPtr DeleteNode;
+
+	typedef HAPI_Result (*ConnectNodeInputFuncPtr)(HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect);
+	static ConnectNodeInputFuncPtr ConnectNodeInput;
+
+	typedef HAPI_Result (*DisconnectNodeInputFuncPtr)(HAPI_NodeId node_id, int input_index);
+	static DisconnectNodeInputFuncPtr DisconnectNodeInput;
+
+	typedef HAPI_Result (*QueryNodeInputFuncPtr)(HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
+	static QueryNodeInputFuncPtr QueryNodeInput;
+
 	typedef HAPI_Result (*GetParametersFuncPtr)(HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	static GetParametersFuncPtr GetParameters;
 
@@ -263,6 +284,12 @@ struct FHoudiniApi
 
 	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, int * membership_array, int start, int length);
 	static GetGroupMembershipFuncPtr GetGroupMembership;
+
+	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int count);
+	static GetInstancedPartIdsFuncPtr GetInstancedPartIds;
+
+	typedef HAPI_Result (*GetInstancerPartTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int count);
+	static GetInstancerPartTransformsFuncPtr GetInstancerPartTransforms;
 
 	typedef HAPI_Result (*SetGeoInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info);
 	static SetGeoInfoFuncPtr SetGeoInfo;
