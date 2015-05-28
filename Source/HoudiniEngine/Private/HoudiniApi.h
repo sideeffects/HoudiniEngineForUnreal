@@ -141,7 +141,7 @@ struct FHoudiniApi
 	typedef HAPI_Result (*GetNewAssetIdsFuncPtr)(HAPI_AssetId * asset_ids_array, int new_asset_count);
 	static GetNewAssetIdsFuncPtr GetNewAssetIds;
 
-	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const char * file_path);
+	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const char * file_path, HAPI_Bool lock_nodes);
 	static SaveHIPFileFuncPtr SaveHIPFile;
 
 	typedef HAPI_Result (*GetNodeInfoFuncPtr)(HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
