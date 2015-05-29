@@ -390,8 +390,14 @@ FHoudiniApi::GetFirstVolumeTile = nullptr;
 FHoudiniApi::GetNextVolumeTileFuncPtr
 FHoudiniApi::GetNextVolumeTile = nullptr;
 
+FHoudiniApi::GetVolumeVoxelFloatDataFuncPtr
+FHoudiniApi::GetVolumeVoxelFloatData = nullptr;
+
 FHoudiniApi::GetVolumeTileFloatDataFuncPtr
 FHoudiniApi::GetVolumeTileFloatData = nullptr;
+
+FHoudiniApi::GetVolumeVoxelIntDataFuncPtr
+FHoudiniApi::GetVolumeVoxelIntData = nullptr;
 
 FHoudiniApi::GetVolumeTileIntDataFuncPtr
 FHoudiniApi::GetVolumeTileIntData = nullptr;
@@ -580,7 +586,9 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetVolumeInfo = (GetVolumeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeInfo"));
 	FHoudiniApi::GetFirstVolumeTile = (GetFirstVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTile"));
 	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
+	FHoudiniApi::GetVolumeVoxelFloatData = (GetVolumeVoxelFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelFloatData"));
 	FHoudiniApi::GetVolumeTileFloatData = (GetVolumeTileFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileFloatData"));
+	FHoudiniApi::GetVolumeVoxelIntData = (GetVolumeVoxelIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelIntData"));
 	FHoudiniApi::GetVolumeTileIntData = (GetVolumeTileIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileIntData"));
 	FHoudiniApi::SetVolumeInfo = (SetVolumeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeInfo"));
 	FHoudiniApi::SetVolumeTileFloatData = (SetVolumeTileFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileFloatData"));
@@ -730,7 +738,9 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetVolumeInfo = nullptr;
 	FHoudiniApi::GetFirstVolumeTile = nullptr;
 	FHoudiniApi::GetNextVolumeTile = nullptr;
+	FHoudiniApi::GetVolumeVoxelFloatData = nullptr;
 	FHoudiniApi::GetVolumeTileFloatData = nullptr;
+	FHoudiniApi::GetVolumeVoxelIntData = nullptr;
 	FHoudiniApi::GetVolumeTileIntData = nullptr;
 	FHoudiniApi::SetVolumeInfo = nullptr;
 	FHoudiniApi::SetVolumeTileFloatData = nullptr;
