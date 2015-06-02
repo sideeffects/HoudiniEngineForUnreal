@@ -399,13 +399,13 @@ struct FHoudiniApi
 	typedef HAPI_Result (*GetVolumeVoxelFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count);
 	static GetVolumeVoxelFloatDataFuncPtr GetVolumeVoxelFloatData;
 
-	typedef HAPI_Result (*GetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, float * values_array, int length);
+	typedef HAPI_Result (*GetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length);
 	static GetVolumeTileFloatDataFuncPtr GetVolumeTileFloatData;
 
 	typedef HAPI_Result (*GetVolumeVoxelIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count);
 	static GetVolumeVoxelIntDataFuncPtr GetVolumeVoxelIntData;
 
-	typedef HAPI_Result (*GetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, int * values_array, int length);
+	typedef HAPI_Result (*GetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int fill_value, const HAPI_VolumeTileInfo * tile, int * values_array, int length);
 	static GetVolumeTileIntDataFuncPtr GetVolumeTileIntData;
 
 	typedef HAPI_Result (*SetVolumeInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeInfo * volume_info);
