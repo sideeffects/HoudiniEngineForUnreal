@@ -38,6 +38,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	/** Geometry scaling. **/
 	GeneratedGeometryScaleFactor(50.0f),
 	TransformScaleFactor(50.0f),
+	ImportAxis(HRSAI_Unreal),
 
 	/** Generated StaticMesh settings. **/
 	bDoubleSidedGeometry(false),
@@ -49,7 +50,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	bUseMaximumStreamingTexelRatio(false),
 	StreamingDistanceMultiplier(1.0f),
 
-	/**  Static Mesh build settings. **/
+	/** Static Mesh build settings. **/
 	bUseFullPrecisionUVs(false),
 	SrcLightmapIndex(0),
 	DstLightmapIndex(1),

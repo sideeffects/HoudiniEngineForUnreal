@@ -43,6 +43,19 @@ enum EHoudiniRuntimeSettingsRecomputeFlag
 };
 
 
+UENUM()
+enum EHoudiniRuntimeSettingsAxisImport
+{
+	// Use Unreal coordinate system.
+	HRSAI_Unreal UMETA(DisplayName="Unreal"),
+
+	// Use Houdini coordinate system.
+	HRSAI_Houdini UMETA(DisplayName="Houdini"),
+
+	HRSAI_MAX,
+};
+
+
 UCLASS(config=Engine, defaultconfig)
 class HOUDINIENGINE_API UHoudiniRuntimeSettings : public UObject
 {
@@ -118,12 +131,16 @@ public:
 public:
 
 	// Scale factor of generated Houdini geometry.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryScaling)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryScalingAndImport)
 	float GeneratedGeometryScaleFactor;
 
 	// Scale factor of Houdini transformations.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryScaling)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryScalingAndImport)
 	float TransformScaleFactor;
+
+	// Which coordinate system to use.
+	UPROPERTY(EditAnywhere, Category=GeometryScalingAndImport)
+	TEnumAsByte<enum EHoudiniRuntimeSettingsAxisImport> ImportAxis;
 
 /** Generated StaticMesh settings. **/
 public:
