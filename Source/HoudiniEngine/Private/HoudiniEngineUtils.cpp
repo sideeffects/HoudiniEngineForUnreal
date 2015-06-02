@@ -277,23 +277,46 @@ FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform& HapiTransform,
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
-	FQuat ObjectRotation(-HapiTransform.rotationQuaternion[0], -HapiTransform.rotationQuaternion[1],
-						 -HapiTransform.rotationQuaternion[2], HapiTransform.rotationQuaternion[3]);
-	Swap(ObjectRotation.Y, ObjectRotation.Z);
+	if(HRSAI_Unreal == ImportAxis)
+	{
+		FQuat ObjectRotation(-HapiTransform.rotationQuaternion[0], -HapiTransform.rotationQuaternion[1],
+							 -HapiTransform.rotationQuaternion[2], HapiTransform.rotationQuaternion[3]);
+		Swap(ObjectRotation.Y, ObjectRotation.Z);
 
-	FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
-	ObjectTranslation *= TransformScaleFactor;
-	Swap(ObjectTranslation[2], ObjectTranslation[1]);
+		FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
+		ObjectTranslation *= TransformScaleFactor;
+		Swap(ObjectTranslation[2], ObjectTranslation[1]);
 
-	FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
-	Swap(ObjectScale3D.Y, ObjectScale3D.Z);
+		FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
+		Swap(ObjectScale3D.Y, ObjectScale3D.Z);
 
-	UnrealTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
+		UnrealTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
+	}
+	else if(HRSAI_Houdini == ImportAxis)
+	{
+		FQuat ObjectRotation(HapiTransform.rotationQuaternion[0], HapiTransform.rotationQuaternion[1],
+							 HapiTransform.rotationQuaternion[2], HapiTransform.rotationQuaternion[3]);
+
+		FVector ObjectTranslation(HapiTransform.position[0], HapiTransform.position[1], HapiTransform.position[2]);
+		ObjectTranslation *= TransformScaleFactor;
+
+		FVector ObjectScale3D(HapiTransform.scale[0], HapiTransform.scale[1], HapiTransform.scale[2]);
+
+		UnrealTransform.SetComponents(ObjectRotation, ObjectTranslation, ObjectScale3D);
+	}
+	else
+	{
+		// Not valid enum value.
+		check(0);
+	}
 }
 
 
@@ -310,32 +333,59 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
 	HapiTransform.rstOrder = HAPI_SRT;
 
 	FQuat UnrealRotation = UnrealTransform.GetRotation();
-	Swap(UnrealRotation.Y, UnrealRotation.Z);
-	HapiTransform.rotationQuaternion[0] = -UnrealRotation.X;
-	HapiTransform.rotationQuaternion[1] = -UnrealRotation.Y;
-	HapiTransform.rotationQuaternion[2] = -UnrealRotation.Z;
-	HapiTransform.rotationQuaternion[3] = UnrealRotation.W;
-
 	FVector UnrealTranslation = UnrealTransform.GetTranslation();
-	UnrealTranslation /= TransformScaleFactor;
-	Swap(UnrealTranslation.Y, UnrealTranslation.Z);
-	HapiTransform.position[0] = UnrealTranslation.X;
-	HapiTransform.position[1] = UnrealTranslation.Y;
-	HapiTransform.position[2] = UnrealTranslation.Z;
-
 	FVector UnrealScale = UnrealTransform.GetScale3D();
-	Swap(UnrealScale.Y, UnrealScale.Z);
-	HapiTransform.scale[0] = UnrealScale.X;
-	HapiTransform.scale[1] = UnrealScale.Y;
-	HapiTransform.scale[2] = UnrealScale.Z;
+
+	if(HRSAI_Unreal == ImportAxis)
+	{
+		Swap(UnrealRotation.Y, UnrealRotation.Z);
+		HapiTransform.rotationQuaternion[0] = -UnrealRotation.X;
+		HapiTransform.rotationQuaternion[1] = -UnrealRotation.Y;
+		HapiTransform.rotationQuaternion[2] = -UnrealRotation.Z;
+		HapiTransform.rotationQuaternion[3] = UnrealRotation.W;
+
+		UnrealTranslation /= TransformScaleFactor;
+		Swap(UnrealTranslation.Y, UnrealTranslation.Z);
+		HapiTransform.position[0] = UnrealTranslation.X;
+		HapiTransform.position[1] = UnrealTranslation.Y;
+		HapiTransform.position[2] = UnrealTranslation.Z;
+
+		Swap(UnrealScale.Y, UnrealScale.Z);
+		HapiTransform.scale[0] = UnrealScale.X;
+		HapiTransform.scale[1] = UnrealScale.Y;
+		HapiTransform.scale[2] = UnrealScale.Z;
+	}
+	else if(HRSAI_Houdini == ImportAxis)
+	{
+		HapiTransform.rotationQuaternion[0] = UnrealRotation.X;
+		HapiTransform.rotationQuaternion[1] = UnrealRotation.Y;
+		HapiTransform.rotationQuaternion[2] = UnrealRotation.Z;
+		HapiTransform.rotationQuaternion[3] = UnrealRotation.W;
+
+		HapiTransform.position[0] = UnrealTranslation.X;
+		HapiTransform.position[1] = UnrealTranslation.Y;
+		HapiTransform.position[2] = UnrealTranslation.Z;
+
+		HapiTransform.scale[0] = UnrealScale.X;
+		HapiTransform.scale[1] = UnrealScale.Y;
+		HapiTransform.scale[2] = UnrealScale.Z;
+	}
+	else
+	{
+		// Not valid enum value.
+		check(0);
+	}
 }
 
 
@@ -346,32 +396,60 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
-
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
+
 	HapiTransformEuler.rstOrder = HAPI_SRT;
 	HapiTransformEuler.rotationOrder = HAPI_XYZ;
 
 	FQuat UnrealRotation = UnrealTransform.GetRotation();
 	FRotator Rotator = UnrealRotation.Rotator();
-	HapiTransformEuler.rotationEuler[0] = -Rotator.Roll;
-	HapiTransformEuler.rotationEuler[1] = -Rotator.Yaw;
-	HapiTransformEuler.rotationEuler[2] = -Rotator.Pitch;
 
 	FVector UnrealTranslation = UnrealTransform.GetTranslation();
 	UnrealTranslation /= TransformScaleFactor;
-	Swap(UnrealTranslation.Y, UnrealTranslation.Z);
-	HapiTransformEuler.position[0] = UnrealTranslation.X;
-	HapiTransformEuler.position[1] = UnrealTranslation.Y;
-	HapiTransformEuler.position[2] = UnrealTranslation.Z;
 
 	FVector UnrealScale = UnrealTransform.GetScale3D();
-	Swap(UnrealScale.Y, UnrealScale.Z);
-	HapiTransformEuler.scale[0] = UnrealScale.X;
-	HapiTransformEuler.scale[1] = UnrealScale.Y;
-	HapiTransformEuler.scale[2] = UnrealScale.Z;
+
+	if(HRSAI_Unreal == ImportAxis)
+	{
+		HapiTransformEuler.rotationEuler[0] = -Rotator.Roll;
+		HapiTransformEuler.rotationEuler[1] = -Rotator.Yaw;
+		HapiTransformEuler.rotationEuler[2] = -Rotator.Pitch;
+
+		Swap(UnrealTranslation.Y, UnrealTranslation.Z);
+		HapiTransformEuler.position[0] = UnrealTranslation.X;
+		HapiTransformEuler.position[1] = UnrealTranslation.Y;
+		HapiTransformEuler.position[2] = UnrealTranslation.Z;
+
+		Swap(UnrealScale.Y, UnrealScale.Z);
+		HapiTransformEuler.scale[0] = UnrealScale.X;
+		HapiTransformEuler.scale[1] = UnrealScale.Y;
+		HapiTransformEuler.scale[2] = UnrealScale.Z;
+	}
+	else if(HRSAI_Houdini == ImportAxis)
+	{
+		HapiTransformEuler.rotationEuler[0] = Rotator.Roll;
+		HapiTransformEuler.rotationEuler[1] = Rotator.Yaw;
+		HapiTransformEuler.rotationEuler[2] = Rotator.Pitch;
+
+		HapiTransformEuler.position[0] = UnrealTranslation.X;
+		HapiTransformEuler.position[1] = UnrealTranslation.Y;
+		HapiTransformEuler.position[2] = UnrealTranslation.Z;
+
+		HapiTransformEuler.scale[0] = UnrealScale.X;
+		HapiTransformEuler.scale[1] = UnrealScale.Y;
+		HapiTransformEuler.scale[2] = UnrealScale.Z;
+	}
+	else
+	{
+		// Not valid enum value.
+		check(0);
+	}
 }
 
 
@@ -1128,9 +1206,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
 	// Grab base LOD level.
@@ -1172,11 +1253,26 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 	StaticMeshVertices.SetNumZeroed(RawMesh.VertexPositions.Num() * 3);
 	for(int32 VertexIdx = 0; VertexIdx < RawMesh.VertexPositions.Num(); ++VertexIdx)
 	{
-		// Grab vertex at this index (we also need to swap Z and Y).
+		// Grab vertex at this index.
 		const FVector& PositionVector = RawMesh.VertexPositions[VertexIdx];
-		StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
-		StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / GeneratedGeometryScaleFactor;
-		StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / GeneratedGeometryScaleFactor;
+
+		if(HRSAI_Unreal == ImportAxis)
+		{
+			StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
+			StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / GeneratedGeometryScaleFactor;
+			StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / GeneratedGeometryScaleFactor;
+		}
+		else if(HRSAI_Houdini == ImportAxis)
+		{
+			StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
+			StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Y / GeneratedGeometryScaleFactor;
+			StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Z / GeneratedGeometryScaleFactor;
+		}
+		else
+		{
+			// Not valid enum value.
+			check(0);
+		}
 	}
 
 	// Now that we have raw positions, we can upload them for our attribute.
@@ -1200,16 +1296,28 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 				StaticMeshUVs[UVIdx] = FVector2D(RawMeshUVs[UVIdx].X, 1.0 - RawMeshUVs[UVIdx].Y);
 			}
 
-			// We need to re-index UVs for wedges we swapped (due to winding differences).
-			for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+			if(HRSAI_Unreal == ImportAxis)
 			{
-				// We do not touch wedge 0 of this triangle.
+				// We need to re-index UVs for wedges we swapped (due to winding differences).
+				for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+				{
+					// We do not touch wedge 0 of this triangle.
 
-				FVector2D WedgeUV1 = StaticMeshUVs[WedgeIdx + 1];
-				FVector2D WedgeUV2 = StaticMeshUVs[WedgeIdx + 2];
+					FVector2D WedgeUV1 = StaticMeshUVs[WedgeIdx + 1];
+					FVector2D WedgeUV2 = StaticMeshUVs[WedgeIdx + 2];
 
-				StaticMeshUVs[WedgeIdx + 1] = WedgeUV2;
-				StaticMeshUVs[WedgeIdx + 2] = WedgeUV1;
+					StaticMeshUVs[WedgeIdx + 1] = WedgeUV2;
+					StaticMeshUVs[WedgeIdx + 2] = WedgeUV1;
+				}
+			}
+			else if(HRSAI_Houdini == ImportAxis)
+			{
+				// Do nothing, data is in proper format.
+			}
+			else
+			{
+				// Not valid enum value.
+				check(0);
 			}
 
 			// Construct attribute name for this index.
@@ -1242,14 +1350,26 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 	{
 		TArray<FVector> ChangedNormals(RawMesh.WedgeTangentZ);
 
-		// We need to re-index normals for wedges we swapped (due to winding differences).
-		for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+		if(HRSAI_Unreal == ImportAxis)
 		{
-			FVector TangentZ1 = ChangedNormals[WedgeIdx + 1];
-			FVector TangentZ2 = ChangedNormals[WedgeIdx + 2];
+			// We need to re-index normals for wedges we swapped (due to winding differences).
+			for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+			{
+				FVector TangentZ1 = ChangedNormals[WedgeIdx + 1];
+				FVector TangentZ2 = ChangedNormals[WedgeIdx + 2];
 
-			ChangedNormals[WedgeIdx + 1] = TangentZ2;
-			ChangedNormals[WedgeIdx + 2] = TangentZ1;
+				ChangedNormals[WedgeIdx + 1] = TangentZ2;
+				ChangedNormals[WedgeIdx + 2] = TangentZ1;
+			}
+		}
+		else if(HRSAI_Houdini == ImportAxis)
+		{
+			// Do nothing, data is in proper format.
+		}
+		else
+		{
+			// Not valid enum value.
+			check(0);
 		}
 
 		// Create attribute for normals.
@@ -1272,12 +1392,24 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 		TArray<FLinearColor> ChangedColors;
 		ChangedColors.SetNumUninitialized(RawMesh.WedgeColors.Num());
 
-		// We need to re-index colors for wedges we swapped (due to winding differences).
-		for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+		if(HRSAI_Unreal == ImportAxis)
 		{
-			ChangedColors[WedgeIdx + 0] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 0]);
-			ChangedColors[WedgeIdx + 1] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 2]);
-			ChangedColors[WedgeIdx + 2] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 1]);
+			// We need to re-index colors for wedges we swapped (due to winding differences).
+			for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
+			{
+				ChangedColors[WedgeIdx + 0] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 0]);
+				ChangedColors[WedgeIdx + 1] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 2]);
+				ChangedColors[WedgeIdx + 2] = FLinearColor(RawMesh.WedgeColors[WedgeIdx + 1]);
+			}
+		}
+		else if(HRSAI_Houdini == ImportAxis)
+		{
+			ChangedColors = TArray<FLinearColor>(RawMesh.WedgeColors);
+		}
+		else
+		{
+			// Not valid enum value.
+			check(0);
 		}
 
 		// Create attribute for colors.
@@ -1299,12 +1431,25 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 	{
 		TArray<int32> StaticMeshIndices;
 		StaticMeshIndices.SetNumUninitialized(RawMesh.WedgeIndices.Num());
-		for(int32 IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
+
+		if(HRSAI_Unreal == ImportAxis)
 		{
-			// Swap indices to fix winding order.
-			StaticMeshIndices[IndexIdx + 0] = (RawMesh.WedgeIndices[IndexIdx + 0]);
-			StaticMeshIndices[IndexIdx + 1] = (RawMesh.WedgeIndices[IndexIdx + 2]);
-			StaticMeshIndices[IndexIdx + 2] = (RawMesh.WedgeIndices[IndexIdx + 1]);
+			for(int32 IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
+			{
+				// Swap indices to fix winding order.
+				StaticMeshIndices[IndexIdx + 0] = (RawMesh.WedgeIndices[IndexIdx + 0]);
+				StaticMeshIndices[IndexIdx + 1] = (RawMesh.WedgeIndices[IndexIdx + 2]);
+				StaticMeshIndices[IndexIdx + 2] = (RawMesh.WedgeIndices[IndexIdx + 1]);
+			}
+		}
+		else if(HRSAI_Houdini == ImportAxis)
+		{
+			StaticMeshIndices = TArray<int32>(RawMesh.WedgeIndices);
+		}
+		else
+		{
+			// Not valid enum value.
+			check(0);
 		}
 
 		// We can now set vertex list.
@@ -1603,9 +1748,12 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	check(HoudiniRuntimeSettings);
 
 	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
 	// Get platform manager LOD specific information.
@@ -2309,43 +2457,58 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							SplitGroupVertexList[VertexIdx + 2]
 						};
 
-						// Flip wedge indices to fix winding order.
-						RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
-						RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[2];
-						RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[1];
-
-						// Check if we need to patch UVs.
-						for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+						if(HRSAI_Unreal == ImportAxis)
 						{
-							if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
+							// Flip wedge indices to fix winding order.
+							RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
+							RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[2];
+							RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[1];
+
+							// Check if we need to patch UVs.
+							for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 							{
-								Swap(RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 1],
-									RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 2]);
+								if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
+								{
+									Swap(RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 1],
+										RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 2]);
+								}
 							}
-						}
 
-						// Check if we need to patch colors.
-						if(RawMesh.WedgeColors.Num() > 0)
-						{
-							Swap(RawMesh.WedgeColors[ValidVertexId + 1], RawMesh.WedgeColors[ValidVertexId + 2]);
-						}
+							// Check if we need to patch colors.
+							if(RawMesh.WedgeColors.Num() > 0)
+							{
+								Swap(RawMesh.WedgeColors[ValidVertexId + 1], RawMesh.WedgeColors[ValidVertexId + 2]);
+							}
 
-						// Check if we need to patch tangents.
-						if(RawMesh.WedgeTangentZ.Num() > 0)
-						{
-							Swap(RawMesh.WedgeTangentZ[ValidVertexId + 1], RawMesh.WedgeTangentZ[ValidVertexId + 2]);
-						}
-						/*
-						if(RawMesh.WedgeTangentX.Num() > 0)
-						{
-							Swap(RawMesh.WedgeTangentX[ValidVertexId + 1], RawMesh.WedgeTangentX[ValidVertexId + 2]);
-						}
+							// Check if we need to patch tangents.
+							if(RawMesh.WedgeTangentZ.Num() > 0)
+							{
+								Swap(RawMesh.WedgeTangentZ[ValidVertexId + 1], RawMesh.WedgeTangentZ[ValidVertexId + 2]);
+							}
+							/*
+							if(RawMesh.WedgeTangentX.Num() > 0)
+							{
+								Swap(RawMesh.WedgeTangentX[ValidVertexId + 1], RawMesh.WedgeTangentX[ValidVertexId + 2]);
+							}
 
-						if(RawMesh.WedgeTangentY.Num() > 0)
-						{
-							Swap(RawMesh.WedgeTangentY[ValidVertexId + 1], RawMesh.WedgeTangentY[ValidVertexId + 2]);
+							if(RawMesh.WedgeTangentY.Num() > 0)
+							{
+								Swap(RawMesh.WedgeTangentY[ValidVertexId + 1], RawMesh.WedgeTangentY[ValidVertexId + 2]);
+							}
+							*/
 						}
-						*/
+						else if(HRSAI_Houdini == ImportAxis)
+						{
+							// Flip wedge indices to fix winding order.
+							RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
+							RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[1];
+							RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[2];
+						}
+						else
+						{
+							// Not valid enum value.
+							check(0);
+						}
 
 						ValidVertexId += 3;
 					}
@@ -2360,8 +2523,21 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * GeneratedGeometryScaleFactor;
 						VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * GeneratedGeometryScaleFactor;
 
-						// We need to flip Z and Y coordinate here.
-						Swap(VertexPosition.Y, VertexPosition.Z);
+						if(HRSAI_Unreal == ImportAxis)
+						{
+							// We need to flip Z and Y coordinate here.
+							Swap(VertexPosition.Y, VertexPosition.Z);
+						}
+						else if(HRSAI_Houdini == ImportAxis)
+						{
+							// No action required.
+						}
+						else
+						{
+							// Not valid enum value.
+							check(0);
+						}
+
 						RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
 					}
 
@@ -3508,9 +3684,12 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
 	int32 NumCoords = Positions.ParseIntoArray(&PointStrings, PositionSeparators, 2);
@@ -3523,7 +3702,20 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 		Position.Z = FCString::Atof(*PointStrings[CoordIdx + 2]);
 
 		Position *= GeneratedGeometryScaleFactor;
-		Swap(Position.Y, Position.Z);
+
+		if(HRSAI_Unreal == ImportAxis)
+		{
+			Swap(Position.Y, Position.Z);
+		}
+		else if(HRSAI_Houdini == ImportAxis)
+		{
+			// No action required.
+		}
+		else
+		{
+			// Not valid enum value.
+			check(0);
+		}
 
 		OutPositions.Add(Position);
 	}
@@ -3538,15 +3730,32 @@ FHoudiniEngineUtils::CreatePositionsString(const TArray<FVector>& Positions, FSt
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
 	for(int32 Idx = 0; Idx < Positions.Num(); ++Idx)
 	{
 		FVector Position = Positions[Idx];
-		Swap(Position.Z, Position.Y);
+
+		if(HRSAI_Unreal == ImportAxis)
+		{
+			Swap(Position.Z, Position.Y);
+		}
+		else if(HRSAI_Houdini == ImportAxis)
+		{
+			// No action required.
+		}
+		else
+		{
+			// Not valid enum value.
+			check(0);
+		}
+
 		Position /= GeneratedGeometryScaleFactor;
 
 		PositionString += FString::Printf(TEXT("%f, %f, %f "), Position.X, Position.Y, Position.Z);
@@ -3560,9 +3769,12 @@ FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw,
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
 	if(HoudiniRuntimeSettings)
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
 	for(int32 Idx = 0; Idx < DataRaw.Num(); Idx += 3)
@@ -3570,7 +3782,20 @@ FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw,
 		FVector Point(DataRaw[Idx + 0], DataRaw[Idx + 1], DataRaw[Idx + 2]);
 
 		Point *= GeneratedGeometryScaleFactor;
-		Swap(Point.Z, Point.Y);
+
+		if(HRSAI_Unreal == ImportAxis)
+		{
+			Swap(Point.Z, Point.Y);
+		}
+		else if(HRSAI_Houdini == ImportAxis)
+		{
+			// No action required.
+		}
+		else
+		{
+			// Not valid enum value.
+			check(0);
+		}
 
 		DataOut.Add(Point);
 	}

@@ -54,7 +54,7 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 	DetailBuilder.EditCategory("Cooking", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("CollisionGeneration", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("GeometryMarshalling", FText::GetEmpty(), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("GeometryScaling", FText::GetEmpty(), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("GeometryScalingAndImport", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("GeneratedStaticMeshSettings", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("StaticMeshBuildSettings", FText::GetEmpty(), ECategoryPriority::Important);
 
