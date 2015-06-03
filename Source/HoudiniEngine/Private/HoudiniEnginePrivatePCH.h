@@ -74,10 +74,17 @@
 #include "HAPI.h"
 #include "HAPI_Version.h"
 
-/** Other definitions. **/
+/** Whether to enable logging. **/
 #define HOUDINI_ENGINE_LOGGING 1
-DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
+
+/** See whether we are in Editor or Engine module. **/
+#ifdef HOUDINI_ENGINE_EDITOR
+#define LOCTEXT_NAMESPACE "HoudiniEngineEditor"
+DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log, All);
+#else
 #define LOCTEXT_NAMESPACE "HoudiniEngine"
+DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
+#endif
 
 /** Definitions coming from UBT. **/
 #ifndef HOUDINI_ENGINE_HFS_PATH_DEFINE
@@ -91,26 +98,35 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Some additional logging macros. **/
 #ifdef HOUDINI_ENGINE_LOGGING
 
-#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT, ...)					\
-	do																			\
-	{																			\
-		UE_LOG(LogHoudiniEngine, VERBOSITY, HOUDINI_LOG_TEXT, ##__VA_ARGS__);   \
-	}																			\
+#ifdef HOUDINI_ENGINE_EDITOR
+#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT, ...)							\
+	do																					\
+	{																					\
+		UE_LOG(LogHoudiniEngineEditor, VERBOSITY, HOUDINI_LOG_TEXT, ##__VA_ARGS__);		\
+	}																					\
 	while(0)
+#else
+#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT, ...)							\
+	do																					\
+	{																					\
+		UE_LOG(LogHoudiniEngine, VERBOSITY, HOUDINI_LOG_TEXT, ##__VA_ARGS__);			\
+	}																					\
+	while(0)
+#endif
 
-#define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT, ...)								\
+#define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT, ...)										\
 	HOUDINI_LOG_HELPER(Log, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
 
-#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT, ...)								\
+#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT, ...)										\
 	HOUDINI_LOG_HELPER(Fatal, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
 
-#define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT, ...)								\
+#define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT, ...)										\
 	HOUDINI_LOG_HELPER(Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
 
-#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT, ...)								\
+#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT, ...)										\
 	HOUDINI_LOG_HELPER(Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
 
-#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT, ...)								\
+#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT, ...)										\
 	HOUDINI_LOG_HELPER(Display, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
 
 #else
