@@ -25,7 +25,6 @@
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniRuntimeSettingsDetails.h"
-#include "HoudiniSplineComponentVisualizer.h"
 #endif
 
 
@@ -106,34 +105,6 @@ FHoudiniEngine::IsInitialized()
 {
 	return (FHoudiniEngine::HoudiniEngineInstance != nullptr && FHoudiniEngineUtils::IsInitialized());
 }
-
-
-#if WITH_EDITOR
-
-void
-FHoudiniEngine::RegisterComponentVisualizers()
-{
-	if(GUnrealEd && !SplineComponentVisualizer.IsValid())
-	{
-		SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
-		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(),
-			SplineComponentVisualizer);
-
-		SplineComponentVisualizer->OnRegister();
-	}
-}
-
-
-void
-FHoudiniEngine::UnregisterComponentVisualizers()
-{
-	if(GUnrealEd && SplineComponentVisualizer.IsValid())
-	{
-		GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
-	}
-}
-
-#endif
 
 
 void
@@ -352,9 +323,6 @@ FHoudiniEngine::ShutdownModule()
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
 	}
-
-	// Unregister our component visualizers.
-	UnregisterComponentVisualizers();
 
 	// Unregister Slate style set.
 	if(StyleSet.IsValid())

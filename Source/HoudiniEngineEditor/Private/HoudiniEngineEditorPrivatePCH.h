@@ -15,21 +15,5 @@
 
 #pragma once
 
-#include "ModuleManager.h"
-#include "EngineModule.h"
-#include "Engine.h"
-
-#include "HAPI.h"
-#include "HAPI_Version.h"
-
-/** Other definitions. **/
-#define HOUDINI_ENGINE_LOGGING 1
-DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log, All);
-#define LOCTEXT_NAMESPACE "HoudiniEngineEditor"
-
-#define HOUDINI_EDITOR_LOG_MESSAGE(...)
-
-/** Definitions coming from UBT. **/
-#ifndef HOUDINI_ENGINE_HFS_PATH
-#define HOUDINI_ENGINE_HFS_PATH ""
-#endif
+#define HOUDINI_ENGINE_EDITOR
+#include "HoudiniEnginePrivatePCH.h"

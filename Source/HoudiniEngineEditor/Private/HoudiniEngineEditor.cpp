@@ -15,6 +15,10 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngine.h"
+
+#include "HoudiniSplineComponentVisualizer.h"
+#include "HoudiniSplineComponent.h"
 
 
 const FName
@@ -46,10 +50,13 @@ FHoudiniEngineEditor::IsInitialized()
 void
 FHoudiniEngineEditor::StartupModule()
 {
-	HOUDINI_EDITOR_LOG_MESSAGE(TEXT("Starting the Houdini Engine Editor module."));
+	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine Editor module."));
 
 	// Load Houdini Engine Runtime module.
-	//IHoudiniEngine& HoudiniEngine = FModuleManager::LoadModuleChecked<FHoudiniEngine>("HoudiniEngine").Get();
+	IHoudiniEngine& HoudiniEngine = FModuleManager::LoadModuleChecked<FHoudiniEngine>("HoudiniEngine").Get();
+
+	// Register component visualizers.
+	RegisterComponentVisualizers();
 
 	// Store the instance.
 	FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
@@ -59,5 +66,32 @@ FHoudiniEngineEditor::StartupModule()
 void
 FHoudiniEngineEditor::ShutdownModule()
 {
-	HOUDINI_EDITOR_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
+	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
+
+	// Unregister our component visualizers.
+	UnregisterComponentVisualizers();
+}
+
+
+void
+FHoudiniEngineEditor::RegisterComponentVisualizers()
+{
+	if(GUnrealEd && !SplineComponentVisualizer.IsValid())
+	{
+		SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
+		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(),
+			SplineComponentVisualizer);
+
+		SplineComponentVisualizer->OnRegister();
+	}
+}
+
+
+void
+FHoudiniEngineEditor::UnregisterComponentVisualizers()
+{
+	if(GUnrealEd && SplineComponentVisualizer.IsValid())
+	{
+		GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
+	}
 }

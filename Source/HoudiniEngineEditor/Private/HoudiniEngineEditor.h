@@ -29,6 +29,9 @@ public:
 /** IHoudiniEngineEditor methods. **/
 public:
 
+	virtual void RegisterComponentVisualizers() override;
+	virtual void UnregisterComponentVisualizers() override;
+
 public:
 
 	/** App identifier string. **/
@@ -48,4 +51,7 @@ private:
 	static FHoudiniEngineEditor* HoudiniEngineEditorInstance;
 
 private:
+
+	/** Visualizer for our spline component. **/
+	TSharedPtr<FComponentVisualizer> SplineComponentVisualizer;
 };

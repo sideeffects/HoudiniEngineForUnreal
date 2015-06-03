@@ -41,9 +41,6 @@ public:
 
 #if WITH_EDITOR
 
-	virtual void RegisterComponentVisualizers() override;
-	virtual void UnregisterComponentVisualizers() override;
-
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
 	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
 
@@ -118,9 +115,6 @@ private:
 
 	/** The extender to pass to the level editor to extend it's window menu. **/
 	TSharedPtr<FExtender> MainMenuExtender;
-
-	/** Visualizer for our spline component. **/
-	TSharedPtr<FComponentVisualizer> SplineComponentVisualizer;
 
 	/** Slate styleset used by this module. **/
 	TSharedPtr<FSlateStyleSet> StyleSet;

@@ -346,11 +346,6 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 #if WITH_EDITOR
 
-	// Register component visualizers with this module. This is a good place to perform this task as at this point
-	// all modules, including Editor modules will have been loaded. We cannot perform this task inside Houdini Engine
-	// module as there's no guarantee that necessary modules were initialized.
-	HoudiniEngine.RegisterComponentVisualizers();
-
 	if(!bIsPreviewComponent)
 	{
 		if(HoudiniEngine.IsInitialized())
