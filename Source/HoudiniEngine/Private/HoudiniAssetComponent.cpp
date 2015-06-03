@@ -19,7 +19,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
-#include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetInstanceInput.h"
@@ -88,6 +87,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	AssetId(-1),
 	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
 	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
+	ImportAxis(HRSAI_Unreal),
 	HapiNotificationStarted(0.0),
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(true),
@@ -120,6 +120,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
 		TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
 	// Set component properties.
@@ -1818,9 +1819,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize component state.
 	SerializeEnumeration<EHoudiniAssetComponentState::Enum>(Ar, ComponentState);
 
-	// Serialize scaling information.
+	// Serialize scaling information and import axis.
 	Ar << GeneratedGeometryScaleFactor;
 	Ar << TransformScaleFactor;
+	SerializeEnumeration<EHoudiniRuntimeSettingsAxisImport>(Ar, ImportAxis);
 
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
