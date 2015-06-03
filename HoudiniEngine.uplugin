@@ -22,7 +22,8 @@
 		{
 			"Name" : "HoudiniEngineEditor",
 			"Type" : "Editor",
-			"WhitelistPlatforms" : [ "Win64", "Mac" ]
+			"WhitelistPlatforms" : [ "Win64", "Mac" ],
+			"LoadingPhase" : "PostEngineInit"
 		}
 	],
 
