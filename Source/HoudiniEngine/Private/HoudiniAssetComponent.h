@@ -17,6 +17,7 @@
 
 #include "HAPI.h"
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetComponent.generated.h"
 
 
@@ -506,6 +507,9 @@ protected:
 
 	/** Scale factor used for geo transforms of this component. **/
 	float TransformScaleFactor;
+
+	/** Import axis. **/
+	EHoudiniRuntimeSettingsAxisImport ImportAxis;
 
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;
