@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 14.5.132
+    Houdini Version: 14.5.133
     Houdini Engine Version: 1.10.10
     Unreal Version: 4.7.3
 
@@ -30,7 +30,7 @@ public class HoudiniEngineEditor : ModuleRules
 	public HoudiniEngineEditor( TargetInfo Target )
 	{
 		string HFSPath = "";
-		string HoudiniVersion = "14.5.132";
+		string HoudiniVersion = "14.5.133";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
