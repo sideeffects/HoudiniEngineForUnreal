@@ -84,7 +84,9 @@ public class HoudiniEngineEditor : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
-				HAPIIncludePath
+				HAPIIncludePath,
+				"HoudiniEngine/Public",
+				"HoudiniEngineEditor/Public"
 			}
 		);
 
