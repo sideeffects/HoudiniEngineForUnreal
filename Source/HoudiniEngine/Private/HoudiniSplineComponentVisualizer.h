@@ -58,7 +58,7 @@ public:
 
 
 /** Our spline visualizer. **/
-class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
+class HOUDINIENGINE_API FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 {
 public:
 
