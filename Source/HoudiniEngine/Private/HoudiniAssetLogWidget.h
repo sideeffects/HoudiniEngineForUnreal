@@ -18,11 +18,11 @@
 
 class SWindow;
 
-class SHoudiniAssetLogWidget : public SCompoundWidget
+class HOUDINIENGINE_API SHoudiniAssetLogWidget : public SCompoundWidget
 {
 	public:
 
-		SLATE_BEGIN_ARGS(SHoudiniAssetLogWidget) 
+		SLATE_BEGIN_ARGS(SHoudiniAssetLogWidget)
 			: _WidgetWindow(), _LogText(TEXT(""))
 		{}
 
