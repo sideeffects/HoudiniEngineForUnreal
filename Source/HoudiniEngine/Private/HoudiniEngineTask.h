@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include "HoudiniAssetComponent.h"
+
+
 namespace EHoudiniEngineTaskType
 {
 	enum Type

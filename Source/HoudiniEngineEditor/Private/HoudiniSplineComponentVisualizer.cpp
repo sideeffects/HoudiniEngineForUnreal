@@ -13,10 +13,9 @@
 *
 */
 
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniEngine.h"
-#include "HoudiniSplineComponent.h"
 
 
 IMPLEMENT_HIT_PROXY(HHoudiniSplineVisProxy, HComponentVisProxy);
