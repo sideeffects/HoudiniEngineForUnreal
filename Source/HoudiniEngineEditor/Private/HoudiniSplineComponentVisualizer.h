@@ -16,7 +16,8 @@
 #pragma once
 
 
-class UHoudiniSplineComponent;
+#include "HoudiniSplineComponent.h"
+
 
 /** Base class for clickable spline editing proxies. **/
 struct HHoudiniSplineVisProxy : public HComponentVisProxy
