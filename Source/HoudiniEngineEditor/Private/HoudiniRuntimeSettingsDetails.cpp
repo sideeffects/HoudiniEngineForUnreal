@@ -13,19 +13,11 @@
  *
  */
 
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniRuntimeSettingsDetails.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
-
-
-float
-FHoudiniRuntimeSettingsDetails::RowValueWidgetDesiredWidth = 350;
-
-
-float
-FHoudiniRuntimeSettingsDetails::RowFullWidgetDesiredWidth = 400;
 
 
 TSharedRef<IDetailCustomization>
@@ -189,7 +181,7 @@ FHoudiniRuntimeSettingsDetails::CreateHoudiniEntry(const FText& EntryName,
 	}
 
 	Row.ValueWidget.Widget = HorizontalBox;
-	Row.ValueWidget.MinDesiredWidth(FHoudiniRuntimeSettingsDetails::RowValueWidgetDesiredWidth);
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_SETTINGS_ROW_VALUE_WIDGET_WIDTH);
 }
 
 
@@ -242,7 +234,7 @@ FHoudiniRuntimeSettingsDetails::CreateHoudiniEngineEntry(const FText& EntryName,
 	}
 
 	Row.ValueWidget.Widget = HorizontalBox;
-	Row.ValueWidget.MinDesiredWidth(FHoudiniRuntimeSettingsDetails::RowValueWidgetDesiredWidth);
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_SETTINGS_ROW_VALUE_WIDGET_WIDTH);
 }
 
 
@@ -264,5 +256,5 @@ FHoudiniRuntimeSettingsDetails::CreateHAPILibraryPathEntry(const FString& LibHAP
 
 	TextBlock->SetEnabled(false);
 	Row.ValueWidget.Widget = TextBlock;
-	Row.ValueWidget.MinDesiredWidth(FHoudiniRuntimeSettingsDetails::RowValueWidgetDesiredWidth);
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_SETTINGS_ROW_VALUE_WIDGET_WIDTH);
 }
