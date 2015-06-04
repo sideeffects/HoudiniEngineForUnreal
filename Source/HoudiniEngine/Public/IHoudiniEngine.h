@@ -28,12 +28,6 @@ public:
 
 #if WITH_EDITOR
 
-	/** Register component visualizers used by this module. **/
-	virtual void RegisterComponentVisualizers() {}
-
-	/** Unregister components visualizers used by this module. **/
-	virtual void UnregisterComponentVisualizers() {}
-
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
 
