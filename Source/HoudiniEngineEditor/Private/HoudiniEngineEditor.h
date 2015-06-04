@@ -41,7 +41,7 @@ public:
 
 public:
 
-	/** Return singleton instance of Houdini Engine, used internally. **/
+	/** Return singleton instance of Houdini Engine Editor, used internally. **/
 	static FHoudiniEngineEditor& Get();
 
 	/** Return true if singleton instance has been created. **/
@@ -49,7 +49,7 @@ public:
 
 private:
 
-	/** Singleton instance of Houdini Engine runtime. **/
+	/** Singleton instance of Houdini Engine Editor. **/
 	static FHoudiniEngineEditor* HoudiniEngineEditorInstance;
 
 private:
