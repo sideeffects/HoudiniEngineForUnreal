@@ -21,6 +21,7 @@
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetComponentDetails.h"
 #include "HoudiniRuntimeSettingsDetails.h"
+#include "HoudiniAssetTypeActions.h"
 
 
 const FName
@@ -57,6 +58,9 @@ FHoudiniEngineEditor::StartupModule()
 	// Load Houdini Engine Runtime module.
 	//IHoudiniEngine& HoudiniEngine = FModuleManager::LoadModuleChecked<FHoudiniEngine>("HoudiniEngine").Get();
 
+	// Register asset type actions.
+	RegisterAssetTypeActions();
+
 	// Register component visualizers.
 	RegisterComponentVisualizers();
 
@@ -72,6 +76,9 @@ void
 FHoudiniEngineEditor::ShutdownModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
+
+	// Unregister asset type actions.
+	UnregisterAssetTypeActions();
 
 	// Unregister detail presenters.
 	UnregisterDetails();
@@ -129,4 +136,39 @@ FHoudiniEngineEditor::UnregisterDetails()
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
 	}
+}
+
+
+void
+FHoudiniEngineEditor::RegisterAssetTypeActions()
+{
+	// Create and register asset type actions for Houdini asset.
+	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+	RegisterAssetTypeAction(AssetTools, MakeShareable(new FHoudiniAssetTypeActions()));
+}
+
+
+void
+FHoudiniEngineEditor::UnregisterAssetTypeActions()
+{
+	// Unregister asset type actions we have previously registered.
+	if(FModuleManager::Get().IsModuleLoaded("AssetTools"))
+	{
+		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+		for(int32 Index = 0; Index < AssetTypeActions.Num(); ++Index)
+		{
+			AssetTools.UnregisterAssetTypeActions(AssetTypeActions[Index].ToSharedRef());
+		}
+
+		AssetTypeActions.Empty();
+	}
+}
+
+
+void
+FHoudiniEngineEditor::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
+{
+	AssetTools.RegisterAssetTypeActions(Action);
+	AssetTypeActions.Add(Action);
 }

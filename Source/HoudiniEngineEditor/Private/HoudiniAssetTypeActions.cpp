@@ -13,7 +13,7 @@
  *
  */
 
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngine.h"

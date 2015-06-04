@@ -22,7 +22,6 @@
 
 #if WITH_EDITOR
 #include "HoudiniAssetBroker.h"
-#include "HoudiniAssetTypeActions.h"
 #endif
 
 
@@ -131,10 +130,6 @@ FHoudiniEngine::StartupModule()
 	}
 
 #if WITH_EDITOR
-
-	// Create and register asset type actions for Houdini asset.
-	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-	RegisterAssetTypeAction(AssetTools, MakeShareable(new FHoudiniAssetTypeActions()));
 
 	// Create and register broker for Houdini asset.
 	HoudiniAssetBroker = MakeShareable(new FHoudiniAssetBroker());
@@ -292,19 +287,6 @@ FHoudiniEngine::ShutdownModule()
 		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
 	}
 
-	// Unregister asset type actions we have previously registered.
-	if(FModuleManager::Get().IsModuleLoaded("AssetTools"))
-	{
-		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
-
-		for(int32 Index = 0; Index < AssetTypeActions.Num(); ++Index)
-		{
-			AssetTools.UnregisterAssetTypeActions(AssetTypeActions[Index].ToSharedRef());
-		}
-
-		AssetTypeActions.Empty();
-	}
-
 	// Unregister Slate style set.
 	if(StyleSet.IsValid())
 	{
@@ -376,14 +358,6 @@ FHoudiniEngine::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
 				FCanExecuteAction::CreateRaw(this, &FHoudiniEngine::CanSaveHIPFile)));
 
 	MenuBuilder.EndSection();
-}
-
-
-void
-FHoudiniEngine::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
-{
-	AssetTools.RegisterAssetTypeActions(Action);
-	AssetTypeActions.Add(Action);
 }
 
 

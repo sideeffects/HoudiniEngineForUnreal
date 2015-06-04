@@ -31,4 +31,10 @@ public:
 
 	/** Unregister detail presenters used by this module. **/
 	virtual void UnregisterDetails() {}
+
+	/** Register asset type actions. **/
+	virtual void RegisterAssetTypeActions() {}
+
+	/** Unregister asset type actions. **/
+	virtual void UnregisterAssetTypeActions() {}
 };
