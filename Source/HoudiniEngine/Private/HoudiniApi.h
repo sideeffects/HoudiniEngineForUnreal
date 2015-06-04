@@ -42,7 +42,7 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetStatusStringBufLengthFuncPtr)(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	static GetStatusStringBufLengthFuncPtr GetStatusStringBufLength;
 
-	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * string_buffer, int length);
+	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * string_value, int length);
 	static GetStatusStringFuncPtr GetStatusString;
 
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(int * count);
@@ -285,10 +285,10 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, int * membership_array, int start, int length);
 	static GetGroupMembershipFuncPtr GetGroupMembership;
 
-	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int count);
+	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
 	static GetInstancedPartIdsFuncPtr GetInstancedPartIds;
 
-	typedef HAPI_Result (*GetInstancerPartTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int count);
+	typedef HAPI_Result (*GetInstancerPartTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	static GetInstancerPartTransformsFuncPtr GetInstancerPartTransforms;
 
 	typedef HAPI_Result (*SetGeoInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info);
