@@ -234,6 +234,10 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Group name used to mark everything that is not a member of collision or rendered collision group. **/
 #define HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION		"main_geo"
 
+/** Details panel desired sizes. **/
+#define HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH 		270
+#define HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH		310
+
 /** Helper function to serialize enumerations. **/
 template <typename TEnum>
 FORCEINLINE

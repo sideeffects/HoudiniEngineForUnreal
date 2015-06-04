@@ -25,4 +25,10 @@ public:
 
 	/** Unregister components visualizers used by this module. **/
 	virtual void UnregisterComponentVisualizers() {}
+
+	/** Register detail presenters used by this module. **/
+	virtual void RegisterDetails() {}
+
+	/** Unregister detail presenters used by this module. **/
+	virtual void UnregisterDetails() {}
 };

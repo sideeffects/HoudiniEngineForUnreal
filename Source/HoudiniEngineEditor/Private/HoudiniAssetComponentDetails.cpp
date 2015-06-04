@@ -13,10 +13,12 @@
  *
  */
 
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetComponentDetails.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetInput.h"
+#include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniApi.h"
@@ -28,14 +30,6 @@ GetTypeHash(TPair<UStaticMesh*, int32> Pair)
 {
 	return PointerHash(Pair.Key, Pair.Value);
 }
-
-
-float
-FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth = 270;
-
-
-float
-FHoudiniAssetComponentDetails::RowFullWidgetDesiredWidth = 310;
 
 
 TSharedRef<IDetailCustomization>
@@ -396,7 +390,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 			}
 
 			Row.ValueWidget.Widget = VerticalBox;
-			Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
+			Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 
 			MeshIdx++;
 		}
@@ -728,7 +722,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	];
 
 	Row.ValueWidget.Widget = VerticalBox;
-	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
 

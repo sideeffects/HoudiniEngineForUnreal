@@ -16,10 +16,6 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniAssetParameterLabel.h"
 
-#if WITH_EDITOR
-#include "HoudiniAssetComponentDetails.h"
-#endif
-
 
 UHoudiniAssetParameterLabel::UHoudiniAssetParameterLabel(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
@@ -93,7 +89,7 @@ UHoudiniAssetParameterLabel::CreateWidget(IDetailCategoryBuilder& DetailCategory
 		.Text(GetParameterLabel())
 		.ToolTipText(GetParameterLabel())
 		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		.WrapTextAt(FHoudiniAssetComponentDetails::RowFullWidgetDesiredWidth)
+		.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
 	];
 
 	if(TextBlock.IsValid())

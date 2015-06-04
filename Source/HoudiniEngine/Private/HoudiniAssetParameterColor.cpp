@@ -17,10 +17,6 @@
 #include "HoudiniAssetParameterColor.h"
 #include "HoudiniApi.h"
 
-#if WITH_EDITOR
-#include "HoudiniAssetComponentDetails.h"
-#endif
-
 
 UHoudiniAssetParameterColor::UHoudiniAssetParameterColor(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
@@ -139,7 +135,7 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
-	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
 #endif
