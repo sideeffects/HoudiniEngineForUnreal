@@ -23,7 +23,6 @@
 #if WITH_EDITOR
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetTypeActions.h"
-#include "HoudiniRuntimeSettingsDetails.h"
 #endif
 
 

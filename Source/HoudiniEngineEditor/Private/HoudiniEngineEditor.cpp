@@ -20,6 +20,7 @@
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetComponentDetails.h"
+#include "HoudiniRuntimeSettingsDetails.h"
 
 
 const FName
@@ -112,8 +113,8 @@ FHoudiniEngineEditor::RegisterDetails()
 	// Register details presenter for our component type and runtime settings.
 	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
-	//PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"),
-	//	FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
+	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
 }
 
 
@@ -126,6 +127,6 @@ FHoudiniEngineEditor::UnregisterDetails()
 			FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
-		//PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
+		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
 	}
 }
