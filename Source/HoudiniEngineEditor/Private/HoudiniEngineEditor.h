@@ -31,6 +31,8 @@ public:
 
 	virtual void RegisterComponentVisualizers() override;
 	virtual void UnregisterComponentVisualizers() override;
+	virtual void RegisterDetails() override;
+	virtual void UnregisterDetails() override;
 
 public:
 

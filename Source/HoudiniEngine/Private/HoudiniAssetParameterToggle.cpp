@@ -17,10 +17,6 @@
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniApi.h"
 
-#if WITH_EDITOR
-#include "HoudiniAssetComponentDetails.h"
-#endif
-
 
 UHoudiniAssetParameterToggle::UHoudiniAssetParameterToggle(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
@@ -132,7 +128,7 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
-	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
 

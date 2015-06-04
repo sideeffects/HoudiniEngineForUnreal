@@ -19,6 +19,7 @@
 
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniSplineComponent.h"
+#include "HoudiniAssetComponentDetails.h"
 
 
 const FName
@@ -53,10 +54,13 @@ FHoudiniEngineEditor::StartupModule()
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine Editor module."));
 
 	// Load Houdini Engine Runtime module.
-	IHoudiniEngine& HoudiniEngine = FModuleManager::LoadModuleChecked<FHoudiniEngine>("HoudiniEngine").Get();
+	//IHoudiniEngine& HoudiniEngine = FModuleManager::LoadModuleChecked<FHoudiniEngine>("HoudiniEngine").Get();
 
 	// Register component visualizers.
 	RegisterComponentVisualizers();
+
+	// Register detail presenters.
+	RegisterDetails();
 
 	// Store the instance.
 	FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
@@ -68,6 +72,9 @@ FHoudiniEngineEditor::ShutdownModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine Editor module."));
 
+	// Unregister detail presenters.
+	UnregisterDetails();
+
 	// Unregister our component visualizers.
 	UnregisterComponentVisualizers();
 }
@@ -76,7 +83,7 @@ FHoudiniEngineEditor::ShutdownModule()
 void
 FHoudiniEngineEditor::RegisterComponentVisualizers()
 {
-	if(GUnrealEd && !SplineComponentVisualizer.IsValid())
+	if(!SplineComponentVisualizer.IsValid())
 	{
 		SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
 		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(),
@@ -90,8 +97,35 @@ FHoudiniEngineEditor::RegisterComponentVisualizers()
 void
 FHoudiniEngineEditor::UnregisterComponentVisualizers()
 {
-	if(GUnrealEd && SplineComponentVisualizer.IsValid())
+	if(SplineComponentVisualizer.IsValid())
 	{
 		GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
+	}
+}
+
+
+void
+FHoudiniEngineEditor::RegisterDetails()
+{
+	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	// Register details presenter for our component type and runtime settings.
+	PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniAssetComponent"),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
+	//PropertyModule.RegisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"),
+	//	FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
+}
+
+
+void
+FHoudiniEngineEditor::UnregisterDetails()
+{
+	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyModule =
+			FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
+		//PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
 	}
 }

@@ -21,10 +21,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
 
-#if WITH_EDITOR
-#include "HoudiniAssetComponentDetails.h"
-#endif
-
 
 UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
@@ -356,7 +352,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
-	Row.ValueWidget.MinDesiredWidth(FHoudiniAssetComponentDetails::RowValueWidgetDesiredWidth);
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
 #endif
