@@ -17,6 +17,10 @@
 #include "IHoudiniEngineEditor.h"
 
 
+class IAssetTools;
+class IAssetTypeActions;
+
+
 class FHoudiniEngineEditor : public IHoudiniEngineEditor
 {
 
@@ -33,6 +37,8 @@ public:
 	virtual void UnregisterComponentVisualizers() override;
 	virtual void RegisterDetails() override;
 	virtual void UnregisterDetails() override;
+	virtual void RegisterAssetTypeActions() override;
+	virtual void UnregisterAssetTypeActions() override;
 
 public:
 
@@ -47,6 +53,11 @@ public:
 	/** Return true if singleton instance has been created. **/
 	static bool IsInitialized();
 
+protected:
+
+	/** Register AssetType action. **/
+	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
+
 private:
 
 	/** Singleton instance of Houdini Engine Editor. **/
@@ -54,6 +65,9 @@ private:
 
 private:
 
+	/** AssetType actions associated with Houdini asset. **/
+	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
+	
 	/** Visualizer for our spline component. **/
 	TSharedPtr<FComponentVisualizer> SplineComponentVisualizer;
 };

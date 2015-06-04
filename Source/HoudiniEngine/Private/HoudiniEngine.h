@@ -19,9 +19,7 @@
 
 
 class UStaticMesh;
-class IAssetTools;
 class FRunnableThread;
-class IAssetTypeActions;
 class IComponentAssetBroker;
 class FHoudiniEngineScheduler;
 
@@ -72,9 +70,6 @@ private:
 
 #if WITH_EDITOR
 
-	/** Register AssetType action. **/
-	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
-
 	/** Add menu extension for our module. **/
 	void AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder);
 
@@ -103,9 +98,6 @@ private:
 	UStaticMesh* HoudiniLogoStaticMesh;
 
 #if WITH_EDITOR
-
-	/** AssetType actions associated with Houdini asset. **/
-	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
 
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
