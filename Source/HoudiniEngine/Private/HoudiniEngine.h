@@ -20,7 +20,6 @@
 
 class UStaticMesh;
 class FRunnableThread;
-class IComponentAssetBroker;
 class FHoudiniEngineScheduler;
 
 class HOUDINIENGINE_API FHoudiniEngine : public IHoudiniEngine
@@ -98,9 +97,6 @@ private:
 	UStaticMesh* HoudiniLogoStaticMesh;
 
 #if WITH_EDITOR
-
-	/** Broker associated with Houdini asset. **/
-	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 
 	/** Houdini logo brush. **/
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;

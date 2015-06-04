@@ -19,6 +19,7 @@
 
 class IAssetTools;
 class IAssetTypeActions;
+class IComponentAssetBroker;
 
 
 class FHoudiniEngineEditor : public IHoudiniEngineEditor
@@ -39,6 +40,8 @@ public:
 	virtual void UnregisterDetails() override;
 	virtual void RegisterAssetTypeActions() override;
 	virtual void UnregisterAssetTypeActions() override;
+	virtual void RegisterAssetBrokers() override;
+	virtual void UnregisterAssetBrokers() override;
 
 public:
 
@@ -67,7 +70,10 @@ private:
 
 	/** AssetType actions associated with Houdini asset. **/
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
-	
+
 	/** Visualizer for our spline component. **/
 	TSharedPtr<FComponentVisualizer> SplineComponentVisualizer;
+
+	/** Broker associated with Houdini asset. **/
+	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
 };
