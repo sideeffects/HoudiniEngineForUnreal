@@ -91,7 +91,7 @@ FHoudiniEngineEditor::ShutdownModule()
 void
 FHoudiniEngineEditor::RegisterComponentVisualizers()
 {
-	if(!SplineComponentVisualizer.IsValid())
+	if(GUnrealEd && !SplineComponentVisualizer.IsValid())
 	{
 		SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
 		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(),
@@ -105,7 +105,7 @@ FHoudiniEngineEditor::RegisterComponentVisualizers()
 void
 FHoudiniEngineEditor::UnregisterComponentVisualizers()
 {
-	if(SplineComponentVisualizer.IsValid())
+	if(GUnrealEd && SplineComponentVisualizer.IsValid())
 	{
 		GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
 	}
