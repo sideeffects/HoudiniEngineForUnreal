@@ -20,10 +20,6 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 
-#if WITH_EDITOR
-#include "HoudiniAssetBroker.h"
-#endif
-
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
 
@@ -130,10 +126,6 @@ FHoudiniEngine::StartupModule()
 	}
 
 #if WITH_EDITOR
-
-	// Create and register broker for Houdini asset.
-	HoudiniAssetBroker = MakeShareable(new FHoudiniAssetBroker());
-	FComponentAssetBrokerage::RegisterBroker(HoudiniAssetBroker, UHoudiniAssetComponent::StaticClass(), true, true);
 
 	// Register thumbnail renderer for Houdini asset.
 	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
@@ -280,9 +272,6 @@ FHoudiniEngine::ShutdownModule()
 
 	if(UObjectInitialized())
 	{
-		// Unregister broker.
-		FComponentAssetBrokerage::UnregisterBroker(HoudiniAssetBroker);
-
 		// Unregister thumbnail renderer.
 		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
 	}

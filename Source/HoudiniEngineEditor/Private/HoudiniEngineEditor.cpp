@@ -22,6 +22,7 @@
 #include "HoudiniAssetComponentDetails.h"
 #include "HoudiniRuntimeSettingsDetails.h"
 #include "HoudiniAssetTypeActions.h"
+#include "HoudiniAssetBroker.h"
 
 
 const FName
@@ -60,6 +61,9 @@ FHoudiniEngineEditor::StartupModule()
 
 	// Register asset type actions.
 	RegisterAssetTypeActions();
+
+	// Register asset brokers.
+	RegisterAssetBrokers();
 
 	// Register component visualizers.
 	RegisterComponentVisualizers();
@@ -171,4 +175,24 @@ FHoudiniEngineEditor::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRe
 {
 	AssetTools.RegisterAssetTypeActions(Action);
 	AssetTypeActions.Add(Action);
+}
+
+
+void
+FHoudiniEngineEditor::RegisterAssetBrokers()
+{
+	// Create and register broker for Houdini asset.
+	HoudiniAssetBroker = MakeShareable(new FHoudiniAssetBroker());
+	FComponentAssetBrokerage::RegisterBroker(HoudiniAssetBroker, UHoudiniAssetComponent::StaticClass(), true, true);
+}
+
+
+void
+FHoudiniEngineEditor::UnregisterAssetBrokers()
+{
+	if(UObjectInitialized())
+	{
+		// Unregister broker.
+		FComponentAssetBrokerage::UnregisterBroker(HoudiniAssetBroker);
+	}
 }

@@ -37,4 +37,10 @@ public:
 
 	/** Unregister asset type actions. **/
 	virtual void UnregisterAssetTypeActions() {}
+
+	/** Create and register asset brokers. **/
+	virtual void RegisterAssetBrokers() {}
+
+	/** Destroy and unregister asset brokers. **/
+	virtual void UnregisterAssetBrokers() {}
 };
