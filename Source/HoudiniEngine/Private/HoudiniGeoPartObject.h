@@ -170,4 +170,4 @@ public:
 
 
 /** Function used by hasing containers to create a unique hash for this type of object. **/
-uint32 GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+HOUDINIENGINE_API uint32 GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
