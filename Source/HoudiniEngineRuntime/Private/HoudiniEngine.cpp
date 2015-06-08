@@ -13,7 +13,7 @@
  *
  */
 
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineScheduler.h"

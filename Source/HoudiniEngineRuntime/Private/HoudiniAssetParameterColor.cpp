@@ -13,7 +13,7 @@
  *
  */
 
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetParameterColor.h"
 #include "HoudiniApi.h"
 
