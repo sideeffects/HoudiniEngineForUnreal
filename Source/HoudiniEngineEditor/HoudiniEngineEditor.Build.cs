@@ -77,7 +77,7 @@ public class HoudiniEngineEditor : ModuleRules
 		{
 			if( Target.Platform == UnrealTargetPlatform.Win64 )
 			{
-				Definitions.Add( "HOUDINI_ENGINE_HFS_PATH=\"" + HFSPath + "\"" );
+				Definitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
 			}
 		}
 
