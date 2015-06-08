@@ -85,13 +85,13 @@ public class HoudiniEngine : ModuleRules
 			new string[] {
 				// ... add public include paths required here ...
 				HAPIIncludePath,
-				"HoudiniEngine/Public"
+				"HoudiniEngineRuntime/Public"
 			}
 		);
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"HoudiniEngine/Private"
+				"HoudiniEngineRuntime/Private"
 				// ... add other private include paths required here ...
 			}
 		);
