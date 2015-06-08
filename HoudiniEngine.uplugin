@@ -15,7 +15,7 @@
 	"Modules" :
 	[
 		{
-			"Name" : "HoudiniEngine",
+			"Name" : "HoudiniEngineRuntime",
 			"Type" : "Runtime",
 			"WhitelistPlatforms" : [ "Win64", "Mac" ]
 		},
