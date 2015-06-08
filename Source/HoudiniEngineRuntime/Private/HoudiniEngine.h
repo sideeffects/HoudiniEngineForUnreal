@@ -22,7 +22,7 @@ class UStaticMesh;
 class FRunnableThread;
 class FHoudiniEngineScheduler;
 
-class HOUDINIENGINE_API FHoudiniEngine : public IHoudiniEngine
+class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
 {
 
 /** IModuleInterface methods. **/

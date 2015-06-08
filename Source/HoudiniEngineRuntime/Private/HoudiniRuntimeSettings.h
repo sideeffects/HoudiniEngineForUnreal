@@ -57,7 +57,7 @@ enum EHoudiniRuntimeSettingsAxisImport
 
 
 UCLASS(config=Engine, defaultconfig)
-class HOUDINIENGINE_API UHoudiniRuntimeSettings : public UObject
+class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

@@ -35,7 +35,7 @@ namespace EHoudiniAssetInputType
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetInput : public UHoudiniAssetParameter
+class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 

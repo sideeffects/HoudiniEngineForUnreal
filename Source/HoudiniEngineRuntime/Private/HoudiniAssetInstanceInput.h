@@ -24,7 +24,7 @@ class UInstancedStaticMeshComponent;
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetInstanceInput : public UHoudiniAssetParameter
+class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
