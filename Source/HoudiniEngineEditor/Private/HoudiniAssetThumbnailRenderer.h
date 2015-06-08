@@ -25,7 +25,7 @@ class FHoudiniAssetThumbnailScene;
 
 
 UCLASS(config=Editor)
-class HOUDINIENGINE_API UHoudiniAssetThumbnailRenderer : public UDefaultSizedThumbnailRenderer
+class UHoudiniAssetThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
 	GENERATED_UCLASS_BODY()
 
