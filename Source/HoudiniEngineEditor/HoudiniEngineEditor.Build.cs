@@ -85,7 +85,7 @@ public class HoudiniEngineEditor : ModuleRules
 			new string[] {
 				// ... add public include paths required here ...
 				HAPIIncludePath,
-				"HoudiniEngine/Public",
+				"HoudiniEngineRuntime/Public",
 				"HoudiniEngineEditor/Public"
 			}
 		);
@@ -93,7 +93,7 @@ public class HoudiniEngineEditor : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"HoudiniEngineEditor/Private",
-				"HoudiniEngine/Private"
+				"HoudiniEngineRuntime/Private"
 				// ... add other private include paths required here ...
 			}
 		);
@@ -123,7 +123,7 @@ public class HoudiniEngineEditor : ModuleRules
 				"EditorStyle",
 				"EditorWidgets",
 				"AppFramework",
-				"HoudiniEngine"
+				"HoudiniEngineRuntime"
 			}
 		);
 
