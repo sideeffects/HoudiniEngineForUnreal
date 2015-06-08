@@ -43,6 +43,10 @@ public:
 	virtual void RegisterAssetBrokers() override;
 	virtual void UnregisterAssetBrokers() override;
 	virtual void RegisterActorFactories() override;
+	virtual void ExtendMenu() override;
+	virtual void RegisterStyleSet() override;
+	virtual void UnregisterStyleSet() override;
+	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
 
 public:
 
@@ -57,10 +61,21 @@ public:
 	/** Return true if singleton instance has been created. **/
 	static bool IsInitialized();
 
+public:
+
+	/** Menu action called to save a HIP file. **/
+	void SaveHIPFile();
+
+	/** Helper delegate used to determine if HIP file save can be executed. **/
+	bool CanSaveHIPFile() const;
+
 protected:
 
 	/** Register AssetType action. **/
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
+
+	/** Add menu extension for our module. **/
+	void AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder);
 
 private:
 
@@ -77,4 +92,10 @@ private:
 
 	/** Broker associated with Houdini asset. **/
 	TSharedPtr<IComponentAssetBroker> HoudiniAssetBroker;
+
+	/** The extender to pass to the level editor to extend it's window menu. **/
+	TSharedPtr<FExtender> MainMenuExtender;
+
+	/** Slate styleset used by this module. **/
+	TSharedPtr<FSlateStyleSet> StyleSet;
 };

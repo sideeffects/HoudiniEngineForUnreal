@@ -15,7 +15,7 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniSplineComponentVisualizer.h"
-#include "HoudiniEngine.h"
+#include "HoudiniEngineEditor.h"
 
 
 IMPLEMENT_HIT_PROXY(HHoudiniSplineVisProxy, HComponentVisProxy);
@@ -269,8 +269,8 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewp
 TSharedPtr<SWidget>
 FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
 {
-	FHoudiniEngine& HoudiniEngine = FHoudiniEngine::Get();
-	TSharedPtr<ISlateStyle> StyleSet = HoudiniEngine.GetSlateStyle();
+	FHoudiniEngineEditor& HoudiniEngineEditor = FHoudiniEngineEditor::Get();
+	TSharedPtr<ISlateStyle> StyleSet = HoudiniEngineEditor.GetSlateStyle();
 
 	FMenuBuilder MenuBuilder(true, VisualizerActions);
 	{
