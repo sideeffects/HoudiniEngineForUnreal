@@ -42,7 +42,7 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetStatusStringBufLengthFuncPtr)(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	static GetStatusStringBufLengthFuncPtr GetStatusStringBufLength;
 
-	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * string_buffer, int length);
+	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * string_value, int length);
 	static GetStatusStringFuncPtr GetStatusString;
 
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(int * count);
@@ -54,10 +54,10 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*ConvertTransformFuncPtr)(HAPI_TransformEuler * transform_in_out, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order);
 	static ConvertTransformFuncPtr ConvertTransform;
 
-	typedef HAPI_Result (*ConvertMatrixToQuatFuncPtr)(const float * mat, HAPI_RSTOrder rst_order, HAPI_Transform * transform_out);
+	typedef HAPI_Result (*ConvertMatrixToQuatFuncPtr)(const float * matrix, HAPI_RSTOrder rst_order, HAPI_Transform * transform_out);
 	static ConvertMatrixToQuatFuncPtr ConvertMatrixToQuat;
 
-	typedef HAPI_Result (*ConvertMatrixToEulerFuncPtr)(const float * mat, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out);
+	typedef HAPI_Result (*ConvertMatrixToEulerFuncPtr)(const float * matrix, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out);
 	static ConvertMatrixToEulerFuncPtr ConvertMatrixToEuler;
 
 	typedef HAPI_Result (*ConvertTransformQuatToMatrixFuncPtr)(const HAPI_Transform * transform, float * matrix);
@@ -72,7 +72,7 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetStringBufLengthFuncPtr)(HAPI_StringHandle string_handle, int * buffer_length);
 	static GetStringBufLengthFuncPtr GetStringBufLength;
 
-	typedef HAPI_Result (*GetStringFuncPtr)(HAPI_StringHandle string_handle, char * string_value, int buffer_length);
+	typedef HAPI_Result (*GetStringFuncPtr)(HAPI_StringHandle string_handle, char * string_value, int length);
 	static GetStringFuncPtr GetString;
 
 	typedef HAPI_Result (*GetTimeFuncPtr)(float * time);
@@ -93,13 +93,13 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*LoadAssetLibraryFromFileFuncPtr)(const char * file_path, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId* library_id);
 	static LoadAssetLibraryFromFileFuncPtr LoadAssetLibraryFromFile;
 
-	typedef HAPI_Result (*LoadAssetLibraryFromMemoryFuncPtr)(const char * library_buffer, int library_buffer_size, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id);
+	typedef HAPI_Result (*LoadAssetLibraryFromMemoryFuncPtr)(const char * library_buffer, int library_buffer_length, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id);
 	static LoadAssetLibraryFromMemoryFuncPtr LoadAssetLibraryFromMemory;
 
 	typedef HAPI_Result (*GetAvailableAssetCountFuncPtr)(HAPI_AssetLibraryId library_id, int * asset_count);
 	static GetAvailableAssetCountFuncPtr GetAvailableAssetCount;
 
-	typedef HAPI_Result (*GetAvailableAssetsFuncPtr)(HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names, int asset_count);
+	typedef HAPI_Result (*GetAvailableAssetsFuncPtr)(HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count);
 	static GetAvailableAssetsFuncPtr GetAvailableAssets;
 
 	typedef HAPI_Result (*InstantiateAssetFuncPtr)(const char * asset_name, HAPI_Bool cook_on_load, HAPI_AssetId * asset_id);
@@ -138,10 +138,10 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*CheckForNewAssetsFuncPtr)(int * new_asset_count);
 	static CheckForNewAssetsFuncPtr CheckForNewAssets;
 
-	typedef HAPI_Result (*GetNewAssetIdsFuncPtr)(HAPI_AssetId * asset_ids);
+	typedef HAPI_Result (*GetNewAssetIdsFuncPtr)(HAPI_AssetId * asset_ids_array, int new_asset_count);
 	static GetNewAssetIdsFuncPtr GetNewAssetIds;
 
-	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const char * file_path);
+	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const char * file_path, HAPI_Bool lock_nodes);
 	static SaveHIPFileFuncPtr SaveHIPFile;
 
 	typedef HAPI_Result (*GetNodeInfoFuncPtr)(HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
@@ -150,7 +150,28 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetGlobalNodesFuncPtr)(HAPI_GlobalNodes * global_nodes);
 	static GetGlobalNodesFuncPtr GetGlobalNodes;
 
-	typedef HAPI_Result (*GetParametersFuncPtr)(HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos, int start, int length);
+	typedef HAPI_Result (*GetEditableNodeNetworksFuncPtr)(HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count);
+	static GetEditableNodeNetworksFuncPtr GetEditableNodeNetworks;
+
+	typedef HAPI_Result (*GetNodeNetworkChildrenFuncPtr)(HAPI_NodeId network_node_id, HAPI_NodeId * child_node_ids_array, int count);
+	static GetNodeNetworkChildrenFuncPtr GetNodeNetworkChildren;
+
+	typedef HAPI_Result (*CreateNodeFuncPtr)(HAPI_NodeId parent_node_id, const char * operator_name, HAPI_NodeId * new_node_id);
+	static CreateNodeFuncPtr CreateNode;
+
+	typedef HAPI_Result (*DeleteNodeFuncPtr)(HAPI_NodeId node_id);
+	static DeleteNodeFuncPtr DeleteNode;
+
+	typedef HAPI_Result (*ConnectNodeInputFuncPtr)(HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect);
+	static ConnectNodeInputFuncPtr ConnectNodeInput;
+
+	typedef HAPI_Result (*DisconnectNodeInputFuncPtr)(HAPI_NodeId node_id, int input_index);
+	static DisconnectNodeInputFuncPtr DisconnectNodeInput;
+
+	typedef HAPI_Result (*QueryNodeInputFuncPtr)(HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
+	static QueryNodeInputFuncPtr QueryNodeInput;
+
+	typedef HAPI_Result (*GetParametersFuncPtr)(HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	static GetParametersFuncPtr GetParameters;
 
 	typedef HAPI_Result (*GetParmInfoFuncPtr)(HAPI_NodeId node_id, HAPI_ParmId parm_id, HAPI_ParmInfo * parm_info);
@@ -165,34 +186,34 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetParmIntValueFuncPtr)(HAPI_NodeId node_id, const char * parm_name, int index, int * value);
 	static GetParmIntValueFuncPtr GetParmIntValue;
 
-	typedef HAPI_Result (*GetParmIntValuesFuncPtr)(HAPI_NodeId node_id, int * values, int start, int length);
+	typedef HAPI_Result (*GetParmIntValuesFuncPtr)(HAPI_NodeId node_id, int * values_array, int start, int length);
 	static GetParmIntValuesFuncPtr GetParmIntValues;
 
 	typedef HAPI_Result (*GetParmFloatValueFuncPtr)(HAPI_NodeId node_id, const char * parm_name, int index, float * value);
 	static GetParmFloatValueFuncPtr GetParmFloatValue;
 
-	typedef HAPI_Result (*GetParmFloatValuesFuncPtr)(HAPI_NodeId node_id, float * values, int start, int length);
+	typedef HAPI_Result (*GetParmFloatValuesFuncPtr)(HAPI_NodeId node_id, float * values_array, int start, int length);
 	static GetParmFloatValuesFuncPtr GetParmFloatValues;
 
 	typedef HAPI_Result (*GetParmStringValueFuncPtr)(HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool evaluate, HAPI_StringHandle * value);
 	static GetParmStringValueFuncPtr GetParmStringValue;
 
-	typedef HAPI_Result (*GetParmStringValuesFuncPtr)(HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values, int start, int length);
+	typedef HAPI_Result (*GetParmStringValuesFuncPtr)(HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values_array, int start, int length);
 	static GetParmStringValuesFuncPtr GetParmStringValues;
 
-	typedef HAPI_Result (*GetParmChoiceListsFuncPtr)(HAPI_NodeId node_id, HAPI_ParmChoiceInfo * parm_choices, int start, int length);
+	typedef HAPI_Result (*GetParmChoiceListsFuncPtr)(HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length);
 	static GetParmChoiceListsFuncPtr GetParmChoiceLists;
 
 	typedef HAPI_Result (*SetParmIntValueFuncPtr)(HAPI_NodeId node_id, const char * parm_name, int index, int value);
 	static SetParmIntValueFuncPtr SetParmIntValue;
 
-	typedef HAPI_Result (*SetParmIntValuesFuncPtr)(HAPI_NodeId node_id, const int * values, int start, int length);
+	typedef HAPI_Result (*SetParmIntValuesFuncPtr)(HAPI_NodeId node_id, const int * values_array, int start, int length);
 	static SetParmIntValuesFuncPtr SetParmIntValues;
 
 	typedef HAPI_Result (*SetParmFloatValueFuncPtr)(HAPI_NodeId node_id, const char * parm_name, int index, float value);
 	static SetParmFloatValueFuncPtr SetParmFloatValue;
 
-	typedef HAPI_Result (*SetParmFloatValuesFuncPtr)(HAPI_NodeId node_id, const float * values, int start, int length);
+	typedef HAPI_Result (*SetParmFloatValuesFuncPtr)(HAPI_NodeId node_id, const float * values_array, int start, int length);
 	static SetParmFloatValuesFuncPtr SetParmFloatValues;
 
 	typedef HAPI_Result (*SetParmStringValueFuncPtr)(HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index);
@@ -204,10 +225,10 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*RemoveMultiparmInstanceFuncPtr)(HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	static RemoveMultiparmInstanceFuncPtr RemoveMultiparmInstance;
 
-	typedef HAPI_Result (*GetHandleInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos, int start, int length);
+	typedef HAPI_Result (*GetHandleInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	static GetHandleInfoFuncPtr GetHandleInfo;
 
-	typedef HAPI_Result (*GetHandleBindingInfoFuncPtr)(HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_infos, int start, int length);
+	typedef HAPI_Result (*GetHandleBindingInfoFuncPtr)(HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	static GetHandleBindingInfoFuncPtr GetHandleBindingInfo;
 
 	typedef HAPI_Result (*GetPresetBufLengthFuncPtr)(HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
@@ -219,13 +240,13 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*SetPresetFuncPtr)(HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length);
 	static SetPresetFuncPtr SetPreset;
 
-	typedef HAPI_Result (*GetObjectsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos, int start, int length);
+	typedef HAPI_Result (*GetObjectsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos_array, int start, int length);
 	static GetObjectsFuncPtr GetObjects;
 
-	typedef HAPI_Result (*GetObjectTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms, int start, int length);
+	typedef HAPI_Result (*GetObjectTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	static GetObjectTransformsFuncPtr GetObjectTransforms;
 
-	typedef HAPI_Result (*GetInstanceTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms, int start, int length);
+	typedef HAPI_Result (*GetInstanceTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	static GetInstanceTransformsFuncPtr GetInstanceTransforms;
 
 	typedef HAPI_Result (*SetObjectTransformFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, const HAPI_TransformEuler * transform);
@@ -237,32 +258,38 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetPartInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
 	static GetPartInfoFuncPtr GetPartInfo;
 
-	typedef HAPI_Result (*GetFaceCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts, int start, int length);
+	typedef HAPI_Result (*GetFaceCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts_array, int start, int length);
 	static GetFaceCountsFuncPtr GetFaceCounts;
 
-	typedef HAPI_Result (*GetVertexListFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * vertex_list, int start, int length);
+	typedef HAPI_Result (*GetVertexListFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * vertex_list_array, int start, int length);
 	static GetVertexListFuncPtr GetVertexList;
 
 	typedef HAPI_Result (*GetAttributeInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info);
 	static GetAttributeInfoFuncPtr GetAttributeInfo;
 
-	typedef HAPI_Result (*GetAttributeNamesFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle * attribute_names, int count);
+	typedef HAPI_Result (*GetAttributeNamesFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle *attribute_names_array, int count);
 	static GetAttributeNamesFuncPtr GetAttributeNames;
 
-	typedef HAPI_Result (*GetAttributeIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data, int start, int length);
+	typedef HAPI_Result (*GetAttributeIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length);
 	static GetAttributeIntDataFuncPtr GetAttributeIntData;
 
-	typedef HAPI_Result (*GetAttributeFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data, int start, int length);
+	typedef HAPI_Result (*GetAttributeFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data_array, int start, int length);
 	static GetAttributeFloatDataFuncPtr GetAttributeFloatData;
 
-	typedef HAPI_Result (*GetAttributeStringDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data, int start, int length);
+	typedef HAPI_Result (*GetAttributeStringDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length);
 	static GetAttributeStringDataFuncPtr GetAttributeStringData;
 
-	typedef HAPI_Result (*GetGroupNamesFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names, int group_count);
+	typedef HAPI_Result (*GetGroupNamesFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	static GetGroupNamesFuncPtr GetGroupNames;
 
-	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, int * membership, int start, int length);
+	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, int * membership_array, int start, int length);
 	static GetGroupMembershipFuncPtr GetGroupMembership;
+
+	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
+	static GetInstancedPartIdsFuncPtr GetInstancedPartIds;
+
+	typedef HAPI_Result (*GetInstancerPartTransformsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
+	static GetInstancerPartTransformsFuncPtr GetInstancerPartTransforms;
 
 	typedef HAPI_Result (*SetGeoInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info);
 	static SetGeoInfoFuncPtr SetGeoInfo;
@@ -270,28 +297,28 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*SetPartInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_PartInfo * part_info);
 	static SetPartInfoFuncPtr SetPartInfo;
 
-	typedef HAPI_Result (*SetFaceCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * face_counts, int start, int length);
+	typedef HAPI_Result (*SetFaceCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * face_counts_array, int start, int length);
 	static SetFaceCountsFuncPtr SetFaceCounts;
 
-	typedef HAPI_Result (*SetVertexListFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * vertex_list, int start, int length);
+	typedef HAPI_Result (*SetVertexListFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * vertex_list_array, int start, int length);
 	static SetVertexListFuncPtr SetVertexList;
 
 	typedef HAPI_Result (*AddAttributeFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info);
 	static AddAttributeFuncPtr AddAttribute;
 
-	typedef HAPI_Result (*SetAttributeIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const int * data, int start, int length);
+	typedef HAPI_Result (*SetAttributeIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const int * data_array, int start, int length);
 	static SetAttributeIntDataFuncPtr SetAttributeIntData;
 
-	typedef HAPI_Result (*SetAttributeFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data, int start, int length);
+	typedef HAPI_Result (*SetAttributeFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length);
 	static SetAttributeFloatDataFuncPtr SetAttributeFloatData;
 
-	typedef HAPI_Result (*SetAttributeStringDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo *attr_info, const char ** data, int start, int length);
+	typedef HAPI_Result (*SetAttributeStringDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo *attr_info, const char ** data_array, int start, int length);
 	static SetAttributeStringDataFuncPtr SetAttributeStringData;
 
 	typedef HAPI_Result (*AddGroupFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name);
 	static AddGroupFuncPtr AddGroup;
 
-	typedef HAPI_Result (*SetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, int * membership, int start, int length);
+	typedef HAPI_Result (*SetGroupMembershipFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	static SetGroupMembershipFuncPtr SetGroupMembership;
 
 	typedef HAPI_Result (*CommitGeoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
@@ -312,7 +339,7 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*DisconnectAssetGeometryFuncPtr)(HAPI_AssetId asset_id, int input_idx);
 	static DisconnectAssetGeometryFuncPtr DisconnectAssetGeometry;
 
-	typedef HAPI_Result (*GetMaterialIdsOnFacesFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids, int start, int length);
+	typedef HAPI_Result (*GetMaterialIdsOnFacesFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids_array, int start, int length);
 	static GetMaterialIdsOnFacesFuncPtr GetMaterialIdsOnFaces;
 
 	typedef HAPI_Result (*GetMaterialInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info);
@@ -327,7 +354,7 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetSupportedImageFileFormatCountFuncPtr)(int * file_format_count);
 	static GetSupportedImageFileFormatCountFuncPtr GetSupportedImageFileFormatCount;
 
-	typedef HAPI_Result (*GetSupportedImageFileFormatsFuncPtr)(HAPI_ImageFileFormat *formats, int file_format_count);
+	typedef HAPI_Result (*GetSupportedImageFileFormatsFuncPtr)(HAPI_ImageFileFormat * formats_array, int file_format_count);
 	static GetSupportedImageFileFormatsFuncPtr GetSupportedImageFileFormats;
 
 	typedef HAPI_Result (*GetImageInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ImageInfo * image_info);
@@ -339,7 +366,7 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetImagePlaneCountFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, int * image_plane_count);
 	static GetImagePlaneCountFuncPtr GetImagePlaneCount;
 
-	typedef HAPI_Result (*GetImagePlanesFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_StringHandle * image_planes, int image_plane_count);
+	typedef HAPI_Result (*GetImagePlanesFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_StringHandle * image_planes_array, int image_plane_count);
 	static GetImagePlanesFuncPtr GetImagePlanes;
 
 	typedef HAPI_Result (*ExtractImageToFileFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
@@ -348,13 +375,13 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*ExtractImageToMemoryFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, int * buffer_size);
 	static ExtractImageToMemoryFuncPtr ExtractImageToMemory;
 
-	typedef HAPI_Result (*GetImageMemoryBufferFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int buffer_size);
+	typedef HAPI_Result (*GetImageMemoryBufferFuncPtr)(HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int length);
 	static GetImageMemoryBufferFuncPtr GetImageMemoryBuffer;
 
-	typedef HAPI_Result (*SetAnimCurveFuncPtr)(HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes, int keyframe_count);
+	typedef HAPI_Result (*SetAnimCurveFuncPtr)(HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	static SetAnimCurveFuncPtr SetAnimCurve;
 
-	typedef HAPI_Result (*SetTransformAnimCurveFuncPtr)(HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe *curve_keyframes, int keyframe_count);
+	typedef HAPI_Result (*SetTransformAnimCurveFuncPtr)(HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	static SetTransformAnimCurveFuncPtr SetTransformAnimCurve;
 
 	typedef HAPI_Result (*ResetSimulationFuncPtr)(HAPI_AssetId asset_id);
@@ -369,43 +396,49 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetNextVolumeTileFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	static GetNextVolumeTileFuncPtr GetNextVolumeTile;
 
-	typedef HAPI_Result (*GetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, float * values, int length);
+	typedef HAPI_Result (*GetVolumeVoxelFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count);
+	static GetVolumeVoxelFloatDataFuncPtr GetVolumeVoxelFloatData;
+
+	typedef HAPI_Result (*GetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length);
 	static GetVolumeTileFloatDataFuncPtr GetVolumeTileFloatData;
 
-	typedef HAPI_Result (*GetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, int * values, int length);
+	typedef HAPI_Result (*GetVolumeVoxelIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count);
+	static GetVolumeVoxelIntDataFuncPtr GetVolumeVoxelIntData;
+
+	typedef HAPI_Result (*GetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int fill_value, const HAPI_VolumeTileInfo * tile, int * values_array, int length);
 	static GetVolumeTileIntDataFuncPtr GetVolumeTileIntData;
 
 	typedef HAPI_Result (*SetVolumeInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeInfo * volume_info);
 	static SetVolumeInfoFuncPtr SetVolumeInfo;
 
-	typedef HAPI_Result (*SetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const float * values, int length);
+	typedef HAPI_Result (*SetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length);
 	static SetVolumeTileFloatDataFuncPtr SetVolumeTileFloatData;
 
-	typedef HAPI_Result (*SetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const int * values, int length);
+	typedef HAPI_Result (*SetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length);
 	static SetVolumeTileIntDataFuncPtr SetVolumeTileIntData;
 
 	typedef HAPI_Result (*GetCurveInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info);
 	static GetCurveInfoFuncPtr GetCurveInfo;
 
-	typedef HAPI_Result (*GetCurveCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * counts, int start, int length);
+	typedef HAPI_Result (*GetCurveCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * counts_array, int start, int length);
 	static GetCurveCountsFuncPtr GetCurveCounts;
 
-	typedef HAPI_Result (*GetCurveOrdersFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders, int start, int length);
+	typedef HAPI_Result (*GetCurveOrdersFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length);
 	static GetCurveOrdersFuncPtr GetCurveOrders;
 
-	typedef HAPI_Result (*GetCurveKnotsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float * knots, int start, int length);
+	typedef HAPI_Result (*GetCurveKnotsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float * knots_array, int start, int length);
 	static GetCurveKnotsFuncPtr GetCurveKnots;
 
 	typedef HAPI_Result (*SetCurveInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const HAPI_CurveInfo * info);
 	static SetCurveInfoFuncPtr SetCurveInfo;
 
-	typedef HAPI_Result (*SetCurveCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * counts, int start, int length);
+	typedef HAPI_Result (*SetCurveCountsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * counts_array, int start, int length);
 	static SetCurveCountsFuncPtr SetCurveCounts;
 
-	typedef HAPI_Result (*SetCurveOrdersFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * orders, int start, int length);
+	typedef HAPI_Result (*SetCurveOrdersFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * orders_array, int start, int length);
 	static SetCurveOrdersFuncPtr SetCurveOrders;
 
-	typedef HAPI_Result (*SetCurveKnotsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const float * knots, int start, int length);
+	typedef HAPI_Result (*SetCurveKnotsFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const float * knots_array, int start, int length);
 	static SetCurveKnotsFuncPtr SetCurveKnots;
 
 	typedef HAPI_Result (*SaveGeoToFileFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name);
@@ -417,10 +450,10 @@ struct HOUDINIENGINE_API FHoudiniApi
 	typedef HAPI_Result (*GetGeoSizeFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, int * size);
 	static GetGeoSizeFuncPtr GetGeoSize;
 
-	typedef HAPI_Result (*SaveGeoToMemoryFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, char * buffer, int size);
+	typedef HAPI_Result (*SaveGeoToMemoryFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, char * buffer, int length);
 	static SaveGeoToMemoryFuncPtr SaveGeoToMemory;
 
-	typedef HAPI_Result (*LoadGeoFromMemoryFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, const char * buffer, int size);
+	typedef HAPI_Result (*LoadGeoFromMemoryFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, const char * buffer, int length);
 	static LoadGeoFromMemoryFuncPtr LoadGeoFromMemory;
 
 	typedef HAPI_Result (*GetMaterialOnPartFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);

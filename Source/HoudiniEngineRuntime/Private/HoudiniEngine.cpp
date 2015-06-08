@@ -267,6 +267,7 @@ FHoudiniEngine::ShutdownModule()
 }
 
 
+void
 FHoudiniEngine::AddTask(const FHoudiniEngineTask& Task)
 {
 	HoudiniEngineScheduler->AddTask(Task);
