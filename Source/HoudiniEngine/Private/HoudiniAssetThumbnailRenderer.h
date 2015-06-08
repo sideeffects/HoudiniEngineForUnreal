@@ -41,15 +41,10 @@ public:
 
 	virtual void BeginDestroy() override;
 
-public:
-
-	/** Called when asset no longer needs thumbnail rendering. Typically when asset is deleted from content browser. **/
-	void RemoveAssetThumbnail(UHoudiniAsset* HoudiniAsset);
-
 private:
 
-	/** Map of scenes managed by this thumbnail renderer, one for each asset. **/
-	TMap<UHoudiniAsset*, FHoudiniAssetThumbnailScene*> ThumbnailScenes;
+	/** Used thumbnail scene. **/
+	FHoudiniAssetThumbnailScene* ThumbnailScene;
 };
 
 #endif

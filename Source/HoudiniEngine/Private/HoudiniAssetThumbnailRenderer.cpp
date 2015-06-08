@@ -20,7 +20,8 @@
 
 
 UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer),
+	ThumbnailScene(nullptr)
 {
 
 }
@@ -33,21 +34,9 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Object);
 	if(HoudiniAsset && !HoudiniAsset->IsPendingKill())
 	{
-		FHoudiniAssetThumbnailScene* ThumbnailScene = nullptr;
-		FHoudiniAssetThumbnailScene** StoredThumbnailScene = ThumbnailScenes.Find(HoudiniAsset);
-
-		// See if we have a scene created for this asset.
-		if(!StoredThumbnailScene)
+		if(!ThumbnailScene)
 		{
-			// We have no scene stored, we need to create one.
 			ThumbnailScene = new FHoudiniAssetThumbnailScene();
-
-			// Associate newly created scene with given asset and store it in a map.
-			ThumbnailScenes.Add(HoudiniAsset, ThumbnailScene);
-		}
-		else
-		{
-			ThumbnailScene = *StoredThumbnailScene;
 		}
 
 		ThumbnailScene->SetHoudiniAsset(HoudiniAsset);
@@ -70,26 +59,11 @@ UHoudiniAssetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 W
 void
 UHoudiniAssetThumbnailRenderer::BeginDestroy()
 {
-	for(TMap<UHoudiniAsset*, FHoudiniAssetThumbnailScene*>::TConstIterator
-		ParamIter(ThumbnailScenes); ParamIter; ++ParamIter)
+	if(ThumbnailScene)
 	{
-		FHoudiniAssetThumbnailScene* ThumbnailScene = ParamIter.Value();
 		delete ThumbnailScene;
+		ThumbnailScene = nullptr;
 	}
-
-	ThumbnailScenes.Empty();
 
 	Super::BeginDestroy();
-}
-
-
-void
-UHoudiniAssetThumbnailRenderer::RemoveAssetThumbnail(UHoudiniAsset* HoudiniAsset)
-{
-	FHoudiniAssetThumbnailScene** StoredThumbnailScene = ThumbnailScenes.Find(HoudiniAsset);
-	if(StoredThumbnailScene)
-	{
-		delete(*StoredThumbnailScene);
-		ThumbnailScenes.Remove(HoudiniAsset);
-	}
 }
