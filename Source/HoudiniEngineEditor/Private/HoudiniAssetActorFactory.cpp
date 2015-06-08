@@ -13,10 +13,11 @@
  *
  */
 
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetActor.h"
+#include "HoudiniAsset.h"
 
 
 UHoudiniAssetActorFactory::UHoudiniAssetActorFactory(const FObjectInitializer& ObjectInitializer) :
