@@ -78,6 +78,9 @@ FHoudiniEngineEditor::StartupModule()
 	// Create style set.
 	RegisterStyleSet();
 
+	// Register thumbnails.
+	RegisterThumbnails();
+
 	// Extend menu.
 	ExtendMenu();
 
@@ -96,6 +99,9 @@ FHoudiniEngineEditor::ShutdownModule()
 
 	// Unregister detail presenters.
 	UnregisterDetails();
+
+	// Unregister thumbnails.
+	UnregisterThumbnails();
 
 	// Unregister our component visualizers.
 	UnregisterComponentVisualizers();
@@ -345,4 +351,21 @@ TSharedPtr<ISlateStyle>
 FHoudiniEngineEditor::GetSlateStyle() const
 {
 	return StyleSet;
+}
+
+
+void
+FHoudiniEngineEditor::RegisterThumbnails()
+{
+	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
+}
+
+
+void
+FHoudiniEngineEditor::UnregisterThumbnails()
+{
+	if(UObjectInitialized())
+	{
+		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
+	}
 }

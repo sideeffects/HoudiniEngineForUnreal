@@ -118,13 +118,6 @@ FHoudiniEngine::StartupModule()
 		}
 	}
 
-#if WITH_EDITOR
-
-	// Register thumbnail renderer for Houdini asset.
-	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
-
-#endif
-
 	// Register settings.
 	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if(SettingsModule)
@@ -232,16 +225,6 @@ void
 FHoudiniEngine::ShutdownModule()
 {
 	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine module."));
-
-#if WITH_EDITOR
-
-	if(UObjectInitialized())
-	{
-		// Unregister thumbnail renderer.
-		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
-	}
-
-#endif
 
 	// We no longer need Houdini logo static mesh.
 	HoudiniLogoStaticMesh->RemoveFromRoot();

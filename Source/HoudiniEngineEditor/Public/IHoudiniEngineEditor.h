@@ -48,4 +48,8 @@ public:
 
 	/** Return Slate style. **/
 	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const = 0;
+
+	/** Register and unregister thumbnails. **/
+	virtual void RegisterThumbnails() {}
+	virtual void UnregisterThumbnails() {}
 };
