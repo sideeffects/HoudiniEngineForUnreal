@@ -16,4 +16,4 @@
 #pragma once
 
 #define HOUDINI_ENGINE_EDITOR
-#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
