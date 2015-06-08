@@ -25,9 +25,9 @@
 using UnrealBuildTool;
 using System.IO;
 
-public class HoudiniEngine : ModuleRules
+public class HoudiniEngineRuntime : ModuleRules
 {
-	public HoudiniEngine( TargetInfo Target )
+	public HoudiniEngineRuntime( TargetInfo Target )
 	{
 		string HFSPath = "";
 		string HoudiniVersion = "14.5.138";
