@@ -71,7 +71,7 @@ namespace EHoudiniAssetComponentState
 
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"),
 	ShowCategories=(Mobility), editinlinenew)
-class HOUDINIENGINE_API UHoudiniAssetComponent : public UPrimitiveComponent
+class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveComponent
 {
 	friend class FHoudiniMeshSceneProxy;
 	friend class AHoudiniAssetActor;

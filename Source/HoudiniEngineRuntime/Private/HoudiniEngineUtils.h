@@ -30,7 +30,7 @@ class FHoudiniAssetObjectGeo;
 struct FRawMesh;
 
 
-struct HOUDINIENGINE_API FHoudiniEngineUtils
+struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 {
 public:
 

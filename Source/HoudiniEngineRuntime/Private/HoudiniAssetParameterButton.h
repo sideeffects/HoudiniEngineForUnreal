@@ -19,7 +19,7 @@
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterButton : public UHoudiniAssetParameter
+class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterButton : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 

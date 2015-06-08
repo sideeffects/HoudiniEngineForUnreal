@@ -24,7 +24,7 @@ class UHoudiniAssetComponent;
 
 
 UCLASS(config=Editor)
-class HOUDINIENGINE_API UHoudiniAssetParameter : public UObject
+class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

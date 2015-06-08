@@ -19,11 +19,11 @@
 class UHoudiniAssetComponent;
 
 UCLASS(hidecategories=(Input), ConversionRoot, meta=(ChildCanTick))
-class HOUDINIENGINE_API AHoudiniAssetActor : public AActor
+class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, 
+	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly,
 		meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
 	UHoudiniAssetComponent* HoudiniAssetComponent;
 

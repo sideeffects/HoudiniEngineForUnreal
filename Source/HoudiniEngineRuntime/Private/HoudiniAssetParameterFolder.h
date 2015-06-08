@@ -19,7 +19,7 @@
 
 
 UCLASS()
-class HOUDINIENGINE_API UHoudiniAssetParameterFolder : public UHoudiniAssetParameter
+class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFolder : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 

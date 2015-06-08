@@ -19,7 +19,7 @@
 class FArchive;
 struct FTransform;
 
-struct HOUDINIENGINE_API FHoudiniGeoPartObject
+struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 {
 
 public:

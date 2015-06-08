@@ -44,7 +44,7 @@ class UHoudiniAssetInput;
 
 
 UCLASS(config=Engine)
-class HOUDINIENGINE_API UHoudiniSplineComponent : public USceneComponent
+class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
 {
 	friend class UHoudiniAssetComponent;
 
