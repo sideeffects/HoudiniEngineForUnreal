@@ -1232,7 +1232,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 	Part.vertexCount = RawMesh.WedgeIndices.Num();
 	Part.faceCount =  RawMesh.WedgeIndices.Num() / 3;
 	Part.pointCount = RawMesh.VertexPositions.Num();
-	Part.type = HAPI_PARTTYPE_MESH;
+	Part.hasVolume = false;
+	Part.isCurve = false;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(ConnectedAssetId, 0, 0, &Part), false);
 
 	// Create point attribute info.
@@ -1939,7 +1940,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 				HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
 				HoudiniGeoPartObject.bIsInstancer = ObjectInfo.isInstancer;
-				HoudiniGeoPartObject.bIsCurve = PartInfo.type == HAPI_PARTTYPE_CURVE;
+				HoudiniGeoPartObject.bIsCurve = PartInfo.isCurve;
 				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
 				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
 
@@ -1964,7 +1965,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						continue;
 					}
 				}
-				else if(PartInfo.type == HAPI_PARTTYPE_CURVE)
+				else if(PartInfo.isCurve)
 				{
 					// This is a curve part.
 					StaticMesh = nullptr;
