@@ -42,6 +42,7 @@ public:
 	virtual void UnregisterAssetTypeActions() override;
 	virtual void RegisterAssetBrokers() override;
 	virtual void UnregisterAssetBrokers() override;
+	virtual void RegisterActorFactories() override;
 
 public:
 

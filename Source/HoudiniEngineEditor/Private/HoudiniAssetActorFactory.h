@@ -15,7 +15,6 @@
 
 #pragma once
 #include "HoudiniAssetActorFactory.generated.h"
-#if WITH_EDITOR
 
 
 class FText;
@@ -24,7 +23,7 @@ class UObject;
 class FAssetData;
 
 UCLASS(config=Editor)
-class HOUDINIENGINE_API UHoudiniAssetActorFactory : public UActorFactory
+class UHoudiniAssetActorFactory : public UActorFactory
 {
 	GENERATED_UCLASS_BODY()
 
@@ -44,5 +43,3 @@ public:
 	/** update the blueprint's CDO properties with state from the asset for this factory.									**/
 	virtual void PostCreateBlueprint(UObject* Asset, AActor* CDO) override;
 };
-
-#endif

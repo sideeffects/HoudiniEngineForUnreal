@@ -23,6 +23,7 @@
 #include "HoudiniRuntimeSettingsDetails.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAssetBroker.h"
+#include "HoudiniAssetActorFactory.h"
 
 
 const FName
@@ -70,6 +71,9 @@ FHoudiniEngineEditor::StartupModule()
 
 	// Register detail presenters.
 	RegisterDetails();
+
+	// Register actor factories.
+	RegisterActorFactories();
 
 	// Store the instance.
 	FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
@@ -194,5 +198,18 @@ FHoudiniEngineEditor::UnregisterAssetBrokers()
 	{
 		// Unregister broker.
 		FComponentAssetBrokerage::UnregisterBroker(HoudiniAssetBroker);
+	}
+}
+
+
+void
+FHoudiniEngineEditor::RegisterActorFactories()
+{
+	if(GEditor)
+	{
+		UHoudiniAssetActorFactory* HoudiniAssetActorFactory =
+			ConstructObject<UHoudiniAssetActorFactory>(UHoudiniAssetActorFactory::StaticClass());
+
+		GEditor->ActorFactories.Add(HoudiniAssetActorFactory);
 	}
 }

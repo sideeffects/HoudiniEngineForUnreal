@@ -43,4 +43,7 @@ public:
 
 	/** Destroy and unregister asset brokers. **/
 	virtual void UnregisterAssetBrokers() {}
+
+	/** Create and register actor factories. **/
+	virtual void RegisterActorFactories() {}
 };

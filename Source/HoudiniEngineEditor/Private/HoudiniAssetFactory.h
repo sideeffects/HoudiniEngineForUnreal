@@ -15,7 +15,6 @@
 
 #pragma once
 #include "HoudiniAssetFactory.generated.h"
-#if WITH_EDITOR
 
 
 class UClass;
@@ -23,7 +22,7 @@ class UObject;
 class FFeedbackContext;
 
 UCLASS(config=Editor)
-class HOUDINIENGINE_API UHoudiniAssetFactory : public UFactory, public FReimportHandler
+class UHoudiniAssetFactory : public UFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()
 
@@ -43,5 +42,3 @@ public:
 	virtual void SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths) override;
 	virtual EReimportResult::Type Reimport(UObject* Obj) override;
 };
-
-#endif
