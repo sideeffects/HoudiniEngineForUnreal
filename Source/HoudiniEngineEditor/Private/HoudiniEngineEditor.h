@@ -47,6 +47,8 @@ public:
 	virtual void RegisterStyleSet() override;
 	virtual void UnregisterStyleSet() override;
 	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
+	virtual void RegisterThumbnails() override;
+	virtual void UnregisterThumbnails() override;
 
 public:
 

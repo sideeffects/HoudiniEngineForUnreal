@@ -15,7 +15,6 @@
 
 #pragma once
 #include "HoudiniAssetThumbnailRenderer.generated.h"
-#if WITH_EDITOR
 
 
 class UObject;
@@ -46,5 +45,3 @@ private:
 	/** Used thumbnail scene. **/
 	FHoudiniAssetThumbnailScene* ThumbnailScene;
 };
-
-#endif
