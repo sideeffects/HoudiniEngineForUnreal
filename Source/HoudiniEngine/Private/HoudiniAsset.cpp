@@ -15,7 +15,6 @@
 
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniAsset.h"
-#include "HoudiniAssetThumbnailRenderer.h"
 
 
 const uint32
@@ -87,22 +86,6 @@ UHoudiniAsset::IsPreviewHoudiniLogo() const
 void
 UHoudiniAsset::FinishDestroy()
 {
-#if WITH_EDITOR
-
-	FThumbnailRenderingInfo* RenderInfo = UThumbnailManager::Get().GetRenderingInfo(this);
-	if(RenderInfo)
-	{
-		UHoudiniAssetThumbnailRenderer* ThumbnailRenderer =
-			CastChecked<UHoudiniAssetThumbnailRenderer>(RenderInfo->Renderer);
-
-		if(ThumbnailRenderer)
-		{
-			ThumbnailRenderer->RemoveAssetThumbnail(this);
-		}
-	}
-
-#endif
-
 	// Release buffer which was used to store raw OTL data.
 	if(AssetBytes)
 	{
