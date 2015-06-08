@@ -39,7 +39,6 @@ public:
 #if WITH_EDITOR
 
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const override;
-	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
 
 #endif
 
@@ -67,27 +66,6 @@ public:
 
 private:
 
-#if WITH_EDITOR
-
-	/** Add menu extension for our module. **/
-	void AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder);
-
-#endif
-
-public:
-
-#if WITH_EDITOR
-
-	/** Menu action called to save a HIP file. **/
-	void SaveHIPFile();
-
-	/** Helper delegate used to determine if HIP file save can be executed. **/
-	bool CanSaveHIPFile() const;
-
-#endif
-
-private:
-
 	/** Singleton instance of Houdini Engine. **/
 	static FHoudiniEngine* HoudiniEngineInstance;
 
@@ -100,12 +78,6 @@ private:
 
 	/** Houdini logo brush. **/
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;
-
-	/** The extender to pass to the level editor to extend it's window menu. **/
-	TSharedPtr<FExtender> MainMenuExtender;
-
-	/** Slate styleset used by this module. **/
-	TSharedPtr<FSlateStyleSet> StyleSet;
 
 #endif
 

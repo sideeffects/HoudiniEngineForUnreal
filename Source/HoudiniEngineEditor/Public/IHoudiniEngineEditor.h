@@ -20,30 +20,32 @@ class IHoudiniEngineEditor : public IModuleInterface
 {
 public:
 
-	/** Register component visualizers used by this module. **/
+	/** Register and unregister component visualizers used by this module. **/
 	virtual void RegisterComponentVisualizers() {}
-
-	/** Unregister components visualizers used by this module. **/
 	virtual void UnregisterComponentVisualizers() {}
 
-	/** Register detail presenters used by this module. **/
+	/** Register and unregister detail presenters used by this module. **/
 	virtual void RegisterDetails() {}
-
-	/** Unregister detail presenters used by this module. **/
 	virtual void UnregisterDetails() {}
 
-	/** Register asset type actions. **/
+	/** Register and unregister asset type actions. **/
 	virtual void RegisterAssetTypeActions() {}
-
-	/** Unregister asset type actions. **/
 	virtual void UnregisterAssetTypeActions() {}
 
-	/** Create and register asset brokers. **/
+	/** Create and register / unregister asset brokers. **/
 	virtual void RegisterAssetBrokers() {}
-
-	/** Destroy and unregister asset brokers. **/
 	virtual void UnregisterAssetBrokers() {}
 
 	/** Create and register actor factories. **/
 	virtual void RegisterActorFactories() {}
+
+	/** Extend menu. **/
+	virtual void ExtendMenu() {}
+
+	/** Register and unregister Slate style set. **/
+	virtual void RegisterStyleSet() {}
+	virtual void UnregisterStyleSet() {}
+
+	/** Return Slate style. **/
+	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const = 0;
 };

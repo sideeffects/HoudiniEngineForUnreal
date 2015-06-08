@@ -40,13 +40,6 @@ FHoudiniEngine::GetHoudiniLogoBrush() const
 	return HoudiniLogoBrush;
 }
 
-
-TSharedPtr<ISlateStyle>
-FHoudiniEngine::GetSlateStyle() const
-{
-	return StyleSet;
-}
-
 #endif
 
 
@@ -130,27 +123,6 @@ FHoudiniEngine::StartupModule()
 	// Register thumbnail renderer for Houdini asset.
 	UThumbnailManager::Get().RegisterCustomRenderer(UHoudiniAsset::StaticClass(), UHoudiniAssetThumbnailRenderer::StaticClass());
 
-	// Create Slate style set.
-	if(!StyleSet.IsValid())
-	{
-		StyleSet = MakeShareable(new FSlateStyleSet("HoudiniEngineStyle"));
-		StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
-		StyleSet->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
-
-		const FVector2D Icon16x16(16.0f, 16.0f);
-		static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Icons/");
-		StyleSet->Set("HoudiniEngine.HoudiniEngineLogo",
-			new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
-		StyleSet->Set("ClassIcon.HoudiniAssetActor",
-			new FSlateImageBrush(ContentDir + TEXT("icon_houdini_logo_16.png"), Icon16x16));
-
-		// Register Slate style.
-		FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
-
-		// Register style set as an icon source.
-		FClassIconFinder::RegisterIconSource(StyleSet.Get());
-	}
-
 #endif
 
 	// Register settings.
@@ -195,13 +167,6 @@ FHoudiniEngine::StartupModule()
 				break;
 			}
 		}
-
-		// Extend main menu, we will add Houdini section.
-		MainMenuExtender = MakeShareable(new FExtender);
-		MainMenuExtender->AddMenuExtension("FileLoadAndSave", EExtensionHook::After, NULL,
-			FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngine::AddHoudiniMenuExtension));
-		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MainMenuExtender);
 	}
 
 #endif
@@ -276,19 +241,6 @@ FHoudiniEngine::ShutdownModule()
 		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
 	}
 
-	// Unregister Slate style set.
-	if(StyleSet.IsValid())
-	{
-		// Unregister style set as an icon source.
-		FClassIconFinder::UnregisterIconSource(StyleSet.Get());
-
-		// Unregister Slate style.
-		FSlateStyleRegistry::UnRegisterSlateStyle(*StyleSet.Get());
-
-		ensure(StyleSet.IsUnique());
-		StyleSet.Reset();
-	}
-
 #endif
 
 	// We no longer need Houdini logo static mesh.
@@ -332,72 +284,6 @@ FHoudiniEngine::ShutdownModule()
 }
 
 
-#if WITH_EDITOR
-
-void
-FHoudiniEngine::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
-{
-	MenuBuilder.BeginSection("Houdini", LOCTEXT("HoudiniLabel", "Houdini Engine"));
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("HoudiniMenuEntryTitle", "Save .hip file"),
-			LOCTEXT("HoudiniMenuEntryToolTip", "Saves a .hip file of the current Houdini scene."),
-			FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
-			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngine::SaveHIPFile),
-				FCanExecuteAction::CreateRaw(this, &FHoudiniEngine::CanSaveHIPFile)));
-
-	MenuBuilder.EndSection();
-}
-
-
-bool
-FHoudiniEngine::CanSaveHIPFile() const
-{
-	return FHoudiniEngine::IsInitialized();
-}
-
-
-void
-FHoudiniEngine::SaveHIPFile()
-{
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	if(DesktopPlatform && FHoudiniEngineUtils::IsInitialized())
-	{
-		TArray<FString> SaveFilenames;
-		bool bSaved = false;
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
-		bSaved = DesktopPlatform->SaveFileDialog(ParentWindowWindowHandle,
-			NSLOCTEXT("SaveHIPFile", "SaveHIPFile", "Saves a .hip file of the current Houdini scene.").ToString(),
-			*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)),
-			TEXT(""),
-			TEXT("Houdini HIP file|*.hip"),
-			EFileDialogFlags::None,
-			SaveFilenames);
-
-		if(bSaved && SaveFilenames.Num())
-		{
-			// Get first path.
-			std::wstring HIPPath(*SaveFilenames[0]);
-			std::string HIPPathConverted(HIPPath.begin(), HIPPath.end());
-
-			// Save HIP file through Engine.
-			FHoudiniApi::SaveHIPFile(HIPPathConverted.c_str());
-		}
-	}
-}
-
-#endif
-
-
-void
 FHoudiniEngine::AddTask(const FHoudiniEngineTask& Task)
 {
 	HoudiniEngineScheduler->AddTask(Task);

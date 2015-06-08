@@ -31,9 +31,6 @@ public:
 	/** Return Houdini logo brush. **/
 	virtual TSharedPtr<FSlateDynamicImageBrush> GetHoudiniLogoBrush() const = 0;
 
-	/** Return Slate style set. **/
-	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const = 0;
-
 #endif
 
 	/** Return static mesh reprensenting Houdini logo. **/

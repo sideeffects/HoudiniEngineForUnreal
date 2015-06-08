@@ -16,7 +16,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAsset.h"
-#include "HoudiniEngine.h"
+#include "HoudiniEngineEditor.h"
 
 
 FText
@@ -75,8 +75,8 @@ FHoudiniAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, class FM
 {
 	auto HoudiniAssets = GetTypedWeakObjectPtrs<UHoudiniAsset>(InObjects);
 
-	FHoudiniEngine& HoudiniEngine = FHoudiniEngine::Get();
-	TSharedPtr<ISlateStyle> StyleSet = HoudiniEngine.GetSlateStyle();
+	FHoudiniEngineEditor& HoudiniEngineEditor = FHoudiniEngineEditor::Get();
+	TSharedPtr<ISlateStyle> StyleSet = HoudiniEngineEditor.GetSlateStyle();
 
 	MenuBuilder.AddMenuEntry(
 		NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_Reimport", "Reimport"),
