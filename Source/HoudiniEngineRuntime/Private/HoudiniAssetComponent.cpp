@@ -327,7 +327,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	bIsPreviewComponent = false;
 	if(!InHoudiniAsset)
 	{
+#if WITH_EDITOR
 		UpdateEditorProperties(false);
+#endif
 		return;
 	}
 

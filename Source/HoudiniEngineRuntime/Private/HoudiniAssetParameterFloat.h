@@ -57,6 +57,8 @@ public:
 
 public:
 
+#if WITH_EDITOR
+
 	/** Get value of this property, used by Slate. **/
 	TOptional<float> GetValue(int32 Idx) const;
 
@@ -71,6 +73,8 @@ public:
 
 	/** Delegate fired when slider for this property has finished moving. **/
 	void OnSliderMovingFinish(float InValue, int32 Idx);
+
+#endif
 
 protected:
 

@@ -193,9 +193,6 @@ protected:
 	/** Map of static meshes to combo elements. **/
 	TMap<int32, TSharedPtr<SComboButton> > StaticMeshComboButtons;
 
-	/** Widget used for dragging and input. **/
-	TArray<TSharedPtr<SAssetSearchBox> > InputWidgets;
-
 #endif
 
 	/** Corresponding instanced static mesh components. **/

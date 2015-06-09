@@ -24,6 +24,7 @@ struct FRawMesh;
 class UAssetUserData;
 class UPhysicalMaterial;
 struct FMeshBuildSettings;
+struct FPropertyChangedEvent;
 class UFoliageType_InstancedStaticMesh;
 
 
@@ -70,7 +71,12 @@ public:
 public:
 
 	virtual void PostInitProperties() override;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
+#if WITH_EDITOR
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
+#endif
 
 protected:
 

@@ -150,8 +150,12 @@ protected:
 	/** Sets internal value index used by this parameter. **/
 	void SetValuesIndex(int32 InValuesIndex);
 
+#if WITH_EDITOR
+
 	/** Assigns a unique parameter name. **/
 	void AssignUniqueParameterName();
+
+#endif
 
 	/** Return true if parameter is spare, that is, created by Houdini Engine only. **/
 	bool IsSpare() const;

@@ -199,6 +199,8 @@ UHoudiniAssetParameterToggle::Serialize(FArchive& Ar)
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameterToggle::CheckStateChanged(ECheckBoxState NewState, int32 Idx)
 {
@@ -226,3 +228,5 @@ UHoudiniAssetParameterToggle::IsChecked(int32 Idx) const
 
 	return ECheckBoxState::Unchecked;
 }
+
+#endif

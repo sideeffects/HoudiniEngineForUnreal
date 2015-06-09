@@ -107,6 +107,8 @@ UHoudiniRuntimeSettings::PostInitProperties()
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -184,6 +186,8 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	}
 	*/
 }
+
+#endif
 
 
 void
