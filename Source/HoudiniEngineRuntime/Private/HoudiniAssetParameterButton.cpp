@@ -123,8 +123,6 @@ UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
-#endif
-
 
 FReply
 UHoudiniAssetParameterButton::OnButtonClick()
@@ -134,3 +132,5 @@ UHoudiniAssetParameterButton::OnButtonClick()
 
 	return FReply::Handled();
 }
+
+#endif

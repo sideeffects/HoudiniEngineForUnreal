@@ -777,7 +777,6 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 		InstancedStaticMeshComponents.SetNum(ObjectCount);
 		StaticMeshes.SetNum(ObjectCount);
 		OriginalStaticMeshes.SetNum(ObjectCount);
-		InputWidgets.SetNum(ObjectCount);
 		RotationOffsets.SetNum(ObjectCount);
 		ScaleOffsets.SetNum(ObjectCount);
 		ScaleOffsetsLinearly.SetNum(ObjectCount);
@@ -790,7 +789,6 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 		InstancedStaticMeshComponents.SetNumZeroed(ObjectCount);
 		StaticMeshes.SetNumZeroed(ObjectCount);
 		OriginalStaticMeshes.SetNumZeroed(ObjectCount);
-		InputWidgets.SetNumZeroed(ObjectCount);
 		RotationOffsets.SetNumZeroed(ObjectCount);
 
 		// We need to add identity scales for new components.

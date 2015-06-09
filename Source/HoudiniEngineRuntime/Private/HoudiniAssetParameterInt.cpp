@@ -207,6 +207,8 @@ UHoudiniAssetParameterInt::UploadParameterValue()
 }
 
 
+#if WITH_EDITOR
+
 TOptional<int32>
 UHoudiniAssetParameterInt::GetValue(int32 Idx) const
 {
@@ -248,6 +250,8 @@ UHoudiniAssetParameterInt::OnSliderMovingFinish(int32 InValue, int32 Idx)
 {
 
 }
+
+#endif
 
 
 void

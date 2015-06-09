@@ -1049,8 +1049,10 @@ UHoudiniAssetInput::UpdateInputCurve()
 
 	if(bSwitchedToCurve)
 	{
+#if WITH_EDITOR
 		// We need to trigger details panel update.
 		HoudiniAssetComponent->UpdateEditorProperties(false);
+#endif
 		bSwitchedToCurve = false;
 	}
 }

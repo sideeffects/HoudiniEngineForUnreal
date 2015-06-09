@@ -169,6 +169,8 @@ UHoudiniAssetParameterString::UploadParameterValue()
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameterString::SetValue(const FText& InValue, int32 Idx)
 {
@@ -191,3 +193,5 @@ UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommi
 		MarkChanged();
 	}
 }
+
+#endif

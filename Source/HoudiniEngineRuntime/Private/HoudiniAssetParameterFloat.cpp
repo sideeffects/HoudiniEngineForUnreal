@@ -261,6 +261,8 @@ UHoudiniAssetParameterFloat::UploadParameterValue()
 }
 
 
+#if WITH_EDITOR
+
 TOptional<float>
 UHoudiniAssetParameterFloat::GetValue(int32 Idx) const
 {
@@ -302,6 +304,8 @@ UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
 {
 
 }
+
+#endif
 
 
 void

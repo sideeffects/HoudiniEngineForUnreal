@@ -477,6 +477,8 @@ UHoudiniAssetParameter::GetParameterLabel() const
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameter::AssignUniqueParameterName()
 {
@@ -491,6 +493,8 @@ UHoudiniAssetParameter::AssignUniqueParameterName()
 		Rename(*NewName);
 	}
 }
+
+#endif
 
 
 void

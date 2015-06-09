@@ -65,13 +65,13 @@ public:
 	/** Helper method used to generate choice entry widget. **/
 	TSharedRef<SWidget> CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry);
 
-#endif
-
 	/** Called when change of selection is triggered. **/
 	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
 
 	/** Called to retrieve the name of selected item. **/
 	FString HandleChoiceContentText() const;
+
+#endif
 
 protected:
 

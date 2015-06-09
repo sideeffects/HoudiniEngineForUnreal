@@ -325,8 +325,6 @@ UHoudiniAssetParameterChoice::CreateChoiceEntryWidget(TSharedPtr<FString> Choice
 		   .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 }
 
-#endif
-
 
 void
 UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
@@ -369,3 +367,5 @@ UHoudiniAssetParameterChoice::HandleChoiceContentText() const
 {
 	return StringValue;
 }
+
+#endif

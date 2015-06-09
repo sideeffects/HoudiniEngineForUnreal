@@ -52,6 +52,10 @@ public:
 
 protected:
 
+#if WITH_EDITOR
+
 	/** Handler for button click. **/
 	FReply OnButtonClick();
+
+#endif
 };

@@ -60,11 +60,15 @@ public:
 
 public:
 
+#if WITH_EDITOR
+
 	/** Get value of this property, used by Slate. **/
 	void CheckStateChanged(ECheckBoxState NewState, int32 Idx);
 
 	/** Return checked state of this property, used by Slate. **/
 	ECheckBoxState IsChecked(int32 Idx) const;
+
+#endif
 
 protected:
 
