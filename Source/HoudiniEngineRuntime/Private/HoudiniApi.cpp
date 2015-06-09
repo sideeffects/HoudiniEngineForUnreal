@@ -18,6 +18,15 @@
 #include "HoudiniApi.h"
 
 
+FHoudiniApi::CreateInProcessSessionFuncPtr
+FHoudiniApi::CreateInProcessSession = nullptr;
+
+FHoudiniApi::BindCustomImplementationFuncPtr
+FHoudiniApi::BindCustomImplementation = nullptr;
+
+FHoudiniApi::CreateCustomSessionFuncPtr
+FHoudiniApi::CreateCustomSession = nullptr;
+
 FHoudiniApi::IsInitializedFuncPtr
 FHoudiniApi::IsInitialized = nullptr;
 
@@ -462,6 +471,9 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 {
 	if(!LibraryHandle) return;
 
+	FHoudiniApi::CreateInProcessSession = (CreateInProcessSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInProcessSession"));
+	FHoudiniApi::BindCustomImplementation = (BindCustomImplementationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_BindCustomImplementation"));
+	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
 	FHoudiniApi::IsInitialized = (IsInitializedFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsInitialized"));
 	FHoudiniApi::Initialize = (InitializeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Initialize"));
 	FHoudiniApi::Cleanup = (CleanupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Cleanup"));
@@ -614,6 +626,9 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 void
 FHoudiniApi::FinalizeHAPI()
 {
+	FHoudiniApi::CreateInProcessSession = nullptr;
+	FHoudiniApi::BindCustomImplementation = nullptr;
+	FHoudiniApi::CreateCustomSession = nullptr;
 	FHoudiniApi::IsInitialized = nullptr;
 	FHoudiniApi::Initialize = nullptr;
 	FHoudiniApi::Cleanup = nullptr;
