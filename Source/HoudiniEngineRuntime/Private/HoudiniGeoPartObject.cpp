@@ -285,7 +285,7 @@ FHoudiniGeoPartObject::HasParameters(HAPI_AssetId InAssetId) const
 	}
 
 	HAPI_NodeInfo NodeInfo;
-	FHoudiniApi::GetNodeInfo(NodeId, &NodeInfo);
+	FHoudiniApi::GetNodeInfo(nullptr, NodeId, &NodeInfo);
 
 	return (NodeInfo.parmCount > 0);
 }

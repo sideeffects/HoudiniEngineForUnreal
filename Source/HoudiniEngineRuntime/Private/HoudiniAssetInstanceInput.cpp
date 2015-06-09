@@ -50,7 +50,7 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 
 	// Get name of this input. For the time being we only support geometry inputs.
 	HAPI_ObjectInfo ObjectInfo;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(InHoudiniAssetComponent->GetAssetId(), &ObjectInfo,
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(nullptr, InHoudiniAssetComponent->GetAssetId(), &ObjectInfo,
 		HoudiniGeoPartObject.ObjectId, 1))
 	{
 		return HoudiniAssetInstanceInput;

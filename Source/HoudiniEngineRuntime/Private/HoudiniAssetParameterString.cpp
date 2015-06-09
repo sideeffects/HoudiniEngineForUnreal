@@ -76,7 +76,7 @@ UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	TArray<HAPI_StringHandle> StringHandles;
 	StringHandles.SetNum(TupleSize);
 	if(HAPI_RESULT_SUCCESS !=
-		FHoudiniApi::GetParmStringValues(InNodeId, false, &StringHandles[0], ValuesIndex, TupleSize))
+		FHoudiniApi::GetParmStringValues(nullptr, InNodeId, false, &StringHandles[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -159,7 +159,7 @@ UHoudiniAssetParameterString::UploadParameterValue()
 	for(int32 Idx = 0; Idx < Values.Num(); ++Idx)
 	{
 		std::string ConvertedString = TCHAR_TO_UTF8(*(Values[Idx]));
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmStringValue(NodeId, ConvertedString.c_str(), ParmId, Idx))
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmStringValue(nullptr, NodeId, ConvertedString.c_str(), ParmId, Idx))
 		{
 			return false;
 		}

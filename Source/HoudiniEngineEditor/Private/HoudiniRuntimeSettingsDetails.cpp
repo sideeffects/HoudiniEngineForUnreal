@@ -75,10 +75,10 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 			if(FHoudiniApi::IsHAPIInitialized())
 			{
 				// Retrieve version numbers for running Houdini.
-				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_MAJOR, &RunningMajor);
-				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_MINOR, &RunningMinor);
-				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_BUILD, &RunningBuild);
-				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_PATCH, &RunningPatch);
+				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_MAJOR, &RunningMajor);
+				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_MINOR, &RunningMinor);
+				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_BUILD, &RunningBuild);
+				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_PATCH, &RunningPatch);
 			}
 
 			CreateHoudiniEntry(LOCTEXT("HInformationRunning", "Running against Houdini"),
@@ -94,9 +94,9 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 			if(FHoudiniApi::IsHAPIInitialized())
 			{
 				// Retrieve version numbers for running Houdini Engine.
-				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
-				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
-				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 			}
 
 			CreateHoudiniEngineEntry(LOCTEXT("HEngineInformationRunning", "Running against Houdini Engine"),

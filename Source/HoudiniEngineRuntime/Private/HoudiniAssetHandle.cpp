@@ -44,7 +44,7 @@ UHoudiniAssetHandle::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, con
 	TArray<HAPI_HandleBindingInfo> BindingInfos;
 	BindingInfos.SetNumZeroed(HandleInfo.bindingsCount);
 
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleBindingInfo(InHoudiniAssetComponent->GetAssetId(), HandleIdx,
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleBindingInfo(nullptr, InHoudiniAssetComponent->GetAssetId(), HandleIdx,
 		&BindingInfos[0], 0, HandleInfo.bindingsCount))
 	{
 		return HoudiniAssetHandle;

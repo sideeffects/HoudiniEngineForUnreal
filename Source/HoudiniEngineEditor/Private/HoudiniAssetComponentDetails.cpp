@@ -921,7 +921,7 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp(UHoudiniAssetComponent* HoudiniA
 
 		if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
 		{
-			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(AssetId, &AssetInfo))
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(nullptr, AssetId, &AssetInfo))
 			{
 				FString HelpLogString;
 				if(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.helpTextSH, HelpLogString))
