@@ -18,7 +18,7 @@
 #include "HAPI.h"
 
 
-struct HOUDINIENGINE_API FHoudiniApi
+struct HOUDINIENGINERUNTIME_API FHoudiniApi
 {
 	static void InitializeHAPI(void* LibraryHandle);
 	static void FinalizeHAPI();
