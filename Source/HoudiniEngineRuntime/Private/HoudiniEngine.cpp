@@ -107,7 +107,7 @@ FHoudiniEngine::StartupModule()
 
 		if(HAPILibraryHandle)
 		{
-			FHoudiniApi::InitializeHAPI(nullptr, HAPILibraryHandle);
+			FHoudiniApi::InitializeHAPI(HAPILibraryHandle);
 		}
 		else
 		{
