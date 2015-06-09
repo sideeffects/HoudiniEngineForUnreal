@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 14.0.359
+    Houdini Version: 14.0.360
     Houdini Engine Version: 1.9.20
     Unreal Version: 4.7.3
 
@@ -30,7 +30,7 @@ public class HoudiniEngineRuntime : ModuleRules
 	public HoudiniEngineRuntime( TargetInfo Target )
 	{
 		string HFSPath = "";
-		string HoudiniVersion = "14.0.359";
+		string HoudiniVersion = "14.0.360";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -107,22 +107,32 @@ public class HoudiniEngineRuntime : ModuleRules
 				"ShaderCore",
 				"InputCore",
 				"RHI",
-				"AssetTools",
-				"UnrealEd",
-				"Slate",
-				"SlateCore",
-				"Projects",
-				"PropertyEditor",
-				"ContentBrowser",
-				"RawMesh",
 				"TargetPlatform",
-				"LevelEditor",
-				"MainFrame",
-				"EditorStyle",
-				"EditorWidgets",
-				"AppFramework"
+				"RawMesh",
+				"Settings"
 			}
 		);
+
+		if (UEBuildConfiguration.bBuildEditor == true)
+		{
+			PublicDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"AssetTools",
+					"UnrealEd",
+					"Slate",
+					"SlateCore",
+					"Projects",
+					"PropertyEditor",
+					"ContentBrowser",
+					"LevelEditor",
+					"MainFrame",
+					"EditorStyle",
+					"EditorWidgets",
+					"AppFramework"
+				}
+			);
+		}
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
