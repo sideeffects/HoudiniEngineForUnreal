@@ -18,7 +18,7 @@
 #include "HAPI.h"
 
 
-struct HOUDINIENGINERUNTIME_API FHoudiniApi
+struct HOUDINIENGINE_API FHoudiniApi
 {
 	static void InitializeHAPI(void* LibraryHandle);
 	static void FinalizeHAPI();
@@ -39,10 +39,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetStatusFuncPtr)(HAPI_StatusType status_type, int * status);
 	static GetStatusFuncPtr GetStatus;
 
-	typedef HAPI_Result (*GetStatusStringBufLengthFuncPtr)(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_length);
+	typedef HAPI_Result (*GetStatusStringBufLengthFuncPtr)(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_size);
 	static GetStatusStringBufLengthFuncPtr GetStatusStringBufLength;
 
-	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * string_buffer, int length);
+	typedef HAPI_Result (*GetStatusStringFuncPtr)(HAPI_StatusType status_type, char * buffer, int buffer_length);
 	static GetStatusStringFuncPtr GetStatusString;
 
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(int * count);
@@ -369,19 +369,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetNextVolumeTileFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	static GetNextVolumeTileFuncPtr GetNextVolumeTile;
 
-	typedef HAPI_Result (*GetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, float * values, int length);
+	typedef HAPI_Result (*GetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, float * values);
 	static GetVolumeTileFloatDataFuncPtr GetVolumeTileFloatData;
 
-	typedef HAPI_Result (*GetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, int * values, int length);
+	typedef HAPI_Result (*GetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile, int * values);
 	static GetVolumeTileIntDataFuncPtr GetVolumeTileIntData;
 
 	typedef HAPI_Result (*SetVolumeInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeInfo * volume_info);
 	static SetVolumeInfoFuncPtr SetVolumeInfo;
 
-	typedef HAPI_Result (*SetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const float * values, int length);
+	typedef HAPI_Result (*SetVolumeTileFloatDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const float * values);
 	static SetVolumeTileFloatDataFuncPtr SetVolumeTileFloatData;
 
-	typedef HAPI_Result (*SetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const int * values, int length);
+	typedef HAPI_Result (*SetVolumeTileIntDataFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const int * values);
 	static SetVolumeTileIntDataFuncPtr SetVolumeTileIntData;
 
 	typedef HAPI_Result (*GetCurveInfoFuncPtr)(HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info);
