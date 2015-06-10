@@ -188,7 +188,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
 		// Adjust number of resources according to number of objects we need to instance.
 		TupleSize = ObjectsToInstance.Num();
-		check(TupleSize);
 		AdjustMeshComponentResources(TupleSize, OldTupleSize);
 
 		// Process each existing detected object that needs to be instanced.
