@@ -2424,9 +2424,21 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
 						WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
 
-						// We need to flip Z and Y coordinate here.
-						Swap(WedgeTangentZ.Y, WedgeTangentZ.Z);
-						RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
+						if(HRSAI_Unreal == ImportAxis)
+						{
+							// We need to flip Z and Y coordinate here.
+							Swap(WedgeTangentZ.Y, WedgeTangentZ.Z);
+							RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
+						}
+						else if(HRSAI_Houdini == ImportAxis)
+						{
+							// Do nothing in this case.
+						}
+						else
+						{
+							// Not valid enum value.
+							check(0);
+						}
 
 						// If we need to generate tangents.
 						if(bGenerateTangents)
@@ -2438,7 +2450,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							RawMesh.WedgeTangentY.Add(TangentY);
 						}
 					}
-
 
 					// Transfer indices.
 					RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexListCount);
