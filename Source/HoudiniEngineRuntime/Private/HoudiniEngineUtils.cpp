@@ -1361,6 +1361,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 				ChangedNormals[WedgeIdx + 1] = TangentZ2;
 				ChangedNormals[WedgeIdx + 2] = TangentZ1;
 			}
+
+			for(int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx)
+			{
+				Swap(ChangedNormals[WedgeIdx].Y, ChangedNormals[WedgeIdx].Z);
+			}
 		}
 		else if(HRSAI_Houdini == ImportAxis)
 		{
