@@ -88,9 +88,6 @@ public:
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
-	/** Construct static mesh which represents Houdini logo geometry. **/
-	static UStaticMesh* CreateStaticMeshHoudiniLogo();
-
 	/** Construct static meshes for a given Houdini asset. Flag controls whether one mesh or multiple meshes will be **/
 	/** created.																									 **/
 	static bool CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
