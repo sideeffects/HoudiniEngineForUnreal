@@ -280,12 +280,16 @@ protected:
 
 protected:
 
+#if WITH_EDITOR
+
 	/** Create a texture from given information. **/
 	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package,
 		const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer);
 
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
+
+#endif
 
 public:
 

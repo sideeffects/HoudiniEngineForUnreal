@@ -934,6 +934,8 @@ FHoudiniEngineUtils::HapiExtractImage(
 }
 
 
+#if WITH_EDITOR
+
 UTexture2D*
 FHoudiniEngineUtils::CreateUnrealTexture(
 	const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName, EPixelFormat PixelFormat,
@@ -994,6 +996,29 @@ FHoudiniEngineUtils::CreateUnrealTexture(
 
 	return Texture;
 }
+
+
+void
+FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
+{
+	// Unlike Empty this will not change memory allocations.
+
+	RawMesh.FaceMaterialIndices.Reset();
+	RawMesh.FaceSmoothingMasks.Reset();
+	RawMesh.VertexPositions.Reset();
+	RawMesh.WedgeIndices.Reset();
+	RawMesh.WedgeTangentX.Reset();
+	RawMesh.WedgeTangentY.Reset();
+	RawMesh.WedgeTangentZ.Reset();
+	RawMesh.WedgeColors.Reset();
+
+	for(int32 Idx = 0; Idx < MAX_MESH_TEXTURE_COORDS; ++Idx)
+	{
+		RawMesh.WedgeTexCoords[Idx].Reset();
+	}
+}
+
+#endif
 
 
 bool
@@ -3624,27 +3649,6 @@ FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw,
 		}
 
 		DataOut.Add(Point);
-	}
-}
-
-
-void
-FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
-{
-	// Unlike Empty this will not change memory allocations.
-
-	RawMesh.FaceMaterialIndices.Reset();
-	RawMesh.FaceSmoothingMasks.Reset();
-	RawMesh.VertexPositions.Reset();
-	RawMesh.WedgeIndices.Reset();
-	RawMesh.WedgeTangentX.Reset();
-	RawMesh.WedgeTangentY.Reset();
-	RawMesh.WedgeTangentZ.Reset();
-	RawMesh.WedgeColors.Reset();
-
-	for(int32 Idx = 0; Idx < MAX_MESH_TEXTURE_COORDS; ++Idx)
-	{
-		RawMesh.WedgeTexCoords[Idx].Reset();
 	}
 }
 
