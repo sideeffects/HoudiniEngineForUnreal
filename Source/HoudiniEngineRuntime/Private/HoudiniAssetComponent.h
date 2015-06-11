@@ -172,6 +172,9 @@ public:
 	/** Notification used by spline visualizer to notify main Houdini asset component about spline change. **/
 	void NotifyHoudiniSplineChanged(UHoudiniSplineComponent* HoudiniSplineComponent);
 
+	/** Assign generation parameters to static mesh. **/
+	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
+	
 #endif
 
 	/** Used to differentiate native components from dynamic ones. **/
@@ -192,9 +195,6 @@ public:
 
 	/** Return true if this component contains Houdini logo geometry. **/
 	bool ContainsHoudiniLogoGeometry() const;
-
-	/** Assign generation parameters to static mesh. **/
-	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
 
 	/** Return all static meshes used by this component. For both instanced and uinstanced components. **/
 	void GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticMeshes);
