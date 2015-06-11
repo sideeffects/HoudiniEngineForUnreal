@@ -1553,11 +1553,11 @@ FHoudiniEngineUtils::HapiConnectAsset(
 
 
 UPackage*
-FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(
-	UHoudiniAsset* HoudiniAsset, const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package,
-	FString& MeshName, FGuid& BakeGUID)
+FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID, bool bBake)
 {
 	FString PackageName;
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 	while(true)
 	{
@@ -1568,20 +1568,34 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(
 
 		FString BakeGUIDString = BakeGUID.ToString();
 
-		MeshName = HoudiniAsset->GetName() + TEXT("_") +
-				   FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") +
-				   FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") +
-				   FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
-				   FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") +
-				   HoudiniGeoPartObject.SplitName + TEXT("_") +
-				   BakeGUIDString;
-
-		if(!Package)
+		if(bBake)
 		{
-			Package = HoudiniAsset->GetOutermost();
+			MeshName = HoudiniAsset->GetName() + TEXT("_bake_") +
+				FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") +
+				FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") +
+				FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
+				FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") +
+				HoudiniGeoPartObject.SplitName;
+		}
+		else
+		{
+			MeshName = HoudiniAsset->GetName() + TEXT("_") +
+				FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") +
+				FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") +
+				FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
+				FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") +
+				HoudiniGeoPartObject.SplitName + TEXT("_") +
+				BakeGUIDString;
 		}
 
-		PackageName = FPackageName::GetLongPackagePath(Package->GetName()) + TEXT("/") + MeshName;
+		UObject* Outer = HoudiniAsset->GetOuter();
+
+		PackageName = FPackageName::GetLongPackagePath(Outer->GetName()) +
+			TEXT("/") +
+			HoudiniAsset->GetName() +
+			TEXT("/") +
+			MeshName;
+
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
 		// See if package exists, if it does, we need to regenerate the name.
@@ -1598,6 +1612,8 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(
 			Package = CreatePackage(nullptr, *PackageName);
 			break;
 		}
+
+		break;
 	}
 
 	return Package;
@@ -2183,9 +2199,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					{
 						MeshGuid.Invalidate();
 
-						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset,
-							HoudiniGeoPartObject, Package, MeshName, MeshGuid);
-						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Public);
+						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAssetComponent,
+							HoudiniGeoPartObject, nullptr, MeshName, MeshGuid);
+						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Public | RF_Standalone);
+						FAssetRegistryModule::AssetCreated(StaticMesh);
 						bStaticMeshCreated = true;
 					}
 					else
@@ -2726,6 +2743,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					//StaticMesh->PreEditChange(nullptr);
 					FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 					StaticMesh->Build(true);
+					StaticMesh->MarkPackageDirty();
 					//StaticMesh->PostEditChange();
 
 					StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
@@ -2916,9 +2934,10 @@ FHoudiniEngineUtils::LoadRawStaticMesh(
 
 	FGuid MeshGuid;
 	FString MeshName;
-	UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject,
+	UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject,
 		Package, MeshName, MeshGuid);
-	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Public);
+	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Public | RF_Standalone);
+	FAssetRegistryModule::AssetCreated(StaticMesh);
 
 	// Create new source model for current static mesh.
 	if(!StaticMesh->SourceModels.Num())
@@ -3101,9 +3120,8 @@ FHoudiniEngineUtils::Serialize(UMaterialInterface*& MaterialInterface, UPackage*
 
 
 UStaticMesh*
-FHoudiniEngineUtils::BakeStaticMesh(
-	UHoudiniAssetComponent* HoudiniAssetComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject,
-	UStaticMesh* InStaticMesh)
+FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UStaticMesh* InStaticMesh)
 {
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	check(HoudiniAsset);
@@ -3130,13 +3148,14 @@ FHoudiniEngineUtils::BakeStaticMesh(
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	check(HoudiniRuntimeSettings);
 
-
 	FString MeshName;
 	FGuid BakeGUID;
-	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID);
+	UPackage* Package =
+		BakeCreatePackageForStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
 
 	// Create static mesh.
 	UStaticMesh* StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
+	FAssetRegistryModule::AssetCreated(StaticMesh);
 
 	// Copy materials.
 	StaticMesh->Materials = InStaticMesh->Materials;
@@ -3211,6 +3230,7 @@ FHoudiniEngineUtils::BakeStaticMesh(
 
 	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	StaticMesh->Build(true);
+	StaticMesh->MarkPackageDirty();
 	return StaticMesh;
 }
 
@@ -3234,7 +3254,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 
 	FString MeshName;
 	FGuid BakeGUID;
-	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAsset, nullptr, MeshName, BakeGUID);
+	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAssetComponent, nullptr, MeshName, BakeGUID);
 
 	// Create static mesh.
 	NewStaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());

@@ -252,8 +252,9 @@ public:
 protected:
 
 	/** Create a package for static mesh. **/
-	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAsset* HoudiniAsset,
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID);
+	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID,
+		bool bBake = false);
 
 	/** Helper routine to serialize FRawMesh. **/
 	static void Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, UPackage* Package, FArchive& Ar);
