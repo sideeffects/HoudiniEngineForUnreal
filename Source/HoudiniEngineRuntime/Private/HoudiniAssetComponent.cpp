@@ -2001,6 +2001,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 }
 
 
+#if WITH_EDITOR
+
+
 void
 UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh)
 {
@@ -2055,8 +2058,6 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 	}
 }
 
-
-#if WITH_EDITOR
 
 void
 UHoudiniAssetComponent::PreEditUndo()
