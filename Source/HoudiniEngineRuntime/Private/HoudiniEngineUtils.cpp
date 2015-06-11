@@ -1570,6 +1570,7 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 			BakeGUID = FGuid::NewGuid();
 		}
 
+		// We only want half of generated guid string.
 		FString BakeGUIDString = BakeGUID.ToString().Left(8);
 
 		if(bBake)
@@ -1580,6 +1581,10 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 				FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") +
 				HoudiniGeoPartObject.SplitName;
+
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
+				TEXT("/") +
+				MeshName;
 		}
 		else
 		{
@@ -1590,15 +1595,13 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 				FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") +
 				HoudiniGeoPartObject.SplitName + TEXT("_") +
 				BakeGUIDString;
+
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) +
+				TEXT("/") +
+				HoudiniAsset->GetName() +
+				TEXT("/") +
+				MeshName;
 		}
-
-		UObject* Outer = HoudiniAsset->GetOuter();
-
-		PackageName = FPackageName::GetLongPackagePath(Outer->GetName()) +
-			TEXT("/") +
-			HoudiniAsset->GetName() +
-			TEXT("/") +
-			MeshName;
 
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
@@ -2211,7 +2214,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAssetComponent,
 							HoudiniGeoPartObject, nullptr, MeshName, MeshGuid);
-						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Public | RF_Standalone);
+						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
 						FAssetRegistryModule::AssetCreated(StaticMesh);
 						bStaticMeshCreated = true;
 					}
