@@ -1157,6 +1157,8 @@ FHoudiniEngineUtils::IsValidAssetId(HAPI_AssetId AssetId)
 bool
 FHoudiniEngineUtils::HapiCreateCurve(HAPI_AssetId& CurveAssetId)
 {
+#if WITH_EDITOR
+
 	HAPI_AssetId AssetId = -1;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateCurve(nullptr, &AssetId), false);
 
@@ -1174,6 +1176,8 @@ FHoudiniEngineUtils::HapiCreateCurve(HAPI_AssetId& CurveAssetId)
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(nullptr, NodeId, HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT,
 		ParmId, 0), false);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(nullptr, AssetId, nullptr), false);
+
+#endif
 
 	return true;
 }
@@ -1198,9 +1202,11 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 
 
 bool
-FHoudiniEngineUtils::HapiCreateAndConnectAsset(
-	HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* StaticMesh, HAPI_AssetId& ConnectedAssetId)
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* StaticMesh,
+	HAPI_AssetId& ConnectedAssetId)
 {
+#if WITH_EDITOR
+
 	// If we don't have a static mesh, or host asset is invalid, there's nothing to do.
 	if(!StaticMesh || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
 	{
@@ -1555,6 +1561,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 	// Now we can connect assets together.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(nullptr, ConnectedAssetId, 0, HostAssetId, InputIndex), false);
 
+#endif
+
 	return true;
 }
 
@@ -1562,7 +1570,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 bool
 FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex)
 {
+#if WITH_EDITOR
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::DisconnectAssetGeometry(nullptr, HostAssetId, InputIndex), false);
+
+#endif
+
 	return true;
 }
 
@@ -1571,8 +1584,13 @@ bool
 FHoudiniEngineUtils::HapiConnectAsset(
 	HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex)
 {
+#if WITH_EDITOR
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(nullptr, AssetIdFrom, ObjectIdFrom, AssetIdTo, InputIndex),
 		false);
+
+#endif
+
 	return true;
 }
 
@@ -1581,6 +1599,10 @@ UPackage*
 FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID, bool bBake)
 {
+	UPackage* PackageNew = nullptr;
+
+#if WITH_EDITOR
+
 	FString PackageName;
 	int32 BakeCount = 0;
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
@@ -1646,12 +1668,14 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 		else
 		{
 			// Create actual package.
-			Package = CreatePackage(nullptr, *PackageName);
+			PackageNew = CreatePackage(nullptr, *PackageName);
 			break;
 		}
 	}
 
-	return Package;
+#endif
+
+	return PackageNew;
 }
 
 
@@ -1788,6 +1812,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 	TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut, FTransform& ComponentTransform)
 {
+#if WITH_EDITOR
+
 	HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
@@ -2787,6 +2813,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 		}
 	}
 
+#endif
+
 	return true;
 }
 
@@ -2938,6 +2966,10 @@ UStaticMesh*
 FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UStaticMesh* InStaticMesh)
 {
+	UStaticMesh* StaticMesh = nullptr;
+
+#if WITH_EDITOR
+
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	check(HoudiniAsset);
 
@@ -2969,7 +3001,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 		BakeCreatePackageForStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
 
 	// Create static mesh.
-	UStaticMesh* StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
+	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
 	FAssetRegistryModule::AssetCreated(StaticMesh);
 
 	// Copy materials.
@@ -3046,6 +3078,9 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 	StaticMesh->Build(true);
 	StaticMesh->MarkPackageDirty();
+
+#endif
+
 	return StaticMesh;
 }
 
@@ -3297,6 +3332,9 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 	const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh)
 {
 	UMaterial* Material = nullptr;
+
+#if WITH_EDITOR
+
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	// Get node information.
@@ -3434,6 +3472,8 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 
 	// Schedule this material for update.
 	MaterialUpdateContext.AddMaterial(Material);
+
+#endif
 
 	return Material;
 }
