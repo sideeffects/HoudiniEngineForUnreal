@@ -97,13 +97,6 @@ public:
 		const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 		TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut, FTransform& ComponentTransform);
 
-	/** Save a given static mesh in raw form. **/
-	static void SaveRawStaticMesh(UStaticMesh* StaticMesh, UPackage* Package, FArchive& Ar);
-
-	/** Load raw mesh from archive and create static mesh from it. **/
-	static UStaticMesh* LoadRawStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FArchive& Ar);
-
 	/** Bake static mesh. **/
 	static UStaticMesh* BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UStaticMesh* StaticMesh);
@@ -255,9 +248,6 @@ protected:
 	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID,
 		bool bBake = false);
-
-	/** Helper routine to serialize FRawMesh. **/
-	static void Serialize(FRawMesh& RawMesh, TArray<UMaterialInterface*>& Materials, UPackage* Package, FArchive& Ar);
 
 	/** Helper routine to serialize Material interface. **/
 	static void Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar);
