@@ -1470,7 +1470,7 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		StaticMeshes.Empty();
 		StaticMeshComponents.Empty();
 
-		// We need to reconstruct geometry.
+		// We need to reconstruct geometry from copied actor.
 		{
 			for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes); Iter; ++Iter)
 			{
@@ -1481,12 +1481,8 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 
 				if(!HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer())
 				{
-					TArray<uint8> Buffer;
-					FMemoryWriter RawSaver(Buffer);
-					FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, nullptr, RawSaver);
-
-					FMemoryReader RawLoader(Buffer);
-					DuplicatedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(this, HoudiniGeoPartObject, nullptr, RawLoader);
+					// Duplicate mesh for this new copied component.
+					DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, this, *StaticMesh->GetName());
 				}
 
 				// Store this duplicated mesh.
@@ -1934,8 +1930,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					// Store the object geo part information.
 					HoudiniGeoPartObject.Serialize(Ar);
 
-					// Serialize raw mesh.
-					FHoudiniEngineUtils::SaveRawStaticMesh(StaticMesh, nullptr, Ar);
+					// Retrieve and store path to mesh.
+					FString MeshPathName = StaticMesh->GetPathName();
+					Ar << MeshPathName;
 				}
 			}
 			else if(Ar.IsLoading())
@@ -1951,8 +1948,11 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					UStaticMesh* LoadedStaticMesh = nullptr;
 					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
 					{
-						LoadedStaticMesh = FHoudiniEngineUtils::LoadRawStaticMesh(this, HoudiniGeoPartObject,
-							nullptr, Ar);
+						// Retrieve path to mesh and load it.
+						FString MeshPathName;
+						Ar << MeshPathName;
+						LoadedStaticMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr,
+							*MeshPathName, nullptr, LOAD_NoWarn, nullptr));
 
 						// See if we already have a static mesh for this geo part object.
 						UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
