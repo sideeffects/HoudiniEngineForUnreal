@@ -130,7 +130,8 @@ FHoudiniEngine::StartupModule()
 	}
 
 	// Create static mesh Houdini logo.
-	HoudiniLogoStaticMesh = FHoudiniEngineUtils::CreateStaticMeshHoudiniLogo();
+	HoudiniLogoStaticMesh =
+		LoadObject<UStaticMesh>(NULL, TEXT("/HoudiniEngine/houdini_logo.houdini_logo"), NULL, LOAD_None, NULL);
 	HoudiniLogoStaticMesh->AddToRoot();
 
 #if WITH_EDITOR
