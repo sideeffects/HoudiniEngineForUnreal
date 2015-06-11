@@ -1557,6 +1557,7 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID, bool bBake)
 {
 	FString PackageName;
+	int32 BakeCount = 0;
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 	while(true)
@@ -1566,11 +1567,11 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 			BakeGUID = FGuid::NewGuid();
 		}
 
-		FString BakeGUIDString = BakeGUID.ToString();
+		FString BakeGUIDString = BakeGUID.ToString().Left(8);
 
 		if(bBake)
 		{
-			MeshName = HoudiniAsset->GetName() + TEXT("_bake_") +
+			MeshName = HoudiniAsset->GetName() + FString::Printf(TEXT("_bake%d_"), BakeCount) +
 				FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
@@ -1603,8 +1604,16 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 
 		if(Package)
 		{
-			// Package does exist, there's a collision, we need to generate a new name.
-			BakeGUID.Invalidate();
+			if(bBake)
+			{
+				// Increment bake counter.
+				BakeCount++;
+			}
+			else
+			{
+				// Package does exist, there's a collision, we need to generate a new name.
+				BakeGUID.Invalidate();
+			}
 		}
 		else
 		{
@@ -1612,8 +1621,6 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 			Package = CreatePackage(nullptr, *PackageName);
 			break;
 		}
-
-		break;
 	}
 
 	return Package;
