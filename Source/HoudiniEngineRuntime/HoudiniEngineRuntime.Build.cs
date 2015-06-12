@@ -109,7 +109,8 @@ public class HoudiniEngineRuntime : ModuleRules
 				"RHI",
 				"TargetPlatform",
 				"RawMesh",
-				"Settings"
+				"Settings",
+				"Foliage"
 			}
 		);
 
