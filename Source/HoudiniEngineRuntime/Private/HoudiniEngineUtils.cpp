@@ -3452,7 +3452,7 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
-	int32 NumCoords = Positions.ParseIntoArray(&PointStrings, PositionSeparators, 2);
+	int32 NumCoords = Positions.ParseIntoArray(PointStrings, PositionSeparators, 2);
 	for(int32 CoordIdx = 0; CoordIdx < NumCoords; CoordIdx += 3)
 	{
 		FVector Position;
