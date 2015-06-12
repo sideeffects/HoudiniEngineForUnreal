@@ -27,6 +27,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
 
+	typedef HAPI_Result (*CreateThriftSocketSessionFuncPtr)(HAPI_Session * session, const char * host_name, int port);
+	static CreateThriftSocketSessionFuncPtr CreateThriftSocketSession;
+
+	typedef HAPI_Result (*CreateThriftNamedPipeSessionFuncPtr)(HAPI_Session * session, const char * pipe_name);
+	static CreateThriftNamedPipeSessionFuncPtr CreateThriftNamedPipeSession;
+
 	typedef HAPI_Result (*BindCustomImplementationFuncPtr)(HAPI_SessionType session_type, const char * dll_path);
 	static BindCustomImplementationFuncPtr BindCustomImplementation;
 

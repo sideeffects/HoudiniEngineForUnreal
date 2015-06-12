@@ -21,6 +21,12 @@
 FHoudiniApi::CreateInProcessSessionFuncPtr
 FHoudiniApi::CreateInProcessSession = nullptr;
 
+FHoudiniApi::CreateThriftSocketSessionFuncPtr
+FHoudiniApi::CreateThriftSocketSession = nullptr;
+
+FHoudiniApi::CreateThriftNamedPipeSessionFuncPtr
+FHoudiniApi::CreateThriftNamedPipeSession = nullptr;
+
 FHoudiniApi::BindCustomImplementationFuncPtr
 FHoudiniApi::BindCustomImplementation = nullptr;
 
@@ -472,6 +478,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	if(!LibraryHandle) return;
 
 	FHoudiniApi::CreateInProcessSession = (CreateInProcessSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInProcessSession"));
+	FHoudiniApi::CreateThriftSocketSession = (CreateThriftSocketSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftSocketSession"));
+	FHoudiniApi::CreateThriftNamedPipeSession = (CreateThriftNamedPipeSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftNamedPipeSession"));
 	FHoudiniApi::BindCustomImplementation = (BindCustomImplementationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_BindCustomImplementation"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
 	FHoudiniApi::IsInitialized = (IsInitializedFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsInitialized"));
@@ -627,6 +635,8 @@ void
 FHoudiniApi::FinalizeHAPI()
 {
 	FHoudiniApi::CreateInProcessSession = nullptr;
+	FHoudiniApi::CreateThriftSocketSession = nullptr;
+	FHoudiniApi::CreateThriftNamedPipeSession = nullptr;
 	FHoudiniApi::BindCustomImplementation = nullptr;
 	FHoudiniApi::CreateCustomSession = nullptr;
 	FHoudiniApi::IsInitialized = nullptr;
