@@ -151,8 +151,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HAPI_LOG_ROUTINE)						\
 	do																												\
 	{																												\
-		HAPI_Result Result = HAPI_PARAM_CALL;																		\
-		if(HAPI_RESULT_SUCCESS != Result)																			\
+		HAPI_Result ResultVariable = HAPI_PARAM_CALL;																\
+		if(HAPI_RESULT_SUCCESS != ResultVariable)																	\
 		{																											\
 			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());					\
 			return HAPI_PARAM_RETURN;																				\
@@ -168,8 +168,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HOUDINI_CHECK_ERROR_EXECUTE_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN, HAPI_LOG_ROUTINE)		\
 	do																												\
 	{																												\
-		HAPI_Result Result = HAPI_PARAM_CALL;																		\
-		if(HAPI_RESULT_SUCCESS != Result)																			\
+		HAPI_Result ResultVariable = HAPI_PARAM_CALL;																\
+		if(HAPI_RESULT_SUCCESS != ResultVariable)																	\
 		{																											\
 			HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());					\
 			HAPI_PARAM_EXECUTE_RETURN;																				\

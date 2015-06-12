@@ -410,8 +410,6 @@ FHoudiniEngineScheduler::ProcessQueuedTasks()
 {
 	while(!bStopping)
 	{
-		FHoudiniEngineTask Task;
-
 		while(true)
 		{
 			FHoudiniEngineTask Task;
