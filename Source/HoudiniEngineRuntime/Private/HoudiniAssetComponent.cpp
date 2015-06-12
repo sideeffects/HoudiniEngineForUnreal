@@ -2028,9 +2028,6 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 		// Set distance where textures using UV 0 are streamed in/out.
 		StaticMesh->StreamingDistanceMultiplier = GeneratedStreamingDistanceMultiplier;
 
-		// Set default settings when using this mesh for instanced foliage.
-		StaticMesh->FoliageDefaultSettings = GeneratedFoliageDefaultSettings;
-
 		// Add user data.
 		for(int32 AssetUserDataIdx = 0; AssetUserDataIdx < GeneratedAssetUserData.Num(); ++AssetUserDataIdx)
 		{

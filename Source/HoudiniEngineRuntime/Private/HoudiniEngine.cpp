@@ -145,9 +145,11 @@ FHoudiniEngine::StartupModule()
 			const FPluginStatus& PluginStatus = *PluginIt;
 			if(PluginStatus.Name == TEXT("HoudiniEngine"))
 			{
-				if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*PluginStatus.Icon128FilePath))
+				FString Icon128FilePath = PluginStatus.PluginDirectory / TEXT("Resources/DefaultIcon128.png");
+
+				if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
 				{
-					const FName BrushName(*PluginStatus.Icon128FilePath);
+					const FName BrushName(*Icon128FilePath);
 					const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
 
 					if(Size.X > 0 && Size.Y > 0)
