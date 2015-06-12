@@ -20,7 +20,7 @@ class IHoudiniEngineEditor : public IModuleInterface
 {
 public:
 
-	/** Register and unregister component visualizers used by this module. **/
+	/** Register and unregister component visualizers used by this module. **/ 
 	virtual void RegisterComponentVisualizers() {}
 	virtual void UnregisterComponentVisualizers() {}
 
