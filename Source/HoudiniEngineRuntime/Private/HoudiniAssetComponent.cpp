@@ -2319,7 +2319,6 @@ UHoudiniAssetComponent::CreateParameters()
 	}
 
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
-	UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
 
 	// Map of newly created and reused parameters.
 	TMap<HAPI_ParmId, UHoudiniAssetParameter*> NewParameters;
