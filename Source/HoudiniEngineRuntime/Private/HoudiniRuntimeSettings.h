@@ -85,8 +85,12 @@ protected:
 
 public:
 
+#if WITH_EDITOR
+
 	/** Fill static mesh build settings structure based on assigned settings. **/
 	void SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSettings, FRawMesh& RawMesh) const;
+
+#endif
 
 /** Cooking options. **/
 public:

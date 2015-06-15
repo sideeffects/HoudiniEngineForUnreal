@@ -187,8 +187,6 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	*/
 }
 
-#endif
-
 
 void
 UHoudiniRuntimeSettings::SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSettings, FRawMesh& RawMesh) const
@@ -267,3 +265,5 @@ UHoudiniRuntimeSettings::SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSetti
 		}
 	}
 }
+
+#endif
