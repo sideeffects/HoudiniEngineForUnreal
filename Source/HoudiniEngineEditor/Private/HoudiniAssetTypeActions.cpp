@@ -55,7 +55,7 @@ FHoudiniAssetTypeActions::GetThumbnailInfo(UObject* Asset) const
 	if(!ThumbnailInfo)
 	{
 		// If we have no thumbnail information, construct it.
-		ThumbnailInfo = ConstructObject<USceneThumbnailInfo>(USceneThumbnailInfo::StaticClass(), HoudiniAsset);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(HoudiniAsset, USceneThumbnailInfo::StaticClass());
 		HoudiniAsset->ThumbnailInfo = ThumbnailInfo;
 	}
 

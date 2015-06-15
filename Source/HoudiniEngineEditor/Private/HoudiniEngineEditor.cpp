@@ -220,7 +220,7 @@ FHoudiniEngineEditor::RegisterActorFactories()
 	if(GEditor)
 	{
 		UHoudiniAssetActorFactory* HoudiniAssetActorFactory =
-			ConstructObject<UHoudiniAssetActorFactory>(UHoudiniAssetActorFactory::StaticClass());
+			NewObject<UHoudiniAssetActorFactory>(GetTransientPackage(), UHoudiniAssetActorFactory::StaticClass());
 
 		GEditor->ActorFactories.Add(HoudiniAssetActorFactory);
 	}
