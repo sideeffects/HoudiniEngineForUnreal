@@ -67,14 +67,14 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
 
 	// Create a new asset.
-	UHoudiniAsset* HoudiniAsset = NewNamedObject<UHoudiniAsset>(InParent, InName, Flags);
+	UHoudiniAsset* HoudiniAsset = NewObject<UHoudiniAsset>(InParent, InName, Flags);
 	HoudiniAsset->CreateAsset(Buffer, BufferEnd, UFactory::CurrentFilename);
 
 	// Create reimport information.
 	UAssetImportData* AssetImportData = HoudiniAsset->AssetImportData;
 	if(!AssetImportData)
 	{
-		AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), HoudiniAsset);
+		AssetImportData = NewObject<UAssetImportData>(HoudiniAsset, UAssetImportData::StaticClass());
 		HoudiniAsset->AssetImportData = AssetImportData;
 	}
 
