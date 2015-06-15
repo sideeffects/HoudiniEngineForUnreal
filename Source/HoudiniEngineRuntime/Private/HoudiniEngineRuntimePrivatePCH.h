@@ -61,6 +61,7 @@
 #include "AssetRegistryModule.h"
 #include "DesktopPlatformModule.h"
 #include "RawMesh.h"
+#include "HitProxies.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "ComponentReregisterContext.h"
