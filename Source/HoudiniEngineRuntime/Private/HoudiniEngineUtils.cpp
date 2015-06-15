@@ -2691,6 +2691,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 }
 
 
+#if WITH_EDITOR
+
 bool
 FHoudiniEngineUtils::ContainsDegenerateTriangles(const FRawMesh& RawMesh)
 {
@@ -2730,6 +2732,8 @@ FHoudiniEngineUtils::CountDegenerateTriangles(const FRawMesh& RawMesh)
 
 	return DegenerateTriangleCount;
 }
+
+#endif
 
 
 int32
@@ -3822,6 +3826,8 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 }
 
 
+#if WITH_EDITOR
+
 bool
 FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32 LightmapSourceIdx)
 {
@@ -3851,11 +3857,15 @@ FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32
 	return false;
 }
 
+#endif
+
 
 int32
 FHoudiniEngineUtils::CountUVSets(const FRawMesh& RawMesh)
 {
 	int32 UVSetCount = 0;
+
+#if WITH_EDITOR
 
 	for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_MESH_TEXTURE_COORDS; ++TexCoordIdx)
 	{
@@ -3865,6 +3875,8 @@ FHoudiniEngineUtils::CountUVSets(const FRawMesh& RawMesh)
 			UVSetCount++;
 		}
 	}
+
+#endif
 
 	return UVSetCount;
 }

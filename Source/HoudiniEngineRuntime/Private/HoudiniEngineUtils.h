@@ -253,6 +253,8 @@ protected:
 	static int32 TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList,
 		const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
 
+#if WITH_EDITOR
+
 	/** Helper routine to check if Raw Mesh contains degenerate triangles. **/
 	static bool ContainsDegenerateTriangles(const FRawMesh& RawMesh);
 
@@ -261,6 +263,8 @@ protected:
 
 	/** Helper routine to check invalid lightmap faces. **/
 	static bool ContainsInvalidLightmapFaces(const FRawMesh& RawMesh, int32 LightmapSourceIdx);
+
+#endif
 
 	/** Helper function to extract a material name from given material interface. **/
 	static char* ExtractMaterialName(UMaterialInterface* MaterialInterface);
