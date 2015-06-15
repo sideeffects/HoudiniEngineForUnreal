@@ -93,6 +93,9 @@ private:
 	/** Handler for fetch log action. **/
 	FReply OnFetchCookLog();
 
+	/** Handler for bake blueprint action. **/
+	FReply OnBakeBlueprint();
+
 	/** Handler for fetch asset help action. **/
 	FReply OnFetchAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent);
 
