@@ -206,9 +206,10 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 			FString Label = FString::Printf(TEXT("Static Mesh %d"), MeshIdx);
+			FText LabelText = FText::FromString(Label);
 			Row.NameWidget.Widget = SNew(STextBlock)
-									.Text(Label)
-									.ToolTipText(Label)
+									.Text(LabelText)
+									.ToolTipText(LabelText)
 									.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 			// Create thumbnail for this mesh.
@@ -233,7 +234,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 						SNew(SBox)
 						.WidthOverride(64)
 						.HeightOverride(64)
-						.ToolTipText(StaticMesh->GetPathName())
+						.ToolTipText(FText::FromString(StaticMesh->GetPathName()))
 						[
 							StaticMeshThumbnail->MakeThumbnailWidget()
 						]
@@ -301,7 +302,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 						SNew(SBox)
 						.WidthOverride(64)
 						.HeightOverride(64)
-						.ToolTipText(MaterialInterface->GetPathName())
+						.ToolTipText(FText::FromString(MaterialInterface->GetPathName()))
 						[
 							MaterialInterfaceThumbnail->MakeThumbnailWidget()
 						]
@@ -341,7 +342,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 								SNew(STextBlock)
 								.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
 								.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-								.Text(MaterialInterface->GetName())
+								.Text(FText::FromString(MaterialInterface->GetName()))
 							]
 						]
 					]
@@ -463,9 +464,10 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 
 	FString Label = TEXT("Houdini Asset");
+	FText LabelText = FText::FromString(Label);
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(Label)
-							.ToolTipText(Label)
+							.Text(LabelText)
+							.ToolTipText(LabelText)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	UHoudiniAsset* HoudiniAsset = nullptr;
@@ -673,7 +675,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 			SNew(SBox)
 			.WidthOverride(64)
 			.HeightOverride(64)
-			.ToolTipText(HoudiniAssetPathName)
+			.ToolTipText(FText::FromString(HoudiniAssetPathName))
 			[
 				HoudiniAssetThumbnail->MakeThumbnailWidget()
 			]
@@ -702,7 +704,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 					SNew(STextBlock)
 					.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
 					.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-					.Text(HoudiniAssetName)
+					.Text(FText::FromString(HoudiniAssetName))
 				]
 			]
 		]

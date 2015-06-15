@@ -247,11 +247,11 @@ FHoudiniRuntimeSettingsDetails::CreateHAPILibraryPathEntry(const FString& LibHAP
 	FString LibHAPIName = FString::Printf(TEXT("Location of %s"), *FHoudiniEngineUtils::HoudiniGetLibHAPIName());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(LibHAPIName)
+							.Text(FText::FromString(LibHAPIName))
 							.Font(IDetailLayoutBuilder::GetDetailFont());
 
 	TSharedRef<STextBlock> TextBlock = SNew(STextBlock)
-									   .Text(LibHAPIPath)
+									   .Text(FText::FromString(LibHAPIPath))
 									   .Font(IDetailLayoutBuilder::GetDetailFont());
 
 	TextBlock->SetEnabled(false);
