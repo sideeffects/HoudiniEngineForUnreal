@@ -7,6 +7,7 @@ This plug-in brings Houdini's powerful and flexible procedural workflow into Unr
 Currently, the supported Unreal Engine versions are:
 
 * 4.7.2
+* Please checkout Houdini14.0-Unreal4.8 branch if you require plugin for Unreal Engine 4.8
 * Please checkout Houdini14.0-Unreal4.6 branch if you require plugin for Unreal Engine 4.6
 
 ## Installing from Source
