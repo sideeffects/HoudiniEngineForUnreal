@@ -44,6 +44,7 @@
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "ScopedTransaction.h"
+#include "RawMesh.h"
 #endif
 
 /** Other Unreal headers. **/
@@ -60,7 +61,6 @@
 #include "AssetData.h"
 #include "AssetRegistryModule.h"
 #include "DesktopPlatformModule.h"
-#include "RawMesh.h"
 #include "HitProxies.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"

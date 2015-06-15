@@ -24,7 +24,7 @@
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
 
 
-IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngine);
+IMPLEMENT_MODULE(FHoudiniEngine, HoudiniEngineRuntime);
 DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 
 
