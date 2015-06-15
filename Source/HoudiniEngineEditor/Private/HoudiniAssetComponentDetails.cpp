@@ -648,6 +648,20 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 			.Text(LOCTEXT("FetchAssetHelpHoudiniActor", "Asset Help"))
 			.ToolTipText( LOCTEXT("FetchAssetHelpHoudiniActorToolTip", "Asset Help"))
 		];
+
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SAssignNew(ButtonReset, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeBlueprint)
+			.Text(LOCTEXT("BakeBlueprintHoudiniActor", "Bake Blueprint"))
+			.ToolTipText( LOCTEXT("BakeBlueprintHoudiniActorToolTip", "Bake Blueprint"))
+		];
 	}
 
 	HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
@@ -874,6 +888,13 @@ FHoudiniAssetComponentDetails::OnResetAsset()
 		}
 	}
 
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeBlueprint()
+{
 	return FReply::Handled();
 }
 
