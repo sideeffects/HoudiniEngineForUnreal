@@ -6,11 +6,12 @@ This plug-in brings Houdini's powerful and flexible procedural workflow into Unr
 ## Supported Unreal Engine versions
 Currently, the supported Unreal Engine versions are:
 
-* 4.7.2
+* 4.8.0
+* Please checkout Houdini14.0-Unreal4.7 branch if you require plugin for Unreal Engine 4.7
 * Please checkout Houdini14.0-Unreal4.6 branch if you require plugin for Unreal Engine 4.6
 
 ## Installing from Source
-01. Have a local copy of Unreal Engine 4.7 checked out. Inside Unreal Engine copy navigate to Engine/Plugins/Runtime .
+01. Have a local copy of Unreal Engine 4.8 checked out. Inside Unreal Engine copy navigate to Engine/Plugins/Runtime .
 02. Clone the Houdini Engine Unreal plugin into this folder. Make sure the checked out folder is named HoudiniEngine .
 03. Download and install the correct build of 64-bit Houdini.
 04. Verify you have Houdini installed and it matches the version our Plugin is using. Easiest way is to look in commit history or look inside Source/HoudiniEngine/HoudiniEngine.Build.cs file (Houdini Version field). We no longer require you to add Houdini bin folder to PATH as we now load libHAPI dynamically.
