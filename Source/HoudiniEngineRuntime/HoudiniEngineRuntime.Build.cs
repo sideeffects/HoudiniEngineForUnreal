@@ -108,7 +108,6 @@ public class HoudiniEngineRuntime : ModuleRules
 				"InputCore",
 				"RHI",
 				"TargetPlatform",
-				"RawMesh",
 				"Settings"
 			}
 		);
@@ -129,7 +128,8 @@ public class HoudiniEngineRuntime : ModuleRules
 					"MainFrame",
 					"EditorStyle",
 					"EditorWidgets",
-					"AppFramework"
+					"AppFramework",
+					"RawMesh"
 				}
 			);
 		}
