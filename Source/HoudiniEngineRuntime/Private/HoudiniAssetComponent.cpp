@@ -1931,8 +1931,11 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					HoudiniGeoPartObject.Serialize(Ar);
 
 					// Retrieve and store path to mesh.
-					FString MeshPathName = StaticMesh->GetPathName();
-					Ar << MeshPathName;
+					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
+					{
+						FString MeshPathName = StaticMesh->GetPathName();
+						Ar << MeshPathName;
+					}
 				}
 			}
 			else if(Ar.IsLoading())
