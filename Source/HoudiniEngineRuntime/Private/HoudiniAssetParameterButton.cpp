@@ -96,9 +96,10 @@ UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.ToolTipText(GetParameterLabel())
+							.ToolTipText(ParameterLabelText)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
@@ -109,8 +110,8 @@ UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategor
 		SAssignNew(Button, SButton)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
-		.Text(GetParameterLabel())
-		.ToolTipText(GetParameterLabel())
+		.Text(ParameterLabelText)
+		.ToolTipText(ParameterLabelText)
 		.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterButton::OnButtonClick))
 	];
 

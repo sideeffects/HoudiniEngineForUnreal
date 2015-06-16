@@ -165,10 +165,11 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(GetParameterLabel())
-							.ToolTipText(GetParameterLabel())
+							.Text(ParameterLabelText)
+							.ToolTipText(ParameterLabelText)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
@@ -185,7 +186,7 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 			&UHoudiniAssetParameterChoice::OnChoiceChange))
 		[
 			SNew(STextBlock)
-			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this,
+			.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this,
 				&UHoudiniAssetParameterChoice::HandleChoiceContentText)))
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
@@ -206,14 +207,16 @@ UHoudiniAssetParameterChoice::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 {
 	Super::CreateWidget(VerticalBox);
 
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
+
 	VerticalBox->AddSlot().Padding(2, 2, 2, 2)
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot().MaxWidth(80).Padding(7, 1, 0, 0).VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
-			.Text(GetParameterLabel())
-			.ToolTipText(GetParameterLabel())
+			.Text(ParameterLabelText)
+			.ToolTipText(ParameterLabelText)
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 		+SHorizontalBox::Slot()
@@ -227,7 +230,7 @@ UHoudiniAssetParameterChoice::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 				&UHoudiniAssetParameterChoice::OnChoiceChange))
 			[
 				SNew(STextBlock)
-				.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this,
+				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this,
 					&UHoudiniAssetParameterChoice::HandleChoiceContentText)))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
@@ -319,9 +322,11 @@ UHoudiniAssetParameterChoice::Serialize(FArchive& Ar)
 TSharedRef<SWidget>
 UHoudiniAssetParameterChoice::CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry)
 {
+	FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+
 	return SNew(STextBlock)
-		   .Text(*ChoiceEntry)
-		   .ToolTipText(*ChoiceEntry)
+		   .Text(ChoiceEntryText)
+		   .ToolTipText(ChoiceEntryText)
 		   .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 }
 
@@ -362,10 +367,10 @@ UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESel
 }
 
 
-FString
+FText
 UHoudiniAssetParameterChoice::HandleChoiceContentText() const
 {
-	return StringValue;
+	return FText::FromString(StringValue);
 }
 
 #endif

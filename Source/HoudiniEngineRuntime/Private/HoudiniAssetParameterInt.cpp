@@ -143,10 +143,11 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(GetParameterLabel())
-							.ToolTipText(GetParameterLabel())
+							.Text(ParameterLabelText)
+							.ToolTipText(ParameterLabelText)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);

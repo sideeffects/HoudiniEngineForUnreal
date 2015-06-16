@@ -82,12 +82,13 @@ UHoudiniAssetParameterLabel::CreateWidget(IDetailCategoryBuilder& DetailCategory
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	TSharedPtr<STextBlock> TextBlock;
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 
 	DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SAssignNew(TextBlock, STextBlock)
-		.Text(GetParameterLabel())
-		.ToolTipText(GetParameterLabel())
+		.Text(ParameterLabelText)
+		.ToolTipText(ParameterLabelText)
 		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
 	];
