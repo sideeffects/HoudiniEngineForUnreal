@@ -45,6 +45,7 @@
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "ScopedTransaction.h"
 #include "RawMesh.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #endif
 
 /** Other Unreal headers. **/
