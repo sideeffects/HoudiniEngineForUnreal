@@ -338,10 +338,13 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		UStaticMesh* StaticMesh = StaticMeshes[StaticMeshIdx];
 
 		FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
-		FString Label = FString::Printf(TEXT("Static Mesh Instance %d"), StaticMeshIdx);
+		FText LabelText =
+			FText::Format(LOCTEXT("HoudiniStaticMeshInstanceInput", "Static Mesh Instance {0}"),
+				FText::AsNumber(StaticMeshIdx));
+
 		Row.NameWidget.Widget = SNew(STextBlock)
-								.Text(Label)
-								.ToolTipText(Label)
+								.Text(LabelText)
+								.ToolTipText(LabelText)
 								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 		// Create thumbnail for this mesh.
@@ -377,7 +380,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				SNew(SBox)
 				.WidthOverride(64)
 				.HeightOverride(64)
-				.ToolTipText(StaticMesh->GetPathName())
+				.ToolTipText(FText::FromString(StaticMesh->GetPathName()))
 				[
 					StaticMeshThumbnail->MakeThumbnailWidget()
 				]
@@ -414,7 +417,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 						SNew(STextBlock)
 						.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
 						.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-						.Text(StaticMesh->GetName())
+						.Text(FText::FromString(StaticMesh->GetName()))
 					]
 				]
 			]
@@ -455,12 +458,12 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			]
 		];
 
-		const FString LabelRotation = TEXT("Rotation Offset:");
+		FText LabelRotationText = LOCTEXT("HoudiniRotationOffset", "Rotation Offset:");
 		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
 		[
 			SNew(STextBlock)
-			.Text(LabelRotation)
-			.ToolTipText(LabelRotation)
+			.Text(LabelRotationText)
+			.ToolTipText(LabelRotationText)
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 
@@ -490,12 +493,12 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			]
 		];
 
-		const FString LabelScale = TEXT("Scale Offset:");
+		FText LabelScaleText = LOCTEXT("HoudiniScaleOffset", "Scale Offset:");
 		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
 		[
 			SNew(STextBlock)
-			.Text(LabelScale)
-			.ToolTipText(LabelScale)
+			.Text(LabelScaleText)
+			.ToolTipText(LabelScaleText)
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 
@@ -521,7 +524,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			]
 		];
 
-		const FString LabelLinearScale = TEXT("Scale all fields linearly");
+		FText LabelLinearScaleText = LOCTEXT("HoudiniScaleFieldsLinearly", "Scale all fields linearly");
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
 			SNew(SCheckBox)
@@ -533,8 +536,8 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			.Content()
 			[
 				SNew(STextBlock)
-				.Text(LabelLinearScale)
-				.ToolTipText(LabelLinearScale)
+				.Text(LabelLinearScaleText)
+				.ToolTipText(LabelLinearScaleText)
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];

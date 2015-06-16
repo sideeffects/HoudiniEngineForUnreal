@@ -147,7 +147,7 @@ protected:
 #endif
 
 	/** Called to retrieve the name of selected item. **/
-	FString HandleChoiceContentText() const;
+	FText HandleChoiceContentText() const;
 
 
 protected:

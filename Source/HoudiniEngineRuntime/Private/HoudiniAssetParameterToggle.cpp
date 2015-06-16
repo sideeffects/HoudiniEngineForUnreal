@@ -92,10 +92,11 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(FString(""))
-							.ToolTipText(GetParameterLabel())
+							.Text(FText::GetEmpty())
+							.ToolTipText(ParameterLabelText)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
@@ -115,8 +116,8 @@ UHoudiniAssetParameterToggle::CreateWidget(IDetailCategoryBuilder& DetailCategor
 			.Content()
 			[
 				SNew(STextBlock)
-				.Text(GetParameterLabel())
-				.ToolTipText(GetParameterLabel())
+				.Text(ParameterLabelText)
+				.ToolTipText(ParameterLabelText)
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
@@ -136,6 +137,7 @@ void
 UHoudiniAssetParameterToggle::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 {
 	Super::CreateWidget(VerticalBox);
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
@@ -145,8 +147,8 @@ UHoudiniAssetParameterToggle::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 			+SHorizontalBox::Slot().MaxWidth(8)
 			[
 				SNew(STextBlock)
-				.Text(FString(""))
-				.ToolTipText(GetParameterLabel())
+				.Text(FText::GetEmpty())
+				.ToolTipText(ParameterLabelText)
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			+SHorizontalBox::Slot()
@@ -160,8 +162,8 @@ UHoudiniAssetParameterToggle::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 				.Content()
 				[
 					SNew(STextBlock)
-					.Text(GetParameterLabel())
-					.ToolTipText(GetParameterLabel())
+					.Text(ParameterLabelText)
+					.ToolTipText(ParameterLabelText)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 			]

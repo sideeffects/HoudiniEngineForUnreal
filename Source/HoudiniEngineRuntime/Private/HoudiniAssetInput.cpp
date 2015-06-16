@@ -209,10 +209,11 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 
 	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(GetParameterLabel())
-							.ToolTipText(GetParameterLabel())
+							.Text(ParameterLabelText)
+							.ToolTipText(ParameterLabelText)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
 	// Create thumbnail for this static mesh.
@@ -234,7 +235,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			&UHoudiniAssetInput::OnChoiceChange))
 		[
 			SNew(STextBlock)
-			.Text(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateUObject(this,
+			.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this,
 				&UHoudiniAssetInput::HandleChoiceContentText)))
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
@@ -266,17 +267,17 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 				SNew(SBox)
 				.WidthOverride(64)
 				.HeightOverride(64)
-				.ToolTipText(GetParameterLabel())
+				.ToolTipText(ParameterLabelText)
 				[
 					StaticMeshThumbnail->MakeThumbnailWidget()
 				]
 			]
 		];
 
-		FString MeshName = TEXT("");
+		FText MeshNameText = FText::GetEmpty();
 		if(InputObject)
 		{
-			MeshName = InputObject->GetName();
+			MeshNameText = FText::FromString(InputObject->GetName());
 		}
 
 		HorizontalBox->AddSlot()
@@ -302,7 +303,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 						SNew(STextBlock)
 						.TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
 						.Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-						.Text(MeshName)
+						.Text(MeshNameText)
 					]
 				]
 			]
@@ -310,7 +311,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 
 		// Create tooltip.
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("Asset"), FText::FromString(MeshName));
+		Args.Add(TEXT("Asset"), MeshNameText);
 		FText StaticMeshTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser",
 			"Browse to '{Asset}' in Content Browser"), Args);
 
@@ -722,9 +723,11 @@ UHoudiniAssetInput::OnStaticMeshSelected(const FAssetData& AssetData)
 TSharedRef<SWidget>
 UHoudiniAssetInput::CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry)
 {
+	FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+
 	return SNew(STextBlock)
-		   .Text(*ChoiceEntry)
-		   .ToolTipText(*ChoiceEntry)
+		   .Text(ChoiceEntryText)
+		   .ToolTipText(ChoiceEntryText)
 		   .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 }
 
@@ -1058,8 +1061,8 @@ UHoudiniAssetInput::UpdateInputCurve()
 }
 
 
-FString
+FText
 UHoudiniAssetInput::HandleChoiceContentText() const
 {
-	return ChoiceStringValue;
+	return FText::FromString(ChoiceStringValue);
 }

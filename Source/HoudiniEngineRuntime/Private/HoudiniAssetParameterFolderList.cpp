@@ -94,13 +94,15 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 		UHoudiniAssetParameter* HoudiniAssetParameterChild = *IterParameter;
 		if(HoudiniAssetParameterChild->IsA(UHoudiniAssetParameterFolder::StaticClass()))
 		{
+			FText ParameterLabelText = FText::FromString(HoudiniAssetParameterChild->GetParameterLabel());
+
 			HorizontalBox->AddSlot().Padding(1, 2, 4, 2)
 			[
 				SNew(SButton)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
-				.Text(HoudiniAssetParameterChild->GetParameterLabel())
-				.ToolTipText(HoudiniAssetParameterChild->GetParameterLabel())
+				.Text(ParameterLabelText)
+				.ToolTipText(ParameterLabelText)
 				//.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterButton::OnButtonClick))
 			];
 		}

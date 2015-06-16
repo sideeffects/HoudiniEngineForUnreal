@@ -69,7 +69,7 @@ public:
 	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
 
 	/** Called to retrieve the name of selected item. **/
-	FString HandleChoiceContentText() const;
+	FText HandleChoiceContentText() const;
 
 #endif
 
