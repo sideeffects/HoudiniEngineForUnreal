@@ -2060,6 +2060,13 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 
 
 void
+UHoudiniAssetComponent::AddComponentsToBakedBlueprint(UBlueprint* blueprint)
+{
+	
+}
+
+
+void
 UHoudiniAssetComponent::PreEditUndo()
 {
 	Super::PreEditUndo();

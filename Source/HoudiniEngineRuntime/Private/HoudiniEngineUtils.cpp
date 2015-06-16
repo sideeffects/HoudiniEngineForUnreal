@@ -3031,6 +3031,9 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 	Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *BlueprintName, BPTYPE_Normal,
 		UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("HoudiniBlueprintBaking"));
 
+	// Delegate to component: create and add/attach necessary components to a created Blueprint object.
+	HoudiniAssetComponent->AddComponentsToBakedBlueprint(Blueprint);
+
 #endif
 
 	return Blueprint;
