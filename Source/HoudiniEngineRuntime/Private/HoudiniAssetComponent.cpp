@@ -2060,9 +2060,74 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 
 
 void
-UHoudiniAssetComponent::AddComponentsToBakedBlueprint(UBlueprint* blueprint)
+UHoudiniAssetComponent::AddComponentsToBakedBlueprint(UBlueprint* Blueprint)
 {
-	
+#if 0
+	USimpleConstructionScript* SimpleConstructionScript = Blueprint->SimpleConstructionScript;
+	USCS_Node* RootNodeOverride = SimpleConstructionScript->CreateNode(USceneComponent::StaticClass(), TEXT("SharedRoot"));
+	SimpleConstructionScript->AddNode(RootNodeOverride);
+
+	TArray<UActorComponent*> Components;
+
+	// Duplicate instanced static mesh components.
+	{
+
+	}
+
+	// Duplicate static mesh components.
+	{
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
+		{
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UStaticMesh* StaticMesh = Iter.Value();
+
+			// Retrieve referenced static mesh component.
+			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+			UStaticMeshComponent* StaticMeshComponent = nullptr;
+
+			if(FoundStaticMeshComponent)
+			{
+				StaticMeshComponent = *FoundStaticMeshComponent;
+			}
+			else
+			{
+				continue;
+			}
+
+			// Bake the referenced static mesh.
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(this, HoudiniGeoPartObject, StaticMesh);
+
+			if(OutStaticMesh)
+			{
+				FAssetRegistryModule::AssetCreated(OutStaticMesh);
+			}
+
+			// Create static mesh component for baked mesh.
+			UStaticMeshComponent* DuplicatedComponent =
+				NewObject<UStaticMeshComponent>(Blueprint, UStaticMeshComponent::StaticClass(), NAME_None);
+
+			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
+			DuplicatedComponent->SetVisibility(true);
+
+			// If this is a collision geo, we need to make it invisible.
+			if(HoudiniGeoPartObject.IsCollidable())
+			{
+				DuplicatedComponent->SetVisibility(false);
+			}
+
+			// Transform the component by transformation provided by HAPI.
+			DuplicatedComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
+
+			// Store duplicated component so we could add it to blueprint.
+			Components.Add(DuplicatedComponent);
+		}
+	}
+
+	if(Components.Num() > 0)
+	{
+		FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Components, false, RootNodeOverride);
+	}
+#endif
 }
 
 
