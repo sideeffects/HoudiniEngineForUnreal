@@ -102,9 +102,6 @@ public:
 	/** Bake blueprint. **/
 	static UBlueprint* BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent);
 
-	/** Bake single static mesh - this will combine individual objects into one, baking in transformations. **/
-	//static UStaticMesh* BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents);
-
 	/** Extract position information from coords string. **/
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
 

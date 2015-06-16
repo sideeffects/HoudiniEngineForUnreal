@@ -51,33 +51,6 @@ FHoudiniAssetComponentDetails::~FHoudiniAssetComponentDetails()
 }
 
 
-/*
-void
-FHoudiniAssetComponentDetails::CreateSingleStaticMesh()
-{
-	if(HoudiniAssetComponents.Num() > 0)
-	{
-		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-
-		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeSingleStaticMesh(HoudiniAssetComponent, HoudiniAssetComponent->StaticMeshComponents);
-		if(OutStaticMesh)
-		{
-			// Notify asset registry that we have created assets. This should update the content browser.
-			FAssetRegistryModule::AssetCreated(OutStaticMesh);
-		}
-	}
-}
-
-
-FReply
-FHoudiniAssetComponentDetails::OnButtonClickedBakeSingle()
-{
-	CreateSingleStaticMesh();
-	return FReply::Handled();
-}
-*/
-
-
 void
 FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
