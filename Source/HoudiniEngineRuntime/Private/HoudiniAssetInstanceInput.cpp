@@ -241,8 +241,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = GeoPartObjects[Idx];
 
 		UInstancedStaticMeshComponent* Component =
-			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),
-				HoudiniAssetComponent->GetOwner(), NAME_None, RF_Transient);
+			NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
+				UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transient);
 
 		Component->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 		Component->AttachTo(HoudiniAssetComponent);
@@ -804,8 +804,8 @@ UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int3
 		{
 			// We need to create instanced component.
 			UInstancedStaticMeshComponent* Component =
-				ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),
-					HoudiniAssetComponent->GetOwner(), NAME_None, RF_Transient);
+				NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
+					UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transient);
 
 			Component->AttachTo(HoudiniAssetComponent);
 			Component->RegisterComponent();

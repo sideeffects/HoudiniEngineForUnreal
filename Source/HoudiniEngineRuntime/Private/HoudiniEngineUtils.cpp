@@ -938,7 +938,7 @@ FHoudiniEngineUtils::CreateUnrealTexture(
 	const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName, EPixelFormat PixelFormat,
 	const TArray<char>& ImageBuffer)
 {
-	UTexture2D* Texture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Package, *TextureName, RF_Public);
+	UTexture2D* Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName, RF_Public);
 	Texture->PlatformData = new FTexturePlatformData();
 	Texture->PlatformData->SizeX = ImageInfo.xRes;
 	Texture->PlatformData->SizeY = ImageInfo.yRes;
@@ -2134,7 +2134,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAssetComponent,
 							HoudiniGeoPartObject, nullptr, MeshName, MeshGuid);
-						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
+						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
 						FAssetRegistryModule::AssetCreated(StaticMesh);
 						bStaticMeshCreated = true;
 					}
@@ -2877,7 +2877,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 		BakeCreatePackageForStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
 
 	// Create static mesh.
-	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
+	StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
 	FAssetRegistryModule::AssetCreated(StaticMesh);
 
 	// Copy materials.
@@ -3268,8 +3268,8 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 
 				// Create sampling expression and add it to material.
 				UMaterialExpressionTextureSample* Expression =
-					ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(),
-					Material);
+					NewObject<UMaterialExpressionTextureSample>(Material,
+						UMaterialExpressionTextureSample::StaticClass());
 
 				Expression->Texture = Texture;
 				Expression->SamplerType = SAMPLERTYPE_Color;
@@ -3310,8 +3310,8 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 			if(RawMesh.WedgeColors.Num() > 0)
 			{
 				UMaterialExpressionVertexColor* Expression =
-					ConstructObject<UMaterialExpressionVertexColor>(UMaterialExpressionVertexColor::StaticClass(),
-					Material);
+					NewObject<UMaterialExpressionVertexColor>(Material,
+						UMaterialExpressionVertexColor::StaticClass());
 
 				Material->Expressions.Add(Expression);
 				Material->BaseColor.Expression = Expression;
@@ -3326,8 +3326,8 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 		if(RawMesh.WedgeColors.Num() > 0)
 		{
 			UMaterialExpressionVertexColor* Expression =
-				ConstructObject<UMaterialExpressionVertexColor>(UMaterialExpressionVertexColor::StaticClass(),
-				Material);
+				NewObject<UMaterialExpressionVertexColor>(Material,
+					UMaterialExpressionVertexColor::StaticClass());
 
 			Material->Expressions.Add(Expression);
 			Material->BaseColor.Expression = Expression;
