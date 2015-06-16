@@ -537,8 +537,8 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	{
 		if(Ar.IsLoading())
 		{
-			InputCurve = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(),
-				HoudiniAssetComponent, NAME_None, RF_Transient);
+			InputCurve = NewObject<UHoudiniSplineComponent>(HoudiniAssetComponent, UHoudiniSplineComponent::StaticClass(),
+				NAME_None, RF_Transient);
 
 			InputCurve->AddToRoot();
 		}
@@ -809,8 +809,8 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			{
 				// Create new spline component.
 				UHoudiniSplineComponent* HoudiniSplineComponent =
-					ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(),
-						HoudiniAssetComponent, NAME_None, RF_Transient);
+					NewObject<UHoudiniSplineComponent>(HoudiniAssetComponent, UHoudiniSplineComponent::StaticClass(),
+						NAME_None, RF_Transient);
 				HoudiniSplineComponent->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
 				HoudiniSplineComponent->RegisterComponent();
 				HoudiniSplineComponent->SetVisibility(true);

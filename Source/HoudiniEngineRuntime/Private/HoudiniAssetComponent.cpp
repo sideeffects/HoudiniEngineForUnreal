@@ -463,8 +463,8 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 			else
 			{
 				// Create necessary component.
-				StaticMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(),
-					GetOwner(), NAME_None, RF_Transient);
+				StaticMeshComponent = NewObject<UStaticMeshComponent>(GetOwner(), UStaticMeshComponent::StaticClass(),
+					NAME_None, RF_Transient);
 
 				// Add to map of components.
 				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
@@ -589,7 +589,7 @@ UHoudiniAssetComponent::AssignUniqueActorLabel()
 			FString UniqueName;
 			if(FHoudiniEngineUtils::GetHoudiniAssetName(AssetId, UniqueName))
 			{
-				GEditor->SetActorLabelUnique(HoudiniAssetActor, UniqueName);
+				FActorLabelUtilities::SetActorLabelUnique(HoudiniAssetActor, UniqueName);
 			}
 		}
 	}
@@ -2289,8 +2289,8 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		else
 		{
 			// We need to create new curve.
-			HoudiniSplineComponent = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(),
-				this, NAME_None, RF_Transient);
+			HoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(this, UHoudiniSplineComponent::StaticClass(),
+				NAME_None, RF_Transient);
 			HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
 			HoudiniSplineComponent->SetVisibility(true);
 			HoudiniSplineComponent->RegisterComponent();
@@ -3158,8 +3158,8 @@ UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
 			HoudiniGeoPartObject.Serialize(Ar);
 
 			// Create Spline component.
-			HoudiniSplineComponent = ConstructObject<UHoudiniSplineComponent>(UHoudiniSplineComponent::StaticClass(),
-				GetOwner(), NAME_None, RF_Transient);
+			HoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(GetOwner(), UHoudiniSplineComponent::StaticClass(),
+				NAME_None, RF_Transient);
 			HoudiniSplineComponent->AddToRoot();
 			HoudiniSplineComponent->SerializeRaw(Ar);
 
