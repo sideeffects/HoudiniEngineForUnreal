@@ -24,6 +24,7 @@
 class UClass;
 class UProperty;
 class UMaterial;
+class UBlueprint;
 class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
@@ -174,7 +175,10 @@ public:
 
 	/** Assign generation parameters to static mesh. **/
 	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
-	
+
+	/** Used by Blueprint baking; add necessary components to a baked blueprint. **/
+	void AddComponentsToBakedBlueprint(UBlueprint* blueprint);
+
 #endif
 
 	/** Used to differentiate native components from dynamic ones. **/
