@@ -897,6 +897,22 @@ FHoudiniAssetComponentDetails::OnResetAsset()
 FReply
 FHoudiniAssetComponentDetails::OnBakeBlueprint()
 {
+	if(HoudiniAssetComponents.Num() > 0)
+	{
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+
+		// If component is not cooking or instancing, we can bake blueprint.
+		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+		{
+			UBlueprint* Blueprint = FHoudiniEngineUtils::BakeBlueprint(HoudiniAssetComponent);
+
+			if(Blueprint)
+			{
+				FAssetRegistryModule::AssetCreated(Blueprint);
+			}
+		}
+	}
+
 	return FReply::Handled();
 }
 

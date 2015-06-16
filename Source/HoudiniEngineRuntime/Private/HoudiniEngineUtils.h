@@ -20,6 +20,7 @@
 
 class FArchive;
 class UTexture2D;
+class UBlueprint;
 class UStaticMesh;
 class UHoudiniAsset;
 class AHoudiniAssetActor;
@@ -97,6 +98,9 @@ public:
 	/** Bake static mesh. **/
 	static UStaticMesh* BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UStaticMesh* StaticMesh);
+
+	/** Bake blueprint. **/
+	static UBlueprint* BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent);
 
 	/** Bake single static mesh - this will combine individual objects into one, baking in transformations. **/
 	//static UStaticMesh* BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents);
@@ -241,10 +245,14 @@ public:
 
 protected:
 
-	/** Create a package for static mesh. **/
-	static UPackage* BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
+	/** Create a package for given component for static mesh baking. **/
+	static UPackage* BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID,
 		bool bBake = false);
+
+	/** Create a package for given component for blueprint baking. **/
+	static UPackage* BakeCreateBlueprintPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+		FString& BlueprintName);
 
 	/** Helper routine to serialize Material interface. **/
 	static void Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar);
