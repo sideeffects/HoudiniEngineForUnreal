@@ -1598,7 +1598,7 @@ FHoudiniEngineUtils::HapiConnectAsset(
 
 
 UPackage*
-FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
+FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID, bool bBake)
 {
 	UPackage* PackageNew = nullptr;
@@ -1678,6 +1678,59 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 #endif
 
 	return PackageNew;
+}
+
+
+UPackage*
+FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+	FString& BlueprintName)
+{
+	UPackage* Package = nullptr;
+
+#if WITH_EDITOR
+
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	FGuid BakeGUID = FGuid::NewGuid();
+
+	while(true)
+	{
+		if(!BakeGUID.IsValid())
+		{
+			BakeGUID = FGuid::NewGuid();
+		}
+
+		// We only want half of generated guid string.
+		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+
+		// Generate Blueprint name.
+		BlueprintName = HoudiniAsset->GetName() + TEXT("_") + BakeGUIDString;
+
+		// Generate unique package name.=
+		FString PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
+			TEXT("/") +
+			BlueprintName;
+
+		PackageName = PackageTools::SanitizePackageName(PackageName);
+
+		// See if package exists, if it does, we need to regenerate the name.
+		Package = FindPackage(nullptr, *PackageName);
+
+		if(Package)
+		{
+			// Package does exist, there's a collision, we need to generate a new name.
+			BakeGUID.Invalidate();
+		}
+		else
+		{
+			// Create actual package.
+			Package = CreatePackage(nullptr, *PackageName);
+			break;
+		}
+	}
+
+#endif
+
+	return Package;
 }
 
 
@@ -2135,7 +2188,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					{
 						MeshGuid.Invalidate();
 
-						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAssetComponent,
+						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent,
 							HoudiniGeoPartObject, nullptr, MeshName, MeshGuid);
 						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
 						FAssetRegistryModule::AssetCreated(StaticMesh);
@@ -2877,7 +2930,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	FString MeshName;
 	FGuid BakeGUID;
 	UPackage* Package =
-		BakeCreatePackageForStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
+		BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
 
 	// Create static mesh.
 	StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
@@ -2963,6 +3016,30 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	return StaticMesh;
 }
 
+
+UBlueprint*
+FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	UBlueprint* Blueprint = nullptr;
+
+#if WITH_EDITOR
+
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+
+	// Create package for our Blueprint.
+	FString BlueprintName = TEXT("");
+	UPackage* Package = FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(HoudiniAssetComponent, BlueprintName);
+
+	// Create Blueprint.
+	Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *BlueprintName, BPTYPE_Normal,
+		UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("HoudiniBlueprintBaking"));
+
+#endif
+
+	return Blueprint;
+}
+
+
 /*
 UStaticMesh*
 FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents)
@@ -2983,7 +3060,7 @@ FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetCo
 
 	FString MeshName;
 	FGuid BakeGUID;
-	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAssetComponent, nullptr, MeshName, BakeGUID);
+	UPackage* Package = BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent, nullptr, MeshName, BakeGUID);
 
 	// Create static mesh.
 	NewStaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
