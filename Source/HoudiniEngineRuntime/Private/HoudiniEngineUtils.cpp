@@ -3025,14 +3025,11 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 
 	// Create package for our Blueprint.
 	FString BlueprintName = TEXT("");
-	UPackage* Package = FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(HoudiniAssetComponent, BlueprintName);
+	UPackage* Package = 
+		FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(HoudiniAssetComponent, BlueprintName);
 
-	// Create Blueprint.
-	Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *BlueprintName, BPTYPE_Normal,
-		UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("HoudiniBlueprintBaking"));
-
-	// Delegate to component: create and add/attach necessary components to a created Blueprint object.
-	HoudiniAssetComponent->AddComponentsToBakedBlueprint(Blueprint);
+	AActor* Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
+	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(*BlueprintName, Package, Actor, false);
 
 #endif
 
