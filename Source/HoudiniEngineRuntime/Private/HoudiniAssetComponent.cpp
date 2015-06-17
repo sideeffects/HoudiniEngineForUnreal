@@ -2059,20 +2059,23 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 }
 
 
-void
-UHoudiniAssetComponent::AddComponentsToBakedBlueprint(UBlueprint* Blueprint)
+AActor*
+UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 {
-#if 0
-	USimpleConstructionScript* SimpleConstructionScript = Blueprint->SimpleConstructionScript;
-	USCS_Node* RootNodeOverride = SimpleConstructionScript->CreateNode(USceneComponent::StaticClass(), TEXT("SharedRoot"));
-	SimpleConstructionScript->AddNode(RootNodeOverride);
+	ULevel* Level = GetHoudiniAssetActorOwner()->GetLevel();
+	AActor* Actor = NewObject<AActor>(Level, NAME_None);
 
-	TArray<UActorComponent*> Components;
+	USceneComponent* RootComponent = NewObject<USceneComponent>(Actor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+	RootComponent->Mobility = EComponentMobility::Movable;
+	RootComponent->bVisualizeComponent = true;
 
-	// Duplicate instanced static mesh components.
-	{
+	const FTransform& ComponentWorldTransform = GetComponentTransform();
+	RootComponent->SetWorldLocationAndRotation(ComponentWorldTransform.GetLocation(), ComponentWorldTransform.GetRotation());
 
-	}
+	Actor->SetRootComponent(RootComponent);
+	Actor->AddInstanceComponent(RootComponent);
+
+	RootComponent->RegisterComponent();
 
 	// Duplicate static mesh components.
 	{
@@ -2104,10 +2107,13 @@ UHoudiniAssetComponent::AddComponentsToBakedBlueprint(UBlueprint* Blueprint)
 
 			// Create static mesh component for baked mesh.
 			UStaticMeshComponent* DuplicatedComponent =
-				NewObject<UStaticMeshComponent>(Blueprint, UStaticMeshComponent::StaticClass(), NAME_None);
+				NewObject<UStaticMeshComponent>(Actor, UStaticMeshComponent::StaticClass(), NAME_None);
+
+			Actor->AddInstanceComponent(DuplicatedComponent);
 
 			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
 			DuplicatedComponent->SetVisibility(true);
+			DuplicatedComponent->AttachTo(RootComponent);
 
 			// If this is a collision geo, we need to make it invisible.
 			if(HoudiniGeoPartObject.IsCollidable())
@@ -2118,16 +2124,11 @@ UHoudiniAssetComponent::AddComponentsToBakedBlueprint(UBlueprint* Blueprint)
 			// Transform the component by transformation provided by HAPI.
 			DuplicatedComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 
-			// Store duplicated component so we could add it to blueprint.
-			Components.Add(DuplicatedComponent);
+			DuplicatedComponent->RegisterComponent();
 		}
 	}
 
-	if(Components.Num() > 0)
-	{
-		FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, Components, false, RootNodeOverride);
-	}
-#endif
+	return Actor;
 }
 
 

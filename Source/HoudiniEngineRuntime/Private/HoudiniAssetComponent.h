@@ -176,8 +176,8 @@ public:
 	/** Assign generation parameters to static mesh. **/
 	void SetStaticMeshGenerationParameters(UStaticMesh* StaticMesh);
 
-	/** Used by Blueprint baking; add necessary components to a baked blueprint. **/
-	void AddComponentsToBakedBlueprint(UBlueprint* blueprint);
+	/** Used by Blueprint baking; create temporary actor and necessary components to bake a blueprint. **/
+	AActor* CloneComponentsAndCreateActor();
 
 #endif
 
