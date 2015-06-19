@@ -778,7 +778,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 			}
 
 			UInstancedStaticMeshComponent* DuplicatedComponent =
-				NewObject<UInstancedStaticMeshComponent>(Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None);
+				ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(), Actor, NAME_None);
 
 			Actor->AddInstanceComponent(DuplicatedComponent);
 

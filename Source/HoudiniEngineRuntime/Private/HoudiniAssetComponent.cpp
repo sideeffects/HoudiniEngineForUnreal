@@ -451,7 +451,10 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 		else if(HoudiniGeoPartObject.IsVisible())
 		{
 			// This geo part is visible and not an instancer and must have static mesh assigned.
-			check(StaticMesh);
+			if(!StaticMesh)
+			{
+				continue;
+			}
 
 			UStaticMeshComponent* StaticMeshComponent = nullptr;
 			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
@@ -2066,9 +2069,11 @@ AActor*
 UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 {
 	ULevel* Level = GetHoudiniAssetActorOwner()->GetLevel();
-	AActor* Actor = NewObject<AActor>(Level, NAME_None);
+	AActor* Actor = ConstructObject<AActor>(AActor::StaticClass(), Level, NAME_None);
 
-	USceneComponent* RootComponent = NewObject<USceneComponent>(Actor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+	USceneComponent* RootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), Actor,
+		USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+
 	RootComponent->Mobility = EComponentMobility::Movable;
 	RootComponent->bVisualizeComponent = true;
 
@@ -2110,7 +2115,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 
 			// Create static mesh component for baked mesh.
 			UStaticMeshComponent* DuplicatedComponent =
-				NewObject<UStaticMeshComponent>(Actor, UStaticMeshComponent::StaticClass(), NAME_None);
+				ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), Actor, NAME_None);
 
 			Actor->AddInstanceComponent(DuplicatedComponent);
 
