@@ -739,6 +739,67 @@ UHoudiniAssetInstanceInput::IsObjectInstancer() const
 }
 
 
+#if WITH_EDITOR
+
+void
+UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
+{
+	USceneComponent* RootComponent = Actor->GetRootComponent();
+
+	for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+	{
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+		if(InstancedStaticMeshComponent)
+		{
+			UStaticMesh* OutStaticMesh = nullptr;
+
+			// If original static mesh is used, then we need to bake it.
+			if(OriginalStaticMeshes[Idx] == StaticMeshes[Idx])
+			{
+				const FHoudiniGeoPartObject& HoudiniGeoPartObject =
+					HoudiniAssetComponent->LocateGeoPartObject(OriginalStaticMeshes[Idx]);
+
+				// Bake the referenced static mesh.
+				OutStaticMesh =
+					FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMeshes[Idx]);
+
+				if(OutStaticMesh)
+				{
+					FAssetRegistryModule::AssetCreated(OutStaticMesh);
+				}
+				else
+				{
+					continue;
+				}
+			}
+			else
+			{
+				OutStaticMesh = StaticMeshes[Idx];
+			}
+
+			UInstancedStaticMeshComponent* DuplicatedComponent =
+				NewObject<UInstancedStaticMeshComponent>(Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None);
+
+			Actor->AddInstanceComponent(DuplicatedComponent);
+
+			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
+
+			// Set component instances.
+			SetComponentInstanceTransformations(DuplicatedComponent, InstancedTransforms[Idx], Idx);
+
+			// Copy visibility.
+			DuplicatedComponent->SetVisibility(InstancedStaticMeshComponent->IsVisible());
+
+			DuplicatedComponent->AttachTo(RootComponent);
+			DuplicatedComponent->RegisterComponent();
+			DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+		}
+	}
+}
+
+#endif
+
+
 void
 UHoudiniAssetInstanceInput::SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId)
 {

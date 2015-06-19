@@ -18,6 +18,7 @@
 #include "HoudiniAssetInstanceInput.generated.h"
 
 
+class AActor;
 class UStaticMesh;
 struct FHoudiniGeoPartObject;
 class UInstancedStaticMeshComponent;
@@ -89,6 +90,13 @@ public:
 	/** Return true if this is an object instancer. Attribute instancer and object instancers are	**/
 	/** not mutually exclusive.																		**/
 	bool IsObjectInstancer() const;
+
+#if WITH_EDITOR
+
+	/** Clone all used instance static mesh components and and attach them to provided actor. **/
+	void CloneComponentsAndAttachToActor(AActor* Actor);
+
+#endif
 
 protected:
 

@@ -2116,7 +2116,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 
 			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
 			DuplicatedComponent->SetVisibility(true);
-			DuplicatedComponent->AttachTo(RootComponent);
+			DuplicatedComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 
 			// If this is a collision geo, we need to make it invisible.
 			if(HoudiniGeoPartObject.IsCollidable())
@@ -2124,10 +2124,22 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 				DuplicatedComponent->SetVisibility(false);
 			}
 
-			// Transform the component by transformation provided by HAPI.
-			DuplicatedComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
-
+			DuplicatedComponent->AttachTo(RootComponent);
 			DuplicatedComponent->RegisterComponent();
+		}
+	}
+
+	// Duplicate instanced static mesh components.
+	{
+		for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator
+			IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
+		{
+			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
+
+			if(HoudiniAssetInstanceInput)
+			{
+				HoudiniAssetInstanceInput->CloneComponentsAndAttachToActor(Actor);
+			}
 		}
 	}
 
