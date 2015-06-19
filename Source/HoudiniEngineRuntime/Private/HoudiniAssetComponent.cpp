@@ -2062,6 +2062,79 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 }
 
 
+AActor*
+UHoudiniAssetComponent::CloneComponentsAndCreateActor()
+{
+	ULevel* Level = GetHoudiniAssetActorOwner()->GetLevel();
+	AActor* Actor = NewObject<AActor>(Level, NAME_None);
+
+	USceneComponent* RootComponent = NewObject<USceneComponent>(Actor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+	RootComponent->Mobility = EComponentMobility::Movable;
+	RootComponent->bVisualizeComponent = true;
+
+	const FTransform& ComponentWorldTransform = GetComponentTransform();
+	RootComponent->SetWorldLocationAndRotation(ComponentWorldTransform.GetLocation(), ComponentWorldTransform.GetRotation());
+
+	Actor->SetRootComponent(RootComponent);
+	Actor->AddInstanceComponent(RootComponent);
+
+	RootComponent->RegisterComponent();
+
+	// Duplicate static mesh components.
+	{
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
+		{
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UStaticMesh* StaticMesh = Iter.Value();
+
+			// Retrieve referenced static mesh component.
+			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+			UStaticMeshComponent* StaticMeshComponent = nullptr;
+
+			if(FoundStaticMeshComponent)
+			{
+				StaticMeshComponent = *FoundStaticMeshComponent;
+			}
+			else
+			{
+				continue;
+			}
+
+			// Bake the referenced static mesh.
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(this, HoudiniGeoPartObject, StaticMesh);
+
+			if(OutStaticMesh)
+			{
+				FAssetRegistryModule::AssetCreated(OutStaticMesh);
+			}
+
+			// Create static mesh component for baked mesh.
+			UStaticMeshComponent* DuplicatedComponent =
+				NewObject<UStaticMeshComponent>(Actor, UStaticMeshComponent::StaticClass(), NAME_None);
+
+			Actor->AddInstanceComponent(DuplicatedComponent);
+
+			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
+			DuplicatedComponent->SetVisibility(true);
+			DuplicatedComponent->AttachTo(RootComponent);
+
+			// If this is a collision geo, we need to make it invisible.
+			if(HoudiniGeoPartObject.IsCollidable())
+			{
+				DuplicatedComponent->SetVisibility(false);
+			}
+
+			// Transform the component by transformation provided by HAPI.
+			DuplicatedComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
+
+			DuplicatedComponent->RegisterComponent();
+		}
+	}
+
+	return Actor;
+}
+
+
 void
 UHoudiniAssetComponent::PreEditUndo()
 {
