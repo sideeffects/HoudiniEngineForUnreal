@@ -451,7 +451,10 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 		else if(HoudiniGeoPartObject.IsVisible())
 		{
 			// This geo part is visible and not an instancer and must have static mesh assigned.
-			check(StaticMesh);
+			if(!StaticMesh)
+			{
+				continue;
+			}
 
 			UStaticMeshComponent* StaticMeshComponent = nullptr;
 			UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
