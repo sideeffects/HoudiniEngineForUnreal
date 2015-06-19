@@ -1598,7 +1598,7 @@ FHoudiniEngineUtils::HapiConnectAsset(
 
 
 UPackage*
-FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
+FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID, bool bBake)
 {
 	UPackage* PackageNew = nullptr;
@@ -1678,6 +1678,59 @@ FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(UHoudiniAssetComponent* Houd
 #endif
 
 	return PackageNew;
+}
+
+
+UPackage*
+FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+	FString& BlueprintName)
+{
+	UPackage* Package = nullptr;
+
+#if WITH_EDITOR
+
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	FGuid BakeGUID = FGuid::NewGuid();
+
+	while(true)
+	{
+		if(!BakeGUID.IsValid())
+		{
+			BakeGUID = FGuid::NewGuid();
+		}
+
+		// We only want half of generated guid string.
+		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+
+		// Generate Blueprint name.
+		BlueprintName = HoudiniAsset->GetName() + TEXT("_") + BakeGUIDString;
+
+		// Generate unique package name.=
+		FString PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
+			TEXT("/") +
+			BlueprintName;
+
+		PackageName = PackageTools::SanitizePackageName(PackageName);
+
+		// See if package exists, if it does, we need to regenerate the name.
+		Package = FindPackage(nullptr, *PackageName);
+
+		if(Package)
+		{
+			// Package does exist, there's a collision, we need to generate a new name.
+			BakeGUID.Invalidate();
+		}
+		else
+		{
+			// Create actual package.
+			Package = CreatePackage(nullptr, *PackageName);
+			break;
+		}
+	}
+
+#endif
+
+	return Package;
 }
 
 
@@ -2135,7 +2188,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					{
 						MeshGuid.Invalidate();
 
-						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreatePackageForStaticMesh(HoudiniAssetComponent,
+						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent,
 							HoudiniGeoPartObject, nullptr, MeshName, MeshGuid);
 						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
 						FAssetRegistryModule::AssetCreated(StaticMesh);
@@ -2877,7 +2930,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	FString MeshName;
 	FGuid BakeGUID;
 	UPackage* Package =
-		BakeCreatePackageForStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
+		BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
 
 	// Create static mesh.
 	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
@@ -2963,248 +3016,29 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	return StaticMesh;
 }
 
-/*
-UStaticMesh*
-FHoudiniEngineUtils::BakeSingleStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent, TMap<UStaticMesh*, UStaticMeshComponent*>& StaticMeshComponents)
+
+UBlueprint*
+FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent)
 {
-	UStaticMesh* NewStaticMesh = nullptr;
+	UBlueprint* Blueprint = nullptr;
+
+#if WITH_EDITOR
 
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-	if(!HoudiniAsset || 0 == StaticMeshComponents.Num())
-	{
-		return NewStaticMesh;
-	}
 
-	// Get platform manager LOD specific information.
-	ITargetPlatform* CurrentPlatform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
-	check(CurrentPlatform);
-	const FStaticMeshLODGroup& LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(NAME_None);
-	int32 NumLODs = LODGroup.GetDefaultNumLODs();
+	// Create package for our Blueprint.
+	FString BlueprintName = TEXT("");
+	UPackage* Package = FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(HoudiniAssetComponent, BlueprintName);
 
-	FString MeshName;
-	FGuid BakeGUID;
-	UPackage* Package = BakeCreatePackageForStaticMesh(HoudiniAssetComponent, nullptr, MeshName, BakeGUID);
+	// Create Blueprint.
+	Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *BlueprintName, BPTYPE_Normal,
+		UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("HoudiniBlueprintBaking"));
 
-	// Create static mesh.
-	NewStaticMesh = new(Package, FName(*MeshName), RF_Public) UStaticMesh(FObjectInitializer());
+#endif
 
-	// Create new source model for new static mesh.
-	if(!NewStaticMesh->SourceModels.Num())
-	{
-		new(NewStaticMesh->SourceModels) FStaticMeshSourceModel();
-	}
-
-	FStaticMeshSourceModel* SrcModel = &NewStaticMesh->SourceModels[0];
-	FRawMesh RawMesh;
-	FRawMeshBulkData* RawMeshBulkData = SrcModel->RawMeshBulkData;
-
-	TSet<UMaterialInterface*> UniqueMaterials;
-	int32 FaceCount = 0;
-	int32 IndexOffset = 0;
-	uint32 SmoothingMaskOffset = 0u;
-	bool bHasColors = false;
-
-	// Get default material.
-	UMaterialInterface* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-
-	TArray<UStaticMesh*> StaticMeshes;
-	for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
-	{
-		UStaticMesh* StaticMesh = Iter.Key();
-		UStaticMeshComponent* StaticMeshComponent = Iter.Value();
-		StaticMeshes.Add(StaticMesh);
-
-		// Load raw data for this mesh.
-		FRawMesh InRawMesh;
-		FStaticMeshSourceModel* InSrcModel = &StaticMesh->SourceModels[0];
-		FRawMeshBulkData* InRawMeshBulkData = InSrcModel->RawMeshBulkData;
-		InRawMeshBulkData->LoadRawMesh(InRawMesh);
-
-		// Increment triangle count.
-		FaceCount += InRawMesh.FaceMaterialIndices.Num();
-
-		// Add smoothing face data (we need to offset it for each mesh).
-		uint32 MaxFaceSmoothingMask = 0u;
-		for(int32 Idx = 0; Idx < InRawMesh.FaceSmoothingMasks.Num(); ++Idx)
-		{
-			uint32 FaceSmoothingMask = InRawMesh.FaceSmoothingMasks[Idx];
-			MaxFaceSmoothingMask = FMath::Max(FaceSmoothingMask, MaxFaceSmoothingMask);
-			RawMesh.FaceSmoothingMasks.Add(SmoothingMaskOffset + FaceSmoothingMask);
-		}
-
-		// Update smoothing offset.
-		SmoothingMaskOffset = SmoothingMaskOffset + MaxFaceSmoothingMask + 1;
-
-		// Add transformed vertex positions.
-		const FTransform& Transform = StaticMeshComponent->GetRelativeTransform();
-		for(int32 Idx = 0; Idx < InRawMesh.VertexPositions.Num(); ++Idx)
-		{
-			RawMesh.VertexPositions.Add(Transform.TransformPosition(InRawMesh.VertexPositions[Idx]));
-		}
-
-		// We also need to re-index indices.
-		for(int32 Idx = 0; Idx < InRawMesh.WedgeIndices.Num(); ++Idx)
-		{
-			RawMesh.WedgeIndices.Add(InRawMesh.WedgeIndices[Idx] + IndexOffset);
-		}
-
-		// Update offset for indices.
-		IndexOffset += InRawMesh.WedgeIndices.Num();
-
-		// If colors are available, set the flag.
-		if(InRawMesh.WedgeColors.Num() > 0)
-		{
-			bHasColors = true;
-		}
-
-		// We need to collect all materials.
-		if(StaticMesh->Materials.Num() > 0)
-		{
-			UniqueMaterials.Append(StaticMesh->Materials);
-		}
-		else
-		{
-			// This mesh has no materials, append default.
-			UniqueMaterials.Add(DefaultMaterial);
-		}
-	}
-
-	// Set materials for this new single mesh; we need to reindex face material indices after this.
-	NewStaticMesh->Materials = UniqueMaterials.Array();
-
-	// We need to make sure we can support this number of materials.
-	if(NewStaticMesh->Materials.Num() >= MAX_MESH_TEXTURE_COORDS)
-	{
-		NewStaticMesh->ConditionalBeginDestroy();
-		return nullptr;
-	}
-	// Pre fill UVs with zero data.
-	//for(int32 UVIdx = 0; UVIdx < NewStaticMesh->Materials.Num(); ++UVIdx)
-	//{
-	//	RawMesh.WedgeTexCoords[UVIdx].AddZeroed(FaceCount);
-	//}
-	for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
-	{
-		UStaticMesh* InStaticMesh = StaticMeshes[MeshIdx];
-
-		FRawMesh InRawMesh;
-		FStaticMeshSourceModel* InSrcModel = &InStaticMesh->SourceModels[0];
-		FRawMeshBulkData* InRawMeshBulkData = InSrcModel->RawMeshBulkData;
-		InRawMeshBulkData->LoadRawMesh(InRawMesh);
-
-		// If colors are available, we need to transfer that information.
-		if(bHasColors)
-		{
-			if(InRawMesh.WedgeColors.Num() > 0)
-			{
-				for(int32 Idx = 0; Idx < InRawMesh.WedgeColors.Num(); ++Idx)
-				{
-					RawMesh.WedgeColors.Add(InRawMesh.WedgeColors[Idx]);
-				}
-			}
-			else
-			{
-				// If color is missing for one mesh, we will add black instead.
-				static const FColor& BlackColor = FColor::Black;
-				RawMesh.WedgeColors.Init(BlackColor, InRawMesh.WedgeIndices.Num());
-			}
-		}
-
-		// Go through materials in this static mesh and get their remapped indices, then patch corresponding face materials.
-		TArray<int32> OriginalMaterialIndices;
-		TArray<int32> UpdatedMaterialIndices;
-		if(InStaticMesh->Materials.Num() > 0)
-		{
-			for(int32 FaceMaterialIdx = 0; FaceMaterialIdx < InRawMesh.FaceMaterialIndices.Num(); ++FaceMaterialIdx)
-			{
-				// Get material index.
-				int32 MaterialIdx = InRawMesh.FaceMaterialIndices[FaceMaterialIdx];
-
-				// Get material for this face index.
-				UMaterialInterface* Material = InStaticMesh->Materials[MaterialIdx];
-				int32 MaterialGlobalIdx = NewStaticMesh->Materials.Find(Material);
-				check(MaterialGlobalIdx != INDEX_NONE);
-
-				// Add face indices to default material.
-				RawMesh.FaceMaterialIndices.Add(MaterialGlobalIdx);
-				OriginalMaterialIndices.Add(MaterialIdx);
-				UpdatedMaterialIndices.Add(MaterialGlobalIdx);
-			}
-		}
-		else
-		{
-			// This mesh has no materials, look up position of default material.
-			int32 MaterialGlobalIdx = NewStaticMesh->Materials.Find(DefaultMaterial);
-			int32 InvalidIdx = -1;
-			check(MaterialGlobalIdx != INDEX_NONE);
-
-			// Add face indices to default material.
-			RawMesh.FaceMaterialIndices.Init(MaterialGlobalIdx, InRawMesh.FaceMaterialIndices.Num());
-			OriginalMaterialIndices.Init(InvalidIdx, InRawMesh.FaceMaterialIndices.Num());
-			UpdatedMaterialIndices.Init(MaterialGlobalIdx, InRawMesh.FaceMaterialIndices.Num());
-		}
-
-		// Generate UV sets - go through all indices.
-		int32 FaceIdx = 0;
-		for(int32 IndexIdx = 0; IndexIdx < InRawMesh.WedgeIndices.Num(); IndexIdx += 3)
-		{
-			// Get updated and original material index for this face.
-			int32 MaterialOriginalIdx = OriginalMaterialIndices[FaceIdx];
-			int32 MaterialUpdatedIdx = UpdatedMaterialIndices[FaceIdx];
-
-			for(int32 UVIdx = 0; UVIdx < MAX_MESH_TEXTURE_COORDS; ++UVIdx)
-			{
-				if(UVIdx == MaterialOriginalIdx)
-				{
-					RawMesh.WedgeTexCoords[MaterialUpdatedIdx].Add(InRawMesh.WedgeTexCoords[MaterialOriginalIdx][FaceIdx]);
-				}
-				else
-				{
-					RawMesh.WedgeTexCoords[UVIdx].Add(FVector2D::ZeroVector);
-				}
-			}
-
-			FaceIdx++;
-		}
-	}
-
-	// Some mesh generation settings.
-	SrcModel->BuildSettings.bRemoveDegenerates = true;
-	SrcModel->BuildSettings.bRecomputeNormals = (0 == RawMesh.WedgeTangentZ.Num());
-	SrcModel->BuildSettings.bRecomputeTangents = true;
-
-	// Store the new raw mesh.
-	SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
-
-	while(NewStaticMesh->SourceModels.Num() < NumLODs)
-	{
-		new(NewStaticMesh->SourceModels) FStaticMeshSourceModel();
-	}
-
-	for(int32 ModelLODIndex = 0; ModelLODIndex < NumLODs; ++ModelLODIndex)
-	{
-		NewStaticMesh->SourceModels[ModelLODIndex].ReductionSettings = LODGroup.GetDefaultSettings(ModelLODIndex);
-
-		for(int32 MaterialIndex = 0; MaterialIndex < NewStaticMesh->Materials.Num(); ++MaterialIndex)
-		{
-			FMeshSectionInfo Info = NewStaticMesh->SectionInfoMap.Get(ModelLODIndex, MaterialIndex);
-			Info.MaterialIndex = MaterialIndex;
-			Info.bEnableCollision = true;
-			Info.bCastShadow = true;
-			NewStaticMesh->SectionInfoMap.Set(ModelLODIndex, MaterialIndex, Info);
-		}
-	}
-
-	// Assign generation parameters for this static mesh.
-	HoudiniAssetComponent->SetStaticMeshGenerationParameters(NewStaticMesh);
-
-	// Build the static mesh - this will generate necessary data and create necessary rendering resources.
-	FHoudiniScopedGlobalSilence ScopedGlobalSilence;
-	NewStaticMesh->Build(true);
-
-	return NewStaticMesh;
+	return Blueprint;
 }
-*/
+
 
 UMaterial*
 FHoudiniEngineUtils::HapiCreateMaterial(
