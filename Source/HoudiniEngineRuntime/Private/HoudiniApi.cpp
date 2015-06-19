@@ -171,6 +171,9 @@ FHoudiniApi::CreateNode = nullptr;
 FHoudiniApi::DeleteNodeFuncPtr
 FHoudiniApi::DeleteNode = nullptr;
 
+FHoudiniApi::RenameNodeFuncPtr
+FHoudiniApi::RenameNode = nullptr;
+
 FHoudiniApi::ConnectNodeInputFuncPtr
 FHoudiniApi::ConnectNodeInput = nullptr;
 
@@ -528,6 +531,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNodeNetworkChildren = (GetNodeNetworkChildrenFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeNetworkChildren"));
 	FHoudiniApi::CreateNode = (CreateNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateNode"));
 	FHoudiniApi::DeleteNode = (DeleteNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DeleteNode"));
+	FHoudiniApi::RenameNode = (RenameNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenameNode"));
 	FHoudiniApi::ConnectNodeInput = (ConnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConnectNodeInput"));
 	FHoudiniApi::DisconnectNodeInput = (DisconnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectNodeInput"));
 	FHoudiniApi::QueryNodeInput = (QueryNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeInput"));
@@ -685,6 +689,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNodeNetworkChildren = nullptr;
 	FHoudiniApi::CreateNode = nullptr;
 	FHoudiniApi::DeleteNode = nullptr;
+	FHoudiniApi::RenameNode = nullptr;
 	FHoudiniApi::ConnectNodeInput = nullptr;
 	FHoudiniApi::DisconnectNodeInput = nullptr;
 	FHoudiniApi::QueryNodeInput = nullptr;

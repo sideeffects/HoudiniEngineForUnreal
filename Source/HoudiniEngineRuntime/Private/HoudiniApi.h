@@ -177,6 +177,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*DeleteNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	static DeleteNodeFuncPtr DeleteNode;
 
+	typedef HAPI_Result (*RenameNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
+	static RenameNodeFuncPtr RenameNode;
+
 	typedef HAPI_Result (*ConnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect);
 	static ConnectNodeInputFuncPtr ConnectNodeInput;
 
