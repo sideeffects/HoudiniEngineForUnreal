@@ -3034,6 +3034,9 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 	AActor* Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
 	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(*BlueprintName, Package, Actor, false);
 
+	Actor->RemoveFromRoot();
+	Actor->ConditionalBeginDestroy();
+
 #endif
 
 	return Blueprint;

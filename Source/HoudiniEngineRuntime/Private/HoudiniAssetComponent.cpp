@@ -2070,6 +2070,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 {
 	ULevel* Level = GetHoudiniAssetActorOwner()->GetLevel();
 	AActor* Actor = ConstructObject<AActor>(AActor::StaticClass(), Level, NAME_None);
+	Actor->AddToRoot();
 
 	USceneComponent* RootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), Actor,
 		USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
