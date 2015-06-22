@@ -2145,8 +2145,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 									// Even though geometry did not change, material requires update.
 									MeshName = StaticMesh->GetName();
-									UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package,
-										MeshName, RawMesh);
+									UMaterial* Material = 
+										FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, StaticMesh->GetOuter(),
+											MeshName, RawMesh);
 
 									// Flag that we have Houdini material.
 									HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
@@ -2581,8 +2582,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							{
 								// Material requires update.
 								MeshName = StaticMesh->GetName();
-								UMaterial* Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName,
-									RawMesh);
+								UObject* MeshOuter = StaticMesh->GetOuter();
+								UMaterial* Material = 
+									FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, MeshOuter, MeshName, RawMesh);
 
 								// Flag that we have Houdini material.
 								HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
@@ -2651,8 +2653,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 								{
 									// We have colors.
 									MeshName = StaticMesh->GetName();
-									Material = FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, Package, MeshName,
-										RawMesh);
+									UObject* MeshOuter = StaticMesh->GetOuter();
+
+									Material = 
+										FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, MeshOuter, MeshName,
+											RawMesh);
 
 									// Flag that we have Houdini material.
 									HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
@@ -3043,7 +3048,6 @@ UMaterial*
 FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UObject* Outer, const FString& MeshName, 
 	const FRawMesh& RawMesh)
 {
-	//return UMaterial::GetDefaultMaterial(MD_Surface);
 	UMaterial* Material = nullptr;
 
 #if WITH_EDITOR
