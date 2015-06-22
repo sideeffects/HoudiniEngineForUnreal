@@ -19,9 +19,11 @@
 
 
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer)
+	Super(ObjectInitializer),
+	StartingPlayTime(0.0f)
 {
 	bCanBeDamaged = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Create Houdini component and attach it to a root component.
 	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this,
@@ -43,4 +45,28 @@ bool
 AHoudiniAssetActor::IsUsedForPreview() const
 {
 	return HasAnyFlags(RF_Transient);
+}
+
+
+void
+AHoudiniAssetActor::ResetHoudiniPlaytime()
+{
+	StartingPlayTime = 0.0f;
+}
+
+
+float
+AHoudiniAssetActor::GetHoudiniPlaytime() const
+{
+	return StartingPlayTime;
+}
+
+
+void
+AHoudiniAssetActor::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	// Increment play time.
+	StartingPlayTime += DeltaSeconds;
 }

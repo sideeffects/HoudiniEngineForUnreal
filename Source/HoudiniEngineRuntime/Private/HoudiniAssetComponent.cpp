@@ -1428,6 +1428,16 @@ UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
 {
 	// We are now in PIE mode.
 	bIsPlayModeActive = true;
+
+	if(bTimeCookInPlaymode)
+	{
+		AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+		if(HoudiniActor)
+		{
+			HoudiniActor->ResetHoudiniPlaytime();
+			HoudiniActor->SetActorTickEnabled(true);
+		}
+	}
 }
 
 
@@ -1436,6 +1446,15 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 {
 	// We are no longer in PIE mode.
 	bIsPlayModeActive = false;
+
+	if(bTimeCookInPlaymode)
+	{
+		AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+		if(HoudiniActor)
+		{
+			HoudiniActor->SetActorTickEnabled(false);
+		}
+	}
 }
 
 
