@@ -34,4 +34,20 @@ public:
 
 	/** Return actor component. **/
 	UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
+
+	/** Reset actor's playtime. This time is used to set time and cook when in playmode. **/
+	void ResetHoudiniPlaytime();
+
+	/** Return actor's playtime. **/
+	float GetHoudiniPlaytime() const;
+
+/** AActor methods. **/
+public:
+
+	virtual void Tick(float DeltaSeconds) override;
+
+protected:
+
+	/** Used to track starting playtime. **/
+	float StartingPlayTime;
 };
