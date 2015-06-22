@@ -934,11 +934,10 @@ FHoudiniEngineUtils::HapiExtractImage(
 #if WITH_EDITOR
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(
-	const HAPI_ImageInfo& ImageInfo, UPackage* Package, const FString& TextureName, EPixelFormat PixelFormat,
-	const TArray<char>& ImageBuffer)
+FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObject* Outer, 
+	const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer)
 {
-	UTexture2D* Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName, RF_Public);
+	UTexture2D* Texture = NewObject<UTexture2D>(Outer, UTexture2D::StaticClass(), *TextureName, RF_Public);
 	Texture->PlatformData = new FTexturePlatformData();
 	Texture->PlatformData->SizeX = ImageInfo.xRes;
 	Texture->PlatformData->SizeY = ImageInfo.yRes;
@@ -3041,8 +3040,8 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 
 
 UMaterial*
-FHoudiniEngineUtils::HapiCreateMaterial(
-	const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh)
+FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UObject* Outer, const FString& MeshName, 
+	const FRawMesh& RawMesh)
 {
 	//return UMaterial::GetDefaultMaterial(MD_Surface);
 	UMaterial* Material = nullptr;
@@ -3083,7 +3082,7 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 
 	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 	FString MaterialName = FString::Printf(TEXT("%s_%s"), *MeshName, HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX);
-	Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialName,
+	Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Outer, *MaterialName,
 		RF_Public, NULL, GWarn);
 
 	if(ParmNameIdx >= 0)
@@ -3101,7 +3100,7 @@ FHoudiniEngineUtils::HapiCreateMaterial(
 			{
 				// Create texture.
 				FString TextureName = FString::Printf(TEXT("%s_diffuse_texture"), *MeshName);
-				UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, Package, TextureName,
+				UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, Outer, TextureName,
 					PF_R8G8B8A8, ImageBuffer);
 
 				// Create sampling expression and add it to material.
