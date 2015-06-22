@@ -2067,6 +2067,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 {
 	ULevel* Level = GetHoudiniAssetActorOwner()->GetLevel();
 	AActor* Actor = NewObject<AActor>(Level, NAME_None);
+	Actor->AddToRoot();
 
 	USceneComponent* RootComponent = NewObject<USceneComponent>(Actor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 	RootComponent->Mobility = EComponentMobility::Movable;

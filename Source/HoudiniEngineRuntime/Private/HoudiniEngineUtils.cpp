@@ -3034,6 +3034,9 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 	AActor* Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
 	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(*BlueprintName, Package, Actor, false);
 
+	Actor->RemoveFromRoot();
+	Actor->ConditionalBeginDestroy();
+
 #endif
 
 	return Blueprint;
@@ -3044,6 +3047,7 @@ UMaterial*
 FHoudiniEngineUtils::HapiCreateMaterial(
 	const HAPI_MaterialInfo& MaterialInfo, UPackage* Package, const FString& MeshName, const FRawMesh& RawMesh)
 {
+	//return UMaterial::GetDefaultMaterial(MD_Surface);
 	UMaterial* Material = nullptr;
 
 #if WITH_EDITOR
