@@ -701,7 +701,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					if((FPlatformTime::Seconds() - HapiNotificationStarted) >= NotificationUpdateFrequency)
 					{
-						NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+						if(!bIsPlayModeActive)
+						{
+							NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+						}
 					}
 				}
 			}
