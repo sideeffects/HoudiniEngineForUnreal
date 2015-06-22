@@ -20,7 +20,7 @@
 
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	StartingPlayTime(0.0f)
+	CurrentPlayTime(0.0f)
 {
 	bCanBeDamaged = false;
 	PrimaryActorTick.bCanEverTick = true;
@@ -49,16 +49,16 @@ AHoudiniAssetActor::IsUsedForPreview() const
 
 
 void
-AHoudiniAssetActor::ResetHoudiniPlaytime()
+AHoudiniAssetActor::ResetHoudiniCurrentPlaytime()
 {
-	StartingPlayTime = 0.0f;
+	CurrentPlayTime = 0.0f;
 }
 
 
 float
-AHoudiniAssetActor::GetHoudiniPlaytime() const
+AHoudiniAssetActor::GetHoudiniCurrentPlaytime() const
 {
-	return StartingPlayTime;
+	return CurrentPlayTime;
 }
 
 
@@ -68,5 +68,5 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	// Increment play time.
-	StartingPlayTime += DeltaSeconds;
+	CurrentPlayTime += DeltaSeconds;
 }
