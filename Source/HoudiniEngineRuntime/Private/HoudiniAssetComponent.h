@@ -570,6 +570,9 @@ protected:
 
 			/** Is set to true when component has been created as result of copying / import. **/
 			uint32 bComponentCopyImported : 1;
+
+			/** Is set to true when component should set time and cook in play mode. **/
+			uint32 bTimeCookInPlaymode : 1;
 		};
 
 		uint32 HoudiniAssetComponentFlagsPacked;
