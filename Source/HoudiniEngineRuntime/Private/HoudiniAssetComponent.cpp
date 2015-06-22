@@ -1434,7 +1434,7 @@ UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
 		AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
 		if(HoudiniActor)
 		{
-			HoudiniActor->ResetHoudiniPlaytime();
+			HoudiniActor->ResetHoudiniCurrentPlaytime();
 			HoudiniActor->SetActorTickEnabled(true);
 		}
 	}
