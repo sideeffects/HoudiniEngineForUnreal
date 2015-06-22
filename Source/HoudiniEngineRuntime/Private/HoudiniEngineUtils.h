@@ -224,7 +224,7 @@ public:
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
 
 	/** HAPI : Create Unreal material and necessary textures. **/
-	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UPackage* Package,
+	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UObject* Outer,
 		const FString& MeshName, const FRawMesh& RawMesh);
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
@@ -289,7 +289,7 @@ protected:
 #if WITH_EDITOR
 
 	/** Create a texture from given information. **/
-	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UPackage* Package,
+	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObject* Outer,
 		const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer);
 
 	/** Reset streams used by the given RawMesh. **/
