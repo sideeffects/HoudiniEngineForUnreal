@@ -524,6 +524,21 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		]
 	];
 
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SCheckBox)
+		.OnCheckStateChanged(this,
+			&FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookInPlaymode, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookInPlaymode,
+			HoudiniAssetComponent)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniSetTimeAndCookInPlaymode", "Set Time and Cook when Playmode"))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
 	{
 		TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
 		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
@@ -1245,6 +1260,18 @@ FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking(UHoudin
 }
 
 
+ECheckBoxState
+FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookInPlaymode(UHoudiniAssetComponent* HoudiniAssetComponent) const
+{
+	if(HoudiniAssetComponent && HoudiniAssetComponent->bTimeCookInPlaymode)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
 void
 FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ECheckBoxState NewState,
 	UHoudiniAssetComponent* HoudiniAssetComponent)
@@ -1274,5 +1301,16 @@ FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking
 	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->bTransformChangeTriggersCooks = (ECheckBoxState::Checked == NewState);
+	}
+}
+
+
+void
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookInPlaymode(ECheckBoxState NewState,
+	UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->bTimeCookInPlaymode = (ECheckBoxState::Checked == NewState);
 	}
 }

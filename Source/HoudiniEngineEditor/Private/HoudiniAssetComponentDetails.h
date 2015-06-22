@@ -150,6 +150,9 @@ private:
 	ECheckBoxState
 		IsCheckedComponentSettingTransformCooking(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
+	ECheckBoxState
+		IsCheckedComponentSettingCookInPlaymode(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+
 	/** Handle change in Checkbox. **/
 	void CheckStateChangedComponentSettingCooking(ECheckBoxState NewState,
 		UHoudiniAssetComponent* HoudiniAssetComponent);
@@ -158,6 +161,9 @@ private:
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
 	void CheckStateChangedComponentSettingTransformCooking(ECheckBoxState NewState,
+		UHoudiniAssetComponent* HoudiniAssetComponent);
+
+	void CheckStateChangedComponentSettingCookInPlaymode(ECheckBoxState NewState,
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
 private:
