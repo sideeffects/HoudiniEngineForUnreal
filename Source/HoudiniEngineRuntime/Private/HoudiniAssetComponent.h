@@ -272,6 +272,9 @@ private:
 
 #if WITH_EDITOR
 
+	/** Called after each cook. **/
+	void PostCook();
+
 	/** Remove all attached components. **/
 	void RemoveAllAttachedComponents();
 
@@ -573,6 +576,9 @@ protected:
 
 			/** Is set to true when component should set time and cook in play mode. **/
 			uint32 bTimeCookInPlaymode : 1;
+
+			/** Is set to true when component is a playmode component. **/
+			uint32 bPlaymodeComponent : 1;
 		};
 
 		uint32 HoudiniAssetComponentFlagsPacked;
