@@ -86,6 +86,9 @@ public:
 	/** HAPI : Translate Unreal transform to HAPI Euler one. **/
 	static void TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_TransformEuler& HapiTransformEuler);
 
+	/** HAPI : Set current HAPI time. **/
+	static bool SetCurrentTime(float CurrentTime);
+
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
