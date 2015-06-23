@@ -67,6 +67,8 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	// Set current time through HAPI.
+
 	// Increment play time.
 	CurrentPlayTime += DeltaSeconds;
 }

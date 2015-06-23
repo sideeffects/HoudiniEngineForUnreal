@@ -451,6 +451,14 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 
 
 bool
+FHoudiniEngineUtils::SetCurrentTime(float CurrentTime)
+{
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetTime(nullptr, CurrentTime), false);
+	return true;
+}
+
+
+bool
 FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString)
 {
 	HAPI_AssetInfo AssetInfo;
