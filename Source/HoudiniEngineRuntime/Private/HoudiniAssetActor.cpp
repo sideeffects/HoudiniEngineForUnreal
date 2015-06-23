@@ -16,6 +16,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngineUtils.h"
 
 
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializer) :
@@ -24,6 +25,7 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializ
 {
 	bCanBeDamaged = false;
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	// Create Houdini component and attach it to a root component.
 	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this,
@@ -67,6 +69,27 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	// Increment play time.
-	CurrentPlayTime += DeltaSeconds;
+	if(HoudiniAssetComponent->bTimeCookInPlaymode)
+	{
+		HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+		if(-1 == AssetId)
+		{
+			// If component is not instantiating or cooking, we can set time and force cook.
+			if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+			{
+				FHoudiniEngineUtils::SetCurrentTime(0.0f);
+				HoudiniAssetComponent->StartTaskAssetCookingManual();
+			}
+		}
+		else
+		{
+			FHoudiniEngineUtils::SetCurrentTime(CurrentPlayTime);
+			FHoudiniApi::CookAsset(nullptr, AssetId, nullptr);
+
+			HoudiniAssetComponent->PostCook();
+		}
+
+		// Increment play time.
+		CurrentPlayTime += DeltaSeconds;
+	}
 }

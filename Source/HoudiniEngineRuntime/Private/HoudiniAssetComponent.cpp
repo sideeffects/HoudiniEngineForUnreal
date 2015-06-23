@@ -105,7 +105,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bUndoRequested(false),
 	bManualRecook(false),
 	bComponentCopyImported(false),
-	bTimeCookInPlaymode(false)
+	bTimeCookInPlaymode(false),
+	bPlaymodeComponent(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -661,6 +662,58 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 
 		// Reset time for delayed notification.
 		HapiNotificationStarted = 0.0;
+	}
+}
+
+
+void
+UHoudiniAssetComponent::PostCook()
+{
+	// Create parameters and inputs.
+	CreateParameters();
+	CreateInputs();
+	CreateHandles();
+
+	FTransform ComponentTransform;
+	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
+	if(FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(this, GetOutermost(),
+		StaticMeshes, NewStaticMeshes, ComponentTransform))
+	{
+		// Remove all duplicates. After this operation, old map will have meshes which we need
+		// to deallocate.
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator
+			Iter(NewStaticMeshes); Iter; ++Iter)
+		{
+			const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+			UStaticMesh* StaticMesh = Iter.Value();
+
+			// Remove mesh from previous map of meshes.
+			UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
+			if(FoundOldStaticMesh)
+			{
+				UStaticMesh* OldStaticMesh = *FoundOldStaticMesh;
+
+				if(OldStaticMesh == StaticMesh)
+				{
+					// Mesh has not changed, we need to remove it from old map to avoid
+					// deallocation.
+					StaticMeshes.Remove(HoudiniGeoPartObject);
+				}
+			}
+		}
+
+		// Free meshes and components that are no longer used.
+		ReleaseObjectGeoPartResources(StaticMeshes);
+
+		// Set meshes and create new components for those meshes that do not have them.
+		if(NewStaticMeshes.Num() > 0)
+		{
+			CreateObjectGeoPartResources(NewStaticMeshes);
+		}
+		else
+		{
+			CreateStaticMeshHoudiniLogoResource(NewStaticMeshes);
+		}
 	}
 }
 
@@ -1428,16 +1481,6 @@ UHoudiniAssetComponent::OnPIEEventBegin(const bool bIsSimulating)
 {
 	// We are now in PIE mode.
 	bIsPlayModeActive = true;
-
-	if(bTimeCookInPlaymode)
-	{
-		AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-		if(HoudiniActor)
-		{
-			HoudiniActor->ResetHoudiniCurrentPlaytime();
-			HoudiniActor->SetActorTickEnabled(true);
-		}
-	}
 }
 
 
@@ -1446,15 +1489,6 @@ UHoudiniAssetComponent::OnPIEEventEnd(const bool bIsSimulating)
 {
 	// We are no longer in PIE mode.
 	bIsPlayModeActive = false;
-
-	if(bTimeCookInPlaymode)
-	{
-		AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
-		if(HoudiniActor)
-		{
-			HoudiniActor->SetActorTickEnabled(false);
-		}
-	}
 }
 
 
@@ -1895,6 +1929,27 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	if(!HoudiniAsset)
 	{
 		return;
+	}
+
+	// If we are going into playmode, save asset id.
+	bool bInPlayMode = bIsPlayModeActive;
+	Ar << bInPlayMode;
+
+	if(bInPlayMode)
+	{
+		// Store or restore asset id.
+		Ar << AssetId;
+
+		// Store or restore whether we want to cook in playmode.
+		bool bCookInPlaymode = bTimeCookInPlaymode;
+		Ar << bCookInPlaymode;
+
+		if(Ar.IsLoading())
+		{
+			bIsPlayModeActive = bInPlayMode;
+			bTimeCookInPlaymode = bCookInPlaymode;
+			bPlaymodeComponent = true;
+		}
 	}
 
 	// Serialization of default preset.

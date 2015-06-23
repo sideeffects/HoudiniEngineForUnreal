@@ -2134,8 +2134,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					// See if materials have changed for this geo part object.
 					HoudiniAssetComponent->CheckMaterialInformationChanged(HoudiniGeoPartObject);
 
-					// See if geometry has changed for this part (and global scaling has not changed).
-					if(!GeoInfo.hasGeoChanged && !HoudiniAssetComponent->CheckGlobalSettingScaleFactors())
+					// See if geometry and scaling factor has not changed. Then we can reuse the corresponding
+					// static mesh.
+					if(!GeoInfo.hasGeoChanged && HoudiniAssetComponent->CheckGlobalSettingScaleFactors())
 					{
 						// If geometry has not changed.
 						if(FoundStaticMesh)
