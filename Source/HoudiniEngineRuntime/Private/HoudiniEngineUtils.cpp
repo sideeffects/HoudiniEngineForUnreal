@@ -455,7 +455,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 bool
 FHoudiniEngineUtils::SetCurrentTime(float CurrentTime)
 {
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetTime(nullptr, CurrentTime), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetTime(CurrentTime), false);
 	return true;
 }
 
@@ -944,7 +944,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 #if WITH_EDITOR
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObject* Outer, 
+FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObject* Outer,
 	const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer)
 {
 	UTexture2D* Texture = NewObject<UTexture2D>(Outer, UTexture2D::StaticClass(), *TextureName, RF_Public);
@@ -2157,7 +2157,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 									// Even though geometry did not change, material requires update.
 									MeshName = StaticMesh->GetName();
-									UMaterial* Material = 
+									UMaterial* Material =
 										FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, StaticMesh->GetOuter(),
 											MeshName, RawMesh);
 
@@ -2595,7 +2595,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 								// Material requires update.
 								MeshName = StaticMesh->GetName();
 								UObject* MeshOuter = StaticMesh->GetOuter();
-								UMaterial* Material = 
+								UMaterial* Material =
 									FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, MeshOuter, MeshName, RawMesh);
 
 								// Flag that we have Houdini material.
@@ -2667,7 +2667,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 									MeshName = StaticMesh->GetName();
 									UObject* MeshOuter = StaticMesh->GetOuter();
 
-									Material = 
+									Material =
 										FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, MeshOuter, MeshName,
 											RawMesh);
 
@@ -3041,7 +3041,7 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 
 	// Create package for our Blueprint.
 	FString BlueprintName = TEXT("");
-	UPackage* Package = 
+	UPackage* Package =
 		FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(HoudiniAssetComponent, BlueprintName);
 
 	AActor* Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
@@ -3057,7 +3057,7 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 
 
 UMaterial*
-FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UObject* Outer, const FString& MeshName, 
+FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UObject* Outer, const FString& MeshName,
 	const FRawMesh& RawMesh)
 {
 	UMaterial* Material = nullptr;
