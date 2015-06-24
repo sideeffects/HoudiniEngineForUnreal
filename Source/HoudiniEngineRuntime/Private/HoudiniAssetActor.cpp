@@ -84,7 +84,7 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 		else
 		{
 			FHoudiniEngineUtils::SetCurrentTime(CurrentPlayTime);
-			FHoudiniApi::CookAsset(nullptr, AssetId, nullptr);
+			FHoudiniApi::CookAsset(AssetId, nullptr);
 
 			HoudiniAssetComponent->PostCook();
 		}
