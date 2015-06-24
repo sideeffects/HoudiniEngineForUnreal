@@ -2385,6 +2385,13 @@ UHoudiniAssetComponent::CheckMaterialInformationChanged(FHoudiniGeoPartObject& O
 }
 
 
+bool
+UHoudiniAssetComponent::IsPlayModeActive() const
+{
+	return bIsPlayModeActive;
+}
+
+
 #if WITH_EDITOR
 
 void

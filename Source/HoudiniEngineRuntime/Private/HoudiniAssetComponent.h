@@ -231,6 +231,9 @@ public:
 	/** Check if material information has changed for this geo part object. **/
 	bool CheckMaterialInformationChanged(FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
+	/** Return true if this component is in playmode. **/
+	bool IsPlayModeActive() const;
+
 /** UObject methods. **/
 public:
 
