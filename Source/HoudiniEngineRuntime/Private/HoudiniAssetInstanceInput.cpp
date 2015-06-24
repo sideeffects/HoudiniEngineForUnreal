@@ -92,6 +92,16 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 	// Store old tuple size.
 	int32 OldTupleSize = TupleSize;
 
+	// If we are in playmode, we need to reset uninitialized static mesh resources.
+	if(HoudiniAssetComponent && HoudiniAssetComponent->IsPlayModeActive())
+	{
+		InstancedStaticMeshComponents.SetNum(0);
+		StaticMeshes.SetNum(0);
+		OriginalStaticMeshes.SetNum(0);
+
+		OldTupleSize = 0;
+	}
+
 	if(bIsAttributeInstancer)
 	{
 		HAPI_AttributeInfo ResultAttributeInfo;
