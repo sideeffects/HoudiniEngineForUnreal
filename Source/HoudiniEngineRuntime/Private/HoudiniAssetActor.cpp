@@ -69,6 +69,8 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+#if WITH_EDITOR
+
 	if(HoudiniAssetComponent->bTimeCookInPlaymode)
 	{
 		HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
@@ -92,4 +94,7 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 		// Increment play time.
 		CurrentPlayTime += DeltaSeconds;
 	}
+
+#endif
+
 }
