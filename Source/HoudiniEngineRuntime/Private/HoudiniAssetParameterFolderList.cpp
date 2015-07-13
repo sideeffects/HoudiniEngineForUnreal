@@ -93,19 +93,40 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 		UHoudiniAssetParameter* HoudiniAssetParameterChild = ChildParameters[ParameterIdx];
 		if(HoudiniAssetParameterChild->IsA(UHoudiniAssetParameterFolder::StaticClass()))
 		{
-			HorizontalBox->AddSlot().Padding(1, 2, 4, 2)
+			FText ParameterLabelText = FText::FromString(HoudiniAssetParameterChild->GetParameterLabel());
+
+			HorizontalBox->AddSlot().Padding(0, 2, 0, 2)
 			[
 				SNew(SButton)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
-				.Text(HoudiniAssetParameterChild->GetParameterLabel())
-				.ToolTipText(HoudiniAssetParameterChild->GetParameterLabel())
+				.Text(ParameterLabelText)
+				.ToolTipText(ParameterLabelText)
 				.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterFolderList::OnButtonClick, ParameterIdx))
 			];
 		}
 	}
 
 	Super::CreateWidget(DetailCategoryBuilder);
+
+	if(ChildParameters.Num() > 1)
+	{
+		TSharedPtr<STextBlock> TextBlock;
+
+		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+		[
+			SAssignNew(TextBlock, STextBlock)
+			.Text(FText::GetEmpty())
+			.ToolTipText(FText::GetEmpty())
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
+		];
+
+		if(TextBlock.IsValid())
+		{
+			TextBlock->SetEnabled(!bIsDisabled);
+		}
+	}
 }
 
 
