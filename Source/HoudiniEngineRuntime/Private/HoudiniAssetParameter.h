@@ -99,6 +99,9 @@ public:
 	/** Add a child parameter. **/
 	void AddChildParameter(UHoudiniAssetParameter* HoudiniAssetParameter);
 
+	/** Return true if given parameter is an active child parameter. **/
+	bool IsActiveChildParameter(UHoudiniAssetParameter* ChildParameter) const;
+
 public:
 
 	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
@@ -149,6 +152,9 @@ protected:
 
 	/** Sets internal value index used by this parameter. **/
 	void SetValuesIndex(int32 InValuesIndex);
+
+	/** Return index of active child parameter. **/
+	int32 GetActiveChildParameter() const;
 
 #if WITH_EDITOR
 
@@ -206,6 +212,9 @@ protected:
 
 	/** Internal HAPI cached value index. **/
 	int32 ValuesIndex;
+
+	/** Active child parameter. **/
+	int32 ActiveChildParameter;
 
 	/** Flags used by this parameter. **/
 	union
