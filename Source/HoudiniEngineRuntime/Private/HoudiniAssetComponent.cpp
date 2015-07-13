@@ -2863,7 +2863,7 @@ UHoudiniAssetComponent::CreateHandles()
 
 	TMap<FString, UHoudiniAssetHandle*> NewHandles;
 
-/*	// If we have handles.
+	// If we have handles.
 	if(AssetInfo.handleCount > 0)
 	{
 		TArray<HAPI_HandleInfo> HandleInfos;
@@ -2876,25 +2876,33 @@ UHoudiniAssetComponent::CreateHandles()
 
 		for(int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx)
 		{
+		/*
 			// Retrieve handle info for this index.
 			const HAPI_HandleInfo& HandleInfo = HandleInfos[HandleIdx];
 
-			// Retrieve name of this handle.
-			FString HandleName;
-			if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
+			// If we do not have bindings, we can skip.
+			if(HandleInfo.bindingsCount > 0)
 			{
-				continue;
-			}
+				// Retrieve name of this handle.
+				FString HandleName;
+				if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
+				{
+					continue;
+				}
 
-			// Construct new handle parameter.
-			UHoudiniAssetHandle* HoudiniAssetHandle = UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx, HandleName);
-			if(HoudiniAssetHandle)
-			{
-				NewHandles.Add(HandleName, HoudiniAssetHandle);
+				// Construct new handle parameter.
+				UHoudiniAssetHandle* HoudiniAssetHandle = 
+						UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx, HandleName);
+
+				if(HoudiniAssetHandle)
+				{
+					NewHandles.Add(HandleName, HoudiniAssetHandle);
+				}
 			}
+		*/
 		}
 	}
-*/
+
 	ClearHandles();
 	Handles = NewHandles;
 

@@ -80,7 +80,10 @@ UHoudiniAssetParameterFolder::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 void
 UHoudiniAssetParameterFolder::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
-	Super::CreateWidget(DetailCategoryBuilder);
+	if(ParentParameter && ParentParameter->IsActiveChildParameter(this))
+	{
+		Super::CreateWidget(DetailCategoryBuilder);
+	}
 }
 
 #endif

@@ -81,10 +81,9 @@ UHoudiniAssetParameterFolderList::CreateParameter(UHoudiniAssetComponent* InHoud
 void
 UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
-	/*
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 
-	DetailCategoryBuilder.AddCustomRow(TEXT(""))
+	DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SAssignNew(HorizontalBox, SHorizontalBox)
 	];
@@ -105,7 +104,7 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 			];
 		}
 	}
-	*/
+
 	Super::CreateWidget(DetailCategoryBuilder);
 }
 
