@@ -43,6 +43,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	ParmParentId(-1),
 	TupleSize(1),
 	ValuesIndex(-1),
+	ActiveChildParameter(0),
 	bIsSpare(false),
 	bIsDisabled(false),
 	bChanged(false)
@@ -460,6 +461,25 @@ void
 UHoudiniAssetParameter::SetValuesIndex(int32 InValuesIndex)
 {
 	ValuesIndex = InValuesIndex;
+}
+
+
+int32
+UHoudiniAssetParameter::GetActiveChildParameter() const
+{
+	return ActiveChildParameter;
+}
+
+
+bool
+UHoudiniAssetParameter::IsActiveChildParameter(UHoudiniAssetParameter* ChildParam) const
+{
+	if(ChildParam && (ActiveChildParameter < ChildParameters.Num()))
+	{
+		return (ChildParameters[ActiveChildParameter] == ChildParam);
+	}
+
+	return false;
 }
 
 
