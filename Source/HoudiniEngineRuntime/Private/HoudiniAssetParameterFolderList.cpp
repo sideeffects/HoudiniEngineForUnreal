@@ -95,7 +95,7 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 		{
 			FText ParameterLabelText = FText::FromString(HoudiniAssetParameterChild->GetParameterLabel());
 
-			HorizontalBox->AddSlot().Padding(1, 2, 4, 2)
+			HorizontalBox->AddSlot().Padding(0, 2, 0, 2)
 			[
 				SNew(SButton)
 				.VAlign(VAlign_Center)
@@ -108,6 +108,25 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 	}
 
 	Super::CreateWidget(DetailCategoryBuilder);
+
+	if(ChildParameters.Num() > 1)
+	{
+		TSharedPtr<STextBlock> TextBlock;
+
+		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+		[
+			SAssignNew(TextBlock, STextBlock)
+			.Text(FText::GetEmpty())
+			.ToolTipText(FText::GetEmpty())
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
+		];
+
+		if(TextBlock.IsValid())
+		{
+			TextBlock->SetEnabled(!bIsDisabled);
+		}
+	}
 }
 
 
