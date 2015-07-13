@@ -88,9 +88,9 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 		SAssignNew(HorizontalBox, SHorizontalBox)
 	];
 
-	for(TArray<UHoudiniAssetParameter*>::TIterator IterParameter(ChildParameters); IterParameter; ++IterParameter)
+	for(int32 ParameterIdx = 0; ParameterIdx < ChildParameters.Num(); ++ParameterIdx)
 	{
-		UHoudiniAssetParameter* HoudiniAssetParameterChild = *IterParameter;
+		UHoudiniAssetParameter* HoudiniAssetParameterChild = ChildParameters[ParameterIdx];
 		if(HoudiniAssetParameterChild->IsA(UHoudiniAssetParameterFolder::StaticClass()))
 		{
 			FText ParameterLabelText = FText::FromString(HoudiniAssetParameterChild->GetParameterLabel());
@@ -102,12 +102,26 @@ UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCat
 				.HAlign(HAlign_Center)
 				.Text(ParameterLabelText)
 				.ToolTipText(ParameterLabelText)
-				//.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterButton::OnButtonClick))
+				.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterFolderList::OnButtonClick, ParameterIdx))
 			];
 		}
 	}
 
 	Super::CreateWidget(DetailCategoryBuilder);
+}
+
+
+FReply
+UHoudiniAssetParameterFolderList::OnButtonClick(int32 ParameterIdx)
+{
+	ActiveChildParameter = ParameterIdx;
+
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->UpdateEditorProperties(false);
+	}
+
+	return FReply::Handled();
 }
 
 #endif

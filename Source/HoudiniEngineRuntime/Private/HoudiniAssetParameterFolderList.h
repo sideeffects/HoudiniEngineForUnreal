@@ -45,5 +45,8 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
+	/** Handler for button click. **/
+	FReply OnButtonClick(int32 ParameterIdx);
+
 #endif
 };
