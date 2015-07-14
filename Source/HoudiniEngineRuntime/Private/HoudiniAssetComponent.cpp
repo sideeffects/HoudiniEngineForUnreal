@@ -106,7 +106,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bManualRecook(false),
 	bComponentCopyImported(false),
 	bTimeCookInPlaymode(false),
-	bPlaymodeComponent(false)
+	bPlaymodeComponent(false),
+	bUseHoudiniMaterials(true)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();

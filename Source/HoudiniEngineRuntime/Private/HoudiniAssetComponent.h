@@ -582,6 +582,9 @@ protected:
 
 			/** Is set to true when component is a playmode component. **/
 			uint32 bPlaymodeComponent : 1;
+
+			/** Is set to true when Houdini materials are used. **/
+			uint32 bUseHoudiniMaterials : 1;
 		};
 
 		uint32 HoudiniAssetComponentFlagsPacked;
