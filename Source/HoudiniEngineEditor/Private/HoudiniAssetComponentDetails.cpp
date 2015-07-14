@@ -540,6 +540,21 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		]
 	];
 
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SCheckBox)
+		.OnCheckStateChanged(this,
+			&FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUseHoudiniMaterials, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUseHoudiniMaterials,
+			HoudiniAssetComponent)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniUseHoudiniMaterials", "Use Native Houdini Materials"))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
 	{
 		TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
 		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
@@ -1273,6 +1288,18 @@ FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookInPlaymode(UHoudiniA
 }
 
 
+ECheckBoxState
+FHoudiniAssetComponentDetails::IsCheckedComponentSettingUseHoudiniMaterials(UHoudiniAssetComponent* HoudiniAssetComponent) const
+{
+	if(HoudiniAssetComponent && HoudiniAssetComponent->bUseHoudiniMaterials)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
 void
 FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ECheckBoxState NewState,
 	UHoudiniAssetComponent* HoudiniAssetComponent)
@@ -1313,5 +1340,16 @@ FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookInPlaymode(E
 	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->bTimeCookInPlaymode = (ECheckBoxState::Checked == NewState);
+	}
+}
+
+
+void
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUseHoudiniMaterials(ECheckBoxState NewState,
+	UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->bUseHoudiniMaterials = (ECheckBoxState::Checked == NewState);
 	}
 }
