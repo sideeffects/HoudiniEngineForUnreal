@@ -50,6 +50,13 @@ FHoudiniEngine::GetHoudiniLogoStaticMesh() const
 }
 
 
+UMaterial*
+FHoudiniEngine::GetHoudiniDefaultMaterial() const
+{
+	return HoudiniDefaultMaterial;
+}
+
+
 bool
 FHoudiniEngine::CheckHapiVersionMismatch() const
 {
@@ -133,6 +140,11 @@ FHoudiniEngine::StartupModule()
 	HoudiniLogoStaticMesh =
 		LoadObject<UStaticMesh>(NULL, TEXT("/HoudiniEngine/houdini_logo.houdini_logo"), NULL, LOAD_None, NULL);
 	HoudiniLogoStaticMesh->AddToRoot();
+
+	// Create default material.
+	HoudiniDefaultMaterial = 
+		LoadObject<UMaterial>(NULL, TEXT("/HoudiniEngine/houdini_default_material.houdini_default_material"), NULL, LOAD_None, NULL);
+	HoudiniDefaultMaterial->AddToRoot();
 
 #if WITH_EDITOR
 
@@ -229,6 +241,9 @@ FHoudiniEngine::ShutdownModule()
 
 	// We no longer need Houdini logo static mesh.
 	HoudiniLogoStaticMesh->RemoveFromRoot();
+
+	// We no longer need Houdini default material.
+	HoudiniDefaultMaterial->RemoveFromRoot();
 
 	// Unregister settings.
 	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
