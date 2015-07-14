@@ -35,6 +35,7 @@ public:
 public:
 
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
+	virtual UMaterial* GetHoudiniDefaultMaterial() const override;
 
 #if WITH_EDITOR
 
@@ -73,6 +74,9 @@ private:
 
 	/** Static mesh used for Houdini logo rendering. **/
 	UStaticMesh* HoudiniLogoStaticMesh;
+
+	/** Material used as default material. **/
+	UMaterial* HoudiniDefaultMaterial;
 
 #if WITH_EDITOR
 

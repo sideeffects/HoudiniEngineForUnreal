@@ -16,6 +16,7 @@
 #pragma once
 
 
+class UMaterial;
 class UStaticMesh;
 class ISlateStyle;
 struct FHoudiniEngineNotificationInfo;
@@ -35,6 +36,9 @@ public:
 
 	/** Return static mesh reprensenting Houdini logo. **/
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const = 0;
+
+	/** Return default material. **/
+	virtual UMaterial* GetHoudiniDefaultMaterial() const = 0;
 
 	/** Return true if HAPI version mismatch is detected (between defined and running versions). **/
 	virtual bool CheckHapiVersionMismatch() const = 0;
