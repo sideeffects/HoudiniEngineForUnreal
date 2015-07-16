@@ -74,8 +74,9 @@ UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Compon
 	ShowCategories=(Mobility), editinlinenew)
 class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveComponent
 {
-	friend class FHoudiniMeshSceneProxy;
 	friend class AHoudiniAssetActor;
+	friend struct FHoudiniEngineUtils;
+	friend class FHoudiniMeshSceneProxy;
 
 #if WITH_EDITOR
 
@@ -468,6 +469,9 @@ protected:
 
 	/** Map of curve / spline components. **/
 	TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*> SplineComponents;
+
+	/** Material assignments, transient. **/
+	TMap<HAPI_MaterialId, UMaterial*> MaterialAssignments;
 
 	/** Buffer to hold preset data for serialization purposes. Used only during serialization. **/
 	TArray<char> PresetBuffer;
