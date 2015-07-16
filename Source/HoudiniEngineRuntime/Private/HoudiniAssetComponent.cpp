@@ -230,6 +230,14 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(HoudiniSplineComponent, InThis);
 		}
 
+		// Add references to all cached materials.
+		for(TMap<HAPI_MaterialId, UMaterial*>::TIterator
+			Iter(HoudiniAssetComponent->MaterialAssignments); Iter; ++Iter)
+		{
+			UMaterial* Material = Iter.Value();
+			Collector.AddReferencedObject(Material, InThis);
+		}
+
 		// Retrieve asset associated with this component and add reference to it.
 		// Also do not add reference if it is being referenced by preview component.
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
