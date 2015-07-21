@@ -213,11 +213,10 @@ public:
 	static void HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName);
 
 	/** HAPI : Retrieve names of all parameters. **/
-	static void HapiRetrieveParameterNames(const std::vector<HAPI_ParmInfo>& ParmInfos,
-		std::vector<std::string>& Names);
+	static void HapiRetrieveParameterNames(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<std::string>& Names);
 
 	/** HAPI : Look for parameter by name and return its index. Return -1 if not found. **/
-	static int32 HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names);
+	static int32 HapiFindParameterByName(const std::string& ParmName, const TArray<std::string>& Names);
 
 	/** HAPI : Extract image data. **/
 	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
@@ -230,6 +229,10 @@ public:
 	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UObject* Outer,
 		const FString& MeshName, const FRawMesh& RawMesh);
 
+	/** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
+	static void HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo,
+		const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<HAPI_MaterialId, UMaterial*>& Materials);
+
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
 	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		HAPI_PartId PartId, TArray<FTransform>& Transforms);
@@ -241,18 +244,26 @@ public:
 	/** Return number of processed valid index vertices for this split.												**/
 	static int32 HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList,
-		TArray<int32>& NewVertexList, TArray<int32>& AllVertexList);
+		TArray<int32>& NewVertexList, TArray<int32>& AllVertexList, TArray<int32>& AllFaceList,
+		TArray<int32>& AllCollisionFaceIndices);
 
 protected:
 
 	/** Create a package for given component for static mesh baking. **/
 	static UPackage* BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID,
-		bool bBake = false);
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject, FString& MeshName, FGuid& BakeGUID, bool bBake = false);
 
 	/** Create a package for given component for blueprint baking. **/
 	static UPackage* BakeCreateBlueprintPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		FString& BlueprintName);
+
+	/** Create a package for a given component for material. **/
+	static UPackage* BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+		const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName);
+
+	/** Create a package for a given component for texture. **/
+	static UPackage* BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+		const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName);
 
 	/** Helper routine to serialize Material interface. **/
 	static void Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar);
@@ -287,12 +298,15 @@ protected:
 	/** Return a specified HAPI status string. **/
 	static const FString GetStatusString(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity);
 
+	/** Extract all unique material ids for all geo object parts. **/
+	static bool ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds);
+
 protected:
 
 #if WITH_EDITOR
 
 	/** Create a texture from given information. **/
-	static UTexture2D* CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObject* Outer,
+	static UTexture2D* CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UObject* Outer,
 		const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer);
 
 	/** Reset streams used by the given RawMesh. **/
