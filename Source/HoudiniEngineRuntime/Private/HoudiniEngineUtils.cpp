@@ -597,14 +597,14 @@ FHoudiniEngineUtils::HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FS
 
 
 void
-FHoudiniEngineUtils::HapiRetrieveParameterNames(
-	const std::vector<HAPI_ParmInfo>& ParmInfos, std::vector<std::string>& Names)
+FHoudiniEngineUtils::HapiRetrieveParameterNames(const TArray<HAPI_ParmInfo>& ParmInfos, 
+	TArray<std::string>& Names)
 {
 	static const std::string InvalidParameterName("Invalid Parameter Name");
 
-	Names.resize(ParmInfos.size());
+	Names.Empty();
 
-	for(int32 ParmIdx = 0; ParmIdx < ParmInfos.size(); ++ParmIdx)
+	for(int32 ParmIdx = 0; ParmIdx < ParmInfos.Num(); ++ParmIdx)
 	{
 		const HAPI_ParmInfo& NodeParmInfo = ParmInfos[ParmIdx];
 		HAPI_StringHandle NodeParmHandle = NodeParmInfo.nameSH;
@@ -619,18 +619,19 @@ FHoudiniEngineUtils::HapiRetrieveParameterNames(
 			HAPI_Result Result = FHoudiniApi::GetString(NodeParmHandle, &NodeParmName[0], NodeParmNameLength);
 			if(HAPI_RESULT_SUCCESS == Result)
 			{
-				Names[ParmIdx] = std::string(NodeParmName.begin(), NodeParmName.end() - 1);
+				Names.Add(std::string(NodeParmName.begin(), NodeParmName.end() - 1));
 			}
 			else
 			{
-				Names[ParmIdx] = InvalidParameterName;
+				Names.Add(InvalidParameterName);
 			}
 		}
 		else
 		{
-			Names[ParmIdx] = InvalidParameterName;
+			Names.Add(InvalidParameterName);
 		}
 	}
+
 }
 
 
@@ -659,9 +660,9 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(
 
 
 int32
-FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const std::vector<std::string>& Names)
+FHoudiniEngineUtils::HapiFindParameterByName(const std::string& ParmName, const TArray<std::string>& Names)
 {
-	for(int32 Idx = 0; Idx < Names.size(); ++Idx)
+	for(int32 Idx = 0; Idx < Names.Num(); ++Idx)
 	{
 		if(!ParmName.compare(0, ParmName.length(), Names[Idx]))
 		{
@@ -944,14 +945,30 @@ FHoudiniEngineUtils::HapiExtractImage(
 #if WITH_EDITOR
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObject* Outer,
+FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UObject* Outer, 
 	const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer)
 {
 	UTexture2D* Texture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Outer, *TextureName, RF_Public);
-	Texture->PlatformData = new FTexturePlatformData();
+
+	if(ExistingTexture)
+	{
+		Texture = ExistingTexture;
+	}
+	else
+	{
+		Texture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Outer, *TextureName, RF_Public);
+		Texture->PlatformData = new FTexturePlatformData();
+	}
+
 	Texture->PlatformData->SizeX = ImageInfo.xRes;
 	Texture->PlatformData->SizeY = ImageInfo.yRes;
 	Texture->PlatformData->PixelFormat = PixelFormat;
+
+	if(ExistingTexture)
+	{
+		Texture->UpdateResource();
+	}
+
 	/*
 	NewTexture->SRGB = false;
 	NewTexture->CompressionNone = true;
@@ -960,10 +977,22 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObjec
 	NewTexture->AddressY = TA_Clamp;
 	NewTexture->LODGroup = InLODGroup;
 	*/
+
 	// Allocate first mipmap.
 	int32 NumBlocksX = ImageInfo.xRes / GPixelFormats[PixelFormat].BlockSizeX;
 	int32 NumBlocksY = ImageInfo.yRes / GPixelFormats[PixelFormat].BlockSizeY;
-	FTexture2DMipMap* Mip = new(Texture->PlatformData->Mips) FTexture2DMipMap();
+
+	FTexture2DMipMap* Mip = nullptr;
+
+	if(ExistingTexture)
+	{
+		Mip = &Texture->PlatformData->Mips[0];
+	}
+	else
+	{
+		Mip = new(Texture->PlatformData->Mips) FTexture2DMipMap();
+	}
+
 	Mip->SizeX = ImageInfo.xRes;
 	Mip->SizeY = ImageInfo.yRes;
 	Mip->BulkData.Lock(LOCK_READ_WRITE);
@@ -1004,6 +1033,7 @@ FHoudiniEngineUtils::CreateUnrealTexture(const HAPI_ImageInfo& ImageInfo, UObjec
 }
 
 
+
 void
 FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
 {
@@ -1037,13 +1067,12 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::GetNodeInfo(NodeId, &NodeInfo);
 
-	std::vector<HAPI_ParmInfo> NodeParams;
-	NodeParams.resize(NodeInfo.parmCount);
+	TArray<HAPI_ParmInfo> NodeParams;
+	NodeParams.SetNumUninitialized(NodeInfo.parmCount);
 	FHoudiniApi::GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
 
 	// Get names of parameters.
-	std::vector<std::string> NodeParamNames;
-	NodeParamNames.resize(NodeInfo.parmCount);
+	TArray<std::string> NodeParamNames;
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if parameter is present.
@@ -1073,13 +1102,12 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::GetNodeInfo(NodeId, &NodeInfo);
 
-	std::vector<HAPI_ParmInfo> NodeParams;
-	NodeParams.resize(NodeInfo.parmCount);
+	TArray<HAPI_ParmInfo> NodeParams;
+	NodeParams.SetNumUninitialized(NodeInfo.parmCount);
 	FHoudiniApi::GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
 
 	// Get names of parameters.
-	std::vector<std::string> NodeParamNames;
-	NodeParamNames.resize(NodeInfo.parmCount);
+	TArray<std::string> NodeParamNames;
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if parameter is present.
@@ -1109,13 +1137,12 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::GetNodeInfo(NodeId, &NodeInfo);
 
-	std::vector<HAPI_ParmInfo> NodeParams;
-	NodeParams.resize(NodeInfo.parmCount);
+	TArray<HAPI_ParmInfo> NodeParams;
+	NodeParams.SetNumUninitialized(NodeInfo.parmCount);
 	FHoudiniApi::GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
 
 	// Get names of parameters.
-	std::vector<std::string> NodeParamNames;
-	NodeParamNames.resize(NodeInfo.parmCount);
+	TArray<std::string> NodeParamNames;
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if parameter is present.
@@ -1606,7 +1633,7 @@ FHoudiniEngineUtils::HapiConnectAsset(
 
 UPackage*
 FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
-	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UPackage* Package, FString& MeshName, FGuid& BakeGUID, bool bBake)
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, FString& MeshName, FGuid& BakeGUID, bool bBake)
 {
 	UPackage* PackageNew = nullptr;
 
@@ -1659,7 +1686,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
 		// See if package exists, if it does, we need to regenerate the name.
-		Package = FindPackage(nullptr, *PackageName);
+		UPackage* Package = FindPackage(nullptr, *PackageName);
 
 		if(Package)
 		{
@@ -1741,6 +1768,116 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(UHoudiniAssetCompone
 }
 
 
+UPackage*
+FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName)
+{
+	UPackage* Package = nullptr;
+
+#if WITH_EDITOR
+
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	FGuid BakeGUID = FGuid::NewGuid();
+
+	while(true)
+	{
+		if(!BakeGUID.IsValid())
+		{
+			BakeGUID = FGuid::NewGuid();
+		}
+
+		// We only want half of generated guid string.
+		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+
+		// Generate Blueprint name.
+		MaterialName = HoudiniAsset->GetName() + TEXT("_material_") + 
+			FString::FromInt(MaterialInfo.id) + TEXT("_") +
+			BakeGUIDString;
+
+		// Generate unique package name.=
+		FString PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
+			TEXT("/") +
+			MaterialName;
+
+		PackageName = PackageTools::SanitizePackageName(PackageName);
+
+		// See if package exists, if it does, we need to regenerate the name.
+		Package = FindPackage(nullptr, *PackageName);
+
+		if(Package)
+		{
+			// Package does exist, there's a collision, we need to generate a new name.
+			BakeGUID.Invalidate();
+		}
+		else
+		{
+			// Create actual package.
+			Package = CreatePackage(nullptr, *PackageName);
+			break;
+		}
+	}
+
+#endif
+
+	return Package;
+}
+
+
+UPackage*
+FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName)
+{
+	UPackage* Package = nullptr;
+
+#if WITH_EDITOR
+
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	FGuid BakeGUID = FGuid::NewGuid();
+
+	while(true)
+	{
+		if(!BakeGUID.IsValid())
+		{
+			BakeGUID = FGuid::NewGuid();
+		}
+
+		// We only want half of generated guid string.
+		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+
+		// Generate Blueprint name.
+		TextureName = HoudiniAsset->GetName() + TEXT("_texture_") + 
+			TextureType + TEXT("_") +
+			FString::FromInt(MaterialInfo.id) + TEXT("_") +
+			BakeGUIDString;
+
+		// Generate unique package name.=
+		FString PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
+			TEXT("/") +
+			TextureName;
+
+		PackageName = PackageTools::SanitizePackageName(PackageName);
+
+		// See if package exists, if it does, we need to regenerate the name.
+		Package = FindPackage(nullptr, *PackageName);
+
+		if(Package)
+		{
+			// Package does exist, there's a collision, we need to generate a new name.
+			BakeGUID.Invalidate();
+		}
+		else
+		{
+			// Create actual package.
+			Package = CreatePackage(nullptr, *PackageName);
+			break;
+		}
+	}
+
+#endif
+
+	return Package;
+}
+
 bool
 FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
@@ -1810,6 +1947,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	TArray<float> Colors;
 	TArray<FString> FaceMaterials;
 	TArray<int32> FaceSmoothingMasks;
+
+	// Retrieve all used unique material ids.
+	TSet<HAPI_MaterialId> UniqueMaterialIds;
+	FHoudiniEngineUtils::ExtractUniqueMaterialIds(AssetInfo, UniqueMaterialIds);
+
+	// Map to hold materials.
+	TMap<HAPI_MaterialId, UMaterial*> Materials;
+
+	// Create materials.
+	FHoudiniEngineUtils::HapiCreateMaterials(HoudiniAssetComponent, AssetInfo, UniqueMaterialIds, Materials);
+
+	// Cache all materials inside the component.
+	HoudiniAssetComponent->MaterialAssignments = Materials;
 
 	// If we have no package, we will use transient package.
 	if(!Package)
@@ -1933,15 +2083,54 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					continue;
 				}
 
-				// Retrieve material information.
-				HAPI_MaterialInfo MaterialInfo;
-				bool bMaterialFound = false;
-				if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetMaterialOnPart(AssetId, ObjectInfo.id, GeoInfo.id,
-					PartInfo.id, &MaterialInfo))
+				// Retrieve material information for this geo part.
+				TArray<HAPI_MaterialId> FaceMaterialIds;
+				HAPI_Bool bSingleFaceMaterial = false;
+				bool bMaterialsFound = false;
+				bool bMaterialsChanged = false;
+
+				if(PartInfo.faceCount > 0)
 				{
-					if(MaterialInfo.exists)
+					FaceMaterialIds.SetNumUninitialized(PartInfo.faceCount);
+
+					if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(AssetId, ObjectInfo.id, 
+						GeoInfo.id, PartInfo.id, &bSingleFaceMaterial, &FaceMaterialIds[0], 0, PartInfo.faceCount))
 					{
-						bMaterialFound = true;
+						// Error retrieving material face assignments.
+						bGeoError = true;
+						HOUDINI_LOG_MESSAGE(
+							TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve material face assignments, ")
+							TEXT("- skipping."),
+							ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+						continue;
+					}
+
+					// Set flag if we have materials.
+					for(int32 MaterialIdx = 0; MaterialIdx < FaceMaterialIds.Num(); ++MaterialIdx)
+					{
+						if(-1 != FaceMaterialIds[MaterialIdx])
+						{
+							bMaterialsFound = true;
+							break;
+						}
+					}
+
+					// Set flag if any of the materials have changed.
+					for(int32 MaterialFaceIdx = 0; MaterialFaceIdx < FaceMaterialIds.Num(); ++MaterialFaceIdx)
+					{
+						HAPI_MaterialInfo MaterialInfo;
+
+						if(HAPI_RESULT_SUCCESS != 
+							FHoudiniApi::GetMaterialInfo(AssetInfo.id, FaceMaterialIds[MaterialFaceIdx], 
+								&MaterialInfo))
+						{
+							continue;
+						}
+
+						if(MaterialInfo.hasChanged)
+						{
+							bMaterialsChanged = true;
+						}
 					}
 				}
 
@@ -2016,16 +2205,23 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 				// See if we require splitting.
 				TMap<FString, TArray<int32> > GroupSplitFaces;
-				TMap<FString, int32 > GroupSplitFaceCounts;
+				TMap<FString, int32> GroupSplitFaceCounts;
+				TMap<FString, TArray<int32> > GroupSplitFaceIndices;
+
 				int32 GroupVertexListCount = 0;
 				static const FString RemainingGroupName = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION);
 
 				if(bIsRenderCollidable || bIsCollidable)
 				{
-					// Set holding all vertex indices used for collision. We need this to figure out all vertex
+					// Buffer for all vertex indices used for collision. We need this to figure out all vertex
 					// indices that are not part of collision geos.
 					TArray<int32> AllCollisionVertexList;
 					AllCollisionVertexList.SetNumZeroed(VertexList.Num());
+
+					// Buffer for all face indices used for collision. We need this to figure out all face indices
+					// that are not part of collision geos.
+					TArray<int32> AllCollisionFaceIndices;
+					AllCollisionFaceIndices.SetNumZeroed(FaceMaterialIds.Num());
 
 					for(int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx)
 					{
@@ -2040,17 +2236,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						{
 							// New vertex list just for this group.
 							TArray<int32> GroupVertexList;
+							TArray<int32> AllFaceList;
 
 							// Extract vertex indices for this split.
 							GroupVertexListCount = FHoudiniEngineUtils::HapiGetVertexListForGroup(AssetId,
 								ObjectInfo.id, GeoInfo.id, PartInfo.id, GroupName, VertexList, GroupVertexList,
-								AllCollisionVertexList);
+								AllCollisionVertexList, AllFaceList, AllCollisionFaceIndices);
 
 							if(GroupVertexListCount > 0)
 							{
 								// If list is not empty, we store it for this group - this will define new mesh.
 								GroupSplitFaces.Add(GroupName, GroupVertexList);
 								GroupSplitFaceCounts.Add(GroupName, GroupVertexListCount);
+								GroupSplitFaceIndices.Add(GroupName, AllFaceList);
 							}
 						}
 					}
@@ -2061,6 +2259,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					GroupSplitFacesRemaining.Init(-1, VertexList.Num());
 					bool bMainSplitGroup = false;
 					GroupVertexListCount = 0;
+
+					TArray<int32> GroupSplitFaceIndicesRemaining;
 
 					for(int32 CollisionVertexIdx = 0; CollisionVertexIdx < AllCollisionVertexList.Num();
 						++CollisionVertexIdx)
@@ -2076,17 +2276,36 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						}
 					}
 
+					for(int32 CollisionFaceIdx = 0; CollisionFaceIdx < AllCollisionFaceIndices.Num(); ++CollisionFaceIdx)
+					{
+						int32 FaceIndex = AllCollisionFaceIndices[CollisionFaceIdx];
+						if(0 == FaceIndex)
+						{
+							// This is unused face, we need to add it to unused faces list.
+							GroupSplitFaceIndicesRemaining.Add(FaceIndex);
+						}
+					}
+
 					// We store remaining geo vertex list as a special name.
 					if(bMainSplitGroup)
 					{
 						GroupSplitFaces.Add(RemainingGroupName, GroupSplitFacesRemaining);
 						GroupSplitFaceCounts.Add(RemainingGroupName, GroupVertexListCount);
+						GroupSplitFaceIndices.Add(RemainingGroupName, GroupSplitFaceIndicesRemaining);
 					}
 				}
 				else
 				{
 					GroupSplitFaces.Add(RemainingGroupName, VertexList);
 					GroupSplitFaceCounts.Add(RemainingGroupName, VertexList.Num());
+
+					TArray<int32> AllFaces;
+					for(int32 FaceIdx = 0; FaceIdx < PartInfo.faceCount; ++FaceIdx)
+					{
+						AllFaces.Add(FaceIdx);
+					}
+
+					GroupSplitFaceIndices.Add(RemainingGroupName, AllFaces);
 				}
 
 				// Keep track of split id.
@@ -2101,6 +2320,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 					// Get valid count of vertex indices for this split.
 					int32 SplitGroupVertexListCount = GroupSplitFaceCounts[SplitGroupName];
+
+					// Get face indices for this split.
+					TArray<int32>& SplitGroupFaceIndices = GroupSplitFaceIndices[SplitGroupName];
 
 					// Record split id in geo part.
 					HoudiniGeoPartObject.SplitId = SplitId;
@@ -2134,6 +2356,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					// See if materials have changed for this geo part object.
 					HoudiniAssetComponent->CheckMaterialInformationChanged(HoudiniGeoPartObject);
 
+					// Flag whether we need to rebuild the mesh.
+					bool bRebuildStaticMesh = false;
+
 					// See if geometry and scaling factor has not changed. Then we can reuse the corresponding
 					// static mesh.
 					if(!GeoInfo.hasGeoChanged && HoudiniAssetComponent->CheckGlobalSettingScaleFactors())
@@ -2143,41 +2368,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						{
 							StaticMesh = *FoundStaticMesh;
 
-							// If there's material and material has changed.
-							if(bMaterialFound && MaterialInfo.hasChanged)
+							// If any of the materials on corresponding geo part object have not changed.
+							if(!bMaterialsChanged)
 							{
-								// Also make sure material has not been replaced by Unreal material.
-								if(!HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
-								{
-									// Grab current source model and load existing raw model. This will be empty as we are
-									// constructing a new mesh.
-									FStaticMeshSourceModel* SrcModel = &StaticMesh->SourceModels[0];
-									FRawMesh RawMesh;
-									SrcModel->RawMeshBulkData->LoadRawMesh(RawMesh);
-
-									// Even though geometry did not change, material requires update.
-									MeshName = StaticMesh->GetName();
-									UMaterial* Material =
-										FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, StaticMesh->GetOuter(),
-											MeshName, RawMesh);
-
-									// Flag that we have Houdini material.
-									HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
-
-									// Remove previous materials.
-									StaticMesh->Materials.Empty();
-									StaticMesh->Materials.Add(Material);
-								}
+								// We can reuse previously created geometry.
+								StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
+								continue;
 							}
-							else
-							{
-								// Material hasn't changed, we do not need to change anything.
-								check(StaticMesh->Materials.Num() > 0);
-							}
-
-							// We can reuse previously created geometry.
-							StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
-							continue;
 						}
 						else
 						{
@@ -2190,6 +2387,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							continue;
 						}
 					}
+					else
+					{
+						bRebuildStaticMesh = true;
+					}
 
 					// If static mesh was not located, we need to create one.
 					bool bStaticMeshCreated = false;
@@ -2197,8 +2398,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					{
 						MeshGuid.Invalidate();
 
-						UPackage* MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent,
-							HoudiniGeoPartObject, nullptr, MeshName, MeshGuid);
+						UPackage* MeshPackage =
+							FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent,
+								HoudiniGeoPartObject, MeshName, MeshGuid);
 						StaticMesh = NewNamedObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
 						FAssetRegistryModule::AssetCreated(StaticMesh);
 						bStaticMeshCreated = true;
@@ -2221,469 +2423,469 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					// Load existing raw model. This will be empty as we are constructing a new mesh.
 					FRawMesh RawMesh;
 
-					// Retrieve position data.
-					HAPI_AttributeInfo AttribInfoPositions;
-					if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-						HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
-					{
-						// Error retrieving positions.
-						bGeoError = true;
-
-						HOUDINI_LOG_MESSAGE(
-							TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
-							TEXT("- skipping."),
-							ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
-
-						if(bStaticMeshCreated)
-						{
-							StaticMesh->MarkPendingKill();
-						}
-
-						break;
-					}
-
-					// Get name of attribute used for marshalling materials.
-					HAPI_AttributeInfo AttribFaceMaterials;
-
-					{
-						std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
-						if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
-						{
-							FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial,
-								MarshallingAttributeName);
-						}
-
-						FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
-					}
-
-					// Retrieve color data.
-					HAPI_AttributeInfo AttribInfoColors;
-					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-						HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
-
-					// See if we need to transfer color point attributes to vertex attributes.
-					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoColors, Colors);
-
-					// Retrieve normal data.
-					HAPI_AttributeInfo AttribInfoNormals;
-					FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-						HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
-
-					// Retrieve face smoothing data.
-					HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
-
-					{
-						std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
-						if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
-						{
-							FHoudiniEngineUtils::ConvertUnrealString(
-								HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask,
-								MarshallingAttributeName);
-						}
-
-						FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-							AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, MarshallingAttributeName.c_str(),
-							AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
-					}
-
-					// See if we need to transfer normal point attributes to vertex attributes.
-					FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-						SplitGroupVertexList, AttribInfoNormals, Normals);
-
-					// Retrieve UVs.
-					HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
-					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-					{
-						std::string UVAttributeName = HAPI_ATTRIB_UV;
-
-						if(TexCoordIdx > 0)
-						{
-							UVAttributeName += std::to_string(TexCoordIdx + 1);
-						}
-
-						const char* UVAttributeNameString = UVAttributeName.c_str();
-						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-							AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, UVAttributeNameString,
-							AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx], 2);
-
-						// See if we need to transfer uv point attributes to vertex attributes.
-						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-							SplitGroupVertexList, AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx]);
-					}
-
-					// We can transfer attributes to raw mesh.
-
 					// Compute number of faces.
 					int32 FaceCount = SplitGroupVertexListCount / 3;
 
-					// Set face smoothing masks.
+					if(bRebuildStaticMesh)
 					{
-						RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
-
-						if(FaceSmoothingMasks.Num())
+						// Retrieve position data.
+						HAPI_AttributeInfo AttribInfoPositions;
+						if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+							HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
 						{
-							int32 ValidFaceIdx = 0;
-							for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
+							// Error retrieving positions.
+							bGeoError = true;
+
+							HOUDINI_LOG_MESSAGE(
+								TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+								TEXT("- skipping."),
+								ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName);
+
+							if(bStaticMeshCreated)
 							{
-								int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
-								if(-1 == WedgeCheck)
+								StaticMesh->MarkPendingKill();
+							}
+
+							break;
+						}
+
+						// Get name of attribute used for marshalling materials.
+						HAPI_AttributeInfo AttribFaceMaterials;
+
+						{
+							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
+							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+							{
+								FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial,
+									MarshallingAttributeName);
+							}
+
+							FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+								MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
+						}
+
+						// Retrieve color data.
+						HAPI_AttributeInfo AttribInfoColors;
+						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+							HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
+
+						// See if we need to transfer color point attributes to vertex attributes.
+						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoColors, Colors);
+
+						// Retrieve normal data.
+						HAPI_AttributeInfo AttribInfoNormals;
+						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+							HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
+
+						// Retrieve face smoothing data.
+						HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
+
+						{
+							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
+							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+							{
+								FHoudiniEngineUtils::ConvertUnrealString(
+									HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask,
+									MarshallingAttributeName);
+							}
+
+							FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+								AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, MarshallingAttributeName.c_str(),
+								AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
+						}
+
+						// See if we need to transfer normal point attributes to vertex attributes.
+						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+							SplitGroupVertexList, AttribInfoNormals, Normals);
+
+						// Retrieve UVs.
+						HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
+						for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+						{
+							std::string UVAttributeName = HAPI_ATTRIB_UV;
+
+							if(TexCoordIdx > 0)
+							{
+								UVAttributeName += std::to_string(TexCoordIdx + 1);
+							}
+
+							const char* UVAttributeNameString = UVAttributeName.c_str();
+							FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+								AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, UVAttributeNameString,
+								AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx], 2);
+
+							// See if we need to transfer uv point attributes to vertex attributes.
+							FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+								SplitGroupVertexList, AttribInfoUVs[TexCoordIdx], TextureCoordinates[TexCoordIdx]);
+						}
+
+						// We can transfer attributes to raw mesh.
+
+						// Set face smoothing masks.
+						{
+							RawMesh.FaceSmoothingMasks.SetNumZeroed(FaceCount);
+
+							if(FaceSmoothingMasks.Num())
+							{
+								int32 ValidFaceIdx = 0;
+								for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
 								{
-									continue;
+									int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
+									if(-1 == WedgeCheck)
+									{
+										continue;
+									}
+
+									RawMesh.FaceSmoothingMasks[ValidFaceIdx] = FaceSmoothingMasks[VertexIdx / 3];
+									ValidFaceIdx++;
+								}
+							}
+						}
+
+						// Transfer UVs.
+						int32 UVChannelCount = 0;
+						int32 FirstUVChannelIndex = -1;
+						for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+						{
+							TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
+							if(TextureCoordinate.Num() > 0)
+							{
+								int32 WedgeUVCount = TextureCoordinate.Num() / 2;
+								RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
+								for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
+								{
+									// We need to flip V coordinate when it's coming from HAPI.
+									FVector2D WedgeUV;
+									WedgeUV.X = TextureCoordinate[WedgeUVIdx * 2 + 0];
+									WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
+
+									RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
 								}
 
-								RawMesh.FaceSmoothingMasks[ValidFaceIdx] = FaceSmoothingMasks[VertexIdx / 3];
-								ValidFaceIdx++;
-							}
-						}
-					}
-
-					// Transfer UVs.
-					int32 UVChannelCount = 0;
-					int32 FirstUVChannelIndex = -1;
-					for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-					{
-						TArray<float>& TextureCoordinate = TextureCoordinates[TexCoordIdx];
-						if(TextureCoordinate.Num() > 0)
-						{
-							int32 WedgeUVCount = TextureCoordinate.Num() / 2;
-							RawMesh.WedgeTexCoords[TexCoordIdx].SetNumZeroed(WedgeUVCount);
-							for(int32 WedgeUVIdx = 0; WedgeUVIdx < WedgeUVCount; ++WedgeUVIdx)
-							{
-								// We need to flip V coordinate when it's coming from HAPI.
-								FVector2D WedgeUV;
-								WedgeUV.X = TextureCoordinate[WedgeUVIdx * 2 + 0];
-								WedgeUV.Y = 1.0f - TextureCoordinate[WedgeUVIdx * 2 + 1];
-
-								RawMesh.WedgeTexCoords[TexCoordIdx][WedgeUVIdx] = WedgeUV;
-							}
-
-							UVChannelCount++;
-							if(-1 == FirstUVChannelIndex)
-							{
-								FirstUVChannelIndex = TexCoordIdx;
-							}
-						}
-						else
-						{
-							RawMesh.WedgeTexCoords[TexCoordIdx].Empty();
-						}
-					}
-
-					switch(UVChannelCount)
-					{
-						case 0:
-						{
-							// We have to have at least one UV channel. If there's none, create one with zero data.
-							RawMesh.WedgeTexCoords[0].SetNumZeroed(SplitGroupVertexListCount);
-							StaticMesh->LightMapCoordinateIndex = 0;
-
-							break;
-						}
-
-						case 1:
-						{
-							// We have only one UV channel.
-							StaticMesh->LightMapCoordinateIndex = FirstUVChannelIndex;
-
-							break;
-						}
-
-						default:
-						{
-							// We have more than one channel, by convention use 2nd set for lightmaps.
-							StaticMesh->LightMapCoordinateIndex = 1;
-
-							break;
-						}
-					}
-
-					// Transfer colors.
-					if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
-					{
-						int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
-						RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
-						for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
-						{
-							FLinearColor WedgeColor;
-
-							WedgeColor.R = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0], 0.0f, 1.0f);
-							WedgeColor.G = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1], 0.0f, 1.0f);
-							WedgeColor.B = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2], 0.0f, 1.0f);
-
-							if(4 == AttribInfoColors.tupleSize)
-							{
-								// We have alpha.
-								WedgeColor.A = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3],
-									0.0f, 1.0f);
+								UVChannelCount++;
+								if(-1 == FirstUVChannelIndex)
+								{
+									FirstUVChannelIndex = TexCoordIdx;
+								}
 							}
 							else
 							{
-								WedgeColor.A = 1.0f;
+								RawMesh.WedgeTexCoords[TexCoordIdx].Empty();
+							}
+						}
+
+						switch(UVChannelCount)
+						{
+							case 0:
+							{
+								// We have to have at least one UV channel. If there's none, create one with zero data.
+								RawMesh.WedgeTexCoords[0].SetNumZeroed(SplitGroupVertexListCount);
+								StaticMesh->LightMapCoordinateIndex = 0;
+
+								break;
 							}
 
-							// Convert linear color to fixed color.
-							RawMesh.WedgeColors[WedgeColorIdx] = FColor(WedgeColor);
+							case 1:
+							{
+								// We have only one UV channel.
+								StaticMesh->LightMapCoordinateIndex = FirstUVChannelIndex;
+
+								break;
+							}
+
+							default:
+							{
+								// We have more than one channel, by convention use 2nd set for lightmaps.
+								StaticMesh->LightMapCoordinateIndex = 1;
+
+								break;
+							}
+						}
+
+						// Transfer colors.
+						if(AttribInfoColors.exists && AttribInfoColors.tupleSize)
+						{
+							int32 WedgeColorsCount = Colors.Num() / AttribInfoColors.tupleSize;
+							RawMesh.WedgeColors.SetNumZeroed(WedgeColorsCount);
+							for(int32 WedgeColorIdx = 0; WedgeColorIdx < WedgeColorsCount; ++WedgeColorIdx)
+							{
+								FLinearColor WedgeColor;
+
+								WedgeColor.R = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 0], 0.0f, 1.0f);
+								WedgeColor.G = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 1], 0.0f, 1.0f);
+								WedgeColor.B = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 2], 0.0f, 1.0f);
+
+								if(4 == AttribInfoColors.tupleSize)
+								{
+									// We have alpha.
+									WedgeColor.A = FMath::Clamp(Colors[WedgeColorIdx * AttribInfoColors.tupleSize + 3],
+										0.0f, 1.0f);
+								}
+								else
+								{
+									WedgeColor.A = 1.0f;
+								}
+
+								// Convert linear color to fixed color.
+								RawMesh.WedgeColors[WedgeColorIdx] = FColor(WedgeColor);
+							}
+						}
+
+						// See if we need to generate tangents, we do this only if normals are present.
+						bool bGenerateTangents = (Normals.Num() > 0);
+
+						// Transfer normals.
+						int32 WedgeNormalCount = Normals.Num() / 3;
+						RawMesh.WedgeTangentZ.SetNumZeroed(WedgeNormalCount);
+						for(int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx)
+						{
+							FVector WedgeTangentZ;
+
+							WedgeTangentZ.X = Normals[WedgeTangentZIdx * 3 + 0];
+							WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
+							WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
+
+							if(HRSAI_Unreal == ImportAxis)
+							{
+								// We need to flip Z and Y coordinate here.
+								Swap(WedgeTangentZ.Y, WedgeTangentZ.Z);
+								RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
+							}
+							else if(HRSAI_Houdini == ImportAxis)
+							{
+								// Do nothing in this case.
+							}
+							else
+							{
+								// Not valid enum value.
+								check(0);
+							}
+
+							// If we need to generate tangents.
+							if(bGenerateTangents)
+							{
+								FVector TangentX, TangentY;
+								WedgeTangentZ.FindBestAxisVectors(TangentX, TangentY);
+
+								RawMesh.WedgeTangentX.Add(TangentX);
+								RawMesh.WedgeTangentY.Add(TangentY);
+							}
+						}
+
+						// Transfer indices.
+						RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexListCount);
+						int32 ValidVertexId = 0;
+						for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
+						{
+							int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
+							if(-1 == WedgeCheck)
+							{
+								continue;
+							}
+
+							int32 WedgeIndices[3] = {
+								SplitGroupVertexList[VertexIdx + 0],
+								SplitGroupVertexList[VertexIdx + 1],
+								SplitGroupVertexList[VertexIdx + 2]
+							};
+
+							if(HRSAI_Unreal == ImportAxis)
+							{
+								// Flip wedge indices to fix winding order.
+								RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
+								RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[2];
+								RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[1];
+
+								// Check if we need to patch UVs.
+								for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+								{
+									if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
+									{
+										Swap(RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 1],
+											RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 2]);
+									}
+								}
+
+								// Check if we need to patch colors.
+								if(RawMesh.WedgeColors.Num() > 0)
+								{
+									Swap(RawMesh.WedgeColors[ValidVertexId + 1], RawMesh.WedgeColors[ValidVertexId + 2]);
+								}
+
+								// Check if we need to patch tangents.
+								if(RawMesh.WedgeTangentZ.Num() > 0)
+								{
+									Swap(RawMesh.WedgeTangentZ[ValidVertexId + 1], RawMesh.WedgeTangentZ[ValidVertexId + 2]);
+								}
+								/*
+								if(RawMesh.WedgeTangentX.Num() > 0)
+								{
+								Swap(RawMesh.WedgeTangentX[ValidVertexId + 1], RawMesh.WedgeTangentX[ValidVertexId + 2]);
+								}
+
+								if(RawMesh.WedgeTangentY.Num() > 0)
+								{
+								Swap(RawMesh.WedgeTangentY[ValidVertexId + 1], RawMesh.WedgeTangentY[ValidVertexId + 2]);
+								}
+								*/
+							}
+							else if(HRSAI_Houdini == ImportAxis)
+							{
+								// Flip wedge indices to fix winding order.
+								RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
+								RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[1];
+								RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[2];
+							}
+							else
+							{
+								// Not valid enum value.
+								check(0);
+							}
+
+							ValidVertexId += 3;
+						}
+
+						// Transfer vertex positions.
+						int32 VertexPositionsCount = Positions.Num() / 3;
+						RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
+						for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
+						{
+							FVector VertexPosition;
+							VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * GeneratedGeometryScaleFactor;
+							VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * GeneratedGeometryScaleFactor;
+							VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * GeneratedGeometryScaleFactor;
+
+							if(HRSAI_Unreal == ImportAxis)
+							{
+								// We need to flip Z and Y coordinate here.
+								Swap(VertexPosition.Y, VertexPosition.Z);
+							}
+							else if(HRSAI_Houdini == ImportAxis)
+							{
+								// No action required.
+							}
+							else
+							{
+								// Not valid enum value.
+								check(0);
+							}
+
+							RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
+						}
+
+						// We need to check if this mesh contains only degenerate triangles.
+						if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
+						{
+							// This mesh contains only degenerate triangles, there's nothing we can do.
+							if(bStaticMeshCreated)
+							{
+								StaticMesh->MarkPendingKill();
+							}
+
+							continue;
 						}
 					}
-
-					// See if we need to generate tangents, we do this only if normals are present.
-					bool bGenerateTangents = (Normals.Num() > 0);
-
-					// Transfer normals.
-					int32 WedgeNormalCount = Normals.Num() / 3;
-					RawMesh.WedgeTangentZ.SetNumZeroed(WedgeNormalCount);
-					for(int32 WedgeTangentZIdx = 0; WedgeTangentZIdx < WedgeNormalCount; ++WedgeTangentZIdx)
+					else
 					{
-						FVector WedgeTangentZ;
+						// Otherwise we'll just load old data into Raw mesh and reuse it.
+						FRawMeshBulkData* InRawMeshBulkData = SrcModel->RawMeshBulkData;
+						InRawMeshBulkData->LoadRawMesh(RawMesh);
+					}
 
-						WedgeTangentZ.X = Normals[WedgeTangentZIdx * 3 + 0];
-						WedgeTangentZ.Y = Normals[WedgeTangentZIdx * 3 + 1];
-						WedgeTangentZ.Z = Normals[WedgeTangentZIdx * 3 + 2];
+					if(bMaterialsFound)
+					{
+						if(bSingleFaceMaterial)
+						{
+							// Use default Houdini material if no valid material is assigned to any of the faces.
+							UMaterial* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
-						if(HRSAI_Unreal == ImportAxis)
-						{
-							// We need to flip Z and Y coordinate here.
-							Swap(WedgeTangentZ.Y, WedgeTangentZ.Z);
-							RawMesh.WedgeTangentZ[WedgeTangentZIdx] = WedgeTangentZ;
-						}
-						else if(HRSAI_Houdini == ImportAxis)
-						{
-							// Do nothing in this case.
+							// We have only one material.
+							RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+
+							// Get id of this single material.
+							HAPI_MaterialId MaterialId = FaceMaterialIds[0];
+
+							if(-1 != MaterialId)
+							{
+								Material = Materials[MaterialId];
+							}
+
+							StaticMesh->Materials.Empty();
+							StaticMesh->Materials.Add(Material);
 						}
 						else
 						{
-							// Not valid enum value.
-							check(0);
-						}
+							// Get default Houdini material.
+							UMaterial* MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
-						// If we need to generate tangents.
-						if(bGenerateTangents)
-						{
-							FVector TangentX, TangentY;
-							WedgeTangentZ.FindBestAxisVectors(TangentX, TangentY);
+							// We have multiple materials.
+							int32 MaterialIndex = 0;
+							TMap<UMaterial*, int32> MappedMaterials;
+							TArray<UMaterial*> MappedMaterialsList;
 
-							RawMesh.WedgeTangentX.Add(TangentX);
-							RawMesh.WedgeTangentY.Add(TangentY);
-						}
-					}
+							// Reset Rawmesh material face assignments.
+							RawMesh.FaceMaterialIndices.SetNumZeroed(SplitGroupFaceIndices.Num());
 
-					// Transfer indices.
-					RawMesh.WedgeIndices.SetNumZeroed(SplitGroupVertexListCount);
-					int32 ValidVertexId = 0;
-					for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
-					{
-						int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
-						if(-1 == WedgeCheck)
-						{
-							continue;
-						}
-
-						int32 WedgeIndices[3] = {
-							SplitGroupVertexList[VertexIdx + 0],
-							SplitGroupVertexList[VertexIdx + 1],
-							SplitGroupVertexList[VertexIdx + 2]
-						};
-
-						if(HRSAI_Unreal == ImportAxis)
-						{
-							// Flip wedge indices to fix winding order.
-							RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
-							RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[2];
-							RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[1];
-
-							// Check if we need to patch UVs.
-							for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+							for(int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
 							{
-								if(RawMesh.WedgeTexCoords[TexCoordIdx].Num() > 0)
+								// Get material id for this face.
+								HAPI_MaterialId MaterialId = FaceMaterialIds[FaceIdx];
+								UMaterial* Material = nullptr;
+
+								if(-1 == MaterialId)
 								{
-									Swap(RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 1],
-										RawMesh.WedgeTexCoords[TexCoordIdx][ValidVertexId + 2]);
+									// Use default material for this face.
+									Material = MaterialDefault;
+								}
+								else
+								{
+									UMaterial* const* FoundMaterial = Materials.Find(MaterialId);
+									if(FoundMaterial)
+									{
+										Material = *FoundMaterial;
+									}
+									else
+									{
+										// This should not occur as material should have been created.
+										Material = MaterialDefault;
+									}
+								}
+
+								// See if this material has been added.
+								int32 const* FoundMaterialIdx = MappedMaterials.Find(Material);
+								if(FoundMaterialIdx)
+								{
+									// This material has been mapped already.
+									RawMesh.FaceMaterialIndices[FaceIdx] = *FoundMaterialIdx;
+								}
+								else
+								{
+									// This is the first time we've seen this material.
+									MappedMaterials.Add(Material, MaterialIndex);
+									MappedMaterialsList.Add(Material);
+
+									RawMesh.FaceMaterialIndices[FaceIdx] = MaterialIndex;
+
+									MaterialIndex++;
 								}
 							}
 
-							// Check if we need to patch colors.
-							if(RawMesh.WedgeColors.Num() > 0)
+							StaticMesh->Materials.Empty();
+
+							for(int32 MaterialIdx = 0; MaterialIdx < MappedMaterialsList.Num(); ++MaterialIdx)
 							{
-								Swap(RawMesh.WedgeColors[ValidVertexId + 1], RawMesh.WedgeColors[ValidVertexId + 2]);
-							}
-
-							// Check if we need to patch tangents.
-							if(RawMesh.WedgeTangentZ.Num() > 0)
-							{
-								Swap(RawMesh.WedgeTangentZ[ValidVertexId + 1], RawMesh.WedgeTangentZ[ValidVertexId + 2]);
-							}
-							/*
-							if(RawMesh.WedgeTangentX.Num() > 0)
-							{
-								Swap(RawMesh.WedgeTangentX[ValidVertexId + 1], RawMesh.WedgeTangentX[ValidVertexId + 2]);
-							}
-
-							if(RawMesh.WedgeTangentY.Num() > 0)
-							{
-								Swap(RawMesh.WedgeTangentY[ValidVertexId + 1], RawMesh.WedgeTangentY[ValidVertexId + 2]);
-							}
-							*/
-						}
-						else if(HRSAI_Houdini == ImportAxis)
-						{
-							// Flip wedge indices to fix winding order.
-							RawMesh.WedgeIndices[ValidVertexId + 0] = WedgeIndices[0];
-							RawMesh.WedgeIndices[ValidVertexId + 1] = WedgeIndices[1];
-							RawMesh.WedgeIndices[ValidVertexId + 2] = WedgeIndices[2];
-						}
-						else
-						{
-							// Not valid enum value.
-							check(0);
-						}
-
-						ValidVertexId += 3;
-					}
-
-					// Transfer vertex positions.
-					int32 VertexPositionsCount = Positions.Num() / 3;
-					RawMesh.VertexPositions.SetNumZeroed(VertexPositionsCount);
-					for(int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx)
-					{
-						FVector VertexPosition;
-						VertexPosition.X = Positions[VertexPositionIdx * 3 + 0] * GeneratedGeometryScaleFactor;
-						VertexPosition.Y = Positions[VertexPositionIdx * 3 + 1] * GeneratedGeometryScaleFactor;
-						VertexPosition.Z = Positions[VertexPositionIdx * 3 + 2] * GeneratedGeometryScaleFactor;
-
-						if(HRSAI_Unreal == ImportAxis)
-						{
-							// We need to flip Z and Y coordinate here.
-							Swap(VertexPosition.Y, VertexPosition.Z);
-						}
-						else if(HRSAI_Houdini == ImportAxis)
-						{
-							// No action required.
-						}
-						else
-						{
-							// Not valid enum value.
-							check(0);
-						}
-
-						RawMesh.VertexPositions[VertexPositionIdx] = VertexPosition;
-					}
-
-					// We need to check if this mesh contains only degenerate triangles.
-					if(FHoudiniEngineUtils::CountDegenerateTriangles(RawMesh) == FaceCount)
-					{
-						// This mesh contains only degenerate triangles, there's nothing we can do.
-						if(bStaticMeshCreated)
-						{
-							StaticMesh->MarkPendingKill();
-						}
-
-						continue;
-					}
-
-					// Set face specific information and materials.
-					RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-
-					if(bMaterialFound)
-					{
-						if(MaterialInfo.hasChanged || HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch ||
-							(!MaterialInfo.hasChanged && (0 == StaticMesh->Materials.Num())))
-						{
-							// If material has not been replaced by Unreal material.
-							if(!HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
-							{
-								// Material requires update.
-								MeshName = StaticMesh->GetName();
-								UObject* MeshOuter = StaticMesh->GetOuter();
-								UMaterial* Material =
-									FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, MeshOuter, MeshName, RawMesh);
-
-								// Flag that we have Houdini material.
-								HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
-
-								// Remove previous materials.
-								StaticMesh->Materials.Empty();
-								StaticMesh->Materials.Add(Material);
-
-								// Reset refetch flag.
-								HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch = false;
+								StaticMesh->Materials.Add(MappedMaterialsList[MaterialIdx]);
 							}
 						}
 					}
 					else
 					{
-						if(FaceMaterials.Num())
-						{
-							// We regenerate materials.
-							StaticMesh->Materials.Empty();
+						// No materials were found, we need to use default Houdini material.
+						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
 
-							TSet<FString> UniqueFaceMaterials(FaceMaterials);
-							TMap<FString, int32> UniqueFaceMaterialMap;
-
-							int32 UniqueFaceMaterialsIdx = 0;
-							for(TSet<FString>::TIterator Iter = UniqueFaceMaterials.CreateIterator(); Iter; ++Iter)
-							{
-								const FString& MaterialName = *Iter;
-								UniqueFaceMaterialMap.Add(MaterialName, UniqueFaceMaterialsIdx);
-
-								// Attempt to load this material.
-								UMaterialInterface* MaterialInterface =
-									Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(),
-										nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
-
-								if(!MaterialInterface)
-								{
-									// Material does not exist, use default material.
-									MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
-								}
-
-								StaticMesh->Materials.Add(MaterialInterface);
-								UniqueFaceMaterialsIdx++;
-							}
-
-							int32 ValidFaceIdx = 0;
-							for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
-							{
-								int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
-								if(-1 == WedgeCheck)
-								{
-									continue;
-								}
-
-								const FString& MaterialName = FaceMaterials[VertexIdx / 3];
-								RawMesh.FaceMaterialIndices[ValidFaceIdx] = UniqueFaceMaterialMap[MaterialName];
-								ValidFaceIdx++;
-							}
-						}
-						else
-						{
-							if(0 == StaticMesh->Materials.Num())
-							{
-								UMaterial* Material = nullptr;
-
-								if(RawMesh.WedgeColors.Num() > 0 && !HoudiniGeoPartObject.bHasUnrealMaterialAssigned)
-								{
-									// We have colors.
-									MeshName = StaticMesh->GetName();
-									UObject* MeshOuter = StaticMesh->GetOuter();
-									Material =
-										FHoudiniEngineUtils::HapiCreateMaterial(MaterialInfo, MeshOuter, MeshName,
-											RawMesh);
-
-									// Flag that we have Houdini material.
-									HoudiniGeoPartObject.bHasNativeHoudiniMaterial = true;
-								}
-								else
-								{
-									// We just use default material if we do not have any.
-									Material = UMaterial::GetDefaultMaterial(MD_Surface);
-								}
-
-								StaticMesh->Materials.Add(Material);
-							}
-
-							// Otherwise reuse materials from previous mesh.
-						}
+						UMaterial* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+						StaticMesh->Materials.Empty();
+						StaticMesh->Materials.Add(Material);
 					}
 
 					// Some mesh generation settings.
@@ -2901,7 +3103,7 @@ FHoudiniEngineUtils::Serialize(UMaterialInterface*& MaterialInterface, UPackage*
 
 	if(Ar.IsLoading())
 	{
-		MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+		MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 	}
 }
 
@@ -2942,7 +3144,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	FString MeshName;
 	FGuid BakeGUID;
 	UPackage* Package =
-		BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent, HoudiniGeoPartObject, nullptr, MeshName, BakeGUID, true);
+		BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, BakeGUID, true);
 
 	// Create static mesh.
 	StaticMesh = NewNamedObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
@@ -3070,13 +3272,12 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 	FHoudiniApi::GetNodeInfo(MaterialInfo.nodeId, &NodeInfo);
 
 	// Get node parameters.
-	std::vector<HAPI_ParmInfo> NodeParams;
-	NodeParams.resize(NodeInfo.parmCount);
+	TArray<HAPI_ParmInfo> NodeParams;
+	NodeParams.SetNumUninitialized(NodeInfo.parmCount);
 	FHoudiniApi::GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
 
 	// Get names of parameters.
-	std::vector<std::string> NodeParamNames;
-	NodeParamNames.resize(NodeInfo.parmCount);
+	TArray<std::string> NodeParamNames;
 	FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 	// See if texture is available.
@@ -3115,7 +3316,7 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 			{
 				// Create texture.
 				FString TextureName = FString::Printf(TEXT("%s_diffuse_texture"), *MeshName);
-				UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(ImageInfo, Outer, TextureName,
+				UTexture2D* Texture = FHoudiniEngineUtils::CreateUnrealTexture(nullptr, ImageInfo, Outer, TextureName,
 					PF_R8G8B8A8, ImageBuffer);
 
 				// Create sampling expression and add it to material.
@@ -3207,6 +3408,243 @@ FHoudiniEngineUtils::HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, U
 }
 
 
+void
+FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo, 
+	const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<HAPI_MaterialId, UMaterial*>& Materials)
+{
+#if WITH_EDITOR
+
+	// Empty returned materials.
+	Materials.Empty();
+
+	if(0 == UniqueMaterialIds.Num())
+	{
+		return;
+	}
+
+	const TMap<HAPI_MaterialId, UMaterial*>& CachedMaterials = HoudiniAssetComponent->MaterialAssignments;
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+
+	// Update context for generated materials (will trigger when object goes out of scope).
+	FMaterialUpdateContext MaterialUpdateContext;
+
+	// Factory to create materials.
+	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
+
+	for(TSet<HAPI_MaterialId>::TConstIterator IterMaterialId(UniqueMaterialIds); IterMaterialId; ++IterMaterialId)
+	{
+		HAPI_MaterialId MaterialId = *IterMaterialId;
+		HAPI_MaterialInfo MaterialInfo;
+
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(AssetInfo.id, MaterialId, &MaterialInfo))
+		{
+			continue;
+		}
+
+		if(MaterialInfo.exists)
+		{
+			// Material exists, look it up in cached list.
+			UMaterial* const* FoundMaterial = CachedMaterials.Find(MaterialId);
+
+			UPackage* MaterialPackage = nullptr;
+			UPackage* TextureDiffusePackage = nullptr;
+
+			UMaterial* Material = nullptr;
+			UTexture2D* TextureDiffuse = nullptr;
+			UMaterialExpressionTextureSample* ExpressionDiffuse = nullptr;
+
+			bool bCreatedNewMaterial = false;
+			bool bCreatedNewTextureDiffuse = false;
+
+			if(FoundMaterial)
+			{
+				Material = *FoundMaterial;
+
+				// If cached material exists and has not changed, we can reuse it.
+				if(!MaterialInfo.hasChanged)
+				{
+					// We found cached material, we can reuse it.
+					Materials.Add(MaterialId, Material);
+					continue;
+				}
+				else
+				{
+					// Material was cached and exists, we need to retrieve necessary resources.
+
+					MaterialPackage = Cast<UPackage>(Material->GetOuter());
+					check(MaterialPackage);
+
+					ExpressionDiffuse = Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
+					check(ExpressionDiffuse);
+
+					TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
+					check(TextureDiffuse);
+
+					TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
+					check(TextureDiffusePackage);
+				}
+			}
+
+			// Get node information.
+			HAPI_NodeInfo NodeInfo;
+			FHoudiniApi::GetNodeInfo(MaterialInfo.nodeId, &NodeInfo);
+
+			// Get node parameters.
+			TArray<HAPI_ParmInfo> NodeParams;
+			NodeParams.SetNumUninitialized(NodeInfo.parmCount);
+			FHoudiniApi::GetParameters(NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount);
+
+			// Get names of parameters.
+			TArray<std::string> NodeParamNames;
+			FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
+
+			// See if diffuse texture is available.
+			int32 ParmNameBaseIdx = FHoudiniEngineUtils::HapiFindParameterByName("ogl_tex1", NodeParamNames);
+
+			if(-1 == ParmNameBaseIdx)
+			{
+				ParmNameBaseIdx = FHoudiniEngineUtils::HapiFindParameterByName("baseColorMap", NodeParamNames);
+			}
+
+			if(-1 == ParmNameBaseIdx)
+			{
+				ParmNameBaseIdx = FHoudiniEngineUtils::HapiFindParameterByName("map", NodeParamNames);
+			}
+
+			if(ParmNameBaseIdx >= 0)
+			{
+				TArray<char> ImageBuffer;
+
+				// Retrieve color data.
+				if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo, ImageBuffer,
+					HAPI_UNREAL_MATERIAL_TEXTURE_MAIN))
+				{
+					FString MaterialName;
+
+					// Create material package, if this is a new material.
+					if(!MaterialPackage)
+					{
+						MaterialPackage = 
+							FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent,
+								MaterialInfo, MaterialName);
+					}
+
+					// Create material, if we need to create one.
+					if(!Material)
+					{
+						Material = 
+							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
+								*MaterialName, RF_Public, NULL, GWarn);
+
+						bCreatedNewMaterial = true;
+					}
+
+					HAPI_ImageInfo ImageInfo;
+					FHoudiniApi::GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
+
+					if(ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+					{
+						// Create texture.
+						FString TextureName;
+
+						// Create texture package, if this is a new diffuse texture.
+						if(!TextureDiffusePackage)
+						{
+							TextureDiffusePackage = 
+								FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent, 
+									MaterialInfo, TEXT("C_A"), TextureName);
+						}
+
+						// Create diffuse texture, if we need to create one.
+						if(!TextureDiffuse)
+						{
+							bCreatedNewTextureDiffuse = true;
+						}
+
+						TextureDiffuse = 
+								FHoudiniEngineUtils::CreateUnrealTexture(TextureDiffuse, ImageInfo, 
+									TextureDiffusePackage, TextureName, PF_R8G8B8A8, ImageBuffer);
+
+						// Create sampling expression and add it to material, if we don't have one.
+						if(!ExpressionDiffuse)
+						{
+							ExpressionDiffuse = NewObject<UMaterialExpressionTextureSample>(Material,
+								UMaterialExpressionTextureSample::StaticClass());
+						}
+
+						ExpressionDiffuse->Texture = TextureDiffuse;
+						ExpressionDiffuse->SamplerType = SAMPLERTYPE_Color;
+
+						Material->Expressions.Empty();
+
+						Material->Expressions.Add(ExpressionDiffuse);
+						Material->BaseColor.Expression = ExpressionDiffuse;
+
+						// Check if material is transparent. If it is, we need to hook up alpha.
+						if(FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo))
+						{
+							// This material contains transparency.
+							Material->BlendMode = BLEND_Masked;
+
+							TArray<FExpressionOutput> Outputs = ExpressionDiffuse->GetOutputs();
+							FExpressionOutput* Output = Outputs.GetData();
+
+							Material->OpacityMask.Expression = ExpressionDiffuse;
+							Material->OpacityMask.Mask = Output->Mask;
+							Material->OpacityMask.MaskR = 0;
+							Material->OpacityMask.MaskG = 0;
+							Material->OpacityMask.MaskB = 0;
+							Material->OpacityMask.MaskA = 1;
+						}
+						else
+						{
+							// Material is opaque.
+							Material->BlendMode = BLEND_Opaque;
+						}
+
+						// Set other material properties.
+						Material->TwoSided = true;
+						Material->SetShadingModel(MSM_DefaultLit);
+
+						// Schedule this material for update.
+						MaterialUpdateContext.AddMaterial(Material);
+
+						// Cache material.
+						Materials.Add(MaterialId, Material);
+
+						// Propagate and trigger material updates.
+						{
+							if(bCreatedNewMaterial)
+							{
+								FAssetRegistryModule::AssetCreated(Material);
+							}
+
+							Material->PreEditChange(nullptr);
+							Material->PostEditChange();
+							Material->MarkPackageDirty();
+						}
+
+						// Propagate and trigger diffuse texture updates.
+						{
+							if(bCreatedNewTextureDiffuse)
+							{
+								FAssetRegistryModule::AssetCreated(TextureDiffuse);
+							}
+
+							TextureDiffuse->PreEditChange(nullptr);
+							TextureDiffuse->PostEditChange();
+							TextureDiffuse->MarkPackageDirty();
+						}
+					}
+				}
+			}
+		}
+	}
+
+#endif
+}
+
+
 char*
 FHoudiniEngineUtils::ExtractMaterialName(UMaterialInterface* MaterialInterface)
 {
@@ -3247,7 +3685,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
 			if(!MaterialInterface)
 			{
 				// Null material interface found, add default instead.
-				MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+				MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 			}
 
 			UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
@@ -3257,7 +3695,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
 	else
 	{
 		// We do not have any materials, add default.
-		MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+		MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 		UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
 		UniqueMaterialList.Add(UniqueName);
 	}
@@ -3644,12 +4082,14 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 
 int32
-FHoudiniEngineUtils::HapiGetVertexListForGroup(
-	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, const FString& GroupName,
-	const TArray<int32>& FullVertexList, TArray<int32>& NewVertexList, TArray<int32>& AllVertexList)
+FHoudiniEngineUtils::HapiGetVertexListForGroup(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+	HAPI_PartId PartId, const FString& GroupName, const TArray<int32>& FullVertexList, TArray<int32>& NewVertexList,
+	TArray<int32>& AllVertexList, TArray<int32>& AllFaceList, TArray<int32>& AllCollisionFaceIndices)
 {
 	NewVertexList.Init(-1, FullVertexList.Num());
 	int32 ProcessedWedges = 0;
+
+	AllFaceList.Empty();
 
 	TArray<int32> PartGroupMembership;
 	FHoudiniEngineUtils::HapiGetGroupMembership(
@@ -3660,6 +4100,9 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 	{
 		if(PartGroupMembership[FaceIdx] > 0)
 		{
+			// Add face.
+			AllFaceList.Add(FaceIdx);
+
 			// This face is a member of specified group.
 			NewVertexList[FaceIdx * 3 + 0] = FullVertexList[FaceIdx * 3 + 0];
 			NewVertexList[FaceIdx * 3 + 1] = FullVertexList[FaceIdx * 3 + 1];
@@ -3669,6 +4112,9 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 			AllVertexList[FaceIdx * 3 + 0] = 1;
 			AllVertexList[FaceIdx * 3 + 1] = 1;
 			AllVertexList[FaceIdx * 3 + 2] = 1;
+
+			// Mark this face as used.
+			AllCollisionFaceIndices[FaceIdx] = 1;
 
 			ProcessedWedges += 3;
 		}
@@ -3751,6 +4197,71 @@ FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVer
 	}
 
 	return FString(TEXT(""));
+}
+
+
+bool
+FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds)
+{
+	// Empty passed material id container.
+	MaterialIds.Empty();
+
+	TArray<HAPI_ObjectInfo> ObjectInfos;
+	ObjectInfos.SetNumUninitialized(AssetInfo.objectCount);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjects(AssetInfo.id, &ObjectInfos[0], 0, AssetInfo.objectCount), false);
+
+	// Iterate through all objects.
+	for(int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx)
+	{
+		// Retrieve object at this index.
+		const HAPI_ObjectInfo& ObjectInfo = ObjectInfos[ObjectIdx];
+
+		// Iterate through all Geo informations within this object.
+		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
+		{
+			// Get Geo information.
+			HAPI_GeoInfo GeoInfo;
+			if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetGeoInfo(AssetInfo.id, ObjectInfo.id, GeoIdx, &GeoInfo))
+			{
+				continue;
+			}
+
+			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
+			{
+				// Get part information.
+				HAPI_PartInfo PartInfo;
+				FString PartName = TEXT("");
+
+				if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(AssetInfo.id, ObjectInfo.id, GeoInfo.id, PartIdx,
+					&PartInfo))
+				{
+					continue;
+				}
+
+				// Retrieve material information for this geo part.
+				TArray<HAPI_MaterialId> FaceMaterialIds;
+				HAPI_Bool bSingleFaceMaterial = false;
+				bool bMaterialsFound = false;
+
+				if(PartInfo.faceCount > 0)
+				{
+					FaceMaterialIds.SetNumUninitialized(PartInfo.faceCount);
+
+					if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(AssetInfo.id, ObjectInfo.id, 
+						GeoInfo.id, PartInfo.id, &bSingleFaceMaterial, &FaceMaterialIds[0], 0, PartInfo.faceCount))
+					{
+						continue;
+					}
+
+					MaterialIds.Append(FaceMaterialIds);
+				}
+			}
+		}
+	}
+
+	MaterialIds.Remove(-1);
+
+	return true;
 }
 
 
