@@ -303,7 +303,7 @@ protected:
 
 	/** Create a texture from given information. **/
 	static UTexture2D* CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UObject* Outer,
-		const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer);
+		const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer, bool bNormal = false);
 
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
