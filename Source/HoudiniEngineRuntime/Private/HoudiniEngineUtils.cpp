@@ -3436,6 +3436,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 							bCreatedNewTextureDiffuse = true;
 						}
 
+						// Reuse existing diffuse texture, or create new one.
 						TextureDiffuse = 
 								FHoudiniEngineUtils::CreateUnrealTexture(TextureDiffuse, ImageInfo, 
 									TextureDiffusePackage, TextureDiffuseName, PF_R8G8B8A8, ImageBuffer);
@@ -3498,6 +3499,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 								bCreatedNewTextureNormal = true;
 							}
 
+							// Reuse existing normal texture, or create new one.
 							TextureNormal = 
 									FHoudiniEngineUtils::CreateUnrealTexture(TextureNormal, ImageInfo, 
 										TextureNormalPackage, TextureNormalName, PF_R8G8B8A8, ImageBuffer, true);
