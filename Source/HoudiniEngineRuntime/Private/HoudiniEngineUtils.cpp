@@ -3347,16 +3347,19 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
 
 			// See if diffuse texture is available.
-			int32 ParmNameBaseIdx = FHoudiniEngineUtils::HapiFindParameterByName("ogl_tex1", NodeParamNames);
+			int32 ParmNameBaseIdx = 
+				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames);
 
 			if(-1 == ParmNameBaseIdx)
 			{
-				ParmNameBaseIdx = FHoudiniEngineUtils::HapiFindParameterByName("baseColorMap", NodeParamNames);
+				ParmNameBaseIdx = 
+					FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
 			}
 
 			if(-1 == ParmNameBaseIdx)
 			{
-				ParmNameBaseIdx = FHoudiniEngineUtils::HapiFindParameterByName("map", NodeParamNames);
+				ParmNameBaseIdx = 
+					FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_2, NodeParamNames);
 			}
 
 			if(ParmNameBaseIdx >= 0)
