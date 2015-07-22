@@ -225,10 +225,6 @@ public:
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
 
-	/** HAPI : Create Unreal material and necessary textures. **/
-	static UMaterial* HapiCreateMaterial(const HAPI_MaterialInfo& MaterialInfo, UObject* Outer,
-		const FString& MeshName, const FRawMesh& RawMesh);
-
 	/** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
 	static void HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo,
 		const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<HAPI_MaterialId, UMaterial*>& Materials);
