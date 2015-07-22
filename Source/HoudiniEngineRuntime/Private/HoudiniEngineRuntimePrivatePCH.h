@@ -228,6 +228,10 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_MATERIAL_TEXTURE_MAIN				"C A"
 #define HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL				"N"
 
+#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_0					"ogl_tex1"
+#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_1					"baseColorMap"
+#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_2					"map"
+
 /** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
 
