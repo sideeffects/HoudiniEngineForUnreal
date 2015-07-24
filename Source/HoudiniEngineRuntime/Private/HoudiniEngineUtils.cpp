@@ -3311,6 +3311,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 			UMaterialExpressionTextureSample* ExpressionDiffuse = nullptr;
 			UMaterialExpressionTextureSample* ExpressionNormal = nullptr;
+			UMaterialExpressionConstant4Vector* ExpressionDiffuseColor = nullptr;
 
 			bool bCreatedNewMaterial = false;
 			bool bCreatedNewTextureDiffuse = false;
@@ -3335,15 +3336,11 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					check(MaterialPackage);
 
 					ExpressionDiffuse = Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
-					check(ExpressionDiffuse);
+					ExpressionDiffuseColor = Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
 
 					TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
-					check(TextureDiffuse);
-
 					TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
-					check(TextureDiffusePackage);
 
-					// These are optional.
 					ExpressionNormal = Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
 					if(ExpressionNormal)
 					{
@@ -3385,9 +3382,15 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_2, NodeParamNames);
 			}
 
-			if(ParmNameBaseIdx >= 0)
+			// See if diffuse color is available.
+			int32 ParmNameBaseDiffuseColorIdx = 
+				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_DIFFUSE_COLOR, NodeParamNames);
+
+			if(ParmNameBaseIdx >= 0 || ParmNameBaseDiffuseColorIdx >= 0)
 			{
 				TArray<char> ImageBuffer;
+
+				bool bMaterialGenerated = false;
 
 				// Retrieve color data.
 				if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo, ImageBuffer,
@@ -3563,7 +3566,83 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 								TextureNormal->MarkPackageDirty();
 							}
 						}
+
+						bMaterialGenerated = true;
 					}
+				}
+
+				if(!bMaterialGenerated && ParmNameBaseDiffuseColorIdx >= 0)
+				{
+					FLinearColor Color = FLinearColor::White;
+					HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameBaseDiffuseColorIdx];
+
+					if(HAPI_RESULT_SUCCESS !=
+						FHoudiniApi::GetParmFloatValues(NodeInfo.id, (float*) &Color.R, 
+							ParmInfo.floatValuesIndex, ParmInfo.size))
+					{
+						continue;
+					}
+
+					if(3 == ParmInfo.size)
+					{
+						Color.A = 1.0f;
+					}
+
+					FString MaterialName;
+
+					// Create material package, if this is a new material.
+					if(!MaterialPackage)
+					{
+						MaterialPackage = 
+							FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent,
+								MaterialInfo, MaterialName);
+					}
+
+					// Create material, if we need to create one.
+					if(!Material)
+					{
+						Material = 
+							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
+								*MaterialName, RF_Public, NULL, GWarn);
+
+						bCreatedNewMaterial = true;
+					}
+
+					// Create color const expression and add it to material, if we don't have one.
+					if(!ExpressionDiffuseColor)
+					{
+						ExpressionDiffuseColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
+							UMaterialExpressionConstant4Vector::StaticClass());
+					}
+
+					ExpressionDiffuseColor->Constant = Color;
+
+					Material->Expressions.Add(ExpressionDiffuseColor);
+					Material->BaseColor.Expression = ExpressionDiffuseColor;
+
+					// Set other material properties.
+					Material->TwoSided = true;
+					Material->SetShadingModel(MSM_DefaultLit);
+
+					// Schedule this material for update.
+					MaterialUpdateContext.AddMaterial(Material);
+
+					// Cache material.
+					Materials.Add(MaterialId, Material);
+
+					// Propagate and trigger material updates.
+					{
+						if(bCreatedNewMaterial)
+						{
+							FAssetRegistryModule::AssetCreated(Material);
+						}
+
+						Material->PreEditChange(nullptr);
+						Material->PostEditChange();
+						Material->MarkPackageDirty();
+					}
+
+					bMaterialGenerated = true;
 				}
 			}
 		}
