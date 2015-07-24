@@ -70,7 +70,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
-#include "Materials/MaterialExpressionVertexColor.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
 #include "TargetPlatform.h"
