@@ -25,6 +25,37 @@ GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
 }
 
 
+bool
+FHoudiniGeoPartObjectSortPredicate::operator()(const FHoudiniGeoPartObject& A, const FHoudiniGeoPartObject& B) const
+{
+	if(!A.IsValid() || !B.IsValid())
+	{
+		return false;
+	}
+
+	if(A.ObjectId == B.ObjectId)
+	{
+		if(A.GeoId == B.GeoId)
+		{
+			if(A.PartId == B.PartId)
+			{
+				return A.SplitId < B.SplitId;
+			}
+			else
+			{
+				return A.PartId < B.PartId;
+			}
+		}
+		else
+		{
+			return A.GeoId < B.GeoId;
+		}
+	}
+	
+	return A.ObjectId < B.ObjectId;
+}
+
+
 FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	TransformMatrix(FMatrix::Identity),
 	ObjectName(TEXT("Empty")),
