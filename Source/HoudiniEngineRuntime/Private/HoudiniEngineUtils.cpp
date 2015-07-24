@@ -2811,7 +2811,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							// Get id of this single material.
 							HAPI_MaterialId MaterialId = FaceMaterialIds[0];
 
-							if(-1 != MaterialId)
+							if(-1 != MaterialId && Materials.Num() > 0)
 							{
 								Material = Materials[MaterialId];
 							}
