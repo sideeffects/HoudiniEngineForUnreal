@@ -232,6 +232,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_MAP_DIFFUSE_1					"baseColorMap"
 #define HAPI_UNREAL_PARAM_MAP_DIFFUSE_2					"map"
 
+#define HAPI_UNREAL_PARAM_DIFFUSE_COLOR					"ogl_diff"
+
 /** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
 
