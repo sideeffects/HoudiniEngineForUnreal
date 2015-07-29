@@ -1652,7 +1652,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
-	FString ComponentGUIDString = ComponentGUID.ToString().Left(8);
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(12);
 
 	while(true)
 	{
