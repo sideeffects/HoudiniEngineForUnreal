@@ -714,8 +714,29 @@ UHoudiniAssetComponent::PostCook()
 			}
 		}
 
+		// Record generated static meshes which we need to delete.
+		TArray<UObject*> StaticMeshesToDelete;
+
+		// Get Houdini logo.
+		UStaticMesh* HoudiniLogoMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
+
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
+		{
+			UStaticMesh* StaticMesh = Iter.Value();
+			if(StaticMesh != HoudiniLogoMesh)
+			{
+				StaticMeshesToDelete.Add(StaticMesh);
+			}
+		}
+
 		// Free meshes and components that are no longer used.
 		ReleaseObjectGeoPartResources(StaticMeshes);
+
+		// Delete no longer used generated static meshes.
+		{
+			FHoudiniScopedGlobalSilence HoudiniScopedGlobalSilence;
+			ObjectTools::ForceDeleteObjects(StaticMeshesToDelete, false);
+		}
 
 		// Set meshes and create new components for those meshes that do not have them.
 		if(NewStaticMeshes.Num() > 0)
@@ -1852,14 +1873,14 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		return;
 	}
 
-	// Serialize Houdini asset.
-	Ar << HoudiniAsset;
-
 	// If we have no asset, we can stop.
-	if(!HoudiniAsset)
+	if(!HoudiniAsset && Ar.IsSaving())
 	{
 		return;
 	}
+
+	// Serialize Houdini asset.
+	Ar << HoudiniAsset;
 
 	// If we are going into playmode, save asset id.
 	bool bInPlayMode = bIsPlayModeActive;
