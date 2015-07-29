@@ -152,6 +152,9 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 
 	// Make an invalid GUID, since we do not have any cooking requests.
 	HapiGUID.Invalidate();
+
+	// Create unique component GUID.
+	ComponentGUID = FGuid::NewGuid();
 }
 
 
@@ -1840,6 +1843,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	Ar << TransformScaleFactor;
 	SerializeEnumeration<EHoudiniRuntimeSettingsAxisImport>(Ar, ImportAxis);
 
+	// Serialize generated component GUID.
+	Ar << ComponentGUID;
+
 	// If component is in invalid state, we can skip the rest of serialization.
 	if(EHoudiniAssetComponentState::Invalid == ComponentState)
 	{
@@ -3405,4 +3411,11 @@ UHoudiniAssetComponent::RemoveStaticMeshComponent(UStaticMesh* StaticMesh)
 			StaticMeshComponent->DestroyComponent();
 		}
 	}
+}
+
+
+const FGuid&
+UHoudiniAssetComponent::GetComponentGuid() const
+{
+	return ComponentGUID;
 }
