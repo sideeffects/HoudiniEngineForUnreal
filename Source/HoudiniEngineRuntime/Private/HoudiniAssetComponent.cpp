@@ -2258,29 +2258,49 @@ UHoudiniAssetComponent::PostInitProperties()
 
 bool
 UHoudiniAssetComponent::LocateStaticMeshes(const FString& ObjectName,
-	TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring) const
+	TMap<FString, TArray<FHoudiniGeoPartObject> >& InOutObjectsToInstance, bool bSubstring) const
 {
-	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
+	// See if map has entry for this object name.
+	if(!InOutObjectsToInstance.Contains(ObjectName))
 	{
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-		UStaticMesh* StaticMesh = Iter.Value();
+		InOutObjectsToInstance.Add(ObjectName, TArray<FHoudiniGeoPartObject>());
+	}
 
-		if(StaticMesh && ObjectName.Len() > 0)
+	{
+		// Get array entry for this object name.
+		TArray<FHoudiniGeoPartObject>& Objects = InOutObjectsToInstance[ObjectName];
+
+		// Go through all geo part objects and see if we have matches.
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
 		{
-			if(bSubstring && ObjectName.Len() >= HoudiniGeoPartObject.ObjectName.Len())
+			const FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UStaticMesh* StaticMesh = Iter.Value();
+
+			if(StaticMesh && ObjectName.Len() > 0)
 			{
-				int32 Index = ObjectName.Find(*HoudiniGeoPartObject.ObjectName, ESearchCase::IgnoreCase,
-					ESearchDir::FromEnd, INDEX_NONE);
-				if((Index != -1) && (Index + HoudiniGeoPartObject.ObjectName.Len() == ObjectName.Len()))
+				if(bSubstring && ObjectName.Len() >= HoudiniGeoPartObject.ObjectName.Len())
 				{
-					InOutObjectsToInstance.Add(ObjectName, HoudiniGeoPartObject);
+					int32 Index = ObjectName.Find(*HoudiniGeoPartObject.ObjectName, ESearchCase::IgnoreCase,
+						ESearchDir::FromEnd, INDEX_NONE);
+
+					if((Index != -1) && (Index + HoudiniGeoPartObject.ObjectName.Len() == ObjectName.Len()))
+					{
+						Objects.Add(HoudiniGeoPartObject);
+					}
+				}
+				else if(HoudiniGeoPartObject.ObjectName.Equals(ObjectName))
+				{
+					Objects.Add(HoudiniGeoPartObject);
 				}
 			}
-			else if(HoudiniGeoPartObject.ObjectName.Equals(ObjectName))
-			{
-				InOutObjectsToInstance.Add(ObjectName, HoudiniGeoPartObject);
-			}
 		}
+	}
+
+	// Sort arrays.
+	for(TMap<FString, TArray<FHoudiniGeoPartObject> >::TIterator Iter(InOutObjectsToInstance); Iter; ++Iter)
+	{
+		TArray<FHoudiniGeoPartObject>& Objects = Iter.Value();
+		Objects.Sort(FHoudiniGeoPartObjectSortPredicate());
 	}
 
 	return InOutObjectsToInstance.Num() > 0;
@@ -2301,6 +2321,9 @@ UHoudiniAssetComponent::LocateStaticMeshes(int32 ObjectToInstanceId,
 			InOutObjectsToInstance.Add(HoudiniGeoPartObject);
 		}
 	}
+
+	// Sort array.
+	InOutObjectsToInstance.Sort(FHoudiniGeoPartObjectSortPredicate());
 
 	return InOutObjectsToInstance.Num() > 0;
 }
@@ -3360,6 +3383,7 @@ UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
 		IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
 	{
 		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
+		HoudiniAssetInstanceInput->SetHoudiniAssetComponent(this);
 		HoudiniAssetInstanceInput->CreateInstanceInputPostLoad();
 	}
 }
