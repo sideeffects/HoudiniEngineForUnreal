@@ -1852,47 +1852,8 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		return;
 	}
 
-	// Serialize asset information (package and name).
-	FString HoudiniAssetPackage;
-	FString HoudiniAssetName;
-
-	if(Ar.IsSaving() && HoudiniAsset)
-	{
-		// Retrieve package and its name.
-		UPackage* Package = Cast<UPackage>(HoudiniAsset->GetOuter());
-		check(Package);
-		Package->GetName(HoudiniAssetPackage);
-
-		// Retrieve name of asset.
-		HoudiniAssetName = HoudiniAsset->GetName();
-	}
-
-	// Serialize package name and object name - we will need those to reconstruct / locate the asset.
-	Ar << HoudiniAssetPackage;
-	Ar << HoudiniAssetName;
-
-	// If we are loading, we need to restore the asset.
-	if(Ar.IsLoading())
-	{
-		// We need to locate corresponding package and load it if it is not loaded.
-		UPackage* Package = FindPackage(nullptr, *HoudiniAssetPackage);
-		if(!Package)
-		{
-			// Package was not loaded previously, we will try to load it.
-			Package = LoadPackage(nullptr, *HoudiniAssetPackage, LOAD_None);
-		}
-
-		if(Package)
-		{
-			// At this point we can locate the asset, since package exists.
-			UHoudiniAsset* HoudiniAssetLookup = Cast<UHoudiniAsset>(StaticFindObject(UHoudiniAsset::StaticClass(),
-				Package, *HoudiniAssetName, true));
-			if(HoudiniAssetLookup)
-			{
-				HoudiniAsset = HoudiniAssetLookup;
-			}
-		}
-	}
+	// Serialize Houdini asset.
+	Ar << HoudiniAsset;
 
 	// If we have no asset, we can stop.
 	if(!HoudiniAsset)
