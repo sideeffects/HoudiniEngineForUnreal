@@ -87,7 +87,8 @@ UHoudiniAssetHandle::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, con
 		HandleParameterNames.Add(AssetHandleName);
 	}
 
-	HoudiniAssetHandle = NewObject<UHoudiniAssetHandle>(InHoudiniAssetComponent);
+	HoudiniAssetHandle = NewObject<UHoudiniAssetHandle>(InHoudiniAssetComponent,
+		UHoudiniAssetHandle::StaticClass(), NAME_None, RF_Public);
 
 	// Store handle index and name and type.
 	HoudiniAssetHandle->HandleIdx = HandleIdx;

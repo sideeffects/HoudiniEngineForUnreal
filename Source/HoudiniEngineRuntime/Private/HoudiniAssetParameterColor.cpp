@@ -61,7 +61,8 @@ UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetCompon
 		}
 	}
 
-	UHoudiniAssetParameterColor* HoudiniAssetParameterColor = NewObject<UHoudiniAssetParameterColor>(Outer);
+	UHoudiniAssetParameterColor* HoudiniAssetParameterColor = NewObject<UHoudiniAssetParameterColor>(Outer,
+		UHoudiniAssetParameterColor::StaticClass(), NAME_None, RF_Public);
 
 	HoudiniAssetParameterColor->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterColor;

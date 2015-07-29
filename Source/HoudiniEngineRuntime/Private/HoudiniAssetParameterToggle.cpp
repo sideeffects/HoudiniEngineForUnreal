@@ -47,7 +47,8 @@ UHoudiniAssetParameterToggle::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 		}
 	}
 
-	UHoudiniAssetParameterToggle* HoudiniAssetParameterToggle = NewObject<UHoudiniAssetParameterToggle>(Outer);
+	UHoudiniAssetParameterToggle* HoudiniAssetParameterToggle = NewObject<UHoudiniAssetParameterToggle>(Outer,
+		UHoudiniAssetParameterToggle::StaticClass(), NAME_None, RF_Public);
 
 	HoudiniAssetParameterToggle->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterToggle;

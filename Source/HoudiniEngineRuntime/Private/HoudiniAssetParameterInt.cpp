@@ -51,7 +51,8 @@ UHoudiniAssetParameterInt::Create(UHoudiniAssetComponent* InHoudiniAssetComponen
 		}
 	}
 
-	UHoudiniAssetParameterInt* HoudiniAssetParameterInt = NewObject<UHoudiniAssetParameterInt>(Outer);
+	UHoudiniAssetParameterInt* HoudiniAssetParameterInt = NewObject<UHoudiniAssetParameterInt>(Outer,
+		UHoudiniAssetParameterInt::StaticClass(), NAME_None, RF_Public);
 
 	HoudiniAssetParameterInt->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterInt;
