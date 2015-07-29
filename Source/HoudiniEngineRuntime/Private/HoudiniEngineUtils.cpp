@@ -1651,6 +1651,9 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 	int32 BakeCount = 0;
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
+	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(8);
+
 	while(true)
 	{
 		if(!BakeGUID.IsValid())
@@ -1686,7 +1689,9 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 
 			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) +
 				TEXT("/") +
-				HoudiniAsset->GetName() +
+				HoudiniAsset->GetName() + 
+				TEXT("_") + 
+				ComponentGUIDString +
 				TEXT("/") +
 				MeshName;
 		}
