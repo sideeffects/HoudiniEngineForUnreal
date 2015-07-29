@@ -39,6 +39,9 @@ public:
 	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
+	/** Set component for this parameter. **/
+	virtual void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent);
+
 #if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
@@ -71,9 +74,6 @@ public:
 
 	/** Return parameter id of a parent of this parameter. **/
 	HAPI_ParmId GetParmParentId() const;
-
-	/** Set component for this parameter. **/
-	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent);
 
 	/** Set parent parameter for this parameter. **/
 	void SetParentParameter(UHoudiniAssetParameter* InParentParameter);

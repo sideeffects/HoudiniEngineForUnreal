@@ -22,6 +22,7 @@ class AActor;
 class UStaticMesh;
 struct FHoudiniGeoPartObject;
 class UInstancedStaticMeshComponent;
+class UHoudiniAssetInstanceInputField;
 
 
 UCLASS()
@@ -58,12 +59,16 @@ public:
 	void UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx,
 		UMaterialInterface* MaterialInterface);
 
+/** UHoudiniAssetParameter methods. **/
 public:
 
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not	**/
 	/** a true parameter.																				**/
 	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+
+	/** Set component for this parameter. **/
+	virtual void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent) override;
 
 #if WITH_EDITOR
 
@@ -100,53 +105,52 @@ public:
 
 protected:
 
-	/** Set object, geo and part information. **/
-	void SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
-
-	/** Adjust number of meshes / components depending on the number of objects we need to instance. **/
-	void AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize);
-
-	/** Sets instance transformations for a given component. **/
-	void SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent,
-		const TArray<FTransform>& InstanceTransforms, int32 Idx);
-
 	/** Retrieve all transforms for a given path. Used by attribute instancer. **/
 	void GetPathInstaceTransforms(const FString& ObjectInstancePath, const TArray<FString>& PointInstanceValues,
 		const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms);
 
-	/** Used to update the component at given index when static mesh changes. **/
-	void ChangeInstancedStaticMeshComponentMesh(int32 Idx);
-
-	/** Used to update existing transforms with offsets for given index. **/
-	void UpdateInstanceTransforms(int32 Idx);
-
 protected:
 
 	/** Checks existance of special instance attribute for this instancer. **/
-	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
-		HAPI_PartId InPartId);
+	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, const FHoudiniGeoPartObject& GeoPartObject);
+
+protected:
+
+	/** Locate field which matches given criteria. Return null if not found. **/
+	UHoudiniAssetInstanceInputField* LocateInputField(const FHoudiniGeoPartObject& GeoPartObject,
+		const FString& InstancePathName);
+
+	/** Locate or create (if it does not exist) an input field. **/
+	void CreateInstanceInputField(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+		const TArray<FTransform>& ObjectTransforms, const FString& InstancePathName,
+		const TArray<UHoudiniAssetInstanceInputField*>& OldInstanceInputFields, 
+		TArray<UHoudiniAssetInstanceInputField*>& NewInstanceInputFields);
 
 protected:
 
 #if WITH_EDITOR
 
 	/** Delegate used when static mesh has been drag and dropped. **/
-	void OnStaticMeshDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+	void OnStaticMeshDropped(UObject* InObject, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 Idx);
 
 	/** Delegate used to detect if valid object has been dragged and dropped. **/
 	bool OnStaticMeshDraggedOver(const UObject* InObject) const;
 
 	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
-	const FSlateBrush* GetStaticMeshThumbnailBorder(UStaticMesh* StaticMesh, int32 Idx) const;
+	const FSlateBrush* GetStaticMeshThumbnailBorder(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 Idx) const;
 
 	/** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
 	FReply OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
 
 	/** Construct drop down menu content for static mesh. **/
-	TSharedRef<SWidget> OnGetStaticMeshMenuContent(UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+	TSharedRef<SWidget> OnGetStaticMeshMenuContent(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 Idx);
 
 	/** Delegate for handling selection in content browser. **/
-	void OnStaticMeshSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+	void OnStaticMeshSelected(const FAssetData& AssetData, 
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx);
 
 	/** Closes the combo button. **/
 	void CloseStaticMeshComboButton();
@@ -155,96 +159,59 @@ protected:
 	void OnStaticMeshBrowse(UStaticMesh* StaticMesh);
 
 	/** Handler for reset static mesh button. **/
-	FReply OnResetStaticMeshClicked(UStaticMesh* StaticMesh, int32 StaticMeshIdx);
+	FReply OnResetStaticMeshClicked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx);
 
 	/** Get rotation components for given index. **/
-	TOptional<float> GetRotationRoll(int32 Idx) const;
-	TOptional<float> GetRotationPitch(int32 Idx) const;
-	TOptional<float> GetRotationYaw(int32 Idx) const;
+	TOptional<float> GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
+	TOptional<float> GetRotationPitch(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
+	TOptional<float> GetRotationYaw(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
 
 	/** Set rotation components for given index. **/
-	void SetRotationRoll(float Value, int32 Idx);
-	void SetRotationPitch(float Value, int32 Idx);
-	void SetRotationYaw(float Value, int32 Idx);
+	void SetRotationRoll(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField);
+	void SetRotationPitch(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField);
+	void SetRotationYaw(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField);
 
 	/** Get scale components for a given index. **/
-	TOptional<float> GetScaleX(int32 Idx) const;
-	TOptional<float> GetScaleY(int32 Idx) const;
-	TOptional<float> GetScaleZ(int32 Idx) const;
+	TOptional<float> GetScaleX(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
+	TOptional<float> GetScaleY(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
+	TOptional<float> GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
 
 	/** Set scale components for a given index. **/
-	void SetScaleX(float Value, int32 Idx);
-	void SetScaleY(float Value, int32 Idx);
-	void SetScaleZ(float Value, int32 Idx);
+	void SetScaleX(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField);
+	void SetScaleY(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField);
+	void SetScaleZ(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField);
 
 	/** Return true if given index must scale linearly. **/
-	ECheckBoxState IsChecked(int32 Idx) const;
+	ECheckBoxState IsChecked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
 
 	/** Set option for whether scale should be linear. **/
-	void CheckStateChanged(ECheckBoxState NewState, int32 Idx);
+	void CheckStateChanged(ECheckBoxState NewState, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField);
 
 #endif
 
 protected:
 
-	/** Epsilon value used as a check for scale / inverse transform computations.	**/
-	/** This is necessary due to bug in Unreal.										**/
-	static const float ScaleSmallValue;
-
-protected:
+	/** List of fields created by this instance input. **/
+	TArray<UHoudiniAssetInstanceInputField*> InstanceInputFields;
 
 #if WITH_EDITOR
 
-	/** Map of static meshes and corresponding thumbnail borders. **/
-	TMap<int32, TSharedPtr<SBorder> > StaticMeshThumbnailBorders;
+	/** List of cached combo buttons. **/
+	TMap<UHoudiniAssetInstanceInputField*, TSharedPtr<SComboButton> > CachedComboButtons;
 
-	/** Map of static meshes to combo elements. **/
-	TMap<int32, TSharedPtr<SComboButton> > StaticMeshComboButtons;
-
-#endif
-
-	/** Corresponding instanced static mesh components. **/
-	TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
-
-	/** Static meshes which are used for input. **/
-	TArray<UStaticMesh*> StaticMeshes;
-
-	/** Original static meshes which were used as input when instancer was constructed. **/
-	TArray<UStaticMesh*> OriginalStaticMeshes;
-
-	/** Transforms for each component. **/
-	TArray<TArray<FTransform> > InstancedTransforms;
-
-	/** Rotation offsets for each component. **/
-	TArray<FRotator> RotationOffsets;
-
-	/** Scale offsets for each component. **/
-	TArray<FVector> ScaleOffsets;
-
-	/** Whether to scale linearly for all fields. **/
-	TArray<bool> ScaleOffsetsLinearly;
-
-	/** Temporary geo part information, this is used during loading. **/
-	TArray<FHoudiniGeoPartObject> GeoPartObjects;
-
-#if WITH_EDITOR
+	/** List of cached thumbnails. **/
+	TMap<UHoudiniAssetInstanceInputField*, TSharedPtr<SBorder> > CachedThumbnailBorders;
 
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
 #endif
 
-	/** Corresponding object id. **/
-	HAPI_ObjectId ObjectId;
+	/** Corresponding geo part object. **/
+	FHoudiniGeoPartObject HoudiniGeoPartObject;
 
 	/** Id of an object to instance. **/
 	HAPI_ObjectId ObjectToInstanceId;
-
-	/** Corresponding geo id. **/
-	HAPI_GeoId GeoId;
-
-	/** Corresponding part id. **/
-	HAPI_PartId PartId;
 
 	/** Flags used by this input. **/
 	union

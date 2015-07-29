@@ -211,7 +211,7 @@ public:
 
 	/** Locate static mesh by geo part object name. By default will use substring matching. **/
 	bool LocateStaticMeshes(const FString& ObjectName,
-		TMultiMap<FString, FHoudiniGeoPartObject>& InOutObjectsToInstance, bool bSubstring = true) const;
+		TMap<FString, TArray<FHoudiniGeoPartObject> >& InOutObjectsToInstance, bool bSubstring = true) const;
 
 	/** Locate static mesh by geo part object id. **/
 	bool LocateStaticMeshes(int32 ObjectToInstanceId, TArray<FHoudiniGeoPartObject>& InOutObjectsToInstance) const;

@@ -17,19 +17,13 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniApi.h"
-
-
-const float
-UHoudiniAssetInstanceInput::ScaleSmallValue = KINDA_SMALL_NUMBER * 2.0f;
 
 
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	ObjectId(-1),
 	ObjectToInstanceId(-1),
-	GeoId(-1),
-	PartId(-1),
 	bIsAttributeInstancer(false)
 {
 	TupleSize = 0;
@@ -44,21 +38,21 @@ UHoudiniAssetInstanceInput::~UHoudiniAssetInstanceInput()
 
 UHoudiniAssetInstanceInput*
 UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-	const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+	const FHoudiniGeoPartObject& InHoudiniGeoPartObject)
 {
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = nullptr;
 
 	// Get name of this input. For the time being we only support geometry inputs.
 	HAPI_ObjectInfo ObjectInfo;
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(nullptr, InHoudiniAssetComponent->GetAssetId(), &ObjectInfo,
-		HoudiniGeoPartObject.ObjectId, 1))
+		InHoudiniGeoPartObject.ObjectId, 1))
 	{
 		return HoudiniAssetInstanceInput;
 	}
 
 	// If this is an attribute instancer, see if attribute exists.
 	bool bAttributeCheck = UHoudiniAssetInstanceInput::CheckInstanceAttribute(InHoudiniAssetComponent->GetAssetId(),
-		HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId);
+		InHoudiniGeoPartObject);
 
 	// This is invalid combination, no object to instance and input is not an attribute instancer.
 	if(!bAttributeCheck && -1 == ObjectInfo.objectToInstanceId)
@@ -66,12 +60,12 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 		return HoudiniAssetInstanceInput;
 	}
 
-	HoudiniAssetInstanceInput = NewObject<UHoudiniAssetInstanceInput>(InHoudiniAssetComponent);
+	HoudiniAssetInstanceInput = NewObject<UHoudiniAssetInstanceInput>(InHoudiniAssetComponent, 
+		UHoudiniAssetInstanceInput::StaticClass(), NAME_None, RF_Public);
 
 	HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
 	HoudiniAssetInstanceInput->SetNameAndLabel(ObjectInfo.nameSH);
-	HoudiniAssetInstanceInput->SetObjectGeoPartIds(HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId,
-		HoudiniGeoPartObject.PartId);
+	HoudiniAssetInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
 	HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectInfo.objectToInstanceId;
 
 	// Check if this instancer is an attribute instancer and if it is, mark it as such.
@@ -86,29 +80,20 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 {
 	// Retrieve instance transforms (for each point).
 	TArray<FTransform> AllTransforms;
-	FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniAssetComponent->GetAssetId(), ObjectId, GeoId, PartId,
-		AllTransforms);
+	FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniAssetComponent->GetAssetId(), HoudiniGeoPartObject.ObjectId,
+		HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, AllTransforms);
 
-	// Store old tuple size.
-	int32 OldTupleSize = TupleSize;
-
-	// If we are in playmode, we need to reset uninitialized static mesh resources.
-	if(HoudiniAssetComponent && HoudiniAssetComponent->IsPlayModeActive())
-	{
-		InstancedStaticMeshComponents.SetNum(0);
-		StaticMeshes.SetNum(0);
-		OriginalStaticMeshes.SetNum(0);
-
-		OldTupleSize = 0;
-	}
+	// List of new fields. Reused input fields will also be placed here.
+	TArray<UHoudiniAssetInstanceInputField*> NewInstanceInputFields;
 
 	if(bIsAttributeInstancer)
 	{
 		HAPI_AttributeInfo ResultAttributeInfo;
 		TArray<FString> PointInstanceValues;
 
-		if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniAssetComponent->GetAssetId(), ObjectId, GeoId,
-			PartId, HAPI_UNREAL_ATTRIB_INSTANCE, ResultAttributeInfo, PointInstanceValues))
+		if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniAssetComponent->GetAssetId(), 
+			HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, 
+			HAPI_UNREAL_ATTRIB_INSTANCE, ResultAttributeInfo, PointInstanceValues))
 		{
 			// This should not happen - attribute exists, but there was an error retrieving it.
 			return false;
@@ -123,9 +108,13 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			return false;
 		}
 
-		// If instance attribute exists on points, we need to get all unique values.
-		TMultiMap<FString, FHoudiniGeoPartObject> ObjectsToInstance;
+		// Get unique names.
 		TSet<FString> UniquePointInstanceValues(PointInstanceValues);
+		
+		// If instance attribute exists on points, we need to get all unique values.
+		TMap<FString, TArray<FHoudiniGeoPartObject> > ObjectsToInstance;
+
+		// For each name, we need to retrieve corresponding geo object parts as well as sequence of geo object parts.
 		for(TSet<FString>::TIterator IterString(UniquePointInstanceValues); IterString; ++IterString)
 		{
 			const FString& UniqueName = *IterString;
@@ -138,56 +127,26 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			return false;
 		}
 
-		// Adjust number of resources according to number of objects we need to instance.
-		TupleSize = ObjectsToInstance.Num();
-		check(TupleSize);
-		AdjustMeshComponentResources(TupleSize, OldTupleSize);
-
-		// Process each existing detected instancer and create new ones if necessary.
-		int32 GeoIdx = 0;
-		for(TMultiMap<FString, FHoudiniGeoPartObject>::TIterator
-			IterInstancer(ObjectsToInstance); IterInstancer; ++IterInstancer)
+		for(TMap<FString, TArray<FHoudiniGeoPartObject> >::TIterator IterInstanceObjects(ObjectsToInstance);
+			IterInstanceObjects; ++IterInstanceObjects)
 		{
-			const FString& ObjectInstancePath = IterInstancer.Key();
-			const FHoudiniGeoPartObject& HoudiniGeoPartObject = IterInstancer.Value();
-
-			// Set component transformation.
-			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
-
-			if(!OriginalStaticMeshes[GeoIdx])
-			{
-				// Locate static mesh for this geo part.
-				UStaticMesh* StaticMesh = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
-				check(StaticMesh);
-
-				OriginalStaticMeshes[GeoIdx] = StaticMesh;
-			}
-
-			// If static mesh is not set, assign it.
-			if(!StaticMeshes[GeoIdx])
-			{
-				StaticMeshes[GeoIdx] = OriginalStaticMeshes[GeoIdx];
-				InstancedStaticMeshComponents[GeoIdx]->SetStaticMesh(StaticMeshes[GeoIdx]);
-			}
+			const FString& InstancePath = IterInstanceObjects.Key();
+			TArray<FHoudiniGeoPartObject>& InstanceGeoPartObjects = IterInstanceObjects.Value();
 
 			// Retrieve all applicable transforms for this object.
 			TArray<FTransform> ObjectTransforms;
-			GetPathInstaceTransforms(ObjectInstancePath, PointInstanceValues, AllTransforms, ObjectTransforms);
+			GetPathInstaceTransforms(InstancePath, PointInstanceValues, AllTransforms, ObjectTransforms);
 			check(ObjectTransforms.Num());
 
-			// Store transforms for this component.
-			InstancedTransforms[GeoIdx].Append(ObjectTransforms);
-
-			// Set component's transformations and instances.
-			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], ObjectTransforms, GeoIdx);
-
-			// If this is a collision instancer, make it invisible.
-			if(HoudiniGeoPartObject.bIsCollidable)
+			for(int32 InstanceGeoPartObjectIdx = 0; InstanceGeoPartObjectIdx < InstanceGeoPartObjects.Num();
+				++InstanceGeoPartObjectIdx)
 			{
-				InstancedStaticMeshComponents[GeoIdx]->SetVisibility(false);
-			}
+				const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject = InstanceGeoPartObjects[InstanceGeoPartObjectIdx];
 
-			++GeoIdx;
+				// Locate or create an input field.
+				CreateInstanceInputField(ItemHoudiniGeoPartObject, ObjectTransforms, InstancePath, InstanceInputFields,
+					NewInstanceInputFields);
+			}
 		}
 	}
 	else
@@ -196,59 +155,117 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		TArray<FHoudiniGeoPartObject> ObjectsToInstance;
 		HoudiniAssetComponent->LocateStaticMeshes(ObjectToInstanceId, ObjectsToInstance);
 
-		// Adjust number of resources according to number of objects we need to instance.
-		TupleSize = ObjectsToInstance.Num();
-		AdjustMeshComponentResources(TupleSize, OldTupleSize);
-
 		// Process each existing detected object that needs to be instanced.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectsToInstance.Num(); ++GeoIdx)
 		{
-			const FHoudiniGeoPartObject& HoudiniGeoPartObject = ObjectsToInstance[GeoIdx];
+			const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject = ObjectsToInstance[GeoIdx];
 
-			// Set component transformation.
-			InstancedStaticMeshComponents[GeoIdx]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
-
-			if(!OriginalStaticMeshes[GeoIdx])
-			{
-				// Locate static mesh corresponding to this geo part object.
-				UStaticMesh* StaticMesh = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
-				check(StaticMesh);
-
-				OriginalStaticMeshes[GeoIdx] = StaticMesh;
-			}
-
-			// If static mesh is not set, assign it.
-			if(!StaticMeshes[GeoIdx])
-			{
-				StaticMeshes[GeoIdx] = OriginalStaticMeshes[GeoIdx];
-				InstancedStaticMeshComponents[GeoIdx]->SetStaticMesh(StaticMeshes[GeoIdx]);
-			}
-
-			// Store transforms for this component.
-			InstancedTransforms[GeoIdx].Append(AllTransforms);
-
-			// Set component's transformations and instances.
-			SetComponentInstanceTransformations(InstancedStaticMeshComponents[GeoIdx], AllTransforms, GeoIdx);
-
-			// If this is a collision instancer, make it invisible.
-			if(HoudiniGeoPartObject.bIsCollidable)
-			{
-				InstancedStaticMeshComponents[GeoIdx]->SetVisibility(false);
-			}
+			// Locate or create an input field.
+			CreateInstanceInputField(ItemHoudiniGeoPartObject, AllTransforms, TEXT(""), InstanceInputFields,
+				NewInstanceInputFields);
 		}
 	}
 
+	// Sort and store new fields.
+	NewInstanceInputFields.Sort(FHoudiniAssetInstanceInputFieldSortPredicate());
+	InstanceInputFields = NewInstanceInputFields;
+
 	return true;
+}
+
+
+UHoudiniAssetInstanceInputField*
+UHoudiniAssetInstanceInput::LocateInputField(const FHoudiniGeoPartObject& GeoPartObject, const FString& InstancePathName)
+{
+	UHoudiniAssetInstanceInputField* FoundHoudiniAssetInstanceInputField = nullptr;
+
+	for(int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx)
+	{
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[FieldIdx];
+
+		if(HoudiniAssetInstanceInputField->InstancePathName == InstancePathName &&
+			HoudiniAssetInstanceInputField->HoudiniGeoPartObject == GeoPartObject)
+		{
+			FoundHoudiniAssetInstanceInputField = HoudiniAssetInstanceInputField;
+			break;
+		}
+	}
+
+	return FoundHoudiniAssetInstanceInputField;
+}
+
+
+void
+UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject& InHoudiniGeoPartObject,
+	const TArray<FTransform>& ObjectTransforms, const FString& InstancePathName,
+	const TArray<UHoudiniAssetInstanceInputField*>& OldInstanceInputFields,
+	TArray<UHoudiniAssetInstanceInputField*>& NewInstanceInputFields)
+{
+	// Locate static mesh for this geo part.
+	UStaticMesh* StaticMesh = HoudiniAssetComponent->LocateStaticMesh(InHoudiniGeoPartObject);
+	check(StaticMesh);
+
+	// Locate corresponding input field.
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField =
+		LocateInputField(InHoudiniGeoPartObject, InstancePathName);
+
+	if(!HoudiniAssetInstanceInputField)
+	{
+		// Input field does not exist, we need to create it.
+		HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(HoudiniAssetComponent,
+			InHoudiniGeoPartObject, InstancePathName);
+
+		// Assign original and static mesh.
+		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+		HoudiniAssetInstanceInputField->StaticMesh = StaticMesh;
+
+		// Create instanced component.
+		HoudiniAssetInstanceInputField->CreateInstancedComponent();
+	}
+	else
+	{
+		// Remove item from old list.
+		InstanceInputFields.RemoveSingleSwap(HoudiniAssetInstanceInputField, false);
+
+		if(HoudiniAssetInstanceInputField->OriginalStaticMesh == HoudiniAssetInstanceInputField->StaticMesh)
+		{
+			// Assign original and static mesh.
+			HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+			HoudiniAssetInstanceInputField->StaticMesh = StaticMesh;
+		}
+	}
+
+	// Update component transformation.
+	HoudiniAssetInstanceInputField->UpdateRelativeTransform();
+
+	// Set transforms for this input.
+	HoudiniAssetInstanceInputField->SetInstanceTransforms(ObjectTransforms);
+
+	// Add field to list of fields.
+	NewInstanceInputFields.Add(HoudiniAssetInstanceInputField);
 }
 
 
 bool
 UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 {
+	
+
+	// UpdateRelativeTransform
+
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
+	{
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
+		HoudiniAssetInstanceInputField->CreateInstancedComponent();
+	}
+
+	int i =32;
+
+	/*
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
 		// Get geo part information for this index.
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = GeoPartObjects[Idx];
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject = SerializedGeoPartObjects[Idx];
 
 		UInstancedStaticMeshComponent* Component =
 			NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
@@ -286,7 +303,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 		Component->GetBodyInstance()->bAutoWeld = false;
 	}
 
-	GeoPartObjects.Empty();
+	SerializedGeoPartObjects.Empty();
+	*/
 	return true;
 }
 
@@ -294,13 +312,10 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 void
 UHoudiniAssetInstanceInput::RecreateRenderStates()
 {
-	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
-		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
-		if(InstancedStaticMeshComponent)
-		{
-			InstancedStaticMeshComponent->RecreateRenderState_Concurrent();
-		}
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
+		HoudiniAssetInstanceInputField->RecreateRenderState();
 	}
 }
 
@@ -308,13 +323,10 @@ UHoudiniAssetInstanceInput::RecreateRenderStates()
 void
 UHoudiniAssetInstanceInput::RecreatePhysicsStates()
 {
-	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
-		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
-		if(InstancedStaticMeshComponent)
-		{
-			InstancedStaticMeshComponent->RecreatePhysicsState();
-		}
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
+		HoudiniAssetInstanceInputField->RecreatePhysicsState();
 	}
 }
 
@@ -336,21 +348,22 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 {
 	Super::CreateWidget(DetailCategoryBuilder);
 
-	StaticMeshThumbnailBorders.Empty();
-	StaticMeshComboButtons.Empty();
+	CachedComboButtons.Empty();
+	CachedThumbnailBorders.Empty();
 
 	// Get thumbnail pool for this builder.
 	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
-	for(int32 StaticMeshIdx = 0; StaticMeshIdx < StaticMeshes.Num(); ++StaticMeshIdx)
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
-		UStaticMesh* StaticMesh = StaticMeshes[StaticMeshIdx];
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
+		UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetStaticMesh();
 
 		FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 		FText LabelText =
 			FText::Format(LOCTEXT("HoudiniStaticMeshInstanceInput", "Static Mesh Instance {0}"),
-				FText::AsNumber(StaticMeshIdx));
+				FText::AsNumber(Idx));
 
 		Row.NameWidget.Widget = SNew(STextBlock)
 								.Text(LabelText)
@@ -362,7 +375,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			AssetThumbnailPool));
 		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 		TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
-		TSharedPtr<SBorder>StaticMeshThumbnailBorder;
+		TSharedPtr<SBorder> StaticMeshThumbnailBorder;
 
 		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 		[
@@ -370,7 +383,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this,
 				&UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver))
 			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this,
-				&UHoudiniAssetInstanceInput::OnStaticMeshDropped, StaticMesh, StaticMeshIdx))
+				&UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, Idx))
 			[
 				SAssignNew(HorizontalBox, SHorizontalBox)
 			]
@@ -383,7 +396,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 			.BorderImage(TAttribute<const FSlateBrush*>::Create(
 				TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, StaticMesh, StaticMeshIdx)))
+					&UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, Idx)))
 			.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this,
 				&UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*) StaticMesh))
 			[
@@ -398,11 +411,13 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		];
 
 		// Store thumbnail border for this static mesh.
-		StaticMeshThumbnailBorders.Add(StaticMeshIdx, StaticMeshThumbnailBorder);
+		//HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
+		CachedThumbnailBorders.Add(HoudiniAssetInstanceInputField, StaticMeshThumbnailBorder);
 
 		TSharedPtr<SComboButton> AssetComboButton;
 		TSharedPtr<SHorizontalBox> ButtonBox;
 
+		/*
 		HorizontalBox->AddSlot()
 		.FillWidth(1.0f)
 		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
@@ -420,7 +435,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 					.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 					.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 					.OnGetMenuContent(FOnGetContent::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent, StaticMesh, StaticMeshIdx))
+						&UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent, HoudiniAssetInstanceInputField, Idx))
 					.ContentPadding(2.0f)
 					.ButtonContent()
 					[
@@ -432,6 +447,10 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				]
 			]
 		];
+
+		// Store combobutton for this static mesh.
+		//HoudiniAssetInstanceInputField->AssignComboButton(AssetComboButton);
+		CachedComboButtons.Add(HoudiniAssetInstanceInputField, AssetComboButton);
 
 		// Create tooltip.
 		FFormatNamedArguments Args;
@@ -461,12 +480,13 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			.ContentPadding(0)
 			.Visibility(EVisibility::Visible)
 			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnResetStaticMeshClicked,
-				StaticMesh, StaticMeshIdx))
+				HoudiniAssetInstanceInputField, Idx))
 			[
 				SNew(SImage)
 				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		];
+		*/
 
 		FText LabelRotationText = LOCTEXT("HoudiniRotationOffset", "Rotation Offset:");
 		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
@@ -487,19 +507,19 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				.bColorAxisLabels(true)
 				.Roll(TAttribute<TOptional<float> >::Create(
 					TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetRotationRoll, StaticMeshIdx)))
+						&UHoudiniAssetInstanceInput::GetRotationRoll, HoudiniAssetInstanceInputField)))
 				.Pitch(TAttribute<TOptional<float> >::Create(
 					TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetRotationPitch, StaticMeshIdx)))
+						&UHoudiniAssetInstanceInput::GetRotationPitch, HoudiniAssetInstanceInputField)))
 				.Yaw(TAttribute<TOptional<float> >::Create(
 					TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetRotationYaw, StaticMeshIdx)))
+						&UHoudiniAssetInstanceInput::GetRotationYaw, HoudiniAssetInstanceInputField)))
 				.OnRollChanged(FOnFloatValueChanged::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::SetRotationRoll, StaticMeshIdx))
+					&UHoudiniAssetInstanceInput::SetRotationRoll, HoudiniAssetInstanceInputField))
 				.OnPitchChanged(FOnFloatValueChanged::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::SetRotationPitch, StaticMeshIdx))
+					&UHoudiniAssetInstanceInput::SetRotationPitch, HoudiniAssetInstanceInputField))
 				.OnYawChanged(FOnFloatValueChanged::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::SetRotationYaw, StaticMeshIdx))
+					&UHoudiniAssetInstanceInput::SetRotationYaw, HoudiniAssetInstanceInputField))
 			]
 		];
 
@@ -520,17 +540,17 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				SNew(SVectorInputBox)
 				.bColorAxisLabels(true)
 				.X(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::GetScaleX, StaticMeshIdx)))
+					&UHoudiniAssetInstanceInput::GetScaleX, HoudiniAssetInstanceInputField)))
 				.Y(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::GetScaleY, StaticMeshIdx)))
+					&UHoudiniAssetInstanceInput::GetScaleY, HoudiniAssetInstanceInputField)))
 				.Z(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::GetScaleZ, StaticMeshIdx)))
+					&UHoudiniAssetInstanceInput::GetScaleZ, HoudiniAssetInstanceInputField)))
 				.OnXChanged(FOnFloatValueChanged::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::SetScaleX, StaticMeshIdx))
+					&UHoudiniAssetInstanceInput::SetScaleX, HoudiniAssetInstanceInputField))
 				.OnYChanged(FOnFloatValueChanged::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::SetScaleY, StaticMeshIdx))
+					&UHoudiniAssetInstanceInput::SetScaleY, HoudiniAssetInstanceInputField))
 				.OnZChanged(FOnFloatValueChanged::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::SetScaleZ, StaticMeshIdx))
+					&UHoudiniAssetInstanceInput::SetScaleZ, HoudiniAssetInstanceInputField))
 			]
 		];
 
@@ -539,10 +559,10 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		[
 			SNew(SCheckBox)
 			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-				&UHoudiniAssetInstanceInput::CheckStateChanged, StaticMeshIdx))
+				&UHoudiniAssetInstanceInput::CheckStateChanged, HoudiniAssetInstanceInputField))
 			.IsChecked(TAttribute<ECheckBoxState>::Create(
 				TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::IsChecked, StaticMeshIdx)))
+					&UHoudiniAssetInstanceInput::IsChecked, HoudiniAssetInstanceInputField)))
 			.Content()
 			[
 				SNew(STextBlock)
@@ -551,9 +571,6 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
-
-		// Store combo button static mesh mapping.
-		StaticMeshComboButtons.Add(StaticMeshIdx, AssetComboButton);
 
 		Row.ValueWidget.Widget = VerticalBox;
 		Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
@@ -573,10 +590,19 @@ UHoudiniAssetInstanceInput::UploadParameterValue()
 void
 UHoudiniAssetInstanceInput::BeginDestroy()
 {
-	AdjustMeshComponentResources(0, TupleSize);
-	TupleSize = 0;
-
 	Super::BeginDestroy();
+}
+
+
+void
+UHoudiniAssetInstanceInput::SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent)
+{
+	UHoudiniAssetParameter::SetHoudiniAssetComponent(InHoudiniAssetComponent);
+
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
+	{
+		InstanceInputFields[Idx]->HoudiniAssetComponent = InHoudiniAssetComponent;
+	}
 }
 
 
@@ -586,116 +612,25 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
-	Ar << ObjectId;
-	Ar << ObjectToInstanceId;
-	Ar << GeoId;
-	Ar << PartId;
-
 	Ar << HoudiniAssetInstanceInputFlagsPacked;
+	HoudiniGeoPartObject.Serialize(Ar);
+	Ar << ObjectToInstanceId;
 
-	if(Ar.IsLoading())
+	// Serialize number of fields.
+	int32 NumFields = InstanceInputFields.Num();
+	Ar << NumFields;
+
+	for(int32 Idx = 0; Idx < NumFields; ++Idx)
 	{
-		InstancedTransforms.SetNum(TupleSize);
-		for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+		if(Ar.IsLoading())
 		{
-			InstancedTransforms[Idx].SetNum(0);
+			UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = nullptr;
+			Ar << HoudiniAssetInstanceInputField;
+			InstanceInputFields.Add(HoudiniAssetInstanceInputField);
 		}
-
-		StaticMeshes.SetNumZeroed(TupleSize);
-		OriginalStaticMeshes.SetNumZeroed(TupleSize);
-		InstancedStaticMeshComponents.SetNumZeroed(TupleSize);
-
-		// By default, we have no rotations.
-		RotationOffsets.SetNumZeroed(TupleSize);
-
-		// By default, we have identity scales.
-		static const FVector ScaleIdentity(1.0f, 1.0f, 1.0f);
-		ScaleOffsets.Init(ScaleIdentity, TupleSize);
-
-		ScaleOffsetsLinearly.Init(true, TupleSize);
-
-		GeoPartObjects.SetNumZeroed(TupleSize);
-	}
-
-	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
-	{
-		bool bValidComponent = false;
-
-		if(!Ar.IsSaving() && !Ar.IsLoading())
+		else if(Ar.IsSaving())
 		{
-			continue;
-		}
-
-		if(Ar.IsSaving())
-		{
-			bValidComponent = (InstancedStaticMeshComponents[Idx] != nullptr);
-		}
-
-		Ar << bValidComponent;
-
-		if(bValidComponent)
-		{
-			// Serialize rotation offset.
-			Ar << RotationOffsets[Idx];
-
-			// Serialize scale offset.
-			Ar << ScaleOffsets[Idx];
-
-			// Serialize whether this offset is scaled linearly.
-			Ar << ScaleOffsetsLinearly[Idx];
-
-			// Serialize all transforms;
-			Ar << InstancedTransforms[Idx];
-
-			// Serialize whether original mesh is used.
-			bool bOriginalMeshUsed = false;
-
-			if(Ar.IsSaving())
-			{
-				bOriginalMeshUsed = (StaticMeshes[Idx] == OriginalStaticMeshes[Idx]);
-			}
-
-			Ar << bOriginalMeshUsed;
-
-			// Serialize original mesh's geo part.
-			FHoudiniGeoPartObject GeoPartObject;
-			if(Ar.IsSaving())
-			{
-				GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(OriginalStaticMeshes[Idx]);
-			}
-
-			GeoPartObject.Serialize(Ar);
-
-			if(Ar.IsLoading())
-			{
-				// Store geo parts, we can use this information in post load to get original meshes.
-				GeoPartObjects[Idx] = GeoPartObject;
-			}
-
-			// If original mesh is not used, we need to serialize it.
-			if(!bOriginalMeshUsed)
-			{
-				FString MeshPathName = TEXT("");
-
-				// If original mesh is not used, we need to store path to used mesh.
-				if(Ar.IsSaving())
-				{
-					MeshPathName = StaticMeshes[Idx]->GetPathName();
-				}
-
-				Ar << MeshPathName;
-
-				if(Ar.IsLoading())
-				{
-					StaticMeshes[Idx] = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr,
-						*MeshPathName, nullptr, LOAD_NoWarn, nullptr));
-				}
-			}
-		}
-		else
-		{
-			// This component is not valid.
-			check(false);
+			Ar << InstanceInputFields[Idx];
 		}
 	}
 }
@@ -707,29 +642,21 @@ UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceColl
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Cast<UHoudiniAssetInstanceInput>(InThis);
 	if(HoudiniAssetInstanceInput && !HoudiniAssetInstanceInput->IsPendingKill())
 	{
-		UStaticMesh* StaticMesh = nullptr;
-		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = nullptr;
-
-		// Add references to all used objects.
-		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInput->GetTupleSize(); ++Idx)
+		// Add references to all used fields.
+		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInput->InstanceInputFields.Num(); ++Idx)
 		{
-			StaticMesh = HoudiniAssetInstanceInput->StaticMeshes[Idx];
+			UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = 
+				HoudiniAssetInstanceInput->InstanceInputFields[Idx];
+
+			Collector.AddReferencedObject(HoudiniAssetInstanceInputField, InThis);
+
+			/*
+			UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetStaticMesh();
 			if(StaticMesh)
 			{
 				Collector.AddReferencedObject(StaticMesh, InThis);
 			}
-
-			StaticMesh = HoudiniAssetInstanceInput->OriginalStaticMeshes[Idx];
-			if(StaticMesh)
-			{
-				Collector.AddReferencedObject(StaticMesh, InThis);
-			}
-
-			InstancedStaticMeshComponent = HoudiniAssetInstanceInput->InstancedStaticMeshComponents[Idx];
-			if(InstancedStaticMeshComponent)
-			{
-				Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
-			}
+			*/
 		}
 	}
 
@@ -759,191 +686,67 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 {
 	USceneComponent* RootComponent = Actor->GetRootComponent();
 
-	for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
-		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
-		if(InstancedStaticMeshComponent)
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
+		UStaticMesh* OutStaticMesh = nullptr;
+
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = 
+			HoudiniAssetInstanceInputField->GetInstancedStaticMeshComponent();
+
+		// If original static mesh is used, then we need to bake it.
+		if(HoudiniAssetInstanceInputField->IsOriginalStaticMeshUsed())
 		{
-			UStaticMesh* OutStaticMesh = nullptr;
+			const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject =
+				HoudiniAssetComponent->LocateGeoPartObject(HoudiniAssetInstanceInputField->GetStaticMesh());
 
-			// If original static mesh is used, then we need to bake it.
-			if(OriginalStaticMeshes[Idx] == StaticMeshes[Idx])
+			// Bake the referenced static mesh.
+			OutStaticMesh =
+				FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, ItemHoudiniGeoPartObject, 
+					HoudiniAssetInstanceInputField->GetOriginalStaticMesh());
+
+			if(OutStaticMesh)
 			{
-				const FHoudiniGeoPartObject& HoudiniGeoPartObject =
-					HoudiniAssetComponent->LocateGeoPartObject(OriginalStaticMeshes[Idx]);
-
-				// Bake the referenced static mesh.
-				OutStaticMesh =
-					FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject, StaticMeshes[Idx]);
-
-				if(OutStaticMesh)
-				{
-					FAssetRegistryModule::AssetCreated(OutStaticMesh);
-				}
-				else
-				{
-					continue;
-				}
+				FAssetRegistryModule::AssetCreated(OutStaticMesh);
 			}
 			else
 			{
-				OutStaticMesh = StaticMeshes[Idx];
+				continue;
 			}
-
-			UInstancedStaticMeshComponent* DuplicatedComponent =
-				NewObject<UInstancedStaticMeshComponent>(Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None);
-
-			Actor->AddInstanceComponent(DuplicatedComponent);
-
-			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
-
-			// Set component instances.
-			SetComponentInstanceTransformations(DuplicatedComponent, InstancedTransforms[Idx], Idx);
-
-			// Copy visibility.
-			DuplicatedComponent->SetVisibility(InstancedStaticMeshComponent->IsVisible());
-
-			DuplicatedComponent->AttachTo(RootComponent);
-			DuplicatedComponent->RegisterComponent();
-			DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
 		}
+		else
+		{
+			OutStaticMesh = HoudiniAssetInstanceInputField->GetStaticMesh();
+		}
+
+		UInstancedStaticMeshComponent* DuplicatedComponent =
+			NewObject<UInstancedStaticMeshComponent>(Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, 
+				RF_Public);
+
+		Actor->AddInstanceComponent(DuplicatedComponent);
+		DuplicatedComponent->SetStaticMesh(OutStaticMesh);
+
+		// Set component instances.
+		{
+			FRotator RotationOffset(0.0f, 0.0f, 0.0f);
+			FVector ScaleOffset(1.0f, 1.0f, 1.0f);
+
+			const TArray<FTransform>& InstancedTransforms = HoudiniAssetInstanceInputField->GetInstancedTransforms();
+
+			FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(DuplicatedComponent, InstancedTransforms,
+				RotationOffset, ScaleOffset);
+		}
+
+		// Copy visibility.
+		DuplicatedComponent->SetVisibility(InstancedStaticMeshComponent->IsVisible());
+
+		DuplicatedComponent->AttachTo(RootComponent);
+		DuplicatedComponent->RegisterComponent();
+		DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
 	}
 }
 
 #endif
-
-
-void
-UHoudiniAssetInstanceInput::SetObjectGeoPartIds(HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId)
-{
-	ObjectId = InObjectId;
-	GeoId = InGeoId;
-	PartId = InPartId;
-}
-
-
-void
-UHoudiniAssetInstanceInput::AdjustMeshComponentResources(int32 ObjectCount, int32 OldTupleSize)
-{
-	static const FVector ScaleIdentity(1.0f, 1.0f, 1.0f);
-
-	if(ObjectCount < OldTupleSize)
-	{
-		// If we have more than supplied object count, we need to free those unused resources.
-
-		for(int32 Idx = ObjectCount; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
-		{
-			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
-			if(InstancedStaticMeshComponent)
-			{
-				InstancedStaticMeshComponent->DetachFromParent();
-				InstancedStaticMeshComponent->UnregisterComponent();
-				InstancedStaticMeshComponent->DestroyComponent();
-
-				InstancedStaticMeshComponents[Idx] = nullptr;
-			}
-
-			StaticMeshes[Idx] = nullptr;
-			OriginalStaticMeshes[Idx] = nullptr;
-		}
-
-		InstancedStaticMeshComponents.SetNum(ObjectCount);
-		StaticMeshes.SetNum(ObjectCount);
-		OriginalStaticMeshes.SetNum(ObjectCount);
-		RotationOffsets.SetNum(ObjectCount);
-		ScaleOffsets.SetNum(ObjectCount);
-		ScaleOffsetsLinearly.SetNum(ObjectCount);
-	}
-	else if(ObjectCount > OldTupleSize)
-	{
-		int32 OldComponentCount = InstancedStaticMeshComponents.Num();
-
-		// If we have less than supplied object count, we need to create new resources.
-		InstancedStaticMeshComponents.SetNumZeroed(ObjectCount);
-		StaticMeshes.SetNumZeroed(ObjectCount);
-		OriginalStaticMeshes.SetNumZeroed(ObjectCount);
-		RotationOffsets.SetNumZeroed(ObjectCount);
-
-		// We need to add identity scales for new components.
-		ScaleOffsets.SetNum(OldTupleSize);
-		ScaleOffsetsLinearly.SetNum(OldTupleSize);
-
-		for(int32 ScaleIdx = OldTupleSize; ScaleIdx < ObjectCount; ++ScaleIdx)
-		{
-			ScaleOffsets.Add(ScaleIdentity);
-			ScaleOffsetsLinearly.Add(true);
-		}
-
-		for(int32 Idx = OldComponentCount; Idx < ObjectCount; ++Idx)
-		{
-			// We need to create instanced component.
-			UInstancedStaticMeshComponent* Component =
-				NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
-					UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transient);
-
-			Component->AttachTo(HoudiniAssetComponent);
-			Component->RegisterComponent();
-			Component->GetBodyInstance()->bAutoWeld = false;
-
-			// We want to make this invisible if it's a collision instancer.
-			Component->SetVisibility(true);
-
-			InstancedStaticMeshComponents[Idx] = Component;
-			StaticMeshes[Idx] = nullptr;
-			OriginalStaticMeshes[Idx] = nullptr;
-		}
-	}
-
-	// Reset transforms array.
-	InstancedTransforms.SetNum(ObjectCount);
-	for(int32 Idx = 0; Idx < ObjectCount; ++Idx)
-	{
-		InstancedTransforms[Idx].SetNum(0);
-	}
-}
-
-
-void
-UHoudiniAssetInstanceInput::SetComponentInstanceTransformations(UInstancedStaticMeshComponent* InstancedStaticMeshComponent,
-	const TArray<FTransform>& InstanceTransforms, int32 Idx)
-{
-	InstancedStaticMeshComponent->ClearInstances();
-
-	// Get current rotation and scale for this index.
-	FRotator Rotator = RotationOffsets[Idx];
-	FVector Scale = ScaleOffsets[Idx];
-
-	for(int32 InstanceIdx = 0; InstanceIdx < InstanceTransforms.Num(); ++InstanceIdx)
-	{
-		FTransform Transform = InstanceTransforms[InstanceIdx];
-
-		// Compute new rotation and scale.
-		FQuat TransformRotation = Transform.GetRotation() * Rotator.Quaternion();
-		FVector TransformScale3D = Transform.GetScale3D() * Scale;
-
-		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
-		// Happens in blueprint as well.
-		if(TransformScale3D.X < UHoudiniAssetInstanceInput::ScaleSmallValue)
-		{
-			TransformScale3D.X = UHoudiniAssetInstanceInput::ScaleSmallValue;
-		}
-
-		if(TransformScale3D.Y < UHoudiniAssetInstanceInput::ScaleSmallValue)
-		{
-			TransformScale3D.Y = UHoudiniAssetInstanceInput::ScaleSmallValue;
-		}
-
-		if(TransformScale3D.Z < UHoudiniAssetInstanceInput::ScaleSmallValue)
-		{
-			TransformScale3D.Z = UHoudiniAssetInstanceInput::ScaleSmallValue;
-		}
-
-		Transform.SetRotation(TransformRotation);
-		Transform.SetScale3D(TransformScale3D);
-
-		InstancedStaticMeshComponent->AddInstance(Transform);
-	}
-}
 
 
 void
@@ -963,92 +766,47 @@ UHoudiniAssetInstanceInput::GetPathInstaceTransforms(const FString& ObjectInstan
 }
 
 
-void
-UHoudiniAssetInstanceInput::ChangeInstancedStaticMeshComponentMesh(int32 Idx)
-{
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
-	UStaticMesh* StaticMesh = StaticMeshes[Idx];
-	UStaticMesh* OriginalStaticMesh = OriginalStaticMeshes[Idx];
-	if(InstancedStaticMeshComponent)
-	{
-		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
-	}
-}
-
-
-void
-UHoudiniAssetInstanceInput::UpdateInstanceTransforms(int32 Idx)
-{
-	// Get current rotation and scale for this index.
-	FRotator Rotator = RotationOffsets[Idx];
-	FVector Scale = ScaleOffsets[Idx];
-
-	// Get component for this index.
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
-	InstancedStaticMeshComponent->ClearInstances();
-
-	TArray<FTransform>& Transforms = InstancedTransforms[Idx];
-	for(int32 InstanceIdx = 0; InstanceIdx < Transforms.Num(); ++InstanceIdx)
-	{
-		// Get transform for this instance.
-		FTransform Transform = Transforms[InstanceIdx];
-
-		// Compute new rotation and scale.
-		FQuat TransformRotation = Transform.GetRotation() * Rotator.Quaternion();
-		FVector TransformScale3D = Transform.GetScale3D() * Scale;
-
-		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
-		// Happens in blueprint as well.
-		if(TransformScale3D.X < UHoudiniAssetInstanceInput::ScaleSmallValue)
-		{
-			TransformScale3D.X = UHoudiniAssetInstanceInput::ScaleSmallValue;
-		}
-
-		if(TransformScale3D.Y < UHoudiniAssetInstanceInput::ScaleSmallValue)
-		{
-			TransformScale3D.Y = UHoudiniAssetInstanceInput::ScaleSmallValue;
-		}
-
-		if(TransformScale3D.Z < UHoudiniAssetInstanceInput::ScaleSmallValue)
-		{
-			TransformScale3D.Z = UHoudiniAssetInstanceInput::ScaleSmallValue;
-		}
-
-		Transform.SetRotation(TransformRotation);
-		Transform.SetScale3D(TransformScale3D);
-
-		InstancedStaticMeshComponent->AddInstance(Transform);
-	}
-}
-
-
 bool
-UHoudiniAssetInstanceInput::CheckInstanceAttribute(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId,
-	HAPI_GeoId InGeoId, HAPI_PartId InPartId)
+UHoudiniAssetInstanceInput::CheckInstanceAttribute(HAPI_AssetId InAssetId, const FHoudiniGeoPartObject& GeoPartObject)
 {
-	if(-1 == InAssetId || -1 == InObjectId || -1 == InGeoId || -1 == InPartId)
+	if(-1 == InAssetId || -1 == GeoPartObject.ObjectId || -1 == GeoPartObject.GeoId || -1 == GeoPartObject.PartId)
 	{
 		return false;
 	}
 
-	return FHoudiniEngineUtils::HapiCheckAttributeExists(InAssetId, InObjectId, InGeoId, InPartId,
-		HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT);
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(InAssetId, GeoPartObject.ObjectId, 
+		GeoPartObject.GeoId, GeoPartObject.PartId, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT);
 }
 
 
 #if WITH_EDITOR
 
 void
-UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject, UStaticMesh* StaticMesh, int32 StaticMeshIdx)
+UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject, 
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx)
 {
 	UStaticMesh* InputStaticMesh = Cast<UStaticMesh>(InObject);
-	if(InputStaticMesh && StaticMesh != InputStaticMesh)
-	{
-		// Change used static mesh.
-		StaticMeshes[StaticMeshIdx] = InputStaticMesh;
+	UStaticMesh* UsedStaticMesh = HoudiniAssetInstanceInputField->GetStaticMesh();
 
-		// Change component's mesh.
-		ChangeInstancedStaticMeshComponentMesh(StaticMeshIdx);
+	if(InputStaticMesh && UsedStaticMesh != InputStaticMesh)
+	{
+		HoudiniAssetInstanceInputField->SetStaticMesh(InputStaticMesh);
+	}
+}
+
+
+const FSlateBrush*
+UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	int32 Idx) const
+{
+	TSharedPtr<SBorder> ThumbnailBorder = CachedThumbnailBorders[HoudiniAssetInstanceInputField];
+	if(ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
 	}
 }
 
@@ -1066,21 +824,6 @@ UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver(const UObject* Object) const
 }
 
 
-const FSlateBrush*
-UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder(UStaticMesh* StaticMesh, int32 Idx) const
-{
-	TSharedPtr<SBorder> ThumbnailBorder = StaticMeshThumbnailBorders[Idx];
-	if(ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
-	{
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
-	}
-	else
-	{
-		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
-	}
-}
-
-
 FReply
 UHoudiniAssetInstanceInput::OnThumbnailDoubleClick(const FGeometry& InMyGeometry,
 	const FPointerEvent& InMouseEvent, UObject* Object)
@@ -1095,40 +838,21 @@ UHoudiniAssetInstanceInput::OnThumbnailDoubleClick(const FGeometry& InMyGeometry
 
 
 TSharedRef<SWidget>
-UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent(UStaticMesh* StaticMesh, int32 StaticMeshIdx)
+UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	int32 Idx)
 {
 	TArray<const UClass*> AllowedClasses;
 	AllowedClasses.Add(UStaticMesh::StaticClass());
 
 	TArray<UFactory*> NewAssetFactories;
 
+	UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetStaticMesh();
+
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true,
 		AllowedClasses, NewAssetFactories,OnShouldFilterStaticMesh,
 		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshSelected,
-			StaticMesh, StaticMeshIdx),
+			HoudiniAssetInstanceInputField, Idx),
 		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::CloseStaticMeshComboButton));
-}
-
-
-void
-UHoudiniAssetInstanceInput::OnStaticMeshSelected(const FAssetData& AssetData, UStaticMesh* StaticMesh,
-	int32 StaticMeshIdx)
-{
-	TSharedPtr<SComboButton> AssetComboButton = StaticMeshComboButtons[StaticMeshIdx];
-	if(AssetComboButton.IsValid())
-	{
-		AssetComboButton->SetIsOpen(false);
-
-		UObject* Object = AssetData.GetAsset();
-		OnStaticMeshDropped(Object, StaticMesh, StaticMeshIdx);
-	}
-}
-
-
-void
-UHoudiniAssetInstanceInput::CloseStaticMeshComboButton()
-{
-
 }
 
 
@@ -1145,179 +869,182 @@ UHoudiniAssetInstanceInput::OnStaticMeshBrowse(UStaticMesh* StaticMesh)
 
 
 FReply
-UHoudiniAssetInstanceInput::OnResetStaticMeshClicked(UStaticMesh* StaticMesh, int32 StaticMeshIdx)
+UHoudiniAssetInstanceInput::OnResetStaticMeshClicked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	int32 Idx)
 {
-	UStaticMesh* OriginalStaticMesh = OriginalStaticMeshes[StaticMeshIdx];
-	OnStaticMeshDropped(OriginalStaticMesh, StaticMesh, StaticMeshIdx);
+	UStaticMesh* OriginalStaticMesh = HoudiniAssetInstanceInputField->GetOriginalStaticMesh();
+	OnStaticMeshDropped(OriginalStaticMesh, HoudiniAssetInstanceInputField, Idx);
 
 	return FReply::Handled();
 }
 
 
-TOptional<float>
-UHoudiniAssetInstanceInput::GetRotationRoll(int32 Idx) const
+void
+UHoudiniAssetInstanceInput::CloseStaticMeshComboButton()
 {
-	check(Idx >= 0 && Idx < RotationOffsets.Num())
-	const FRotator& Rotator = RotationOffsets[Idx];
 
+}
+
+
+void
+UHoudiniAssetInstanceInput::OnStaticMeshSelected(const FAssetData& AssetData,
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx)
+{
+	TSharedPtr<SComboButton> AssetComboButton = CachedComboButtons[HoudiniAssetInstanceInputField];
+	if(AssetComboButton.IsValid())
+	{
+		AssetComboButton->SetIsOpen(false);
+
+		UObject* Object = AssetData.GetAsset();
+		OnStaticMeshDropped(Object, HoudiniAssetInstanceInputField, Idx);
+	}
+}
+
+
+TOptional<float>
+UHoudiniAssetInstanceInput::GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const
+{
+	const FRotator& Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	return Rotator.Roll;
 }
 
 
 TOptional<float>
-UHoudiniAssetInstanceInput::GetRotationPitch(int32 Idx) const
+UHoudiniAssetInstanceInput::GetRotationPitch(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const
 {
-	check(Idx >= 0 && Idx < RotationOffsets.Num())
-	const FRotator& Rotator = RotationOffsets[Idx];
-
+	const FRotator& Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	return Rotator.Pitch;
 }
 
 
 TOptional<float>
-UHoudiniAssetInstanceInput::GetRotationYaw(int32 Idx) const
+UHoudiniAssetInstanceInput::GetRotationYaw(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const
 {
-	check(Idx >= 0 && Idx < RotationOffsets.Num())
-	const FRotator& Rotator = RotationOffsets[Idx];
-
+	const FRotator& Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	return Rotator.Yaw;
 }
 
 
 void
-UHoudiniAssetInstanceInput::SetRotationRoll(float Value, int32 Idx)
+UHoudiniAssetInstanceInput::SetRotationRoll(float Value, 
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	check(Idx >= 0 && Idx < RotationOffsets.Num())
-	FRotator& Rotator = RotationOffsets[Idx];
-
+	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	Rotator.Roll = Value;
-
-	UpdateInstanceTransforms(Idx);
+	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator);
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
 }
 
 
 void
-UHoudiniAssetInstanceInput::SetRotationPitch(float Value, int32 Idx)
+UHoudiniAssetInstanceInput::SetRotationPitch(float Value, 
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	check(Idx >= 0 && Idx < RotationOffsets.Num())
-	FRotator& Rotator = RotationOffsets[Idx];
-
+	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	Rotator.Pitch = Value;
-
-	UpdateInstanceTransforms(Idx);
+	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator);
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
 }
 
 
 void
-UHoudiniAssetInstanceInput::SetRotationYaw(float Value, int32 Idx)
+UHoudiniAssetInstanceInput::SetRotationYaw(float Value, 
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	check(Idx >= 0 && Idx < RotationOffsets.Num())
-	FRotator& Rotator = RotationOffsets[Idx];
-
+	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	Rotator.Yaw = Value;
-
-	UpdateInstanceTransforms(Idx);
+	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator);
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
 }
 
 
 TOptional<float>
-UHoudiniAssetInstanceInput::GetScaleX(int32 Idx) const
+UHoudiniAssetInstanceInput::GetScaleX(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const
 {
-	check(Idx >= 0 && Idx < ScaleOffsets.Num())
-	const FVector& Scale3D = ScaleOffsets[Idx];
-
+	const FVector& Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	return Scale3D.X;
 }
 
 
 TOptional<float>
-UHoudiniAssetInstanceInput::GetScaleY(int32 Idx) const
+UHoudiniAssetInstanceInput::GetScaleY(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const
 {
-	check(Idx >= 0 && Idx < ScaleOffsets.Num())
-	const FVector& Scale3D = ScaleOffsets[Idx];
-
+	const FVector& Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	return Scale3D.Y;
 }
 
 
 TOptional<float>
-UHoudiniAssetInstanceInput::GetScaleZ(int32 Idx) const
+UHoudiniAssetInstanceInput::GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const
 {
-	check(Idx >= 0 && Idx < ScaleOffsets.Num())
-	const FVector& Scale3D = ScaleOffsets[Idx];
-
+	const FVector& Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	return Scale3D.Z;
 }
 
 
 void
-UHoudiniAssetInstanceInput::SetScaleX(float Value, int32 Idx)
+UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	check(Idx >= 0 && Idx < ScaleOffsets.Num())
-	FVector& Scale3D = ScaleOffsets[Idx];
-
+	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	Scale3D.X = Value;
 
-	if(ScaleOffsetsLinearly[Idx])
+	if(HoudiniAssetInstanceInputField->AreOffsetsScaledLinearly())
 	{
 		Scale3D.Y = Value;
 		Scale3D.Z = Value;
 	}
 
-	UpdateInstanceTransforms(Idx);
+	HoudiniAssetInstanceInputField->SetScaleOffset(Scale3D);
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
 }
 
 
 void
-UHoudiniAssetInstanceInput::SetScaleY(float Value, int32 Idx)
+UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	check(Idx >= 0 && Idx < ScaleOffsets.Num())
-	FVector& Scale3D = ScaleOffsets[Idx];
-
+	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	Scale3D.Y = Value;
 
-	if(ScaleOffsetsLinearly[Idx])
+	if(HoudiniAssetInstanceInputField->AreOffsetsScaledLinearly())
 	{
 		Scale3D.X = Value;
 		Scale3D.Z = Value;
 	}
 
-	UpdateInstanceTransforms(Idx);
+	HoudiniAssetInstanceInputField->SetScaleOffset(Scale3D);
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
 }
 
 
 void
-UHoudiniAssetInstanceInput::SetScaleZ(float Value, int32 Idx)
+UHoudiniAssetInstanceInput::SetScaleZ(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	check(Idx >= 0 && Idx < ScaleOffsets.Num())
-	FVector& Scale3D = ScaleOffsets[Idx];
-
+	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	Scale3D.Z = Value;
 
-	if(ScaleOffsetsLinearly[Idx])
+	if(HoudiniAssetInstanceInputField->AreOffsetsScaledLinearly())
 	{
-		Scale3D.X = Value;
 		Scale3D.Y = Value;
+		Scale3D.X = Value;
 	}
 
-	UpdateInstanceTransforms(Idx);
+	HoudiniAssetInstanceInputField->SetScaleOffset(Scale3D);
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
 }
 
 
 void
-UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState, int32 Idx)
+UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState,
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	check(Idx >= 0 && Idx < ScaleOffsetsLinearly.Num())
-	ScaleOffsetsLinearly[Idx] = (ECheckBoxState::Checked == NewState);
+	HoudiniAssetInstanceInputField->SetLinearOffsetScale(ECheckBoxState::Checked == NewState);
 }
 
 
 ECheckBoxState
-UHoudiniAssetInstanceInput::IsChecked(int32 Idx) const
+UHoudiniAssetInstanceInput::IsChecked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const
 {
-	check(Idx >= 0 && Idx < ScaleOffsetsLinearly.Num())
-
-	if(ScaleOffsetsLinearly[Idx])
+	if(HoudiniAssetInstanceInputField->AreOffsetsScaledLinearly())
 	{
 		return ECheckBoxState::Checked;
 	}
@@ -1332,6 +1059,7 @@ void
 UHoudiniAssetInstanceInput::UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx,
 	UMaterialInterface* MaterialInterface)
 {
+	/*
 	for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
 	{
 		UStaticMesh* StaticMesh = StaticMeshes[MeshIdx];
@@ -1342,4 +1070,6 @@ UHoudiniAssetInstanceInput::UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMes
 			StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
 		}
 	}
+	*/
 }
+
