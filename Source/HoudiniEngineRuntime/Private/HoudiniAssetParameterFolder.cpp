@@ -46,7 +46,8 @@ UHoudiniAssetParameterFolder::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 		}
 	}
 
-	UHoudiniAssetParameterFolder* HoudiniAssetParameterFolder = NewObject<UHoudiniAssetParameterFolder>(Outer);
+	UHoudiniAssetParameterFolder* HoudiniAssetParameterFolder = NewObject<UHoudiniAssetParameterFolder>(Outer,
+		UHoudiniAssetParameterFolder::StaticClass(), NAME_None, RF_Public);
 
 	HoudiniAssetParameterFolder->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterFolder;

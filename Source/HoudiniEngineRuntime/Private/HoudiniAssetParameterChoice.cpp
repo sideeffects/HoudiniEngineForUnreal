@@ -48,7 +48,8 @@ UHoudiniAssetParameterChoice::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 		}
 	}
 
-	UHoudiniAssetParameterChoice* HoudiniAssetParameterChoice = NewObject<UHoudiniAssetParameterChoice>(Outer);
+	UHoudiniAssetParameterChoice* HoudiniAssetParameterChoice = NewObject<UHoudiniAssetParameterChoice>(Outer,
+		UHoudiniAssetParameterChoice::StaticClass(), NAME_None, RF_Public);
 
 	HoudiniAssetParameterChoice->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterChoice;

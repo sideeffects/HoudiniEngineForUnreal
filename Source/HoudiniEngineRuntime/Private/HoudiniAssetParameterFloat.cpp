@@ -73,7 +73,8 @@ UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetCompon
 		}
 	}
 
-	UHoudiniAssetParameterFloat* HoudiniAssetParameterFloat = NewObject<UHoudiniAssetParameterFloat>(Outer);
+	UHoudiniAssetParameterFloat* HoudiniAssetParameterFloat = NewObject<UHoudiniAssetParameterFloat>(Outer,
+		UHoudiniAssetParameterFloat::StaticClass(), NAME_None, RF_Public);
 
 	HoudiniAssetParameterFloat->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterFloat;
