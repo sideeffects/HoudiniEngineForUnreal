@@ -18,6 +18,7 @@
 #include "HoudiniGeoPartObject.h"
 
 
+class AActor;
 class FArchive;
 class UTexture2D;
 class UStaticMesh;
@@ -26,6 +27,7 @@ class AHoudiniAssetActor;
 class UHoudiniAssetMaterial;
 class UHoudiniAssetComponent;
 class FHoudiniAssetObjectGeo;
+class UInstancedStaticMeshComponent;
 
 struct FRawMesh;
 
@@ -125,6 +127,10 @@ public:
 
 	/** Helper function to extract copied Houdini actor from clipboard. **/
 	static AHoudiniAssetActor* LocateClipboardActor();
+
+	/** Update instances of a given instanced static mesh component. **/
+	static void UpdateInstancedStaticMeshComponentInstances(UInstancedStaticMeshComponent* Component,
+		const TArray<FTransform>& InstancedTransforms, const FRotator& RotationOffset, const FVector& ScaleOffset);
 
 public:
 
@@ -314,4 +320,8 @@ public:
 	/** Geometry scale values. **/
 	static const float ScaleFactorPosition;
 	static const float ScaleFactorTranslate;
+
+	/** Epsilon value used as a check for scale / inverse transform computations.	**/
+	/** This is necessary due to bug in Unreal.										**/
+	static const float ScaleSmallValue;
 };

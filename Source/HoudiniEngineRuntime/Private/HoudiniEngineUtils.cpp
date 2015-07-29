@@ -41,6 +41,10 @@ const float
 FHoudiniEngineUtils::ScaleFactorTranslate = 50.0f;
 
 
+const float
+FHoudiniEngineUtils::ScaleSmallValue = KINDA_SMALL_NUMBER * 2.0f;
+
+
 const FString
 FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 {
@@ -4306,4 +4310,43 @@ FHoudiniEngineUtils::LocateClipboardActor()
 	}
 
 	return HoudiniAssetActor;
+}
+
+
+void
+FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(UInstancedStaticMeshComponent* Component,
+	const TArray<FTransform>& InstancedTransforms, const FRotator& RotationOffset, const FVector& ScaleOffset)
+{
+	Component->ClearInstances();
+
+	for(int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx)
+	{
+		FTransform Transform = InstancedTransforms[InstanceIdx];
+
+		// Compute new rotation and scale.
+		FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
+		FVector TransformScale3D = Transform.GetScale3D() * ScaleOffset;
+
+		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
+		// Happens in blueprint as well.
+		if(TransformScale3D.X < FHoudiniEngineUtils::ScaleSmallValue)
+		{
+			TransformScale3D.X = FHoudiniEngineUtils::ScaleSmallValue;
+		}
+
+		if(TransformScale3D.Y < FHoudiniEngineUtils::ScaleSmallValue)
+		{
+			TransformScale3D.Y = FHoudiniEngineUtils::ScaleSmallValue;
+		}
+
+		if(TransformScale3D.Z < FHoudiniEngineUtils::ScaleSmallValue)
+		{
+			TransformScale3D.Z = FHoudiniEngineUtils::ScaleSmallValue;
+		}
+
+		Transform.SetRotation(TransformRotation);
+		Transform.SetScale3D(TransformScale3D);
+
+		Component->AddInstance(Transform);
+	}
 }
