@@ -235,6 +235,9 @@ public:
 	/** Return true if this component is in playmode. **/
 	bool IsPlayModeActive() const;
 
+	/** Return component GUID. **/
+	const FGuid& GetComponentGuid() const;
+
 /** UObject methods. **/
 public:
 
@@ -488,6 +491,9 @@ protected:
 	UHoudiniAssetComponent* CopiedHoudiniComponent;
 
 #endif
+
+	/** Unique GUID created by component. **/
+	FGuid ComponentGUID;
 
 	/** GUID used to track asynchronous cooking requests. **/
 	FGuid HapiGUID;
