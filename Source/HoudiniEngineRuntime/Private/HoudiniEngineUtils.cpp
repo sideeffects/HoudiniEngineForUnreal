@@ -1783,7 +1783,7 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(UHoudiniAssetCompone
 
 UPackage*
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
-	const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName)
+	const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName, bool bBake)
 {
 	UPackage* Package = nullptr;
 
@@ -1791,6 +1791,10 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	FGuid BakeGUID = FGuid::NewGuid();
+	FString PackageName;
+
+	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(12);
 
 	while(true)
 	{
@@ -1802,15 +1806,34 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 		// We only want half of generated guid string.
 		FString BakeGUIDString = BakeGUID.ToString().Left(8);
 
-		// Generate Blueprint name.
-		MaterialName = HoudiniAsset->GetName() + TEXT("_material_") + 
-			FString::FromInt(MaterialInfo.id) + TEXT("_") +
-			BakeGUIDString;
+		if(bBake)
+		{
+			// Generate material name.
+			MaterialName = HoudiniAsset->GetName() + TEXT("_material_") + 
+				FString::FromInt(MaterialInfo.id) + TEXT("_") +
+				BakeGUIDString;
 
-		// Generate unique package name.=
-		FString PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
-			TEXT("/") +
-			MaterialName;
+			// Generate unique package name.
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
+				TEXT("/") +
+				MaterialName;
+		}
+		else
+		{
+			// Generate material name.
+			MaterialName = HoudiniAsset->GetName() + TEXT("_") + 
+				FString::FromInt(MaterialInfo.id) + TEXT("_") +
+				BakeGUIDString;
+
+			// Generate unique package name.
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) +
+				TEXT("/") +
+				HoudiniAsset->GetName() +
+				TEXT("_") + 
+				ComponentGUIDString +
+				TEXT("/") +
+				MaterialName;
+		}
 
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
@@ -1837,8 +1860,8 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 
 
 UPackage*
-FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
-	const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName)
+FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName, bool bBake)
 {
 	UPackage* Package = nullptr;
 
@@ -1846,6 +1869,10 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	FGuid BakeGUID = FGuid::NewGuid();
+	FString PackageName;
+
+	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(12);
 
 	while(true)
 	{
@@ -1857,16 +1884,36 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 		// We only want half of generated guid string.
 		FString BakeGUIDString = BakeGUID.ToString().Left(8);
 
-		// Generate Blueprint name.
-		TextureName = HoudiniAsset->GetName() + TEXT("_texture_") + 
-			TextureType + TEXT("_") +
-			FString::FromInt(MaterialInfo.id) + TEXT("_") +
-			BakeGUIDString;
+		if(bBake)
+		{
+			// Generate texture name.
+			TextureName = HoudiniAsset->GetName() + TEXT("_texture_") + 
+				FString::FromInt(MaterialInfo.id) + TEXT("_") +
+				TextureType + TEXT("_") +
+				BakeGUIDString;
 
-		// Generate unique package name.=
-		FString PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
-			TEXT("/") +
-			TextureName;
+			// Generate unique package name.=
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
+				TEXT("/") +
+				TextureName;
+		}
+		else
+		{
+			// Generate texture name.
+			TextureName = HoudiniAsset->GetName() + TEXT("_") + 
+				FString::FromInt(MaterialInfo.id) + TEXT("_") +
+				TextureType + TEXT("_") +
+				BakeGUIDString;
+
+			// Generate unique package name.
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) +
+				TEXT("/") +
+				HoudiniAsset->GetName() +
+				TEXT("_") + 
+				ComponentGUIDString +
+				TEXT("/") +
+				TextureName;
+		}
 
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
@@ -3104,25 +3151,6 @@ FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
 }
 
 
-void
-FHoudiniEngineUtils::Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar)
-{
-	FString MaterialName;
-
-	if(Ar.IsSaving())
-	{
-		MaterialName = MaterialInterface->GetName();
-	}
-
-	Ar << MaterialName;
-
-	if(Ar.IsLoading())
-	{
-		MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
-	}
-}
-
-
 UStaticMesh*
 FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, UStaticMesh* InStaticMesh)
@@ -3421,7 +3449,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					{
 						Material = 
 							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
-								*MaterialName, RF_Public, NULL, GWarn);
+								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
 
 						bCreatedNewMaterial = true;
 					}
@@ -3438,7 +3466,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						if(!TextureDiffusePackage)
 						{
 							TextureDiffusePackage = 
-								FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent, 
+								FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent, 
 									MaterialInfo, TEXT("C_A"), TextureDiffuseName);
 						}
 
@@ -3501,7 +3529,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 							if(!TextureNormalPackage)
 							{
 								TextureNormalPackage = 
-									FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent, 
+									FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent, 
 										MaterialInfo, TEXT("N"), TextureNormalName);
 							}
 
@@ -3613,7 +3641,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					{
 						Material = 
 							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
-								*MaterialName, RF_Public, NULL, GWarn);
+								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
 
 						bCreatedNewMaterial = true;
 					}
