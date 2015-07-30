@@ -958,26 +958,9 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 	else
 	{
 		Texture = NewObject<UTexture2D>(Outer, UTexture2D::StaticClass(), *TextureName, RF_Public | RF_Standalone);
-		Texture->PlatformData = new FTexturePlatformData();
 	}
 
-	Texture->PlatformData->SizeX = ImageInfo.xRes;
-	Texture->PlatformData->SizeY = ImageInfo.yRes;
-	Texture->PlatformData->PixelFormat = PixelFormat;
-
-	if(ExistingTexture)
-	{
-		Texture->UpdateResource();
-	}
-
-	/*
-	Texture->SRGB = false;
-	Texture->CompressionNone = true;
-	Texture->MipGenSettings = TMGS_LeaveExistingMips;
-	Texture->AddressX = TA_Clamp;
-	Texture->AddressY = TA_Clamp;
-	Texture->LODGroup = InLODGroup;
-	*/
+	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8);
 
 	if(bNormal)
 	{
@@ -985,33 +968,10 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 		Texture->SRGB = false;
 	}
 
-	// Allocate first mipmap.
-	int32 NumBlocksX = ImageInfo.xRes / GPixelFormats[PixelFormat].BlockSizeX;
-	int32 NumBlocksY = ImageInfo.yRes / GPixelFormats[PixelFormat].BlockSizeY;
-
-	FTexture2DMipMap* Mip = nullptr;
-
-	if(ExistingTexture)
-	{
-		Mip = &Texture->PlatformData->Mips[0];
-	}
-	else
-	{
-		Mip = new(Texture->PlatformData->Mips) FTexture2DMipMap();
-	}
-
-	Mip->SizeX = ImageInfo.xRes;
-	Mip->SizeY = ImageInfo.yRes;
-	Mip->BulkData.Lock(LOCK_READ_WRITE);
-	Mip->BulkData.Realloc(NumBlocksX * NumBlocksY * GPixelFormats[PixelFormat].BlockBytes);
-	Mip->BulkData.Unlock();
-
-	// Lock texture for modification.
-	uint8* MipData = static_cast<uint8*>(Texture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
+	uint8* MipData = Texture->Source.LockMip(0);
 
 	// Create base map.
-	uint8* DestPtr = NULL;
-	const FColor* SrcPtr = NULL;
+	uint8* DestPtr = nullptr;
 	uint32 SrcWidth = ImageInfo.xRes;
 	uint32 SrcHeight = ImageInfo.yRes;
 	const char* SrcData = &ImageBuffer[0];
@@ -1024,16 +984,15 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 		{
 			uint32 DataOffset = y * SrcWidth * 4 + x * 4;
 
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //R
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //B
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
+			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //R
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
 		}
 	}
 
 	// Unlock the texture.
-	Texture->PlatformData->Mips[0].BulkData.Unlock();
-	Texture->UpdateResource();
+	Texture->Source.UnlockMip(0);
 	Texture->PostEditChange();
 
 	return Texture;
