@@ -805,7 +805,8 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 				// Create new spline component.
 				UHoudiniSplineComponent* HoudiniSplineComponent =
 					NewObject<UHoudiniSplineComponent>(HoudiniAssetComponent, UHoudiniSplineComponent::StaticClass(),
-						NAME_None, RF_Transient);
+						NAME_None, RF_Public);
+
 				HoudiniSplineComponent->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
 				HoudiniSplineComponent->RegisterComponent();
 				HoudiniSplineComponent->SetVisibility(true);
