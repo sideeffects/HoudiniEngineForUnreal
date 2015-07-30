@@ -2813,7 +2813,53 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						InRawMeshBulkData->LoadRawMesh(RawMesh);
 					}
 
-					if(bMaterialsFound)
+					if(FaceMaterials.Num() > 0)
+					{
+						// Material names were marshalled in.
+
+						StaticMesh->Materials.Empty();
+
+						TSet<FString> UniqueFaceMaterials(FaceMaterials);
+						TMap<FString, int32> UniqueFaceMaterialMap;
+
+						int32 UniqueFaceMaterialsIdx = 0;
+						for(TSet<FString>::TIterator Iter = UniqueFaceMaterials.CreateIterator(); Iter; ++Iter)
+						{
+							const FString& MaterialName = *Iter;
+							UniqueFaceMaterialMap.Add(MaterialName, UniqueFaceMaterialsIdx);
+
+							// Attempt to load this material.
+							UMaterialInterface* MaterialInterface =
+								Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(),
+									nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr));
+
+							if(!MaterialInterface)
+							{
+								// Material does not exist, use default material.
+								MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+							}
+
+							StaticMesh->Materials.Add(MaterialInterface);
+							UniqueFaceMaterialsIdx++;
+						}
+
+						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceMaterials.Num());
+
+						int32 ValidFaceIdx = 0;
+						for(int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3)
+						{
+							int32 WedgeCheck = SplitGroupVertexList[VertexIdx + 0];
+							if(-1 == WedgeCheck)
+							{
+								continue;
+							}
+
+							const FString& MaterialName = FaceMaterials[VertexIdx / 3];
+							RawMesh.FaceMaterialIndices[ValidFaceIdx] = UniqueFaceMaterialMap[MaterialName];
+							ValidFaceIdx++;
+						}
+					}
+					else if(bMaterialsFound)
 					{
 						if(bSingleFaceMaterial)
 						{
