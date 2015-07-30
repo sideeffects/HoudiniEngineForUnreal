@@ -261,14 +261,11 @@ protected:
 
 	/** Create a package for a given component for material. **/
 	static UPackage* BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
-		const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName);
+		const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName, bool bBake = false);
 
 	/** Create a package for a given component for texture. **/
-	static UPackage* BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
-		const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName);
-
-	/** Helper routine to serialize Material interface. **/
-	static void Serialize(UMaterialInterface*& MaterialInterface, UPackage* Package, FArchive& Ar);
+	static UPackage* BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+		const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName, bool bBake = false);
 
 	/** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
 	static int32 TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList,
