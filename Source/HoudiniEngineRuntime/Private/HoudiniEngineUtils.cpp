@@ -949,7 +949,7 @@ UTexture2D*
 FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UObject* Outer, 
 	const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer, bool bNormal)
 {
-	UTexture2D* Texture = NewObject<UTexture2D>(Outer, UTexture2D::StaticClass(), *TextureName, RF_Public);
+	UTexture2D* Texture = nullptr;
 
 	if(ExistingTexture)
 	{
@@ -957,7 +957,7 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 	}
 	else
 	{
-		Texture = NewObject<UTexture2D>(Outer, UTexture2D::StaticClass(), *TextureName, RF_Public);
+		Texture = NewObject<UTexture2D>(Outer, UTexture2D::StaticClass(), *TextureName, RF_Public | RF_Standalone);
 		Texture->PlatformData = new FTexturePlatformData();
 	}
 
@@ -3317,9 +3317,6 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 	// Update context for generated materials (will trigger when object goes out of scope).
 	FMaterialUpdateContext MaterialUpdateContext;
 
-	// Factory to create materials.
-	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
-
 	for(TSet<HAPI_MaterialId>::TConstIterator IterMaterialId(UniqueMaterialIds); IterMaterialId; ++IterMaterialId)
 	{
 		HAPI_MaterialId MaterialId = *IterMaterialId;
@@ -3444,10 +3441,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					// Create material, if we need to create one.
 					if(!Material)
 					{
-						Material = 
-							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
-								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
-
+						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, RF_Public | RF_Standalone);
 						bCreatedNewMaterial = true;
 					}
 
@@ -3475,8 +3469,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 						// Reuse existing diffuse texture, or create new one.
 						TextureDiffuse = 
-								FHoudiniEngineUtils::CreateUnrealTexture(TextureDiffuse, ImageInfo, 
-									TextureDiffusePackage, TextureDiffuseName, PF_R8G8B8A8, ImageBuffer);
+							FHoudiniEngineUtils::CreateUnrealTexture(TextureDiffuse, ImageInfo, 
+								TextureDiffusePackage, TextureDiffuseName, PF_R8G8B8A8, ImageBuffer);
 
 						// Create sampling expression and add it to material, if we don't have one.
 						if(!ExpressionDiffuse)
@@ -3538,8 +3532,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 							// Reuse existing normal texture, or create new one.
 							TextureNormal = 
-									FHoudiniEngineUtils::CreateUnrealTexture(TextureNormal, ImageInfo, 
-										TextureNormalPackage, TextureNormalName, PF_R8G8B8A8, ImageBuffer, true);
+								FHoudiniEngineUtils::CreateUnrealTexture(TextureNormal, ImageInfo, 
+									TextureNormalPackage, TextureNormalName, PF_R8G8B8A8, ImageBuffer, true);
 
 							// Create sampling expression and add it to material, if we don't have one.
 							if(!ExpressionNormal)
@@ -3636,10 +3630,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					// Create material, if we need to create one.
 					if(!Material)
 					{
-						Material = 
-							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
-								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
-
+						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, RF_Public | RF_Standalone);
 						bCreatedNewMaterial = true;
 					}
 
