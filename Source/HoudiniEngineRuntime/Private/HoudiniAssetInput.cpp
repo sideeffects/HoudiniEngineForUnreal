@@ -502,33 +502,27 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	Ar << InputIndex;
 
 	// Serialize static mesh input.
+	UStaticMesh* StaticMeshInput = nullptr;
 	bool bMeshAssigned = false;
-	FString MeshPathName = TEXT("");
 
 	if(Ar.IsSaving())
 	{
-		UStaticMesh* StaticMeshInput = Cast<UStaticMesh>(InputObject);
+		StaticMeshInput = Cast<UStaticMesh>(InputObject);
 		if(StaticMeshInput)
 		{
 			bMeshAssigned = true;
-			MeshPathName = StaticMeshInput->GetPathName();
 		}
 	}
 
 	Ar << bMeshAssigned;
 	if(bMeshAssigned)
 	{
-		Ar << MeshPathName;
+		Ar << StaticMeshInput;
 	}
 
-	if(Ar.IsLoading())
+	if(Ar.IsLoading() && bMeshAssigned)
 	{
-		UStaticMesh* StaticMeshInput = nullptr;
-		if(bMeshAssigned)
-		{
-			InputObject = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *MeshPathName,
-				nullptr, LOAD_NoWarn, nullptr));
-		}
+		InputObject = StaticMeshInput;
 	}
 
 	// Serialize curve.
@@ -537,15 +531,12 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 
 	if(bCurveCreated)
 	{
+		Ar << InputCurve;
+
 		if(Ar.IsLoading())
 		{
-			InputCurve = NewObject<UHoudiniSplineComponent>(HoudiniAssetComponent, UHoudiniSplineComponent::StaticClass(),
-				NAME_None, RF_Transient);
-
 			InputCurve->AddToRoot();
 		}
-
-		InputCurve->SerializeRaw(Ar);
 
 		// Serialize curve parameters.
 		SerializeInputCurveParameters(Ar);
