@@ -725,6 +725,15 @@ UHoudiniAssetComponent::PostCook()
 			UStaticMesh* StaticMesh = Iter.Value();
 			if(StaticMesh != HoudiniLogoMesh)
 			{
+				/*
+				// Make sure this static mesh is not referenced.
+				UObject* ObjectMesh = (UObject*) StaticMesh;
+				if(!IsReferenced(ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS))
+				{
+					StaticMeshesToDelete.Add(StaticMesh);
+				}
+				*/
+
 				StaticMeshesToDelete.Add(StaticMesh);
 			}
 		}
