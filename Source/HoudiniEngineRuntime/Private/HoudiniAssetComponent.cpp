@@ -2441,7 +2441,7 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		{
 			// We need to create new curve.
 			HoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(this, UHoudiniSplineComponent::StaticClass(),
-				NAME_None, RF_Transient);
+				NAME_None, RF_Public);
 			HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
 			HoudiniSplineComponent->SetVisibility(true);
 			HoudiniSplineComponent->RegisterComponent();
@@ -3302,8 +3302,8 @@ UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
 			// Store the object geo part information for this curve.
 			HoudiniGeoPartObject.Serialize(Ar);
 
-			// Store component information.
-			HoudiniSplineComponent->SerializeRaw(Ar);
+			// Store component.
+			Ar << HoudiniSplineComponent;
 		}
 	}
 	else if(Ar.IsLoading())
@@ -3316,11 +3316,9 @@ UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
 			// Retrieve geo part information for this curve.
 			HoudiniGeoPartObject.Serialize(Ar);
 
-			// Create Spline component.
-			HoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(GetOwner(), UHoudiniSplineComponent::StaticClass(),
-				NAME_None, RF_Transient);
+			// Load spline component.
+			Ar << HoudiniSplineComponent;
 			HoudiniSplineComponent->AddToRoot();
-			HoudiniSplineComponent->SerializeRaw(Ar);
 
 			// We need to store geo part to spline component mapping.
 			SplineComponents.Add(HoudiniGeoPartObject, HoudiniSplineComponent);
