@@ -1539,13 +1539,16 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 				{
 					// Duplicate mesh for this new copied component.
 					DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, this, *StaticMesh->GetName());
+
+					// PIE does not like standalone flags.
+					DuplicatedStaticMesh->ClearFlags(RF_Standalone);
 				}
 
 				// Store this duplicated mesh.
 				StaticMeshes.Add(FHoudiniGeoPartObject(HoudiniGeoPartObject, true), DuplicatedStaticMesh);
 			}
 		}
-
+/*
 		// We need to reconstruct splines.
 		{
 			TArray<uint8> Buffer;
@@ -1555,7 +1558,7 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 			FMemoryReader RawLoader(Buffer);
 			SerializeCurves(RawLoader);
 		}
-
+		*/
 		// Perform any necessary post loading.
 		PostLoad();
 
@@ -2994,6 +2997,10 @@ UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHo
 			// Duplicate parameter.
 			UHoudiniAssetParameter* DuplicatedHoudiniAssetParameter =
 				DuplicateObject(HoudiniAssetParameter, DuplicatedHoudiniComponent);
+
+			// PIE does not like standalone flags.
+			DuplicatedHoudiniAssetParameter->ClearFlags(RF_Standalone);
+
 			DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
 			InParameters.Add(HoudiniAssetParameterKey, DuplicatedHoudiniAssetParameter);
 		}
@@ -3013,6 +3020,9 @@ UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudin
 		UHoudiniAssetInput* DuplicatedAssetInput = DuplicateObject(AssetInput, DuplicatedHoudiniComponent);
 		DuplicatedAssetInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
 
+		// PIE does not like standalone flags.
+		DuplicatedAssetInput->ClearFlags(RF_Standalone);
+
 		InInputs.Add(DuplicatedAssetInput);
 	}
 }
@@ -3030,6 +3040,9 @@ UHoudiniAssetComponent::DuplicateInstanceInputs(UHoudiniAssetComponent* Duplicat
 
 		UHoudiniAssetInstanceInput* DuplicatedHoudiniAssetInstanceInput =
 			DuplicateObject(HoudiniAssetInstanceInput, DuplicatedHoudiniComponent);
+
+		// PIE does not like standalone flags.
+		DuplicatedHoudiniAssetInstanceInput->ClearFlags(RF_Standalone);
 
 		DuplicatedHoudiniAssetInstanceInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
 		InInstanceInputs.Add(HoudiniInstanceInputKey, DuplicatedHoudiniAssetInstanceInput);
