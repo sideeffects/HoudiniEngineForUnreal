@@ -1537,11 +1537,19 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 
 				if(!HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer())
 				{
-					// Duplicate mesh for this new copied component.
-					DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, this, *StaticMesh->GetName());
+					// Create package for this duplicated mesh.
+					FString MeshName;
+					FGuid MeshGuid;
 
-					// PIE does not like standalone flags.
-					DuplicatedStaticMesh->ClearFlags(RF_Standalone);
+					UPackage* MeshPackage =
+						FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(this, HoudiniGeoPartObject,
+							MeshName, MeshGuid);
+
+					// Duplicate mesh for this new copied component.
+					DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, MeshPackage, *MeshName);
+
+					// Notify registry that we have created a new duplicate mesh.
+					FAssetRegistryModule::AssetCreated(DuplicatedStaticMesh);
 				}
 
 				// Store this duplicated mesh.
@@ -1558,7 +1566,7 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 			FMemoryReader RawLoader(Buffer);
 			SerializeCurves(RawLoader);
 		}
-		*/
+*/
 		// Perform any necessary post loading.
 		PostLoad();
 

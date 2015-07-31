@@ -94,8 +94,7 @@ public:
 	/** Return name of Houdini asset. **/
 	static bool GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString);
 
-	/** Construct static meshes for a given Houdini asset. Flag controls whether one mesh or multiple meshes will be **/
-	/** created.																									 **/
+	/** Construct static meshes for a given Houdini asset. **/
 	static bool CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
 		const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 		TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut, FTransform& ComponentTransform);
@@ -249,11 +248,11 @@ public:
 		TArray<int32>& NewVertexList, TArray<int32>& AllVertexList, TArray<int32>& AllFaceList,
 		TArray<int32>& AllCollisionFaceIndices);
 
-protected:
-
 	/** Create a package for given component for static mesh baking. **/
 	static UPackage* BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, FString& MeshName, FGuid& BakeGUID, bool bBake = false);
+
+protected:
 
 	/** Create a package for given component for blueprint baking. **/
 	static UPackage* BakeCreateBlueprintPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
