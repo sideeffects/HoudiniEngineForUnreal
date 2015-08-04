@@ -252,6 +252,9 @@ public:
 	static UPackage* BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, FString& MeshName, FGuid& BakeGUID, bool bBake = false);
 
+	/** Add Houdini meta information to package for a given object. **/
+	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object);
+
 protected:
 
 	/** Create a package for given component for blueprint baking. **/
@@ -304,7 +307,7 @@ protected:
 #if WITH_EDITOR
 
 	/** Create a texture from given information. **/
-	static UTexture2D* CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UObject* Outer,
+	static UTexture2D* CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UPackage* Package,
 		const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer, bool bNormal = false);
 
 	/** Reset streams used by the given RawMesh. **/
