@@ -948,7 +948,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 #if WITH_EDITOR
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UObject* Outer, 
+FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UPackage* Package, 
 	const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer, bool bNormal)
 {
 	UTexture2D* Texture = nullptr;
@@ -959,7 +959,10 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 	}
 	else
 	{
-		Texture = NewObject<UTexture2D>(Outer, UTexture2D::StaticClass(), *TextureName, RF_Public | RF_Standalone);
+		Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName, RF_Public | RF_Standalone);
+
+		// Add meta information to package.
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture);
 	}
 
 	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8);
@@ -2421,7 +2424,13 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						UPackage* MeshPackage =
 							FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent,
 								HoudiniGeoPartObject, MeshName, MeshGuid);
+
 						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone | RF_Public);
+
+						// Add meta information to this package.
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, StaticMesh);
+
+						// Notify system that new asset has been created.
 						FAssetRegistryModule::AssetCreated(StaticMesh);
 
 						bStaticMeshCreated = true;
@@ -3196,6 +3205,11 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 
 	// Create static mesh.
 	StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
+
+	// Add meta information to this package.
+	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh);
+
+	// Notify registry that we created a new asset.
 	FAssetRegistryModule::AssetCreated(StaticMesh);
 
 	// Copy materials.
@@ -3451,6 +3465,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					{
 						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, RF_Public | RF_Standalone);
 						bCreatedNewMaterial = true;
+
+						// Add meta information to this package.
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material);
 					}
 
 					HAPI_ImageInfo ImageInfo;
@@ -3640,6 +3657,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					{
 						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, RF_Public | RF_Standalone);
 						bCreatedNewMaterial = true;
+
+						// Add meta information to this package.
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material);
 					}
 
 					// Create color const expression and add it to material, if we don't have one.
@@ -4378,4 +4398,12 @@ FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(UInstancedStati
 
 		Component->AddInstance(Transform);
 	}
+}
+
+
+void
+FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object)
+{
+	UMetaData* MetaData = Package->GetMetaData();
+	MetaData->SetValue(Object, TEXT("HoudiniGeneratedObject"), TEXT("true"));
 }

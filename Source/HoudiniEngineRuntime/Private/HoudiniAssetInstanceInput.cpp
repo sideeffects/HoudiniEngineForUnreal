@@ -249,8 +249,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 bool
 UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 {
-	
-
 	// UpdateRelativeTransform
 
 	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
@@ -259,7 +257,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 		HoudiniAssetInstanceInputField->CreateInstancedComponent();
 	}
 
-	int i =32;
 
 	/*
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
