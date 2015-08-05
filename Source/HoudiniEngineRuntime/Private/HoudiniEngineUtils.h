@@ -252,10 +252,6 @@ public:
 	static UPackage* BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, FString& MeshName, FGuid& BakeGUID, bool bBake = false);
 
-	/** Add Houdini meta information to package for a given object. **/
-	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
-		const TCHAR* Value);
-
 	/** Duplicate a given static mesh. This will create a new package for it. This will also create necessary		**/
 	/** materials and textures and their corresponding packages. **/
 	static UStaticMesh* DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
@@ -285,6 +281,13 @@ protected:
 	/** and their corresponding packages. **/
 	static UMaterial* DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component, 
 		const FString& SubMaterialName);
+
+	/** Add Houdini meta information to package for a given object. **/
+	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
+		const TCHAR* Value);
+
+	/** Retrieve item name from Houdini meta information. **/
+	static bool GetHoudiniGeneratedNameFromMetaInformation(UPackage* Package, UObject* Object, FString& HoudiniName);
 
 #if WITH_EDITOR
 

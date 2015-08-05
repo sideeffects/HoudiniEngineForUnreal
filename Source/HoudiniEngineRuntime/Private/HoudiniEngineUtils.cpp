@@ -4445,6 +4445,24 @@ FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(UPackage* Package, UObje
 }
 
 
+bool 
+FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(UPackage* Package, UObject* Object, 
+	FString& HoudiniName)
+{
+	UMetaData* MetaData = Package->GetMetaData();
+	if(MetaData && MetaData->HasValue(Object, TEXT("HoudiniGeneratedObject")))
+	{
+		// Retrieve name used for package generation.
+		const FString NameFull = MetaData->GetValue(Object, TEXT("HoudiniGeneratedName"));
+		HoudiniName = NameFull.Left(NameFull.Len() - FHoudiniEngineUtils::PackageGUIDItemNameLength);
+
+		return true;
+	}
+
+	return false;
+}
+
+
 UStaticMesh*
 FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject)
@@ -4484,13 +4502,11 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 				if(MaterialPackage)
 				{
 					UMetaData* MetaData = MaterialPackage->GetMetaData();
-					if(MetaData->HasValue(Material, TEXT("HoudiniGeneratedObject")))
-					{
-						// Retrieve name used for package generation of this material.
-						const FString MaterialNameFull = MetaData->GetValue(Material, TEXT("HoudiniGeneratedName"));
-						FString MaterialName = 
-							MaterialNameFull.Left(MaterialNameFull.Len() - FHoudiniEngineUtils::PackageGUIDItemNameLength);
 
+					FString MaterialName;
+					if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(MaterialPackage, Material, 
+						MaterialName))
+					{
 						// Duplicate material.
 						UMaterial* DuplicatedMaterial = 
 							FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(Material, Component, MaterialName);
