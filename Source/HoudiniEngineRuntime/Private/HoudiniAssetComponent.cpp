@@ -1533,8 +1533,10 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 				FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
 				UStaticMesh* StaticMesh = Iter.Value();
 
+				// Duplicate static mesh and all related generated Houdini materials and textures.
 				UStaticMesh* DuplicatedStaticMesh = 
 					FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(StaticMesh, this, HoudiniGeoPartObject);
+
 				if(DuplicatedStaticMesh)
 				{
 					// Store this duplicated mesh.

@@ -256,7 +256,8 @@ public:
 	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
 		const TCHAR* Value);
 
-	/** Duplicate given static mesh. This will create new package for it. **/
+	/** Duplicate a given static mesh. This will create a new package for it. This will also create necessary		**/
+	/** materials and textures and their corresponding packages. **/
 	static UStaticMesh* DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
@@ -279,6 +280,11 @@ protected:
 	/** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
 	static int32 TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList,
 		const HAPI_AttributeInfo& AttribInfo, TArray<float>& Data);
+
+	/** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
+	/** and their corresponding packages. **/
+	static UMaterial* DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component, 
+		const FString& SubMaterialName);
 
 #if WITH_EDITOR
 
