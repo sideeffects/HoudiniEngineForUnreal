@@ -253,7 +253,8 @@ public:
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, FString& MeshName, FGuid& BakeGUID, bool bBake = false);
 
 	/** Add Houdini meta information to package for a given object. **/
-	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object);
+	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
+		const TCHAR* Value);
 
 	/** Duplicate given static mesh. This will create new package for it. **/
 	static UStaticMesh* DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
@@ -268,6 +269,8 @@ protected:
 	/** Create a package for a given component for material. **/
 	static UPackage* BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName, bool bBake = false);
+	static UPackage* BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+		const FString& MaterialInfoDescriptor, FString& MaterialName, bool bBake = false);
 
 	/** Create a package for a given component for texture. **/
 	static UPackage* BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -328,4 +331,10 @@ public:
 	/** Epsilon value used as a check for scale / inverse transform computations.	**/
 	/** This is necessary due to bug in Unreal.										**/
 	static const float ScaleSmallValue;
+
+	/** How many GUID symbols are used for package component name generation. **/
+	static const int32 PackageGUIDComponentNameLength;
+
+	/** How many GUID symbols are used for package item name generation. **/
+	static const int32 PackageGUIDItemNameLength;
 };

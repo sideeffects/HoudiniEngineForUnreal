@@ -45,6 +45,13 @@ const float
 FHoudiniEngineUtils::ScaleSmallValue = KINDA_SMALL_NUMBER * 2.0f;
 
 
+const int32
+FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
+
+const int32
+FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
+
+
 const FString
 FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
 {
@@ -962,7 +969,10 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 		Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName, RF_Public | RF_Standalone);
 
 		// Add meta information to package.
-		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture);
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, TEXT("HoudiniGeneratedObject"), 
+			TEXT("true"));
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, TEXT("HoudiniGeneratedName"), 
+			*TextureName);
 	}
 
 	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8);
@@ -1614,7 +1624,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
-	FString ComponentGUIDString = ComponentGUID.ToString().Left(12);
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDComponentNameLength);
 
 	while(true)
 	{
@@ -1624,7 +1634,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 		}
 
 		// We only want half of generated guid string.
-		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+		FString BakeGUIDString = BakeGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDItemNameLength);
 
 		if(bBake)
 		{
@@ -1709,7 +1719,7 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(UHoudiniAssetCompone
 		}
 
 		// We only want half of generated guid string.
-		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+		FString BakeGUIDString = BakeGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDItemNameLength);
 
 		// Generate Blueprint name.
 		BlueprintName = HoudiniAsset->GetName() + TEXT("_") + BakeGUIDString;
@@ -1747,6 +1757,27 @@ UPackage*
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const HAPI_MaterialInfo& MaterialInfo, FString& MaterialName, bool bBake)
 {
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	FString MaterialDescriptor;
+
+	if(bBake)
+	{
+		MaterialDescriptor = HoudiniAsset->GetName() + TEXT("_material_") + FString::FromInt(MaterialInfo.id) + TEXT("_");
+	}
+	else
+	{
+		MaterialDescriptor = HoudiniAsset->GetName() + TEXT("_") + FString::FromInt(MaterialInfo.id) + TEXT("_");
+	}
+
+	return FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent, MaterialDescriptor, 
+		MaterialName, bBake);
+}
+
+
+UPackage*
+FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const FString& MaterialInfoDescriptor, FString& MaterialName, bool bBake)
+{
 	UPackage* Package = nullptr;
 
 #if WITH_EDITOR
@@ -1756,7 +1787,7 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 	FString PackageName;
 
 	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
-	FString ComponentGUIDString = ComponentGUID.ToString().Left(12);
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDComponentNameLength);
 
 	while(true)
 	{
@@ -1766,15 +1797,13 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 		}
 
 		// We only want half of generated guid string.
-		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+		FString BakeGUIDString = BakeGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDItemNameLength);
+
+		// Generate material name.
+		MaterialName = MaterialInfoDescriptor + BakeGUIDString;
 
 		if(bBake)
 		{
-			// Generate material name.
-			MaterialName = HoudiniAsset->GetName() + TEXT("_material_") + 
-				FString::FromInt(MaterialInfo.id) + TEXT("_") +
-				BakeGUIDString;
-
 			// Generate unique package name.
 			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
 				TEXT("/") +
@@ -1782,11 +1811,6 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 		}
 		else
 		{
-			// Generate material name.
-			MaterialName = HoudiniAsset->GetName() + TEXT("_") + 
-				FString::FromInt(MaterialInfo.id) + TEXT("_") +
-				BakeGUIDString;
-
 			// Generate unique package name.
 			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) +
 				TEXT("/") +
@@ -1834,7 +1858,7 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent
 	FString PackageName;
 
 	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
-	FString ComponentGUIDString = ComponentGUID.ToString().Left(12);
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDComponentNameLength);
 
 	while(true)
 	{
@@ -1844,7 +1868,7 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent
 		}
 
 		// We only want half of generated guid string.
-		FString BakeGUIDString = BakeGUID.ToString().Left(8);
+		FString BakeGUIDString = BakeGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDItemNameLength);
 
 		if(bBake)
 		{
@@ -2428,7 +2452,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone | RF_Public);
 
 						// Add meta information to this package.
-						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, StaticMesh);
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, MeshPackage, 
+							TEXT("HoudiniGeneratedObject"), TEXT("true"));
+
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, MeshPackage, 
+							TEXT("HoudiniGeneratedName"), *MeshName);
 
 						// Notify system that new asset has been created.
 						FAssetRegistryModule::AssetCreated(StaticMesh);
@@ -3207,7 +3235,10 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
 
 	// Add meta information to this package.
-	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh);
+	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh, TEXT("HoudiniGeneratedObject"), 
+		TEXT("true"));
+
+	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh, TEXT("HoudiniGeneratedName"), *MeshName);
 
 	// Notify registry that we created a new asset.
 	FAssetRegistryModule::AssetCreated(StaticMesh);
@@ -3467,7 +3498,11 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						bCreatedNewMaterial = true;
 
 						// Add meta information to this package.
-						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material);
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material, 
+							TEXT("HoudiniGeneratedObject"), TEXT("true"));
+
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
+							TEXT("HoudiniGeneratedName"), *MaterialName);
 					}
 
 					HAPI_ImageInfo ImageInfo;
@@ -3659,7 +3694,11 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						bCreatedNewMaterial = true;
 
 						// Add meta information to this package.
-						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material);
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material, 
+							TEXT("HoudiniGeneratedObject"), TEXT("true"));
+
+						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
+							TEXT("HoudiniGeneratedName"), *MaterialName);
 					}
 
 					// Create color const expression and add it to material, if we don't have one.
@@ -4402,10 +4441,11 @@ FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(UInstancedStati
 
 
 void
-FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object)
+FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
+	const TCHAR* Value)
 {
 	UMetaData* MetaData = Package->GetMetaData();
-	MetaData->SetValue(Object, TEXT("HoudiniGeneratedObject"), TEXT("true"));
+	MetaData->SetValue(Object, Key, Value);
 }
 
 
@@ -4427,6 +4467,44 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 
 		// Duplicate mesh for this new copied component.
 		DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, MeshPackage, *MeshName);
+
+		// Add meta information.
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, DuplicatedStaticMesh, 
+			TEXT("HoudiniGeneratedObject"), TEXT("true"));
+
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, DuplicatedStaticMesh,
+			TEXT("HoudiniGeneratedName"), *MeshName);
+
+		// See if we need to duplicate materials and textures.
+		TArray<UMaterialInterface*> DuplicatedMaterials;
+		TArray<UMaterialInterface*>& Materials = DuplicatedStaticMesh->Materials;
+
+		for(int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
+		{
+			UMaterial* Material = Cast<UMaterial>(Materials[MaterialIdx]);
+			if(Material)
+			{
+				UPackage* MaterialPackage = Cast<UPackage>(Material->GetOuter());
+				if(MaterialPackage)
+				{
+					UMetaData* MetaData = MaterialPackage->GetMetaData();
+					if(MetaData->HasValue(Material, TEXT("HoudiniGeneratedObject")))
+					{
+						const FString MaterialNameFull = MetaData->GetValue(Material, TEXT("HoudiniGeneratedName"));
+						FString MaterialName = 
+							MaterialNameFull.Left(MaterialNameFull.Len() - FHoudiniEngineUtils::PackageGUIDItemNameLength);
+
+						// Duplicate material.
+						//continue;
+					}
+				}
+			}
+
+			DuplicatedMaterials.Add(Material);
+		}
+
+		// Assign duplicated materials.
+		DuplicatedStaticMesh->Materials = DuplicatedMaterials;
 
 		// Notify registry that we have created a new duplicate mesh.
 		FAssetRegistryModule::AssetCreated(DuplicatedStaticMesh);
