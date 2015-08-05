@@ -4663,35 +4663,38 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoud
 	UPackage* TexturePackage = Cast<UPackage>(Texture->GetOuter());
 	if(TexturePackage)
 	{
-		UMetaData* MetaData = TexturePackage->GetMetaData();
-
 		FString GeneratedTextureName;
 		if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(TexturePackage, Texture, GeneratedTextureName))
 		{
-			// Retrieve texture type.
-			const FString& TextureType = MetaData->GetValue(Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE);
+			UMetaData* MetaData = TexturePackage->GetMetaData();
+			if(MetaData)
+			{
+				// Retrieve texture type.
+				const FString& TextureType = 
+					MetaData->GetValue(Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE);
 
-			// Create texture package.
-			FString TextureName;
-			UPackage* NewTexturePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(Component, 
-				SubTextureName, TextureType, TextureName, false);
+				// Create texture package.
+				FString TextureName;
+				UPackage* NewTexturePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(Component, 
+					SubTextureName, TextureType, TextureName, false);
 
-			// Clone texture.
-			DuplicatedTexture = DuplicateObject<UTexture2D>(Texture, NewTexturePackage, *TextureName);
+				// Clone texture.
+				DuplicatedTexture = DuplicateObject<UTexture2D>(Texture, NewTexturePackage, *TextureName);
 
-			// Add meta information.
-			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture, 
-				HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
-			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture,
-				HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName);
-			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture,
-				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType);
+				// Add meta information.
+				FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture, 
+					HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+				FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName);
+				FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType);
 
-			// Notify registry that we have created a new duplicate texture.
-			FAssetRegistryModule::AssetCreated(DuplicatedTexture);
+				// Notify registry that we have created a new duplicate texture.
+				FAssetRegistryModule::AssetCreated(DuplicatedTexture);
 
-			// Dirty the texture package.
-			DuplicatedTexture->MarkPackageDirty();
+				// Dirty the texture package.
+				DuplicatedTexture->MarkPackageDirty();
+			}
 		}
 	}
 
