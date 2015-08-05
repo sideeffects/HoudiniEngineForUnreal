@@ -255,6 +255,10 @@ public:
 	/** Add Houdini meta information to package for a given object. **/
 	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object);
 
+	/** Duplicate given static mesh. This will create new package for it. **/
+	static UStaticMesh* DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+
 protected:
 
 	/** Create a package for given component for blueprint baking. **/

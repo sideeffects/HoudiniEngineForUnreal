@@ -4403,3 +4403,32 @@ FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(UPackage* Package, UObje
 	UMetaData* MetaData = Package->GetMetaData();
 	MetaData->SetValue(Object, TEXT("HoudiniGeneratedObject"), TEXT("true"));
 }
+
+
+UStaticMesh*
+FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+{
+	UStaticMesh* DuplicatedStaticMesh = nullptr;
+
+	if(!HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer())
+	{
+		// Create package for this duplicated mesh.
+		FString MeshName;
+		FGuid MeshGuid;
+
+		UPackage* MeshPackage =
+			FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(Component, HoudiniGeoPartObject,
+				MeshName, MeshGuid);
+
+		// Duplicate mesh for this new copied component.
+		DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, MeshPackage, *MeshName);
+
+		// Notify registry that we have created a new duplicate mesh.
+		FAssetRegistryModule::AssetCreated(DuplicatedStaticMesh);
+	}
+
+	return DuplicatedStaticMesh;
+}
+
+
