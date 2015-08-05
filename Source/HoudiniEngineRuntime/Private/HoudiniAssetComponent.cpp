@@ -1533,27 +1533,13 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 				FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
 				UStaticMesh* StaticMesh = Iter.Value();
 
-				UStaticMesh* DuplicatedStaticMesh = nullptr;
-
-				if(!HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer())
+				UStaticMesh* DuplicatedStaticMesh = 
+					FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(StaticMesh, this, HoudiniGeoPartObject);
+				if(DuplicatedStaticMesh)
 				{
-					// Create package for this duplicated mesh.
-					FString MeshName;
-					FGuid MeshGuid;
-
-					UPackage* MeshPackage =
-						FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(this, HoudiniGeoPartObject,
-							MeshName, MeshGuid);
-
-					// Duplicate mesh for this new copied component.
-					DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, MeshPackage, *MeshName);
-
-					// Notify registry that we have created a new duplicate mesh.
-					FAssetRegistryModule::AssetCreated(DuplicatedStaticMesh);
+					// Store this duplicated mesh.
+					StaticMeshes.Add(FHoudiniGeoPartObject(HoudiniGeoPartObject, true), DuplicatedStaticMesh);
 				}
-
-				// Store this duplicated mesh.
-				StaticMeshes.Add(FHoudiniGeoPartObject(HoudiniGeoPartObject, true), DuplicatedStaticMesh);
 			}
 		}
 /*
