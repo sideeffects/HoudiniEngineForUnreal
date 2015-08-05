@@ -4486,12 +4486,18 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 					UMetaData* MetaData = MaterialPackage->GetMetaData();
 					if(MetaData->HasValue(Material, TEXT("HoudiniGeneratedObject")))
 					{
+						// Retrieve name used for package generation of this material.
 						const FString MaterialNameFull = MetaData->GetValue(Material, TEXT("HoudiniGeneratedName"));
 						FString MaterialName = 
 							MaterialNameFull.Left(MaterialNameFull.Len() - FHoudiniEngineUtils::PackageGUIDItemNameLength);
 
 						// Duplicate material.
-						//continue;
+						UMaterial* DuplicatedMaterial = 
+							FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(Material, Component, MaterialName);
+
+						// Store duplicated material.
+						DuplicatedMaterials.Add(DuplicatedMaterial);
+						continue;
 					}
 				}
 			}
@@ -4509,4 +4515,40 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 	return DuplicatedStaticMesh;
 }
 
+
+UMaterial*
+FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component, 
+	const FString& SubMaterialName)
+{
+	UMaterial* DuplicatedMaterial = nullptr;
+
+	// Create material package.
+	FString MaterialName;
+	UPackage* MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(Component, SubMaterialName, 
+		MaterialName, false);
+
+	// Retrieve expressions.
+	/*
+	UMaterialExpressionTextureSample* ExpressionDiffuse = 
+		Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
+
+	UMaterialExpressionTextureSample* ExpressionNormal = 
+		Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
+
+	UMaterialExpressionConstant4Vector* ExpressionDiffuseColor = 
+		Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
+	*/
+
+	// Clone material.
+	DuplicatedMaterial = DuplicateObject<UMaterial>(Material, MaterialPackage, *MaterialName);
+
+	// Add meta information.
+	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, DuplicatedMaterial, 
+		TEXT("HoudiniGeneratedObject"), TEXT("true"));
+
+	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, DuplicatedMaterial,
+		TEXT("HoudiniGeneratedName"), *MaterialName);
+
+	return DuplicatedMaterial;
+}
 
