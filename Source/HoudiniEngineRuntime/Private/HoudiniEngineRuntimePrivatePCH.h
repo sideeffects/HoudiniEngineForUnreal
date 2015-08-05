@@ -255,6 +255,23 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_DESIRED_SETTINGS_ROW_VALUE_WIDGET_WIDTH		350
 #define HAPI_UNREAL_DESIRED_SETTINGS_ROW_FULL_WIDGET_WIDTH		400
 
+/** Various variable names used to store meta information in generated packages. **/
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT			TEXT("HoudiniGeneratedObject")
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_NAME				TEXT("HoudiniGeneratedName")
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE		TEXT("HoudiniGeneratedTextureType")
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL	TEXT("N")
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE	TEXT("C_A")
+
+/** Names of HAPI libraries on different platforms. **/
+#define HAPI_LIB_OBJECT_WINDOWS			TEXT("libHAPI.dll")
+#define HAPI_LIB_OBJECT_MAC				TEXT("libHAPI.dylib")
+#define HAPI_LIB_OBJECT_LINUX			TEXT("libHAPI.so")
+
+/** HFS subfolder containing HAPI lib. **/
+#define HAPI_HFS_SUBFOLDER_WINDOWS		TEXT("bin")
+#define HAPI_HFS_SUBFOLDER_MAC			TEXT("dsolib")
+#define HAPI_HFS_SUBFOLDER_LINUX		TEXT("dsolib")
+
 /** Helper function to serialize enumerations. **/
 template <typename TEnum>
 FORCEINLINE
