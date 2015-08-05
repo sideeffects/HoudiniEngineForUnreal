@@ -272,6 +272,8 @@ protected:
 	/** Create a package for a given component for texture. **/
 	static UPackage* BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName, bool bBake = false);
+	static UPackage* BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+		const FString& TextureInfoDescriptor, const FString& TextureType, FString& TextureName, bool bBake = false);
 
 	/** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
 	static int32 TransferRegularPointAttributesToVertices(const TArray<int32>& VertexList,
@@ -281,6 +283,10 @@ protected:
 	/** and their corresponding packages. **/
 	static UMaterial* DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component, 
 		const FString& SubMaterialName);
+
+	/** Duplicate a given texture. This will create a new package for it. **/
+	static UTexture2D* DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoudiniAssetComponent* Component, 
+		const FString& SubTextureName);
 
 	/** Add Houdini meta information to package for a given object. **/
 	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 

@@ -544,8 +544,8 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 	if(GroupCount > 0)
 	{
 		std::vector<int32> GroupNameHandles(GroupCount, 0);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(AssetId, ObjectId, GeoId, GroupType, &GroupNameHandles[0],
-			GroupCount), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(AssetId, ObjectId, GeoId, GroupType, 
+			&GroupNameHandles[0], GroupCount), false);
 
 		for(int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
 		{
@@ -776,8 +776,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 	// Allocate sufficient buffer for data.
 	Data.SetNumUninitialized(AttributeInfo.count * AttributeInfo.tupleSize);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeIntData(AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo,
-		&Data[0], 0, AttributeInfo.count), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeIntData(AssetId, ObjectId, GeoId, PartId, Name, 
+		&AttributeInfo, &Data[0], 0, AttributeInfo.count), false);
 
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
@@ -929,8 +929,8 @@ FHoudiniEngineUtils::HapiExtractImage(
 	}
 
 	int32 ImageBufferSize = 0;
-	Result = FHoudiniApi::ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, Type,
-		&ImageBufferSize);
+	Result = FHoudiniApi::ExtractImageToMemory(MaterialInfo.assetId, MaterialInfo.id, HAPI_RAW_FORMAT_NAME, 
+		Type, &ImageBufferSize);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		return false;
@@ -942,7 +942,9 @@ FHoudiniEngineUtils::HapiExtractImage(
 	}
 
 	ImageBuffer.SetNumUninitialized(ImageBufferSize);
-	Result = FHoudiniApi::GetImageMemoryBuffer(MaterialInfo.assetId, MaterialInfo.id, &ImageBuffer[0], ImageBufferSize);
+	Result = FHoudiniApi::GetImageMemoryBuffer(MaterialInfo.assetId, MaterialInfo.id, &ImageBuffer[0], 
+		ImageBufferSize);
+
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		return false;
@@ -969,10 +971,21 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 		Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName, RF_Public | RF_Standalone);
 
 		// Add meta information to package.
-		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, TEXT("HoudiniGeneratedObject"), 
-			TEXT("true"));
-		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, TEXT("HoudiniGeneratedName"), 
-			*TextureName);
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
+			HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
+			HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName);
+
+		if(bNormal)
+		{
+			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
+				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL);
+		}
+		else
+		{
+			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
+				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE);
+		}
 	}
 
 	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8);
@@ -1849,6 +1862,29 @@ UPackage*
 FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const HAPI_MaterialInfo& MaterialInfo, const FString& TextureType, FString& TextureName, bool bBake)
 {
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	FString TextureInfoDescriptor;
+
+	if(bBake)
+	{
+		TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT("_texture_") + FString::FromInt(MaterialInfo.id) + 
+			TEXT("_") + TextureType + TEXT("_");
+	}
+	else
+	{
+		TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT("_") + FString::FromInt(MaterialInfo.id) + TEXT("_") +
+			TextureType + TEXT("_");
+	}
+
+	return FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent, TextureInfoDescriptor, 
+		TextureType, TextureName, bBake);
+}
+
+
+UPackage*
+FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const FString& TextureInfoDescriptor, const FString& TextureType, FString& TextureName, bool bBake)
+{
 	UPackage* Package = nullptr;
 
 #if WITH_EDITOR
@@ -1870,14 +1906,11 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent
 		// We only want half of generated guid string.
 		FString BakeGUIDString = BakeGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDItemNameLength);
 
+		// Generate texture name.
+		TextureName = TextureInfoDescriptor + BakeGUIDString;
+
 		if(bBake)
 		{
-			// Generate texture name.
-			TextureName = HoudiniAsset->GetName() + TEXT("_texture_") + 
-				FString::FromInt(MaterialInfo.id) + TEXT("_") +
-				TextureType + TEXT("_") +
-				BakeGUIDString;
-
 			// Generate unique package name.=
 			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
 				TEXT("/") +
@@ -1885,12 +1918,6 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent
 		}
 		else
 		{
-			// Generate texture name.
-			TextureName = HoudiniAsset->GetName() + TEXT("_") + 
-				FString::FromInt(MaterialInfo.id) + TEXT("_") +
-				TextureType + TEXT("_") +
-				BakeGUIDString;
-
 			// Generate unique package name.
 			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) +
 				TEXT("/") +
@@ -2453,10 +2480,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 						// Add meta information to this package.
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, MeshPackage, 
-							TEXT("HoudiniGeneratedObject"), TEXT("true"));
-
+							HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, MeshPackage, 
-							TEXT("HoudiniGeneratedName"), *MeshName);
+							HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MeshName);
 
 						// Notify system that new asset has been created.
 						FAssetRegistryModule::AssetCreated(StaticMesh);
@@ -3235,10 +3261,10 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 	StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
 
 	// Add meta information to this package.
-	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh, TEXT("HoudiniGeneratedObject"), 
-		TEXT("true"));
-
-	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh, TEXT("HoudiniGeneratedName"), *MeshName);
+	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh, 
+		HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh, 
+		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MeshName);
 
 	// Notify registry that we created a new asset.
 	FAssetRegistryModule::AssetCreated(StaticMesh);
@@ -3494,15 +3520,16 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					// Create material, if we need to create one.
 					if(!Material)
 					{
-						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, RF_Public | RF_Standalone);
+						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, 
+							RF_Public | RF_Standalone);
+
 						bCreatedNewMaterial = true;
 
 						// Add meta information to this package.
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material, 
-							TEXT("HoudiniGeneratedObject"), TEXT("true"));
-
+							HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
-							TEXT("HoudiniGeneratedName"), *MaterialName);
+							HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName);
 					}
 
 					HAPI_ImageInfo ImageInfo;
@@ -3690,15 +3717,16 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					// Create material, if we need to create one.
 					if(!Material)
 					{
-						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, RF_Public | RF_Standalone);
+						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, 
+							RF_Public | RF_Standalone);
+
 						bCreatedNewMaterial = true;
 
 						// Add meta information to this package.
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material, 
-							TEXT("HoudiniGeneratedObject"), TEXT("true"));
-
+							HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
-							TEXT("HoudiniGeneratedName"), *MaterialName);
+							HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName);
 					}
 
 					// Create color const expression and add it to material, if we don't have one.
@@ -3963,15 +3991,15 @@ FHoudiniEngineUtils::HoudiniGetLibHAPIName()
 
 #if PLATFORM_WINDOWS
 
-		TEXT("libHAPI.dll");
+		HAPI_LIB_OBJECT_WINDOWS;
 
 #elif PLATFORM_MAC
 
-		TEXT("libHAPI.dylib");
+		HAPI_LIB_OBJECT_MAC;
 
 #elif PLATFORM_LINUX
 
-		TEXT("libHAPI.so");
+		HAPI_LIB_OBJECT_LINUX;
 
 #else
 
@@ -4002,11 +4030,15 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 #if PLATFORM_WINDOWS
 
-		HFSPath += TEXT("/bin");
+		HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_WINDOWS);
 
-#elif PLATFORM_MAC || PLATFORM_LINUX
+#elif PLATFORM_MAC
 
-		HFSPath += TEXT("/dsolib");
+		HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_MAC);
+
+#elif PLATFORM_LINUX
+
+		HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_LINUX);
 
 #endif
 
@@ -4048,7 +4080,7 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 	if(!HFSPath.IsEmpty())
 	{
-		HFSPath += TEXT("/bin");
+		HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_WINDOWS);
 
 		// Create full path to libHAPI binary.
 		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HFSPath, *LibHAPIName);
@@ -4080,7 +4112,7 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"),
 			HoudiniInstallationPath))
 		{
-			HoudiniInstallationPath += TEXT("/bin");
+			HoudiniInstallationPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_WINDOWS);
 
 			// Create full path to libHAPI binary.
 			FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HoudiniInstallationPath, *LibHAPIName);
@@ -4115,7 +4147,7 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *HoudiniRegistryLocation, TEXT("InstallPath"),
 			HoudiniInstallationPath))
 		{
-			HoudiniInstallationPath += TEXT("/bin");
+			HoudiniInstallationPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_WINDOWS);
 
 			// Create full path to libHAPI binary.
 			FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HoudiniInstallationPath, *LibHAPIName);
@@ -4152,7 +4184,7 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 
 	// Attempt to load from standard Linux installation.
 	FString HoudiniLocation = FString::Printf(
-		TEXT("/opt/dev%d.%d.%d/dsolib"),
+		TEXT("/opt/dev%d.%d.%d/") + HAPI_HFS_SUBFOLDER_LINUX,
 		HAPI_VERSION_HOUDINI_MAJOR, HAPI_VERSION_HOUDINI_MINOR, HAPI_VERSION_HOUDINI_BUILD);
 
 #	endif
@@ -4454,10 +4486,10 @@ FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(UPackage* Packag
 	FString& HoudiniName)
 {
 	UMetaData* MetaData = Package->GetMetaData();
-	if(MetaData && MetaData->HasValue(Object, TEXT("HoudiniGeneratedObject")))
+	if(MetaData && MetaData->HasValue(Object, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT))
 	{
 		// Retrieve name used for package generation.
-		const FString NameFull = MetaData->GetValue(Object, TEXT("HoudiniGeneratedName"));
+		const FString NameFull = MetaData->GetValue(Object, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME);
 		HoudiniName = NameFull.Left(NameFull.Len() - FHoudiniEngineUtils::PackageGUIDItemNameLength);
 
 		return true;
@@ -4485,13 +4517,13 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 
 		// Duplicate mesh for this new copied component.
 		DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, MeshPackage, *MeshName);
+		
 
 		// Add meta information.
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, DuplicatedStaticMesh, 
-			TEXT("HoudiniGeneratedObject"), TEXT("true"));
-
+			HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, DuplicatedStaticMesh,
-			TEXT("HoudiniGeneratedName"), *MeshName);
+			HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MeshName);
 
 		// See if we need to duplicate materials and textures.
 		TArray<UMaterialInterface*> DuplicatedMaterials;
@@ -4505,8 +4537,6 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 				UPackage* MaterialPackage = Cast<UPackage>(Material->GetOuter());
 				if(MaterialPackage)
 				{
-					UMetaData* MetaData = MaterialPackage->GetMetaData();
-
 					FString MaterialName;
 					if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(MaterialPackage, Material, 
 						MaterialName))
@@ -4530,6 +4560,9 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 
 		// Notify registry that we have created a new duplicate mesh.
 		FAssetRegistryModule::AssetCreated(DuplicatedStaticMesh);
+
+		// Dirty the static mesh package.
+		DuplicatedStaticMesh->MarkPackageDirty();
 	}
 
 	return DuplicatedStaticMesh;
@@ -4547,28 +4580,121 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHou
 	UPackage* MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(Component, SubMaterialName, 
 		MaterialName, false);
 
-	// Retrieve expressions.
-	/*
-	UMaterialExpressionTextureSample* ExpressionDiffuse = 
-		Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
-
-	UMaterialExpressionTextureSample* ExpressionNormal = 
-		Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
-
-	UMaterialExpressionConstant4Vector* ExpressionDiffuseColor = 
-		Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
-	*/
-
 	// Clone material.
 	DuplicatedMaterial = DuplicateObject<UMaterial>(Material, MaterialPackage, *MaterialName);
 
 	// Add meta information.
 	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, DuplicatedMaterial, 
-		TEXT("HoudiniGeneratedObject"), TEXT("true"));
-
+		HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
 	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, DuplicatedMaterial,
-		TEXT("HoudiniGeneratedName"), *MaterialName);
+		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName);
+
+	// Retrieve and check diffuse expression.
+	UMaterialExpressionTextureSample* ExpressionDiffuse = 
+		Cast<UMaterialExpressionTextureSample>(DuplicatedMaterial->BaseColor.Expression);
+	if(ExpressionDiffuse)
+	{
+		UTexture2D* TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
+		if(TextureDiffuse)
+		{
+			UPackage* TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
+			if(TextureDiffusePackage)
+			{
+				FString GeneratedTextureName;
+				if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(TextureDiffusePackage, TextureDiffuse, 
+					GeneratedTextureName))
+				{
+					// Duplicate diffuse texture.
+					UTexture2D* DuplicatedDiffuseTexture = 
+						FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(TextureDiffuse, Component,
+							GeneratedTextureName);
+
+					// Re-assign generated diffuse texture.
+					ExpressionDiffuse->Texture = DuplicatedDiffuseTexture;
+				}
+			}
+		}
+	}
+
+	// Retrieve and check normal expression.
+	UMaterialExpressionTextureSample* ExpressionNormal = 
+		Cast<UMaterialExpressionTextureSample>(DuplicatedMaterial->Normal.Expression);
+	if(ExpressionNormal)
+	{
+		UTexture2D* TextureNormal = Cast<UTexture2D>(ExpressionNormal->Texture);
+		if(TextureNormal)
+		{
+			UPackage* TextureNormalPackage = Cast<UPackage>(TextureNormal->GetOuter());
+			if(TextureNormalPackage)
+			{
+				FString GeneratedTextureName;
+				if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(TextureNormalPackage, TextureNormal, 
+					GeneratedTextureName))
+				{
+					// Duplicate normal texture.
+					UTexture2D* DuplicatedNormalTexture = 
+						FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(TextureNormal, Component,
+							GeneratedTextureName);
+
+					// Re-assign generated normal texture.
+					ExpressionNormal->Texture = DuplicatedNormalTexture;
+				}
+			}
+		}
+	}
+
+	// Notify registry that we have created a new duplicate material.
+	FAssetRegistryModule::AssetCreated(DuplicatedMaterial);
+
+	// Dirty the material package.
+	DuplicatedMaterial->MarkPackageDirty();
 
 	return DuplicatedMaterial;
+}
+
+
+UTexture2D*
+FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoudiniAssetComponent* Component, 
+	const FString& SubTextureName)
+{
+	UTexture2D* DuplicatedTexture = nullptr;
+
+	// Retrieve original package of this texture.
+	UPackage* TexturePackage = Cast<UPackage>(Texture->GetOuter());
+	if(TexturePackage)
+	{
+		UMetaData* MetaData = TexturePackage->GetMetaData();
+
+		FString GeneratedTextureName;
+		if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(TexturePackage, Texture, GeneratedTextureName))
+		{
+			// Retrieve texture type.
+			const FString& TextureType = MetaData->GetValue(Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE);
+
+			// Create texture package.
+			FString TextureName;
+			UPackage* NewTexturePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(Component, 
+				SubTextureName, TextureType, TextureName, false);
+
+			// Clone texture.
+			DuplicatedTexture = DuplicateObject<UTexture2D>(Texture, NewTexturePackage, *TextureName);
+
+			// Add meta information.
+			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture, 
+				HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture,
+				HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName);
+			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture,
+				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType);
+
+			// Notify registry that we have created a new duplicate texture.
+			FAssetRegistryModule::AssetCreated(DuplicatedTexture);
+
+			// Dirty the texture package.
+			DuplicatedTexture->MarkPackageDirty();
+		}
+	}
+
+	return DuplicatedTexture;
 }
 
