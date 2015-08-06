@@ -2471,7 +2471,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 					// If static mesh was not located, we need to create one.
 					bool bStaticMeshCreated = false;
-					if(!FoundStaticMesh)
+					if(!FoundStaticMesh || *FoundStaticMesh == nullptr)
 					{
 						MeshGuid.Invalidate();
 
