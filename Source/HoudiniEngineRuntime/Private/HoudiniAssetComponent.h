@@ -401,13 +401,16 @@ private:
 	/** Clear all instance inputs. **/
 	void ClearInstanceInputs();
 
+	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
+	void ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
+
 public:
 
 	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
 	void CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
 	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
-	void ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
+	void ReleaseObjectGeoPartResources();
 
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
