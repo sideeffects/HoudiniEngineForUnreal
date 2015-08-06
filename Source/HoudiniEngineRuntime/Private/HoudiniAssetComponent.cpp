@@ -524,6 +524,13 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 
 
 void
+UHoudiniAssetComponent::ReleaseObjectGeoPartResources()
+{
+	ReleaseObjectGeoPartResources(StaticMeshes);
+}
+
+
+void
 UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
