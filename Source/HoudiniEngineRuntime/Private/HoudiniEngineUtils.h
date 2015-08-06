@@ -259,6 +259,14 @@ public:
 
 protected:
 
+#if PLATFORM_WINDOWS
+	
+	/** Attempt to locate libHAPI on Windows in the registry. Return handle if located and return location. **/
+	static void* LocateLibHAPIInRegistry(const FString& HoudiniInstallationType, const FString& HoudiniVersionString,
+		FString& StoredLibHAPILocation);
+
+#endif
+
 	/** Create a package for given component for blueprint baking. **/
 	static UPackage* BakeCreateBlueprintPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 		FString& BlueprintName);
