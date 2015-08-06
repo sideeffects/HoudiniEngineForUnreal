@@ -28,6 +28,7 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	InputCurve(nullptr),
 	GeometryAssetId(-1),
 	CurveAssetId(-1),
+	InputAssetId(-1),
 	ConnectedAssetId(-1),
 	InputIndex(0),
 	ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
@@ -50,7 +51,7 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 {
 	UHoudiniAssetInput* HoudiniAssetInput = nullptr;
 
-	// Get name of this input. For the time being we only support geometry inputs.
+	// Get name of this input.
 	HAPI_StringHandle InputStringHandle;
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetInputName(InHoudiniAssetComponent->GetAssetId(),
 		InInputIndex, HAPI_INPUT_GEOMETRY, &InputStringHandle))
@@ -88,6 +89,16 @@ UHoudiniAssetInput::CreateWidgetResources()
 		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
 
 		if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
+		{
+			ChoiceStringValue = *ChoiceLabel;
+		}
+	}
+
+	{
+		FString* ChoiceLabel = new FString(TEXT("Asset Input"));
+		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+
+		if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 		{
 			ChoiceStringValue = *ChoiceLabel;
 		}
@@ -386,6 +397,10 @@ UHoudiniAssetInput::UploadParameterValue()
 			// Either mesh was reset or null mesh has been assigned.
 			DestroyGeometryInputAsset();
 		}
+	}
+	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
+	{
+		// Process connected asset.
 	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
@@ -802,6 +817,10 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 
 			// We need to trigger details panel update.
 			HoudiniAssetComponent->UpdateEditorProperties(false);
+		}
+		else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
+		{
+			// Switched to asset input mode.
 		}
 		else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 		{
