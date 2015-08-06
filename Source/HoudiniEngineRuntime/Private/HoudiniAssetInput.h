@@ -29,7 +29,8 @@ namespace EHoudiniAssetInputType
 	enum Enum
 	{
 		GeometryInput = 0,
-		CurveInput
+		CurveInput,
+		AssetInput
 	};
 }
 
