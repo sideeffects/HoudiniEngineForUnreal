@@ -29,8 +29,8 @@ namespace EHoudiniAssetInputType
 	enum Enum
 	{
 		GeometryInput = 0,
-		CurveInput,
-		AssetInput
+		AssetInput,
+		CurveInput
 	};
 }
 
@@ -201,11 +201,14 @@ protected:
 	/** Houdini spline component which is used for curve input. **/
 	UHoudiniSplineComponent* InputCurve;
 
-	/** Id of geometry asset. **/
+	/** Id of geometry input asset. **/
 	HAPI_AssetId GeometryAssetId;
 
-	/** Id of connected curve. **/
+	/** Id of connected input curve. **/
 	HAPI_AssetId CurveAssetId;
+
+	/** Id of connected asset input. **/
+	HAPI_AssetId InputAssetId;
 
 	/** Id of currently connected asset. **/
 	HAPI_AssetId ConnectedAssetId;
