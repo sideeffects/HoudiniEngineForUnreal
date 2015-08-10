@@ -249,7 +249,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 bool
 UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 {
-	// UpdateRelativeTransform
+	// UpdateRelativeTransform?
 
 	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
@@ -257,51 +257,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 		HoudiniAssetInstanceInputField->CreateInstancedComponent();
 	}
 
-
-	/*
-	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
-	{
-		// Get geo part information for this index.
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = SerializedGeoPartObjects[Idx];
-
-		UInstancedStaticMeshComponent* Component =
-			NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
-				UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transient);
-
-		Component->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
-		Component->AttachTo(HoudiniAssetComponent);
-
-		SetComponentInstanceTransformations(Component, InstancedTransforms[Idx], Idx);
-		InstancedStaticMeshComponents[Idx] = Component;
-
-		// Locate default / original mesh.
-		OriginalStaticMeshes[Idx] = HoudiniAssetComponent->LocateStaticMesh(HoudiniGeoPartObject);
-
-		// If custom mesh is not used, use original.
-		if(!StaticMeshes[Idx])
-		{
-			StaticMeshes[Idx] = OriginalStaticMeshes[Idx];
-		}
-
-		if(HoudiniGeoPartObject.bIsCollidable)
-		{
-			// We want to make it invisible if this is a collision instancer.
-			Component->SetVisibility(false);
-		}
-		else
-		{
-			Component->SetVisibility(true);
-		}
-
-		// Set mesh for this component.
-		Component->SetStaticMesh(StaticMeshes[Idx]);
-
-		Component->RegisterComponent();
-		Component->GetBodyInstance()->bAutoWeld = false;
-	}
-
-	SerializedGeoPartObjects.Empty();
-	*/
 	return true;
 }
 
