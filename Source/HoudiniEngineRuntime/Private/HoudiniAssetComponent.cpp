@@ -527,15 +527,22 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 
 
 void
-UHoudiniAssetComponent::ReleaseObjectGeoPartResources()
+UHoudiniAssetComponent::ReleaseObjectGeoPartResources(bool bPostCook)
 {
-	ReleaseObjectGeoPartResources(StaticMeshes);
+	ReleaseObjectGeoPartResources(StaticMeshes, bPostCook);
 }
 
 
 void
-UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
+UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap,
+	bool bPostCook)
 {
+	// Record generated static meshes which we need to delete.
+	TArray<UObject*> StaticMeshesToDelete;
+
+	// Get Houdini logo.
+	UStaticMesh* HoudiniLogoMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
+
 	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshMap); Iter; ++Iter)
 	{
 		UStaticMesh* StaticMesh = Iter.Value();
@@ -555,9 +562,59 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 				StaticMeshComponent->DestroyComponent();
 			}
 		}
+
+		if(bPostCook && StaticMesh != HoudiniLogoMesh)
+		{
+			// Make sure this static mesh is not referenced.
+			UObject* ObjectMesh = (UObject*) StaticMesh;
+			FReferencerInformationList Referencers;
+
+			bool bReferenced = true;
+
+			{
+				// Check if object is referenced and get its referencers, if it is. Skip undo references.
+				FHoudiniScopedGlobalTransactionDisable HoudiniScopedGlobalTransactionDisable;
+				bReferenced = IsReferenced(ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS, true, &Referencers);
+			}
+
+			if(!bReferenced || IsObjectReferencedLocally(StaticMesh, Referencers))
+			{
+				// Only delete generated mesh if it has not been saved manually.
+				UPackage* Package = Cast<UPackage>(StaticMesh->GetOuter());
+				if(!Package || !Package->bHasBeenFullyLoaded)
+				{
+					StaticMeshesToDelete.Add(StaticMesh);
+				}
+			}
+		}
 	}
 
+	// Remove unused meshes.
 	StaticMeshMap.Empty();
+
+	// Delete no longer used generated static meshes.
+	if(bPostCook && StaticMeshesToDelete.Num() > 0)
+	{
+		FHoudiniScopedGlobalSilence HoudiniScopedGlobalSilence;
+		ObjectTools::ForceDeleteObjects(StaticMeshesToDelete, false);
+	}
+}
+
+
+bool
+UHoudiniAssetComponent::IsObjectReferencedLocally(UStaticMesh* StaticMesh, FReferencerInformationList& Referencers) const
+{
+	if(Referencers.InternalReferences.Num() == 0 && Referencers.ExternalReferences.Num() == 1)
+	{
+		const FReferencerInformation& ExternalReferencer = Referencers.ExternalReferences[0];
+		if(ExternalReferencer.Referencer == this)
+		{
+			// Only referencer is this component.
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -721,38 +778,8 @@ UHoudiniAssetComponent::PostCook()
 			}
 		}
 
-		/*
-		// Record generated static meshes which we need to delete.
-		TArray<UObject*> StaticMeshesToDelete;
-
-		// Get Houdini logo.
-		UStaticMesh* HoudiniLogoMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
-
-		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
-		{
-			UStaticMesh* StaticMesh = Iter.Value();
-			if(StaticMesh != HoudiniLogoMesh)
-			{
-				// Make sure this static mesh is not referenced.
-				UObject* ObjectMesh = (UObject*) StaticMesh;
-				if(!IsReferenced(ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS))
-				{
-					StaticMeshesToDelete.Add(StaticMesh);
-				}
-			}
-		}
-		*/
-
 		// Free meshes and components that are no longer used.
-		ReleaseObjectGeoPartResources(StaticMeshes);
-
-		/*
-		// Delete no longer used generated static meshes.
-		{
-			FHoudiniScopedGlobalSilence HoudiniScopedGlobalSilence;
-			ObjectTools::ForceDeleteObjects(StaticMeshesToDelete, false);
-		}
-		*/
+		ReleaseObjectGeoPartResources(StaticMeshes, true);
 
 		// Set meshes and create new components for those meshes that do not have them.
 		if(NewStaticMeshes.Num() > 0)
