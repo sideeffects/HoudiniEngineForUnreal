@@ -93,7 +93,7 @@ UHoudiniAssetInput::CreateWidgetResources()
 			ChoiceStringValue = *ChoiceLabel;
 		}
 	}
-
+	/*
 	{
 		FString* ChoiceLabel = new FString(TEXT("Asset Input"));
 		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
@@ -103,6 +103,7 @@ UHoudiniAssetInput::CreateWidgetResources()
 			ChoiceStringValue = *ChoiceLabel;
 		}
 	}
+	*/
 
 	{
 		FString* ChoiceLabel = new FString(TEXT("Curve Input"));
@@ -398,10 +399,12 @@ UHoudiniAssetInput::UploadParameterValue()
 			DestroyGeometryInputAsset();
 		}
 	}
+	/*
 	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 	{
 		// Process connected asset.
 	}
+	*/
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
 		// If we have no curve asset, create it.
@@ -817,11 +820,11 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 
 			// We need to trigger details panel update.
 			HoudiniAssetComponent->UpdateEditorProperties(false);
-		}
+		}/*
 		else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 		{
 			// Switched to asset input mode.
-		}
+		}*/
 		else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 		{
 			if(!InputCurve)
