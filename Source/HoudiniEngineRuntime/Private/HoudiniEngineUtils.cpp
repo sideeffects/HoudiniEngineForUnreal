@@ -3395,6 +3395,10 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 	// Update context for generated materials (will trigger when object goes out of scope).
 	FMaterialUpdateContext MaterialUpdateContext;
 
+	// Factory to create materials.
+	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
+	MaterialFactory->AddToRoot();
+
 	for(TSet<HAPI_MaterialId>::TConstIterator IterMaterialId(UniqueMaterialIds); IterMaterialId; ++IterMaterialId)
 	{
 		HAPI_MaterialId MaterialId = *IterMaterialId;
@@ -3519,8 +3523,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					// Create material, if we need to create one.
 					if(!Material)
 					{
-						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, 
-							RF_Public | RF_Standalone);
+						Material = 
+							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
+								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
 
 						bCreatedNewMaterial = true;
 
@@ -3530,6 +3535,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
 							HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName);
 					}
+
+					// Reset material's expresisons.
+					Material->Expressions.Empty();
 
 					HAPI_ImageInfo ImageInfo;
 					FHoudiniApi::GetImageInfo(MaterialInfo.assetId, MaterialInfo.id, &ImageInfo);
@@ -3568,8 +3576,6 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 						ExpressionDiffuse->Texture = TextureDiffuse;
 						ExpressionDiffuse->SamplerType = SAMPLERTYPE_Color;
-
-						Material->Expressions.Empty();
 
 						Material->Expressions.Add(ExpressionDiffuse);
 						Material->BaseColor.Expression = ExpressionDiffuse;
@@ -3635,6 +3641,10 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 							Material->Expressions.Add(ExpressionNormal);
 							Material->Normal.Expression = ExpressionNormal;
+						}
+						else
+						{
+							Material->Normal.Expression = nullptr;
 						}
 
 						// Set other material properties.
@@ -3718,8 +3728,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					// Create material, if we need to create one.
 					if(!Material)
 					{
-						Material = NewObject<UMaterial>(MaterialPackage, UMaterial::StaticClass(), *MaterialName, 
-							RF_Public | RF_Standalone);
+						Material = 
+							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
+								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
 
 						bCreatedNewMaterial = true;
 
@@ -3729,6 +3740,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
 							HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName);
 					}
+
+					// Reset material's expressions.
+					Material->Expressions.Empty();
 
 					// Create color const expression and add it to material, if we don't have one.
 					if(!ExpressionDiffuseColor)
@@ -3769,6 +3783,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			}
 		}
 	}
+
+	MaterialFactory->RemoveFromRoot();
 
 #endif
 }
