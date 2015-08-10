@@ -305,3 +305,24 @@ struct FHoudiniScopedGlobalSilence
 
 	bool bGlobalSilent;
 };
+
+
+/** Struct to disable transactional buffer serialization. This is used to avoid including undo reference count. **/
+struct FHoudiniScopedGlobalTransactionDisable
+{
+	FHoudiniScopedGlobalTransactionDisable()
+	{
+#if WITH_EDITOR
+		GEditor->Trans->DisableObjectSerialization();
+#endif
+	}
+
+	~FHoudiniScopedGlobalTransactionDisable()
+	{
+#if WITH_EDITOR
+		GEditor->Trans->EnableObjectSerialization();
+#endif
+	}
+};
+
+
