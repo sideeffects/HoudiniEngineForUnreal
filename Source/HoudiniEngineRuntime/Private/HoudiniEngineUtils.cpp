@@ -961,7 +961,6 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 	const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer, bool bNormal)
 {
 	UTexture2D* Texture = nullptr;
-
 	if(ExistingTexture)
 	{
 		Texture = ExistingTexture;
@@ -3548,7 +3547,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						{
 							TextureDiffusePackage = 
 								FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent, 
-									MaterialInfo, TEXT("C_A"), TextureDiffuseName);
+									MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
+									TextureDiffuseName);
 						}
 
 						// Create diffuse texture, if we need to create one.
@@ -3611,7 +3611,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 							{
 								TextureNormalPackage = 
 									FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent, 
-										MaterialInfo, TEXT("N"), TextureNormalName);
+										MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
+										TextureNormalName);
 							}
 
 							// Create normal texture, if we need to create one.
