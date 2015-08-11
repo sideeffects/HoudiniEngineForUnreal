@@ -44,7 +44,7 @@ UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField(const FObjectIn
 
 UHoudiniAssetInstanceInputField::~UHoudiniAssetInstanceInputField()
 {
-
+	volatile int i = 32;
 }
 
 
@@ -93,7 +93,7 @@ void
 UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = Cast<UHoudiniAssetInstanceInputField>(InThis);
-	if(HoudiniAssetInstanceInputField && !HoudiniAssetInstanceInputField->IsPendingKill())
+	if(HoudiniAssetInstanceInputField)// && !HoudiniAssetInstanceInputField->IsPendingKill())
 	{
 		if(HoudiniAssetInstanceInputField->OriginalStaticMesh)
 		{
@@ -119,9 +119,6 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 void
 UHoudiniAssetInstanceInputField::BeginDestroy()
 {
-	//ThumbnailBorder.Reset();
-	//StaticMeshComboButton.Reset();
-
 	Super::BeginDestroy();
 }
 
@@ -203,7 +200,7 @@ UHoudiniAssetInstanceInputField::SetStaticMesh(UStaticMesh* InStaticMesh)
 	InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
 }
 
-/*
+
 void
 UHoudiniAssetInstanceInputField::AssignThumbnailBorder(TSharedPtr<SBorder> InThumbnailBorder)
 {
@@ -230,7 +227,6 @@ UHoudiniAssetInstanceInputField::GetComboButton() const
 {
 	return StaticMeshComboButton;
 }
-*/
 
 
 const FRotator&
