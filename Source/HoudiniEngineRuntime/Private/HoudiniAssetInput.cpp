@@ -603,7 +603,7 @@ void
 UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UHoudiniAssetInput* HoudiniAssetInput = Cast<UHoudiniAssetInput>(InThis);
-	if(HoudiniAssetInput && !HoudiniAssetInput->IsPendingKill())
+	if(HoudiniAssetInput)// && !HoudiniAssetInput->IsPendingKill())
 	{
 		// Add reference to held geometry object.
 		if(HoudiniAssetInput->InputObject)
