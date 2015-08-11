@@ -63,16 +63,16 @@ public:
 	void SetStaticMesh(UStaticMesh* InStaticMesh);
 
 	/** Set thumbnail border used by static mesh used by this field. **/
-	//void AssignThumbnailBorder(TSharedPtr<SBorder> InThumbnailBorder);
+	void AssignThumbnailBorder(TSharedPtr<SBorder> InThumbnailBorder);
 
 	/** Get thumbnail border used by static mesh used by this field. **/
-	//TSharedPtr<SBorder> GetThumbnailBorder() const;
+	TSharedPtr<SBorder> GetThumbnailBorder() const;
 
 	/** Set combo button used by static mesh used by this field. **/
-	//void AssignComboButton(TSharedPtr<SComboButton> InComboButton);
+	void AssignComboButton(TSharedPtr<SComboButton> InComboButton);
 
 	/** Get combo button used by static mesh used by this field. **/
-	//TSharedPtr<SComboButton> GetComboButton() const;
+	TSharedPtr<SComboButton> GetComboButton() const;
 
 	/** Get rotator used by this field. **/
 	const FRotator& GetRotationOffset() const;
@@ -126,10 +126,10 @@ protected:
 #if WITH_EDITOR
 
 	/** Thumbnail border used by slate for this field. **/
-	//TSharedPtr<SBorder> ThumbnailBorder;
+	TSharedPtr<SBorder> ThumbnailBorder;
 
 	/** Combo box element used by slate for this field. **/
-	//TSharedPtr<SComboButton> StaticMeshComboButton;
+	TSharedPtr<SComboButton> StaticMeshComboButton;
 
 #endif
 

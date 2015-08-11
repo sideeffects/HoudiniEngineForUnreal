@@ -196,12 +196,6 @@ protected:
 
 #if WITH_EDITOR
 
-	/** List of cached combo buttons. **/
-	TMap<UHoudiniAssetInstanceInputField*, TSharedPtr<SComboButton> > CachedComboButtons;
-
-	/** List of cached thumbnails. **/
-	TMap<UHoudiniAssetInstanceInputField*, TSharedPtr<SBorder> > CachedThumbnailBorders;
-
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
 

@@ -300,9 +300,6 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 {
 	Super::CreateWidget(DetailCategoryBuilder);
 
-	CachedComboButtons.Empty();
-	CachedThumbnailBorders.Empty();
-
 	// Get thumbnail pool for this builder.
 	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
@@ -363,13 +360,11 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		];
 
 		// Store thumbnail border for this static mesh.
-		//HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
-		CachedThumbnailBorders.Add(HoudiniAssetInstanceInputField, StaticMeshThumbnailBorder);
+		HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
 
 		TSharedPtr<SComboButton> AssetComboButton;
 		TSharedPtr<SHorizontalBox> ButtonBox;
 
-		/*
 		HorizontalBox->AddSlot()
 		.FillWidth(1.0f)
 		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
@@ -401,8 +396,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		];
 
 		// Store combobutton for this static mesh.
-		//HoudiniAssetInstanceInputField->AssignComboButton(AssetComboButton);
-		CachedComboButtons.Add(HoudiniAssetInstanceInputField, AssetComboButton);
+		HoudiniAssetInstanceInputField->AssignComboButton(AssetComboButton);
 
 		// Create tooltip.
 		FFormatNamedArguments Args;
@@ -438,7 +432,6 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
 			]
 		];
-		*/
 
 		FText LabelRotationText = LOCTEXT("HoudiniRotationOffset", "Rotation Offset:");
 		VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
@@ -592,7 +585,7 @@ void
 UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Cast<UHoudiniAssetInstanceInput>(InThis);
-	if(HoudiniAssetInstanceInput && !HoudiniAssetInstanceInput->IsPendingKill())
+	if(HoudiniAssetInstanceInput)// && !HoudiniAssetInstanceInput->IsPendingKill())
 	{
 		// Add references to all used fields.
 		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInput->InstanceInputFields.Num(); ++Idx)
@@ -601,14 +594,6 @@ UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceColl
 				HoudiniAssetInstanceInput->InstanceInputFields[Idx];
 
 			Collector.AddReferencedObject(HoudiniAssetInstanceInputField, InThis);
-
-			/*
-			UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetStaticMesh();
-			if(StaticMesh)
-			{
-				Collector.AddReferencedObject(StaticMesh, InThis);
-			}
-			*/
 		}
 	}
 
@@ -743,6 +728,11 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
 	if(InputStaticMesh && UsedStaticMesh != InputStaticMesh)
 	{
 		HoudiniAssetInstanceInputField->SetStaticMesh(InputStaticMesh);
+
+		if(HoudiniAssetComponent)
+		{
+			HoudiniAssetComponent->UpdateEditorProperties(false);
+		}
 	}
 }
 
@@ -751,7 +741,7 @@ const FSlateBrush*
 UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
 	int32 Idx) const
 {
-	TSharedPtr<SBorder> ThumbnailBorder = CachedThumbnailBorders[HoudiniAssetInstanceInputField];
+	TSharedPtr<SBorder> ThumbnailBorder = HoudiniAssetInstanceInputField->GetThumbnailBorder();
 	if(ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
 	{
 		return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
@@ -842,7 +832,7 @@ void
 UHoudiniAssetInstanceInput::OnStaticMeshSelected(const FAssetData& AssetData,
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx)
 {
-	TSharedPtr<SComboButton> AssetComboButton = CachedComboButtons[HoudiniAssetInstanceInputField];
+	TSharedPtr<SComboButton> AssetComboButton = HoudiniAssetInstanceInputField->GetComboButton();
 	if(AssetComboButton.IsValid())
 	{
 		AssetComboButton->SetIsOpen(false);
