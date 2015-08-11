@@ -201,5 +201,8 @@ UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor)
 
 		// Mark this parameter as changed.
 		MarkChanged();
+
+		// We want to record undo information when color changes.
+		RecordUndoState();
 	}
 }

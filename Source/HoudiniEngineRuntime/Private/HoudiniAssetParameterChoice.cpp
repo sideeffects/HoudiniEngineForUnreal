@@ -364,6 +364,9 @@ UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESel
 
 		// Mark this property as changed.
 		MarkChanged();
+
+		// We want to record undo information when choice changes.
+		RecordUndoState();
 	}
 }
 

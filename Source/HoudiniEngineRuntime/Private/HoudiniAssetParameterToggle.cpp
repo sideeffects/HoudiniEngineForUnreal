@@ -217,6 +217,9 @@ UHoudiniAssetParameterToggle::CheckStateChanged(ECheckBoxState NewState, int32 I
 
 		// Mark this parameter as changed.
 		MarkChanged();
+
+		// We want to record undo information when toggle changes state.
+		RecordUndoState();
 	}
 }
 

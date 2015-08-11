@@ -1951,12 +1951,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialization of preset.
 	{
 		bool bPresetSaved = false;
-		if(Ar.IsSaving() && FHoudiniEngineUtils::IsValidAssetId(AssetId))
+
+		if(Ar.IsSaving() && PresetBuffer.Num() > 0)
 		{
-			if(FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
-			{
-				bPresetSaved = true;
-			}
+			bPresetSaved = true;
 		}
 
 		Ar << bPresetSaved;
@@ -1964,7 +1962,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		if(bPresetSaved)
 		{
 			Ar << PresetBuffer;
-
+			
 			if(Ar.IsSaving())
 			{
 				// We no longer need preset buffer.
@@ -2728,8 +2726,10 @@ UHoudiniAssetComponent::CreateParameters()
 void
 UHoudiniAssetComponent::NotifyParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
-	Modify();
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && PresetBuffer.Num() == 0)
+	{
+		FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer);
+	}
 }
 
 
@@ -2775,6 +2775,14 @@ UHoudiniAssetComponent::UnmarkChangedParameters()
 			}
 		}
 	}
+}
+
+
+void
+UHoudiniAssetComponent::RecordUndoState()
+{
+	FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
+	Modify();
 }
 
 

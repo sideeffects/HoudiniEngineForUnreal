@@ -46,7 +46,8 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	ActiveChildParameter(0),
 	bIsSpare(false),
 	bIsDisabled(false),
-	bChanged(false)
+	bChanged(false),
+	bSliderDragged(false)
 {
 	ParameterName = TEXT("");
 	ParameterLabel = TEXT("");
@@ -433,6 +434,16 @@ void
 UHoudiniAssetParameter::UnmarkChanged()
 {
 	bChanged = false;
+}
+
+
+void
+UHoudiniAssetParameter::RecordUndoState()
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->RecordUndoState();
+	}
 }
 
 
