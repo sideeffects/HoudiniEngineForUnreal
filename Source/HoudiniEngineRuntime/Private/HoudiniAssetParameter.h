@@ -144,6 +144,9 @@ protected:
 	/** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
 	void MarkChanged();
 
+	/** Record undo information for parameter change. **/
+	void RecordUndoState();
+
 	/** Return tuple size. **/
 	int32 GetTupleSize() const;
 
@@ -229,6 +232,9 @@ protected:
 
 			/** Is set to true if value of this parameter has been changed by user. **/
 			uint32 bChanged : 1;
+
+			/** Is set to true when parameter's slider (if it has one) is being dragged. Transient. **/
+			uint32 bSliderDragged : 1;
 		};
 
 		uint32 HoudiniAssetParameterFlagsPacked;

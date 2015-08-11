@@ -193,6 +193,9 @@ UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommi
 
 		// Mark this parameter as changed.
 		MarkChanged();
+
+		// We want to record undo information when string changes.
+		RecordUndoState();
 	}
 }
 

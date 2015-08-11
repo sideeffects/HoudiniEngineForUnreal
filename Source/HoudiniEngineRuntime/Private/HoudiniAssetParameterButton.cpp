@@ -132,6 +132,9 @@ UHoudiniAssetParameterButton::OnButtonClick()
 	MarkPreChanged();
 	MarkChanged();
 
+	// We want to record undo information when button is pressed.
+	RecordUndoState();
+
 	return FReply::Handled();
 }
 

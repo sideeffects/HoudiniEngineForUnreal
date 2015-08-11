@@ -283,6 +283,12 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 
 		// Mark this parameter as changed.
 		MarkChanged();
+
+		if(!bSliderDragged)
+		{
+			// If this is not a slider change (user typed in values manually), record undo information.
+			RecordUndoState();
+		}
 	}
 }
 
@@ -297,14 +303,16 @@ UHoudiniAssetParameterFloat::SetValueCommitted(float InValue, ETextCommit::Type 
 void
 UHoudiniAssetParameterFloat::OnSliderMovingBegin(int32 Idx)
 {
-
+	bSliderDragged = true;
 }
 
 
 void
 UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
 {
-
+	// We want to record undo increments only when user lets go of the slider.
+	RecordUndoState();
+	bSliderDragged = false;
 }
 
 #endif

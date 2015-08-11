@@ -180,6 +180,9 @@ public:
 	/** Used by Blueprint baking; create temporary actor and necessary components to bake a blueprint. **/
 	AActor* CloneComponentsAndCreateActor();
 
+	/** Used to create an undo state; typically invoked after parameter change. **/
+	void RecordUndoState();
+
 #endif
 
 	/** Used to differentiate native components from dynamic ones. **/
