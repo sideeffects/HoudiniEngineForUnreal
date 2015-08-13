@@ -41,6 +41,10 @@ public:
 	static UHoudiniAssetInstanceInputField* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, const FString& InstancePathName);
 
+	/** Create an instance of input field from another input field. **/
+	static UHoudiniAssetInstanceInputField* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+		UHoudiniAssetInstanceInputField* OtherInputField);
+
 /** UObject methods. **/
 public:
 

@@ -75,6 +75,40 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 }
 
 
+UHoudiniAssetInstanceInput*
+UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetInstanceInput* InstanceInput)
+{
+	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = 
+		DuplicateObject(InstanceInput, InHoudiniAssetComponent);
+
+	// We need to duplicate fields.
+	TArray<UHoudiniAssetInstanceInputField*> DuplicatedFields;
+
+	for(int32 FieldIdx = 0; FieldIdx < HoudiniAssetInstanceInput->InstanceInputFields.Num(); ++FieldIdx)
+	{
+		// Get field at this index.
+		UHoudiniAssetInstanceInputField* OriginalField = HoudiniAssetInstanceInput->InstanceInputFields[FieldIdx];
+		UHoudiniAssetInstanceInputField* DuplicatedField = 
+			UHoudiniAssetInstanceInputField::Create(InHoudiniAssetComponent, OriginalField);
+
+		DuplicatedFields.Add(DuplicatedField);
+	}
+
+	// Set duplicated fields.
+	HoudiniAssetInstanceInput->InstanceInputFields = DuplicatedFields;
+
+	HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
+	HoudiniAssetInstanceInput->ParameterLabel = InstanceInput->ParameterLabel;
+	HoudiniAssetInstanceInput->ParameterName = InstanceInput->ParameterName;
+	HoudiniAssetInstanceInput->HoudiniGeoPartObject = InstanceInput->HoudiniGeoPartObject;
+	HoudiniAssetInstanceInput->ObjectToInstanceId = InstanceInput->ObjectToInstanceId;
+	HoudiniAssetInstanceInput->bIsAttributeInstancer = InstanceInput->bIsAttributeInstancer;
+
+	return HoudiniAssetInstanceInput;
+}
+
+
 bool
 UHoudiniAssetInstanceInput::CreateInstanceInput()
 {

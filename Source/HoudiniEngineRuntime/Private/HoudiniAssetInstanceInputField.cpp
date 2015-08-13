@@ -44,7 +44,7 @@ UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField(const FObjectIn
 
 UHoudiniAssetInstanceInputField::~UHoudiniAssetInstanceInputField()
 {
-	volatile int i = 32;
+
 }
 
 
@@ -61,6 +61,28 @@ UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* HoudiniAssetComp
 	HoudiniAssetInstanceInputField->InstancePathName = InstancePathName;
 
 	return HoudiniAssetInstanceInputField;
+}
+
+
+UHoudiniAssetInstanceInputField*
+UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	UHoudiniAssetInstanceInputField* OtherInputField)
+{
+	UHoudiniAssetInstanceInputField* InputField
+		= NewObject<UHoudiniAssetInstanceInputField>(InHoudiniAssetComponent, 
+			UHoudiniAssetInstanceInputField::StaticClass(), NAME_None, RF_Public);
+
+	InputField->HoudiniGeoPartObject = OtherInputField->HoudiniGeoPartObject;
+	InputField->HoudiniAssetComponent = InHoudiniAssetComponent;
+	InputField->InstancePathName = OtherInputField->InstancePathName;
+	InputField->RotationOffset = OtherInputField->RotationOffset;
+	InputField->ScaleOffset = OtherInputField->ScaleOffset;
+	InputField->bScaleOffsetsLinearly = OtherInputField->bScaleOffsetsLinearly;
+	InputField->InstancedTransforms = OtherInputField->InstancedTransforms;
+	InputField->StaticMesh = OtherInputField->StaticMesh;
+	InputField->OriginalStaticMesh = OtherInputField->OriginalStaticMesh;
+
+	return InputField;
 }
 
 

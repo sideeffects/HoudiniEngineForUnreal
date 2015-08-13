@@ -37,9 +37,13 @@ public:
 
 public:
 
-	/** Create sintance of this class. **/
+	/** Create instance of this class. **/
 	static UHoudiniAssetInstanceInput* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+
+	/** Create instance from another input. **/
+	static UHoudiniAssetInstanceInput* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+		UHoudiniAssetInstanceInput* InstanceInput);
 
 public:
 
@@ -83,7 +87,7 @@ public:
 /** UObject methods. **/
 public:
 
-	virtual void BeginDestroy();
+	virtual void BeginDestroy() override;
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
