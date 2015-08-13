@@ -535,6 +535,13 @@ UHoudiniAssetInstanceInput::UploadParameterValue()
 void
 UHoudiniAssetInstanceInput::BeginDestroy()
 {
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
+	{
+		InstanceInputFields[Idx]->ConditionalBeginDestroy();
+	}
+
+	InstanceInputFields.Empty();
+
 	Super::BeginDestroy();
 }
 

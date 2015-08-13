@@ -119,6 +119,18 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 void
 UHoudiniAssetInstanceInputField::BeginDestroy()
 {
+	if(InstancedStaticMeshComponent)
+	{
+		InstancedStaticMeshComponent->UnregisterComponent();
+		InstancedStaticMeshComponent->DetachFromParent();
+		InstancedStaticMeshComponent->DestroyComponent();
+
+		if(HoudiniAssetComponent)
+		{
+			HoudiniAssetComponent->AttachChildren.Remove(InstancedStaticMeshComponent);
+		}
+	}
+
 	Super::BeginDestroy();
 }
 
