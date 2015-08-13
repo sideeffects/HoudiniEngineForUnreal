@@ -1497,6 +1497,8 @@ UHoudiniAssetComponent::RemoveAllAttachedComponents()
 		Component->UnregisterComponent();
 		Component->DestroyComponent();
 	}
+
+	AttachChildren.Empty();
 }
 
 
@@ -1545,6 +1547,14 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
 		DefaultPresetBuffer = CopiedHoudiniComponent->DefaultPresetBuffer;
 
+		// Clean up all generated and auto-attached components.
+		RemoveAllAttachedComponents();
+
+		// Release static mesh related resources.
+		ReleaseObjectGeoPartResources(StaticMeshes);
+		StaticMeshes.Empty();
+		StaticMeshComponents.Empty();
+
 		// Copy parameters.
 		{
 			ClearParameters();
@@ -1562,14 +1572,6 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 			ClearInstanceInputs();
 			CopiedHoudiniComponent->DuplicateInstanceInputs(this, InstanceInputs);
 		}
-
-		// Clean up all generated and auto-attached components.
-		RemoveAllAttachedComponents();
-
-		// Release static mesh related resources.
-		ReleaseObjectGeoPartResources(StaticMeshes);
-		StaticMeshes.Empty();
-		StaticMeshComponents.Empty();
 
 		// We need to reconstruct geometry from copied actor.
 		{
@@ -3122,12 +3124,11 @@ UHoudiniAssetComponent::DuplicateInstanceInputs(UHoudiniAssetComponent* Duplicat
 		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
 
 		UHoudiniAssetInstanceInput* DuplicatedHoudiniAssetInstanceInput =
-			DuplicateObject(HoudiniAssetInstanceInput, DuplicatedHoudiniComponent);
+			UHoudiniAssetInstanceInput::Create(DuplicatedHoudiniComponent, HoudiniAssetInstanceInput);
 
 		// PIE does not like standalone flags.
 		DuplicatedHoudiniAssetInstanceInput->ClearFlags(RF_Standalone);
 
-		DuplicatedHoudiniAssetInstanceInput->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
 		InInstanceInputs.Add(HoudiniInstanceInputKey, DuplicatedHoudiniAssetInstanceInput);
 	}
 }
