@@ -370,7 +370,13 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		{
 			if(!bLoadedComponent)
 			{
+				// If component is not a loaded component, instantiate and start ticking.
 				StartTaskAssetInstantiation(false, true);
+			}
+			else if(bTransactionAssetChange)
+			{
+				// If assigned asset is transacted asset, instantiate and start ticking. Also treat as loaded component.
+				StartTaskAssetInstantiation(true, true);
 			}
 		}
 		else
@@ -2250,23 +2256,24 @@ UHoudiniAssetComponent::PostEditUndo()
 	{
 		if(bTransactionAssetChange)
 		{
-			StartTaskAssetDeletion();
-			bTransactionAssetChange = false;
-
+			// Store transacted asset. At this stage there's a mismatch between asset on plugin and engine side.
 			UHoudiniAsset* Asset = HoudiniAsset;
+
+			// Reset current asset, this will also trigger asset deletion on the engine side.
 			SetHoudiniAsset(nullptr);
+
+			// Set and instantiate transacted asset.
 			SetHoudiniAsset(Asset);
 
-			StartTaskAssetInstantiation(true, true);
+			bTransactionAssetChange = false;
 		}
 		else
 		{
 			bUndoRequested = true;
 			bParametersChanged = true;
+
 			StartHoudiniTicking();
 		}
-
-		
 	}
 }
 
