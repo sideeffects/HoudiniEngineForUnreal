@@ -568,6 +568,9 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 				StaticMeshComponent->UnregisterComponent();
 				StaticMeshComponent->DetachFromParent();
 				StaticMeshComponent->DestroyComponent();
+
+				// Remove this component from the list of attached components.
+				AttachChildren.Remove(StaticMeshComponent);
 			}
 		}
 
@@ -596,9 +599,6 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 			}
 		}
 	}
-
-	// Remove all attached components.
-	AttachChildren.Empty();
 
 	// Remove unused meshes.
 	StaticMeshMap.Empty();
