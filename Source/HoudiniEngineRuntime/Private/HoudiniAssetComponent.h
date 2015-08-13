@@ -463,6 +463,9 @@ public:
 
 protected:
 
+	/** Previous asset, if it has been changed through transaction. **/
+	UHoudiniAsset* PreviousTransactionHoudiniAsset;
+
 	/** Parameters for this component's asset, indexed by parameter name. **/
 	TMap<HAPI_ParmId, UHoudiniAssetParameter*> Parameters;
 
@@ -569,7 +572,7 @@ protected:
 			/** Is set to true if this component has been loaded. **/
 			uint32 bLoadedComponent : 1;
 
-			/** Is set to true when component is loaded and no instantiation / cooking is necessary. **/
+			/** Is set to true when component is loaded and requires instantiation. **/
 			uint32 bLoadedComponentRequiresInstantiation : 1;
 
 			/** Is set to true when asset has been instantiated, but not cooked. **/
@@ -604,6 +607,9 @@ protected:
 
 			/** Is set to true when Houdini materials are used. **/
 			uint32 bUseHoudiniMaterials : 1;
+
+			/** Is set when asset is changed during transaction. **/
+			uint32 bTransactionAssetChange : 1;
 		};
 
 		uint32 HoudiniAssetComponentFlagsPacked;

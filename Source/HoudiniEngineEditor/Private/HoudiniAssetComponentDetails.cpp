@@ -138,7 +138,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
 				// We want to create root parameters here; they will recursively create child parameters.
-				if(!HoudiniAssetParameter->IsChildParameter())
+				if(!HoudiniAssetParameter->IsChildParameter() && !HoudiniAssetParameter->IsPendingKill())
 				{
 					HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
 				}
@@ -1135,6 +1135,11 @@ FHoudiniAssetComponentDetails::OnHoudiniAssetDropped(UObject* InObject)
 		if(HoudiniAsset && HoudiniAssetComponents.Num() > 0)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
+
+			// Before assigning new asset to component, record undo block.
+			HoudiniAssetComponent->RecordUndoState();
+
+			// Assign asset to component.
 			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
 		}
 	}
