@@ -79,6 +79,7 @@ UHoudiniAssetComponent::PersistenceFormatVersion = 1u;
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
+	PreviousTransactionHoudiniAsset(nullptr),
 #if WITH_EDITOR
 
 	CopiedHoudiniComponent(nullptr),
@@ -107,7 +108,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bComponentCopyImported(false),
 	bTimeCookInPlaymode(false),
 	bPlaymodeComponent(false),
-	bUseHoudiniMaterials(true)
+	bUseHoudiniMaterials(true),
+	bTransactionAssetChange(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -557,8 +559,8 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 
 				// Detach and destroy the component.
 				UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
-				StaticMeshComponent->DetachFromParent();
 				StaticMeshComponent->UnregisterComponent();
+				StaticMeshComponent->DetachFromParent();
 				StaticMeshComponent->DestroyComponent();
 			}
 		}
@@ -588,6 +590,9 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 			}
 		}
 	}
+
+	// Remove all attached components.
+	AttachChildren.Empty();
 
 	// Remove unused meshes.
 	StaticMeshMap.Empty();
@@ -1283,17 +1288,17 @@ UHoudiniAssetComponent::StartTaskAssetDeletion()
 	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && bIsNativeComponent)
 	{
 		// Generate GUID for our new task.
-		HapiGUID = FGuid::NewGuid();
+		FGuid HapiDeletionGUID = FGuid::NewGuid();
 
 		// Create asset deletion task object and submit it for processing.
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetDeletion, HapiGUID);
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetDeletion, HapiDeletionGUID);
 		Task.AssetId = AssetId;
 		FHoudiniEngine::Get().AddTask(Task);
 
 		// Reset asset id
 		AssetId = -1;
 
-		// We do not need to tick as we are not interested in result - this component is about to be deleted.
+		// We do not need to tick as we are not interested in result.
 	}
 }
 
@@ -1858,6 +1863,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		return;
 	}
 
+	// Serialize component flags.
+	Ar << HoudiniAssetComponentFlagsPacked;
+
 	// State of this component.
 	EHoudiniAssetComponentState::Enum ComponentState = EHoudiniAssetComponentState::Invalid;
 
@@ -1922,7 +1930,25 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	// Serialize Houdini asset.
-	Ar << HoudiniAsset;
+	UHoudiniAsset* HoudiniSerializedAsset = nullptr;
+
+	if(Ar.IsSaving())
+	{
+		HoudiniSerializedAsset = HoudiniAsset;
+	}
+
+	Ar << HoudiniSerializedAsset;
+
+	if(Ar.IsLoading())
+	{
+		if(Ar.IsTransacting() && HoudiniAsset != HoudiniSerializedAsset)
+		{
+			bTransactionAssetChange = true;
+			PreviousTransactionHoudiniAsset = HoudiniAsset;
+		}
+
+		HoudiniAsset = HoudiniSerializedAsset;
+	}
 
 	// If we are going into playmode, save asset id.
 	bool bInPlayMode = bIsPlayModeActive;
@@ -2058,9 +2084,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize handles.
 	SerializeHandles(Ar);
-
-	// Serialize component flags.
-	Ar << HoudiniAssetComponentFlagsPacked;
 
 	if(Ar.IsLoading() && bIsNativeComponent)
 	{
@@ -2225,10 +2248,25 @@ UHoudiniAssetComponent::PostEditUndo()
 
 	if(bLoadedComponent)
 	{
-		bUndoRequested = true;
-		bParametersChanged = true;
+		if(bTransactionAssetChange)
+		{
+			StartTaskAssetDeletion();
+			bTransactionAssetChange = false;
 
-		StartHoudiniTicking();
+			UHoudiniAsset* Asset = HoudiniAsset;
+			SetHoudiniAsset(nullptr);
+			SetHoudiniAsset(Asset);
+
+			StartTaskAssetInstantiation(true, true);
+		}
+		else
+		{
+			bUndoRequested = true;
+			bParametersChanged = true;
+			StartHoudiniTicking();
+		}
+
+		
 	}
 }
 
