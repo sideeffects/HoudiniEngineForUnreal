@@ -1574,34 +1574,39 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		}
 
 		// We need to reconstruct geometry from copied actor.
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes); Iter; ++Iter)
 		{
-			for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes); Iter; ++Iter)
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UStaticMesh* StaticMesh = Iter.Value();
+
+			// Duplicate static mesh and all related generated Houdini materials and textures.
+			UStaticMesh* DuplicatedStaticMesh = 
+				FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(StaticMesh, this, HoudiniGeoPartObject);
+
+			if(DuplicatedStaticMesh)
 			{
-				FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-				UStaticMesh* StaticMesh = Iter.Value();
-
-				// Duplicate static mesh and all related generated Houdini materials and textures.
-				UStaticMesh* DuplicatedStaticMesh = 
-					FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(StaticMesh, this, HoudiniGeoPartObject);
-
-				if(DuplicatedStaticMesh)
-				{
-					// Store this duplicated mesh.
-					StaticMeshes.Add(FHoudiniGeoPartObject(HoudiniGeoPartObject, true), DuplicatedStaticMesh);
-				}
+				// Store this duplicated mesh.
+				StaticMeshes.Add(FHoudiniGeoPartObject(HoudiniGeoPartObject, true), DuplicatedStaticMesh);
 			}
 		}
-/*
-		// We need to reconstruct splines.
-		{
-			TArray<uint8> Buffer;
-			FMemoryWriter RawSaver(Buffer);
-			CopiedHoudiniComponent->SerializeCurves(RawSaver);
 
-			FMemoryReader RawLoader(Buffer);
-			SerializeCurves(RawLoader);
+		// We need to reconstruct splines.
+		for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator 
+			Iter(CopiedHoudiniComponent->SplineComponents); Iter; ++Iter)
+		{
+			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
+			UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
+			
+			// Duplicate spline component.
+			UHoudiniSplineComponent* DuplicatedSplineComponent = 
+				DuplicateObject<UHoudiniSplineComponent>(HoudiniSplineComponent, this);
+
+			if(DuplicatedSplineComponent)
+			{
+				SplineComponents.Add(HoudiniGeoPartObject, DuplicatedSplineComponent);
+			}
 		}
-*/
+
 		// Perform any necessary post loading.
 		PostLoad();
 
