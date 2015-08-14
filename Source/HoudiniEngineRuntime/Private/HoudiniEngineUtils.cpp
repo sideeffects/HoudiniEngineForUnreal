@@ -2939,7 +2939,16 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 							if(-1 != MaterialId && Materials.Num() > 0)
 							{
-								Material = Materials[MaterialId];
+								UMaterial* AssignedMaterial = Materials[MaterialId];
+								if(AssignedMaterial)
+								{
+									// If looked up material has a sampling expression or mesh has no vertex colors, use it.
+									if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
+										RawMesh.WedgeColors.Num() == 0)
+									{
+										Material = AssignedMaterial;
+									}
+								}
 							}
 
 							StaticMesh->Materials.Empty();
@@ -2962,24 +2971,23 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							{
 								// Get material id for this face.
 								HAPI_MaterialId MaterialId = FaceMaterialIds[FaceIdx];
-								UMaterial* Material = nullptr;
+								UMaterial* Material = MaterialDefault;
 
-								if(-1 == MaterialId)
-								{
-									// Use default material for this face.
-									Material = MaterialDefault;
-								}
-								else
+								if(-1 != MaterialId)
 								{
 									UMaterial* const* FoundMaterial = Materials.Find(MaterialId);
 									if(FoundMaterial)
 									{
-										Material = *FoundMaterial;
-									}
-									else
-									{
-										// This should not occur as material should have been created.
-										Material = MaterialDefault;
+										UMaterial* AssignedMaterial = *FoundMaterial;
+										if(AssignedMaterial)
+										{
+											// If looked up material has a sampling expression or mesh has no vertex colors, use it.
+											if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
+												RawMesh.WedgeColors.Num() == 0)
+											{
+												Material = AssignedMaterial;
+											}
+										}
 									}
 								}
 
