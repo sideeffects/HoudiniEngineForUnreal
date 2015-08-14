@@ -574,7 +574,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 			}
 		}
 
-		if(bPostCook && StaticMesh != HoudiniLogoMesh)
+		if(bPostCook && StaticMesh && StaticMesh != HoudiniLogoMesh)
 		{
 			// Make sure this static mesh is not referenced.
 			UObject* ObjectMesh = (UObject*) StaticMesh;
