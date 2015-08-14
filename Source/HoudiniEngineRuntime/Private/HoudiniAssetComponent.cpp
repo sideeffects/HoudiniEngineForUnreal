@@ -1723,6 +1723,13 @@ UHoudiniAssetComponent::OnComponentCreated()
 
 
 void
+UHoudiniAssetComponent::BeginDestroy()
+{
+	Super::BeginDestroy();
+}
+
+
+void
 UHoudiniAssetComponent::OnComponentDestroyed()
 {
 	// Release static mesh related resources.
