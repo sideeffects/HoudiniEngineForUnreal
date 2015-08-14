@@ -535,15 +535,15 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 
 
 void
-UHoudiniAssetComponent::ReleaseObjectGeoPartResources(bool bPostCook)
+UHoudiniAssetComponent::ReleaseObjectGeoPartResources(bool bDeletePackages)
 {
-	ReleaseObjectGeoPartResources(StaticMeshes, bPostCook);
+	ReleaseObjectGeoPartResources(StaticMeshes, bDeletePackages);
 }
 
 
 void
 UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap,
-	bool bPostCook)
+	bool bDeletePackages)
 {
 	// Record generated static meshes which we need to delete.
 	TArray<UObject*> StaticMeshesToDelete;
@@ -574,7 +574,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 			}
 		}
 
-		if(bPostCook && StaticMesh && StaticMesh != HoudiniLogoMesh)
+		if(bDeletePackages && StaticMesh && StaticMesh != HoudiniLogoMesh)
 		{
 			// Make sure this static mesh is not referenced.
 			UObject* ObjectMesh = (UObject*) StaticMesh;
@@ -604,7 +604,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 	StaticMeshMap.Empty();
 
 	// Delete no longer used generated static meshes.
-	if(bPostCook && StaticMeshesToDelete.Num() > 0)
+	if(bDeletePackages && StaticMeshesToDelete.Num() > 0)
 	{
 		FHoudiniScopedGlobalSilence HoudiniScopedGlobalSilence;
 		ObjectTools::ForceDeleteObjects(StaticMeshesToDelete, false);
@@ -1726,7 +1726,7 @@ void
 UHoudiniAssetComponent::OnComponentDestroyed()
 {
 	// Release static mesh related resources.
-	ReleaseObjectGeoPartResources(StaticMeshes);
+	ReleaseObjectGeoPartResources(StaticMeshes, true);
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
 
