@@ -3415,7 +3415,6 @@ UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
 
 			// Load spline component.
 			Ar << HoudiniSplineComponent;
-			HoudiniSplineComponent->AddToRoot();
 
 			// We need to store geo part to spline component mapping.
 			SplineComponents.Add(HoudiniGeoPartObject, HoudiniSplineComponent);
