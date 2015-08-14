@@ -256,6 +256,7 @@ public:
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
+	virtual void BeginDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 /** UActorComponent methods. **/
