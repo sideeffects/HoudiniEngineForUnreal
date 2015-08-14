@@ -324,6 +324,9 @@ protected:
 	/** Extract all unique material ids for all geo object parts. **/
 	static bool ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds);
 
+	/** Helper function to detect whether material has a texture component. **/
+	static bool MaterialHasTextureSampleExpression(UMaterial* Material);
+
 protected:
 
 #if WITH_EDITOR

@@ -4420,6 +4420,26 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 }
 
 
+bool
+FHoudiniEngineUtils::MaterialHasTextureSampleExpression(UMaterial* Material)
+{
+	if(Material)
+	{
+		if(Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression))
+		{
+			return true;
+		}
+
+		if(Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 AHoudiniAssetActor*
 FHoudiniEngineUtils::LocateClipboardActor()
 {
