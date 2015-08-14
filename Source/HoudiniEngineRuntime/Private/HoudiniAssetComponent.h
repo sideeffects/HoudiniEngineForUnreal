@@ -405,7 +405,8 @@ private:
 	void ClearInstanceInputs();
 
 	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
-	void ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap, bool bPostCook = false);
+	void ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap, 
+		bool bDeletePackages = false);
 
 	/** Return true if given object is referenced locally only, by objects generated and owned by this component. **/
 	bool IsObjectReferencedLocally(UStaticMesh* StaticMesh, FReferencerInformationList& Referencers) const;
@@ -416,7 +417,7 @@ public:
 	void CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
 	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
-	void ReleaseObjectGeoPartResources(bool bPostCook = false);
+	void ReleaseObjectGeoPartResources(bool bDeletePackages = false);
 
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
