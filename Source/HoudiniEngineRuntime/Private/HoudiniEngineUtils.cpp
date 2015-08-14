@@ -3449,11 +3449,17 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					MaterialPackage = Cast<UPackage>(Material->GetOuter());
 					check(MaterialPackage);
 
-					ExpressionDiffuse = Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
 					ExpressionDiffuseColor = Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
 
-					TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
-					TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
+					ExpressionDiffuse = Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
+					if(ExpressionDiffuse)
+					{
+						TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
+						if(TextureDiffuse)
+						{
+							TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
+						}
+					}
 
 					ExpressionNormal = Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
 					if(ExpressionNormal)
