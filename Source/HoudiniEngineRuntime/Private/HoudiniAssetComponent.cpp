@@ -1644,12 +1644,18 @@ UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 	}
 	else
 	{
-		Bounds = AttachChildren[0]->CalcBounds(LocalToWorld);
+		if(AttachChildren[0])
+		{
+			Bounds = AttachChildren[0]->CalcBounds(LocalToWorld);
+		}
 	}
 
 	for(int32 Idx = 1; Idx < AttachChildren.Num(); ++Idx)
 	{
-		Bounds = Bounds + AttachChildren[Idx]->CalcBounds(LocalToWorld);
+		if(AttachChildren[Idx])
+		{
+			Bounds = Bounds + AttachChildren[Idx]->CalcBounds(LocalToWorld);
+		}
 	}
 
 	return Bounds;
@@ -2525,8 +2531,19 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 			// We need to create new curve.
 			HoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(this, UHoudiniSplineComponent::StaticClass(),
 				NAME_None, RF_Public);
+		}
+
+		// If we have no parent, we need to re-attach.
+		if(!HoudiniSplineComponent->AttachParent)
+		{
 			HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
-			HoudiniSplineComponent->SetVisibility(true);
+		}
+
+		HoudiniSplineComponent->SetVisibility(true);
+
+		// If component is not registered, register it.
+		if(!HoudiniSplineComponent->IsRegistered())
+		{
 			HoudiniSplineComponent->RegisterComponent();
 		}
 
@@ -3165,6 +3182,9 @@ UHoudiniAssetComponent::ClearCurves()
 		SplineComponent->DetachFromParent();
 		SplineComponent->UnregisterComponent();
 		SplineComponent->DestroyComponent();
+
+		// Remove this component from the list of attached components.
+		AttachChildren.Remove(SplineComponent);
 	}
 
 	SplineComponents.Empty();
@@ -3461,7 +3481,6 @@ UHoudiniAssetComponent::PostLoadCurves()
 		HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
 		HoudiniSplineComponent->SetVisibility(true);
 		HoudiniSplineComponent->RegisterComponent();
-		HoudiniSplineComponent->RemoveFromRoot();
 	}
 }
 
