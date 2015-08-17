@@ -61,7 +61,7 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 	}
 
 	HoudiniAssetInstanceInput = NewObject<UHoudiniAssetInstanceInput>(InHoudiniAssetComponent, 
-		UHoudiniAssetInstanceInput::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetInstanceInput::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
 	HoudiniAssetInstanceInput->SetNameAndLabel(ObjectInfo.nameSH);
@@ -600,25 +600,11 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 
 	Ar << HoudiniAssetInstanceInputFlagsPacked;
 	HoudiniGeoPartObject.Serialize(Ar);
+
 	Ar << ObjectToInstanceId;
 
-	// Serialize number of fields.
-	int32 NumFields = InstanceInputFields.Num();
-	Ar << NumFields;
-
-	for(int32 Idx = 0; Idx < NumFields; ++Idx)
-	{
-		if(Ar.IsLoading())
-		{
-			UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = nullptr;
-			Ar << HoudiniAssetInstanceInputField;
-			InstanceInputFields.Add(HoudiniAssetInstanceInputField);
-		}
-		else if(Ar.IsSaving())
-		{
-			Ar << InstanceInputFields[Idx];
-		}
-	}
+	// Serialize fields.
+	Ar << InstanceInputFields;
 }
 
 
@@ -768,6 +754,9 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
 
 	if(InputStaticMesh && UsedStaticMesh != InputStaticMesh)
 	{
+		FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+		HoudiniAssetInstanceInputField->Modify();
+
 		HoudiniAssetInstanceInputField->SetStaticMesh(InputStaticMesh);
 
 		if(HoudiniAssetComponent)
