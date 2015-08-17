@@ -54,7 +54,7 @@ UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* HoudiniAssetComp
 {
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField
 		= NewObject<UHoudiniAssetInstanceInputField>(HoudiniAssetComponent, 
-			UHoudiniAssetInstanceInputField::StaticClass(), NAME_None, RF_Public);
+			UHoudiniAssetInstanceInputField::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetInstanceInputField->HoudiniGeoPartObject = HoudiniGeoPartObject;
 	HoudiniAssetInstanceInputField->HoudiniAssetComponent = HoudiniAssetComponent;
@@ -70,7 +70,7 @@ UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* InHoudiniAssetCo
 {
 	UHoudiniAssetInstanceInputField* InputField
 		= NewObject<UHoudiniAssetInstanceInputField>(InHoudiniAssetComponent, 
-			UHoudiniAssetInstanceInputField::StaticClass(), NAME_None, RF_Public);
+			UHoudiniAssetInstanceInputField::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	InputField->HoudiniGeoPartObject = OtherInputField->HoudiniGeoPartObject;
 	InputField->HoudiniAssetComponent = InHoudiniAssetComponent;
@@ -94,20 +94,21 @@ UHoudiniAssetInstanceInputField::Serialize(FArchive& Ar)
 
 	Ar << HoudiniAssetInstanceInputFieldFlagsPacked;
 	HoudiniGeoPartObject.Serialize(Ar);
+
 	Ar << InstancePathName;
 	Ar << RotationOffset;
 	Ar << ScaleOffset;
 	Ar << bScaleOffsetsLinearly;
 
-	if(Ar.IsLoading())
-	{
-		InstancedTransforms.Empty();
-	}
-
 	Ar << InstancedTransforms;
 	Ar << InstancedStaticMeshComponent;
 	Ar << StaticMesh;
 	Ar << OriginalStaticMesh;
+
+	if(Ar.IsLoading() && Ar.IsTransacting())
+	{
+		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+	}
 }
 
 
@@ -154,6 +155,18 @@ UHoudiniAssetInstanceInputField::BeginDestroy()
 	}
 
 	Super::BeginDestroy();
+}
+
+
+void
+UHoudiniAssetInstanceInputField::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->UpdateEditorProperties(false);
+	}
 }
 
 
