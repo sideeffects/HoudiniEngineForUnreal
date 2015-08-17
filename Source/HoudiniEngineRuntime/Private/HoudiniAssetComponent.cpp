@@ -1733,7 +1733,7 @@ void
 UHoudiniAssetComponent::OnComponentDestroyed()
 {
 	// Release static mesh related resources.
-	ReleaseObjectGeoPartResources(StaticMeshes, true);
+	ReleaseObjectGeoPartResources(StaticMeshes);
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
 
