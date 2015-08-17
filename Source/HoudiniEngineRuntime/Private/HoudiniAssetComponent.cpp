@@ -32,6 +32,7 @@
 #include "HoudiniAssetParameterFolderList.h"
 #include "HoudiniAssetParameterInt.h"
 #include "HoudiniAssetParameterLabel.h"
+#include "HoudiniAssetParameterMultiparm.h"
 #include "HoudiniAssetParameterSeparator.h"
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
@@ -2715,6 +2716,13 @@ UHoudiniAssetComponent::CreateParameters()
 				case HAPI_PARMTYPE_FOLDER:
 				{
 					HoudiniAssetParameter = UHoudiniAssetParameterFolder::Create(this, nullptr, AssetInfo.nodeId,
+						ParmInfo);
+					break;
+				}
+
+				case HAPI_PARMTYPE_MULTIPARMLIST:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr, AssetInfo.nodeId,
 						ParmInfo);
 					break;
 				}
