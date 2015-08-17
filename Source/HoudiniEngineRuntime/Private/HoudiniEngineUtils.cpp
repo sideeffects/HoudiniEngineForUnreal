@@ -1701,7 +1701,14 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 		else
 		{
 			// Create actual package.
-			PackageNew = CreatePackage(nullptr, *PackageName);
+			if(bBake)
+			{
+				PackageNew = CreatePackage(nullptr, *PackageName);
+			}
+			else
+			{
+				PackageNew = CreatePackage(HoudiniAssetComponent->GetOuter(), *PackageName);
+			}
 			break;
 		}
 	}
@@ -2475,7 +2482,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent,
 								HoudiniGeoPartObject, MeshName, MeshGuid);
 
-						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone | RF_Public);
+						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
 
 						// Add meta information to this package.
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, MeshPackage, 
