@@ -74,7 +74,7 @@ UHoudiniAssetParameterMultiparm::CreateParameter(UHoudiniAssetComponent* InHoudi
 
 	// Get the actual value for this property.
 	Value = 0;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(nullptr, InNodeId, &Value, ValuesIndex, 1))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(InNodeId, &Value, ValuesIndex, 1))
 	{
 		return false;
 	}
@@ -131,7 +131,7 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 bool
 UHoudiniAssetParameterMultiparm::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(nullptr, NodeId, &Value, ValuesIndex, 1))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(NodeId, &Value, ValuesIndex, 1))
 	{
 		return false;
 	}
