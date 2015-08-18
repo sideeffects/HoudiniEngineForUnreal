@@ -60,7 +60,7 @@ UHoudiniSplineComponent::PostEditUndo()
 	Super::PostEditUndo();
 
 	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(AttachParent);
-	if(HoudiniAssetComponent)
+	if(HoudiniAssetComponent && HoudiniAssetComponent->IsNotCookingOrInstantiating())
 	{
 		UploadControlPoints();
 		HoudiniAssetComponent->StartTaskAssetCooking(true);
