@@ -54,6 +54,20 @@ UHoudiniSplineComponent::Serialize(FArchive& Ar)
 }
 
 
+void
+UHoudiniSplineComponent::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(AttachParent);
+	if(HoudiniAssetComponent)
+	{
+		UploadControlPoints();
+		HoudiniAssetComponent->StartTaskAssetCooking(true);
+	}
+}
+
+
 bool
 UHoudiniSplineComponent::Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject,
 	const TArray<FVector>& InCurvePoints, const TArray<FVector>& InCurveDisplayPoints,

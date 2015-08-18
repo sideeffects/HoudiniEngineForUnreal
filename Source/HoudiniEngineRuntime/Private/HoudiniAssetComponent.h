@@ -77,6 +77,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
 	friend class AHoudiniAssetActor;
 	friend struct FHoudiniEngineUtils;
 	friend class FHoudiniMeshSceneProxy;
+	friend class UHoudiniSplineComponent;
 
 #if WITH_EDITOR
 

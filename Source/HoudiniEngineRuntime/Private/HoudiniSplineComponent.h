@@ -62,6 +62,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostEditUndo() override;
 
 public:
 
