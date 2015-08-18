@@ -163,6 +163,11 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 {
 	Super::PostEditUndo();
 
+	SetRotationOffset(RotationOffset);
+	SetScaleOffset(ScaleOffset);
+
+	UpdateInstanceTransforms();
+
 	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->UpdateEditorProperties(false);

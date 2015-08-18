@@ -901,6 +901,9 @@ void
 UHoudiniAssetInstanceInput::SetRotationRoll(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	HoudiniAssetInstanceInputField->Modify();
+
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	Rotator.Roll = Value;
 	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator);
@@ -912,6 +915,9 @@ void
 UHoudiniAssetInstanceInput::SetRotationPitch(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	HoudiniAssetInstanceInputField->Modify();
+
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	Rotator.Pitch = Value;
 	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator);
@@ -923,6 +929,9 @@ void
 UHoudiniAssetInstanceInput::SetRotationYaw(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	HoudiniAssetInstanceInputField->Modify();
+
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
 	Rotator.Yaw = Value;
 	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator);
@@ -957,6 +966,9 @@ UHoudiniAssetInstanceInput::GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAs
 void
 UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	HoudiniAssetInstanceInputField->Modify();
+
 	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	Scale3D.X = Value;
 
@@ -974,6 +986,9 @@ UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputFie
 void
 UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	HoudiniAssetInstanceInputField->Modify();
+
 	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	Scale3D.Y = Value;
 
@@ -991,6 +1006,9 @@ UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputFie
 void
 UHoudiniAssetInstanceInput::SetScaleZ(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	HoudiniAssetInstanceInputField->Modify();
+
 	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
 	Scale3D.Z = Value;
 
@@ -1009,6 +1027,9 @@ void
 UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState,
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
+	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	HoudiniAssetInstanceInputField->Modify();
+
 	HoudiniAssetInstanceInputField->SetLinearOffsetScale(ECheckBoxState::Checked == NewState);
 }
 
