@@ -73,6 +73,28 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 	}
 
+	// Create Houdini parameters.
+	{
+		IDetailCategoryBuilder& DetailCategoryBuilder =
+			DetailBuilder.EditCategory("HoudiniParameters", FText::GetEmpty(), ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator
+			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+			for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator
+				IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
+			{
+				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+				// We want to create root parameters here; they will recursively create child parameters.
+				if(!HoudiniAssetParameter->IsChildParameter() && !HoudiniAssetParameter->IsPendingKill())
+				{
+					HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
+				}
+			}
+		}
+	}
+
 	// Create Houdini Asset category.
 	{
 		IDetailCategoryBuilder& DetailCategoryBuilder =
@@ -120,28 +142,6 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			{
 				UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstancedInputs.Value();
 				HoudiniAssetInstanceInput->CreateWidget(DetailCategoryBuilder);
-			}
-		}
-	}
-
-	// Create Houdini parameters.
-	{
-		IDetailCategoryBuilder& DetailCategoryBuilder =
-			DetailBuilder.EditCategory("HoudiniParameters", FText::GetEmpty(), ECategoryPriority::Important);
-		for(TArray<UHoudiniAssetComponent*>::TIterator
-			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
-		{
-			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-			for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator
-				IterParams(HoudiniAssetComponent->Parameters); IterParams; ++IterParams)
-			{
-				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-
-				// We want to create root parameters here; they will recursively create child parameters.
-				if(!HoudiniAssetParameter->IsChildParameter() && !HoudiniAssetParameter->IsPendingKill())
-				{
-					HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
-				}
 			}
 		}
 	}
