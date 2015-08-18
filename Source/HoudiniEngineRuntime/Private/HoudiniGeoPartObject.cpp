@@ -25,6 +25,14 @@ GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
 }
 
 
+FArchive&
+operator<<(FArchive& Ar, FHoudiniGeoPartObject& HoudiniGeoPartObject)
+{
+	HoudiniGeoPartObject.Serialize(Ar);
+	return Ar;
+}
+
+
 bool
 FHoudiniGeoPartObjectSortPredicate::operator()(const FHoudiniGeoPartObject& A, const FHoudiniGeoPartObject& B) const
 {
@@ -76,7 +84,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsLoaded(false),
 	bHasNativeHoudiniMaterial(false),
 	bHasUnrealMaterialAssigned(false),
-	bNativeHoudiniMaterialRefetch(false)
+	bNativeHoudiniMaterialRefetch(false),
+	bIsTransacting(false)
 {
 
 }
@@ -103,7 +112,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsLoaded(false),
 	bHasNativeHoudiniMaterial(false),
 	bHasUnrealMaterialAssigned(false),
-	bNativeHoudiniMaterialRefetch(false)
+	bNativeHoudiniMaterialRefetch(false),
+	bIsTransacting(false)
 {
 
 }
@@ -131,7 +141,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsLoaded(false),
 	bHasNativeHoudiniMaterial(false),
 	bHasUnrealMaterialAssigned(false),
-	bNativeHoudiniMaterialRefetch(false)
+	bNativeHoudiniMaterialRefetch(false),
+	bIsTransacting(false)
 {
 
 }
@@ -157,7 +168,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	bIsLoaded(GeoPartObject.bIsLoaded),
 	bHasNativeHoudiniMaterial(GeoPartObject.bHasNativeHoudiniMaterial),
 	bHasUnrealMaterialAssigned(GeoPartObject.bHasUnrealMaterialAssigned),
-	bNativeHoudiniMaterialRefetch(GeoPartObject.bNativeHoudiniMaterialRefetch)
+	bNativeHoudiniMaterialRefetch(GeoPartObject.bNativeHoudiniMaterialRefetch),
+	bIsTransacting(GeoPartObject.bIsTransacting)
 {
 	if(bCopyLoaded)
 	{
@@ -260,6 +272,11 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	if(Ar.IsLoading())
 	{
 		bIsLoaded = true;
+	}
+
+	if(Ar.IsTransacting())
+	{
+		bIsTransacting = true;
 	}
 }
 
