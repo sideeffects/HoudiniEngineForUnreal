@@ -2270,7 +2270,7 @@ void
 UHoudiniAssetComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
-
+	/*
 	if(bLoadedComponent)
 	{
 		if(bTransactionAssetChange)
@@ -2294,6 +2294,7 @@ UHoudiniAssetComponent::PostEditUndo()
 			StartHoudiniTicking();
 		}
 	}
+	*/
 }
 
 
@@ -2863,8 +2864,8 @@ UHoudiniAssetComponent::UnmarkChangedParameters()
 void
 UHoudiniAssetComponent::RecordUndoState()
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
-	Modify();
+	//FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
+	//Modify();
 }
 
 
