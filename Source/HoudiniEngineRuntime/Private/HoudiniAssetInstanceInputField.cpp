@@ -104,11 +104,6 @@ UHoudiniAssetInstanceInputField::Serialize(FArchive& Ar)
 	Ar << InstancedStaticMeshComponent;
 	Ar << StaticMesh;
 	Ar << OriginalStaticMesh;
-
-	if(Ar.IsLoading() && Ar.IsTransacting())
-	{
-		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
-	}
 }
 
 
@@ -162,6 +157,11 @@ void
 UHoudiniAssetInstanceInputField::PostEditUndo()
 {
 	Super::PostEditUndo();
+
+	if(InstancedStaticMeshComponent)
+	{
+		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+	}
 
 	SetRotationOffset(RotationOffset);
 	SetScaleOffset(ScaleOffset);
