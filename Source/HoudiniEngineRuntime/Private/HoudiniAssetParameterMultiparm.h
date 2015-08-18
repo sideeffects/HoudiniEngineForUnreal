@@ -68,6 +68,12 @@ public:
 	/** Set value of this property through commit action, used by Slate. **/
 	void SetValueCommitted(int32 InValue, ETextCommit::Type CommitType);
 
+	/** Increment value, used by Slate. **/
+	void AddElement();
+
+	/** Decrement value, used by Slate. **/
+	void RemoveElement();
+
 #endif
 
 protected:
