@@ -162,6 +162,9 @@ public:
 
 			/** Is set to true when native material needs to be refetched. **/
 			uint32 bNativeHoudiniMaterialRefetch : 1;
+
+			/** Is set to true when referenced object has been loaded during transaction. **/
+			uint32 bIsTransacting : 1;
 		};
 
 		uint32 HoudiniGeoPartObjectFlagsPacked;
@@ -172,6 +175,9 @@ public:
 /** Function used by hasing containers to create a unique hash for this type of object. **/
 HOUDINIENGINERUNTIME_API uint32 GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
+
+/** Serialization function. **/
+HOUDINIENGINERUNTIME_API FArchive& operator<<(FArchive& Ar, FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 /** Functor used to sort geo part objects. **/
 struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObjectSortPredicate
