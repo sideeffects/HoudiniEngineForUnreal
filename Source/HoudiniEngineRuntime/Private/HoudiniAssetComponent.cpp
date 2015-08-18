@@ -1604,6 +1604,7 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 
 			if(DuplicatedSplineComponent)
 			{
+				DuplicatedSplineComponent->SetFlags(RF_Transactional | RF_Public);
 				SplineComponents.Add(HoudiniGeoPartObject, DuplicatedSplineComponent);
 			}
 		}
@@ -1859,9 +1860,6 @@ UHoudiniAssetComponent::PostLoad()
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
 
-	// Perform post load initialization of curve / spline components.
-	PostLoadCurves();
-
 	// Need to update rendering information.
 	UpdateRenderingInformation();
 
@@ -2107,7 +2105,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	SerializeInstanceInputs(Ar);
 
 	// Serialize curves.
-	SerializeCurves(Ar);
+	Ar << SplineComponents;
 
 	// Serialize handles.
 	SerializeHandles(Ar);
@@ -2538,7 +2536,7 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		{
 			// We need to create new curve.
 			HoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(this, UHoudiniSplineComponent::StaticClass(),
-				NAME_None, RF_Public);
+				NAME_None, RF_Public | RF_Transactional);
 		}
 
 		// If we have no parent, we need to re-attach.
@@ -3418,52 +3416,6 @@ UHoudiniAssetComponent::SerializeInstanceInputs(FArchive& Ar)
 
 
 void
-UHoudiniAssetComponent::SerializeCurves(FArchive& Ar)
-{
-	if(Ar.IsLoading())
-	{
-		ClearCurves();
-	}
-
-	// Serialize number of curves.
-	int32 CurveCount = SplineComponents.Num();
-	Ar << CurveCount;
-
-	if(Ar.IsSaving())
-	{
-		for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
-		{
-			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-			UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
-
-			// Store the object geo part information for this curve.
-			HoudiniGeoPartObject.Serialize(Ar);
-
-			// Store component.
-			Ar << HoudiniSplineComponent;
-		}
-	}
-	else if(Ar.IsLoading())
-	{
-		for(int32 CurveIdx = 0; CurveIdx < CurveCount; ++CurveIdx)
-		{
-			FHoudiniGeoPartObject HoudiniGeoPartObject;
-			UHoudiniSplineComponent* HoudiniSplineComponent = nullptr;
-
-			// Retrieve geo part information for this curve.
-			HoudiniGeoPartObject.Serialize(Ar);
-
-			// Load spline component.
-			Ar << HoudiniSplineComponent;
-
-			// We need to store geo part to spline component mapping.
-			SplineComponents.Add(HoudiniGeoPartObject, HoudiniSplineComponent);
-		}
-	}
-}
-
-
-void
 UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
 {
 	if(Ar.IsLoading())
@@ -3482,20 +3434,6 @@ UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
 	else if(Ar.IsLoading())
 	{
 
-	}
-}
-
-
-void
-UHoudiniAssetComponent::PostLoadCurves()
-{
-	for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
-	{
-		UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
-
-		HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
-		HoudiniSplineComponent->SetVisibility(true);
-		HoudiniSplineComponent->RegisterComponent();
 	}
 }
 
