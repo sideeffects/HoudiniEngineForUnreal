@@ -96,11 +96,11 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 							.ToolTipText(ParameterLabelText)
 							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
-	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 
 	TSharedPtr<SNumericEntryBox<int32> > NumericEntryBox;
 
-	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	HorizontalBox->AddSlot().Padding(2, 2, 5, 2)
 	[
 		SAssignNew(NumericEntryBox, SNumericEntryBox<int32>)
 		.AllowSpin(true)
@@ -115,12 +115,30 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 			&UHoudiniAssetParameterMultiparm::SetValueCommitted))
 	];
 
+	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
+	[
+		PropertyCustomizationHelpers::MakeAddButton(
+			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::AddElement))
+	];
+
+	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
+	[
+		PropertyCustomizationHelpers::MakeRemoveButton(
+			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::RemoveElement))
+	];
+
+	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
+	[
+		PropertyCustomizationHelpers::MakeEmptyButton(
+			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::SetValue, 0))
+	];
+
 	if(NumericEntryBox.IsValid())
 	{
 		NumericEntryBox->SetEnabled(!bIsDisabled);
 	}
 
-	Row.ValueWidget.Widget = VerticalBox;
+	Row.ValueWidget.Widget = HorizontalBox;
 	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 
 	Super::CreateWidget(DetailCategoryBuilder);
@@ -170,6 +188,24 @@ void
 UHoudiniAssetParameterMultiparm::SetValueCommitted(int32 InValue, ETextCommit::Type CommitType)
 {
 
+}
+
+void
+UHoudiniAssetParameterMultiparm::AddElement()
+{
+	MarkPreChanged();
+	Value++;
+	MarkChanged();
+	RecordUndoState();
+}
+
+void
+UHoudiniAssetParameterMultiparm::RemoveElement()
+{
+	MarkPreChanged();
+	Value--;
+	MarkChanged();
+	RecordUndoState();
 }
 
 #endif
