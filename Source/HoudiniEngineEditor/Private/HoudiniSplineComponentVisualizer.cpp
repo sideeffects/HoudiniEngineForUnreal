@@ -330,6 +330,8 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified(int32 PointIndex, con
 {
 	if(EditedHoudiniSplineComponent)
 	{
+		EditedHoudiniSplineComponent->Modify();
+
 		// Update given control point.
 		EditedHoudiniSplineComponent->UpdatePoint(PointIndex, Point);
 		EditedHoudiniSplineComponent->UploadControlPoints();
@@ -367,6 +369,8 @@ FHoudiniSplineComponentVisualizer::OnAddControlPoint()
 			ControlPointIndex = 0;
 		}
 
+		EditedHoudiniSplineComponent->Modify();
+
 		EditedHoudiniSplineComponent->AddPoint(ControlPointIndex, Point);
 		EditedHoudiniSplineComponent->UploadControlPoints();
 
@@ -392,6 +396,8 @@ FHoudiniSplineComponentVisualizer::OnDeleteControlPoint()
 {
 	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
 	{
+		EditedHoudiniSplineComponent->Modify();
+
 		EditedHoudiniSplineComponent->RemovePoint(EditedControlPointIndex);
 		EditedHoudiniSplineComponent->UploadControlPoints();
 
