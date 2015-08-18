@@ -389,10 +389,12 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				int32 RunningEngineMinor = 0;
 				int32 RunningEngineApi = 0;
 
+				const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
 				// Retrieve version numbers for running Houdini Engine.
-				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
-				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
-				FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+				FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+				FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+				FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 				// Get platform specific name of libHAPI.
 				FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
@@ -2585,17 +2587,20 @@ UHoudiniAssetComponent::CreateParameters()
 	TMap<HAPI_ParmId, UHoudiniAssetParameter*> NewParameters;
 
 	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(nullptr, AssetId, &AssetInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false );
 
 	HAPI_NodeInfo NodeInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(nullptr, AssetInfo.nodeId, &NodeInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &NodeInfo), false );
 
 	if(NodeInfo.parmCount > 0)
 	{
 		// Retrieve parameters.
 		TArray<HAPI_ParmInfo> ParmInfos;
 		ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParameters(nullptr, AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount),
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount),
 			false);
 
 		// Create properties for parameters.
@@ -2914,7 +2919,8 @@ UHoudiniAssetComponent::UploadChangedTransform()
 	HAPI_TransformEuler TransformEuler;
 	FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, TransformEuler);
 
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetAssetTransform(nullptr, GetAssetId(), &TransformEuler))
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetAssetTransform(
+			FHoudiniEngine::Get().GetSession(), GetAssetId(), &TransformEuler) )
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Failed Uploading Transformation change back to HAPI."));
 	}
@@ -2928,7 +2934,8 @@ void
 UHoudiniAssetComponent::UpdateLoadedParameters()
 {
 	HAPI_AssetInfo AssetInfo;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(nullptr, AssetId, &AssetInfo))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(
+			FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo) )
 	{
 		return;
 	}
@@ -2951,7 +2958,7 @@ UHoudiniAssetComponent::CreateHandles()
 	}
 
 	HAPI_AssetInfo AssetInfo;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(nullptr, AssetId, &AssetInfo))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
 	{
 		return false;
 	}
@@ -2964,7 +2971,8 @@ UHoudiniAssetComponent::CreateHandles()
 		TArray<HAPI_HandleInfo> HandleInfos;
 		HandleInfos.SetNumZeroed(AssetInfo.handleCount);
 
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(nullptr, AssetId, &HandleInfos[0], 0, AssetInfo.handleCount))
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(
+				FHoudiniEngine::Get().GetSession(), AssetId, &HandleInfos[0], 0, AssetInfo.handleCount) )
 		{
 			return false;
 		}
@@ -3022,7 +3030,7 @@ UHoudiniAssetComponent::CreateInputs()
 
 	HAPI_AssetInfo AssetInfo;
 	int32 InputCount = 0;
-	if((HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(nullptr, AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
+	if((HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
 	{
 		InputCount = AssetInfo.geoInputCount;
 	}

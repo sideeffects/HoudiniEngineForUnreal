@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetComponentDetails.h"
+#include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetInput.h"
@@ -963,7 +964,7 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp(UHoudiniAssetComponent* HoudiniA
 
 		if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
 		{
-			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(nullptr, AssetId, &AssetInfo))
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
 			{
 				FString HelpLogString;
 				if(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.helpTextSH, HelpLogString))

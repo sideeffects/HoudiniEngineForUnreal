@@ -89,7 +89,9 @@ UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 
 	// Get the actual value for this property.
 	Color = FLinearColor::White;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(nullptr, InNodeId, (float*) &Color.R, ValuesIndex, TupleSize))
+	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(
+			FHoudiniEngine::Get().GetSession(), InNodeId, (float*)&Color.R, ValuesIndex, TupleSize )
+	)
 	{
 		return false;
 	}
@@ -146,7 +148,9 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 bool
 UHoudiniAssetParameterColor::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(nullptr, NodeId, (const float*) &Color.R, ValuesIndex, TupleSize))
+	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(
+			FHoudiniEngine::Get().GetSession(), NodeId, (const float*)&Color.R, ValuesIndex, TupleSize )
+	)
 	{
 		return false;
 	}

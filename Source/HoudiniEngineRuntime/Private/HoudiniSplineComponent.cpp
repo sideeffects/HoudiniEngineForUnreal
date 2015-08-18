@@ -202,13 +202,17 @@ UHoudiniSplineComponent::UploadControlPoints()
 
 		// Get param id.
 		HAPI_ParmId ParmId = -1;
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIdFromName(nullptr, NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIdFromName(
+			FHoudiniEngine::Get().GetSession(), NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId )
+		)
 		{
 			return;
 		}
 
 		std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmStringValue(nullptr, NodeId, ConvertedString.c_str(), ParmId, 0))
+		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmStringValue(
+			FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0 )
+		)
 		{
 			return;
 		}

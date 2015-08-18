@@ -123,12 +123,13 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		std::string AssetFileNamePlain;
 		FHoudiniEngineUtils::ConvertUnrealString(AssetFileName, AssetFileNamePlain);
 
-		Result = FHoudiniApi::LoadAssetLibraryFromFile(nullptr, AssetFileNamePlain.c_str(), true, &AssetLibraryId);
+		Result = FHoudiniApi::LoadAssetLibraryFromFile(
+			FHoudiniEngine::Get().GetSession(), AssetFileNamePlain.c_str(), true, &AssetLibraryId);
 	}
 	else
 	{
 		// Otherwise we will try to load from buffer we've cached.
-		Result = FHoudiniApi::LoadAssetLibraryFromMemory(nullptr,
+		Result = FHoudiniApi::LoadAssetLibraryFromMemory(FHoudiniEngine::Get().GetSession(),
 			reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
 				HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId);
 	}
@@ -141,7 +142,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		return;
 	}
 
-	Result = FHoudiniApi::GetAvailableAssetCount(nullptr, AssetLibraryId, &AssetCount);
+	Result = FHoudiniApi::GetAvailableAssetCount(FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetCount);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		AddResponseMessageTaskInfo(Result, EHoudiniEngineTaskType::AssetInstantiation,
@@ -151,7 +152,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	}
 
 	AssetNames.SetNumUninitialized(AssetCount);
-	Result = FHoudiniApi::GetAvailableAssets(nullptr, AssetLibraryId, &AssetNames[0], AssetCount);
+	Result = FHoudiniApi::GetAvailableAssets(FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetNames[0], AssetCount);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		AddResponseMessageTaskInfo(Result, EHoudiniEngineTaskType::AssetInstantiation,
@@ -178,7 +179,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		LastUpdateTime = FPlatformTime::Seconds();
 
 		// We instantiate without cooking.
-		Result = FHoudiniApi::InstantiateAsset(nullptr, &AssetNameString[0], false, &AssetId);
+		Result = FHoudiniApi::InstantiateAsset(FHoudiniEngine::Get().GetSession(), &AssetNameString[0], false, &AssetId);
 		if(HAPI_RESULT_SUCCESS != Result)
 		{
 			AddResponseMessageTaskInfo(Result, EHoudiniEngineTaskType::AssetInstantiation,
@@ -199,7 +200,8 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		while(true)
 		{
 			int Status = HAPI_STATE_STARTING_COOK;
-			HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStatus(nullptr, HAPI_STATUS_COOK_STATE, &Status));
+			HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStatus(
+				FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_STATE, &Status) );
 
 			if(HAPI_STATE_READY == Status)
 			{
@@ -290,7 +292,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 		return;
 	}
 
-	Result = FHoudiniApi::CookAsset(nullptr, AssetId, nullptr);
+	Result = FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr);
 	if(HAPI_RESULT_SUCCESS != Result)
 	{
 		AddResponseMessageTaskInfo(Result, EHoudiniEngineTaskType::AssetCooking,
@@ -310,7 +312,8 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask& Task)
 	while(true)
 	{
 		int32 Status = HAPI_STATE_STARTING_COOK;
-		HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStatus(nullptr, HAPI_STATUS_COOK_STATE, &Status));
+		HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStatus(
+			FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_STATE, &Status) );
 
 		if(!Task.AssetComponent.IsValid())
 		{

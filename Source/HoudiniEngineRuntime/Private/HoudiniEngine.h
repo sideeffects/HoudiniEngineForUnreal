@@ -24,6 +24,8 @@ class FHoudiniEngineScheduler;
 
 class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
 {
+public:
+	FHoudiniEngine();
 
 /** IModuleInterface methods. **/
 public:
@@ -65,6 +67,12 @@ public:
 	/** Return true if singleton instance has been created. **/
 	static bool IsInitialized();
 
+	/** Get the Houdini Engine session. **/
+	const HAPI_Session* GetSession() const
+	{
+		return Session.type == HAPI_SESSION_MAX ? nullptr : &Session;
+	}
+
 private:
 
 	/** Singleton instance of Houdini Engine. **/
@@ -105,4 +113,7 @@ private:
 
 	/** Is set to true when mismatch between defined and running HAPI versions is detected. **/
 	bool bHAPIVersionMismatch;
+
+	/** The Houdini Engine session. **/
+	HAPI_Session Session;
 };

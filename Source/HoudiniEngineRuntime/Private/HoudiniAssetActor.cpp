@@ -16,6 +16,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 
 
@@ -86,7 +87,7 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 		else
 		{
 			FHoudiniEngineUtils::SetCurrentTime(CurrentPlayTime);
-			FHoudiniApi::CookAsset(nullptr, AssetId, nullptr);
+			FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr);
 
 			HoudiniAssetComponent->PostCook();
 		}

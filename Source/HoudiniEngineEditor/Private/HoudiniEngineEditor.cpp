@@ -297,7 +297,7 @@ FHoudiniEngineEditor::SaveHIPFile()
 			std::string HIPPathConverted(HIPPath.begin(), HIPPath.end());
 
 			// Save HIP file through Engine.
-			FHoudiniApi::SaveHIPFile(nullptr, HIPPathConverted.c_str(), false);
+			FHoudiniApi::SaveHIPFile(FHoudiniEngine::Get().GetSession(), HIPPathConverted.c_str(), false);
 		}
 	}
 }

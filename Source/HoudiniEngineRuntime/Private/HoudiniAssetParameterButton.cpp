@@ -80,7 +80,8 @@ bool
 UHoudiniAssetParameterButton::UploadParameterValue()
 {
 	int32 PressValue = 1;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(nullptr, NodeId, &PressValue, ValuesIndex, 1))
+	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(
+		FHoudiniEngine::Get().GetSession(), NodeId, &PressValue, ValuesIndex, 1 ) )
 	{
 		return false;
 	}

@@ -29,6 +29,19 @@ class UFoliageType_InstancedStaticMesh;
 
 
 UENUM()
+enum EHoudiniRuntimeSettingsSessionType
+{
+	HRSST_InProcess UMETA(DisplayName = "In process"),
+
+	HRSST_Socket UMETA(DisplayName = "TCP socket"),
+
+	HRSST_NamedPipe UMETA(DisplayName = "Named pipe or domain socket"),
+
+	HRSST_MAX,
+};
+
+
+UENUM()
 enum EHoudiniRuntimeSettingsRecomputeFlag
 {
 	// Recompute always.
@@ -91,6 +104,12 @@ public:
 	void SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSettings, FRawMesh& RawMesh) const;
 
 #endif
+
+/** Session options. **/
+public:
+	// Enables cooking on parameter or input change for new Houdini Assets.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+	TEnumAsByte<enum EHoudiniRuntimeSettingsSessionType> SessionType;
 
 /** Cooking options. **/
 public:

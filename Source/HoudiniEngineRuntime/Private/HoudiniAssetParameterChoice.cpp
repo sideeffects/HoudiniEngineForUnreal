@@ -82,7 +82,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		// Assign internal Hapi values index.
 		SetValuesIndex(ParmInfo.intValuesIndex);
 
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(nullptr, NodeId, &CurrentValue, ValuesIndex, TupleSize))
+		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(
+			FHoudiniEngine::Get().GetSession(), NodeId, &CurrentValue, ValuesIndex, TupleSize ) )
 		{
 			return false;
 		}
@@ -96,7 +97,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		SetValuesIndex(ParmInfo.stringValuesIndex);
 
 		HAPI_StringHandle StringHandle;
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(nullptr, NodeId, false, &StringHandle, ValuesIndex, TupleSize))
+		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(
+			FHoudiniEngine::Get().GetSession(), NodeId, false, &StringHandle, ValuesIndex, TupleSize ) )
 		{
 			return false;
 		}
@@ -111,8 +113,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	// Get choice descriptors.
 	TArray<HAPI_ParmChoiceInfo> ParmChoices;
 	ParmChoices.SetNumZeroed(ParmInfo.choiceCount);
-	if(HAPI_RESULT_SUCCESS !=
-		FHoudiniApi::GetParmChoiceLists(nullptr, NodeId, &ParmChoices[0], ParmInfo.choiceIndex, ParmInfo.choiceCount))
+	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmChoiceLists(
+		FHoudiniEngine::Get().GetSession(), NodeId, &ParmChoices[0], ParmInfo.choiceIndex, ParmInfo.choiceCount ) )
 	{
 		return false;
 	}
@@ -250,12 +252,14 @@ UHoudiniAssetParameterChoice::UploadParameterValue()
 		// Get corresponding value.
 		FString* ChoiceValue = StringChoiceValues[CurrentValue].Get();
 		std::string String = TCHAR_TO_UTF8(*(*ChoiceValue));
-		FHoudiniApi::SetParmStringValue(nullptr, NodeId, String.c_str(), ParmId, 0);
+		FHoudiniApi::SetParmStringValue(
+			FHoudiniEngine::Get().GetSession(), NodeId, String.c_str(), ParmId, 0 );
 	}
 	else
 	{
 		// This is an int choice list.
-		FHoudiniApi::SetParmIntValues(nullptr, NodeId, &CurrentValue, ValuesIndex, TupleSize);
+		FHoudiniApi::SetParmIntValues(
+			FHoudiniEngine::Get().GetSession(), NodeId, &CurrentValue, ValuesIndex, TupleSize );
 	}
 
 	return Super::UploadParameterValue();

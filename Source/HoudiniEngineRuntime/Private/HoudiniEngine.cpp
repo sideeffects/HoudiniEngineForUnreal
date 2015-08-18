@@ -31,6 +31,11 @@ DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 FHoudiniEngine*
 FHoudiniEngine::HoudiniEngineInstance = nullptr;
 
+FHoudiniEngine::FHoudiniEngine()
+{
+	Session.type = HAPI_SESSION_MAX;
+	Session.id = -1;
+}
 
 #if WITH_EDITOR
 
@@ -187,10 +192,12 @@ FHoudiniEngine::StartupModule()
 		int32 RunningEngineMinor = 0;
 		int32 RunningEngineApi = 0;
 
+		const HAPI_Session* Session = GetSession();
+
 		// Retrieve version numbers for running Houdini Engine.
-		FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
-		FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
-		FHoudiniApi::GetEnvInt(nullptr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+		FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+		FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+		FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 		// Compare defined and running versions.
 		if(RunningEngineMajor == HAPI_VERSION_HOUDINI_ENGINE_MAJOR &&
@@ -204,7 +211,7 @@ FHoudiniEngine::StartupModule()
 			CookOptions.splitGeosByGroup = false;
 			CookOptions.refineCurveToLinear = true;
 
-			HAPI_Result Result = FHoudiniApi::Initialize(nullptr, "", "", &CookOptions, true, -1);
+			HAPI_Result Result = FHoudiniApi::Initialize(Session, "", "", &CookOptions, true, -1);
 			if(HAPI_RESULT_SUCCESS == Result)
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine API module."));
@@ -278,7 +285,7 @@ FHoudiniEngine::ShutdownModule()
 	// Perform HAPI finalization.
 	if(FHoudiniApi::IsHAPIInitialized())
 	{
-		FHoudiniApi::Cleanup(nullptr);
+		FHoudiniApi::Cleanup(GetSession());
 	}
 
 	FHoudiniApi::FinalizeHAPI();
