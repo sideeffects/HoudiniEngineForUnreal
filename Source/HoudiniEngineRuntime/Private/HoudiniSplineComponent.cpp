@@ -44,33 +44,6 @@ UHoudiniSplineComponent::Serialize(FArchive& Ar)
 
 	HoudiniGeoPartObject.Serialize(Ar);
 
-	if(Ar.IsLoading())
-	{
-		CurvePoints.Empty();
-		CurveDisplayPoints.Empty();
-	}
-
-	Ar << CurvePoints;
-	Ar << CurveDisplayPoints;
-
-	SerializeEnumeration<EHoudiniSplineComponentType::Enum>(Ar, CurveType);
-	SerializeEnumeration<EHoudiniSplineComponentMethod::Enum>(Ar, CurveMethod);
-
-	Ar << bClosedCurve;
-}
-
-
-void
-UHoudiniSplineComponent::SerializeRaw(FArchive& Ar)
-{
-	HoudiniGeoPartObject.Serialize(Ar);
-
-	if(Ar.IsLoading())
-	{
-		CurvePoints.Empty();
-		CurveDisplayPoints.Empty();
-	}
-
 	Ar << CurvePoints;
 	Ar << CurveDisplayPoints;
 

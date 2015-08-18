@@ -112,9 +112,6 @@ public:
 	/** Add a point to this curve at given point index. **/
 	void AddPoint(int32 PointIndex, const FVector& Point);
 
-	/** Serialize raw data of this component. **/
-	void SerializeRaw(FArchive& Ar);
-
 	/** Return true if this is an input curve. **/
 	bool IsInputCurve() const;
 
