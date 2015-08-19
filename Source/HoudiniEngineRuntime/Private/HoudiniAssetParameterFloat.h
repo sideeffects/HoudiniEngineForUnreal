@@ -78,11 +78,6 @@ public:
 
 protected:
 
-	/** Print parameter information for debugging. **/
-	virtual void PrintParameterInfo();
-
-protected:
-
 	/** Values of this property. **/
 	TArray<float> Values;
 

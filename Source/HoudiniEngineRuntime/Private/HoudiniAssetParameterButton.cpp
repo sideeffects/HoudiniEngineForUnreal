@@ -47,7 +47,7 @@ UHoudiniAssetParameterButton::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 	}
 
 	UHoudiniAssetParameterButton* HoudiniAssetParameterButton = NewObject<UHoudiniAssetParameterButton>(Outer,
-		UHoudiniAssetParameterButton::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetParameterButton::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterButton->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterButton;

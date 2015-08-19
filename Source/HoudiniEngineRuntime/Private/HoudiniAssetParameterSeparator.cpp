@@ -46,7 +46,7 @@ UHoudiniAssetParameterSeparator::Create(UHoudiniAssetComponent* InHoudiniAssetCo
 	}
 
 	UHoudiniAssetParameterSeparator* HoudiniAssetParameterSeparator = NewObject<UHoudiniAssetParameterSeparator>(Outer,
-		UHoudiniAssetParameterSeparator::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetParameterSeparator::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterSeparator->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterSeparator;
