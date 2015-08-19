@@ -1682,10 +1682,20 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 				MeshName;
 		}
 
+		// Santize package name.
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
+		UObject* OuterPackage = nullptr;
+
+		if(!bBake)
+		{
+			// If we are not baking, then use outermost package, since objects within our package need to be visible
+			// to external operations, such as copy paste.
+			OuterPackage = HoudiniAssetComponent->GetOutermost();
+		}
+
 		// See if package exists, if it does, we need to regenerate the name.
-		UPackage* Package = FindPackage(nullptr, *PackageName);
+		UPackage* Package = FindPackage(OuterPackage, *PackageName);
 
 		if(Package)
 		{
@@ -1703,14 +1713,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 		else
 		{
 			// Create actual package.
-			if(bBake)
-			{
-				PackageNew = CreatePackage(nullptr, *PackageName);
-			}
-			else
-			{
-				PackageNew = CreatePackage(HoudiniAssetComponent->GetOuter(), *PackageName);
-			}
+			PackageNew = CreatePackage(OuterPackage, *PackageName);
 			break;
 		}
 	}
