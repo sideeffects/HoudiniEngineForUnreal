@@ -105,6 +105,16 @@ UHoudiniAssetParameterString::Serialize(FArchive& Ar)
 }
 
 
+void
+UHoudiniAssetParameterString::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	MarkPreChanged();
+	MarkChanged();
+}
+
+
 #if WITH_EDITOR
 
 void
@@ -182,15 +192,17 @@ UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommi
 
 	if(Values[Idx] != CommittedValue)
 	{
+		// Record undo information.
+		FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterStringChange", 
+			"Houdini Parameter String: Changing a value"));
+		Modify();
+
 		MarkPreChanged();
 
 		Values[Idx] = CommittedValue;
 
 		// Mark this parameter as changed.
 		MarkChanged();
-
-		// We want to record undo information when string changes.
-		RecordUndoState();
 	}
 }
 
