@@ -48,7 +48,7 @@ UHoudiniAssetParameterMultiparm::Create(UHoudiniAssetComponent* InHoudiniAssetCo
 	}
 
 	UHoudiniAssetParameterMultiparm* HoudiniAssetParameterMultiparm = NewObject<UHoudiniAssetParameterMultiparm>(Outer,
-		UHoudiniAssetParameterMultiparm::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetParameterMultiparm::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterMultiparm->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterMultiparm;
@@ -171,15 +171,17 @@ UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 {
 	if(Value != InValue)
 	{
+		// Record undo information.
+		FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
+			"Houdini Parameter Multiparm: Changing a value"));
+		Modify();
+
 		MarkPreChanged();
 
 		Value = InValue;
 
 		// Mark this parameter as changed.
 		MarkChanged();
-
-		// Record undo state.
-		RecordUndoState();
 	}
 }
 
@@ -193,19 +195,31 @@ UHoudiniAssetParameterMultiparm::SetValueCommitted(int32 InValue, ETextCommit::T
 void
 UHoudiniAssetParameterMultiparm::AddElement()
 {
+	// Record undo information.
+	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
+		"Houdini Parameter Multiparm: Changing a value"));
+	Modify();
+
 	MarkPreChanged();
+
 	Value++;
+
 	MarkChanged();
-	RecordUndoState();
 }
 
 void
 UHoudiniAssetParameterMultiparm::RemoveElement()
 {
+	// Record undo information.
+	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
+		"Houdini Parameter Multiparm: Changing a value"));
+	Modify();
+
 	MarkPreChanged();
+
 	Value--;
+
 	MarkChanged();
-	RecordUndoState();
 }
 
 #endif
@@ -222,5 +236,15 @@ UHoudiniAssetParameterMultiparm::Serialize(FArchive& Ar)
 	}
 
 	Ar << Value;
+}
+
+
+void
+UHoudiniAssetParameterMultiparm::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	MarkPreChanged();
+	MarkChanged();
 }
 
