@@ -1857,6 +1857,9 @@ UHoudiniAssetComponent::PostLoad()
 		CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 	}
 
+	// Perform post load initialization on parameters.
+	PostLoadInitializeParameters();
+
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
 
@@ -2026,7 +2029,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	// Serialize parameters.
-	SerializeParameters(Ar);
+	Ar << Parameters;
 
 	// Serialize inputs.
 	SerializeInputs(Ar);
@@ -3298,67 +3301,6 @@ UHoudiniAssetComponent::UpdateInstancedStaticMeshComponentMaterial(UStaticMesh* 
 
 
 void
-UHoudiniAssetComponent::SerializeParameters(FArchive& Ar)
-{
-	// If we are loading, we want to clean up all existing parameters.
-	if(Ar.IsLoading())
-	{
-		ClearParameters();
-	}
-
-	// Serialize number of parameters.
-	int32 ParamCount = Parameters.Num();
-	Ar << ParamCount;
-
-	if(Ar.IsSaving())
-	{
-		for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
-		{
-			HAPI_ParmId HoudiniAssetParameterKey = IterParams.Key();
-			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-
-			Ar << HoudiniAssetParameterKey;
-			Ar << HoudiniAssetParameter;
-		}
-	}
-	else if(Ar.IsLoading())
-	{
-		// Load and create parameters.
-		for(int32 ParmIdx = 0; ParmIdx < ParamCount; ++ParmIdx)
-		{
-			HAPI_ParmId HoudiniAssetParameterKey = -1;
-			UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
-
-			Ar << HoudiniAssetParameterKey;
-			Ar << HoudiniAssetParameter;
-
-			if(-1 != HoudiniAssetParameterKey)
-			{
-				HoudiniAssetParameter->SetHoudiniAssetComponent(this);
-				Parameters.Add(HoudiniAssetParameterKey, HoudiniAssetParameter);
-			}
-		}
-
-		// We need to re-patch parent parameter links.
-		for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
-		{
-			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-
-			HAPI_ParmId ParentParameterId = HoudiniAssetParameter->GetParmParentId();
-			if(-1 != ParentParameterId)
-			{
-				UHoudiniAssetParameter* const* FoundParentParameter = Parameters.Find(ParentParameterId);
-				if(FoundParentParameter)
-				{
-					HoudiniAssetParameter->SetParentParameter(*FoundParentParameter);
-				}
-			}
-		}
-	}
-}
-
-
-void
 UHoudiniAssetComponent::SerializeInputs(FArchive& Ar)
 {
 	if(Ar.IsLoading())
@@ -3451,6 +3393,29 @@ UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
 		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
 		HoudiniAssetInstanceInput->SetHoudiniAssetComponent(this);
 		HoudiniAssetInstanceInput->CreateInstanceInputPostLoad();
+	}
+}
+
+
+void
+UHoudiniAssetComponent::PostLoadInitializeParameters()
+{
+	// We need to re-patch parent parameter links.
+	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+
+		HoudiniAssetParameter->SetHoudiniAssetComponent(this);
+
+		HAPI_ParmId ParentParameterId = HoudiniAssetParameter->GetParmParentId();
+		if(-1 != ParentParameterId)
+		{
+			UHoudiniAssetParameter* const* FoundParentParameter = Parameters.Find(ParentParameterId);
+			if(FoundParentParameter)
+			{
+				HoudiniAssetParameter->SetParentParameter(*FoundParentParameter);
+			}
+		}
 	}
 }
 

@@ -424,9 +424,6 @@ public:
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
 	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
 
-	/** Serialize parameters. **/
-	void SerializeParameters(FArchive& Ar);
-
 	/** Serialize inputs. **/
 	void SerializeInputs(FArchive& Ar);
 
@@ -438,6 +435,9 @@ public:
 
 	/** Used to perform post loading initialization on instance inputs. **/
 	void PostLoadInitializeInstanceInputs();
+
+	/** Used to perform post loading initialization of parameters. **/
+	void PostLoadInitializeParameters();
 
 	/** Remove static mesh and associated component and deallocate corresponding resources. **/
 	void RemoveStaticMeshComponent(UStaticMesh* StaticMesh);
