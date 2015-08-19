@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetComponentDetails.h"
+#include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetInput.h"
@@ -1114,7 +1115,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 	{
 		// Geo part does not have native Houdini material, we just use default Unreal material in this case.
 
-		UMaterialInterface* MaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+		UMaterialInterface* MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 		if(MaterialInterface)
 		{
 			// Replace material with default.
