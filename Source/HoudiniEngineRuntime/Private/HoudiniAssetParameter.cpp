@@ -272,8 +272,6 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
-	// Component will be assigned separately upon loading.
-
 	int32 Version = 0; // Placeholder until we need to use it.
 	Ar << Version;
 
@@ -296,6 +294,12 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	Ar << TupleSize;
 	Ar << ValuesIndex;
 	Ar << MultiparmInstanceIndex;
+
+	if(Ar.IsTransacting())
+	{
+		Ar << HoudiniAssetComponent;
+		Ar << ParentParameter;
+	}
 }
 
 
