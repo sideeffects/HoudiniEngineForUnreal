@@ -144,9 +144,6 @@ protected:
 	/** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
 	void MarkChanged();
 
-	/** Record undo information for parameter change. **/
-	void RecordUndoState();
-
 	/** Return tuple size. **/
 	int32 GetTupleSize() const;
 
