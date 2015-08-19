@@ -286,12 +286,3 @@ UHoudiniAssetParameterInt::Serialize(FArchive& Ar)
 	Ar << ValueUIMax;
 }
 
-
-void
-UHoudiniAssetParameterInt::PostEditUndo()
-{
-	Super::PostEditUndo();
-
-	MarkPreChanged();
-	MarkChanged();
-}

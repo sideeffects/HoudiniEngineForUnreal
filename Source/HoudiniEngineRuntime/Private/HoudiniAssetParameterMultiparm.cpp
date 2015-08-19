@@ -238,13 +238,3 @@ UHoudiniAssetParameterMultiparm::Serialize(FArchive& Ar)
 	Ar << Value;
 }
 
-
-void
-UHoudiniAssetParameterMultiparm::PostEditUndo()
-{
-	Super::PostEditUndo();
-
-	MarkPreChanged();
-	MarkChanged();
-}
-

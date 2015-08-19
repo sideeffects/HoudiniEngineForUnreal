@@ -322,16 +322,6 @@ UHoudiniAssetParameterChoice::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetParameterChoice::PostEditUndo()
-{
-	Super::PostEditUndo();
-
-	MarkPreChanged();
-	MarkChanged();
-}
-
-
 #if WITH_EDITOR
 
 TSharedRef<SWidget>

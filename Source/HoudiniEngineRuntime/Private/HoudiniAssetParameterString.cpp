@@ -105,16 +105,6 @@ UHoudiniAssetParameterString::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetParameterString::PostEditUndo()
-{
-	Super::PostEditUndo();
-
-	MarkPreChanged();
-	MarkChanged();
-}
-
-
 #if WITH_EDITOR
 
 void

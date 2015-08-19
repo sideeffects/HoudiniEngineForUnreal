@@ -304,6 +304,16 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 
 
 void
+UHoudiniAssetParameter::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	MarkPreChanged();
+	MarkChanged();
+}
+
+
+void
 UHoudiniAssetParameter::SetNodeParmIds(HAPI_NodeId InNodeId, HAPI_ParmId InParmId)
 {
 	NodeId = InNodeId;
