@@ -197,6 +197,16 @@ UHoudiniAssetParameterToggle::Serialize(FArchive& Ar)
 }
 
 
+void
+UHoudiniAssetParameterToggle::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	MarkPreChanged();
+	MarkChanged();
+}
+
+
 #if WITH_EDITOR
 
 void
@@ -206,6 +216,11 @@ UHoudiniAssetParameterToggle::CheckStateChanged(ECheckBoxState NewState, int32 I
 
 	if(Values[Idx] != bState)
 	{
+		// Record undo information.
+		FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterToggleChange", 
+			"Houdini Parameter Toggle: Changing a value"));
+		Modify();
+
 		MarkPreChanged();
 
 		Values[Idx] = bState;
