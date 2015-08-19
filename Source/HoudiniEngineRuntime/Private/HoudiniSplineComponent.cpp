@@ -42,6 +42,9 @@ UHoudiniSplineComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	int32 Version = 0; // Placeholder until we need to use it.
+	Ar << Version;
+
 	HoudiniGeoPartObject.Serialize(Ar);
 
 	Ar << CurvePoints;

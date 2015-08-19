@@ -1888,6 +1888,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		return;
 	}
 
+	int32 Version = 0; // Placeholder until we need to use it.
+	Ar << Version;
+
 	// Serialize component flags.
 	Ar << HoudiniAssetComponentFlagsPacked;
 
