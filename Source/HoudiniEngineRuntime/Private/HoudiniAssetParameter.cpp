@@ -460,20 +460,6 @@ UHoudiniAssetParameter::UnmarkChanged()
 
 
 void
-UHoudiniAssetParameter::RecordUndoState()
-{
-#if WITH_EDITOR
-
-	if(HoudiniAssetComponent)
-	{
-		HoudiniAssetComponent->RecordUndoState();
-	}
-
-#endif
-}
-
-
-void
 UHoudiniAssetParameter::ResetChildParameters()
 {
 	ChildParameters.Empty();

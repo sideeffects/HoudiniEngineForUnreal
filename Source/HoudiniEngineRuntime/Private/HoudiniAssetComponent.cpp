@@ -2868,14 +2868,6 @@ UHoudiniAssetComponent::UnmarkChangedParameters()
 
 
 void
-UHoudiniAssetComponent::RecordUndoState()
-{
-	//FScopedTransaction Transaction(LOCTEXT("HoudiniParameterChange", "Houdini Parameter Change"));
-	//Modify();
-}
-
-
-void
 UHoudiniAssetComponent::UploadChangedParameters()
 {
 	if(bParametersChanged)
