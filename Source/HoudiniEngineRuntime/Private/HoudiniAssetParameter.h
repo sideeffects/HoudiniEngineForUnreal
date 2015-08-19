@@ -210,6 +210,9 @@ protected:
 	/** Id of parent parameter, -1 if root is parent. **/
 	HAPI_ParmId ParmParentId;
 
+	/** Child index within its parent parameter. **/
+	int32 ChildIndex;
+
 	/** Tuple size - arrays. **/
 	int32 TupleSize;
 
