@@ -46,6 +46,16 @@ UHoudiniAssetParameterColor::Serialize(FArchive& Ar)
 }
 
 
+void
+UHoudiniAssetParameterColor::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	MarkPreChanged();
+	MarkChanged();
+}
+
+
 UHoudiniAssetParameterColor*
 UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
@@ -195,14 +205,16 @@ UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor)
 {
 	if(Color != InNewColor)
 	{
+		// Record undo information.
+		FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterColorChange", 
+			"Houdini Parameter Color: Changing a value"));
+		Modify();
+
 		MarkPreChanged();
 
 		Color = InNewColor;
 
 		// Mark this parameter as changed.
 		MarkChanged();
-
-		// We want to record undo information when color changes.
-		RecordUndoState();
 	}
 }
