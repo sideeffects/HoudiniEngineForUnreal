@@ -318,6 +318,16 @@ UHoudiniAssetParameterChoice::Serialize(FArchive& Ar)
 }
 
 
+void
+UHoudiniAssetParameterChoice::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	MarkPreChanged();
+	MarkChanged();
+}
+
+
 #if WITH_EDITOR
 
 TSharedRef<SWidget>
@@ -358,15 +368,17 @@ UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESel
 
 	if(bChanged)
 	{
+		// Record undo information.
+		FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterChoiceChange", 
+			"Houdini Parameter Choice: Changing a value"));
+		Modify();
+
 		MarkPreChanged();
 
 		CurrentValue = LabelIdx;
 
 		// Mark this property as changed.
 		MarkChanged();
-
-		// We want to record undo information when choice changes.
-		RecordUndoState();
 	}
 }
 
