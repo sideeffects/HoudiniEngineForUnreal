@@ -130,11 +130,10 @@ UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategor
 FReply
 UHoudiniAssetParameterButton::OnButtonClick()
 {
+	// There's no undo operation for button.
+
 	MarkPreChanged();
 	MarkChanged();
-
-	// We want to record undo information when button is pressed.
-	RecordUndoState();
 
 	return FReply::Handled();
 }
