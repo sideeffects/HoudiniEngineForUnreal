@@ -257,6 +257,8 @@ UHoudiniAssetParameterInt::OnSliderMovingBegin(int32 Idx)
 	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterIntChange", 
 		"Houdini Parameter Integer: Changing a value"));
 	Modify();
+
+	bSliderDragged = true;
 }
 
 
