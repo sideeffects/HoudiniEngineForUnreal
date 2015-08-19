@@ -57,6 +57,7 @@ public:
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostEditUndo() override;
 
 public:
 
