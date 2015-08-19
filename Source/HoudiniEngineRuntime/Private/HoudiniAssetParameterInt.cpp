@@ -79,9 +79,8 @@ UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAsse
 
 	// Get the actual value for this property.
 	Values.SetNumZeroed(TupleSize);
-	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(
-			FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0], ValuesIndex, TupleSize )
-	)
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(
+		FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -202,9 +201,8 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 bool
 UHoudiniAssetParameterInt::UploadParameterValue()
 {
-	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(
-			FHoudiniEngine::Get().GetSession(), NodeId, &Values[0], ValuesIndex, TupleSize )
-	)
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(
+		FHoudiniEngine::Get().GetSession(), NodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}

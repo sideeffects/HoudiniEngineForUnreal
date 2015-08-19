@@ -101,9 +101,8 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 
 	// Get the actual value for this property.
 	Values.SetNumZeroed(TupleSize);
-	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(
-			FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0], ValuesIndex, TupleSize )
-	)
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(
+		FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -256,9 +255,8 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 bool
 UHoudiniAssetParameterFloat::UploadParameterValue()
 {
-	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(
-			FHoudiniEngine::Get().GetSession(), NodeId, &Values[0], ValuesIndex, TupleSize )
-	)
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(
+		FHoudiniEngine::Get().GetSession(), NodeId, &Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -316,6 +314,7 @@ UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
 {
 	// We want to record undo increments only when user lets go of the slider.
 	RecordUndoState();
+
 	bSliderDragged = false;
 }
 

@@ -149,7 +149,7 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 bool
 UHoudiniAssetParameterMultiparm::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(nullptr, NodeId, &Value, ValuesIndex, 1))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value, ValuesIndex, 1))
 	{
 		return false;
 	}
