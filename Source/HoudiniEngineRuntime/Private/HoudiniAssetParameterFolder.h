@@ -30,7 +30,7 @@ public:
 
 public:
 
-	/** Create sintance of this class. **/
+	/** Create instance of this class. **/
 	static UHoudiniAssetParameterFolder* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 

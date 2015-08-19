@@ -53,16 +53,6 @@ UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetParameterFloat::PostEditUndo()
-{
-	Super::PostEditUndo();
-
-	MarkPreChanged();
-	MarkChanged();
-}
-
-
 UHoudiniAssetParameterFloat*
 UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)

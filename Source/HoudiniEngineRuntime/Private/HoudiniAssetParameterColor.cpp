@@ -46,16 +46,6 @@ UHoudiniAssetParameterColor::Serialize(FArchive& Ar)
 }
 
 
-void
-UHoudiniAssetParameterColor::PostEditUndo()
-{
-	Super::PostEditUndo();
-
-	MarkPreChanged();
-	MarkChanged();
-}
-
-
 UHoudiniAssetParameterColor*
 UHoudiniAssetParameterColor::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
