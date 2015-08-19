@@ -41,13 +41,16 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	NodeId(-1),
 	ParmId(-1),
 	ParmParentId(-1),
+	ChildIndex(0),
 	TupleSize(1),
 	ValuesIndex(-1),
+	MultiparmInstanceIndex(-1),
 	ActiveChildParameter(0),
 	bIsSpare(false),
 	bIsDisabled(false),
 	bChanged(false),
-	bSliderDragged(false)
+	bSliderDragged(false),
+	bIsChildOfMultiparm(false)
 {
 	ParameterName = TEXT("");
 	ParameterLabel = TEXT("");
@@ -91,14 +94,23 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 	// Set parent id.
 	ParmParentId = ParmInfo.parentId;
 
+	// Set the index within parent.
+	ChildIndex = ParmInfo.childIndex;
+
 	// Set tuple count.
 	TupleSize = ParmInfo.size;
+
+	// Set the multiparm instance index.
+	MultiparmInstanceIndex = ParmInfo.instanceNum;
 
 	// Set spare flag.
 	bIsSpare = ParmInfo.spare;
 
 	// Set disabled flag.
 	bIsDisabled = ParmInfo.disabled;
+
+	// Set child of multiparm flag.
+	bIsChildOfMultiparm = ParmInfo.isChildOfMultiParm;
 
 	// Set component.
 	HoudiniAssetComponent = InHoudiniAssetComponent;
@@ -262,6 +274,9 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 
 	// Component will be assigned separately upon loading.
 
+	int32 Version = 0; // Placeholder until we need to use it.
+	Ar << Version;
+
 	Ar << HoudiniAssetParameterFlagsPacked;
 
 	if(Ar.IsLoading())
@@ -276,9 +291,11 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	Ar << ParmId;
 
 	Ar << ParmParentId;
+	Ar << ChildIndex;
 
 	Ar << TupleSize;
 	Ar << ValuesIndex;
+	Ar << MultiparmInstanceIndex;
 }
 
 

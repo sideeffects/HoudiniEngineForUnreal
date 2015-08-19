@@ -210,11 +210,17 @@ protected:
 	/** Id of parent parameter, -1 if root is parent. **/
 	HAPI_ParmId ParmParentId;
 
+	/** Child index within its parent parameter. **/
+	int32 ChildIndex;
+
 	/** Tuple size - arrays. **/
 	int32 TupleSize;
 
 	/** Internal HAPI cached value index. **/
 	int32 ValuesIndex;
+
+	/** The multiparm instance index. **/
+	int32 MultiparmInstanceIndex;
 
 	/** Active child parameter. **/
 	int32 ActiveChildParameter;
@@ -235,6 +241,9 @@ protected:
 
 			/** Is set to true when parameter's slider (if it has one) is being dragged. Transient. **/
 			uint32 bSliderDragged : 1;
+
+			/** Is set to true if the parameter is a multiparm child parameter. **/
+			uint32 bIsChildOfMultiparm : 1;
 		};
 
 		uint32 HoudiniAssetParameterFlagsPacked;

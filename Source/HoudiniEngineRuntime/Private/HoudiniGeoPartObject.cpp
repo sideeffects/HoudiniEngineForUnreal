@@ -255,6 +255,9 @@ FHoudiniGeoPartObject::GetTypeHash() const
 void
 FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 {
+	int32 Version = 0; // Placeholder until we need to use it.
+	Ar << Version;
+
 	Ar << TransformMatrix;
 
 	Ar << ObjectName;
