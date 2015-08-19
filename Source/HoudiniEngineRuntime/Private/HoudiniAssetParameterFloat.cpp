@@ -43,11 +43,6 @@ UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
-	if(Ar.IsLoading())
-	{
-		Values.Empty();
-	}
-
 	Ar << Values;
 
 	Ar << ValueMin;
@@ -74,7 +69,7 @@ UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetCompon
 	}
 
 	UHoudiniAssetParameterFloat* HoudiniAssetParameterFloat = NewObject<UHoudiniAssetParameterFloat>(Outer,
-		UHoudiniAssetParameterFloat::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetParameterFloat::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterFloat->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterFloat;
@@ -319,35 +314,3 @@ UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
 }
 
 #endif
-
-
-void
-UHoudiniAssetParameterFloat::PrintParameterInfo()
-{
-	switch(TupleSize)
-	{
-		case 3:
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f, %f, %f"), *ParameterName, Values[0],
-				Values[1], Values[2]);
-			break;
-		}
-
-		case 2:
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f, %f"), *ParameterName, Values[0], Values[1]);
-			break;
-		}
-
-		case 1:
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("Float Parameter Change: %s -> %f"), *ParameterName, Values[0]);
-			break;
-		}
-
-		default:
-		{
-			break;
-		}
-	}
-}

@@ -46,7 +46,7 @@ UHoudiniAssetParameterLabel::Create(UHoudiniAssetComponent* InHoudiniAssetCompon
 	}
 
 	UHoudiniAssetParameterLabel* HoudiniAssetParameterLabel = NewObject<UHoudiniAssetParameterLabel>(Outer,
-		UHoudiniAssetParameterLabel::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetParameterLabel::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterLabel->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterLabel;

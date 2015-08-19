@@ -48,7 +48,7 @@ UHoudiniAssetParameterString::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 	}
 
 	UHoudiniAssetParameterString* HoudiniAssetParameterString = NewObject<UHoudiniAssetParameterString>(Outer,
-		UHoudiniAssetParameterString::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetParameterString::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterString->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterString;
@@ -100,11 +100,6 @@ UHoudiniAssetParameterString::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
-
-	if(Ar.IsLoading())
-	{
-		Values.Empty();
-	}
 
 	Ar << Values;
 }

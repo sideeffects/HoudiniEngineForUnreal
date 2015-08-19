@@ -48,7 +48,7 @@ UHoudiniAssetParameterToggle::Create(UHoudiniAssetComponent* InHoudiniAssetCompo
 	}
 
 	UHoudiniAssetParameterToggle* HoudiniAssetParameterToggle = NewObject<UHoudiniAssetParameterToggle>(Outer,
-		UHoudiniAssetParameterToggle::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetParameterToggle::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterToggle->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterToggle;
@@ -194,11 +194,6 @@ UHoudiniAssetParameterToggle::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
 	Super::Serialize(Ar);
-
-	if(Ar.IsLoading())
-	{
-		Values.Empty();
-	}
 
 	Ar << Values;
 }
