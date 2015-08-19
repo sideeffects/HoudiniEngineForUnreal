@@ -257,7 +257,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 
 		// Assign original and static mesh.
 		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
-		HoudiniAssetInstanceInputField->StaticMesh = StaticMesh;
+		HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh);
 
 		// Create instanced component.
 		HoudiniAssetInstanceInputField->CreateInstancedComponent();
@@ -267,11 +267,11 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 		// Remove item from old list.
 		InstanceInputFields.RemoveSingleSwap(HoudiniAssetInstanceInputField, false);
 
-		if(HoudiniAssetInstanceInputField->OriginalStaticMesh == HoudiniAssetInstanceInputField->StaticMesh)
+		if(HoudiniAssetInstanceInputField->OriginalStaticMesh == HoudiniAssetInstanceInputField->GetStaticMesh())
 		{
 			// Assign original and static mesh.
 			HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
-			HoudiniAssetInstanceInputField->StaticMesh = StaticMesh;
+			HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh);
 		}
 	}
 
@@ -334,6 +334,21 @@ UHoudiniAssetInstanceInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 
 
 #if WITH_EDITOR
+
+
+FReply
+UHoudiniAssetInstanceInput::OnAddInstanceVariation()
+{   
+	check(false);
+	return FReply::Handled();
+}
+
+FReply
+UHoudiniAssetInstanceInput::OnRemoveInstanceVariation()
+{
+	check(false);
+	return FReply::Handled();
+}
 
 void
 UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
@@ -398,6 +413,27 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				]
 			]
 		];
+
+		/*
+		HorizontalBox->AddSlot().Padding(0, 25.0f, 0, 25.0f).MaxWidth(60.0f)
+		[
+			SNew(SButton)
+			.Text(NSLOCTEXT("HoudiniEngine", "HEngineAddInstanceVariation", "+"))                        
+			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAddInstanceVariation))
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+		];
+
+        
+		HorizontalBox->AddSlot().Padding(0.0f, 25.0f, 0.0f, 25.0f).MaxWidth(60.0f)
+		[
+			SNew(SButton)
+			.Text(NSLOCTEXT("HoudiniEngine", "HEngineSubInstanceVariation", "-"))
+			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation))
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+		];
+		*/
 
 		// Store thumbnail border for this static mesh.
 		HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
