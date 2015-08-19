@@ -53,6 +53,16 @@ UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
 }
 
 
+void
+UHoudiniAssetParameterFloat::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	MarkPreChanged();
+	MarkChanged();
+}
+
+
 UHoudiniAssetParameterFloat*
 UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
@@ -272,18 +282,20 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 {
 	if(Values[Idx] != InValue)
 	{
+		if(!bSliderDragged)
+		{
+			// If this is not a slider change (user typed in values manually), record undo information.
+			FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterFloatChange", 
+				"Houdini Parameter Float: Changing a value"));
+			Modify();
+		}
+
 		MarkPreChanged();
 
 		Values[Idx] = FMath::Clamp<float>(InValue, ValueMin, ValueMax);
 
 		// Mark this parameter as changed.
 		MarkChanged();
-
-		if(!bSliderDragged)
-		{
-			// If this is not a slider change (user typed in values manually), record undo information.
-			RecordUndoState();
-		}
 	}
 }
 
@@ -298,6 +310,11 @@ UHoudiniAssetParameterFloat::SetValueCommitted(float InValue, ETextCommit::Type 
 void
 UHoudiniAssetParameterFloat::OnSliderMovingBegin(int32 Idx)
 {
+	// We want to record undo increments only when user lets go of the slider.
+	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterFloatChange", 
+		"Houdini Parameter Float: Changing a value"));
+	Modify();
+
 	bSliderDragged = true;
 }
 
@@ -305,8 +322,6 @@ UHoudiniAssetParameterFloat::OnSliderMovingBegin(int32 Idx)
 void
 UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
 {
-	// We want to record undo increments only when user lets go of the slider.
-	RecordUndoState();
 	bSliderDragged = false;
 }
 
