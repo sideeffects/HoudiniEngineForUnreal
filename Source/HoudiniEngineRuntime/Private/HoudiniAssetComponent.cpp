@@ -1999,9 +1999,12 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	{
 		bool bPresetSaved = false;
 
-		if(Ar.IsSaving() && PresetBuffer.Num() > 0)
+		if(Ar.IsSaving() && FHoudiniEngineUtils::IsValidAssetId(AssetId))
 		{
-			bPresetSaved = true;
+			if(FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
+			{
+				bPresetSaved = true;
+			}
 		}
 
 		Ar << bPresetSaved;
@@ -2805,10 +2808,12 @@ UHoudiniAssetComponent::CreateParameters()
 void
 UHoudiniAssetComponent::NotifyParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
+	/*
 	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && PresetBuffer.Num() == 0)
 	{
 		FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer);
 	}
+	*/
 }
 
 
