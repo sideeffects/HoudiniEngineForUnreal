@@ -141,6 +141,42 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 	Super::CreateWidget(DetailCategoryBuilder);
 }
 
+void
+UHoudiniAssetParameterMultiparm::AddMultiparmInstance(int32 ChildMultiparmInstanceIndex)
+{
+	// Record undo information.
+	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
+		"Houdini Parameter Multiparm: Adding instance"));
+	Modify();
+
+	MarkPreChanged();
+
+	FHoudiniApi::InsertMultiparmInstance(
+		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
+	Value++;
+
+	// Mark this parameter as changed.
+	MarkChanged();
+}
+
+void
+UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmInstanceIndex)
+{
+	// Record undo information.
+	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
+		"Houdini Parameter Multiparm: Removing instance"));
+	Modify();
+
+	MarkPreChanged();
+
+	FHoudiniApi::RemoveMultiparmInstance(
+		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
+	Value--;
+
+	// Mark this parameter as changed.
+	MarkChanged();
+}
+
 #endif
 
 bool

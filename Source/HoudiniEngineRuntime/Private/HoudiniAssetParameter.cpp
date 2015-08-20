@@ -553,10 +553,54 @@ UHoudiniAssetParameter::CreateNameWidget(FDetailWidgetRow& Row, bool bLabel)
 	FText ParameterLabelText = FText::FromString(GetParameterLabel());
 	const FText& FinalParameterLabelText = bLabel ? ParameterLabelText : FText::GetEmpty();
 
-	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(FinalParameterLabelText)
-							.ToolTipText(ParameterLabelText)
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+	if(bIsChildOfMultiparm && ParentParameter)
+	{
+		TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+
+		TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(
+			FSimpleDelegate::CreateUObject(
+				(UHoudiniAssetParameterMultiparm*) ParentParameter,
+				&UHoudiniAssetParameterMultiparm::AddMultiparmInstance,
+				MultiparmInstanceIndex));
+		TSharedRef<SWidget> ClearButton = PropertyCustomizationHelpers::MakeClearButton(
+			FSimpleDelegate::CreateUObject(
+				(UHoudiniAssetParameterMultiparm*) ParentParameter,
+				&UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance,
+				MultiparmInstanceIndex));
+
+		if(ChildIndex != 0)
+		{
+			AddButton.Get().SetVisibility(EVisibility::Hidden);
+			ClearButton.Get().SetVisibility(EVisibility::Hidden);
+		}
+
+		HorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 0.0f)
+		[
+			AddButton
+		];
+
+		HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
+		[
+			ClearButton
+		];
+
+		HorizontalBox->AddSlot().Padding(2, 5, 5, 2)
+		[
+			SNew(STextBlock)
+			.Text(FinalParameterLabelText)
+			.ToolTipText(ParameterLabelText)
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		];
+
+		Row.NameWidget.Widget = HorizontalBox;
+	}
+	else
+	{
+		Row.NameWidget.Widget = SNew(STextBlock)
+								.Text(FinalParameterLabelText)
+								.ToolTipText(ParameterLabelText)
+								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+	}
 }
 
 #endif
