@@ -27,8 +27,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
 
+	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(HAPI_Bool auto_close, int port, float timeout_ms, HAPI_ProcessId * process_id);
+	static StartThriftSocketServerFuncPtr StartThriftSocketServer;
+
 	typedef HAPI_Result (*CreateThriftSocketSessionFuncPtr)(HAPI_Session * session, const char * host_name, int port);
 	static CreateThriftSocketSessionFuncPtr CreateThriftSocketSession;
+
+	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(HAPI_Bool auto_close, const char * pipe_name, float timeout_ms, HAPI_ProcessId * process_id);
+	static StartThriftNamedPipeServerFuncPtr StartThriftNamedPipeServer;
 
 	typedef HAPI_Result (*CreateThriftNamedPipeSessionFuncPtr)(HAPI_Session * session, const char * pipe_name);
 	static CreateThriftNamedPipeSessionFuncPtr CreateThriftNamedPipeSession;
@@ -38,6 +44,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	static CreateCustomSessionFuncPtr CreateCustomSession;
+
+	typedef HAPI_Result (*CloseSessionFuncPtr)(const HAPI_Session * session);
+	static CloseSessionFuncPtr CloseSession;
 
 	typedef HAPI_Result (*IsInitializedFuncPtr)(const HAPI_Session * session);
 	static IsInitializedFuncPtr IsInitialized;
@@ -66,7 +75,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetCookingCurrentCountFuncPtr)(const HAPI_Session * session, int * count);
 	static GetCookingCurrentCountFuncPtr GetCookingCurrentCount;
 
-	typedef HAPI_Result (*ConvertTransformFuncPtr)(const HAPI_Session * session, HAPI_TransformEuler * transform_in_out, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order);
+	typedef HAPI_Result (*ConvertTransformFuncPtr)(const HAPI_Session * session, const HAPI_TransformEuler * transform_in, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out);
 	static ConvertTransformFuncPtr ConvertTransform;
 
 	typedef HAPI_Result (*ConvertMatrixToQuatFuncPtr)(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_Transform * transform_out);
@@ -141,7 +150,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform);
 	static GetAssetTransformFuncPtr GetAssetTransform;
 
-	typedef HAPI_Result (*SetAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_TransformEuler * transform);
+	typedef HAPI_Result (*SetAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_TransformEuler * transform);
 	static SetAssetTransformFuncPtr SetAssetTransform;
 
 	typedef HAPI_Result (*GetInputNameFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, int input_type, HAPI_StringHandle * name);
@@ -362,9 +371,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 
 	typedef HAPI_Result (*GetMaterialInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info);
 	static GetMaterialInfoFuncPtr GetMaterialInfo;
-
-	typedef HAPI_Result (*RenderMaterialToImageFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ShaderType shader_type);
-	static RenderMaterialToImageFuncPtr RenderMaterialToImage;
 
 	typedef HAPI_Result (*RenderTextureToImageFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ParmId parm_id);
 	static RenderTextureToImageFuncPtr RenderTextureToImage;

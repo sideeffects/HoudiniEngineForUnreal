@@ -21,8 +21,14 @@
 FHoudiniApi::CreateInProcessSessionFuncPtr
 FHoudiniApi::CreateInProcessSession = nullptr;
 
+FHoudiniApi::StartThriftSocketServerFuncPtr
+FHoudiniApi::StartThriftSocketServer = nullptr;
+
 FHoudiniApi::CreateThriftSocketSessionFuncPtr
 FHoudiniApi::CreateThriftSocketSession = nullptr;
+
+FHoudiniApi::StartThriftNamedPipeServerFuncPtr
+FHoudiniApi::StartThriftNamedPipeServer = nullptr;
 
 FHoudiniApi::CreateThriftNamedPipeSessionFuncPtr
 FHoudiniApi::CreateThriftNamedPipeSession = nullptr;
@@ -32,6 +38,9 @@ FHoudiniApi::BindCustomImplementation = nullptr;
 
 FHoudiniApi::CreateCustomSessionFuncPtr
 FHoudiniApi::CreateCustomSession = nullptr;
+
+FHoudiniApi::CloseSessionFuncPtr
+FHoudiniApi::CloseSession = nullptr;
 
 FHoudiniApi::IsInitializedFuncPtr
 FHoudiniApi::IsInitialized = nullptr;
@@ -357,9 +366,6 @@ FHoudiniApi::GetMaterialIdsOnFaces = nullptr;
 FHoudiniApi::GetMaterialInfoFuncPtr
 FHoudiniApi::GetMaterialInfo = nullptr;
 
-FHoudiniApi::RenderMaterialToImageFuncPtr
-FHoudiniApi::RenderMaterialToImage = nullptr;
-
 FHoudiniApi::RenderTextureToImageFuncPtr
 FHoudiniApi::RenderTextureToImage = nullptr;
 
@@ -481,10 +487,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	if(!LibraryHandle) return;
 
 	FHoudiniApi::CreateInProcessSession = (CreateInProcessSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInProcessSession"));
+	FHoudiniApi::StartThriftSocketServer = (StartThriftSocketServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftSocketServer"));
 	FHoudiniApi::CreateThriftSocketSession = (CreateThriftSocketSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftSocketSession"));
+	FHoudiniApi::StartThriftNamedPipeServer = (StartThriftNamedPipeServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftNamedPipeServer"));
 	FHoudiniApi::CreateThriftNamedPipeSession = (CreateThriftNamedPipeSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftNamedPipeSession"));
 	FHoudiniApi::BindCustomImplementation = (BindCustomImplementationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_BindCustomImplementation"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
+	FHoudiniApi::CloseSession = (CloseSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CloseSession"));
 	FHoudiniApi::IsInitialized = (IsInitializedFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsInitialized"));
 	FHoudiniApi::Initialize = (InitializeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Initialize"));
 	FHoudiniApi::Cleanup = (CleanupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Cleanup"));
@@ -593,7 +602,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::DisconnectAssetGeometry = (DisconnectAssetGeometryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectAssetGeometry"));
 	FHoudiniApi::GetMaterialIdsOnFaces = (GetMaterialIdsOnFacesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialIdsOnFaces"));
 	FHoudiniApi::GetMaterialInfo = (GetMaterialInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialInfo"));
-	FHoudiniApi::RenderMaterialToImage = (RenderMaterialToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderMaterialToImage"));
 	FHoudiniApi::RenderTextureToImage = (RenderTextureToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderTextureToImage"));
 	FHoudiniApi::GetSupportedImageFileFormatCount = (GetSupportedImageFileFormatCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSupportedImageFileFormatCount"));
 	FHoudiniApi::GetSupportedImageFileFormats = (GetSupportedImageFileFormatsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSupportedImageFileFormats"));
@@ -639,10 +647,13 @@ void
 FHoudiniApi::FinalizeHAPI()
 {
 	FHoudiniApi::CreateInProcessSession = nullptr;
+	FHoudiniApi::StartThriftSocketServer = nullptr;
 	FHoudiniApi::CreateThriftSocketSession = nullptr;
+	FHoudiniApi::StartThriftNamedPipeServer = nullptr;
 	FHoudiniApi::CreateThriftNamedPipeSession = nullptr;
 	FHoudiniApi::BindCustomImplementation = nullptr;
 	FHoudiniApi::CreateCustomSession = nullptr;
+	FHoudiniApi::CloseSession = nullptr;
 	FHoudiniApi::IsInitialized = nullptr;
 	FHoudiniApi::Initialize = nullptr;
 	FHoudiniApi::Cleanup = nullptr;
@@ -751,7 +762,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::DisconnectAssetGeometry = nullptr;
 	FHoudiniApi::GetMaterialIdsOnFaces = nullptr;
 	FHoudiniApi::GetMaterialInfo = nullptr;
-	FHoudiniApi::RenderMaterialToImage = nullptr;
 	FHoudiniApi::RenderTextureToImage = nullptr;
 	FHoudiniApi::GetSupportedImageFileFormatCount = nullptr;
 	FHoudiniApi::GetSupportedImageFileFormats = nullptr;
