@@ -192,7 +192,64 @@ FHoudiniEngine::StartupModule()
 		int32 RunningEngineMinor = 0;
 		int32 RunningEngineApi = 0;
 
+#ifdef HAPI_UNREAL_ENABLE_LOADER
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+		HAPI_Result Result = HAPI_RESULT_FAILURE;
+
+		switch ( HoudiniRuntimeSettings->SessionType.GetValue() )
+		{
+		case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
+			Result = FHoudiniApi::CreateInProcessSession( &this->Session );
+			break;
+
+		case EHoudiniRuntimeSettingsSessionType::HRSST_Socket:
+			if (HoudiniRuntimeSettings->bStartAutomaticServer)
+			{
+				FHoudiniApi::StartThriftSocketServer(
+					true,
+					HoudiniRuntimeSettings->ServerPort,
+					HoudiniRuntimeSettings->AutomaticServerTimeout,
+					NULL
+				);
+			}
+
+			Result = FHoudiniApi::CreateThriftSocketSession(
+				&this->Session,
+				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost),
+				HoudiniRuntimeSettings->ServerPort
+			);
+			break;
+
+		case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:				
+			if (HoudiniRuntimeSettings->bStartAutomaticServer)
+			{
+				FHoudiniApi::StartThriftNamedPipeServer(
+					true,
+					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName),
+					HoudiniRuntimeSettings->AutomaticServerTimeout,
+					NULL
+				);
+			}
+
+			Result = FHoudiniApi::CreateThriftNamedPipeSession(
+				&this->Session,
+				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
+			);			
+			break;
+
+		default:
+			HOUDINI_LOG_ERROR(TEXT("Unsupported Houdini Engine session type"));
+		}
+#endif // HAPI_UNREAL_ENABLE_LOADER
 		const HAPI_Session* SessionPtr = GetSession();
+
+#ifdef HAPI_UNREAL_ENABLE_LOADER
+		if (Result != HAPI_RESULT_SUCCESS || !SessionPtr)
+		{
+			HOUDINI_LOG_ERROR(TEXT("Failed to create a Houdini Engine session"));
+		}
+#endif
 
 		// Retrieve version numbers for running Houdini Engine.
 		FHoudiniApi::GetEnvInt(SessionPtr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);

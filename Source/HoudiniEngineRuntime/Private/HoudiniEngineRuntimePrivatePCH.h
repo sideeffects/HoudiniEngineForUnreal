@@ -262,10 +262,18 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL	TEXT("N")
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE	TEXT("C_A")
 
+#define HAPI_UNREAL_ENABLE_LOADER
+
 /** Names of HAPI libraries on different platforms. **/
+#ifdef HAPI_UNREAL_ENABLE_LOADER
+#define HAPI_LIB_OBJECT_WINDOWS			TEXT("libHAPIL.dll")
+#define HAPI_LIB_OBJECT_MAC				TEXT("libHAPIL.dylib")
+#define HAPI_LIB_OBJECT_LINUX			TEXT("libHAPIL.so")
+#else
 #define HAPI_LIB_OBJECT_WINDOWS			TEXT("libHAPI.dll")
 #define HAPI_LIB_OBJECT_MAC				TEXT("libHAPI.dylib")
 #define HAPI_LIB_OBJECT_LINUX			TEXT("libHAPI.so")
+#endif
 
 /** HFS subfolder containing HAPI lib. **/
 #define HAPI_HFS_SUBFOLDER_WINDOWS		TEXT("bin")

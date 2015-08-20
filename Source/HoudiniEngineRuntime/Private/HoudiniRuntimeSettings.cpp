@@ -20,6 +20,14 @@
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 
+	/** Session options. **/
+	SessionType(HRSST_InProcess),
+	ServerHost("localhost"),
+	ServerPort(9090),
+	ServerPipeName("hapi"),	
+	bStartAutomaticServer(false),
+	AutomaticServerTimeout(3000.0f),
+
 	/** Cooking options. **/
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(false),

@@ -107,9 +107,24 @@ public:
 
 /** Session options. **/
 public:
-	// Enables cooking on parameter or input change for new Houdini Assets.
+
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 	TEnumAsByte<enum EHoudiniRuntimeSettingsSessionType> SessionType;
+
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+	FString ServerHost;
+
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+	int32 ServerPort;
+
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+	FString ServerPipeName;
+
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+	bool bStartAutomaticServer;
+
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+	float AutomaticServerTimeout;
 
 /** Cooking options. **/
 public:
