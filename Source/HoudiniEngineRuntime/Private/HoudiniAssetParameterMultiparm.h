@@ -45,6 +45,12 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
+	/** Add multiparm instance. **/
+	void AddMultiparmInstance(int32 ChildMultiparmInstanceIndex);
+
+	/** Remove multiparm instance. **/
+	void RemoveMultiparmInstance(int32 ChildMultiparmInstanceIndex);
+
 #endif
 
 	/** Upload parameter value to HAPI. **/
