@@ -547,6 +547,18 @@ UHoudiniAssetParameter::AssignUniqueParameterName()
 	}
 }
 
+void
+UHoudiniAssetParameter::CreateNameWidget(FDetailWidgetRow& Row, bool bLabel)
+{
+	FText ParameterLabelText = FText::FromString(GetParameterLabel());
+	const FText& FinalParameterLabelText = bLabel ? ParameterLabelText : FText::GetEmpty();
+
+	Row.NameWidget.Widget = SNew(STextBlock)
+							.Text(FinalParameterLabelText)
+							.ToolTipText(ParameterLabelText)
+							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+}
+
 #endif
 
 
