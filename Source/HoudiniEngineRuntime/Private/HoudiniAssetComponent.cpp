@@ -1534,11 +1534,23 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 {
 	if(bComponentCopyImported && CopiedHoudiniComponent)
 	{
+		// Get original asset id.
+		HAPI_AssetId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
+
 		// Set Houdini asset.
 		HoudiniAsset = CopiedHoudiniComponent->HoudiniAsset;
 
-		// Copy preset buffers.
-		PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
+		// Copy preset buffer.
+		if(FHoudiniEngineUtils::IsValidAssetId(CopiedHoudiniComponentAssetId))
+		{
+			FHoudiniEngineUtils::GetAssetPreset(CopiedHoudiniComponentAssetId, PresetBuffer);
+		}
+		else
+		{
+			PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
+		}
+
+		// Copy default preset buffer.
 		DefaultPresetBuffer = CopiedHoudiniComponent->DefaultPresetBuffer;
 
 		// Clean up all generated and auto-attached components.
