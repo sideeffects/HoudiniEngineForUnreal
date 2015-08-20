@@ -104,7 +104,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bParametersChanged(false),
 	bCurveChanged(false),
 	bComponentTransformHasChanged(false),
-	bUndoRequested(false),
 	bManualRecook(false),
 	bComponentCopyImported(false),
 	bTimeCookInPlaymode(false),
@@ -1084,7 +1083,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		else
 		{
 			// If we are doing first cook after instantiation and loading or if cooking is enabled and undo is invoked.
-			if(bFinishedLoadedInstantiation || (bEnableCooking && bUndoRequested))
+			if(bFinishedLoadedInstantiation)
 			{
 				// Update parameter node id for all loaded parameters.
 				UpdateLoadedParameters();
@@ -1102,12 +1101,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					PresetBuffer.Empty();
 				}
 
-				// Unset Undo flag.
-				bUndoRequested = false;
-			}
-
-			if(bFinishedLoadedInstantiation)
-			{
 				// Upload changed parameters back to HAPI.
 				UploadChangedParameters();
 
@@ -1892,9 +1885,6 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	{
 		return;
 	}
-
-	int32 Version = 0; // Placeholder until we need to use it.
-	Ar << Version;
 
 	// Serialize component flags.
 	Ar << HoudiniAssetComponentFlagsPacked;
