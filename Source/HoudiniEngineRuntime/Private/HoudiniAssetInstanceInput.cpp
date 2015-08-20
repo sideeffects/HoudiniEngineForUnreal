@@ -259,20 +259,23 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
 		HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh);
 
-		// Create instanced component.
-		HoudiniAssetInstanceInputField->CreateInstancedComponent();
 	}
 	else
 	{
 		// Remove item from old list.
 		InstanceInputFields.RemoveSingleSwap(HoudiniAssetInstanceInputField, false);
 
-		if(HoudiniAssetInstanceInputField->OriginalStaticMesh == HoudiniAssetInstanceInputField->GetStaticMesh())
+		TArray<int> MatchingIndices;
+		HoudiniAssetInstanceInputField->FindStaticMeshIndices(
+								HoudiniAssetInstanceInputField->OriginalStaticMesh,
+								MatchingIndices);
+		for (int Idx = 0; Idx < MatchingIndices.Num(); Idx++)
 		{
-			// Assign original and static mesh.
-			HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
-			HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh);
+			int ReplacementIndex = MatchingIndices[Idx];
+			HoudiniAssetInstanceInputField->ReplaceInstanceVariation(StaticMesh, ReplacementIndex);
 		}
+
+		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
 	}
 
 	// Update component transformation.
@@ -413,9 +416,9 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				]
 			]
 		];
-
+		
 		/*
-		HorizontalBox->AddSlot().Padding(0, 25.0f, 0, 25.0f).MaxWidth(60.0f)
+		HorizontalBox->AddSlot().Padding(0, 25.0f, 0, 25.0f).MaxWidth(25.0f)
 		[
 			SNew(SButton)
 			.Text(NSLOCTEXT("HoudiniEngine", "HEngineAddInstanceVariation", "+"))                        
@@ -425,16 +428,15 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		];
 
         
-		HorizontalBox->AddSlot().Padding(0.0f, 25.0f, 0.0f, 25.0f).MaxWidth(60.0f)
+		HorizontalBox->AddSlot().Padding(0.0f, 25.0f, 0.0f, 25.0f).MaxWidth(25.0f)
 		[
 			SNew(SButton)
 			.Text(NSLOCTEXT("HoudiniEngine", "HEngineSubInstanceVariation", "-"))
 			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation))
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
-		];
+		];		
 		*/
-
 		// Store thumbnail border for this static mesh.
 		HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
 

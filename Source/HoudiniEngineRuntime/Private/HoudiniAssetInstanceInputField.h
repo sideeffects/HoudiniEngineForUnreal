@@ -70,6 +70,15 @@ public:
 	/** Add a variation to the instancing **/
 	void AddInstanceVariation(UStaticMesh * InstaticMesh);
 
+	/** Replace the instance variation in a particular slot **/
+	void ReplaceInstanceVariation(UStaticMesh * InStaticMesh,
+								  int Index);
+
+	/** Given a static mesh, find which slot(s) it occupies in the instance 
+	    variations. **/
+	void FindStaticMeshIndices(UStaticMesh * InStaticMesh, 
+								TArray<int> & Indices);
+
 	/** Set thumbnail border used by static mesh used by this field. **/
 	void AssignThumbnailBorder(TSharedPtr<SBorder> InThumbnailBorder);
 
