@@ -152,7 +152,7 @@ UHoudiniAssetParameterMultiparm::AddMultiparmInstance(int32 ChildMultiparmInstan
 	MarkPreChanged();
 
 	FHoudiniApi::InsertMultiparmInstance(
-		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
+		NodeId, ParmId, ChildMultiparmInstanceIndex);
 	Value++;
 
 	// Mark this parameter as changed.
@@ -170,7 +170,7 @@ UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmIns
 	MarkPreChanged();
 
 	FHoudiniApi::RemoveMultiparmInstance(
-		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
+		NodeId, ParmId, ChildMultiparmInstanceIndex);
 	Value--;
 
 	// Mark this parameter as changed.
