@@ -584,9 +584,6 @@ protected:
 			/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
 			uint32 bComponentTransformHasChanged : 1;
 
-			/** Is set to true when undo is being performed. **/
-			uint32 bUndoRequested : 1;
-
 			/** Is set to true when manual recook is requested. **/
 			uint32 bManualRecook : 1;
 
