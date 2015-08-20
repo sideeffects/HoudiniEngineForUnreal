@@ -297,7 +297,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
 	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
-		HoudiniAssetInstanceInputField->CreateInstancedComponent();
+		int32 NumInstanceVariations = HoudiniAssetInstanceInputField->InstanceVariationCount();
+		for (int32 VariationIdx = 0; VariationIdx < NumInstanceVariations; VariationIdx++)
+			HoudiniAssetInstanceInputField->CreateInstancedComponent();
 	}
 
 	return true;

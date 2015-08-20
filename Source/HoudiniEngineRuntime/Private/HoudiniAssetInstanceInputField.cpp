@@ -33,9 +33,7 @@ UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField(const FObjectIn
 	InstancePathName(TEXT("")),		
 	HoudiniAssetInstanceInputFieldFlagsPacked(0)
 {
-	RotationOffsets.Add(FRotator(0, 0, 0));
-	ScaleOffsets.Add(FVector(1, 1, 1));
-	bScaleOffsetsLinearlyArray.Add(true);
+	
 }
 
 
@@ -279,6 +277,10 @@ UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh
 	check(InStaticMesh);
 	
 	StaticMeshes.Add(InStaticMesh);
+	RotationOffsets.Add(FRotator(0, 0, 0));
+	ScaleOffsets.Add(FVector(1, 1, 1));
+	bScaleOffsetsLinearlyArray.Add(true);
+
 	// Create instanced component.
 	CreateInstancedComponent();
 }
@@ -309,6 +311,12 @@ UHoudiniAssetInstanceInputField::FindStaticMeshIndices(
 			Indices.Add(Idx);
 		}
 	}	
+}
+
+int32 
+UHoudiniAssetInstanceInputField::InstanceVariationCount()
+{
+	return StaticMeshes.Num();
 }
 
 void

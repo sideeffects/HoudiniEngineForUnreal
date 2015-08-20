@@ -74,6 +74,9 @@ public:
 	void ReplaceInstanceVariation(UStaticMesh * InStaticMesh,
 								  int Index);
 
+	/** Returns the number of instance variations **/
+	int32 InstanceVariationCount();
+
 	/** Given a static mesh, find which slot(s) it occupies in the instance 
 	    variations. **/
 	void FindStaticMeshIndices(UStaticMesh * InStaticMesh, 
