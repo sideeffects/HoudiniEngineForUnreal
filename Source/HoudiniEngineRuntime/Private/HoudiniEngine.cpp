@@ -195,12 +195,12 @@ FHoudiniEngine::StartupModule()
 #ifdef HAPI_UNREAL_ENABLE_LOADER
 		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-		HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
+		HAPI_Result Result = HAPI_RESULT_FAILURE;
 
 		switch ( HoudiniRuntimeSettings->SessionType.GetValue() )
 		{
 		case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
-			SessionResult = FHoudiniApi::CreateInProcessSession( &this->Session );
+			Result = FHoudiniApi::CreateInProcessSession( &this->Session );
 			break;
 
 		case EHoudiniRuntimeSettingsSessionType::HRSST_Socket:
@@ -214,7 +214,7 @@ FHoudiniEngine::StartupModule()
 				);
 			}
 
-			SessionResult = FHoudiniApi::CreateThriftSocketSession(
+			Result = FHoudiniApi::CreateThriftSocketSession(
 				&this->Session,
 				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost),
 				HoudiniRuntimeSettings->ServerPort
@@ -232,7 +232,7 @@ FHoudiniEngine::StartupModule()
 				);
 			}
 
-			SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
+			Result = FHoudiniApi::CreateThriftNamedPipeSession(
 				&this->Session,
 				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
 			);			
@@ -245,7 +245,7 @@ FHoudiniEngine::StartupModule()
 		const HAPI_Session* SessionPtr = GetSession();
 
 #ifdef HAPI_UNREAL_ENABLE_LOADER
-		if (SessionResult != HAPI_RESULT_SUCCESS || !SessionPtr)
+		if (Result != HAPI_RESULT_SUCCESS || !SessionPtr)
 		{
 			HOUDINI_LOG_ERROR(TEXT("Failed to create a Houdini Engine session"));
 		}
