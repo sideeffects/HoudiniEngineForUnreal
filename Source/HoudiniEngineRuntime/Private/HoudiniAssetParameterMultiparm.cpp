@@ -89,12 +89,9 @@ void
 UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
-	FText ParameterLabelText = FText::FromString(GetParameterLabel());
-
-	Row.NameWidget.Widget = SNew(STextBlock)
-							.Text(ParameterLabelText)
-							.ToolTipText(ParameterLabelText)
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+	
+	// Create the standard parameter name widget.
+	CreateNameWidget(Row, true);
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 

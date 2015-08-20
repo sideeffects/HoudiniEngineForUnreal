@@ -162,6 +162,9 @@ protected:
 	/** Assigns a unique parameter name. **/
 	void AssignUniqueParameterName();
 
+	/** Create parameter name widget. **/
+	void CreateNameWidget(FDetailWidgetRow& Row, bool bLabel);
+
 #endif
 
 	/** Return true if parameter is spare, that is, created by Houdini Engine only. **/

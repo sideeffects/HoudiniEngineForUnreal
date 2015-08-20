@@ -99,10 +99,9 @@ UHoudiniAssetParameterButton::CreateWidget(IDetailCategoryBuilder& DetailCategor
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 	FText ParameterLabelText = FText::FromString(GetParameterLabel());
-
-	Row.NameWidget.Widget = SNew(STextBlock)
-							.ToolTipText(ParameterLabelText)
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+	
+	// Create the standard parameter name widget.
+	CreateNameWidget(Row, false);
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 	TSharedPtr<SButton> Button;
