@@ -52,4 +52,8 @@ public:
 	/** Register and unregister thumbnails. **/
 	virtual void RegisterThumbnails() {}
 	virtual void UnregisterThumbnails() {}
+
+	/** Register and unregister for undo/redo notifications. **/
+	virtual void RegisterForUndo() {}
+	virtual void UnregisterForUndo() {}
 };

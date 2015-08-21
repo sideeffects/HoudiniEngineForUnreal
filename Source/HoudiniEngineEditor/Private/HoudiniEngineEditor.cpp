@@ -17,6 +17,7 @@
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngine.h"
 
+#include "HoudiniAssetComponent.h"
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetComponentDetails.h"
@@ -52,6 +53,13 @@ FHoudiniEngineEditor::IsInitialized()
 }
 
 
+FHoudiniEngineEditor::FHoudiniEngineEditor() :
+	LastHoudiniAssetComponentUndoObject(nullptr)
+{
+
+}
+
+
 void
 FHoudiniEngineEditor::StartupModule()
 {
@@ -84,6 +92,9 @@ FHoudiniEngineEditor::StartupModule()
 	// Extend menu.
 	ExtendMenu();
 
+	// Register global undo / redo callbacks.
+	RegisterForUndo();
+
 	// Store the instance.
 	FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
 }
@@ -105,6 +116,9 @@ FHoudiniEngineEditor::ShutdownModule()
 
 	// Unregister our component visualizers.
 	UnregisterComponentVisualizers();
+
+	// Unregister global undo / redo callbacks.
+	UnregisterForUndo();
 }
 
 
@@ -347,6 +361,26 @@ FHoudiniEngineEditor::UnregisterStyleSet()
 }
 
 
+void
+FHoudiniEngineEditor::RegisterForUndo()
+{
+	if(GUnrealEd)
+	{
+		GUnrealEd->RegisterForUndo(this);
+	}
+}
+
+
+void
+FHoudiniEngineEditor::UnregisterForUndo()
+{
+	if(GUnrealEd)
+	{
+		GUnrealEd->UnregisterForUndo(this);
+	}
+}
+
+
 TSharedPtr<ISlateStyle>
 FHoudiniEngineEditor::GetSlateStyle() const
 {
@@ -367,5 +401,41 @@ FHoudiniEngineEditor::UnregisterThumbnails()
 	if(UObjectInitialized())
 	{
 		UThumbnailManager::Get().UnregisterCustomRenderer(UHoudiniAsset::StaticClass());
+	}
+}
+
+
+bool
+FHoudiniEngineEditor::MatchesContext(const FString& InContext, UObject* PrimaryObject) const
+{
+	if(InContext == TEXT(HOUDINI_MODULE_EDITOR) || InContext == TEXT(HOUDINI_MODULE_RUNTIME))
+	{
+		LastHoudiniAssetComponentUndoObject = Cast<UHoudiniAssetComponent>(PrimaryObject);
+		return true;
+	}
+
+	LastHoudiniAssetComponentUndoObject = nullptr;
+	return false;
+}
+
+
+void
+FHoudiniEngineEditor::PostUndo(bool bSuccess)
+{
+	if(LastHoudiniAssetComponentUndoObject && bSuccess)
+	{
+		LastHoudiniAssetComponentUndoObject->UpdateEditorProperties(false);
+		LastHoudiniAssetComponentUndoObject = nullptr;
+	}
+}
+
+
+void
+FHoudiniEngineEditor::PostRedo(bool bSuccess)
+{
+	if(LastHoudiniAssetComponentUndoObject && bSuccess)
+	{
+		LastHoudiniAssetComponentUndoObject->UpdateEditorProperties(false);
+		LastHoudiniAssetComponentUndoObject = nullptr;
 	}
 }

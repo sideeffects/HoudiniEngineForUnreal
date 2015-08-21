@@ -20,10 +20,13 @@
 class IAssetTools;
 class IAssetTypeActions;
 class IComponentAssetBroker;
+class UHoudiniAssetComponent;
 
 
-class FHoudiniEngineEditor : public IHoudiniEngineEditor
+class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClient
 {
+public:
+	FHoudiniEngineEditor();
 
 /** IModuleInterface methods. **/
 public:
@@ -49,6 +52,15 @@ public:
 	virtual TSharedPtr<ISlateStyle> GetSlateStyle() const override;
 	virtual void RegisterThumbnails() override;
 	virtual void UnregisterThumbnails() override;
+	virtual void RegisterForUndo() override;
+	virtual void UnregisterForUndo() override;
+
+/** FEditorUndoClient methods. **/
+public:
+
+	virtual bool MatchesContext(const FString& InContext, UObject* PrimaryObject) const override;
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
 
 public:
 
@@ -100,4 +112,7 @@ private:
 
 	/** Slate styleset used by this module. **/
 	TSharedPtr<FSlateStyleSet> StyleSet;
+
+	/** Stored last used Houdini component which was involved in undo. **/
+	mutable UHoudiniAssetComponent* LastHoudiniAssetComponentUndoObject;
 };
