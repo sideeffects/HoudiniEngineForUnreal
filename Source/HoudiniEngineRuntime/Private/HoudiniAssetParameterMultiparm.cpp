@@ -205,8 +205,9 @@ UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 	if(Value != InValue)
 	{
 		// Record undo information.
-		FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
-			"Houdini Parameter Multiparm: Changing a value"));
+		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+			HoudiniAssetComponent);
 		Modify();
 
 		MarkPreChanged();
@@ -229,8 +230,9 @@ void
 UHoudiniAssetParameterMultiparm::AddElement()
 {
 	// Record undo information.
-	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
-		"Houdini Parameter Multiparm: Changing a value"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+		HoudiniAssetComponent);
 	Modify();
 
 	MarkPreChanged();
@@ -244,8 +246,9 @@ void
 UHoudiniAssetParameterMultiparm::RemoveElement()
 {
 	// Record undo information.
-	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
-		"Houdini Parameter Multiparm: Changing a value"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+		HoudiniAssetComponent);
 	Modify();
 
 	MarkPreChanged();

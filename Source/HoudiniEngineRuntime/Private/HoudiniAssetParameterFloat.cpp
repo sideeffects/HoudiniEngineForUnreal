@@ -274,8 +274,9 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 		if(!bSliderDragged)
 		{
 			// If this is not a slider change (user typed in values manually), record undo information.
-			FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterFloatChange", 
-				"Houdini Parameter Float: Changing a value"));
+			FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+				LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
+				HoudiniAssetComponent);
 			Modify();
 		}
 
@@ -300,8 +301,9 @@ void
 UHoudiniAssetParameterFloat::OnSliderMovingBegin(int32 Idx)
 {
 	// We want to record undo increments only when user lets go of the slider.
-	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterFloatChange", 
-		"Houdini Parameter Float: Changing a value"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
+		HoudiniAssetComponent);
 	Modify();
 
 	bSliderDragged = true;

@@ -800,7 +800,8 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
 
 	if(InputStaticMesh && UsedStaticMesh != InputStaticMesh)
 	{
-		FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+			LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 		HoudiniAssetInstanceInputField->Modify();
 
 		HoudiniAssetInstanceInputField->SetStaticMesh(InputStaticMesh);
@@ -947,7 +948,8 @@ void
 UHoudiniAssetInstanceInput::SetRotationRoll(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
@@ -961,7 +963,8 @@ void
 UHoudiniAssetInstanceInput::SetRotationPitch(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
@@ -975,7 +978,8 @@ void
 UHoudiniAssetInstanceInput::SetRotationYaw(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset();
@@ -1012,7 +1016,8 @@ UHoudiniAssetInstanceInput::GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAs
 void
 UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
 	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
@@ -1032,7 +1037,8 @@ UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputFie
 void
 UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"), 
+		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
 	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
@@ -1052,7 +1058,8 @@ UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputFie
 void
 UHoudiniAssetInstanceInput::SetScaleZ(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
 	FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset();
@@ -1073,7 +1080,8 @@ void
 UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState,
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"));
+	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
 	HoudiniAssetInstanceInputField->SetLinearOffsetScale(ECheckBoxState::Checked == NewState);

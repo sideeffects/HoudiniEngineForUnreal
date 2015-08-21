@@ -330,8 +330,12 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified(int32 PointIndex, con
 {
 	if(EditedHoudiniSplineComponent)
 	{
-		FScopedTransaction Transaction(LOCTEXT("HoudiniSplineComponentChange", 
-			"Houdini Spline Component: Moving a point"));
+		UHoudiniAssetComponent* HoudiniAssetComponent =
+				Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+
+		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+			LOCTEXT("HoudiniSplineComponentChange", "Houdini Spline Component: Moving a point"),
+			HoudiniAssetComponent);
 		EditedHoudiniSplineComponent->Modify();
 
 		// Update given control point.
@@ -371,8 +375,12 @@ FHoudiniSplineComponentVisualizer::OnAddControlPoint()
 			ControlPointIndex = 0;
 		}
 
-		FScopedTransaction Transaction(LOCTEXT("HoudiniSplineComponentChange", 
-			"Houdini Spline Component: Adding a control point"));
+		UHoudiniAssetComponent* HoudiniAssetComponent =
+				Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+
+		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+			LOCTEXT("HoudiniSplineComponentChange", "Houdini Spline Component: Adding a control point"),
+			HoudiniAssetComponent);
 		EditedHoudiniSplineComponent->Modify();
 
 		EditedHoudiniSplineComponent->AddPoint(ControlPointIndex, Point);
@@ -400,8 +408,12 @@ FHoudiniSplineComponentVisualizer::OnDeleteControlPoint()
 {
 	if(EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
 	{
-		FScopedTransaction Transaction(LOCTEXT("HoudiniSplineComponentChange", 
-			"Houdini Spline Component: Removing a control point"));
+		UHoudiniAssetComponent* HoudiniAssetComponent =
+				Cast<UHoudiniAssetComponent>(EditedHoudiniSplineComponent->AttachParent);
+
+		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+			LOCTEXT("HoudiniSplineComponentChange", "Houdini Spline Component: Removing a control point"),
+			HoudiniAssetComponent);
 		EditedHoudiniSplineComponent->Modify();
 
 		EditedHoudiniSplineComponent->RemovePoint(EditedControlPointIndex);

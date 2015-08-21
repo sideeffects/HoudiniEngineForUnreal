@@ -195,8 +195,9 @@ UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor)
 	if(Color != InNewColor)
 	{
 		// Record undo information.
-		FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterColorChange", 
-			"Houdini Parameter Color: Changing a value"));
+		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+			LOCTEXT("HoudiniAssetParameterColorChange", "Houdini Parameter Color: Changing a value"),
+			HoudiniAssetComponent);
 		Modify();
 
 		MarkPreChanged();
