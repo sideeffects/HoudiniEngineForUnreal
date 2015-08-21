@@ -2485,7 +2485,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent,
 								HoudiniGeoPartObject, MeshName, MeshGuid);
 
-						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName), RF_Standalone);
+						StaticMesh = NewObject<UStaticMesh>(MeshPackage, FName(*MeshName),
+							RF_Standalone | RF_Transactional);
 
 						// Add meta information to this package.
 						FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, MeshPackage, 
