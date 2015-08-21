@@ -1014,10 +1014,6 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 	UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(InObject);
 	if(MaterialInterface)
 	{
-		// Replace material on static mesh.
-		StaticMesh->Modify();
-		StaticMesh->Materials[MaterialIdx] = MaterialInterface;
-
 		// Replace material on component using this static mesh.
 		for(TArray<UHoudiniAssetComponent*>::TIterator
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
@@ -1027,6 +1023,10 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 			{
 				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_EDITOR), 
 					LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), HoudiniAssetComponent);
+
+				// Replace material on static mesh.
+				StaticMesh->Modify();
+				StaticMesh->Materials[MaterialIdx] = MaterialInterface;
 
 				UStaticMeshComponent* StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);
 				if(StaticMeshComponent)
