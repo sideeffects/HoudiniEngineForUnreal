@@ -60,6 +60,7 @@ public:
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostEditUndo() override;
 
 public:
 
@@ -86,5 +87,20 @@ protected:
 
 	/** Value of this property. **/
 	int32 Value;
+
+private:
+
+	enum ModificationType
+	{
+		RegularValueChange,
+		InstanceAdded,
+		InstanceRemoved
+	};
+
+	/** Last modification type. **/
+	ModificationType LastModificationType;
+
+	/** Last remove/add instance index. **/
+	int32 LastRemoveAddInstanceIndex;
 
 };

@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Mykola Konyk
+ *      Damian Campeanu
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -20,7 +20,9 @@
 
 UHoudiniAssetParameterMultiparm::UHoudiniAssetParameterMultiparm(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	Value(0)
+	Value(0),
+	LastModificationType(RegularValueChange),
+	LastRemoveAddInstanceIndex(-1)
 {
 
 }
@@ -144,9 +146,15 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 void
 UHoudiniAssetParameterMultiparm::AddMultiparmInstance(int32 ChildMultiparmInstanceIndex)
 {
+	// Set the last modification type and instance index before the current state
+	// is saved by Modify().
+	LastModificationType = InstanceAdded;
+	LastRemoveAddInstanceIndex = ChildMultiparmInstanceIndex - 1; // Added above the current one.
+
 	// Record undo information.
-	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
-		"Houdini Parameter Multiparm: Adding instance"));
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Adding instance"),
+		HoudiniAssetComponent);
 	Modify();
 
 	MarkPreChanged();
@@ -155,6 +163,10 @@ UHoudiniAssetParameterMultiparm::AddMultiparmInstance(int32 ChildMultiparmInstan
 		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
 	Value++;
 
+	// Save the Redo modification type (should be the opposite operation to this one).
+	LastModificationType = InstanceRemoved;
+	LastRemoveAddInstanceIndex = ChildMultiparmInstanceIndex;
+
 	// Mark this parameter as changed.
 	MarkChanged();
 }
@@ -162,9 +174,15 @@ UHoudiniAssetParameterMultiparm::AddMultiparmInstance(int32 ChildMultiparmInstan
 void
 UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmInstanceIndex)
 {
+	// Set the last modification type and instance index before the current state
+	// is saved by Modify().
+	LastModificationType = InstanceRemoved;
+	LastRemoveAddInstanceIndex = ChildMultiparmInstanceIndex;
+
 	// Record undo information.
-	FScopedTransaction Transaction(LOCTEXT("HoudiniAssetParameterMultiparmChange", 
-		"Houdini Parameter Multiparm: Removing instance"));
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Removing instance"),
+		HoudiniAssetComponent);
 	Modify();
 
 	MarkPreChanged();
@@ -172,6 +190,10 @@ UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmIns
 	FHoudiniApi::RemoveMultiparmInstance(
 		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
 	Value--;
+
+	// Save the Redo modification type (should be the opposite operation to this one).
+	LastModificationType = InstanceAdded;
+	LastRemoveAddInstanceIndex = ChildMultiparmInstanceIndex;
 
 	// Mark this parameter as changed.
 	MarkChanged();
@@ -204,6 +226,9 @@ UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 {
 	if(Value != InValue)
 	{
+		LastModificationType = RegularValueChange;
+		LastRemoveAddInstanceIndex = -1;
+
 		// Record undo information.
 		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
@@ -229,6 +254,9 @@ UHoudiniAssetParameterMultiparm::SetValueCommitted(int32 InValue, ETextCommit::T
 void
 UHoudiniAssetParameterMultiparm::AddElement()
 {
+	LastModificationType = RegularValueChange;
+	LastRemoveAddInstanceIndex = -1;
+
 	// Record undo information.
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
@@ -245,6 +273,9 @@ UHoudiniAssetParameterMultiparm::AddElement()
 void
 UHoudiniAssetParameterMultiparm::RemoveElement()
 {
+	LastModificationType = RegularValueChange;
+	LastRemoveAddInstanceIndex = -1;
+
 	// Record undo information.
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
@@ -266,11 +297,34 @@ UHoudiniAssetParameterMultiparm::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
+	if(Ar.IsTransacting())
+	{
+		SerializeEnumeration(Ar, LastModificationType);
+		Ar << LastRemoveAddInstanceIndex;
+	}
+
 	if(Ar.IsLoading())
 	{
 		Value = 0;
 	}
 
 	Ar << Value;
+}
+
+void
+UHoudiniAssetParameterMultiparm::PostEditUndo()
+{
+	if(LastModificationType == InstanceAdded)
+	{
+		FHoudiniApi::RemoveMultiparmInstance(
+			FHoudiniEngine::Get().GetSession(), NodeId, ParmId, LastRemoveAddInstanceIndex);
+	}
+	else if(LastModificationType == InstanceRemoved)
+	{
+		FHoudiniApi::InsertMultiparmInstance(
+			FHoudiniEngine::Get().GetSession(), NodeId, ParmId, LastRemoveAddInstanceIndex);
+	}
+
+	Super::PostEditUndo();
 }
 
