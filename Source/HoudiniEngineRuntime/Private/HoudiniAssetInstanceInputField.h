@@ -67,6 +67,9 @@ public:
 	/** Set static mesh. **/
 	void SetStaticMesh(UStaticMesh* InStaticMesh);
 
+	/** Add a variation to the instancing **/
+	void AddInstanceVariation(UStaticMesh * InstaticMesh);
+
 	/** Set thumbnail border used by static mesh used by this field. **/
 	void AssignThumbnailBorder(TSharedPtr<SBorder> InThumbnailBorder);
 
@@ -141,11 +144,11 @@ protected:
 	/** Original static mesh used by the instancer. **/
 	UStaticMesh* OriginalStaticMesh;
 
-	/** Current used static mesh. **/
-	UStaticMesh* StaticMesh;
+	/** Currently used static meshes. **/
+	TArray<UStaticMesh*> StaticMeshes;
 
 	/** Used instanced static mesh component. **/
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent;
+	TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
 
 	/** Parent Houdini asset component. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;

@@ -77,7 +77,7 @@ public:
 #if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
-	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
+	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);    
 
 #endif
 
@@ -165,6 +165,12 @@ protected:
 	/** Handler for reset static mesh button. **/
 	FReply OnResetStaticMeshClicked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx);
 
+	/** Handler for adding instance variation **/
+	FReply OnAddInstanceVariation();
+
+	/** Handler for removing instance variation **/
+	FReply OnRemoveInstanceVariation();
+
 	/** Get rotation components for given index. **/
 	TOptional<float> GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
 	TOptional<float> GetRotationPitch(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField) const;
@@ -202,6 +208,7 @@ protected:
 
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
+    
 
 #endif
 
