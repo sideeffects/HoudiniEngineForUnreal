@@ -136,25 +136,25 @@ protected:
 
 	/** Delegate used when static mesh has been drag and dropped. **/
 	void OnStaticMeshDropped(UObject* InObject, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-		int32 Idx);
+		int32 Idx, int32 VariationIdx);
 
 	/** Delegate used to detect if valid object has been dragged and dropped. **/
 	bool OnStaticMeshDraggedOver(const UObject* InObject) const;
 
 	/** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
 	const FSlateBrush* GetStaticMeshThumbnailBorder(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-		int32 Idx) const;
+		int32 Idx, int32 VariationIdx) const;
 
 	/** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
 	FReply OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
 
 	/** Construct drop down menu content for static mesh. **/
 	TSharedRef<SWidget> OnGetStaticMeshMenuContent(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-		int32 Idx);
+		int32 Idx, int32 VariationIdx);
 
 	/** Delegate for handling selection in content browser. **/
 	void OnStaticMeshSelected(const FAssetData& AssetData, 
-		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx);
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, int32 VariationIdx);
 
 	/** Closes the combo button. **/
 	void CloseStaticMeshComboButton();
@@ -163,10 +163,11 @@ protected:
 	void OnStaticMeshBrowse(UStaticMesh* StaticMesh);
 
 	/** Handler for reset static mesh button. **/
-	FReply OnResetStaticMeshClicked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx);
+	FReply OnResetStaticMeshClicked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, 
+									int32 Idx, int32 VariationIdx);
 
 	/** Handler for adding instance variation **/
-	FReply OnAddInstanceVariation();
+	FReply OnAddInstanceVariation(UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index);
 
 	/** Handler for removing instance variation **/
 	FReply OnRemoveInstanceVariation();

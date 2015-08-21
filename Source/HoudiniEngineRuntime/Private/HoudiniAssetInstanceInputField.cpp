@@ -247,12 +247,12 @@ UHoudiniAssetInstanceInputField::GetOriginalStaticMesh() const
 
 
 UStaticMesh*
-UHoudiniAssetInstanceInputField::GetStaticMesh() const
+UHoudiniAssetInstanceInputField::GetCurrentStaticMesh( int32 VariationIndex ) const
 {
-	if (StaticMeshes.Num() <= 0)
+	if ( VariationIndex < 0 || VariationIndex >= StaticMeshes.Num() )
 		return NULL;
 	
-	UStaticMesh* StaticMesh = StaticMeshes[0];
+	UStaticMesh* StaticMesh = StaticMeshes[VariationIndex];
 	return StaticMesh;
 }
 

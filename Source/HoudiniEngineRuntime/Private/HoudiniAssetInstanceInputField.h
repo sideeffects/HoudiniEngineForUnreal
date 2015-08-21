@@ -61,8 +61,8 @@ public:
 	/** Return original static mesh. **/
 	UStaticMesh* GetOriginalStaticMesh() const;
 
-	/** Return associated static mesh. **/
-	UStaticMesh* GetStaticMesh() const;
+	/** Return the currently active static mesh variations. **/
+	UStaticMesh* GetCurrentStaticMesh(int32 VariationIndex) const;
 
 	/** Set static mesh. **/
 	void SetStaticMesh(UStaticMesh* InStaticMesh);
