@@ -491,7 +491,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 			{
 				// Create necessary component.
 				StaticMeshComponent = NewObject<UStaticMeshComponent>(GetOwner(), UStaticMeshComponent::StaticClass(),
-					NAME_None, RF_Transient);
+					NAME_None, RF_Transactional);
 
 				// Add to map of components.
 				StaticMeshComponents.Add(StaticMesh, StaticMeshComponent);
