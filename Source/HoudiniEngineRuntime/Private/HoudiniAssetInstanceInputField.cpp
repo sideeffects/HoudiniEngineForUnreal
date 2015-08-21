@@ -277,10 +277,38 @@ void
 UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh)
 {
 	check(InStaticMesh);
-	if (StaticMeshes.Num() > 0)
-		StaticMeshes[0] = InStaticMesh;
-	else
-		StaticMeshes.Add(InStaticMesh);
+	
+	StaticMeshes.Add(InStaticMesh);
+	// Create instanced component.
+	CreateInstancedComponent();
+}
+
+void
+UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(
+								UStaticMesh * InStaticMesh,
+								int Index)
+{
+	check(InStaticMesh);
+	check(Index >= 0 && Index < StaticMeshes.Num());	
+	check(InstancedStaticMeshComponents.Num() == StaticMeshes.Num());
+
+	StaticMeshes[Index] = InStaticMesh;
+	InstancedStaticMeshComponents[Index]->SetStaticMesh(InStaticMesh);
+}
+
+void 
+UHoudiniAssetInstanceInputField::FindStaticMeshIndices(
+							UStaticMesh * InStaticMesh, 
+							TArray<int> & Indices)
+{
+	for (int32 Idx = 0; Idx < StaticMeshes.Num(); ++Idx)
+	{
+		UStaticMesh* StaticMesh = StaticMeshes[Idx];
+		if (StaticMesh == InStaticMesh)
+		{
+			Indices.Add(Idx);
+		}
+	}	
 }
 
 void
