@@ -2281,31 +2281,7 @@ void
 UHoudiniAssetComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
-	/*
-	if(bLoadedComponent)
-	{
-		if(bTransactionAssetChange)
-		{
-			// Store transacted asset. At this stage there's a mismatch between asset on plugin and engine side.
-			UHoudiniAsset* Asset = HoudiniAsset;
-
-			// Reset current asset, this will also trigger asset deletion on the engine side.
-			SetHoudiniAsset(nullptr);
-
-			// Set and instantiate transacted asset.
-			SetHoudiniAsset(Asset);
-
-			bTransactionAssetChange = false;
-		}
-		else
-		{
-			bUndoRequested = true;
-			bParametersChanged = true;
-
-			StartHoudiniTicking();
-		}
-	}
-	*/
+	//UpdateEditorProperties(false);
 }
 
 
@@ -2820,12 +2796,7 @@ UHoudiniAssetComponent::CreateParameters()
 void
 UHoudiniAssetComponent::NotifyParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
 {
-	/*
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && PresetBuffer.Num() == 0)
-	{
-		FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer);
-	}
-	*/
+
 }
 
 
