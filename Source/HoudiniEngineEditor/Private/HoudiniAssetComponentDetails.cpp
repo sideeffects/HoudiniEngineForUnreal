@@ -1047,12 +1047,12 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 		// We need to update editor to reflect changes.
 		if(HoudiniAssetComponents.Num() > 0)
 		{
+			HoudiniAssetComponents[0]->UpdateEditorProperties(false);
+
 			if(GEditor)
 			{
 				GEditor->RedrawAllViewports();
 			}
-
-			HoudiniAssetComponents[0]->UpdateEditorProperties(false);
 		}
 	}
 }
