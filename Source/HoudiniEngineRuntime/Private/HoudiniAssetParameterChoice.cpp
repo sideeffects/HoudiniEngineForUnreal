@@ -360,7 +360,7 @@ UHoudiniAssetParameterChoice::OnChoiceChange(TSharedPtr<FString> NewChoice, ESel
 	if(bChanged)
 	{
 		// Record undo information.
-		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value"),
 			HoudiniAssetComponent);
 		Modify();

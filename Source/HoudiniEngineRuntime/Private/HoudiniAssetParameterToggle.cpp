@@ -207,7 +207,7 @@ UHoudiniAssetParameterToggle::CheckStateChanged(ECheckBoxState NewState, int32 I
 	if(Values[Idx] != bState)
 	{
 		// Record undo information.
-		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniAssetParameterToggleChange", "Houdini Parameter Toggle: Changing a value"),
 			HoudiniAssetComponent);
 		Modify();

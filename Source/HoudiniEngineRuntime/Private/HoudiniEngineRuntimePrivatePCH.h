@@ -86,12 +86,16 @@
 /** Whether to enable logging. **/
 #define HOUDINI_ENGINE_LOGGING 1
 
+/** Define module names. **/
+#define HOUDINI_MODULE_EDITOR "HoudiniEngineEditor"
+#define HOUDINI_MODULE_RUNTIME "HoudiniEngine"
+
 /** See whether we are in Editor or Engine module. **/
 #ifdef HOUDINI_ENGINE_EDITOR
-#define LOCTEXT_NAMESPACE "HoudiniEngineEditor"
+#define LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
 DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log, All);
 #else
-#define LOCTEXT_NAMESPACE "HoudiniEngine"
+#define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
 DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #endif
 

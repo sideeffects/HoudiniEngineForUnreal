@@ -181,7 +181,7 @@ UHoudiniAssetParameterString::SetValueCommitted(const FText& InValue, ETextCommi
 	if(Values[Idx] != CommittedValue)
 	{
 		// Record undo information.
-		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value"),
 			HoudiniAssetComponent);
 		Modify();

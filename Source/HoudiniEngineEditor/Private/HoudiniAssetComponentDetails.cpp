@@ -1025,7 +1025,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 			if(HoudiniAssetComponent)
 			{
-				FScopedTransaction Transaction(TEXT("HoudiniEngine"), 
+				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_EDITOR), 
 					LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), HoudiniAssetComponent);
 
 				UStaticMeshComponent* StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);

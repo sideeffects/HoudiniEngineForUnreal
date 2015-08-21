@@ -800,7 +800,7 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
 
 	if(InputStaticMesh && UsedStaticMesh != InputStaticMesh)
 	{
-		FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 		HoudiniAssetInstanceInputField->Modify();
 
@@ -948,7 +948,7 @@ void
 UHoudiniAssetInstanceInput::SetRotationRoll(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
@@ -963,7 +963,7 @@ void
 UHoudiniAssetInstanceInput::SetRotationPitch(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
@@ -978,7 +978,7 @@ void
 UHoudiniAssetInstanceInput::SetRotationYaw(float Value, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
@@ -1016,7 +1016,7 @@ UHoudiniAssetInstanceInput::GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAs
 void
 UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
@@ -1037,7 +1037,7 @@ UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputFie
 void
 UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(TEXT("HoudiniEngine"), 
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME), 
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
@@ -1058,7 +1058,7 @@ UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputFie
 void
 UHoudiniAssetInstanceInput::SetScaleZ(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
@@ -1080,7 +1080,7 @@ void
 UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState,
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField)
 {
-	FScopedTransaction Transaction(TEXT("HoudiniEngine"),
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 	HoudiniAssetInstanceInputField->Modify();
 
