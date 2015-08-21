@@ -163,13 +163,13 @@ protected:
 	FString InstancePathName;
 
 	/** Rotation offset for instanced component. **/
-	FRotator RotationOffset;
+	TArray<FRotator> RotationOffsets;
 
 	/** Scale offset for instanced component. **/
-	FVector ScaleOffset;
+	TArray<FVector> ScaleOffsets;
 
 	/** Whether to scale linearly for all fields. **/
-	bool bScaleOffsetsLinearly;
+	TArray<bool> bScaleOffsetsLinearlyArray;
 
 	/** Flags used by this input field. **/
 	uint32 HoudiniAssetInstanceInputFieldFlagsPacked;

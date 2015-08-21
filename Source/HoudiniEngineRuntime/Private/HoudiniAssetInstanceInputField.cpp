@@ -30,13 +30,12 @@ UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField(const FObjectIn
 	Super(ObjectInitializer),
 	OriginalStaticMesh(nullptr),		
 	HoudiniAssetComponent(nullptr),
-	InstancePathName(TEXT("")),
-	RotationOffset(0.0f, 0.0f, 0.0f),
-	ScaleOffset(1.0f, 1.0f, 1.0f),
-	bScaleOffsetsLinearly(true),
+	InstancePathName(TEXT("")),		
 	HoudiniAssetInstanceInputFieldFlagsPacked(0)
 {
-
+	RotationOffsets.Add(FRotator(0, 0, 0));
+	ScaleOffsets.Add(FVector(1, 1, 1));
+	bScaleOffsetsLinearlyArray.Add(true);
 }
 
 
@@ -73,9 +72,9 @@ UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* InHoudiniAssetCo
 	InputField->HoudiniGeoPartObject = OtherInputField->HoudiniGeoPartObject;
 	InputField->HoudiniAssetComponent = InHoudiniAssetComponent;
 	InputField->InstancePathName = OtherInputField->InstancePathName;
-	InputField->RotationOffset = OtherInputField->RotationOffset;
-	InputField->ScaleOffset = OtherInputField->ScaleOffset;
-	InputField->bScaleOffsetsLinearly = OtherInputField->bScaleOffsetsLinearly;
+	InputField->RotationOffsets = OtherInputField->RotationOffsets;
+	InputField->ScaleOffsets = OtherInputField->ScaleOffsets;
+	InputField->bScaleOffsetsLinearlyArray = OtherInputField->bScaleOffsetsLinearlyArray;
 	InputField->InstancedTransforms = OtherInputField->InstancedTransforms;
 	InputField->StaticMeshes = OtherInputField->StaticMeshes;
 	InputField->OriginalStaticMesh = OtherInputField->OriginalStaticMesh;
@@ -94,9 +93,9 @@ UHoudiniAssetInstanceInputField::Serialize(FArchive& Ar)
 	HoudiniGeoPartObject.Serialize(Ar);
 
 	Ar << InstancePathName;
-	Ar << RotationOffset;
-	Ar << ScaleOffset;
-	Ar << bScaleOffsetsLinearly;
+	Ar << RotationOffsets;
+	Ar << ScaleOffsets;
+	Ar << bScaleOffsetsLinearlyArray;
 
 	Ar << InstancedTransforms;
 	Ar << InstancedStaticMeshComponents;	
@@ -170,8 +169,8 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
 	}
 
-	SetRotationOffset(RotationOffset);
-	SetScaleOffset(ScaleOffset);
+	SetRotationOffset(RotationOffsets[0]);
+	SetScaleOffset(ScaleOffsets[0]);
 
 	UpdateInstanceTransforms();
 
@@ -223,7 +222,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms()
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = 
 		InstancedStaticMeshComponents.Num() > 0 ? InstancedStaticMeshComponents[0] : NULL;
 	FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(InstancedStaticMeshComponent, InstancedTransforms,
-		RotationOffset, ScaleOffset);
+		RotationOffsets[0], ScaleOffsets[0]);
 }
 
 
@@ -315,42 +314,42 @@ UHoudiniAssetInstanceInputField::GetComboButton() const
 const FRotator&
 UHoudiniAssetInstanceInputField::GetRotationOffset() const
 {
-	return RotationOffset;
+	return RotationOffsets[0];
 }
 
 
 void
 UHoudiniAssetInstanceInputField::SetRotationOffset(const FRotator& Rotator)
 {
-	RotationOffset = Rotator;
+	RotationOffsets[0] = Rotator;
 }
 
 
 const FVector&
 UHoudiniAssetInstanceInputField::GetScaleOffset() const
 {
-	return ScaleOffset;
+	return ScaleOffsets[0];
 }
 
 
 void
 UHoudiniAssetInstanceInputField::SetScaleOffset(const FVector& InScale)
 {
-	ScaleOffset = InScale;
+	ScaleOffsets[0] = InScale;
 }
 
 
 bool
 UHoudiniAssetInstanceInputField::AreOffsetsScaledLinearly() const
 {
-	return bScaleOffsetsLinearly;
+	return bScaleOffsetsLinearlyArray[0];
 }
 
 
 void
 UHoudiniAssetInstanceInputField::SetLinearOffsetScale(bool bEnabled)
 {
-	bScaleOffsetsLinearly = bEnabled;
+	bScaleOffsetsLinearlyArray[0] = bEnabled;
 }
 
 
