@@ -135,18 +135,21 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 void
 UHoudiniAssetInstanceInputField::BeginDestroy()
 {
-	//FIXME: Get rid of hard coded 0 indices
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent
-		= InstancedStaticMeshComponents.Num() ? InstancedStaticMeshComponents[0] : NULL;
-	if(InstancedStaticMeshComponent)
-	{
-		InstancedStaticMeshComponent->UnregisterComponent();
-		InstancedStaticMeshComponent->DetachFromParent();
-		InstancedStaticMeshComponent->DestroyComponent();
 
-		if(HoudiniAssetComponent)
+	for (int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+	{
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent
+			= InstancedStaticMeshComponents[Idx];
+		if (InstancedStaticMeshComponent)
 		{
-			HoudiniAssetComponent->AttachChildren.Remove(InstancedStaticMeshComponent);
+			InstancedStaticMeshComponent->UnregisterComponent();
+			InstancedStaticMeshComponent->DetachFromParent();
+			InstancedStaticMeshComponent->DestroyComponent();
+
+			if (HoudiniAssetComponent)
+			{
+				HoudiniAssetComponent->AttachChildren.Remove(InstancedStaticMeshComponent);
+			}
 		}
 	}
 
