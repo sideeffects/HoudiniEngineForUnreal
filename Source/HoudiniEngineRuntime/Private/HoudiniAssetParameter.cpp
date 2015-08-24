@@ -556,16 +556,18 @@ UHoudiniAssetParameter::CreateNameWidget(FDetailWidgetRow& Row, bool bLabel)
 	{
 		TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 
-		TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(
-			FSimpleDelegate::CreateUObject(
-				(UHoudiniAssetParameterMultiparm*) ParentParameter,
-				&UHoudiniAssetParameterMultiparm::AddMultiparmInstance,
-				MultiparmInstanceIndex));
 		TSharedRef<SWidget> ClearButton = PropertyCustomizationHelpers::MakeClearButton(
 			FSimpleDelegate::CreateUObject(
 				(UHoudiniAssetParameterMultiparm*) ParentParameter,
 				&UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance,
-				MultiparmInstanceIndex));
+				MultiparmInstanceIndex),
+			LOCTEXT("RemoveMultiparmInstanceToolTip", "Remove"));
+		TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(
+			FSimpleDelegate::CreateUObject(
+				(UHoudiniAssetParameterMultiparm*) ParentParameter,
+				&UHoudiniAssetParameterMultiparm::AddMultiparmInstance,
+				MultiparmInstanceIndex),
+			LOCTEXT("InsertBeforeMultiparmInstanceToolTip", "Insert Before"));
 
 		if(ChildIndex != 0)
 		{
@@ -573,14 +575,14 @@ UHoudiniAssetParameter::CreateNameWidget(FDetailWidgetRow& Row, bool bLabel)
 			ClearButton.Get().SetVisibility(EVisibility::Hidden);
 		}
 
-		HorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 0.0f)
-		[
-			AddButton
-		];
-
 		HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 		[
 			ClearButton
+		];
+
+		HorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 0.0f)
+		[
+			AddButton
 		];
 
 		HorizontalBox->AddSlot().Padding(2, 5, 5, 2)

@@ -117,19 +117,22 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
 		PropertyCustomizationHelpers::MakeAddButton(
-			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::AddElement))
+			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::AddElement),
+			LOCTEXT("AddAnotherInstanceToolTip", "Add Another Instance"))
 	];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
 		PropertyCustomizationHelpers::MakeRemoveButton(
-			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::RemoveElement))
+			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::RemoveElement),
+			LOCTEXT("RemoveLastInstanceToolTip", "Remove Last Instance"))
 	];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
 		PropertyCustomizationHelpers::MakeEmptyButton(
-			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::SetValue, 0))
+			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::SetValue, 0),
+			LOCTEXT("ClearAllInstanesToolTip", "Clear All Instances"))
 	];
 
 	if(NumericEntryBox.IsValid())
