@@ -53,6 +53,7 @@ public:
 	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) override;
 	virtual HAPI_Result GetHapiState() const override;
 	virtual void SetHapiState(HAPI_Result Result) override;
+	virtual const HAPI_Session* GetSession() const override;
 
 public:
 
@@ -66,12 +67,6 @@ public:
 
 	/** Return true if singleton instance has been created. **/
 	static bool IsInitialized();
-
-	/** Get the Houdini Engine session. **/
-	const HAPI_Session* GetSession() const
-	{
-		return Session.type == HAPI_SESSION_MAX ? nullptr : &Session;
-	}
 
 private:
 

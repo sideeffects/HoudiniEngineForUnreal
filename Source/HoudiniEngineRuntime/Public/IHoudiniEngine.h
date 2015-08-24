@@ -22,6 +22,8 @@ class ISlateStyle;
 struct FHoudiniEngineNotificationInfo;
 struct FHoudiniEngineTask;
 struct FHoudiniEngineTaskInfo;
+struct HAPI_Session;
+
 
 class IHoudiniEngine : public IModuleInterface
 {
@@ -63,4 +65,7 @@ public:
 
 	/** Retrieve task info. **/
 	virtual bool RetrieveTaskInfo(const FGuid HapIGUID, FHoudiniEngineTaskInfo& TaskInfo) = 0;
+
+	/** Retrieve HAPI session. **/
+	virtual const HAPI_Session* GetSession() const = 0;
 };

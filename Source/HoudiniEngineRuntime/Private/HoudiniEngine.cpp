@@ -90,6 +90,13 @@ FHoudiniEngine::SetHapiState(HAPI_Result Result)
 }
 
 
+const HAPI_Session*
+FHoudiniEngine::GetSession() const
+{
+	return Session.type == HAPI_SESSION_MAX ? nullptr : &Session;
+}
+
+
 FHoudiniEngine&
 FHoudiniEngine::Get()
 {
