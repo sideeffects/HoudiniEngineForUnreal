@@ -48,10 +48,7 @@ public:
 public:
 
 	/** Create this instance input. **/
-	bool CreateInstanceInput();
-
-	/** Create this instance input from post-loading intermediate state. **/
-	bool CreateInstanceInputPostLoad();
+	bool CreateInstanceInput();	
 
 	/** Recreates render states for used instanced static mesh components. **/
 	void RecreateRenderStates();

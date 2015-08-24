@@ -289,22 +289,6 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 }
 
 
-bool
-UHoudiniAssetInstanceInput::CreateInstanceInputPostLoad()
-{
-	// UpdateRelativeTransform?
-
-	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
-	{
-		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
-		int32 NumInstanceVariations = HoudiniAssetInstanceInputField->InstanceVariationCount();
-		for (int32 VariationIdx = 0; VariationIdx < NumInstanceVariations; VariationIdx++)
-			HoudiniAssetInstanceInputField->CreateInstancedComponent();
-	}
-
-	return true;
-}
-
 
 void
 UHoudiniAssetInstanceInput::RecreateRenderStates()
@@ -346,7 +330,7 @@ UHoudiniAssetInstanceInput::OnAddInstanceVariation(
 		UHoudiniAssetInstanceInputField * InstanceInputField,
 		int32 Index)
 {   
-	UStaticMesh * StaticMesh =  InstanceInputField->GetCurrentStaticMesh(Index);
+	UStaticMesh * StaticMesh =  InstanceInputField->GetInstanceVariation(Index);
 	InstanceInputField->AddInstanceVariation( StaticMesh );
 
 	if (HoudiniAssetComponent)
@@ -378,7 +362,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
 		for (int32 VariationIdx = 0; VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++)
 		{			
-			UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetCurrentStaticMesh(VariationIdx);
+			UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
 
 			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
 			FText LabelText =
@@ -724,7 +708,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 		{
 			const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject =
 				//FIXME: Get rid of the hard coded index 0
-				HoudiniAssetComponent->LocateGeoPartObject(HoudiniAssetInstanceInputField->GetCurrentStaticMesh(0));
+				HoudiniAssetComponent->LocateGeoPartObject(HoudiniAssetInstanceInputField->GetInstanceVariation(0));
 
 			// Bake the referenced static mesh.
 			OutStaticMesh =
@@ -743,7 +727,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 		else
 		{
 			//FIXME: Get rid of the hard coded index 0
-			OutStaticMesh = HoudiniAssetInstanceInputField->GetCurrentStaticMesh(0);
+			OutStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(0);
 		}
 
 		UInstancedStaticMeshComponent* DuplicatedComponent =
@@ -814,9 +798,8 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
 												int32 Idx, 
 												int32 VariationIdx)
 {
-	UStaticMesh* InputStaticMesh = Cast<UStaticMesh>(InObject);
-	//FIXME: Get rid of the hard coded index 0
-	UStaticMesh* UsedStaticMesh = HoudiniAssetInstanceInputField->GetCurrentStaticMesh(0);
+	UStaticMesh* InputStaticMesh = Cast<UStaticMesh>(InObject);	
+	UStaticMesh* UsedStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
 
 	if(InputStaticMesh && UsedStaticMesh != InputStaticMesh)
 	{
@@ -824,12 +807,13 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
 			LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 		HoudiniAssetInstanceInputField->Modify();
 
-		HoudiniAssetInstanceInputField->SetStaticMesh(InputStaticMesh);
+		HoudiniAssetInstanceInputField->ReplaceInstanceVariation(InputStaticMesh,VariationIdx);		
 
 		if(HoudiniAssetComponent)
 		{
 			HoudiniAssetComponent->UpdateEditorProperties(false);
 		}
+		
 	}
 }
 
@@ -886,7 +870,7 @@ UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent(UHoudiniAssetInstanceInpu
 	TArray<UFactory*> NewAssetFactories;
 
 	//FIXME: Get rid of the hard coded index 0
-	UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetCurrentStaticMesh(0);
+	UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(0);
 
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true,
 		AllowedClasses, NewAssetFactories,OnShouldFilterStaticMesh,

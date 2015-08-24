@@ -180,29 +180,28 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 
 
 void
-UHoudiniAssetInstanceInputField::CreateInstancedComponent()
+UHoudiniAssetInstanceInputField::CreateInstancedComponent(int32 VariationIdx)
 {
-	check(StaticMeshes.Num() > 0);
+	check(StaticMeshes.Num() > 0 && (VariationIdx < StaticMeshes.Num()));
 	
-	UStaticMesh* StaticMesh = StaticMeshes[0];
+	UStaticMesh* StaticMesh = StaticMeshes[VariationIdx];
 	check(HoudiniAssetComponent);
+	
+	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
+		UInstancedStaticMeshComponent::StaticClass(), NAME_None);
 
-	if(InstancedStaticMeshComponents.Num() <= 0)
-	{
-		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
-			UInstancedStaticMeshComponent::StaticClass(), NAME_None);
-		InstancedStaticMeshComponents.Add(InstancedStaticMeshComponent);
-	}
+	//FIXME: This should not use Add, but Insert
+	InstancedStaticMeshComponents.Add(InstancedStaticMeshComponent);	
 
 	// Assign static mesh to this instanced component.
 	
-	InstancedStaticMeshComponents[0]->SetStaticMesh(StaticMesh);
-	InstancedStaticMeshComponents[0]->AttachTo(HoudiniAssetComponent);
-	InstancedStaticMeshComponents[0]->RegisterComponent();
-	InstancedStaticMeshComponents[0]->GetBodyInstance()->bAutoWeld = false;
+	InstancedStaticMeshComponents[VariationIdx]->SetStaticMesh(StaticMesh);
+	InstancedStaticMeshComponents[VariationIdx]->AttachTo(HoudiniAssetComponent);
+	InstancedStaticMeshComponents[VariationIdx]->RegisterComponent();
+	InstancedStaticMeshComponents[VariationIdx]->GetBodyInstance()->bAutoWeld = false;
 
 	// We want to make this invisible if it's a collision instancer.
-	InstancedStaticMeshComponents[0]->SetVisibility(!HoudiniGeoPartObject.bIsCollidable);
+	InstancedStaticMeshComponents[VariationIdx]->SetVisibility(!HoudiniGeoPartObject.bIsCollidable);
 }
 
 
@@ -217,10 +216,35 @@ UHoudiniAssetInstanceInputField::SetInstanceTransforms(const TArray<FTransform>&
 void
 UHoudiniAssetInstanceInputField::UpdateInstanceTransforms()
 {
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = 
-		InstancedStaticMeshComponents.Num() > 0 ? InstancedStaticMeshComponents[0] : NULL;
-	FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(InstancedStaticMeshComponent, InstancedTransforms,
-		RotationOffsets[0], ScaleOffsets[0]);
+	int32 NumInstancTransforms = InstancedTransforms.Num();
+	int32 VariationCount = InstanceVariationCount();
+
+	TArray<TArray<FTransform>> VariationTransformsArray;
+
+	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	{
+		TArray<FTransform> VariationTransforms;
+		VariationTransformsArray.Add(VariationTransforms);
+	}
+
+	for (int32 Idx = 0; Idx < NumInstancTransforms; Idx++)
+	{
+		FTransform Xform = InstancedTransforms[Idx];
+		int32 VariationIndex = rand() % VariationCount;
+		VariationTransformsArray[VariationIndex].Add(Xform);
+	}
+
+	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	{
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+		FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(
+			InstancedStaticMeshComponent, 
+			VariationTransformsArray[Idx],
+			RotationOffsets[Idx], ScaleOffsets[Idx]);
+
+	}
+
+	
 }
 
 
@@ -247,7 +271,7 @@ UHoudiniAssetInstanceInputField::GetOriginalStaticMesh() const
 
 
 UStaticMesh*
-UHoudiniAssetInstanceInputField::GetCurrentStaticMesh( int32 VariationIndex ) const
+UHoudiniAssetInstanceInputField::GetInstanceVariation( int32 VariationIndex ) const
 {
 	if ( VariationIndex < 0 || VariationIndex >= StaticMeshes.Num() )
 		return NULL;
@@ -256,20 +280,6 @@ UHoudiniAssetInstanceInputField::GetCurrentStaticMesh( int32 VariationIndex ) co
 	return StaticMesh;
 }
 
-
-void
-UHoudiniAssetInstanceInputField::SetStaticMesh(UStaticMesh* InStaticMesh)
-{
-	check(InStaticMesh);
-	if (StaticMeshes.Num() > 0)
-		StaticMeshes[0] = InStaticMesh;
-	else
-		StaticMeshes.Add(InStaticMesh);
-
-	check(InstancedStaticMeshComponents.Num() > 0);
-
-	InstancedStaticMeshComponents[0]->SetStaticMesh(InStaticMesh);
-}
 
 void 
 UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh)
@@ -282,7 +292,8 @@ UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh
 	bScaleOffsetsLinearlyArray.Add(true);
 
 	// Create instanced component.
-	CreateInstancedComponent();
+	//FIXME: AddInstanceVariation should take an index to say where it's adding that variation, instead of always at the end.
+	CreateInstancedComponent( StaticMeshes.Num() - 1);
 }
 
 void
@@ -296,6 +307,7 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(
 
 	StaticMeshes[Index] = InStaticMesh;
 	InstancedStaticMeshComponents[Index]->SetStaticMesh(InStaticMesh);
+	UpdateInstanceTransforms();
 }
 
 void 

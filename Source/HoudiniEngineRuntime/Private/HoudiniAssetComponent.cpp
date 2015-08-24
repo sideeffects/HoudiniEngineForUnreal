@@ -1865,7 +1865,7 @@ UHoudiniAssetComponent::PostLoad()
 	}
 
 	// Perform post load initialization on parameters.
-	PostLoadInitializeParameters();
+	PostLoadInitializeParameters();	
 
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
@@ -3370,7 +3370,7 @@ UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
 	{
 		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
 		HoudiniAssetInstanceInput->SetHoudiniAssetComponent(this);
-		HoudiniAssetInstanceInput->CreateInstanceInputPostLoad();
+
 	}
 }
 

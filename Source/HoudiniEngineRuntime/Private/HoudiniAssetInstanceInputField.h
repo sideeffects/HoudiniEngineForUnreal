@@ -61,11 +61,8 @@ public:
 	/** Return original static mesh. **/
 	UStaticMesh* GetOriginalStaticMesh() const;
 
-	/** Return the currently active static mesh variations. **/
-	UStaticMesh* GetCurrentStaticMesh(int32 VariationIndex) const;
-
-	/** Set static mesh. **/
-	void SetStaticMesh(UStaticMesh* InStaticMesh);
+	/** Return the static mesh associated with an instance variation. **/
+	UStaticMesh* GetInstanceVariation(int32 VariationIndex) const;	
 
 	/** Add a variation to the instancing **/
 	void AddInstanceVariation(UStaticMesh * InstaticMesh);
@@ -130,7 +127,7 @@ public:
 protected:
 
 	/** Create instanced component for this field. **/
-	void CreateInstancedComponent();
+	void CreateInstancedComponent(int32 VariationIdx);
 
 	/** Set transforms for this field. **/
 	void SetInstanceTransforms(const TArray<FTransform>& ObjectTransforms);
