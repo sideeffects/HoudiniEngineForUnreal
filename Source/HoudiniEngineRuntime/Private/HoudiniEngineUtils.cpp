@@ -4110,6 +4110,13 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 	TCHAR HFS_ENV_VARIABLE[MAX_PATH];
 	FMemory::Memzero(&HFS_ENV_VARIABLE[0], sizeof(TCHAR) * MAX_PATH);
 
+	// Look up HAPI_PATH environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
+	FPlatformMisc::GetEnvironmentVariable(TEXT("HAPI_PATH"), HFS_ENV_VARIABLE, MAX_PATH);
+	if(*HFS_ENV_VARIABLE)
+	{
+		HFSPath = &HFS_ENV_VARIABLE[0];
+	}
+
 	// Look up environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
 	FPlatformMisc::GetEnvironmentVariable(TEXT("HFS"), HFS_ENV_VARIABLE, MAX_PATH);
 	if(*HFS_ENV_VARIABLE)
