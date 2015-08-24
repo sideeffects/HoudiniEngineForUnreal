@@ -42,6 +42,7 @@
 #include "NotificationManager.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
+#include "Editor/UnrealEd/Public/BusyCursor.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "ScopedTransaction.h"
 #include "RawMesh.h"

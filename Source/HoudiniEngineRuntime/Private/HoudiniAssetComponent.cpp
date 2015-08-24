@@ -758,6 +758,9 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 void
 UHoudiniAssetComponent::PostCook()
 {
+	// Show busy cursor.
+	FScopedBusyCursor ScopedBusyCursor;
+
 	// Create parameters and inputs.
 	CreateParameters();
 	CreateInputs();
@@ -1536,6 +1539,9 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 {
 	if(bComponentCopyImported && CopiedHoudiniComponent)
 	{
+		// Show busy cursor.
+		FScopedBusyCursor ScopedBusyCursor;
+
 		// Get original asset id.
 		HAPI_AssetId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
 
@@ -1845,7 +1851,12 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPart
 void
 UHoudiniAssetComponent::PostLoad()
 {
+
+#if WITH_EDITOR
+
 	Super::PostLoad();
+
+#endif
 
 	// We loaded a component which has no asset associated with it.
 	if(!HoudiniAsset)
@@ -1854,6 +1865,9 @@ UHoudiniAssetComponent::PostLoad()
 		CreateStaticMeshHoudiniLogoResource(StaticMeshes);
 		return;
 	}
+
+	// Show busy cursor.
+	FScopedBusyCursor ScopedBusyCursor;
 
 	if(StaticMeshes.Num() > 0)
 	{
@@ -2189,6 +2203,9 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters(UStaticMesh* StaticMes
 AActor*
 UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 {
+	// Display busy cursor.
+	FScopedBusyCursor ScopedBusyCursor;
+
 	ULevel* Level = GetHoudiniAssetActorOwner()->GetLevel();
 	AActor* Actor = NewObject<AActor>(Level, NAME_None);
 	Actor->AddToRoot();
@@ -2283,7 +2300,6 @@ void
 UHoudiniAssetComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
-	//UpdateEditorProperties(false);
 }
 
 
