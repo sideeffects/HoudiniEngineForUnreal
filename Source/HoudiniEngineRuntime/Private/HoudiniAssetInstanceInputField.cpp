@@ -135,6 +135,7 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 void
 UHoudiniAssetInstanceInputField::BeginDestroy()
 {
+	//FIXME: Get rid of hard coded 0 indices
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent
 		= InstancedStaticMeshComponents.Num() ? InstancedStaticMeshComponents[0] : NULL;
 	if(InstancedStaticMeshComponent)
@@ -158,6 +159,7 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 {
 	Super::PostEditUndo();
 
+	//FIXME: Get rid of the hard coded 0 indices.
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent
 		= InstancedStaticMeshComponents.Num() ? InstancedStaticMeshComponents[0] : NULL;
 
@@ -167,8 +169,8 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
 	}
 
-	SetRotationOffset(RotationOffsets[0]);
-	SetScaleOffset(ScaleOffsets[0]);
+	SetRotationOffset(RotationOffsets[0],0);
+	SetScaleOffset(ScaleOffsets[0],0);
 
 	UpdateInstanceTransforms();
 
@@ -251,6 +253,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms()
 void
 UHoudiniAssetInstanceInputField::UpdateRelativeTransform()
 {
+	//FIXME: Get rid of hard coded 0 indices
 	check(InstancedStaticMeshComponents.Num() > 0);
 	InstancedStaticMeshComponents[0]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 }
@@ -360,50 +363,54 @@ UHoudiniAssetInstanceInputField::GetComboButton() const
 
 
 const FRotator&
-UHoudiniAssetInstanceInputField::GetRotationOffset() const
+UHoudiniAssetInstanceInputField::GetRotationOffset(int32 VariationIdx) const
 {
-	return RotationOffsets[0];
+	return RotationOffsets[VariationIdx];
 }
 
 
 void
-UHoudiniAssetInstanceInputField::SetRotationOffset(const FRotator& Rotator)
+UHoudiniAssetInstanceInputField::SetRotationOffset(const FRotator& Rotator,
+												   int32 VariationIdx)
 {
-	RotationOffsets[0] = Rotator;
+	RotationOffsets[VariationIdx] = Rotator;
 }
 
 
 const FVector&
-UHoudiniAssetInstanceInputField::GetScaleOffset() const
+UHoudiniAssetInstanceInputField::GetScaleOffset(int32 VariationIdx) const
 {
-	return ScaleOffsets[0];
+	return ScaleOffsets[VariationIdx];
 }
 
 
 void
-UHoudiniAssetInstanceInputField::SetScaleOffset(const FVector& InScale)
+UHoudiniAssetInstanceInputField::SetScaleOffset(const FVector& InScale,
+												int32 VariationIdx)
 {
-	ScaleOffsets[0] = InScale;
+	ScaleOffsets[VariationIdx] = InScale;
 }
 
 
 bool
-UHoudiniAssetInstanceInputField::AreOffsetsScaledLinearly() const
+UHoudiniAssetInstanceInputField::AreOffsetsScaledLinearly(int32 VariationIdx) const
 {
-	return bScaleOffsetsLinearlyArray[0];
+	return bScaleOffsetsLinearlyArray[VariationIdx];
 }
 
 
 void
-UHoudiniAssetInstanceInputField::SetLinearOffsetScale(bool bEnabled)
+UHoudiniAssetInstanceInputField::SetLinearOffsetScale(bool bEnabled,
+													  int32 VariationIdx)
 {
-	bScaleOffsetsLinearlyArray[0] = bEnabled;
+	bScaleOffsetsLinearlyArray[VariationIdx] = bEnabled;
 }
 
 
 bool
 UHoudiniAssetInstanceInputField::IsOriginalStaticMeshUsed() const
 {
+	//FIXME: Get rid of hard coded 0 indices
 	UStaticMesh* StaticMesh = StaticMeshes.Num() > 0 ? StaticMeshes[0] : NULL;
 	return OriginalStaticMesh == StaticMesh;
 }
@@ -412,6 +419,7 @@ UHoudiniAssetInstanceInputField::IsOriginalStaticMeshUsed() const
 UInstancedStaticMeshComponent*
 UHoudiniAssetInstanceInputField::GetInstancedStaticMeshComponent() const
 {
+	//FIXME: Get rid of hard coded 0 indices
 	if (InstancedStaticMeshComponents.Num() <= 0)
 		return NULL;
 	return InstancedStaticMeshComponents[0];
@@ -428,6 +436,7 @@ UHoudiniAssetInstanceInputField::GetInstancedTransforms() const
 void
 UHoudiniAssetInstanceInputField::RecreateRenderState()
 {
+	//FIXME: Get rid of hard coded 0 indices
 	if(InstancedStaticMeshComponents.Num() > 0)
 	{
 		InstancedStaticMeshComponents[0]->RecreateRenderState_Concurrent();
@@ -438,6 +447,7 @@ UHoudiniAssetInstanceInputField::RecreateRenderState()
 void
 UHoudiniAssetInstanceInputField::RecreatePhysicsState()
 {
+	//FIXME: Get rid of hard coded 0 indices
 	if(InstancedStaticMeshComponents.Num() > 0)
 	{
 		InstancedStaticMeshComponents[0]->RecreatePhysicsState();

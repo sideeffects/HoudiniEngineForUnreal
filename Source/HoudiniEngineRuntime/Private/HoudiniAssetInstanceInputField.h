@@ -92,22 +92,22 @@ public:
 	TSharedPtr<SComboButton> GetComboButton() const;
 
 	/** Get rotator used by this field. **/
-	const FRotator& GetRotationOffset() const;
+	const FRotator& GetRotationOffset(int32 VariationIdx) const;
 
 	/** Set rotation offset used by this field. **/
-	void SetRotationOffset(const FRotator& Rotator);
+	void SetRotationOffset(const FRotator& Rotator, int32 VariationIdx);
 
 	/** Get scale used by this field. **/
-	const FVector& GetScaleOffset() const;
+	const FVector& GetScaleOffset(int32 VariationIdx) const;
 
 	/** Set scale used by this field. **/
-	void SetScaleOffset(const FVector& InScale);
+	void SetScaleOffset(const FVector& InScale, int32 VariationIdx);
 
 	/** Return true if all fields are scaled linearly. **/
-	bool AreOffsetsScaledLinearly() const;
+	bool AreOffsetsScaledLinearly(int32 VariationIdx) const;
 
 	/** Set whether offsets are scaled linearly. **/
-	void SetLinearOffsetScale(bool bEnabled);
+	void SetLinearOffsetScale(bool bEnabled, int32 VariationIdx);
 
 	/** Return true if original static mesh is used. **/
 	bool IsOriginalStaticMeshUsed() const;
