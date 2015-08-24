@@ -4479,11 +4479,20 @@ FHoudiniEngineUtils::MaterialHasTextureSampleExpression(UMaterial* Material)
 
 
 AHoudiniAssetActor*
-FHoudiniEngineUtils::LocateClipboardActor()
+FHoudiniEngineUtils::LocateClipboardActor(const FString& ClipboardText)
 {
-	FString PasteString;
-	FPlatformMisc::ClipboardPaste(PasteString);
-	const TCHAR* Paste = *PasteString;
+	const TCHAR* Paste = nullptr;
+
+	if(ClipboardText.IsEmpty())
+	{
+		FString PasteString;
+		FPlatformMisc::ClipboardPaste(PasteString);
+		Paste = *PasteString;
+	}
+	else
+	{
+		Paste = *ClipboardText;
+	}
 
 	AHoudiniAssetActor* HoudiniAssetActor = nullptr;
 	FString ActorName = TEXT("");
@@ -4502,11 +4511,19 @@ FHoudiniEngineUtils::LocateClipboardActor()
 			{
 				if(FParse::Value(Str, TEXT("Name="), ActorName))
 				{
-					HoudiniAssetActor = Cast<AHoudiniAssetActor>(StaticFindObject(AHoudiniAssetActor::StaticClass(), ANY_PACKAGE,
-						*ActorName));
+					HoudiniAssetActor = Cast<AHoudiniAssetActor>(StaticFindObject(AHoudiniAssetActor::StaticClass(),
+						ANY_PACKAGE, *ActorName));
+
 					break;
 				}
 			}
+		}
+		else if(StrLine.StartsWith(TEXT("ActorLabel")) && FParse::Value(Str, TEXT("ActorLabel="), ActorName))
+		{
+			HoudiniAssetActor = Cast<AHoudiniAssetActor>(StaticFindObject(AHoudiniAssetActor::StaticClass(),
+				ANY_PACKAGE, *ActorName));
+
+			break;
 		}
 	}
 

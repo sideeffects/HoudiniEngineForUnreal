@@ -46,6 +46,13 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+#if WITH_EDITOR
+
+	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
+	virtual bool ShouldExport() override;
+
+#endif
+
 protected:
 
 	/** Used to track current playtime. **/

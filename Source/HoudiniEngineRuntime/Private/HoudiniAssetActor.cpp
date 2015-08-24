@@ -99,3 +99,52 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 #endif
 
 }
+
+
+#if WITH_EDITOR
+
+bool
+AHoudiniAssetActor::ShouldImport(FString* ActorPropString, bool IsMovingLevel)
+{
+	if(ActorPropString)
+	{
+		// Locate actor which is being copied in clipboard string.
+		AHoudiniAssetActor* CopiedActor = FHoudiniEngineUtils::LocateClipboardActor(*ActorPropString);
+
+		// We no longer need clipboard string and can empty it. This seems to avoid occasional crash bug in UE4 which
+		// happens on copy / paste.
+		ActorPropString->Empty();
+
+		if(CopiedActor)
+		{
+			// Get Houdini component of an actor which is being copied.
+			UHoudiniAssetComponent* CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
+			if(CopiedActorHoudiniAssetComponent)
+			{
+				HoudiniAssetComponent->OnComponentClipboardCopy(CopiedActorHoudiniAssetComponent);
+
+				// If actor is copied through moving, we need to copy main transform.
+				const FTransform& ComponentWorldTransform = CopiedActorHoudiniAssetComponent->GetComponentTransform();
+					HoudiniAssetComponent->SetWorldLocationAndRotation(ComponentWorldTransform.GetLocation(),
+						ComponentWorldTransform.GetRotation());
+
+				// We also need to copy actor label.
+				const FString& CopiedActorLabel = CopiedActor->GetActorLabel();
+				FActorLabelUtilities::SetActorLabelUnique(this, CopiedActorLabel);
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
+bool
+AHoudiniAssetActor::ShouldExport()
+{
+	return true;
+}
+
+#endif

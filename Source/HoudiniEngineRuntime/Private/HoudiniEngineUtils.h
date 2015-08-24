@@ -126,7 +126,7 @@ public:
 	static int32 CountUVSets(const FRawMesh& RawMesh);
 
 	/** Helper function to extract copied Houdini actor from clipboard. **/
-	static AHoudiniAssetActor* LocateClipboardActor();
+	static AHoudiniAssetActor* LocateClipboardActor(const FString& ClipboardText);
 
 	/** Update instances of a given instanced static mesh component. **/
 	static void UpdateInstancedStaticMeshComponentInstances(UInstancedStaticMeshComponent* Component,
