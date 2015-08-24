@@ -1852,11 +1852,7 @@ void
 UHoudiniAssetComponent::PostLoad()
 {
 
-#if WITH_EDITOR
-
 	Super::PostLoad();
-
-#endif
 
 	// We loaded a component which has no asset associated with it.
 	if(!HoudiniAsset)
@@ -1866,8 +1862,12 @@ UHoudiniAssetComponent::PostLoad()
 		return;
 	}
 
+#if WITH_EDITOR
+
 	// Show busy cursor.
 	FScopedBusyCursor ScopedBusyCursor;
+
+#endif
 
 	if(StaticMeshes.Num() > 0)
 	{
