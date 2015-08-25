@@ -698,64 +698,69 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
-		UStaticMesh* OutStaticMesh = nullptr;
 
-		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = 
-			HoudiniAssetInstanceInputField->GetInstancedStaticMeshComponent();
-
-		// If original static mesh is used, then we need to bake it.
-		if(HoudiniAssetInstanceInputField->IsOriginalStaticMeshUsed())
+		bool HasBakedOriginalStaticMesh = false;
+		for (int32 VariationIdx = 0; VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++)
 		{
-			const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject =
-				//FIXME: Get rid of the hard coded index 0
-				HoudiniAssetComponent->LocateGeoPartObject(HoudiniAssetInstanceInputField->GetInstanceVariation(0));
+			UStaticMesh* OutStaticMesh = nullptr;
 
-			// Bake the referenced static mesh.
-			OutStaticMesh =
-				FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, ItemHoudiniGeoPartObject, 
+			UInstancedStaticMeshComponent* InstancedStaticMeshComponent =
+				HoudiniAssetInstanceInputField->GetInstancedStaticMeshComponent(VariationIdx);
+
+			// If original static mesh is used, then we need to bake it.
+			if (HoudiniAssetInstanceInputField->IsOriginalStaticMeshUsed(VariationIdx) && !HasBakedOriginalStaticMesh)
+			{
+				
+				const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject =					
+					HoudiniAssetComponent->LocateGeoPartObject(HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx));
+
+				// Bake the referenced static mesh.
+				OutStaticMesh =
+					FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, ItemHoudiniGeoPartObject,
 					HoudiniAssetInstanceInputField->GetOriginalStaticMesh());
 
-			if(OutStaticMesh)
-			{
-				FAssetRegistryModule::AssetCreated(OutStaticMesh);
+				HasBakedOriginalStaticMesh = true;
+				if (OutStaticMesh)
+				{
+					FAssetRegistryModule::AssetCreated(OutStaticMesh);
+				}
+				else
+				{
+					continue;
+				}
 			}
 			else
-			{
-				continue;
+			{				
+				OutStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
 			}
-		}
-		else
-		{
-			//FIXME: Get rid of the hard coded index 0
-			OutStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(0);
-		}
 
-		UInstancedStaticMeshComponent* DuplicatedComponent =
-			NewObject<UInstancedStaticMeshComponent>(Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None, 
+			UInstancedStaticMeshComponent* DuplicatedComponent =
+				NewObject<UInstancedStaticMeshComponent>(Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None,
 				RF_Public);
 
-		Actor->AddInstanceComponent(DuplicatedComponent);
-		DuplicatedComponent->SetStaticMesh(OutStaticMesh);
+			Actor->AddInstanceComponent(DuplicatedComponent);
+			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
 
-		// Set component instances.
-		{
-			
-			//FIXME: Get rid of the hard coded index 0
-			FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset(0);
-			FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset(0);
+			// Set component instances.
+			{				
+				FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
+				FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx);
 
-			const TArray<FTransform>& InstancedTransforms = HoudiniAssetInstanceInputField->GetInstancedTransforms();
+				const TArray<FTransform>& InstancedTransforms = HoudiniAssetInstanceInputField->GetInstancedTransforms(VariationIdx);
 
-			FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(DuplicatedComponent, InstancedTransforms,
-				RotationOffset, ScaleOffset);
+				FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(DuplicatedComponent, InstancedTransforms,
+					RotationOffset, ScaleOffset);
+			}
+
+			// Copy visibility.
+			DuplicatedComponent->SetVisibility(InstancedStaticMeshComponent->IsVisible());
+
+			DuplicatedComponent->AttachTo(RootComponent);
+			DuplicatedComponent->RegisterComponent();
+			DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+
 		}
-
-		// Copy visibility.
-		DuplicatedComponent->SetVisibility(InstancedStaticMeshComponent->IsVisible());
-
-		DuplicatedComponent->AttachTo(RootComponent);
-		DuplicatedComponent->RegisterComponent();
-		DuplicatedComponent->GetBodyInstance()->bAutoWeld = false;
+		
 	}
 }
 

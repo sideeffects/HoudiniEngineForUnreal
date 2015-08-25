@@ -96,6 +96,7 @@ UHoudiniAssetInstanceInputField::Serialize(FArchive& Ar)
 	Ar << bScaleOffsetsLinearlyArray;
 
 	Ar << InstancedTransforms;
+	Ar << VariationTransformsArray;
 	Ar << InstancedStaticMeshComponents;	
 	Ar << StaticMeshes;    
 	Ar << OriginalStaticMesh;
@@ -224,7 +225,12 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms()
 	int32 NumInstancTransforms = InstancedTransforms.Num();
 	int32 VariationCount = InstanceVariationCount();
 
-	TArray<TArray<FTransform>> VariationTransformsArray;
+	//clear the previous cached transform assignments.
+	for (int32 Idx = 0; Idx < VariationTransformsArray.Num(); Idx++)
+	{
+		VariationTransformsArray[Idx].Empty();
+	}
+	VariationTransformsArray.Empty();
 
 	for (int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
@@ -256,9 +262,11 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms()
 void
 UHoudiniAssetInstanceInputField::UpdateRelativeTransform()
 {
-	//FIXME: Get rid of hard coded 0 indices
-	check(InstancedStaticMeshComponents.Num() > 0);
-	InstancedStaticMeshComponents[0]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
+	int32 VariationCount = InstanceVariationCount();
+	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	{
+		InstancedStaticMeshComponents[Idx]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
+	}
 }
 
 
@@ -411,28 +419,27 @@ UHoudiniAssetInstanceInputField::SetLinearOffsetScale(bool bEnabled,
 
 
 bool
-UHoudiniAssetInstanceInputField::IsOriginalStaticMeshUsed() const
+UHoudiniAssetInstanceInputField::IsOriginalStaticMeshUsed( int32 VariationIdx ) const
 {
-	//FIXME: Get rid of hard coded 0 indices
-	UStaticMesh* StaticMesh = StaticMeshes.Num() > 0 ? StaticMeshes[0] : NULL;
+	check(VariationIdx >= 0 && VariationIdx < StaticMeshes.Num());
+	UStaticMesh* StaticMesh = StaticMeshes[VariationIdx];
 	return OriginalStaticMesh == StaticMesh;
 }
 
 
 UInstancedStaticMeshComponent*
-UHoudiniAssetInstanceInputField::GetInstancedStaticMeshComponent() const
+UHoudiniAssetInstanceInputField::GetInstancedStaticMeshComponent(int32 VariationIdx) const
 {
-	//FIXME: Get rid of hard coded 0 indices
-	if (InstancedStaticMeshComponents.Num() <= 0)
-		return NULL;
-	return InstancedStaticMeshComponents[0];
+	check(VariationIdx >= 0 && VariationIdx < InstancedStaticMeshComponents.Num());
+	return InstancedStaticMeshComponents[VariationIdx];
 }
 
 
 const TArray<FTransform>&
-UHoudiniAssetInstanceInputField::GetInstancedTransforms() const
+UHoudiniAssetInstanceInputField::GetInstancedTransforms( int32 VariationIdx ) const
 {
-	return InstancedTransforms;
+	check(VariationIdx >= 0 && VariationIdx < VariationTransformsArray.Num());
+	return VariationTransformsArray[VariationIdx];
 }
 
 

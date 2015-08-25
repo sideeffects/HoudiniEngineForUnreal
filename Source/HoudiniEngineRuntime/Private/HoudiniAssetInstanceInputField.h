@@ -110,13 +110,13 @@ public:
 	void SetLinearOffsetScale(bool bEnabled, int32 VariationIdx);
 
 	/** Return true if original static mesh is used. **/
-	bool IsOriginalStaticMeshUsed() const;
+	bool IsOriginalStaticMeshUsed(int32 VariationIdx) const;
 
 	/** Return corresponding instanced static mesh component. **/
-	UInstancedStaticMeshComponent* GetInstancedStaticMeshComponent() const;
+	UInstancedStaticMeshComponent* GetInstancedStaticMeshComponent(int32 VariationIdx) const;
 
-	/** Return transformations of all instances. **/
-	const TArray<FTransform>& GetInstancedTransforms() const;
+	/** Return transformations of all instances used by the variation **/
+	const TArray<FTransform>& GetInstancedTransforms(int32 VariationIdx) const;
 
 	/** Recreates render states for instanced static mesh component. **/
 	void RecreateRenderState();
@@ -164,6 +164,9 @@ protected:
 
 	/** Transforms, one for each instance. **/
 	TArray<FTransform> InstancedTransforms;
+
+	/** Assignment of Transforms to each variation **/
+	TArray<TArray<FTransform>> VariationTransformsArray;
 
 	/** Corresponding geo part object. **/
 	FHoudiniGeoPartObject HoudiniGeoPartObject;
