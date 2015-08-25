@@ -58,6 +58,7 @@
 #include "CollisionQueryParams.h"
 #include "Engine/CollisionProfile.h"
 #include "PhysicsEngine/BodyInstance.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "MaterialShared.h"
 #include "Core.h"
 #include "AssetData.h"
