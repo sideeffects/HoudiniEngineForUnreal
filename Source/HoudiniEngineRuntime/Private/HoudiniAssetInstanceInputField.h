@@ -71,6 +71,9 @@ public:
 	void ReplaceInstanceVariation(UStaticMesh * InStaticMesh,
 								  int Index);
 
+	/** Remove a variation from instancing **/
+	void RemoveInstanceVariation(int32 VariationIdx);
+
 	/** Returns the number of instance variations **/
 	int32 InstanceVariationCount();
 
@@ -136,7 +139,7 @@ protected:
 	void UpdateRelativeTransform();
 
 	/** Update instance transformations. **/
-	void UpdateInstanceTransforms();
+	void UpdateInstanceTransforms(bool RecomputeVariationAssignments);
 
 protected:
 

@@ -342,9 +342,17 @@ UHoudiniAssetInstanceInput::OnAddInstanceVariation(
 }
 
 FReply
-UHoudiniAssetInstanceInput::OnRemoveInstanceVariation()
+UHoudiniAssetInstanceInput::OnRemoveInstanceVariation(
+		UHoudiniAssetInstanceInputField * InstanceInputField,
+		int32 Index)
 {
-	check(false);
+	InstanceInputField->RemoveInstanceVariation(Index);	
+
+	if (HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->UpdateEditorProperties(false);
+	}
+	
 	return FReply::Handled();
 }
 
@@ -431,7 +439,8 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				[
 					SNew(SButton)
 					.Text(NSLOCTEXT("HoudiniEngine", "HEngineSubInstanceVariation", "-"))
-					.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation))
+					.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation,
+					HoudiniAssetInstanceInputField, VariationIdx))
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
 				];			
@@ -972,7 +981,7 @@ UHoudiniAssetInstanceInput::SetRotationRoll(float Value,
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
 	Rotator.Roll = Value;
 	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator, VariationIdx);
-	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms(false);
 }
 
 
@@ -988,7 +997,7 @@ UHoudiniAssetInstanceInput::SetRotationPitch(float Value,
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
 	Rotator.Pitch = Value;
 	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator, VariationIdx);
-	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms(false);
 }
 
 
@@ -1004,7 +1013,7 @@ UHoudiniAssetInstanceInput::SetRotationYaw(float Value,
 	FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
 	Rotator.Yaw = Value;
 	HoudiniAssetInstanceInputField->SetRotationOffset(Rotator, VariationIdx);
-	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms(false);
 }
 
 
@@ -1054,7 +1063,7 @@ UHoudiniAssetInstanceInput::SetScaleX(float Value,
 	}
 
 	HoudiniAssetInstanceInputField->SetScaleOffset(Scale3D, VariationIdx);
-	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms(false);
 }
 
 
@@ -1077,7 +1086,7 @@ UHoudiniAssetInstanceInput::SetScaleY(float Value,
 	}
 
 	HoudiniAssetInstanceInputField->SetScaleOffset(Scale3D, VariationIdx);
-	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms(false);
 }
 
 
@@ -1100,7 +1109,7 @@ UHoudiniAssetInstanceInput::SetScaleZ(float Value,
 	}
 
 	HoudiniAssetInstanceInputField->SetScaleOffset(Scale3D, VariationIdx);
-	HoudiniAssetInstanceInputField->UpdateInstanceTransforms();
+	HoudiniAssetInstanceInputField->UpdateInstanceTransforms(false);
 }
 
 

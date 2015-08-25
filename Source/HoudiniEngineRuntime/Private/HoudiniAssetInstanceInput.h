@@ -167,7 +167,7 @@ protected:
 	FReply OnAddInstanceVariation(UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index);
 
 	/** Handler for removing instance variation **/
-	FReply OnRemoveInstanceVariation();
+	FReply OnRemoveInstanceVariation(UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index);
 
 	/** Get rotation components for given index. **/
 	TOptional<float> GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;

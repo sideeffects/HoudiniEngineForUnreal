@@ -172,12 +172,12 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 		if (InstancedStaticMeshComponent)
 		{
 			UStaticMesh* StaticMesh = StaticMeshes[Idx];
-			InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+			InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);			
 		}
 		
 	}
 
-	UpdateInstanceTransforms();
+	UpdateInstanceTransforms(true);
 
 	if(HoudiniAssetComponent)
 	{
@@ -215,34 +215,37 @@ void
 UHoudiniAssetInstanceInputField::SetInstanceTransforms(const TArray<FTransform>& ObjectTransforms)
 {
 	InstancedTransforms = ObjectTransforms;
-	UpdateInstanceTransforms();
+	UpdateInstanceTransforms(true);
 }
 
 
 void
-UHoudiniAssetInstanceInputField::UpdateInstanceTransforms()
+UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariationAssignments )
 {
 	int32 NumInstancTransforms = InstancedTransforms.Num();
 	int32 VariationCount = InstanceVariationCount();
 
-	//clear the previous cached transform assignments.
-	for (int32 Idx = 0; Idx < VariationTransformsArray.Num(); Idx++)
+	if (RecomputeVariationAssignments)
 	{
-		VariationTransformsArray[Idx].Empty();
-	}
-	VariationTransformsArray.Empty();
+		//clear the previous cached transform assignments.
+		for (int32 Idx = 0; Idx < VariationTransformsArray.Num(); Idx++)
+		{
+			VariationTransformsArray[Idx].Empty();
+		}
+		VariationTransformsArray.Empty();
 
-	for (int32 Idx = 0; Idx < VariationCount; Idx++)
-	{
-		TArray<FTransform> VariationTransforms;
-		VariationTransformsArray.Add(VariationTransforms);
-	}
+		for (int32 Idx = 0; Idx < VariationCount; Idx++)
+		{
+			TArray<FTransform> VariationTransforms;
+			VariationTransformsArray.Add(VariationTransforms);
+		}
 
-	for (int32 Idx = 0; Idx < NumInstancTransforms; Idx++)
-	{
-		FTransform Xform = InstancedTransforms[Idx];
-		int32 VariationIndex = rand() % VariationCount;
-		VariationTransformsArray[VariationIndex].Add(Xform);
+		for (int32 Idx = 0; Idx < NumInstancTransforms; Idx++)
+		{
+			FTransform Xform = InstancedTransforms[Idx];
+			int32 VariationIndex = rand() % VariationCount;
+			VariationTransformsArray[VariationIndex].Add(Xform);
+		}
 	}
 
 	for (int32 Idx = 0; Idx < VariationCount; Idx++)
@@ -307,6 +310,39 @@ UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh
 
 	// Create instanced component.	
 	CreateInstancedComponent( VariationIdx );
+	UpdateInstanceTransforms(true);
+}
+
+void 
+UHoudiniAssetInstanceInputField::RemoveInstanceVariation(int32 VariationIdx)
+{
+	check(VariationIdx >=0 && VariationIdx < InstanceVariationCount());
+
+	if (InstanceVariationCount() == 1)
+		return;
+
+	StaticMeshes.RemoveAt(VariationIdx);
+	RotationOffsets.RemoveAt(VariationIdx);
+	ScaleOffsets.RemoveAt(VariationIdx);
+	bScaleOffsetsLinearlyArray.RemoveAt(VariationIdx);
+
+	// Remove instanced component.	
+	UInstancedStaticMeshComponent* InstancedStaticMeshComponent
+		= InstancedStaticMeshComponents[VariationIdx];
+
+	InstancedStaticMeshComponent->UnregisterComponent();
+	InstancedStaticMeshComponent->DetachFromParent();
+	InstancedStaticMeshComponent->DestroyComponent();
+
+	InstancedStaticMeshComponents.RemoveAt(VariationIdx);
+
+	if (HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->AttachChildren.Remove(InstancedStaticMeshComponent);
+	}
+
+	UpdateInstanceTransforms(true);
+
 }
 
 void
@@ -320,7 +356,7 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(
 
 	StaticMeshes[Index] = InStaticMesh;
 	InstancedStaticMeshComponents[Index]->SetStaticMesh(InStaticMesh);
-	UpdateInstanceTransforms();
+	UpdateInstanceTransforms(false);
 }
 
 void 
