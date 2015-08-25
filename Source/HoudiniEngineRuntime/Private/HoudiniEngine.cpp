@@ -169,7 +169,7 @@ FHoudiniEngine::StartupModule()
 			const FPluginStatus& PluginStatus = *PluginIt;
 			if(PluginStatus.Name == TEXT("HoudiniEngine"))
 			{
-				FString Icon128FilePath = PluginStatus.PluginDirectory / TEXT("Resources/DefaultIcon128.png");
+				FString Icon128FilePath = PluginStatus.PluginDirectory / TEXT("Resources/Icon128.png");
 
 				if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
 				{
