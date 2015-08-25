@@ -739,8 +739,10 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 
 		// Set component instances.
 		{
-			FRotator RotationOffset(0.0f, 0.0f, 0.0f);
-			FVector ScaleOffset(1.0f, 1.0f, 1.0f);
+			
+			//FIXME: Get rid of the hard coded index 0
+			FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset(0);
+			FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset(0);
 
 			const TArray<FTransform>& InstancedTransforms = HoudiniAssetInstanceInputField->GetInstancedTransforms();
 
