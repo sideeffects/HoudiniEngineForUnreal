@@ -1802,7 +1802,7 @@ UPackage*
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FString& MaterialInfoDescriptor, FString& MaterialName, bool bBake)
 {
-	UPackage* Package = nullptr;
+	UPackage* PackageNew = nullptr;
 
 #if WITH_EDITOR
 
@@ -1845,27 +1845,40 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(UHoudiniAssetComponen
 				MaterialName;
 		}
 
+		// Sanitize package name.
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
+		UObject* OuterPackage = nullptr;
+
+		if(!bBake)
+		{
+			// If we are not baking, then use outermost package, since objects within our package need to be visible
+			// to external operations, such as copy paste.
+			OuterPackage = HoudiniAssetComponent->GetOutermost();
+		}
+
 		// See if package exists, if it does, we need to regenerate the name.
-		Package = FindPackage(nullptr, *PackageName);
+		UPackage* Package = FindPackage(OuterPackage, *PackageName);
 
 		if(Package)
 		{
-			// Package does exist, there's a collision, we need to generate a new name.
-			BakeGUID.Invalidate();
+			if(!bBake)
+			{
+				// Package does exist, there's a collision, we need to generate a new name.
+				BakeGUID.Invalidate();
+			}
 		}
 		else
 		{
 			// Create actual package.
-			Package = CreatePackage(nullptr, *PackageName);
+			PackageNew = CreatePackage(OuterPackage, *PackageName);
 			break;
 		}
 	}
 
 #endif
 
-	return Package;
+	return PackageNew;
 }
 
 
@@ -1896,7 +1909,7 @@ UPackage*
 FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FString& TextureInfoDescriptor, const FString& TextureType, FString& TextureName, bool bBake)
 {
-	UPackage* Package = nullptr;
+	UPackage* PackageNew = nullptr;
 
 #if WITH_EDITOR
 
@@ -1939,27 +1952,40 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent
 				TextureName;
 		}
 
+		// Sanitize package name.
 		PackageName = PackageTools::SanitizePackageName(PackageName);
 
+		UPackage* OuterPackage = nullptr;
+
+		if(!bBake)
+		{
+			// If we are not baking, then use outermost package, since objects within our package need to be visible
+			// to external operations, such as copy paste.
+			OuterPackage = HoudiniAssetComponent->GetOutermost();
+		}
+
 		// See if package exists, if it does, we need to regenerate the name.
-		Package = FindPackage(nullptr, *PackageName);
+		UPackage* Package = FindPackage(OuterPackage, *PackageName);
 
 		if(Package)
 		{
-			// Package does exist, there's a collision, we need to generate a new name.
-			BakeGUID.Invalidate();
+			if(!bBake)
+			{
+				// Package does exist, there's a collision, we need to generate a new name.
+				BakeGUID.Invalidate();
+			}
 		}
 		else
 		{
 			// Create actual package.
-			Package = CreatePackage(nullptr, *PackageName);
+			PackageNew = CreatePackage(OuterPackage, *PackageName);
 			break;
 		}
 	}
 
 #endif
 
-	return Package;
+	return PackageNew;
 }
 
 
