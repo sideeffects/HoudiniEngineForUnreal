@@ -799,9 +799,8 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudin
 		// We need to locate corresponding geo part object in component.
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(StaticMesh);
 
-		// Bake static mesh.
-		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, HoudiniGeoPartObject,
-			StaticMesh);
+		UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(StaticMesh,
+			HoudiniAssetComponent, HoudiniGeoPartObject, true);
 
 		if(OutStaticMesh)
 		{
@@ -827,8 +826,8 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
 			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
 			UStaticMesh* StaticMesh = Iter.Value();
 
-			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent,
-				HoudiniGeoPartObject, StaticMesh);
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(StaticMesh,
+				HoudiniAssetComponent, HoudiniGeoPartObject, true);
 
 			if(OutStaticMesh)
 			{

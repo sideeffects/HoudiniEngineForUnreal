@@ -2243,7 +2243,8 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 			}
 
 			// Bake the referenced static mesh.
-			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::BakeStaticMesh(this, HoudiniGeoPartObject, StaticMesh);
+			UStaticMesh* OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(StaticMesh,
+				this, HoudiniGeoPartObject, true);
 
 			if(OutStaticMesh)
 			{

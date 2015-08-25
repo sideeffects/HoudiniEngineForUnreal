@@ -4626,7 +4626,7 @@ FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(UPackage* Packag
 
 UStaticMesh*
 FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
-	const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject, bool bBake)
 {
 	UStaticMesh* DuplicatedStaticMesh = nullptr;
 
@@ -4638,11 +4638,11 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 
 		UPackage* MeshPackage =
 			FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(Component, HoudiniGeoPartObject,
-				MeshName, MeshGuid);
+				MeshName, MeshGuid, bBake);
 
 		// Duplicate mesh for this new copied component.
 		DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, MeshPackage, *MeshName);
-		
+		//DuplicatedStaticMesh->SetFlags(RF_Public | RF_Standalone);
 
 		// Add meta information.
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, DuplicatedStaticMesh, 
@@ -4668,7 +4668,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 					{
 						// Duplicate material.
 						UMaterial* DuplicatedMaterial = 
-							FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(Material, Component, MaterialName);
+							FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(Material, Component, MaterialName, bBake);
 
 						// Store duplicated material.
 						DuplicatedMaterials.Add(DuplicatedMaterial);
@@ -4696,17 +4696,18 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 
 UMaterial*
 FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component, 
-	const FString& SubMaterialName)
+	const FString& SubMaterialName, bool bBake)
 {
 	UMaterial* DuplicatedMaterial = nullptr;
 
 	// Create material package.
 	FString MaterialName;
 	UPackage* MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(Component, SubMaterialName, 
-		MaterialName, false);
+		MaterialName, bBake);
 
 	// Clone material.
 	DuplicatedMaterial = DuplicateObject<UMaterial>(Material, MaterialPackage, *MaterialName);
+	//DuplicatedMaterial->SetFlags(RF_Public | RF_Standalone);
 
 	// Add meta information.
 	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, DuplicatedMaterial, 
@@ -4732,7 +4733,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHou
 					// Duplicate diffuse texture.
 					UTexture2D* DuplicatedDiffuseTexture = 
 						FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(TextureDiffuse, Component,
-							GeneratedTextureName);
+							GeneratedTextureName, bBake);
 
 					// Re-assign generated diffuse texture.
 					ExpressionDiffuse->Texture = DuplicatedDiffuseTexture;
@@ -4759,7 +4760,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHou
 					// Duplicate normal texture.
 					UTexture2D* DuplicatedNormalTexture = 
 						FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(TextureNormal, Component,
-							GeneratedTextureName);
+							GeneratedTextureName, bBake);
 
 					// Re-assign generated normal texture.
 					ExpressionNormal->Texture = DuplicatedNormalTexture;
@@ -4780,7 +4781,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHou
 
 UTexture2D*
 FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoudiniAssetComponent* Component, 
-	const FString& SubTextureName)
+	const FString& SubTextureName, bool bBake)
 {
 	UTexture2D* DuplicatedTexture = nullptr;
 
@@ -4801,10 +4802,11 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoud
 				// Create texture package.
 				FString TextureName;
 				UPackage* NewTexturePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(Component, 
-					SubTextureName, TextureType, TextureName, false);
+					SubTextureName, TextureType, TextureName, bBake);
 
 				// Clone texture.
 				DuplicatedTexture = DuplicateObject<UTexture2D>(Texture, NewTexturePackage, *TextureName);
+				//DuplicatedTexture->SetFlags(RF_Public | RF_Standalone);
 
 				// Add meta information.
 				FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture, 

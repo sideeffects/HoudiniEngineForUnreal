@@ -724,9 +724,9 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 					HoudiniAssetComponent->LocateGeoPartObject(HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx));
 
 				// Bake the referenced static mesh.
-				OutStaticMesh =
-					FHoudiniEngineUtils::BakeStaticMesh(HoudiniAssetComponent, ItemHoudiniGeoPartObject,
-					HoudiniAssetInstanceInputField->GetOriginalStaticMesh());
+				OutStaticMesh = 
+					FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(HoudiniAssetInstanceInputField->GetOriginalStaticMesh(),
+						HoudiniAssetComponent, ItemHoudiniGeoPartObject, true);
 
 				HasBakedOriginalStaticMesh = true;
 				if (OutStaticMesh)
@@ -745,7 +745,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 
 			UInstancedStaticMeshComponent* DuplicatedComponent =
 				NewObject<UInstancedStaticMeshComponent>(Actor, UInstancedStaticMeshComponent::StaticClass(), NAME_None,
-				RF_Public);
+					RF_Public);
 
 			Actor->AddInstanceComponent(DuplicatedComponent);
 			DuplicatedComponent->SetStaticMesh(OutStaticMesh);

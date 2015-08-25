@@ -255,7 +255,7 @@ public:
 	/** Duplicate a given static mesh. This will create a new package for it. This will also create necessary		**/
 	/** materials and textures and their corresponding packages. **/
 	static UStaticMesh* DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh, UHoudiniAssetComponent* Component,
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject, bool bBake = false);
 
 protected:
 
@@ -290,11 +290,11 @@ protected:
 	/** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
 	/** and their corresponding packages. **/
 	static UMaterial* DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component, 
-		const FString& SubMaterialName);
+		const FString& SubMaterialName, bool bBake = false);
 
 	/** Duplicate a given texture. This will create a new package for it. **/
 	static UTexture2D* DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoudiniAssetComponent* Component, 
-		const FString& SubTextureName);
+		const FString& SubTextureName, bool bBake = false);
 
 	/** Add Houdini meta information to package for a given object. **/
 	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
