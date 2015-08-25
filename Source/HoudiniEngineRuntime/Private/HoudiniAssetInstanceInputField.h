@@ -65,7 +65,7 @@ public:
 	UStaticMesh* GetInstanceVariation(int32 VariationIndex) const;	
 
 	/** Add a variation to the instancing **/
-	void AddInstanceVariation(UStaticMesh * InstaticMesh);
+	void AddInstanceVariation(UStaticMesh * InstaticMesh, int32 VariationIdx);
 
 	/** Replace the instance variation in a particular slot **/
 	void ReplaceInstanceVariation(UStaticMesh * InStaticMesh,

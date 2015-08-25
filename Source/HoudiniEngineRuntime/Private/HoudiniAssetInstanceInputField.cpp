@@ -163,18 +163,19 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	//FIXME: Get rid of the hard coded 0 indices.
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent
-		= InstancedStaticMeshComponents.Num() ? InstancedStaticMeshComponents[0] : NULL;
+	int32 VariationCount = InstanceVariationCount();
+	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	{
+		UInstancedStaticMeshComponent* InstancedStaticMeshComponent
+			= InstancedStaticMeshComponents.Num() ? InstancedStaticMeshComponents[Idx] : NULL;
 
-	if(InstancedStaticMeshComponent)
-	{		
-		UStaticMesh* StaticMesh = StaticMeshes.Num() > 0 ? StaticMeshes[0] : NULL;
-		InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+		if (InstancedStaticMeshComponent)
+		{
+			UStaticMesh* StaticMesh = StaticMeshes[Idx];
+			InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
+		}
+		
 	}
-
-	SetRotationOffset(RotationOffsets[0],0);
-	SetScaleOffset(ScaleOffsets[0],0);
 
 	UpdateInstanceTransforms();
 
@@ -195,9 +196,8 @@ UHoudiniAssetInstanceInputField::CreateInstancedComponent(int32 VariationIdx)
 	
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
 		UInstancedStaticMeshComponent::StaticClass(), NAME_None);
-
-	//FIXME: This should not use Add, but Insert
-	InstancedStaticMeshComponents.Add(InstancedStaticMeshComponent);	
+	
+	InstancedStaticMeshComponents.Insert(InstancedStaticMeshComponent,VariationIdx);	
 
 	// Assign static mesh to this instanced component.
 	
@@ -296,18 +296,17 @@ UHoudiniAssetInstanceInputField::GetInstanceVariation( int32 VariationIndex ) co
 
 
 void 
-UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh)
+UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh, int32 VariationIdx)
 {
 	check(InStaticMesh);
 	
-	StaticMeshes.Add(InStaticMesh);
-	RotationOffsets.Add(FRotator(0, 0, 0));
-	ScaleOffsets.Add(FVector(1, 1, 1));
-	bScaleOffsetsLinearlyArray.Add(true);
+	StaticMeshes.Insert(InStaticMesh,VariationIdx);
+	RotationOffsets.Insert(FRotator(0, 0, 0),VariationIdx);
+	ScaleOffsets.Insert(FVector(1, 1, 1),VariationIdx);
+	bScaleOffsetsLinearlyArray.Insert(true,VariationIdx);
 
-	// Create instanced component.
-	//FIXME: AddInstanceVariation should take an index to say where it's adding that variation, instead of always at the end.
-	CreateInstancedComponent( StaticMeshes.Num() - 1);
+	// Create instanced component.	
+	CreateInstancedComponent( VariationIdx );
 }
 
 void
@@ -446,20 +445,23 @@ UHoudiniAssetInstanceInputField::GetInstancedTransforms( int32 VariationIdx ) co
 void
 UHoudiniAssetInstanceInputField::RecreateRenderState()
 {
-	//FIXME: Get rid of hard coded 0 indices
-	if(InstancedStaticMeshComponents.Num() > 0)
+	check(InstancedStaticMeshComponents.Num() == StaticMeshes.Num());
+	int32 VariationCount = InstanceVariationCount();
+	for (int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
-		InstancedStaticMeshComponents[0]->RecreateRenderState_Concurrent();
+		InstancedStaticMeshComponents[Idx]->RecreateRenderState_Concurrent();
 	}
+	
 }
 
 
 void
 UHoudiniAssetInstanceInputField::RecreatePhysicsState()
 {
-	//FIXME: Get rid of hard coded 0 indices
-	if(InstancedStaticMeshComponents.Num() > 0)
+	check(InstancedStaticMeshComponents.Num() == StaticMeshes.Num());
+	int32 VariationCount = InstanceVariationCount();
+	for (int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
-		InstancedStaticMeshComponents[0]->RecreatePhysicsState();
+		InstancedStaticMeshComponents[Idx]->RecreatePhysicsState();
 	}
 }

@@ -257,7 +257,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 
 		// Assign original and static mesh.
 		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
-		HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh);
+		HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh,0);
 
 	}
 	else
@@ -331,7 +331,7 @@ UHoudiniAssetInstanceInput::OnAddInstanceVariation(
 		int32 Index)
 {   
 	UStaticMesh * StaticMesh =  InstanceInputField->GetInstanceVariation(Index);
-	InstanceInputField->AddInstanceVariation( StaticMesh );
+	InstanceInputField->AddInstanceVariation( StaticMesh, Index );
 
 	if (HoudiniAssetComponent)
 	{
@@ -415,7 +415,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				];
 
 
-			/*
+			
 			HorizontalBox->AddSlot().Padding(0, 25.0f, 0, 25.0f).MaxWidth(25.0f)
 				[
 					SNew(SButton)
@@ -435,7 +435,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
 				];			
-			*/
+			
 
 			// Store thumbnail border for this static mesh.
 			HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
@@ -445,7 +445,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 			HorizontalBox->AddSlot()
 				.FillWidth(1.0f)
-				.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+				.Padding(0.0f, 4.0f, 4.0f, 4.0f)				
 				.VAlign(VAlign_Center)
 				[
 					SNew(SVerticalBox)
@@ -875,9 +875,8 @@ UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent(UHoudiniAssetInstanceInpu
 	AllowedClasses.Add(UStaticMesh::StaticClass());
 
 	TArray<UFactory*> NewAssetFactories;
-
-	//FIXME: Get rid of the hard coded index 0
-	UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(0);
+	
+	UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
 
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true,
 		AllowedClasses, NewAssetFactories,OnShouldFilterStaticMesh,
