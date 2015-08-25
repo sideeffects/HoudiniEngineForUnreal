@@ -502,7 +502,7 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	// Serialize current choice selection.
-	SerializeEnumeration(Ar, ChoiceIndex);
+	SerializeEnumeration<EHoudiniAssetInputType::Enum>(Ar, ChoiceIndex);
 
 	Ar << HoudiniAssetInputFlagsPacked;
 

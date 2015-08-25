@@ -967,7 +967,8 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 	}
 	else
 	{
-		Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName, RF_Public | RF_Standalone);
+		Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName,
+			RF_Public | RF_Standalone | RF_Transactional);
 
 		// Add meta information to package.
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
@@ -3305,7 +3306,7 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 		BakeCreateStaticMeshPackageForComponent(HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, BakeGUID, true);
 
 	// Create static mesh.
-	StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public);
+	StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), RF_Standalone | RF_Public | RF_Transactional);
 
 	// Add meta information to this package.
 	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, StaticMesh, 
@@ -3579,7 +3580,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					{
 						Material = 
 							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
-								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
+								*MaterialName, RF_Public | RF_Standalone | RF_Transactional, NULL, GWarn);
 
 						bCreatedNewMaterial = true;
 
@@ -3625,7 +3626,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						if(!ExpressionDiffuse)
 						{
 							ExpressionDiffuse = NewObject<UMaterialExpressionTextureSample>(Material,
-								UMaterialExpressionTextureSample::StaticClass());
+								UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 						}
 
 						ExpressionDiffuse->Texture = TextureDiffuse;
@@ -3687,7 +3688,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 							if(!ExpressionNormal)
 							{
 								ExpressionNormal = NewObject<UMaterialExpressionTextureSample>(Material,
-									UMaterialExpressionTextureSample::StaticClass());
+									UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 							}
 
 							ExpressionNormal->Texture = TextureNormal;
@@ -3784,7 +3785,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					{
 						Material = 
 							(UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage, 
-								*MaterialName, RF_Public | RF_Standalone, NULL, GWarn);
+								*MaterialName, RF_Public | RF_Standalone | RF_Transactional, NULL, GWarn);
 
 						bCreatedNewMaterial = true;
 
@@ -3802,7 +3803,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					if(!ExpressionDiffuseColor)
 					{
 						ExpressionDiffuseColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
-							UMaterialExpressionConstant4Vector::StaticClass());
+							UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
 					}
 
 					ExpressionDiffuseColor->Constant = Color;
