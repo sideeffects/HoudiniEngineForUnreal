@@ -2750,7 +2750,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 								}
 
 								// Convert linear color to fixed color.
-								RawMesh.WedgeColors[WedgeColorIdx] = FColor(WedgeColor);
+								RawMesh.WedgeColors[WedgeColorIdx] = WedgeColor.ToFColor(false);
 							}
 						}
 
