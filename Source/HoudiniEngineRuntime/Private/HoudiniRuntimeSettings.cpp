@@ -22,11 +22,11 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 
 	/** Session options. **/
 	SessionType(HRSST_InProcess),
-	ServerHost("localhost"),
-	ServerPort(9090),
-	ServerPipeName("hapi"),	
-	bStartAutomaticServer(false),
-	AutomaticServerTimeout(3000.0f),
+	ServerHost(HAPI_UNREAL_SESSION_SERVER_HOST),
+	ServerPort(HAPI_UNREAL_SESSION_SERVER_PORT),
+	ServerPipeName(HAPI_UNREAL_SESSION_SERVER_PIPENAME),
+	bStartAutomaticServer(HAPI_UNREAL_SESSION_SERVER_AUTOSTART),
+	AutomaticServerTimeout(HAPI_UNREAL_SESSION_SERVER_TIMEOUT),
 
 	/** Cooking options. **/
 	bEnableCooking(true),
