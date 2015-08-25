@@ -75,6 +75,7 @@
 #include "Materials/MaterialExpressionConstant4Vector.h"
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
+#include "IPluginManager.h"
 #include "TargetPlatform.h"
 
 /** Houdini Engine headers. **/
