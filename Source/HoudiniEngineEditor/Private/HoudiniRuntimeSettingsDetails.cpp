@@ -43,6 +43,7 @@ void
 FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	// Create basic categories.
+	DetailBuilder.EditCategory("Session", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("Cooking", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("CollisionGeneration", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("GeometryMarshalling", FText::GetEmpty(), ECategoryPriority::Important);

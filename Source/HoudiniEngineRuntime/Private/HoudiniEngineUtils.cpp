@@ -3120,7 +3120,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
 					}
 
-					//StaticMesh->PreEditChange(FHoudiniEngine::Get().GetSession());
+					//StaticMesh->PreEditChange(nullptr);
 					FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 					StaticMesh->Build(true);
 					StaticMesh->MarkPackageDirty();
