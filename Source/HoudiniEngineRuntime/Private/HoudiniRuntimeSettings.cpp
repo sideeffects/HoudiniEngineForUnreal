@@ -96,6 +96,24 @@ UHoudiniRuntimeSettings::LocateProperty(const FString& PropertyName)
 
 
 void
+UHoudiniRuntimeSettings::SetPropertyReadOnly(const FString& PropertyName, bool bReadOnly)
+{
+	UProperty* Property = LocateProperty(PropertyName);
+	if(Property)
+	{
+		if(bReadOnly)
+		{
+			Property->SetPropertyFlags(CPF_EditConst);
+		}
+		else
+		{
+			Property->ClearPropertyFlags(CPF_EditConst);
+		}
+	}
+}
+
+
+void
 UHoudiniRuntimeSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -112,6 +130,9 @@ UHoudiniRuntimeSettings::PostInitProperties()
 			Property->SetPropertyFlags(CPF_EditConst);
 		}
 	}
+
+	// Disable UI elements depending on current session type.
+	UpdateSessionUi();
 }
 
 
@@ -137,6 +158,10 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	else if(Property->GetName() == TEXT("TransformScaleFactor"))
 	{
 		GeneratedGeometryScaleFactor = FMath::Clamp(GeneratedGeometryScaleFactor, KINDA_SMALL_NUMBER, 10000.0f);
+	}
+	else if(Property->GetName() == TEXT("SessionType"))
+	{
+		UpdateSessionUi();
 	}
 
 	/*
@@ -271,6 +296,48 @@ UHoudiniRuntimeSettings::SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSetti
 			MeshBuildSettings.bGenerateLightmapUVs = false;
 			break;
 		}
+	}
+}
+
+
+void
+UHoudiniRuntimeSettings::UpdateSessionUi()
+{
+	SetPropertyReadOnly(TEXT("ServerHost"), true);
+	SetPropertyReadOnly(TEXT("ServerPort"), true);
+	SetPropertyReadOnly(TEXT("ServerPipeName"), true);
+	SetPropertyReadOnly(TEXT("bStartAutomaticServer"), true);
+	SetPropertyReadOnly(TEXT("AutomaticServerTimeout"), true);
+
+	bool bServerType = false;
+
+	switch(SessionType)
+	{
+		case HRSST_Socket:
+		{
+			SetPropertyReadOnly(TEXT("ServerHost"), false);
+			SetPropertyReadOnly(TEXT("ServerPort"), false);
+			bServerType = true;
+			break;
+		}
+
+		case HRSST_NamedPipe:
+		{
+			SetPropertyReadOnly(TEXT("ServerPipeName"), false);
+			bServerType = true;
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	if(bServerType)
+	{
+		SetPropertyReadOnly(TEXT("bStartAutomaticServer"), false);
+		SetPropertyReadOnly(TEXT("AutomaticServerTimeout"), false);
 	}
 }
 

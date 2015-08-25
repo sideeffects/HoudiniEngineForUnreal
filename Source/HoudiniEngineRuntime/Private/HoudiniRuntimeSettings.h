@@ -96,6 +96,16 @@ protected:
 	/** Locate property of this class by name. **/
 	UProperty* LocateProperty(const FString& PropertyName);
 
+	/** Make specified property read only. **/
+	void SetPropertyReadOnly(const FString& PropertyName, bool bReadOnly = true);
+
+#if WITH_EDITOR
+
+	/** Update session ui elements. **/
+	void UpdateSessionUi();
+
+#endif
+
 public:
 
 #if WITH_EDITOR
