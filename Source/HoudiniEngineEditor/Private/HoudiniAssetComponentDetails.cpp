@@ -807,7 +807,6 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh(UStaticMesh* StaticMesh, UHoudin
 		{
 			// Notify asset registry that we have created assets. This should update the content browser.
 			FAssetRegistryModule::AssetCreated(OutStaticMesh);
-			//OutStaticMesh->MakePackageDirty();
 		}
 	}
 
@@ -835,7 +834,6 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
 			{
 				// Notify asset registry that we have created assets. This should update the content browser.
 				FAssetRegistryModule::AssetCreated(OutStaticMesh);
-				//OutStaticMesh->MakePackageDirty();
 			}
 		}
 	}
