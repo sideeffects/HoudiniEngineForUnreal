@@ -361,6 +361,10 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
+	// Classes allowed by instanced inputs.
+	TArray<const UClass*> AllowedClasses;
+	AllowedClasses.Add(UStaticMesh::StaticClass());
+
 	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
@@ -458,8 +462,8 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 							//.ToolTipText(this, &FHoudiniAssetComponentDetails::OnGetToolTip )
 							.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 							.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
-							.OnGetMenuContent(FOnGetContent::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent, HoudiniAssetInstanceInputField, 
+							.OnMenuOpenChanged(FOnIsOpenChanged::CreateUObject(this,
+								&UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton, HoudiniAssetInstanceInputField, 
 									Idx, VariationIdx))
 							.ContentPadding(2.0f)
 							.ButtonContent()
@@ -473,7 +477,21 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 					]
 				];
 
-			// Store combobutton for this static mesh.
+			// Create asset picker for this combo button.
+			{
+				TArray<UFactory*> NewAssetFactories;
+				TSharedRef<SWidget> PropertyMenuAssetPicker = 
+					PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true,
+					AllowedClasses, NewAssetFactories, OnShouldFilterStaticMesh,
+					FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshSelected,
+						HoudiniAssetInstanceInputField, Idx, VariationIdx),
+					FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::CloseStaticMeshComboButton,
+						HoudiniAssetInstanceInputField, Idx, VariationIdx));
+
+				AssetComboButton->SetMenuContent(PropertyMenuAssetPicker);
+			}
+
+			// Store combo button for this static mesh.
 			HoudiniAssetInstanceInputField->AssignComboButton(AssetComboButton);
 
 			// Create tooltip.
@@ -822,13 +840,12 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
 			LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
 		HoudiniAssetInstanceInputField->Modify();
 
-		HoudiniAssetInstanceInputField->ReplaceInstanceVariation(InputStaticMesh,VariationIdx);		
+		HoudiniAssetInstanceInputField->ReplaceInstanceVariation(InputStaticMesh, VariationIdx);
 
 		if(HoudiniAssetComponent)
 		{
 			HoudiniAssetComponent->UpdateEditorProperties(false);
 		}
-		
 	}
 }
 
@@ -875,25 +892,6 @@ UHoudiniAssetInstanceInput::OnThumbnailDoubleClick(const FGeometry& InMyGeometry
 }
 
 
-TSharedRef<SWidget>
-UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-	int32 Idx, int32 VariationIdx)
-{
-	TArray<const UClass*> AllowedClasses;
-	AllowedClasses.Add(UStaticMesh::StaticClass());
-
-	TArray<UFactory*> NewAssetFactories;
-	
-	UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
-
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(StaticMesh), true,
-		AllowedClasses, NewAssetFactories,OnShouldFilterStaticMesh,
-		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshSelected,
-			HoudiniAssetInstanceInputField, Idx, VariationIdx),
-		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::CloseStaticMeshComboButton));
-}
-
-
 void
 UHoudiniAssetInstanceInput::OnStaticMeshBrowse(UStaticMesh* StaticMesh)
 {
@@ -919,9 +917,25 @@ UHoudiniAssetInstanceInput::OnResetStaticMeshClicked(UHoudiniAssetInstanceInputF
 
 
 void
-UHoudiniAssetInstanceInput::CloseStaticMeshComboButton()
+UHoudiniAssetInstanceInput::CloseStaticMeshComboButton(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	int32 Idx, int32 VariationIdx)
 {
+	// Do nothing.
+}
 
+
+void
+UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton(bool bClosed, 
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, int32 VariationIdx)
+{
+	// Do nothing.
+	if(!bClosed)
+	{
+		if(HoudiniAssetComponent)
+		{
+			HoudiniAssetComponent->UpdateEditorProperties(false);
+		}
+	}
 }
 
 

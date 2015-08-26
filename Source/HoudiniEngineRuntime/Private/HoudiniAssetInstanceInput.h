@@ -145,16 +145,17 @@ protected:
 	/** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
 	FReply OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
 
-	/** Construct drop down menu content for static mesh. **/
-	TSharedRef<SWidget> OnGetStaticMeshMenuContent(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-		int32 Idx, int32 VariationIdx);
-
 	/** Delegate for handling selection in content browser. **/
 	void OnStaticMeshSelected(const FAssetData& AssetData, 
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, int32 VariationIdx);
 
 	/** Closes the combo button. **/
-	void CloseStaticMeshComboButton();
+	void CloseStaticMeshComboButton(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, 
+		int32 VariationIdx);
+
+	/** Triggered when combo button is opened or closed. **/
+	void ChangedStaticMeshComboButton(bool bClosed, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 Idx, int32 VariationIdx);
 
 	/** Browse to static mesh. **/
 	void OnStaticMeshBrowse(UStaticMesh* StaticMesh);
@@ -220,7 +221,7 @@ protected:
 	{
 		struct
 		{
-			/* Set to true if this is an attribute instancer. **/
+			/** Set to true if this is an attribute instancer. **/
 			uint32 bIsAttributeInstancer : 1;
 		};
 
