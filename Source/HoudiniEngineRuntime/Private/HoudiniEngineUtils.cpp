@@ -3415,7 +3415,9 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 	AActor* Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
 	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(*BlueprintName, Package, Actor, false);
 
+	// If actor is rooted, unroot it.
 	Actor->RemoveFromRoot();
+
 	Actor->ConditionalBeginDestroy();
 
 #endif
@@ -4643,6 +4645,11 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 		// Duplicate mesh for this new copied component.
 		DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(StaticMesh, MeshPackage, *MeshName);
 
+		if(bBake)
+		{
+			DuplicatedStaticMesh->SetFlags(RF_Public);
+		}
+
 		// Add meta information.
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MeshPackage, DuplicatedStaticMesh, 
 			HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
@@ -4706,6 +4713,11 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHou
 
 	// Clone material.
 	DuplicatedMaterial = DuplicateObject<UMaterial>(Material, MaterialPackage, *MaterialName);
+
+	if(bBake)
+	{
+		DuplicatedMaterial->SetFlags(RF_Public);
+	}
 
 	// Add meta information.
 	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, DuplicatedMaterial, 
@@ -4804,6 +4816,11 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoud
 
 				// Clone texture.
 				DuplicatedTexture = DuplicateObject<UTexture2D>(Texture, NewTexturePackage, *TextureName);
+
+				if(bBake)
+				{
+					DuplicatedTexture->SetFlags(RF_Public);
+				}
 
 				// Add meta information.
 				FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(NewTexturePackage, DuplicatedTexture, 
