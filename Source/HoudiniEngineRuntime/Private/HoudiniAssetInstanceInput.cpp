@@ -325,36 +325,32 @@ UHoudiniAssetInstanceInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 #if WITH_EDITOR
 
 
-FReply
+void
 UHoudiniAssetInstanceInput::OnAddInstanceVariation( 
-		UHoudiniAssetInstanceInputField * InstanceInputField,
-		int32 Index)
-{   
+	UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index)
+{
 	UStaticMesh * StaticMesh =  InstanceInputField->GetInstanceVariation(Index);
 	InstanceInputField->AddInstanceVariation( StaticMesh, Index );
 
-	if (HoudiniAssetComponent)
+	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->UpdateEditorProperties(false);
 	}
-
-	return FReply::Handled();
 }
 
-FReply
+
+void
 UHoudiniAssetInstanceInput::OnRemoveInstanceVariation(
-		UHoudiniAssetInstanceInputField * InstanceInputField,
-		int32 Index)
+	UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index)
 {
 	InstanceInputField->RemoveInstanceVariation(Index);	
 
-	if (HoudiniAssetComponent)
+	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->UpdateEditorProperties(false);
 	}
-	
-	return FReply::Handled();
 }
+
 
 void
 UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
@@ -369,7 +365,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	{
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
 		for (int32 VariationIdx = 0; VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++)
-		{			
+		{
 			UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
 
 			FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
@@ -393,9 +389,10 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				[
 					SNew(SAssetDropTarget)
 					.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver))
+						&UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver))
 					.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, Idx, VariationIdx))
+						&UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, Idx,
+							VariationIdx))
 					[
 						SAssignNew(HorizontalBox, SHorizontalBox)
 					]
@@ -408,9 +405,10 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 					.BorderImage(TAttribute<const FSlateBrush*>::Create(
 					TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, Idx, VariationIdx)))
+						&UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, Idx, 
+							VariationIdx)))
 					.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*)StaticMesh))
+						&UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*) StaticMesh))
 					[
 						SNew(SBox)
 						.WidthOverride(64)
@@ -422,29 +420,21 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 					]
 				];
 
-
-			
-			HorizontalBox->AddSlot().Padding(0, 25.0f, 0, 25.0f).MaxWidth(25.0f)
+			HorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 28.0f, 0.0f, 28.0f)
 				[
-					SNew(SButton)
-					.Text(NSLOCTEXT("HoudiniEngine", "HEngineAddInstanceVariation", "+"))
-					.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAddInstanceVariation,
-					HoudiniAssetInstanceInputField,VariationIdx))
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
+					PropertyCustomizationHelpers::MakeAddButton(
+						FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAddInstanceVariation,
+							HoudiniAssetInstanceInputField, VariationIdx),
+							LOCTEXT("AddAnotherInstanceToolTip", "Add Another Instance"))
 				];
 
-
-			HorizontalBox->AddSlot().Padding(0.0f, 25.0f, 0.0f, 25.0f).MaxWidth(25.0f)
+			HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 28.0f, 4.0f, 28.0f)
 				[
-					SNew(SButton)
-					.Text(NSLOCTEXT("HoudiniEngine", "HEngineSubInstanceVariation", "-"))
-					.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation,
-					HoudiniAssetInstanceInputField, VariationIdx))
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-				];			
-			
+					PropertyCustomizationHelpers::MakeRemoveButton(
+						FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation,
+							HoudiniAssetInstanceInputField, VariationIdx),
+							LOCTEXT("RemoveLastInstanceToolTip", "Remove Last Instance"))
+				];
 
 			// Store thumbnail border for this static mesh.
 			HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
@@ -453,23 +443,24 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			TSharedPtr<SHorizontalBox> ButtonBox;
 
 			HorizontalBox->AddSlot()
-				.FillWidth(1.0f)
-				.Padding(0.0f, 4.0f, 4.0f, 4.0f)				
+				.FillWidth(10.0f)
+				.Padding(0.0f, 4.0f, 4.0f, 4.0f)
 				.VAlign(VAlign_Center)
 				[
 					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
+					+SVerticalBox::Slot()
 					.HAlign(HAlign_Fill)
 					[
 						SAssignNew(ButtonBox, SHorizontalBox)
-						+ SHorizontalBox::Slot()
+						+SHorizontalBox::Slot()
 						[
 							SAssignNew(AssetComboButton, SComboButton)
 							//.ToolTipText(this, &FHoudiniAssetComponentDetails::OnGetToolTip )
 							.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 							.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 							.OnGetMenuContent(FOnGetContent::CreateUObject(this,
-							&UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent, HoudiniAssetInstanceInputField, Idx, VariationIdx))
+								&UHoudiniAssetInstanceInput::OnGetStaticMeshMenuContent, HoudiniAssetInstanceInputField, 
+									Idx, VariationIdx))
 							.ContentPadding(2.0f)
 							.ButtonContent()
 							[
@@ -513,7 +504,7 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 					.ContentPadding(0)
 					.Visibility(EVisibility::Visible)
 					.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnResetStaticMeshClicked,
-					HoudiniAssetInstanceInputField, Idx, VariationIdx))
+						HoudiniAssetInstanceInputField, Idx, VariationIdx))
 					[
 						SNew(SImage)
 						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
@@ -538,20 +529,25 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 						.AllowSpin(true)
 						.bColorAxisLabels(true)
 						.Roll(TAttribute<TOptional<float> >::Create(
-						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetRotationRoll, HoudiniAssetInstanceInputField, VariationIdx)))
+							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+								&UHoudiniAssetInstanceInput::GetRotationRoll, HoudiniAssetInstanceInputField, 
+									VariationIdx)))
 						.Pitch(TAttribute<TOptional<float> >::Create(
-						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetRotationPitch, HoudiniAssetInstanceInputField, VariationIdx)))
+							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+								&UHoudiniAssetInstanceInput::GetRotationPitch, HoudiniAssetInstanceInputField, 
+									VariationIdx)))
 						.Yaw(TAttribute<TOptional<float> >::Create(
-						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetRotationYaw, HoudiniAssetInstanceInputField, VariationIdx)))
+							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+								&UHoudiniAssetInstanceInput::GetRotationYaw, HoudiniAssetInstanceInputField, 
+									VariationIdx)))
 						.OnRollChanged(FOnFloatValueChanged::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::SetRotationRoll, HoudiniAssetInstanceInputField, VariationIdx))
+							&UHoudiniAssetInstanceInput::SetRotationRoll, HoudiniAssetInstanceInputField, 
+								VariationIdx))
 						.OnPitchChanged(FOnFloatValueChanged::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::SetRotationPitch, HoudiniAssetInstanceInputField, VariationIdx))
+							&UHoudiniAssetInstanceInput::SetRotationPitch, HoudiniAssetInstanceInputField, 
+								VariationIdx))
 						.OnYawChanged(FOnFloatValueChanged::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::SetRotationYaw, HoudiniAssetInstanceInputField, VariationIdx))
+							&UHoudiniAssetInstanceInput::SetRotationYaw, HoudiniAssetInstanceInputField, VariationIdx))
 					]
 				];
 
@@ -571,18 +567,21 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 					[
 						SNew(SVectorInputBox)
 						.bColorAxisLabels(true)
-						.X(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetScaleX, HoudiniAssetInstanceInputField, VariationIdx)))
-						.Y(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetScaleY, HoudiniAssetInstanceInputField, VariationIdx)))
-						.Z(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetScaleZ, HoudiniAssetInstanceInputField, VariationIdx)))
+						.X(TAttribute<TOptional<float> >::Create(
+							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+								&UHoudiniAssetInstanceInput::GetScaleX, HoudiniAssetInstanceInputField, VariationIdx)))
+						.Y(TAttribute<TOptional<float> >::Create(
+							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+								&UHoudiniAssetInstanceInput::GetScaleY, HoudiniAssetInstanceInputField, VariationIdx)))
+						.Z(TAttribute<TOptional<float> >::Create(
+							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+								&UHoudiniAssetInstanceInput::GetScaleZ, HoudiniAssetInstanceInputField, VariationIdx)))
 						.OnXChanged(FOnFloatValueChanged::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::SetScaleX, HoudiniAssetInstanceInputField, VariationIdx))
+								&UHoudiniAssetInstanceInput::SetScaleX, HoudiniAssetInstanceInputField, VariationIdx))
 						.OnYChanged(FOnFloatValueChanged::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::SetScaleY, HoudiniAssetInstanceInputField, VariationIdx))
+								&UHoudiniAssetInstanceInput::SetScaleY, HoudiniAssetInstanceInputField, VariationIdx))
 						.OnZChanged(FOnFloatValueChanged::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::SetScaleZ, HoudiniAssetInstanceInputField, VariationIdx))
+								&UHoudiniAssetInstanceInput::SetScaleZ, HoudiniAssetInstanceInputField, VariationIdx))
 					]
 				];
 
@@ -591,10 +590,10 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 				[
 					SNew(SCheckBox)
 					.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::CheckStateChanged, HoudiniAssetInstanceInputField, VariationIdx))
+						&UHoudiniAssetInstanceInput::CheckStateChanged, HoudiniAssetInstanceInputField, VariationIdx))
 					.IsChecked(TAttribute<ECheckBoxState>::Create(
-					TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-					&UHoudiniAssetInstanceInput::IsChecked, HoudiniAssetInstanceInputField, VariationIdx)))
+						TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::IsChecked, HoudiniAssetInstanceInputField, VariationIdx)))
 					.Content()
 					[
 						SNew(STextBlock)
@@ -666,7 +665,7 @@ void
 UHoudiniAssetInstanceInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Cast<UHoudiniAssetInstanceInput>(InThis);
-	if(HoudiniAssetInstanceInput)// && !HoudiniAssetInstanceInput->IsPendingKill())
+	if(HoudiniAssetInstanceInput)
 	{
 		// Add references to all used fields.
 		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInput->InstanceInputFields.Num(); ++Idx)

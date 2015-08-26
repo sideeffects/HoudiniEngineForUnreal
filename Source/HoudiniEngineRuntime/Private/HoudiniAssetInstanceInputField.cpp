@@ -107,7 +107,7 @@ void
 UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = Cast<UHoudiniAssetInstanceInputField>(InThis);
-	if(HoudiniAssetInstanceInputField)// && !HoudiniAssetInstanceInputField->IsPendingKill())
+	if(HoudiniAssetInstanceInputField)
 	{
 		if(HoudiniAssetInstanceInputField->OriginalStaticMesh)
 		{
@@ -117,13 +117,21 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 		for (int32 Idx = 0; Idx < HoudiniAssetInstanceInputField->StaticMeshes.Num(); ++Idx)
 		{
 			UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->StaticMeshes[Idx];
-			Collector.AddReferencedObject(StaticMesh, InThis);
+			if(StaticMesh)
+			{
+				Collector.AddReferencedObject(StaticMesh, InThis);
+			}
 		}
 		
 		for (int32 Idx = 0; Idx < HoudiniAssetInstanceInputField->InstancedStaticMeshComponents.Num(); ++Idx)
 		{
-			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = HoudiniAssetInstanceInputField->InstancedStaticMeshComponents[Idx];            
-			Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
+			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = 
+				HoudiniAssetInstanceInputField->InstancedStaticMeshComponents[Idx];
+
+			if(InstancedStaticMeshComponent)
+			{
+				Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
+			}
 		}
 		
 	}

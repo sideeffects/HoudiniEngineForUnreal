@@ -164,10 +164,10 @@ protected:
 									int32 Idx, int32 VariationIdx);
 
 	/** Handler for adding instance variation **/
-	FReply OnAddInstanceVariation(UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index);
+	void OnAddInstanceVariation(UHoudiniAssetInstanceInputField* InstanceInputField, int32 Index);
 
 	/** Handler for removing instance variation **/
-	FReply OnRemoveInstanceVariation(UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index);
+	void OnRemoveInstanceVariation(UHoudiniAssetInstanceInputField* InstanceInputField, int32 Index);
 
 	/** Get rotation components for given index. **/
 	TOptional<float> GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
@@ -206,7 +206,6 @@ protected:
 
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
-    
 
 #endif
 
