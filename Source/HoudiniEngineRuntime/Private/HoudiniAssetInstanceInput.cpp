@@ -925,12 +925,12 @@ UHoudiniAssetInstanceInput::CloseStaticMeshComboButton(UHoudiniAssetInstanceInpu
 
 
 void
-UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton(bool bClosed, 
+UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton(bool bOpened, 
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, int32 VariationIdx)
 {
-	// Do nothing.
-	if(!bClosed)
+	if(!bOpened)
 	{
+		// If combo button has been closed, update the UI.
 		if(HoudiniAssetComponent)
 		{
 			HoudiniAssetComponent->UpdateEditorProperties(false);

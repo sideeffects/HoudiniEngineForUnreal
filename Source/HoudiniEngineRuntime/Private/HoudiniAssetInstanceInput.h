@@ -154,7 +154,7 @@ protected:
 		int32 VariationIdx);
 
 	/** Triggered when combo button is opened or closed. **/
-	void ChangedStaticMeshComboButton(bool bClosed, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	void ChangedStaticMeshComboButton(bool bOpened, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
 		int32 Idx, int32 VariationIdx);
 
 	/** Browse to static mesh. **/
