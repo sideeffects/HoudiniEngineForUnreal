@@ -1550,14 +1550,30 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoMaterial.owner = HAPI_ATTROWNER_PRIM;
 		AttributeInfoMaterial.storage = HAPI_STORAGETYPE_STRING;
 		AttributeInfoMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
-			MarshallingAttributeName.c_str(), &AttributeInfoMaterial), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+
+		bool bAttributeError = false;
+
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
+			MarshallingAttributeName.c_str(), &AttributeInfoMaterial))
+		{
+			bAttributeError = true;
+		}
+
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
 			MarshallingAttributeName.c_str(), &AttributeInfoMaterial, (const char**) StaticMeshFaceMaterials.GetData(),
-			0, StaticMeshFaceMaterials.Num()), false);
+			0, StaticMeshFaceMaterials.Num()))
+		{
+			bAttributeError = true;
+		}
 
 		// Delete material names.
 		FHoudiniEngineUtils::DeleteFaceMaterialArray(StaticMeshFaceMaterials);
+
+		if(bAttributeError)
+		{
+			check(0);
+			return false;
+		}
 	}
 
 	// Marshall face smoothing masks.
