@@ -536,7 +536,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		.Content()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("HoudiniSetTimeAndCookInPlaymode", "Set Time and Cook when Playmode"))
+			.Text(LOCTEXT("HoudiniSetTimeAndCookInPlaymode", "Set Time and Cook when in Playmode"))
 			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		]
 	];
