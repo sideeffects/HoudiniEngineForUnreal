@@ -1126,18 +1126,21 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				}
 
 				// Compute whether we need to cook.
-				if(bInstantiated || bParametersChanged || bTransformRecook || bCurveChanged)
+				if(bInstantiated)
 				{
-					if(bEnableCooking || bManualRecook || bInstantiated)
+					if(bEnableCooking || bManualRecook)
 					{
-						// Upload changed parameters back to HAPI.
-						UploadChangedParameters();
+						if(bParametersChanged || bTransformRecook || bCurveChanged)
+						{
+							// Upload changed parameters back to HAPI.
+							UploadChangedParameters();
 
-						// Create asset cooking task object and submit it for processing.
-						StartTaskAssetCooking();
+							// Create asset cooking task object and submit it for processing.
+							StartTaskAssetCooking();
 
-						// Reset curves flag.
-						bCurveChanged = false;
+							// Reset curves flag.
+							bCurveChanged = false;
+						}
 					}
 				}
 
