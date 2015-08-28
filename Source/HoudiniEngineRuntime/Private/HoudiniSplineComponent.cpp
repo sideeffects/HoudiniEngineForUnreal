@@ -45,7 +45,7 @@ UHoudiniSplineComponent::Serialize(FArchive& Ar)
 	int32 Version = 0; // Placeholder until we need to use it.
 	Ar << Version;
 
-	HoudiniGeoPartObject.Serialize(Ar);
+	Ar << HoudiniGeoPartObject;
 
 	Ar << CurvePoints;
 	Ar << CurveDisplayPoints;
@@ -185,7 +185,7 @@ UHoudiniSplineComponent::UploadControlPoints()
 	{
 		if(HoudiniGeoPartObject.IsValid())
 		{
-			NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetInput->GetCurveAssetId());
+			NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetInput->GetConnectedAssetId());
 		}
 	}
 	else
@@ -205,17 +205,15 @@ UHoudiniSplineComponent::UploadControlPoints()
 
 		// Get param id.
 		HAPI_ParmId ParmId = -1;
-		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIdFromName(
-			FHoudiniEngine::Get().GetSession(), NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId )
-		)
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIdFromName(
+			FHoudiniEngine::Get().GetSession(), NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
 		{
 			return;
 		}
 
 		std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmStringValue(
-			FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0 )
-		)
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmStringValue(
+			FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0))
 		{
 			return;
 		}

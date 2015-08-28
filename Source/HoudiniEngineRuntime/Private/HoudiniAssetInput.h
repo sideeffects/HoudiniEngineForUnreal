@@ -53,7 +53,7 @@ public:
 public:
 
 	/** Called to destroy connected Houdini asset, if there's one. **/
-	void DestroyHoudiniAssets();
+	//void DestroyHoudiniAssets();
 
 public:
 
@@ -87,12 +87,6 @@ public:
 	/** Return id of connected asset id. **/
 	HAPI_AssetId GetConnectedAssetId() const;
 
-	/* Return id of curve input asset. **/
-	HAPI_AssetId GetCurveAssetId() const;
-
-	/** Return id of geometry input asset. **/
-	HAPI_AssetId GetGeometryAssetId() const;
-
 	/** Return true if connected asset is a geometry asset. **/
 	bool IsGeometryAssetConnected() const;
 
@@ -100,10 +94,7 @@ public:
 	bool IsCurveAssetConnected() const;
 
 	/** Disconnect connected input asset. **/
-	void DisconnectInputAsset();
-
-	/** Connect input asset. **/
-	void ConnectInputAsset();
+	void DisconnectAndDestroyInputAsset();
 
 	/** Called by attached spline component whenever its state changes. **/
 	void OnInputCurveChanged();
@@ -150,26 +141,19 @@ protected:
 	/** Called to retrieve the name of selected item. **/
 	FText HandleChoiceContentText() const;
 
-
 protected:
 
 	/** Extract curve parameters and update the attached spline component. **/
 	void UpdateInputCurve();
 
-	/** Called to destroy connected geometry input and its asset. **/
-	void DestroyGeometryInputAsset();
-
-	/** Called to destroy connected curve input and its asset. **/
-	void DestroyCurveInputAsset();
-
 	/** Clear input curve parameters. **/
 	void ClearInputCurveParameters();
 
+	/** Destroy input curve object. **/
+	void DestroyInputCurve();
+
 	/** Create necessary resources for this input. **/
 	void CreateWidgetResources();
-
-	/** Serialize input curve related parameters. **/
-	void SerializeInputCurveParameters(FArchive& Ar);
 
 protected:
 
@@ -200,15 +184,6 @@ protected:
 
 	/** Houdini spline component which is used for curve input. **/
 	UHoudiniSplineComponent* InputCurve;
-
-	/** Id of geometry input asset. **/
-	HAPI_AssetId GeometryAssetId;
-
-	/** Id of connected input curve. **/
-	HAPI_AssetId CurveAssetId;
-
-	/** Id of connected asset input. **/
-	HAPI_AssetId InputAssetId;
 
 	/** Id of currently connected asset. **/
 	HAPI_AssetId ConnectedAssetId;

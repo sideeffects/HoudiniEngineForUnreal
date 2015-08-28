@@ -26,9 +26,6 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	Super(ObjectInitializer),
 	InputObject(nullptr),
 	InputCurve(nullptr),
-	GeometryAssetId(-1),
-	CurveAssetId(-1),
-	InputAssetId(-1),
 	ConnectedAssetId(-1),
 	InputIndex(0),
 	ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
@@ -53,14 +50,14 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
 
 	// Get name of this input.
 	HAPI_StringHandle InputStringHandle;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetInputName(FHoudiniEngine::Get().GetSession(), InHoudiniAssetComponent->GetAssetId(),
-		InInputIndex, HAPI_INPUT_GEOMETRY, &InputStringHandle))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetInputName(FHoudiniEngine::Get().GetSession(),
+		InHoudiniAssetComponent->GetAssetId(), InInputIndex, HAPI_INPUT_GEOMETRY, &InputStringHandle))
 	{
 		return HoudiniAssetInput;
 	}
 
 	HoudiniAssetInput = NewObject<UHoudiniAssetInput>(InHoudiniAssetComponent,
-		UHoudiniAssetInput::StaticClass(), NAME_None, RF_Public);
+		UHoudiniAssetInput::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	// Set component and other information.
 	HoudiniAssetInput->HoudiniAssetComponent = InHoudiniAssetComponent;
@@ -94,7 +91,6 @@ UHoudiniAssetInput::CreateWidgetResources()
 			ChoiceStringValue = *ChoiceLabel;
 		}
 	}
-	/*
 	{
 		FString* ChoiceLabel = new FString(TEXT("Asset Input"));
 		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
@@ -104,7 +100,6 @@ UHoudiniAssetInput::CreateWidgetResources()
 			ChoiceStringValue = *ChoiceLabel;
 		}
 	}
-	*/
 	{
 		FString* ChoiceLabel = new FString(TEXT("Curve Input"));
 		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
@@ -118,82 +113,21 @@ UHoudiniAssetInput::CreateWidgetResources()
 
 
 void
-UHoudiniAssetInput::DestroyHoudiniAssets()
+UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
 {
-	DisconnectInputAsset();
-
-	DestroyGeometryInputAsset();
-	DestroyCurveInputAsset();
-}
-
-
-void
-UHoudiniAssetInput::DestroyGeometryInputAsset()
-{
-	// Destroy connected geometry.
-	if(-1 != GeometryAssetId)
+	if(HoudiniAssetComponent)
 	{
-		FHoudiniEngineUtils::DestroyHoudiniAsset(GeometryAssetId);
-		GeometryAssetId = -1;
-	}
-}
-
-
-void
-UHoudiniAssetInput::DestroyCurveInputAsset()
-{
-	// Destroy connected curve.
-	if(-1 != CurveAssetId)
-	{
-		FHoudiniEngineUtils::DestroyHoudiniAsset(CurveAssetId);
-		CurveAssetId = -1;
+		HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+		if(FHoudiniEngineUtils::IsValidAssetId(HostAssetId))
+		{
+			FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);
+		}
 	}
 
-	// We need to destroy spline component.
-	if(InputCurve)
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
 	{
-		InputCurve->DetachFromParent();
-		InputCurve->UnregisterComponent();
-		InputCurve->DestroyComponent();
-
-		InputCurve = nullptr;
-	}
-}
-
-
-void
-UHoudiniAssetInput::DisconnectInputAsset()
-{
-	HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && FHoudiniEngineUtils::IsValidAssetId(HostAssetId))
-	{
-		FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);
+		FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
 		ConnectedAssetId = -1;
-	}
-}
-
-
-void
-UHoudiniAssetInput::ConnectInputAsset()
-{
-	// Asset must be disconnected before connecting.
-	check(!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId));
-
-	HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-	HAPI_AssetId ConnectingAssetId = -1;
-
-	if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
-	{
-		ConnectingAssetId = GeometryAssetId;
-	}
-	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
-	{
-		ConnectingAssetId = CurveAssetId;
-	}
-
-	if(FHoudiniEngineUtils::HapiConnectAsset(ConnectingAssetId, 0, HostAssetId, InputIndex))
-	{
-		ConnectedAssetId = ConnectingAssetId;
 	}
 }
 
@@ -236,22 +170,25 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 	TSharedPtr<SHorizontalBox> ButtonBox;
 
-	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
-	[
-		SNew(SComboBox<TSharedPtr<FString> >)
-		.OptionsSource(&StringChoiceLabels)
-		.InitiallySelectedItem(StringChoiceLabels[ChoiceIndex])
-		.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this,
-			&UHoudiniAssetInput::CreateChoiceEntryWidget))
-		.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this,
-			&UHoudiniAssetInput::OnChoiceChange))
+	if(StringChoiceLabels.Num() > 0)
+	{
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
-			SNew(STextBlock)
-			.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this,
-				&UHoudiniAssetInput::HandleChoiceContentText)))
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		]
-	];
+			SNew(SComboBox<TSharedPtr<FString> >)
+			.OptionsSource(&StringChoiceLabels)
+			.InitiallySelectedItem(StringChoiceLabels[ChoiceIndex])
+			.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this,
+				&UHoudiniAssetInput::CreateChoiceEntryWidget))
+			.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this,
+				&UHoudiniAssetInput::OnChoiceChange))
+			[
+				SNew(STextBlock)
+				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this,
+					&UHoudiniAssetInput::HandleChoiceContentText)))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		];
+	}
 
 	if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
 	{
@@ -354,13 +291,21 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			]
 		];
 	}
+	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
+	{
+		// Add asset input gui here.
+	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
+		// Go through all input curve parameters and build their widgets recursively.
 		for(TMap<FString, UHoudiniAssetParameter*>::TIterator
 			IterParams(InputCurveParameters); IterParams; ++IterParams)
 		{
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-			HoudiniAssetParameter->CreateWidget(VerticalBox);
+			if(HoudiniAssetParameter)
+			{
+				HoudiniAssetParameter->CreateWidget(VerticalBox);
+			}
 		}
 	}
 
@@ -383,29 +328,37 @@ UHoudiniAssetInput::UploadParameterValue()
 		{
 			if(bStaticMeshChanged || bLoadedParameter)
 			{
-				bStaticMeshChanged = false;
-				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh,
-					GeometryAssetId))
+				// Disconnect and destroy currently connected asset, if there's one.
+				DisconnectAndDestroyInputAsset();
+
+				// Connect input and create connected asset. Will return by reference.
+				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh, ConnectedAssetId))
 				{
 					bChanged = false;
+					ConnectedAssetId = -1;
 					return false;
 				}
 
-				ConnectedAssetId = GeometryAssetId;
+				bStaticMeshChanged = false;
 			}
 		}
 		else
 		{
 			// Either mesh was reset or null mesh has been assigned.
-			DestroyGeometryInputAsset();
+			DisconnectAndDestroyInputAsset();
 		}
-	}/*
+	}
 	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 	{
 		// Process connected asset.
-	}*/
+	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
+
+
+
+
+		/*
 		// If we have no curve asset, create it.
 		if(!FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
 		{
@@ -464,6 +417,9 @@ UHoudiniAssetInput::UploadParameterValue()
 
 		// We need to update newly created curve.
 		UpdateInputCurve();
+		*/
+
+		bSwitchedToCurve = false;
 	}
 
 	bLoadedParameter = false;
@@ -475,7 +431,12 @@ void
 UHoudiniAssetInput::BeginDestroy()
 {
 	Super::BeginDestroy();
-	ClearInputCurveParameters();
+
+	// Destroy anything curve related.
+	DestroyInputCurve();
+
+	// Disconnect and destroy the asset we may have connected.
+	DisconnectAndDestroyInputAsset();
 }
 
 
@@ -484,12 +445,22 @@ UHoudiniAssetInput::PostLoad()
 {
 	Super::PostLoad();
 
+	// Generate widget related resources.
+	CreateWidgetResources();
+
+	// Patch input curve parameter links.
+	for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(InputCurveParameters); IterParams; ++IterParams)
+	{
+		FString ParameterKey = IterParams.Key();
+		UHoudiniAssetParameter* Parameter = IterParams.Value();
+
+		Parameter->SetHoudiniAssetComponent(nullptr);
+		Parameter->SetParentParameter(this);
+	}
+
+	// Set input callback object for this curve.
 	if(InputCurve)
 	{
-		InputCurve->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
-		InputCurve->SetVisibility(true);
-		InputCurve->RegisterComponent();
-		InputCurve->RemoveFromRoot();
 		InputCurve->SetHoudiniAssetInput(this);
 	}
 }
@@ -506,95 +477,20 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 
 	Ar << HoudiniAssetInputFlagsPacked;
 
-	// Create necessary widget resources.
-	if(Ar.IsLoading())
-	{
-		CreateWidgetResources();
-		bLoadedParameter = true;
-	}
-
 	// Serialize input index.
 	Ar << InputIndex;
 
-	// Serialize static mesh input.
-	UStaticMesh* StaticMeshInput = nullptr;
-	bool bMeshAssigned = false;
+	// Serialize input object (if it's assigned).
+	Ar << InputObject;
 
-	if(Ar.IsSaving())
+	// Serialize curve and curve parameters (if we have those).
+	Ar << InputCurve;
+	Ar << InputCurveParameters;
+
+	// Create necessary widget resources.
+	if(Ar.IsLoading())
 	{
-		StaticMeshInput = Cast<UStaticMesh>(InputObject);
-		if(StaticMeshInput)
-		{
-			bMeshAssigned = true;
-		}
-	}
-
-	Ar << bMeshAssigned;
-	if(bMeshAssigned)
-	{
-		Ar << StaticMeshInput;
-	}
-
-	if(Ar.IsLoading() && bMeshAssigned)
-	{
-		InputObject = StaticMeshInput;
-	}
-
-	// Serialize curve.
-	bool bCurveCreated = (InputCurve != nullptr);
-	Ar << bCurveCreated;
-
-	if(bCurveCreated)
-	{
-		Ar << InputCurve;
-
-		if(Ar.IsLoading())
-		{
-			InputCurve->AddToRoot();
-		}
-
-		// Serialize curve parameters.
-		SerializeInputCurveParameters(Ar);
-	}
-}
-
-
-void
-UHoudiniAssetInput::SerializeInputCurveParameters(FArchive& Ar)
-{
-	// Serialize number of parameters.
-	int32 ParamCount = InputCurveParameters.Num();
-	Ar << ParamCount;
-
-	if(Ar.IsSaving())
-	{
-		for(TMap<FString, UHoudiniAssetParameter*>::TIterator
-			IterParams(InputCurveParameters); IterParams; ++IterParams)
-		{
-			FString ParameterKey = IterParams.Key();
-			UHoudiniAssetParameter* Parameter = IterParams.Value();
-
-			Ar << ParameterKey;
-			Ar << Parameter;
-		}
-	}
-	else if(Ar.IsLoading())
-	{
-		InputCurveParameters.Empty();
-
-		for(int32 ParmIdx = 0; ParmIdx < ParamCount; ++ParmIdx)
-		{
-			FString ParameterKey = TEXT("");
-			UHoudiniAssetParameter* Parameter = nullptr;
-
-			Ar << ParameterKey;
-			Ar << Parameter;
-
-			Parameter->SetHoudiniAssetComponent(nullptr);
-			Parameter->SetParentParameter(this);
-
-			InputCurveParameters.Add(ParameterKey, Parameter);
-		}
+		bLoadedParameter = true;
 	}
 }
 
@@ -603,7 +499,7 @@ void
 UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UHoudiniAssetInput* HoudiniAssetInput = Cast<UHoudiniAssetInput>(InThis);
-	if(HoudiniAssetInput)// && !HoudiniAssetInput->IsPendingKill())
+	if(HoudiniAssetInput)
 	{
 		// Add reference to held geometry object.
 		if(HoudiniAssetInput->InputObject)
@@ -644,6 +540,23 @@ UHoudiniAssetInput::ClearInputCurveParameters()
 }
 
 
+void
+UHoudiniAssetInput::DestroyInputCurve()
+{
+	// If we have spline, delete it.
+	if(InputCurve)
+	{
+		InputCurve->DetachFromParent();
+		InputCurve->UnregisterComponent();
+		InputCurve->DestroyComponent();
+
+		InputCurve = nullptr;
+	}
+
+	ClearInputCurveParameters();
+}
+
+
 #if WITH_EDITOR
 
 void
@@ -664,6 +577,7 @@ UHoudiniAssetInput::OnStaticMeshDropped(UObject* Object)
 bool
 UHoudiniAssetInput::OnStaticMeshDraggedOver(const UObject* InObject) const
 {
+	// We only allow static meshes as geo inputs at this time.
 	if(InObject && InObject->IsA(UStaticMesh::StaticClass()))
 	{
 		return true;
@@ -792,38 +706,64 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 
 	if(bChanged)
 	{
-		// We are switching modes.
-		ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(LabelIdx);
-
-		// We need to disconnect currently connected asset, if we have one.
-		DisconnectInputAsset();
-
-		// Deallocate mesh resources.
-		//HoudiniAssetComponent->ReleaseObjectGeoPartResources();
-
-		if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
+		switch(ChoiceIndex)
 		{
-			// If we have spline, delete it.
-			if(InputCurve)
+			case EHoudiniAssetInputType::GeometryInput:
 			{
-				InputCurve->DetachFromParent();
-				InputCurve->UnregisterComponent();
-				InputCurve->DestroyComponent();
+				// We are switching away from geometry input.
 
-				InputCurve = nullptr;
+				// Reset assigned object.
+				InputObject = nullptr;
+				break;
 			}
 
-			// We need to trigger details panel update.
-			HoudiniAssetComponent->UpdateEditorProperties(false);
-		}/*
-		else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
-		{
-			// Switched to asset input mode.
-		}*/
-		else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
-		{
-			if(!InputCurve)
+			case EHoudiniAssetInputType::AssetInput:
 			{
+				// We are switching away from asset input.
+				break;
+			}
+
+			case EHoudiniAssetInputType::CurveInput:
+			{
+				// We are switching away from curve input.
+
+				// Clear input curve.
+				DestroyInputCurve();
+				break;
+			}
+
+			default:
+			{
+				// Unhandled new input type?
+				check(0);
+				break;
+			}
+		}
+
+		// Disconnect currently connected asset.
+		DisconnectAndDestroyInputAsset();
+
+		// Switch mode.
+		ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(LabelIdx);
+
+		switch(ChoiceIndex)
+		{
+			case EHoudiniAssetInputType::GeometryInput:
+			{
+				// We are switching to geometry input.
+				break;
+			}
+
+			case EHoudiniAssetInputType::AssetInput:
+			{
+				// We are switching to asset input.
+				break;
+			}
+
+			case EHoudiniAssetInputType::CurveInput:
+			{
+				// We are switching to curve input.
+
 				// Create new spline component.
 				UHoudiniSplineComponent* HoudiniSplineComponent =
 					NewObject<UHoudiniSplineComponent>(HoudiniAssetComponent, UHoudiniSplineComponent::StaticClass(),
@@ -836,14 +776,21 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 
 				// Store this component as input curve.
 				InputCurve = HoudiniSplineComponent;
+
+				bSwitchedToCurve = true;
+				break;
 			}
 
-			bSwitchedToCurve = true;
+			default:
+			{
+				// Unhandled new input type?
+				check(0);
+				break;
+			}
 		}
 
 		// If we have input object and geometry asset, we need to connect it back.
 		MarkPreChanged();
-		ConnectInputAsset();
 		MarkChanged();
 	}
 }
@@ -858,31 +805,33 @@ UHoudiniAssetInput::GetConnectedAssetId() const
 }
 
 
-HAPI_AssetId
-UHoudiniAssetInput::GetCurveAssetId() const
-{
-	return CurveAssetId;
-}
-
-
-HAPI_AssetId
-UHoudiniAssetInput::GetGeometryAssetId() const
-{
-	return GeometryAssetId;
-}
-
-
 bool
 UHoudiniAssetInput::IsGeometryAssetConnected() const
 {
-	return GeometryAssetId == ConnectedAssetId;
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+	{
+		if(InputObject && InputObject->IsA(UStaticMesh::StaticClass()))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
 bool
 UHoudiniAssetInput::IsCurveAssetConnected() const
 {
-	return CurveAssetId == ConnectedAssetId;
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+	{
+		if(InputCurve)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -900,8 +849,8 @@ UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniA
 	if(HoudiniAssetParameter && EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
 		MarkPreChanged();
-
-		if(FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
+		
+		if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
 		{
 			// We need to upload changed param back to HAPI.
 			HoudiniAssetParameter->UploadParameterValue();
@@ -915,6 +864,7 @@ UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniA
 void
 UHoudiniAssetInput::UpdateInputCurve()
 {
+	/*
 	FString CurvePointsString;
 	EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
 	EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
@@ -1073,6 +1023,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 #endif
 		bSwitchedToCurve = false;
 	}
+	*/
 }
 
 
