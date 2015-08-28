@@ -88,7 +88,7 @@ UHoudiniAssetInstanceInputField::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar << HoudiniAssetInstanceInputFieldFlagsPacked;
-	HoudiniGeoPartObject.Serialize(Ar);
+	Ar << HoudiniGeoPartObject;
 
 	Ar << InstancePathName;
 	Ar << RotationOffsets;

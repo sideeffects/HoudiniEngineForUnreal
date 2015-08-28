@@ -2078,7 +2078,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					UStaticMesh* StaticMesh = Iter.Value();
 
 					// Store the object geo part information.
-					HoudiniGeoPartObject.Serialize(Ar);
+					Ar << HoudiniGeoPartObject;
 
 					// Retrieve and mesh.
 					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
@@ -2094,7 +2094,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 					FHoudiniGeoPartObject HoudiniGeoPartObject;
 
 					// Get object geo part information.
-					HoudiniGeoPartObject.Serialize(Ar);
+					Ar << HoudiniGeoPartObject;
 
 					UStaticMesh* LoadedStaticMesh = nullptr;
 					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
@@ -3240,7 +3240,7 @@ UHoudiniAssetComponent::ClearInputs()
 		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
 
 		// Destroy connected Houdini asset.
-		HoudiniAssetInput->DestroyHoudiniAssets();
+		//HoudiniAssetInput->DestroyHoudiniAssets();
 		HoudiniAssetInput->ConditionalBeginDestroy();
 	}
 

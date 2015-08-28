@@ -670,7 +670,7 @@ UHoudiniAssetInstanceInput::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar << HoudiniAssetInstanceInputFlagsPacked;
-	HoudiniGeoPartObject.Serialize(Ar);
+	Ar << HoudiniGeoPartObject;
 
 	Ar << ObjectToInstanceId;
 
