@@ -354,50 +354,43 @@ UHoudiniAssetInput::UploadParameterValue()
 	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
-
-
-
-
-		/*
 		// If we have no curve asset, create it.
-		if(!FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
+		if(!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
 		{
-			if(!FHoudiniEngineUtils::HapiCreateCurve(CurveAssetId) ||
-				!FHoudiniEngineUtils::IsValidAssetId(CurveAssetId))
+			if(!FHoudiniEngineUtils::HapiCreateCurve(ConnectedAssetId))
 			{
 				bChanged = false;
 				return false;
 			}
-		}
 
-		// Connect asset if it is not connected.
-		if(!IsCurveAssetConnected())
-		{
-			FHoudiniEngineUtils::HapiConnectAsset(CurveAssetId, 0, HostAssetId, InputIndex);
+			// Connect asset.
+			FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex);
 		}
 
 		if(bLoadedParameter)
 		{
 			HAPI_AssetInfo CurveAssetInfo;
-			FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), CurveAssetId, &CurveAssetInfo);
+			FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo);
 
 			// If we just loaded our curve, we need to set parameters.
 			for(TMap<FString, UHoudiniAssetParameter*>::TIterator
 				IterParams(InputCurveParameters); IterParams; ++IterParams)
 			{
 				UHoudiniAssetParameter* Parameter = IterParams.Value();
+				if(Parameter)
+				{
+					// We need to update node id for loaded parameters.
+					Parameter->SetNodeId(CurveAssetInfo.nodeId);
 
-				// We need to update node id for loaded parameters.
-				Parameter->SetNodeId(CurveAssetInfo.nodeId);
-
-				// Upload parameter value.
-				Parameter->UploadParameterValue();
+					// Upload parameter value.
+					Parameter->UploadParameterValue();
+				}
 			}
 		}
 
 		// Also upload points.
 		HAPI_NodeId NodeId = -1;
-		if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
+		if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
 		{
 			const TArray<FVector>& CurvePoints = InputCurve->GetCurvePoints();
 
@@ -406,18 +399,19 @@ UHoudiniAssetInput::UploadParameterValue()
 
 			// Get param id.
 			HAPI_ParmId ParmId = -1;
-			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmIdFromName(FHoudiniEngine::Get().GetSession(), NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+			if(HAPI_RESULT_SUCCESS == 
+				FHoudiniApi::GetParmIdFromName(FHoudiniEngine::Get().GetSession(), NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
 			{
 				std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
 				FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0);
 			}
 		}
 
-		FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), CurveAssetId, nullptr);
+		// Cook the spline asset.
+		FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
 
-		// We need to update newly created curve.
+		// We need to update the curve.
 		UpdateInputCurve();
-		*/
 
 		bSwitchedToCurve = false;
 	}
@@ -864,14 +858,13 @@ UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniA
 void
 UHoudiniAssetInput::UpdateInputCurve()
 {
-	/*
 	FString CurvePointsString;
 	EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
 	EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
 	int32 CurveClosed = 1;
 
 	HAPI_NodeId NodeId = -1;
-	if(FHoudiniEngineUtils::HapiGetNodeId(CurveAssetId, 0, 0, NodeId))
+	if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
 	{
 		FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""),
 			CurvePointsString);
@@ -883,7 +876,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 	}
 
 	// Construct geo part object.
-	FHoudiniGeoPartObject HoudiniGeoPartObject(CurveAssetId, 0, 0, 0);
+	FHoudiniGeoPartObject HoudiniGeoPartObject(ConnectedAssetId, 0, 0, 0);
 	HoudiniGeoPartObject.bIsCurve = true;
 
 	HAPI_AttributeInfo AttributeRefinedCurvePositions;
@@ -1017,13 +1010,15 @@ UHoudiniAssetInput::UpdateInputCurve()
 
 	if(bSwitchedToCurve)
 	{
+
 #if WITH_EDITOR
+
 		// We need to trigger details panel update.
 		HoudiniAssetComponent->UpdateEditorProperties(false);
 #endif
+
 		bSwitchedToCurve = false;
 	}
-	*/
 }
 
 
