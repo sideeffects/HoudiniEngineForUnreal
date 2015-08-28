@@ -1136,12 +1136,12 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								// Upload changed parameters back to HAPI.
 								UploadChangedParameters();
 
-								// Create asset cooking task object and submit it for processing.
-								StartTaskAssetCooking();
-
 								// Reset curves flag.
 								bCurveChanged = false;
 							}
+
+							// Create asset cooking task object and submit it for processing.
+							StartTaskAssetCooking();
 						}
 					}
 
