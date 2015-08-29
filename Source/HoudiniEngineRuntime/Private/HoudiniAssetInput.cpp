@@ -906,16 +906,13 @@ UHoudiniAssetInput::ConnectInputAssetActor()
 {
 	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && InputAssetComponent && !bInputAssetConnectedInHoudini)
 	{
-		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
-			FHoudiniApi::ConnectAssetGeometry(
-				FHoudiniEngine::Get().GetSession(),
-				ConnectedAssetId,
-				0, // We just pick the first OBJ since we have no way letting the user pick.
-				HoudiniAssetComponent->GetAssetId(),
-				InputIndex
-			),
-			false
+		FHoudiniEngineUtils::HapiConnectAsset(
+			ConnectedAssetId,
+			0, // We just pick the first OBJ since we have no way letting the user pick.
+			HoudiniAssetComponent->GetAssetId(),
+			InputIndex
 		);
+
 		InputAssetComponent->AddDownstreamAsset(HoudiniAssetComponent, InputIndex);
 		bInputAssetConnectedInHoudini = true;
 	}
@@ -927,14 +924,7 @@ UHoudiniAssetInput::DisconnectInputAssetActor()
 {
 	if(bInputAssetConnectedInHoudini && !InputAssetComponent)
 	{
-		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
-			FHoudiniApi::DisconnectAssetGeometry(
-				FHoudiniEngine::Get().GetSession(),
-				HoudiniAssetComponent->GetAssetId(),
-				InputIndex
-			),
-			false
-		);
+		FHoudiniEngineUtils::HapiDisconnectAsset(HoudiniAssetComponent->GetAssetId(), InputIndex);
 		bInputAssetConnectedInHoudini = false;
 	}
 }
