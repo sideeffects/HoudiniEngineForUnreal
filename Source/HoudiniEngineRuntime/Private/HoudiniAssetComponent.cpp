@@ -65,6 +65,13 @@
 	while(0)
 
 
+uint32
+GetTypeHash(TPair<int32, int32> Pair)
+{
+	return HashCombine(Pair.Key, Pair.Value);
+}
+
+
 bool
 UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
 
@@ -446,24 +453,29 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 
 void
-UHoudiniAssetComponent::AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent, int32 InInputIndex)
+UHoudiniAssetComponent::AddDownstreamAsset(UHoudiniAssetComponent* InDownstreamAssetComponent, int32 InInputIndex)
 {
-	if(DownstreamAssetComponent)
+	if(InDownstreamAssetComponent)
 	{
-		TPair<UHoudiniAssetComponent*, int32> Pair;
-		Pair.Key = DownstreamAssetComponent;
+		HAPI_AssetId LocalAssetId = InDownstreamAssetComponent->GetAssetId();
+
+		TPair<HAPI_AssetId, int32> Pair;
+		Pair.Key = LocalAssetId;
 		Pair.Value = InInputIndex;
-		DownstreamAssets.Add(DownstreamAssetComponent->AssetId, Pair);
+		DownstreamAssetConnections.Add(Pair, InDownstreamAssetComponent);
 	}
 }
 
 
 void
-UHoudiniAssetComponent::RemoveDownstreamAsset(HAPI_AssetId InAssetId)
+UHoudiniAssetComponent::RemoveDownstreamAsset(HAPI_AssetId InAssetId, int32 InInputIndex)
 {
-	if(DownstreamAssets.Contains(InAssetId))
+	TPair<HAPI_AssetId, int32> Pair;
+	Pair.Key = InAssetId;
+	Pair.Value = InInputIndex;
+	if(DownstreamAssetConnections.Contains(Pair))
 	{
-		DownstreamAssets.Remove(InAssetId);
+		DownstreamAssetConnections.Remove(Pair);
 	}
 }
 
@@ -830,6 +842,18 @@ UHoudiniAssetComponent::PostCook()
 			CreateStaticMeshHoudiniLogoResource(NewStaticMeshes);
 		}
 	}
+
+	// Invoke cooks of downstream assets.
+	for(TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*>::TIterator IterAssets(DownstreamAssetConnections);
+		IterAssets;
+		++IterAssets)
+	{
+		// Note: There will be duplicates here - if this asset is connected to multiple inputs of the same downstream asset.
+		// Should be ok though, since we're inside our own tick so the downstream asset won't cook twice.
+		// Should also be harmless to call these commands on the same asset multiple times before its tick.
+		UHoudiniAssetComponent* DownstreamAsset = IterAssets.Value();
+		DownstreamAsset->NotifyParameterChanged(nullptr);
+	}
 }
 
 
@@ -1184,6 +1208,13 @@ void
 UHoudiniAssetComponent::UpdateEditorProperties(bool bConditionalUpdate)
 {
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
+
+	// If our actor is not selected don't do any updates.
+	if(!HoudiniAssetActor->IsSelected())
+	{
+		return;
+	}
+
 	if(GEditor && HoudiniAssetActor && bIsNativeComponent)
 	{
 		if(bConditionalUpdate && FSlateApplication::Get().HasAnyMouseCaptor())
@@ -3276,15 +3307,16 @@ UHoudiniAssetComponent::ClearInputs()
 void
 UHoudiniAssetComponent::ClearDownstreamAssets()
 {
-	for(TMap<HAPI_AssetId, TPair<UHoudiniAssetComponent*, int32>>::TIterator IterAssets(DownstreamAssets);
+	for(TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*>::TIterator IterAssets(DownstreamAssetConnections);
 		IterAssets;
 		++IterAssets)
 	{
-		TPair<UHoudiniAssetComponent*, int32>& DownstreamAsset = IterAssets.Value();
-		DownstreamAsset.Key->Inputs[DownstreamAsset.Value]->ExternalDisconnectInputAssetActor();
+		UHoudiniAssetComponent* DownstreamAsset = IterAssets.Value();
+		int32 LocalInputIndex = IterAssets.Key().Value;
+		DownstreamAsset->Inputs[LocalInputIndex]->ExternalDisconnectInputAssetActor();
 	}
 
-	DownstreamAssets.Empty();
+	DownstreamAssetConnections.Empty();
 }
 
 

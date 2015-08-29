@@ -832,7 +832,7 @@ UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
 	if(!Actor && InputAssetComponent)
 	{
 		// Tell the old input asset we are no longer connected.
-		InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent->GetAssetId());
+		InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent->GetAssetId(), InputIndex);
 
 		// We cleared the selection so just reset all the values.
 		InputAssetComponent = nullptr;
@@ -858,7 +858,7 @@ UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
 		// Tell the old input asset we are no longer connected.
 		if(InputAssetComponent)
 		{
-			InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent->GetAssetId());
+			InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent->GetAssetId(), InputIndex);
 		}
 
 		InputAssetComponent = ConnectedHoudiniAssetComponent;

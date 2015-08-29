@@ -416,10 +416,10 @@ private:
 public:
 
 	/** Add to the list of dependent downstream assets that have this asset as an asset input. **/
-	void AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent, int32 InInputIndex);
+	void AddDownstreamAsset(UHoudiniAssetComponent* InDownstreamAssetComponent, int32 InInputIndex);
 
 	/** Remove from the list of dependent downstream assets that have this asset as an asset input. **/
-	void RemoveDownstreamAsset(HAPI_AssetId InAssetId);
+	void RemoveDownstreamAsset(HAPI_AssetId InAssetId, int32 InInputIndex);
 
 	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
 	void CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
@@ -478,8 +478,8 @@ protected:
 	/** Instance inputs for this component's asset. Object id is used as key. **/
 	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*> InstanceInputs;
 
-	/** List of dependent downstream assets that have this asset as an asset input. NOT TO BE SERIALIZED! **/
-	TMap<HAPI_AssetId, TPair<UHoudiniAssetComponent*, int32>> DownstreamAssets;
+	/** List of dependent downstream asset connections that have this asset as an asset input. **/
+	TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*> DownstreamAssetConnections;
 
 	/** Handles for this component's asset. **/
 	TMap<FString, UHoudiniAssetHandle*> Handles;
