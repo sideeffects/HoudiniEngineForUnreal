@@ -446,6 +446,26 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 
 void
+UHoudiniAssetComponent::AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent)
+{
+	if(DownstreamAssetComponent)
+	{
+		DownstreamAssets.Add(DownstreamAssetComponent->AssetId, DownstreamAssetComponent);
+	}
+}
+
+
+void
+UHoudiniAssetComponent::RemoveDownstreamAsset(HAPI_AssetId AssetId)
+{
+	if(DownstreamAssets.Contains(AssetId))
+	{
+		DownstreamAssets.Remove(AssetId);
+	}
+}
+
+
+void
 UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap)
 {
 	// Reset Houdini logo flag.
@@ -3171,7 +3191,6 @@ UHoudiniAssetComponent::DuplicateInstanceInputs(UHoudiniAssetComponent* Duplicat
 }
 
 #endif
-
 
 void
 UHoudiniAssetComponent::ClearInstanceInputs()
