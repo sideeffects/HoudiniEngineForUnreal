@@ -293,7 +293,17 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	}
 	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 	{
-		// Add asset input gui here.
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			PropertyCustomizationHelpers::MakeActorPickerWithMenu(
+				nullptr,
+				true,
+				FOnShouldFilterActor::CreateUObject(this, &UHoudiniAssetInput::OnInputActorFilter),
+				FOnActorSelected::CreateUObject(this, &UHoudiniAssetInput::OnInputActorSelected),
+				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorCloseComboButton),
+				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorUse)
+			)
+		];
 	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
@@ -787,6 +797,30 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 		MarkPreChanged();
 		MarkChanged();
 	}
+}
+
+bool
+UHoudiniAssetInput::OnInputActorFilter(const AActor* const Actor) const
+{
+	return Actor->IsA(AHoudiniAssetActor::StaticClass());
+}
+
+void
+UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
+{
+
+}
+
+void
+UHoudiniAssetInput::OnInputActorCloseComboButton()
+{
+
+}
+
+void
+UHoudiniAssetInput::OnInputActorUse()
+{
+
 }
 
 #endif

@@ -136,6 +136,18 @@ protected:
 	/** Called when change of selection is triggered. **/
 	void OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType);
 
+	/** Called on input actor selection to filter the actors by type. **/
+	bool OnInputActorFilter(const AActor* const Actor) const;
+
+	/** Called when change of input actor selection. **/
+	void OnInputActorSelected(AActor* Actor);
+
+	/** Called when the input actor selection combo is closed. **/
+	void OnInputActorCloseComboButton();
+
+	/** Called when the input actor selection combo is used. **/
+	void OnInputActorUse();
+
 #endif
 
 	/** Called to retrieve the name of selected item. **/
