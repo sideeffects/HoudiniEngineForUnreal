@@ -459,11 +459,11 @@ UHoudiniAssetComponent::AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAss
 
 
 void
-UHoudiniAssetComponent::RemoveDownstreamAsset(HAPI_AssetId AssetId)
+UHoudiniAssetComponent::RemoveDownstreamAsset(HAPI_AssetId InAssetId)
 {
-	if(DownstreamAssets.Contains(AssetId))
+	if(DownstreamAssets.Contains(InAssetId))
 	{
-		DownstreamAssets.Remove(AssetId);
+		DownstreamAssets.Remove(InAssetId);
 	}
 }
 

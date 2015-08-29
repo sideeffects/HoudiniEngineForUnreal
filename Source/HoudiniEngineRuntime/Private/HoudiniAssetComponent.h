@@ -419,7 +419,7 @@ public:
 	void AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent, int32 InInputIndex);
 
 	/** Remove from the list of dependent downstream assets that have this asset as an asset input. **/
-	void RemoveDownstreamAsset(HAPI_AssetId AssetId);
+	void RemoveDownstreamAsset(HAPI_AssetId InAssetId);
 
 	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
 	void CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
