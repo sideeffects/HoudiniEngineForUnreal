@@ -556,6 +556,21 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 		]
 	];
 
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+	[
+		SNew(SCheckBox)
+		.OnCheckStateChanged(this,
+			&FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookingTriggersDownstreamCooks, HoudiniAssetComponent)
+		.IsChecked(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookingTriggersDownstreamCooks,
+			HoudiniAssetComponent)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniCookingTriggersDownstreamCooks", "Cooking Triggers Downstream Cooks"))
+			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+	];
+
 	{
 		TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
 		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
@@ -1313,6 +1328,18 @@ FHoudiniAssetComponentDetails::IsCheckedComponentSettingUseHoudiniMaterials(UHou
 }
 
 
+ECheckBoxState
+FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookingTriggersDownstreamCooks(UHoudiniAssetComponent* HoudiniAssetComponent) const
+{
+	if(HoudiniAssetComponent && HoudiniAssetComponent->bCookingTriggersDownstreamCooks)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
 void
 FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking(ECheckBoxState NewState,
 	UHoudiniAssetComponent* HoudiniAssetComponent)
@@ -1364,5 +1391,16 @@ FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUseHoudiniMateri
 	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->bUseHoudiniMaterials = (ECheckBoxState::Checked == NewState);
+	}
+}
+
+
+void
+FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookingTriggersDownstreamCooks(ECheckBoxState NewState,
+	UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->bCookingTriggersDownstreamCooks = (ECheckBoxState::Checked == NewState);
 	}
 }

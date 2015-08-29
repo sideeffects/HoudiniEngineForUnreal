@@ -116,7 +116,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bTimeCookInPlaymode(false),
 	bPlaymodeComponent(false),
 	bUseHoudiniMaterials(true),
-	bTransactionAssetChange(false)
+	bTransactionAssetChange(false),
+	bCookingTriggersDownstreamCooks(true)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -844,15 +845,18 @@ UHoudiniAssetComponent::PostCook()
 	}
 
 	// Invoke cooks of downstream assets.
-	for(TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*>::TIterator IterAssets(DownstreamAssetConnections);
-		IterAssets;
-		++IterAssets)
+	if(bCookingTriggersDownstreamCooks)
 	{
-		// Note: There will be duplicates here - if this asset is connected to multiple inputs of the same downstream asset.
-		// Should be ok though, since we're inside our own tick so the downstream asset won't cook twice.
-		// Should also be harmless to call these commands on the same asset multiple times before its tick.
-		UHoudiniAssetComponent* DownstreamAsset = IterAssets.Value();
-		DownstreamAsset->NotifyParameterChanged(nullptr);
+		for(TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*>::TIterator IterAssets(DownstreamAssetConnections);
+			IterAssets;
+			++IterAssets)
+		{
+			// Note: There will be duplicates here - if this asset is connected to multiple inputs of the same downstream asset.
+			// Should be ok though, since we're inside our own tick so the downstream asset won't cook twice.
+			// Should also be harmless to call these commands on the same asset multiple times before its tick.
+			UHoudiniAssetComponent* DownstreamAsset = IterAssets.Value();
+			DownstreamAsset->NotifyParameterChanged(nullptr);
+		}
 	}
 }
 

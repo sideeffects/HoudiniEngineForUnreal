@@ -156,6 +156,9 @@ private:
 	ECheckBoxState
 		IsCheckedComponentSettingUseHoudiniMaterials(UHoudiniAssetComponent* HoudiniAssetComponent) const;
 
+	ECheckBoxState
+		IsCheckedComponentSettingCookingTriggersDownstreamCooks(UHoudiniAssetComponent* HoudiniAssetComponent) const;
+
 	/** Handle change in Checkbox. **/
 	void CheckStateChangedComponentSettingCooking(ECheckBoxState NewState,
 		UHoudiniAssetComponent* HoudiniAssetComponent);
@@ -170,6 +173,9 @@ private:
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
 	void CheckStateChangedComponentSettingUseHoudiniMaterials(ECheckBoxState NewState,
+		UHoudiniAssetComponent* HoudiniAssetComponent);
+
+	void CheckStateChangedComponentSettingCookingTriggersDownstreamCooks(ECheckBoxState NewState,
 		UHoudiniAssetComponent* HoudiniAssetComponent);
 
 private:

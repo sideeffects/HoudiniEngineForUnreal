@@ -613,6 +613,9 @@ protected:
 
 			/** Is set when asset is changed during transaction. **/
 			uint32 bTransactionAssetChange : 1;
+
+			/** Is set to true when cooking this asset will trigger cooks of downstream connected assets. **/
+			uint32 bCookingTriggersDownstreamCooks : 1;
 		};
 
 		uint32 HoudiniAssetComponentFlagsPacked;
