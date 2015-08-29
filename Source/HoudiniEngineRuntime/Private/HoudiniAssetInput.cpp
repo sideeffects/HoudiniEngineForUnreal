@@ -903,7 +903,7 @@ UHoudiniAssetInput::ConnectInputAssetActor()
 			),
 			false
 		);
-		InputAssetComponent->AddDownstreamAsset(HoudiniAssetComponent);
+		InputAssetComponent->AddDownstreamAsset(HoudiniAssetComponent, InputIndex);
 		bInputAssetConnectedInHoudini = true;
 	}
 }
@@ -979,6 +979,17 @@ UHoudiniAssetInput::IsCurveAssetConnected() const
 void
 UHoudiniAssetInput::OnInputCurveChanged()
 {
+	MarkPreChanged();
+	MarkChanged();
+}
+
+
+void
+UHoudiniAssetInput::ExternalDisconnectInputAssetActor()
+{
+	InputAssetComponent = nullptr;
+	ConnectedAssetId = -1;
+
 	MarkPreChanged();
 	MarkChanged();
 }

@@ -102,6 +102,9 @@ public:
 	/** Called by attached spline component whenever its state changes. **/
 	void OnInputCurveChanged();
 
+	/** Forces a disconnect of the input asset actor. This is used by external actors, usually when they die. **/
+	void ExternalDisconnectInputAssetActor();
+
 protected:
 
 #if WITH_EDITOR

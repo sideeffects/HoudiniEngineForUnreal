@@ -403,6 +403,9 @@ private:
 	/** Clear all instance inputs. **/
 	void ClearInstanceInputs();
 
+	/** Inform downstream assets that we are dieing. **/
+	void ClearDownstreamAssets();
+
 	/** Delete Static mesh resources. This will free static meshes and corresponding components. **/
 	void ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap, 
 		bool bDeletePackages = false);
@@ -413,7 +416,7 @@ private:
 public:
 
 	/** Add to the list of dependent downstream assets that have this asset as an asset input. **/
-	void AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent);
+	void AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent, int32 InInputIndex);
 
 	/** Remove from the list of dependent downstream assets that have this asset as an asset input. **/
 	void RemoveDownstreamAsset(HAPI_AssetId AssetId);
@@ -476,7 +479,7 @@ protected:
 	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*> InstanceInputs;
 
 	/** List of dependent downstream assets that have this asset as an asset input. NOT TO BE SERIALIZED! **/
-	TMap<HAPI_AssetId, UHoudiniAssetComponent*> DownstreamAssets;
+	TMap<HAPI_AssetId, TPair<UHoudiniAssetComponent*, int32>> DownstreamAssets;
 
 	/** Handles for this component's asset. **/
 	TMap<FString, UHoudiniAssetHandle*> Handles;

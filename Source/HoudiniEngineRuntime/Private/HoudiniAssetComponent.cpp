@@ -446,11 +446,14 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 
 void
-UHoudiniAssetComponent::AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent)
+UHoudiniAssetComponent::AddDownstreamAsset(UHoudiniAssetComponent* DownstreamAssetComponent, int32 InInputIndex)
 {
 	if(DownstreamAssetComponent)
 	{
-		DownstreamAssets.Add(DownstreamAssetComponent->AssetId, DownstreamAssetComponent);
+		TPair<UHoudiniAssetComponent*, int32> Pair;
+		Pair.Key = DownstreamAssetComponent;
+		Pair.Value = InInputIndex;
+		DownstreamAssets.Add(DownstreamAssetComponent->AssetId, Pair);
 	}
 }
 
@@ -1796,6 +1799,9 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Destroy all handles.
 	ClearHandles();
+
+	// Inform downstream assets that we are dieing.
+	ClearDownstreamAssets();
 
 	Super::OnComponentDestroyed();
 }
@@ -3264,6 +3270,21 @@ UHoudiniAssetComponent::ClearInputs()
 	}
 
 	Inputs.Empty();
+}
+
+
+void
+UHoudiniAssetComponent::ClearDownstreamAssets()
+{
+	for(TMap<HAPI_AssetId, TPair<UHoudiniAssetComponent*, int32>>::TIterator IterAssets(DownstreamAssets);
+		IterAssets;
+		++IterAssets)
+	{
+		TPair<UHoudiniAssetComponent*, int32>& DownstreamAsset = IterAssets.Value();
+		DownstreamAsset.Key->Inputs[DownstreamAsset.Value]->ExternalDisconnectInputAssetActor();
+	}
+
+	DownstreamAssets.Empty();
 }
 
 
