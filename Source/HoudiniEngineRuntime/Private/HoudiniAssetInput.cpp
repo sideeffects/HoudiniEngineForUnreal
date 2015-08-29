@@ -26,12 +26,14 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	Super(ObjectInitializer),
 	InputObject(nullptr),
 	InputCurve(nullptr),
+	InputAssetComponent(nullptr),
 	ConnectedAssetId(-1),
 	InputIndex(0),
 	ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
 	bStaticMeshChanged(false),
 	bSwitchedToCurve(false),
-	bLoadedParameter(false)
+	bLoadedParameter(false),
+	bInputAssetConnectedInHoudini(false)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -361,6 +363,19 @@ UHoudiniAssetInput::UploadParameterValue()
 	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 	{
 		// Process connected asset.
+		if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && InputAssetComponent && !bInputAssetConnectedInHoudini)
+		{
+			ConnectInputAssetActor();
+		}
+		else if(bInputAssetConnectedInHoudini && !InputAssetComponent)
+		{
+			DisconnectInputAssetActor();
+		}
+		else
+		{
+			bChanged = false;
+			return false;
+		}
 	}
 	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
 	{
@@ -486,6 +501,9 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 
 	// Serialize input object (if it's assigned).
 	Ar << InputObject;
+
+	// Serialize input asset.
+	Ar << InputAssetComponent;
 
 	// Serialize curve and curve parameters (if we have those).
 	Ar << InputCurve;
@@ -724,6 +742,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			case EHoudiniAssetInputType::AssetInput:
 			{
 				// We are switching away from asset input.
+				DisconnectInputAssetActor();
 				break;
 			}
 
@@ -761,6 +780,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			case EHoudiniAssetInputType::AssetInput:
 			{
 				// We are switching to asset input.
+				ConnectInputAssetActor();
 				break;
 			}
 
@@ -805,17 +825,50 @@ UHoudiniAssetInput::OnInputActorFilter(const AActor* const Actor) const
 	return Actor->IsA(AHoudiniAssetActor::StaticClass());
 }
 
+
 void
 UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
 {
+	if(!Actor && InputAssetComponent)
+	{
+		// We cleared the selection so just reset all the values.
+		InputAssetComponent = nullptr;
+		ConnectedAssetId = -1;
+	}
+	else
+	{
+		AHoudiniAssetActor* HoudiniAssetActor = (AHoudiniAssetActor*) Actor;
+		UHoudiniAssetComponent* ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 
+		// If we just selected the already selected Actor do nothing.
+		if(ConnectedHoudiniAssetComponent == InputAssetComponent)
+		{
+			return;
+		}
+
+		// Do not allow the input asset to be ourself!
+		if(ConnectedHoudiniAssetComponent == HoudiniAssetComponent)
+		{
+			return;
+		}
+		else
+		{
+			InputAssetComponent = ConnectedHoudiniAssetComponent;
+			ConnectedAssetId = InputAssetComponent->GetAssetId();
+		}
+	}
+
+	MarkPreChanged();
+	MarkChanged();
 }
+
 
 void
 UHoudiniAssetInput::OnInputActorCloseComboButton()
 {
 
 }
+
 
 void
 UHoudiniAssetInput::OnInputActorUse()
@@ -824,6 +877,43 @@ UHoudiniAssetInput::OnInputActorUse()
 }
 
 #endif
+
+void
+UHoudiniAssetInput::ConnectInputAssetActor()
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && InputAssetComponent && !bInputAssetConnectedInHoudini)
+	{
+		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+			FHoudiniApi::ConnectAssetGeometry(
+				FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId,
+				0, // We just pick the first OBJ since we have no way letting the user pick.
+				HoudiniAssetComponent->GetAssetId(),
+				InputIndex
+			),
+			false
+		);
+		bInputAssetConnectedInHoudini = true;
+	}
+}
+
+
+void
+UHoudiniAssetInput::DisconnectInputAssetActor()
+{
+	if(bInputAssetConnectedInHoudini && !InputAssetComponent)
+	{
+		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+			FHoudiniApi::DisconnectAssetGeometry(
+				FHoudiniEngine::Get().GetSession(),
+				HoudiniAssetComponent->GetAssetId(),
+				InputIndex
+			),
+			false
+		);
+		bInputAssetConnectedInHoudini = false;
+	}
+}
 
 
 HAPI_AssetId
@@ -842,6 +932,18 @@ UHoudiniAssetInput::IsGeometryAssetConnected() const
 		{
 			return true;
 		}
+	}
+
+	return false;
+}
+
+
+bool
+UHoudiniAssetInput::IsInputAssetConnected() const
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && InputAssetComponent && bInputAssetConnectedInHoudini)
+	{
+		return true;
 	}
 
 	return false;

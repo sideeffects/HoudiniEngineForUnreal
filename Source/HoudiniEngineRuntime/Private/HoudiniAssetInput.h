@@ -90,6 +90,9 @@ public:
 	/** Return true if connected asset is a geometry asset. **/
 	bool IsGeometryAssetConnected() const;
 
+	/** Return true if connected asset is an instantiated (actor) asset. **/
+	bool IsInputAssetConnected() const;
+
 	/** Return true if connected asset is a curve asset. **/
 	bool IsCurveAssetConnected() const;
 
@@ -155,6 +158,12 @@ protected:
 
 protected:
 
+	/** Connect the input asset in Houdini. **/
+	void ConnectInputAssetActor();
+
+	/** Disconnect the input asset in Houdini. **/
+	void DisconnectInputAssetActor();
+
 	/** Extract curve parameters and update the attached spline component. **/
 	void UpdateInputCurve();
 
@@ -197,6 +206,9 @@ protected:
 	/** Houdini spline component which is used for curve input. **/
 	UHoudiniSplineComponent* InputCurve;
 
+	/** Houdini asset component pointer of the input asset (actor). **/
+	UHoudiniAssetComponent* InputAssetComponent;
+
 	/** Id of currently connected asset. **/
 	HAPI_AssetId ConnectedAssetId;
 
@@ -219,6 +231,9 @@ protected:
 
 			/** Is set to true if this parameter has been loaded. **/
 			uint32 bLoadedParameter : 1;
+
+			/** Is set to true if the input asset is actually connected inside Houdini. **/
+			uint32 bInputAssetConnectedInHoudini : 1;
 		};
 
 		uint32 HoudiniAssetInputFlagsPacked;
