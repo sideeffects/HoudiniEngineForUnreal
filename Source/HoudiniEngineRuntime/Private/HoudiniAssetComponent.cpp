@@ -1810,16 +1810,6 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 	StaticMeshes.Empty();
 	StaticMeshComponents.Empty();
 
-#if WITH_EDITOR
-
-	// Release all Houdini related resources.
-	ResetHoudiniResources();
-
-	// Unsubscribe from Editor events.
-	UnsubscribeEditorDelegates();
-
-#endif
-
 	// Release all curve related resources.
 	ClearCurves();
 
@@ -1837,6 +1827,16 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 	// Inform downstream assets that we are dieing.
 	ClearDownstreamAssets();
+
+#if WITH_EDITOR
+
+	// Release all Houdini related resources.
+	ResetHoudiniResources();
+
+	// Unsubscribe from Editor events.
+	UnsubscribeEditorDelegates();
+
+#endif
 
 	Super::OnComponentDestroyed();
 }

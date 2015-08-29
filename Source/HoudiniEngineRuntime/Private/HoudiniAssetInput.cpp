@@ -117,18 +117,31 @@ UHoudiniAssetInput::CreateWidgetResources()
 void
 UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
 {
-	if(HoudiniAssetComponent)
+	if(ChoiceIndex != EHoudiniAssetInputType::AssetInput)
 	{
-		HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-		if(FHoudiniEngineUtils::IsValidAssetId(HostAssetId))
+		if(HoudiniAssetComponent)
 		{
-			FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);
+			HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+			if(FHoudiniEngineUtils::IsValidAssetId(HostAssetId))
+			{
+				FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);
+			}
+		}
+
+		if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+		{
+			FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
+			ConnectedAssetId = -1;
 		}
 	}
-
-	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+	else
 	{
-		FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
+		if(InputAssetComponent)
+		{
+			InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent->GetAssetId(), InputIndex);
+		}
+
+		InputAssetComponent = nullptr;
 		ConnectedAssetId = -1;
 	}
 }
