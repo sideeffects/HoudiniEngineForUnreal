@@ -105,6 +105,12 @@ public:
 	/** Forces a disconnect of the input asset actor. This is used by external actors, usually when they die. **/
 	void ExternalDisconnectInputAssetActor();
 
+	/** See if we need to instantiate the input asset. **/
+	bool DoesInputAssetNeedInstantiation();
+
+	/** Get the HoudiniAssetComponent for the input asset. **/
+	UHoudiniAssetComponent* GetConnectedInputAssetComponent();
+
 protected:
 
 #if WITH_EDITOR

@@ -376,7 +376,7 @@ UHoudiniAssetInput::UploadParameterValue()
 	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 	{
 		// Process connected asset.
-		if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && InputAssetComponent && !bInputAssetConnectedInHoudini)
+		if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()) && !bInputAssetConnectedInHoudini)
 		{
 			ConnectInputAssetActor();
 		}
@@ -526,6 +526,13 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	if(Ar.IsLoading())
 	{
 		bLoadedParameter = true;
+
+		// If we're loading for real for the first time we need to reset this
+		// flag so we can reconnect when we get our parameters uploaded.
+		if(!Ar.IsTransacting())
+		{
+			bInputAssetConnectedInHoudini = false;
+		}
 	}
 }
 
@@ -904,14 +911,16 @@ UHoudiniAssetInput::OnInputActorUse()
 void
 UHoudiniAssetInput::ConnectInputAssetActor()
 {
-	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && InputAssetComponent && !bInputAssetConnectedInHoudini)
+	if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()) && !bInputAssetConnectedInHoudini)
 	{
 		FHoudiniEngineUtils::HapiConnectAsset(
-			ConnectedAssetId,
+			InputAssetComponent->GetAssetId(),
 			0, // We just pick the first OBJ since we have no way letting the user pick.
 			HoudiniAssetComponent->GetAssetId(),
 			InputIndex
 		);
+
+		ConnectedAssetId = InputAssetComponent->GetAssetId();
 
 		InputAssetComponent->AddDownstreamAsset(HoudiniAssetComponent, InputIndex);
 		bInputAssetConnectedInHoudini = true;
@@ -995,6 +1004,35 @@ UHoudiniAssetInput::ExternalDisconnectInputAssetActor()
 
 	MarkPreChanged();
 	MarkChanged();
+}
+
+
+bool
+UHoudiniAssetInput::DoesInputAssetNeedInstantiation()
+{
+	if(ChoiceIndex != EHoudiniAssetInputType::AssetInput)
+	{
+		return false;
+	}
+
+	if(InputAssetComponent == nullptr)
+	{
+		return false;
+	}
+
+	if(!FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+UHoudiniAssetComponent*
+UHoudiniAssetInput::GetConnectedInputAssetComponent()
+{
+	return InputAssetComponent;
 }
 
 

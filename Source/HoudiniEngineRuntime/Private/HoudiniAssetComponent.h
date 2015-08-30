@@ -619,6 +619,9 @@ protected:
 
 			/** Is set to true when cooking this asset will trigger cooks of downstream connected assets. **/
 			uint32 bCookingTriggersDownstreamCooks : 1;
+
+			/** Is set to true when we are waiting for upstream input assets to instantiate. **/
+			uint32 bWaitingForUpstreamAssetsToInstantiate : 1;
 		};
 
 		uint32 HoudiniAssetComponentFlagsPacked;

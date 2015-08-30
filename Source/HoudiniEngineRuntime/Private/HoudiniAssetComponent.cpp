@@ -110,7 +110,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bPlaymodeComponent(false),
 	bUseHoudiniMaterials(true),
 	bTransactionAssetChange(false),
-	bCookingTriggersDownstreamCooks(true)
+	bCookingTriggersDownstreamCooks(true),
+	bWaitingForUpstreamAssetsToInstantiate(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -1123,9 +1124,26 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		// Grab current time for delayed notification.
 		HapiNotificationStarted = FPlatformTime::Seconds();
 
-		// This component has been loaded and requires instantiation.
-		if(bLoadedComponentRequiresInstantiation)
+		if(bWaitingForUpstreamAssetsToInstantiate)
 		{
+			// We are waiting for upstream assets to instantiate.
+
+			bWaitingForUpstreamAssetsToInstantiate = false;
+			for(auto LocalInput : Inputs)
+			{
+				bWaitingForUpstreamAssetsToInstantiate |= LocalInput->DoesInputAssetNeedInstantiation();
+			}
+
+			// Try instantiating this asset again.
+			if(!bWaitingForUpstreamAssetsToInstantiate)
+			{
+				bLoadedComponentRequiresInstantiation = true;
+			}
+		}
+		else if(bLoadedComponentRequiresInstantiation)
+		{
+			// This component has been loaded and requires instantiation.
+
 			bLoadedComponentRequiresInstantiation = false;
 
 			StartTaskAssetInstantiation(true);
@@ -1239,14 +1257,29 @@ UHoudiniAssetComponent::UpdateEditorProperties(bool bConditionalUpdate)
 void
 UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool bStartTicking)
 {
-	// Create new GUID to identify this request.
-	HapiGUID = FGuid::NewGuid();
+	// We first need to make sure all our asset inputs have been instantiated and reconnected.
+	for(auto LocalInput : Inputs)
+	{
+		bool bInputAssetNeedsInstantiation = LocalInput->DoesInputAssetNeedInstantiation();
+		if(bInputAssetNeedsInstantiation)
+		{
+			UHoudiniAssetComponent* LocalInputAssetComponent = LocalInput->GetConnectedInputAssetComponent();
+			LocalInputAssetComponent->NotifyParameterChanged(nullptr);
+			bWaitingForUpstreamAssetsToInstantiate = true;
+		}
+	}
 
-	FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
-	Task.Asset = HoudiniAsset;
-	Task.ActorName = GetOuter()->GetName();
-	Task.bLoadedComponent = bLoadedComponent;
-	FHoudiniEngine::Get().AddTask(Task);
+	if(!bWaitingForUpstreamAssetsToInstantiate)
+	{
+		// Create new GUID to identify this request.
+		HapiGUID = FGuid::NewGuid();
+
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
+		Task.Asset = HoudiniAsset;
+		Task.ActorName = GetOuter()->GetName();
+		Task.bLoadedComponent = bLoadedComponent;
+		FHoudiniEngine::Get().AddTask(Task);
+	}
 
 	// Start ticking - this will poll the cooking system for completion.
 	if(bStartTicking)
