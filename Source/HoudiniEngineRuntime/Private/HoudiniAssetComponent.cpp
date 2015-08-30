@@ -65,13 +65,6 @@
 	while(0)
 
 
-uint32
-GetTypeHash(TPair<int32, int32> Pair)
-{
-	return HashCombine(Pair.Key, Pair.Value);
-}
-
-
 bool
 UHoudiniAssetComponent::bDisplayEngineNotInitialized = true;
 
@@ -458,25 +451,31 @@ UHoudiniAssetComponent::AddDownstreamAsset(UHoudiniAssetComponent* InDownstreamA
 {
 	if(InDownstreamAssetComponent)
 	{
-		HAPI_AssetId LocalAssetId = InDownstreamAssetComponent->GetAssetId();
-
-		TPair<HAPI_AssetId, int32> Pair;
-		Pair.Key = LocalAssetId;
-		Pair.Value = InInputIndex;
-		DownstreamAssetConnections.Add(Pair, InDownstreamAssetComponent);
+		if(DownstreamAssetConnections.Contains(InDownstreamAssetComponent))
+		{
+			TSet<int32>& InputIndicesSet = DownstreamAssetConnections[InDownstreamAssetComponent];
+			InputIndicesSet.Add(InInputIndex);
+		}
+		else
+		{
+			TSet<int32> InputIndicesSet;
+			InputIndicesSet.Add(InInputIndex);
+			DownstreamAssetConnections.Add(InDownstreamAssetComponent, InputIndicesSet);
+		}
 	}
 }
 
 
 void
-UHoudiniAssetComponent::RemoveDownstreamAsset(HAPI_AssetId InAssetId, int32 InInputIndex)
+UHoudiniAssetComponent::RemoveDownstreamAsset(UHoudiniAssetComponent* InDownstreamAssetComponent, int32 InInputIndex)
 {
-	TPair<HAPI_AssetId, int32> Pair;
-	Pair.Key = InAssetId;
-	Pair.Value = InInputIndex;
-	if(DownstreamAssetConnections.Contains(Pair))
+	if(DownstreamAssetConnections.Contains(InDownstreamAssetComponent))
 	{
-		DownstreamAssetConnections.Remove(Pair);
+		TSet<int32>& InputIndicesSet = DownstreamAssetConnections[InDownstreamAssetComponent];
+		if(InputIndicesSet.Contains(InInputIndex))
+		{
+			InputIndicesSet.Remove(InInputIndex);
+		}
 	}
 }
 
@@ -847,14 +846,11 @@ UHoudiniAssetComponent::PostCook()
 	// Invoke cooks of downstream assets.
 	if(bCookingTriggersDownstreamCooks)
 	{
-		for(TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*>::TIterator IterAssets(DownstreamAssetConnections);
+		for(TMap<UHoudiniAssetComponent*, TSet<int32>>::TIterator IterAssets(DownstreamAssetConnections);
 			IterAssets;
 			++IterAssets)
 		{
-			// Note: There will be duplicates here - if this asset is connected to multiple inputs of the same downstream asset.
-			// Should be ok though, since we're inside our own tick so the downstream asset won't cook twice.
-			// Should also be harmless to call these commands on the same asset multiple times before its tick.
-			UHoudiniAssetComponent* DownstreamAsset = IterAssets.Value();
+			UHoudiniAssetComponent* DownstreamAsset = IterAssets.Key();
 			DownstreamAsset->NotifyParameterChanged(nullptr);
 		}
 	}
@@ -2198,6 +2194,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize handles.
 	SerializeHandles(Ar);
 
+	// Serialize downstream asset connections.
+	SerializeDownstreamAssets(Ar);
+
 	if(Ar.IsLoading() && bIsNativeComponent)
 	{
 		// This component has been loaded.
@@ -3311,13 +3310,16 @@ UHoudiniAssetComponent::ClearInputs()
 void
 UHoudiniAssetComponent::ClearDownstreamAssets()
 {
-	for(TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*>::TIterator IterAssets(DownstreamAssetConnections);
+	for(TMap<UHoudiniAssetComponent*, TSet<int32>>::TIterator IterAssets(DownstreamAssetConnections);
 		IterAssets;
 		++IterAssets)
 	{
-		UHoudiniAssetComponent* DownstreamAsset = IterAssets.Value();
-		int32 LocalInputIndex = IterAssets.Key().Value;
-		DownstreamAsset->Inputs[LocalInputIndex]->ExternalDisconnectInputAssetActor();
+		UHoudiniAssetComponent* DownstreamAsset = IterAssets.Key();
+		TSet<int32>& LocalInputIndicies = IterAssets.Value();
+		for(auto LocalInputIndex : LocalInputIndicies)
+		{
+			DownstreamAsset->Inputs[LocalInputIndex]->ExternalDisconnectInputAssetActor();
+		}
 	}
 
 	DownstreamAssetConnections.Empty();
@@ -3451,6 +3453,62 @@ UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
 	else if(Ar.IsLoading())
 	{
 
+	}
+}
+
+
+void
+UHoudiniAssetComponent::SerializeDownstreamAssets(FArchive& Ar)
+{
+	if(Ar.IsLoading())
+	{
+		// Note: Don't call ClearDownstreamAssets() here because that will try to
+		// inform the downstream assets of our disconnection but we don't actually
+		// want that in this case as they will also load the correct upstream
+		// connection information.
+		DownstreamAssetConnections.Empty();
+	}
+
+	// Serialize number of instance inputs.
+	int32 DownstreamAssetConnectionCount = DownstreamAssetConnections.Num();
+	Ar << DownstreamAssetConnectionCount;
+
+	if(Ar.IsSaving())
+	{
+		for(TMap<UHoudiniAssetComponent*, TSet<int32>>::TIterator
+			IterConnections(DownstreamAssetConnections); IterConnections; ++IterConnections)
+		{
+			UHoudiniAssetComponent* DownstreamAsset = IterConnections.Key();
+			TSet<int32>& LocalInputIndices = IterConnections.Value();
+			int32 InputIndexCount = LocalInputIndices.Num();
+
+			Ar << DownstreamAsset;
+			Ar << InputIndexCount;
+			for(auto LocalInputIndex : LocalInputIndices)
+			{
+				Ar << LocalInputIndex;
+			}
+		}
+	}
+	else if(Ar.IsLoading())
+	{
+		for(int32 ConnectionIdx = 0; ConnectionIdx < DownstreamAssetConnectionCount; ++ConnectionIdx)
+		{
+			UHoudiniAssetComponent* DownstreamAsset = nullptr;
+			int32 InputIndexCount = 0;
+			Ar << DownstreamAsset;
+			Ar << InputIndexCount;
+
+			TSet<int32> LocalInputIndices;
+			for(int32 InputIndexIdx = 0; InputIndexIdx < InputIndexCount; ++InputIndexIdx)
+			{
+				int32 LocalInputIndex = 0;
+				Ar << LocalInputIndex;
+				LocalInputIndices.Add(LocalInputIndex);
+			}
+
+			DownstreamAssetConnections.Add(DownstreamAsset, LocalInputIndices);
+		}
 	}
 }
 

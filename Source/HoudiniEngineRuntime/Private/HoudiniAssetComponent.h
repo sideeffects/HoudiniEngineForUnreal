@@ -419,7 +419,7 @@ public:
 	void AddDownstreamAsset(UHoudiniAssetComponent* InDownstreamAssetComponent, int32 InInputIndex);
 
 	/** Remove from the list of dependent downstream assets that have this asset as an asset input. **/
-	void RemoveDownstreamAsset(HAPI_AssetId InAssetId, int32 InInputIndex);
+	void RemoveDownstreamAsset(UHoudiniAssetComponent* InDownstreamAssetComponent, int32 InInputIndex);
 
 	/** Create Static mesh resources. This will create necessary components for each mesh and update maps. **/
 	void CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
@@ -428,7 +428,7 @@ public:
 	void ReleaseObjectGeoPartResources(bool bDeletePackages = false);
 
 	/** Create Static mesh resource which corresponds to Houdini logo. **/
-	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshMap);
+	void CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMesDhMap);
 
 	/** Serialize inputs. **/
 	void SerializeInputs(FArchive& Ar);
@@ -438,6 +438,9 @@ public:
 
 	/** Serialize handles. **/
 	void SerializeHandles(FArchive& Ar);
+
+	/** Serialize downstream asset connetions. **/
+	void SerializeDownstreamAssets(FArchive& Ar);
 
 	/** Used to perform post loading initialization on instance inputs. **/
 	void PostLoadInitializeInstanceInputs();
@@ -479,7 +482,7 @@ protected:
 	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*> InstanceInputs;
 
 	/** List of dependent downstream asset connections that have this asset as an asset input. **/
-	TMap<TPair<HAPI_AssetId, int32>, UHoudiniAssetComponent*> DownstreamAssetConnections;
+	TMap<UHoudiniAssetComponent*, TSet<int32>> DownstreamAssetConnections;
 
 	/** Handles for this component's asset. **/
 	TMap<FString, UHoudiniAssetHandle*> Handles;
