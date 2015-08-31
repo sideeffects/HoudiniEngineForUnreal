@@ -100,7 +100,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bIsPreviewComponent(false),
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
-	//bInstantiated(false),
 	bIsPlayModeActive(false),
 	bParametersChanged(false),
 	bComponentTransformHasChanged(false),
@@ -940,9 +939,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 						HapiGUID.Invalidate();
 
-						// We just finished instantiation, we need to schedule a cook.
-						//bInstantiated = true;
-
 						// We just finished instantiation, we need to reset cook counter.
 						AssetCookCount = 0;
 
@@ -1005,8 +1001,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
+
 					bStopTicking = true;
-					//bInstantiated = false;
 					AssetCookCount++;
 
 					break;
@@ -1091,9 +1087,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
+
 					bStopTicking = true;
-					//bInstantiated = false;
-					//AssetCookCount = 0;
 
 					break;
 				}
