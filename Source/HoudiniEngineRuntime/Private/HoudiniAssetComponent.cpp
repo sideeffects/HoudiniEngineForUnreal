@@ -102,7 +102,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bInstantiated(false),
 	bIsPlayModeActive(false),
 	bParametersChanged(false),
-	bCurveChanged(false),
 	bComponentTransformHasChanged(false),
 	bComponentCopyImported(false),
 	bTimeCookInPlaymode(false),
@@ -1116,7 +1115,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bCurveChanged || bComponentTransformHasChanged))
+	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bComponentTransformHasChanged))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -1183,8 +1182,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				}
 
 				// Compute whether we need to cook.
-				if(bInstantiated || bParametersChanged || bCurveChanged ||
-					(bComponentTransformHasChanged && bTransformChangeTriggersCooks))
+				if(bInstantiated || bParametersChanged || (bComponentTransformHasChanged && bTransformChangeTriggersCooks))
 				{
 					if(bEnableCooking || bInstantiated)
 					{
@@ -1193,9 +1191,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						// Create asset cooking task object and submit it for processing.
 						StartTaskAssetCooking();
-
-						// Reset curves flag.
-						bCurveChanged = false;
 					}
 				}
 			}
@@ -2942,7 +2937,7 @@ UHoudiniAssetComponent::NotifyHoudiniSplineChanged(UHoudiniSplineComponent* Houd
 		bLoadedComponentRequiresInstantiation = true;
 	}
 
-	bCurveChanged = true;
+	bParametersChanged = true;
 	StartHoudiniTicking();
 }
 

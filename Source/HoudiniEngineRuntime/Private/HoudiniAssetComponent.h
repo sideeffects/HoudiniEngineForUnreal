@@ -581,7 +581,7 @@ protected:
 			/** Is set to true when component is loaded and requires instantiation. **/
 			uint32 bLoadedComponentRequiresInstantiation : 1;
 
-			/** Is set to true when asset has been instantiated, but not cooked. **/
+			/** Is set to true when asset has only been instantiated, but not cooked. **/
 			uint32 bInstantiated : 1;
 
 			/** Is set to true when PIE mode is on (either play or simulate.) **/
@@ -589,9 +589,6 @@ protected:
 
 			/** Is set to true when one of the parameters has been modified. This will trigger recook. **/
 			uint32 bParametersChanged : 1;
-
-			/** Is set to true when curve information requires reuploading. This will trigger recook. **/
-			uint32 bCurveChanged : 1;
 
 			/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
 			uint32 bComponentTransformHasChanged : 1;
