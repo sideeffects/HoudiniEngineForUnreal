@@ -439,9 +439,6 @@ public:
 	/** Serialize handles. **/
 	void SerializeHandles(FArchive& Ar);
 
-	/** Serialize downstream asset connetions. **/
-	void SerializeDownstreamAssets(FArchive& Ar);
-
 	/** Used to perform post loading initialization on instance inputs. **/
 	void PostLoadInitializeInstanceInputs();
 

@@ -2237,7 +2237,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	SerializeHandles(Ar);
 
 	// Serialize downstream asset connections.
-	SerializeDownstreamAssets(Ar);
+	Ar << DownstreamAssetConnections;
 
 	if(Ar.IsLoading() && bIsNativeComponent)
 	{
@@ -3495,62 +3495,6 @@ UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
 	else if(Ar.IsLoading())
 	{
 
-	}
-}
-
-
-void
-UHoudiniAssetComponent::SerializeDownstreamAssets(FArchive& Ar)
-{
-	if(Ar.IsLoading())
-	{
-		// Note: Don't call ClearDownstreamAssets() here because that will try to
-		// inform the downstream assets of our disconnection but we don't actually
-		// want that in this case as they will also load the correct upstream
-		// connection information.
-		DownstreamAssetConnections.Empty();
-	}
-
-	// Serialize number of instance inputs.
-	int32 DownstreamAssetConnectionCount = DownstreamAssetConnections.Num();
-	Ar << DownstreamAssetConnectionCount;
-
-	if(Ar.IsSaving())
-	{
-		for(TMap<UHoudiniAssetComponent*, TSet<int32>>::TIterator
-			IterConnections(DownstreamAssetConnections); IterConnections; ++IterConnections)
-		{
-			UHoudiniAssetComponent* DownstreamAsset = IterConnections.Key();
-			TSet<int32>& LocalInputIndices = IterConnections.Value();
-			int32 InputIndexCount = LocalInputIndices.Num();
-
-			Ar << DownstreamAsset;
-			Ar << InputIndexCount;
-			for(auto LocalInputIndex : LocalInputIndices)
-			{
-				Ar << LocalInputIndex;
-			}
-		}
-	}
-	else if(Ar.IsLoading())
-	{
-		for(int32 ConnectionIdx = 0; ConnectionIdx < DownstreamAssetConnectionCount; ++ConnectionIdx)
-		{
-			UHoudiniAssetComponent* DownstreamAsset = nullptr;
-			int32 InputIndexCount = 0;
-			Ar << DownstreamAsset;
-			Ar << InputIndexCount;
-
-			TSet<int32> LocalInputIndices;
-			for(int32 InputIndexIdx = 0; InputIndexIdx < InputIndexCount; ++InputIndexIdx)
-			{
-				int32 LocalInputIndex = 0;
-				Ar << LocalInputIndex;
-				LocalInputIndices.Add(LocalInputIndex);
-			}
-
-			DownstreamAssetConnections.Add(DownstreamAsset, LocalInputIndices);
-		}
 	}
 }
 
