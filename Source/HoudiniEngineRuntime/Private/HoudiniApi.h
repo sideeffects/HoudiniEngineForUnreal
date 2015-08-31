@@ -45,6 +45,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	static CreateCustomSessionFuncPtr CreateCustomSession;
 
+	typedef HAPI_Result (*IsSessionValidFuncPtr)(const HAPI_Session * session);
+	static IsSessionValidFuncPtr IsSessionValid;
+
 	typedef HAPI_Result (*CloseSessionFuncPtr)(const HAPI_Session * session);
 	static CloseSessionFuncPtr CloseSession;
 
@@ -57,8 +60,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*CleanupFuncPtr)(const HAPI_Session * session);
 	static CleanupFuncPtr Cleanup;
 
-	typedef HAPI_Result (*GetEnvIntFuncPtr)(const HAPI_Session * session, HAPI_EnvIntType int_type, int * value);
+	typedef HAPI_Result (*GetEnvIntFuncPtr)(HAPI_EnvIntType int_type, int * value);
 	static GetEnvIntFuncPtr GetEnvInt;
+
+	typedef HAPI_Result (*GetSessionEnvIntFuncPtr)(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
+	static GetSessionEnvIntFuncPtr GetSessionEnvInt;
 
 	typedef HAPI_Result (*GetStatusFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
 	static GetStatusFuncPtr GetStatus;

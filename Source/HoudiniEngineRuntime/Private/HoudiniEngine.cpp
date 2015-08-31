@@ -259,9 +259,9 @@ FHoudiniEngine::StartupModule()
 #endif
 
 		// Retrieve version numbers for running Houdini Engine.
-		FHoudiniApi::GetEnvInt(SessionPtr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
-		FHoudiniApi::GetEnvInt(SessionPtr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
-		FHoudiniApi::GetEnvInt(SessionPtr, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+		FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 		// Compare defined and running versions.
 		if(RunningEngineMajor == HAPI_VERSION_HOUDINI_ENGINE_MAJOR &&

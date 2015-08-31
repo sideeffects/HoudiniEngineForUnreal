@@ -391,9 +391,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 				const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
 
 				// Retrieve version numbers for running Houdini Engine.
-				FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
-				FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
-				FHoudiniApi::GetEnvInt(Session, HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
+				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MAJOR, &RunningEngineMajor);
+				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_MINOR, &RunningEngineMinor);
+				FHoudiniApi::GetEnvInt(HAPI_ENVINT_VERSION_HOUDINI_ENGINE_API, &RunningEngineApi);
 
 				// Get platform specific name of libHAPI.
 				FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();

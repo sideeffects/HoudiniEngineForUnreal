@@ -39,6 +39,9 @@ FHoudiniApi::BindCustomImplementation = nullptr;
 FHoudiniApi::CreateCustomSessionFuncPtr
 FHoudiniApi::CreateCustomSession = nullptr;
 
+FHoudiniApi::IsSessionValidFuncPtr
+FHoudiniApi::IsSessionValid = nullptr;
+
 FHoudiniApi::CloseSessionFuncPtr
 FHoudiniApi::CloseSession = nullptr;
 
@@ -53,6 +56,9 @@ FHoudiniApi::Cleanup = nullptr;
 
 FHoudiniApi::GetEnvIntFuncPtr
 FHoudiniApi::GetEnvInt = nullptr;
+
+FHoudiniApi::GetSessionEnvIntFuncPtr
+FHoudiniApi::GetSessionEnvInt = nullptr;
 
 FHoudiniApi::GetStatusFuncPtr
 FHoudiniApi::GetStatus = nullptr;
@@ -493,11 +499,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CreateThriftNamedPipeSession = (CreateThriftNamedPipeSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftNamedPipeSession"));
 	FHoudiniApi::BindCustomImplementation = (BindCustomImplementationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_BindCustomImplementation"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
+	FHoudiniApi::IsSessionValid = (IsSessionValidFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsSessionValid"));
 	FHoudiniApi::CloseSession = (CloseSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CloseSession"));
 	FHoudiniApi::IsInitialized = (IsInitializedFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsInitialized"));
 	FHoudiniApi::Initialize = (InitializeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Initialize"));
 	FHoudiniApi::Cleanup = (CleanupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Cleanup"));
 	FHoudiniApi::GetEnvInt = (GetEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEnvInt"));
+	FHoudiniApi::GetSessionEnvInt = (GetSessionEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSessionEnvInt"));
 	FHoudiniApi::GetStatus = (GetStatusFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatus"));
 	FHoudiniApi::GetStatusStringBufLength = (GetStatusStringBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusStringBufLength"));
 	FHoudiniApi::GetStatusString = (GetStatusStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusString"));
@@ -653,11 +661,13 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CreateThriftNamedPipeSession = nullptr;
 	FHoudiniApi::BindCustomImplementation = nullptr;
 	FHoudiniApi::CreateCustomSession = nullptr;
+	FHoudiniApi::IsSessionValid = nullptr;
 	FHoudiniApi::CloseSession = nullptr;
 	FHoudiniApi::IsInitialized = nullptr;
 	FHoudiniApi::Initialize = nullptr;
 	FHoudiniApi::Cleanup = nullptr;
 	FHoudiniApi::GetEnvInt = nullptr;
+	FHoudiniApi::GetSessionEnvInt = nullptr;
 	FHoudiniApi::GetStatus = nullptr;
 	FHoudiniApi::GetStatusStringBufLength = nullptr;
 	FHoudiniApi::GetStatusString = nullptr;
