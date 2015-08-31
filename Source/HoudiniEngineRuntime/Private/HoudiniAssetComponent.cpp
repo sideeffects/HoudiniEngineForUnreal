@@ -1176,21 +1176,15 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			}
 			else
 			{
-				// If we have changed transformation, we need to upload it. Also record flag of whether we need
-				// to recook.
-				bool bTransformRecook = false;
+				// If we have changed transformation, we need to upload it.
 				if(bComponentTransformHasChanged)
 				{
 					UploadChangedTransform();
-
-					if(bTransformChangeTriggersCooks)
-					{
-						bTransformRecook = true;
-					}
 				}
 
 				// Compute whether we need to cook.
-				if(bInstantiated || bParametersChanged || bTransformRecook || bCurveChanged)
+				if(bInstantiated || bParametersChanged || bCurveChanged ||
+					(bComponentTransformHasChanged && bTransformChangeTriggersCooks))
 				{
 					if(bEnableCooking || bInstantiated)
 					{
@@ -1209,6 +1203,13 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 		// We do not want to stop ticking system as we have just submitted a task.
 		bStopTicking = false;
+	}
+	else
+	{
+		if(!HapiGUID.IsValid())
+		{
+			bStopTicking = true;
+		}
 	}
 
 	if(bStopTicking)
