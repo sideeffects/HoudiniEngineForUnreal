@@ -1292,18 +1292,21 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool 
 void
 UHoudiniAssetComponent::StartTaskAssetCookingManual()
 {
-	if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
+	if(IsNotCookingOrInstantiating())
 	{
-		StartTaskAssetCooking(true);
-		bManualRecook = true;
-	}
-	else
-	{
-		if(bLoadedComponent)
+		if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
 		{
-			// This is a loaded component which requires instantiation.
-			StartTaskAssetInstantiation(true, true);
+			StartTaskAssetCooking(true);
 			bManualRecook = true;
+		}
+		else
+		{
+			if(bLoadedComponent)
+			{
+				// This is a loaded component which requires instantiation.
+				StartTaskAssetInstantiation(true, true);
+				bManualRecook = true;
+			}
 		}
 	}
 }
@@ -1312,25 +1315,28 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
 void
 UHoudiniAssetComponent::StartTaskAssetResetManual()
 {
-	if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
+	if(IsNotCookingOrInstantiating())
 	{
-		if(FHoudiniEngineUtils::SetAssetPreset(GetAssetId(), DefaultPresetBuffer))
+		if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
 		{
-			UnmarkChangedParameters();
-			StartTaskAssetCookingManual();
+			if(FHoudiniEngineUtils::SetAssetPreset(GetAssetId(), DefaultPresetBuffer))
+			{
+				UnmarkChangedParameters();
+				StartTaskAssetCookingManual();
+			}
 		}
-	}
-	else
-	{
-		if(bLoadedComponent)
+		else
 		{
-			// This is a loaded component which requires instantiation.
-			bLoadedComponentRequiresInstantiation = true;
-			bParametersChanged = true;
+			if(bLoadedComponent)
+			{
+				// This is a loaded component which requires instantiation.
+				bLoadedComponentRequiresInstantiation = true;
+				bParametersChanged = true;
 
-			// Replace serialized preset buffer with default preset buffer.
-			PresetBuffer = DefaultPresetBuffer;
-			StartHoudiniTicking();
+				// Replace serialized preset buffer with default preset buffer.
+				PresetBuffer = DefaultPresetBuffer;
+				StartHoudiniTicking();
+			}
 		}
 	}
 }
@@ -1339,37 +1345,40 @@ UHoudiniAssetComponent::StartTaskAssetResetManual()
 void
 UHoudiniAssetComponent::StartTaskAssetRebuildManual()
 {
-	bool bInstantiate = false;
-
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	if(IsNotCookingOrInstantiating())
 	{
-		if(FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
+		bool bInstantiate = false;
+
+		if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
 		{
-			// We need to delete the asset and request a new one.
-			StartTaskAssetDeletion();
+			if(FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
+			{
+				// We need to delete the asset and request a new one.
+				StartTaskAssetDeletion();
 
-			// We need to instantiate.
-			bInstantiate = true;
+				// We need to instantiate.
+				bInstantiate = true;
+			}
 		}
-	}
-	else
-	{
-		if(bLoadedComponent)
+		else
 		{
-			// We need to instantiate.
-			bInstantiate = true;
+			if(bLoadedComponent)
+			{
+				// We need to instantiate.
+				bInstantiate = true;
+			}
 		}
-	}
 
-	if(bInstantiate)
-	{
-		HapiGUID = FGuid::NewGuid();
+		if(bInstantiate)
+		{
+			HapiGUID = FGuid::NewGuid();
 
-		// If this is a loaded component, then we just need to instantiate.
-		bLoadedComponentRequiresInstantiation = true;
-		bParametersChanged = true;
+			// If this is a loaded component, then we just need to instantiate.
+			bLoadedComponentRequiresInstantiation = true;
+			bParametersChanged = true;
 
-		StartHoudiniTicking();
+			StartHoudiniTicking();
+		}
 	}
 }
 

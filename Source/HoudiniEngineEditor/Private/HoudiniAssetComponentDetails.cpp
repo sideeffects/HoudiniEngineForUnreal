@@ -862,12 +862,7 @@ FHoudiniAssetComponentDetails::OnRecookAsset()
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-
-		// If component is not cooking or instancing, we can start recook.
-		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
-		{
-			HoudiniAssetComponent->StartTaskAssetCookingManual();
-		}
+		HoudiniAssetComponent->StartTaskAssetCookingManual();
 	}
 
 	return FReply::Handled();
@@ -880,12 +875,7 @@ FHoudiniAssetComponentDetails::OnRebuildAsset()
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-
-		// If component is not cooking or instancing, we can start recook.
-		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
-		{
-			HoudiniAssetComponent->StartTaskAssetRebuildManual();
-		}
+		HoudiniAssetComponent->StartTaskAssetRebuildManual();
 	}
 
 	return FReply::Handled();
@@ -898,12 +888,7 @@ FHoudiniAssetComponentDetails::OnResetAsset()
 	if(HoudiniAssetComponents.Num() > 0)
 	{
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-
-		// If component is not cooking or instancing, we can start reset.
-		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
-		{
-			HoudiniAssetComponent->StartTaskAssetResetManual();
-		}
+		HoudiniAssetComponent->StartTaskAssetResetManual();
 	}
 
 	return FReply::Handled();
