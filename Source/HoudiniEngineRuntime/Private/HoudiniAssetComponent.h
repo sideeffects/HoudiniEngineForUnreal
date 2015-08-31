@@ -360,9 +360,6 @@ private:
 	/** Upload changed parameters back to HAPI. **/
 	void UploadChangedParameters();
 
-	/** Upload changed transformation back to HAPI. **/
-	void UploadChangedTransform();
-
 	/** If parameters were loaded, they need to be updated with proper ids after HAPI instantiation. **/
 	void UpdateLoadedParameters();
 

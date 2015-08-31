@@ -1130,6 +1130,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			// Grab current time for delayed notification.
 			HapiNotificationStarted = FPlatformTime::Seconds();
 
+			// We just submitted a task, we want to continue ticking.
+			bStopTicking = false;
+
 			if(bWaitingForUpstreamAssetsToInstantiate)
 			{
 				// We are waiting for upstream assets to instantiate.
@@ -1153,58 +1156,45 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				bLoadedComponentRequiresInstantiation = false;
 				StartTaskAssetInstantiation(true);
 			}
+			else if(bFinishedLoadedInstantiation)
+			{
+				// If we are doing first cook after instantiation.
+				
+				// Update parameter node id for all loaded parameters.
+				UpdateLoadedParameters();
+
+				// Additionally, we need to update and create assets for all input parameters that have geos assigned.
+				UpdateLoadedInputs();
+
+				// We also need to upload loaded curve points.
+				UploadLoadedCurves();
+
+				// If we finished loading instantiation, we can restore preset data.
+				if(PresetBuffer.Num() > 0)
+				{
+					FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
+					PresetBuffer.Empty();
+				}
+
+				// Upload changed parameters back to HAPI.
+				UploadChangedParameters();
+
+				// Create asset cooking task object and submit it for processing.
+				StartTaskAssetCooking();
+			}
+			else if(bEnableCooking)
+			{
+				// Upload changed parameters back to HAPI.
+				UploadChangedParameters();
+
+				// Create asset cooking task object and submit it for processing.
+				StartTaskAssetCooking();
+			}
 			else
 			{
-				// If we are doing first cook after instantiation and loading or if cooking is enabled and undo is invoked.
-				if(bFinishedLoadedInstantiation)
-				{
-					// Update parameter node id for all loaded parameters.
-					UpdateLoadedParameters();
-
-					// Additionally, we need to update and create assets for all input parameters that have geos assigned.
-					UpdateLoadedInputs();
-
-					// We also need to upload loaded curve points.
-					UploadLoadedCurves();
-
-					// If we finished loading instantiation, we can restore preset data.
-					if(PresetBuffer.Num() > 0)
-					{
-						FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
-						PresetBuffer.Empty();
-					}
-
-					// Upload changed parameters back to HAPI.
-					UploadChangedParameters();
-
-					// Create asset cooking task object and submit it for processing.
-					StartTaskAssetCooking();
-				}
-				else
-				{
-					// If we have changed transformation, we need to upload it.
-					if(bComponentTransformHasChanged)
-					{
-						UploadChangedTransform();
-					}
-
-					// Compute whether we need to cook.
-					if(HasBeenInstantiatedButNotCooked() || bParametersChanged || (bComponentTransformHasChanged && bTransformChangeTriggersCooks))
-					{
-						if(bEnableCooking || HasBeenInstantiatedButNotCooked())
-						{
-							// Upload changed parameters back to HAPI.
-							UploadChangedParameters();
-
-							// Create asset cooking task object and submit it for processing.
-							StartTaskAssetCooking();
-						}
-					}
-				}
+				// This will only happen if cooking is disabled.
+				bStopTicking = true;
 			}
-
-			// We do not want to stop ticking system as we have just submitted a task.
-			bStopTicking = false;
 		}
 		else
 		{
@@ -1784,7 +1774,25 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 		// If transform update push to HAPI is enabled.
 		if(bUploadTransformsToHoudiniEngine)
 		{
-			// Flag asset for recooking.
+			// We want to upload transform to Houdini Engine.
+			
+			// Retrieve the current component-to-world transform for this component.
+			const FTransform& ComponentWorldTransform = GetComponentTransform();
+
+			// Translate Unreal transform to HAPI Euler one.
+			HAPI_TransformEuler TransformEuler;
+			FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, TransformEuler);
+
+			if(HAPI_RESULT_SUCCESS != 
+				FHoudiniApi::SetAssetTransform(FHoudiniEngine::Get().GetSession(), GetAssetId(), &TransformEuler))
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Failed Uploading Transformation change back to HAPI."));
+			}
+		}
+
+		// If transforms trigger cooks, we need to schedule one.
+		if(bTransformChangeTriggersCooks)
+		{
 			bComponentTransformHasChanged = true;
 			StartHoudiniTicking();
 		}
@@ -3003,32 +3011,10 @@ UHoudiniAssetComponent::UploadChangedParameters()
 
 
 void
-UHoudiniAssetComponent::UploadChangedTransform()
-{
-	// Retrieve the current component-to-world transform for this component.
-	const FTransform& ComponentWorldTransform = GetComponentTransform();
-
-	// Translate Unreal transform to HAPI Euler one.
-	HAPI_TransformEuler TransformEuler;
-	FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, TransformEuler);
-
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetAssetTransform(
-			FHoudiniEngine::Get().GetSession(), GetAssetId(), &TransformEuler) )
-	{
-		HOUDINI_LOG_MESSAGE(TEXT("Failed Uploading Transformation change back to HAPI."));
-	}
-
-	// We no longer have changed transform.
-	bComponentTransformHasChanged = false;
-}
-
-
-void
 UHoudiniAssetComponent::UpdateLoadedParameters()
 {
 	HAPI_AssetInfo AssetInfo;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(
-			FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo) )
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
 	{
 		return;
 	}
