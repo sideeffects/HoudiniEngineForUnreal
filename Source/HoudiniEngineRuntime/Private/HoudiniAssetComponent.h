@@ -156,6 +156,9 @@ public:
 	/** Return true if this component has no cooking or instantiation in progress. **/
 	bool IsNotCookingOrInstantiating() const;
 
+	/** Return true if this component's asset has been instantiated, but not cooked. **/
+	bool HasBeenInstantiatedButNotCooked() const;
+
 	/** Ticking function to check cooking / instatiation status. **/
 	void TickHoudiniComponent();
 
@@ -552,6 +555,9 @@ protected:
 	/** Used to delay notification updates for HAPI asynchronous work. **/
 	double HapiNotificationStarted;
 
+	/** Number of times this asset has been cooked. **/
+	int32 AssetCookCount;
+
 	/** Flags used by Houdini component. **/
 	union
 	{
@@ -580,9 +586,6 @@ protected:
 
 			/** Is set to true when component is loaded and requires instantiation. **/
 			uint32 bLoadedComponentRequiresInstantiation : 1;
-
-			/** Is set to true when asset has only been instantiated, but not cooked. **/
-			uint32 bInstantiated : 1;
 
 			/** Is set to true when PIE mode is on (either play or simulate.) **/
 			uint32 bIsPlayModeActive : 1;

@@ -91,6 +91,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
 	ImportAxis(HRSAI_Unreal),
 	HapiNotificationStarted(0.0),
+	AssetCookCount(0),
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(true),
 	bTransformChangeTriggersCooks(false),
@@ -99,7 +100,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bIsPreviewComponent(false),
 	bLoadedComponent(false),
 	bLoadedComponentRequiresInstantiation(false),
-	bInstantiated(false),
+	//bInstantiated(false),
 	bIsPlayModeActive(false),
 	bParametersChanged(false),
 	bComponentTransformHasChanged(false),
@@ -706,6 +707,13 @@ UHoudiniAssetComponent::IsNotCookingOrInstantiating() const
 }
 
 
+bool
+UHoudiniAssetComponent::HasBeenInstantiatedButNotCooked() const
+{
+	return (FHoudiniEngineUtils::IsValidAssetId(AssetId) && (0 == AssetCookCount));
+}
+
+
 void
 UHoudiniAssetComponent::AssignUniqueActorLabel()
 {
@@ -933,7 +941,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						HapiGUID.Invalidate();
 
 						// We just finished instantiation, we need to schedule a cook.
-						bInstantiated = true;
+						//bInstantiated = true;
+
+						// We just finished instantiation, we need to reset cook counter.
+						AssetCookCount = 0;
 
 						if(TaskInfo.bLoadedComponent)
 						{
@@ -995,7 +1006,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
 					bStopTicking = true;
-					bInstantiated = false;
+					//bInstantiated = false;
+					AssetCookCount++;
 
 					break;
 				}
@@ -1080,7 +1092,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 					HapiGUID.Invalidate();
 					bStopTicking = true;
-					bInstantiated = false;
+					//bInstantiated = false;
+					//AssetCookCount = 0;
 
 					break;
 				}
@@ -1115,7 +1128,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (bInstantiated || bParametersChanged || bComponentTransformHasChanged))
+	if(!HapiGUID.IsValid() && (HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged))
 	{
 		// If we are not cooking and we have property changes queued up.
 
@@ -1182,9 +1195,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				}
 
 				// Compute whether we need to cook.
-				if(bInstantiated || bParametersChanged || (bComponentTransformHasChanged && bTransformChangeTriggersCooks))
+				if(HasBeenInstantiatedButNotCooked() || bParametersChanged || (bComponentTransformHasChanged && bTransformChangeTriggersCooks))
 				{
-					if(bEnableCooking || bInstantiated)
+					if(bEnableCooking || HasBeenInstantiatedButNotCooked())
 					{
 						// Upload changed parameters back to HAPI.
 						UploadChangedParameters();
@@ -1773,7 +1786,7 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 #if WITH_EDITOR
 
 	// If we have a valid asset id and asset has been cooked.
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && !bInstantiated)
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && AssetCookCount > 0)
 	{
 		// If transform update push to HAPI is enabled.
 		if(bUploadTransformsToHoudiniEngine)
