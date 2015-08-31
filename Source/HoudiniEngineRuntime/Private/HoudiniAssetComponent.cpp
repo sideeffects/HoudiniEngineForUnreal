@@ -104,7 +104,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bParametersChanged(false),
 	bCurveChanged(false),
 	bComponentTransformHasChanged(false),
-	bManualRecook(false),
 	bComponentCopyImported(false),
 	bTimeCookInPlaymode(false),
 	bPlaymodeComponent(false),
@@ -1193,7 +1192,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				// Compute whether we need to cook.
 				if(bInstantiated || bParametersChanged || bTransformRecook || bCurveChanged)
 				{
-					if(bEnableCooking || bManualRecook || bInstantiated)
+					if(bEnableCooking || bInstantiated)
 					{
 						// Upload changed parameters back to HAPI.
 						UploadChangedParameters();
@@ -1205,9 +1204,6 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						bCurveChanged = false;
 					}
 				}
-
-				// Reset manual recook flag.
-				bManualRecook = false;
 			}
 		}
 
@@ -1297,7 +1293,7 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
 		if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
 		{
 			StartTaskAssetCooking(true);
-			bManualRecook = true;
+			bParametersChanged = true;
 		}
 		else
 		{
@@ -1305,7 +1301,7 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
 			{
 				// This is a loaded component which requires instantiation.
 				StartTaskAssetInstantiation(true, true);
-				bManualRecook = true;
+				bParametersChanged = true;
 			}
 		}
 	}

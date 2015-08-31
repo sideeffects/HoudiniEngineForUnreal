@@ -596,9 +596,6 @@ protected:
 			/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
 			uint32 bComponentTransformHasChanged : 1;
 
-			/** Is set to true when manual recook is requested. **/
-			uint32 bManualRecook : 1;
-
 			/** Is set to true when component has been created as result of copying / import. **/
 			uint32 bComponentCopyImported : 1;
 
