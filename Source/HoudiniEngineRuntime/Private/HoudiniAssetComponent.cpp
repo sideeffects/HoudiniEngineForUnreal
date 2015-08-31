@@ -1123,94 +1123,92 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(!HapiGUID.IsValid() && (HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged))
+	if(IsNotCookingOrInstantiating())
 	{
-		// If we are not cooking and we have property changes queued up.
-
-		// Grab current time for delayed notification.
-		HapiNotificationStarted = FPlatformTime::Seconds();
-
-		if(bWaitingForUpstreamAssetsToInstantiate)
+		if(HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged)
 		{
-			// We are waiting for upstream assets to instantiate.
+			// Grab current time for delayed notification.
+			HapiNotificationStarted = FPlatformTime::Seconds();
 
-			bWaitingForUpstreamAssetsToInstantiate = false;
-			for(auto LocalInput : Inputs)
+			if(bWaitingForUpstreamAssetsToInstantiate)
 			{
-				bWaitingForUpstreamAssetsToInstantiate |= LocalInput->DoesInputAssetNeedInstantiation();
-			}
+				// We are waiting for upstream assets to instantiate.
 
-			// Try instantiating this asset again.
-			if(!bWaitingForUpstreamAssetsToInstantiate)
-			{
-				bLoadedComponentRequiresInstantiation = true;
-			}
-		}
-		else if(bLoadedComponentRequiresInstantiation)
-		{
-			// This component has been loaded and requires instantiation.
-
-			bLoadedComponentRequiresInstantiation = false;
-
-			StartTaskAssetInstantiation(true);
-		}
-		else
-		{
-			// If we are doing first cook after instantiation and loading or if cooking is enabled and undo is invoked.
-			if(bFinishedLoadedInstantiation)
-			{
-				// Update parameter node id for all loaded parameters.
-				UpdateLoadedParameters();
-
-				// Additionally, we need to update and create assets for all input parameters that have geos assigned.
-				UpdateLoadedInputs();
-
-				// We also need to upload loaded curve points.
-				UploadLoadedCurves();
-
-				// If we finished loading instantiation, we can restore preset data.
-				if(PresetBuffer.Num() > 0)
+				bWaitingForUpstreamAssetsToInstantiate = false;
+				for(auto LocalInput : Inputs)
 				{
-					FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
-					PresetBuffer.Empty();
+					bWaitingForUpstreamAssetsToInstantiate |= LocalInput->DoesInputAssetNeedInstantiation();
 				}
 
-				// Upload changed parameters back to HAPI.
-				UploadChangedParameters();
+				// Try instantiating this asset again.
+				if(!bWaitingForUpstreamAssetsToInstantiate)
+				{
+					bLoadedComponentRequiresInstantiation = true;
+				}
+			}
+			else if(bLoadedComponentRequiresInstantiation)
+			{
+				// This component has been loaded and requires instantiation.
 
-				// Create asset cooking task object and submit it for processing.
-				StartTaskAssetCooking();
+				bLoadedComponentRequiresInstantiation = false;
+				StartTaskAssetInstantiation(true);
 			}
 			else
 			{
-				// If we have changed transformation, we need to upload it.
-				if(bComponentTransformHasChanged)
+				// If we are doing first cook after instantiation and loading or if cooking is enabled and undo is invoked.
+				if(bFinishedLoadedInstantiation)
 				{
-					UploadChangedTransform();
-				}
+					// Update parameter node id for all loaded parameters.
+					UpdateLoadedParameters();
 
-				// Compute whether we need to cook.
-				if(HasBeenInstantiatedButNotCooked() || bParametersChanged || (bComponentTransformHasChanged && bTransformChangeTriggersCooks))
-				{
-					if(bEnableCooking || HasBeenInstantiatedButNotCooked())
+					// Additionally, we need to update and create assets for all input parameters that have geos assigned.
+					UpdateLoadedInputs();
+
+					// We also need to upload loaded curve points.
+					UploadLoadedCurves();
+
+					// If we finished loading instantiation, we can restore preset data.
+					if(PresetBuffer.Num() > 0)
 					{
-						// Upload changed parameters back to HAPI.
-						UploadChangedParameters();
+						FHoudiniEngineUtils::SetAssetPreset(AssetId, PresetBuffer);
+						PresetBuffer.Empty();
+					}
 
-						// Create asset cooking task object and submit it for processing.
-						StartTaskAssetCooking();
+					// Upload changed parameters back to HAPI.
+					UploadChangedParameters();
+
+					// Create asset cooking task object and submit it for processing.
+					StartTaskAssetCooking();
+				}
+				else
+				{
+					// If we have changed transformation, we need to upload it.
+					if(bComponentTransformHasChanged)
+					{
+						UploadChangedTransform();
+					}
+
+					// Compute whether we need to cook.
+					if(HasBeenInstantiatedButNotCooked() || bParametersChanged || (bComponentTransformHasChanged && bTransformChangeTriggersCooks))
+					{
+						if(bEnableCooking || HasBeenInstantiatedButNotCooked())
+						{
+							// Upload changed parameters back to HAPI.
+							UploadChangedParameters();
+
+							// Create asset cooking task object and submit it for processing.
+							StartTaskAssetCooking();
+						}
 					}
 				}
 			}
-		}
 
-		// We do not want to stop ticking system as we have just submitted a task.
-		bStopTicking = false;
-	}
-	else
-	{
-		if(!HapiGUID.IsValid())
+			// We do not want to stop ticking system as we have just submitted a task.
+			bStopTicking = false;
+		}
+		else
 		{
+			// Nothing has changed, we can terminate ticking.
 			bStopTicking = true;
 		}
 	}
