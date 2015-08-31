@@ -52,11 +52,6 @@ public:
 
 public:
 
-	/** Called to destroy connected Houdini asset, if there's one. **/
-	//void DestroyHoudiniAssets();
-
-public:
-
 	/** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
 	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
