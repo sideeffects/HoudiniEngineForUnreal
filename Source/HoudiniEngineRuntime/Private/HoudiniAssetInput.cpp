@@ -193,14 +193,14 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			SAssignNew(InputTypeComboBox, SComboBox<TSharedPtr<FString> >)
 			.OptionsSource(&StringChoiceLabels)
 			.InitiallySelectedItem(StringChoiceLabels[ChoiceIndex])
-			.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this,
-				&UHoudiniAssetInput::CreateChoiceEntryWidget))
-			.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(this,
-				&UHoudiniAssetInput::OnChoiceChange))
+			.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(
+				this, &UHoudiniAssetInput::CreateChoiceEntryWidget))
+			.OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(
+				this, &UHoudiniAssetInput::OnChoiceChange))
 			[
 				SNew(STextBlock)
-				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this,
-					&UHoudiniAssetInput::HandleChoiceContentText)))
+				.Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(
+					this, &UHoudiniAssetInput::HandleChoiceContentText)))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
@@ -211,10 +211,10 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
 		[
 			SNew(SAssetDropTarget)
-			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this,
-				&UHoudiniAssetInput::OnStaticMeshDraggedOver))
-			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this,
-				&UHoudiniAssetInput::OnStaticMeshDropped))
+			.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(
+				this, &UHoudiniAssetInput::OnStaticMeshDraggedOver))
+			.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(
+				this, &UHoudiniAssetInput::OnStaticMeshDropped))
 			[
 				SAssignNew(HorizontalBox, SHorizontalBox)
 			]
@@ -225,8 +225,8 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			SAssignNew(StaticMeshThumbnailBorder, SBorder)
 			.Padding(5.0f)
 			.BorderImage(TAttribute<const FSlateBrush*>::Create(
-				TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this,
-					&UHoudiniAssetInput::GetStaticMeshThumbnailBorder)))
+				TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
+					this, &UHoudiniAssetInput::GetStaticMeshThumbnailBorder)))
 			.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetInput::OnThumbnailDoubleClick))
 			[
 				SNew(SBox)
@@ -260,8 +260,8 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 					SAssignNew(StaticMeshComboButton, SComboButton)
 					.ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
 					.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
-					.OnGetMenuContent(FOnGetContent::CreateUObject(this,
-						&UHoudiniAssetInput::OnGetStaticMeshMenuContent))
+					.OnGetMenuContent(FOnGetContent::CreateUObject(
+						this, &UHoudiniAssetInput::OnGetStaticMeshMenuContent))
 					.ContentPadding(2.0f)
 					.ButtonContent()
 					[
@@ -506,13 +506,6 @@ UHoudiniAssetInput::PostLoad()
 void
 UHoudiniAssetInput::PostEditUndo()
 {
-	/*
-	if(HoudiniAssetComponent)
-	{
-		HoudiniAssetComponent->UpdateEditorProperties(false);
-	}
-	*/
-
 	Super::PostEditUndo();
 }
 
@@ -569,16 +562,16 @@ UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 			Collector.AddReferencedObject(HoudiniAssetInput->InputObject, InThis);
 		}
 
+		// Add reference to held input asset component, if we have one.
+		if(HoudiniAssetInput->InputAssetComponent)
+		{
+			Collector.AddReferencedObject(HoudiniAssetInput->InputAssetComponent, InThis);
+		}
+
 		// Add reference to held curve object.
 		if(HoudiniAssetInput->InputCurve)
 		{
 			Collector.AddReferencedObject(HoudiniAssetInput->InputCurve, InThis);
-		}
-
-		// Add reference to held input asset, if we have one.
-		if(HoudiniAssetInput->InputAssetComponent)
-		{
-			Collector.AddReferencedObject(HoudiniAssetInput->InputAssetComponent, InThis);
 		}
 
 		// Add references for all curve input parameters.
@@ -698,8 +691,12 @@ UHoudiniAssetInput::OnGetStaticMeshMenuContent()
 
 	TArray<UFactory*> NewAssetFactories;
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(FAssetData(InputObject), true, AllowedClasses,
-		NewAssetFactories, OnShouldFilterStaticMesh,
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+		FAssetData(InputObject),
+		true,
+		AllowedClasses,
+		NewAssetFactories,
+		OnShouldFilterStaticMesh,
 		FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected),
 		FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::CloseStaticMeshComboButton));
 }
