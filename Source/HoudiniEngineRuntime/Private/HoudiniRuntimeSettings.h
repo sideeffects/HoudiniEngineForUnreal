@@ -31,10 +31,13 @@ class UFoliageType_InstancedStaticMesh;
 UENUM()
 enum EHoudiniRuntimeSettingsSessionType
 {
+	// In process session.
 	HRSST_InProcess UMETA(DisplayName = "In process"),
 
+	// TCP socket connection to Houdini Engine server.
 	HRSST_Socket UMETA(DisplayName = "TCP socket"),
 
+	// Connection to Houdini Engine server via pipe connection.
 	HRSST_NamedPipe UMETA(DisplayName = "Named pipe or domain socket"),
 
 	HRSST_MAX,
@@ -150,6 +153,10 @@ public:
 	// Enables cooking upon transformation changes for new Houdini Assets.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Cooking)
 	bool bTransformChangeTriggersCooks;
+
+	// Whether to display instantiation and cooking Slate notifications.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Cooking)
+	bool bDisplaySlateCookingNotifications;
 
 /** Collision generation. **/
 public:

@@ -878,6 +878,13 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 	static float NotificationExpireDuration = 2.0f;
 	static double NotificationUpdateFrequency = 2.0f;
 
+	// Check whether we want to display Slate cooking and instantiation notifications.
+	bool bDisplaySlateCookingNotifications = false;
+	if(HoudiniRuntimeSettings)
+	{
+		bDisplaySlateCookingNotifications = HoudiniRuntimeSettings->bDisplaySlateCookingNotifications;
+	}
+
 	if(HapiGUID.IsValid())
 	{
 		// If we have a valid task GUID.
@@ -885,7 +892,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		{
 			if(EHoudiniEngineTaskState::None != TaskInfo.TaskState)
 			{
-				if(!NotificationPtr.IsValid())
+				if(!NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
 				{
 					FNotificationInfo Info(TaskInfo.StatusText);
 
@@ -926,7 +933,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Create default preset buffer.
 						CreateDefaultPreset();
 
-						if(NotificationPtr.IsValid())
+						if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
 						{
 							TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
 							if(NotificationItem.IsValid())
@@ -988,7 +995,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						HOUDINI_LOG_MESSAGE(TEXT("    Received invalid asset id."));
 					}
 
-					if(NotificationPtr.IsValid())
+					if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
 					{
 						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
 						if(NotificationItem.IsValid())
@@ -1069,7 +1076,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						FMessageDialog::Debugf(FText::FromString(WarningMessage), &WarningTitleText);
 					}
 
-					if(NotificationPtr.IsValid())
+					if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
 					{
 						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
 						if(NotificationItem.IsValid())
@@ -1097,7 +1104,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 				case EHoudiniEngineTaskState::Processing:
 				{
 
-					if(NotificationPtr.IsValid())
+					if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
 					{
 						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
 						if(NotificationItem.IsValid())
@@ -1428,7 +1435,17 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 			HapiGUID.Invalidate();
 			StopHoudiniTicking();
 
-			if(NotificationPtr.IsValid())
+			// Get settings.
+			const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+			// Check whether we want to display Slate cooking and instantiation notifications.
+			bool bDisplaySlateCookingNotifications = false;
+			if(HoudiniRuntimeSettings)
+			{
+				bDisplaySlateCookingNotifications = HoudiniRuntimeSettings->bDisplaySlateCookingNotifications;
+			}
+
+			if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
 			{
 				TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
 				if(NotificationItem.IsValid())

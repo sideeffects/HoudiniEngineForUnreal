@@ -32,6 +32,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(false),
 	bTransformChangeTriggersCooks(false),
+	bDisplaySlateCookingNotifications(true),
 
 	/** Collision generation. **/
 	CollisionGroupNamePrefix(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),
