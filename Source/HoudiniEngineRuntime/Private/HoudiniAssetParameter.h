@@ -175,11 +175,6 @@ protected:
 
 protected:
 
-	/** Print parameter information for debugging. **/
-	virtual void PrintParameterInfo();
-
-protected:
-
 	/** Array containing all child parameters. **/
 	TArray<UHoudiniAssetParameter*> ChildParameters;
 

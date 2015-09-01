@@ -614,13 +614,6 @@ UHoudiniAssetParameter::SetNodeId(HAPI_NodeId InNodeId)
 }
 
 
-void
-UHoudiniAssetParameter::PrintParameterInfo()
-{
-	HOUDINI_LOG_MESSAGE(TEXT("Parameter Change: %s"), *ParameterName);
-}
-
-
 bool
 UHoudiniAssetParameter::IsSpare() const
 {
