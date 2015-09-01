@@ -130,7 +130,7 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		else
 		{
 			// Min value Houdini uses by default.
-			ValueUIMin = 0.0f;
+			ValueUIMin = HAPI_UNREAL_PARAM_FLOAT_UI_MIN;
 			bUsesDefaultMinMax = true;
 		}
 	}
@@ -149,7 +149,7 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		else
 		{
 			// Max value Houdini uses by default.
-			ValueUIMax = 10.0f;
+			ValueUIMax = HAPI_UNREAL_PARAM_FLOAT_UI_MAX;
 			bUsesDefaultMinMax = true;
 		}
 	}
@@ -168,11 +168,12 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 
 		if(!ParameterName.IsEmpty())
 		{
-			if(ParameterName.Equals(ParameterNameTranslate) || ParameterName.Equals(ParameterNameScale) ||
-			   ParameterName.Equals(ParameterNamePivot))
+			if(ParameterName.Equals(ParameterNameTranslate)
+				|| ParameterName.Equals(ParameterNameScale) 
+				|| ParameterName.Equals(ParameterNamePivot))
 			{
 				ValueUIMin = -1.0f;
-				ValueUIMax = -1.0f;
+				ValueUIMax = 1.0f;
 			}
 			else if(ParameterName.Equals(ParameterNameRotate))
 			{
@@ -217,16 +218,16 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 			.MinSliderValue(ValueUIMin)
 			.MaxSliderValue(ValueUIMax)
 
-			.Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-				&UHoudiniAssetParameterFloat::GetValue, Idx)))
-			.OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this,
-				&UHoudiniAssetParameterFloat::SetValue, Idx))
-			.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(this,
-				&UHoudiniAssetParameterFloat::SetValueCommitted, Idx))
-			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this,
-				&UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx))
-			.OnEndSliderMovement(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(this,
-				&UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx))
+			.Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(
+				this, &UHoudiniAssetParameterFloat::GetValue, Idx)))
+			.OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(
+				this, &UHoudiniAssetParameterFloat::SetValue, Idx))
+			.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(
+				this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx))
+			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(
+				this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx))
+			.OnEndSliderMovement(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(
+				this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx))
 
 			.SliderExponent(1.0f)
 		];

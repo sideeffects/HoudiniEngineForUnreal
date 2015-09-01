@@ -111,7 +111,7 @@ UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAsse
 		else
 		{
 			// Min value Houdini uses by default.
-			ValueUIMin = 0;
+			ValueUIMin = HAPI_UNREAL_PARAM_INT_UI_MIN;
 		}
 	}
 
@@ -129,7 +129,7 @@ UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAsse
 		else
 		{
 			// Max value Houdini uses by default.
-			ValueUIMax = 10;
+			ValueUIMax = HAPI_UNREAL_PARAM_INT_UI_MAX;
 		}
 	}
 
@@ -168,16 +168,16 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 			.MinSliderValue(ValueUIMin)
 			.MaxSliderValue(ValueUIMax)
 
-			.Value(TAttribute<TOptional<int32> >::Create(TAttribute<TOptional<int32> >::FGetter::CreateUObject(this,
-				&UHoudiniAssetParameterInt::GetValue, Idx)))
-			.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(this,
-				&UHoudiniAssetParameterInt::SetValue, Idx))
-			.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(this,
-				&UHoudiniAssetParameterInt::SetValueCommitted, Idx))
-			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(this,
-				&UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx))
-			.OnEndSliderMovement(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(this,
-				&UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx))
+			.Value(TAttribute<TOptional<int32> >::Create(
+				TAttribute<TOptional<int32> >::FGetter::CreateUObject(this, &UHoudiniAssetParameterInt::GetValue, Idx)))
+			.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(
+				this, &UHoudiniAssetParameterInt::SetValue, Idx))
+			.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(
+				this, &UHoudiniAssetParameterInt::SetValueCommitted, Idx))
+			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(
+				this, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx))
+			.OnEndSliderMovement(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(
+				this, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx))
 
 			.SliderExponent(1.0f)
 		];

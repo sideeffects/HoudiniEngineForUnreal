@@ -244,6 +244,12 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
 
+/** Default values for certain UI min and max parameter values **/
+#define HAPI_UNREAL_PARAM_INT_UI_MIN					0
+#define HAPI_UNREAL_PARAM_INT_UI_MAX					10
+#define HAPI_UNREAL_PARAM_FLOAT_UI_MIN					0.0f
+#define HAPI_UNREAL_PARAM_FLOAT_UI_MAX					10.0f
+
 /** Suffix for all Unreal materials which are generated from Houdini. **/
 #define HAPI_UNREAL_GENERATED_MATERIAL_SUFFIX			TEXT("_houdini_material")
 
