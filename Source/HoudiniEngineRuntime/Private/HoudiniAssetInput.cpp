@@ -164,6 +164,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	StaticMeshThumbnailBorder.Reset();
 	StaticMeshComboButton.Reset();
+	InputTypeComboBox.Reset();
 
 	// Get thumbnail pool for this builder.
 	IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
@@ -189,7 +190,7 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	{
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
-			SNew(SComboBox<TSharedPtr<FString> >)
+			SAssignNew(InputTypeComboBox, SComboBox<TSharedPtr<FString> >)
 			.OptionsSource(&StringChoiceLabels)
 			.InitiallySelectedItem(StringChoiceLabels[ChoiceIndex])
 			.OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(this,
@@ -505,6 +506,13 @@ UHoudiniAssetInput::PostLoad()
 void
 UHoudiniAssetInput::PostEditUndo()
 {
+	/*
+	if(HoudiniAssetComponent)
+	{
+		HoudiniAssetComponent->UpdateEditorProperties(false);
+	}
+	*/
+
 	Super::PostEditUndo();
 }
 
@@ -517,6 +525,7 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 
 	// Serialize current choice selection.
 	SerializeEnumeration<EHoudiniAssetInputType::Enum>(Ar, ChoiceIndex);
+	Ar << ChoiceStringValue;
 
 	Ar << HoudiniAssetInputFlagsPacked;
 
@@ -755,6 +764,12 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 	{
 		return;
 	}
+
+	FScopedTransaction Transaction(
+		TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniInputChange", "Houdini Input Type Change"),
+		HoudiniAssetComponent);
+	Modify();
 
 	ChoiceStringValue = *(NewChoice.Get());
 

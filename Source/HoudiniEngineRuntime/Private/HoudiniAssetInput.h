@@ -197,6 +197,9 @@ protected:
 	/** Combo element used by static mesh. **/
 	TSharedPtr<SComboButton> StaticMeshComboButton;
 
+	/** Combo element used for input type selection. **/
+	TSharedPtr<SComboBox<TSharedPtr<FString> > > InputTypeComboBox;
+
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
