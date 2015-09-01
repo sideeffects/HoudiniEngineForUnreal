@@ -503,6 +503,13 @@ UHoudiniAssetInput::PostLoad()
 
 
 void
+UHoudiniAssetInput::PostEditUndo()
+{
+	Super::PostEditUndo();
+}
+
+
+void
 UHoudiniAssetInput::Serialize(FArchive& Ar)
 {
 	// Call base implementation.
@@ -619,6 +626,12 @@ UHoudiniAssetInput::OnStaticMeshDropped(UObject* Object)
 {
 	if(Object != InputObject)
 	{
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Geometry Change"),
+			HoudiniAssetComponent);
+		Modify();
+
 		MarkPreChanged();
 		InputObject = Object;
 		bStaticMeshChanged = true;
