@@ -507,6 +507,9 @@ void
 UHoudiniAssetInput::PostEditUndo()
 {
 	Super::PostEditUndo();
+
+	FString* NewChoice = new FString(ChoiceStringValue);
+	OnChoiceChange(TSharedPtr<FString>(NewChoice), ESelectInfo::Direct);
 }
 
 
@@ -613,6 +616,11 @@ UHoudiniAssetInput::DestroyInputCurve()
 		InputCurve->DetachFromParent();
 		InputCurve->UnregisterComponent();
 		InputCurve->DestroyComponent();
+
+		if(HoudiniAssetComponent)
+		{
+			HoudiniAssetComponent->AttachChildren.Remove(InputCurve);
+		}
 
 		InputCurve = nullptr;
 	}
@@ -762,11 +770,14 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 		return;
 	}
 
-	FScopedTransaction Transaction(
-		TEXT(HOUDINI_MODULE_RUNTIME),
-		LOCTEXT("HoudiniInputChange", "Houdini Input Type Change"),
-		HoudiniAssetComponent);
-	Modify();
+	if(ESelectInfo::Direct != SelectType)
+	{
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Type Change"),
+			HoudiniAssetComponent);
+		Modify();
+	}
 
 	ChoiceStringValue = *(NewChoice.Get());
 
@@ -809,8 +820,6 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			case EHoudiniAssetInputType::CurveInput:
 			{
 				// We are switching away from curve input.
-
-				// Clear input curve.
 				DestroyInputCurve();
 				break;
 			}
