@@ -376,7 +376,8 @@ UHoudiniAssetInput::UploadParameterValue()
 	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
 	{
 		// Process connected asset.
-		if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()) && !bInputAssetConnectedInHoudini)
+		if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()) 
+			&& !bInputAssetConnectedInHoudini)
 		{
 			ConnectInputAssetActor();
 		}
@@ -486,8 +487,11 @@ UHoudiniAssetInput::PostLoad()
 		FString ParameterKey = IterParams.Key();
 		UHoudiniAssetParameter* Parameter = IterParams.Value();
 
-		Parameter->SetHoudiniAssetComponent(nullptr);
-		Parameter->SetParentParameter(this);
+		if(Parameter)
+		{
+			Parameter->SetHoudiniAssetComponent(nullptr);
+			Parameter->SetParentParameter(this);
+		}
 	}
 
 	// Set input callback object for this curve.
@@ -739,18 +743,20 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 		return;
 	}
 
-	bool bChanged = false;
 	ChoiceStringValue = *(NewChoice.Get());
 
 	// We need to match selection based on label.
-	int32 LabelIdx = 0;
-	for(; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
+	bool bChanged = false;
+	int32 ActiveLabel = 0;
+
+	for(int32 LabelIdx = 0; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
 	{
 		FString* ChoiceLabel = StringChoiceLabels[LabelIdx].Get();
 
-		if(ChoiceLabel->Equals(ChoiceStringValue))
+		if(ChoiceLabel && ChoiceLabel->Equals(ChoiceStringValue))
 		{
 			bChanged = true;
+			ActiveLabel = LabelIdx;
 			break;
 		}
 	}
@@ -796,7 +802,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 		DisconnectAndDestroyInputAsset();
 
 		// Switch mode.
-		ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(LabelIdx);
+		ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(ActiveLabel);
 
 		switch(ChoiceIndex)
 		{
@@ -851,7 +857,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 bool
 UHoudiniAssetInput::OnInputActorFilter(const AActor* const Actor) const
 {
-	return Actor->IsA(AHoudiniAssetActor::StaticClass());
+	return (Actor && Actor->IsA(AHoudiniAssetActor::StaticClass()));
 }
 
 
