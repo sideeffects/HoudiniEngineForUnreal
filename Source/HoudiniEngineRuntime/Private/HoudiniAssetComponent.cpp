@@ -1396,17 +1396,20 @@ UHoudiniAssetComponent::StartTaskAssetDeletion()
 void
 UHoudiniAssetComponent::StartTaskAssetCooking(bool bStartTicking)
 {
-	// Generate GUID for our new task.
-	HapiGUID = FGuid::NewGuid();
-
-	FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
-	Task.ActorName = GetOuter()->GetName();
-	Task.AssetComponent = this;
-	FHoudiniEngine::Get().AddTask(Task);
-
-	if(bStartTicking)
+	if(IsNotCookingOrInstantiating())
 	{
-		StartHoudiniTicking();
+		// Generate GUID for our new task.
+		HapiGUID = FGuid::NewGuid();
+
+		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetCooking, HapiGUID);
+		Task.ActorName = GetOuter()->GetName();
+		Task.AssetComponent = this;
+		FHoudiniEngine::Get().AddTask(Task);
+
+		if(bStartTicking)
+		{
+			StartHoudiniTicking();
+		}
 	}
 }
 
