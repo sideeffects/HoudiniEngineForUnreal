@@ -555,12 +555,21 @@ UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 			Collector.AddReferencedObject(HoudiniAssetInput->InputCurve, InThis);
 		}
 
+		// Add reference to held input asset, if we have one.
+		if(HoudiniAssetInput->InputAssetComponent)
+		{
+			Collector.AddReferencedObject(HoudiniAssetInput->InputAssetComponent, InThis);
+		}
+
 		// Add references for all curve input parameters.
-		for(TMap<FString, UHoudiniAssetParameter*>::TIterator
-			IterParams(HoudiniAssetInput->InputCurveParameters); IterParams; ++IterParams)
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetInput->InputCurveParameters); 
+			IterParams; ++IterParams)
 		{
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-			Collector.AddReferencedObject(HoudiniAssetParameter, InThis);
+			if(HoudiniAssetParameter)
+			{
+				Collector.AddReferencedObject(HoudiniAssetParameter, InThis);
+			}
 		}
 	}
 
