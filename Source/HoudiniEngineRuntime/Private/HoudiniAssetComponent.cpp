@@ -92,6 +92,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	ImportAxis(HRSAI_Unreal),
 	HapiNotificationStarted(0.0),
 	AssetCookCount(0),
+	/** Component flags. **/
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(true),
 	bTransformChangeTriggersCooks(false),
@@ -99,17 +100,17 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bIsNativeComponent(false),
 	bIsPreviewComponent(false),
 	bLoadedComponent(false),
-	bLoadedComponentRequiresInstantiation(false),
 	bIsPlayModeActive(false),
+	bTimeCookInPlaymode(false),
+	bUseHoudiniMaterials(true),
+	bCookingTriggersDownstreamCooks(true),
+	/** Component transient flags. **/
+	bComponentCopyImported(false),
+	bTransactionAssetChange(false),
+	bWaitingForUpstreamAssetsToInstantiate(false),
 	bParametersChanged(false),
 	bComponentTransformHasChanged(false),
-	bComponentCopyImported(false),
-	bTimeCookInPlaymode(false),
-	bPlaymodeComponent(false),
-	bUseHoudiniMaterials(true),
-	bTransactionAssetChange(false),
-	bCookingTriggersDownstreamCooks(true),
-	bWaitingForUpstreamAssetsToInstantiate(false)
+	bLoadedComponentRequiresInstantiation(false)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -900,7 +901,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					if((FPlatformTime::Seconds() - HapiNotificationStarted) >= NotificationUpdateFrequency)
 					{
-						if(!bIsPlayModeActive)
+						if(!IsPlayModeActive())
 						{
 							NotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 						}
@@ -2105,24 +2106,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	// If we are going into playmode, save asset id.
-	bool bInPlayMode = bIsPlayModeActive;
-	Ar << bInPlayMode;
-
-	if(bInPlayMode)
+	if(bIsPlayModeActive)
 	{
 		// Store or restore asset id.
 		Ar << AssetId;
-
-		// Store or restore whether we want to cook in playmode.
-		bool bCookInPlaymode = bTimeCookInPlaymode;
-		Ar << bCookInPlaymode;
-
-		if(Ar.IsLoading())
-		{
-			bIsPlayModeActive = bInPlayMode;
-			bTimeCookInPlaymode = bCookInPlaymode;
-			bPlaymodeComponent = true;
-		}
 	}
 
 	// Serialization of default preset.

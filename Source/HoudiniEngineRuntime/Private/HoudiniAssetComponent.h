@@ -581,11 +581,35 @@ protected:
 			/** Is set to true if this component has been loaded. **/
 			uint32 bLoadedComponent : 1;
 
-			/** Is set to true when component is loaded and requires instantiation. **/
-			uint32 bLoadedComponentRequiresInstantiation : 1;
-
 			/** Is set to true when PIE mode is on (either play or simulate.) **/
 			uint32 bIsPlayModeActive : 1;
+
+			/** Is set to true when component should set time and cook in play mode. **/
+			uint32 bTimeCookInPlaymode : 1;
+
+			/** Is set to true when Houdini materials are used. **/
+			uint32 bUseHoudiniMaterials : 1;
+
+			/** Is set to true when cooking this asset will trigger cooks of downstream connected assets. **/
+			uint32 bCookingTriggersDownstreamCooks : 1;
+		};
+
+		uint32 HoudiniAssetComponentFlagsPacked;
+	};
+
+	/** Transient flags used by Houdini component. **/
+	union
+	{
+		struct
+		{
+			/** Is set to true when component has been created as result of copying / import. **/
+			uint32 bComponentCopyImported : 1;
+
+			/** Is set when asset is changed during transaction. **/
+			uint32 bTransactionAssetChange : 1;
+
+			/** Is set to true when we are waiting for upstream input assets to instantiate. **/
+			uint32 bWaitingForUpstreamAssetsToInstantiate : 1;
 
 			/** Is set to true when one of the parameters has been modified. This will trigger recook. **/
 			uint32 bParametersChanged : 1;
@@ -593,28 +617,10 @@ protected:
 			/** Is set to true when transformation has changed, used for asset recooking on transformation change. **/
 			uint32 bComponentTransformHasChanged : 1;
 
-			/** Is set to true when component has been created as result of copying / import. **/
-			uint32 bComponentCopyImported : 1;
-
-			/** Is set to true when component should set time and cook in play mode. **/
-			uint32 bTimeCookInPlaymode : 1;
-
-			/** Is set to true when component is a playmode component. **/
-			uint32 bPlaymodeComponent : 1;
-
-			/** Is set to true when Houdini materials are used. **/
-			uint32 bUseHoudiniMaterials : 1;
-
-			/** Is set when asset is changed during transaction. **/
-			uint32 bTransactionAssetChange : 1;
-
-			/** Is set to true when cooking this asset will trigger cooks of downstream connected assets. **/
-			uint32 bCookingTriggersDownstreamCooks : 1;
-
-			/** Is set to true when we are waiting for upstream input assets to instantiate. **/
-			uint32 bWaitingForUpstreamAssetsToInstantiate : 1;
+			/** Is set to true when component is loaded and requires instantiation. **/
+			uint32 bLoadedComponentRequiresInstantiation : 1;
 		};
 
-		uint32 HoudiniAssetComponentFlagsPacked;
+		uint32 HoudiniAssetComponentTransientFlagsPacked;
 	};
 };
