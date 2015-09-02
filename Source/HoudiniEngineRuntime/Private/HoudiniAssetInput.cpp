@@ -525,6 +525,10 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	SerializeEnumeration<EHoudiniAssetInputType::Enum>(Ar, ChoiceIndex);
 	Ar << ChoiceStringValue;
 
+	// We need these temporary variables for undo state tracking.
+	bool bLocalInputAssetConnectedInHoudini = bInputAssetConnectedInHoudini;
+	UHoudiniAssetComponent* LocalInputAssetComponent = InputAssetComponent;
+
 	Ar << HoudiniAssetInputFlagsPacked;
 
 	// Serialize input index.
@@ -545,10 +549,27 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	{
 		bLoadedParameter = true;
 
-		// If we're loading for real for the first time we need to reset this
-		// flag so we can reconnect when we get our parameters uploaded.
-		if(!Ar.IsTransacting())
+		if(Ar.IsTransacting())
 		{
+			bInputAssetConnectedInHoudini = bLocalInputAssetConnectedInHoudini;
+
+			if(LocalInputAssetComponent != InputAssetComponent)
+			{
+				if(InputAssetComponent)
+				{
+					bInputAssetConnectedInHoudini = false;
+				}
+
+				if(LocalInputAssetComponent)
+				{
+					LocalInputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
+				}
+			}
+		}
+		else
+		{
+			// If we're loading for real for the first time we need to reset this
+			// flag so we can reconnect when we get our parameters uploaded.
 			bInputAssetConnectedInHoudini = false;
 		}
 	}
@@ -906,6 +927,11 @@ UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
 {
 	if(!Actor && InputAssetComponent)
 	{
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Asset Change"),
+			HoudiniAssetComponent);
+		Modify();
+
 		// Tell the old input asset we are no longer connected.
 		InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
 
@@ -929,6 +955,11 @@ UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
 		{
 			return;
 		}
+
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Asset Change"),
+			HoudiniAssetComponent);
+		Modify();
 
 		// Tell the old input asset we are no longer connected.
 		if(InputAssetComponent)
