@@ -88,9 +88,49 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
 				// We want to create root parameters here; they will recursively create child parameters.
-				if(!HoudiniAssetParameter->IsChildParameter() && !HoudiniAssetParameter->IsPendingKill())
+				if(HoudiniAssetParameter && !HoudiniAssetParameter->IsChildParameter() && !HoudiniAssetParameter->IsPendingKill())
 				{
 					HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
+				}
+			}
+		}
+	}
+
+	// Create Houdini Inputs.
+	{
+		IDetailCategoryBuilder& DetailCategoryBuilder =
+			DetailBuilder.EditCategory("HoudiniInputs", FText::GetEmpty(), ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator
+			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+			for(TArray<UHoudiniAssetInput*>::TIterator
+				IterInputs(HoudiniAssetComponent->Inputs); IterInputs; ++IterInputs)
+			{
+				UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
+				if(HoudiniAssetInput)
+				{
+					HoudiniAssetInput->CreateWidget(DetailCategoryBuilder);
+				}
+			}
+		}
+	}
+
+	// Create Houdini Instanced Inputs category.
+	{
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", FText::GetEmpty(),
+			ECategoryPriority::Important);
+		for(TArray<UHoudiniAssetComponent*>::TIterator
+			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+		{
+			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+			for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator
+				IterInstancedInputs(HoudiniAssetComponent->InstanceInputs); IterInstancedInputs; ++IterInstancedInputs)
+			{
+				UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstancedInputs.Value();
+				if(HoudiniAssetInstanceInput)
+				{
+					HoudiniAssetInstanceInput->CreateWidget(DetailCategoryBuilder);
 				}
 			}
 		}
@@ -112,40 +152,6 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Create Houdini Generated Static mesh settings category.
 	DetailBuilder.EditCategory("HoudiniGeneratedStaticMeshSettings", FText::GetEmpty(), ECategoryPriority::Important);
-
-	// Create Houdini Inputs.
-	{
-		IDetailCategoryBuilder& DetailCategoryBuilder =
-			DetailBuilder.EditCategory("HoudiniInputs", FText::GetEmpty(), ECategoryPriority::Important);
-		for(TArray<UHoudiniAssetComponent*>::TIterator
-			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
-		{
-			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-			for(TArray<UHoudiniAssetInput*>::TIterator
-				IterInputs(HoudiniAssetComponent->Inputs); IterInputs; ++IterInputs)
-			{
-				UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
-				HoudiniAssetInput->CreateWidget(DetailCategoryBuilder);
-			}
-		}
-	}
-
-	// Create Houdini Instanced Inputs category.
-	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("HoudiniInstancedInputs", FText::GetEmpty(),
-			ECategoryPriority::Important);
-		for(TArray<UHoudiniAssetComponent*>::TIterator
-			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
-		{
-			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
-			for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator
-				IterInstancedInputs(HoudiniAssetComponent->InstanceInputs); IterInstancedInputs; ++IterInstancedInputs)
-			{
-				UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstancedInputs.Value();
-				HoudiniAssetInstanceInput->CreateWidget(DetailCategoryBuilder);
-			}
-		}
-	}
 }
 
 
