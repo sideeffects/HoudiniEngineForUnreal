@@ -52,7 +52,6 @@ UHoudiniSplineComponent::Serialize(FArchive& Ar)
 
 	SerializeEnumeration<EHoudiniSplineComponentType::Enum>(Ar, CurveType);
 	SerializeEnumeration<EHoudiniSplineComponentMethod::Enum>(Ar, CurveMethod);
-
 	Ar << bClosedCurve;
 }
 
@@ -62,11 +61,11 @@ UHoudiniSplineComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(AttachParent);
-	if(HoudiniAssetComponent && HoudiniAssetComponent->IsNotCookingOrInstantiating())
+	UHoudiniAssetComponent* AttachComponent = Cast<UHoudiniAssetComponent>(AttachParent);
+	if(AttachComponent)
 	{
 		UploadControlPoints();
-		HoudiniAssetComponent->StartTaskAssetCooking(true);
+		AttachComponent->StartTaskAssetCooking(true);
 	}
 }
 
@@ -191,10 +190,10 @@ UHoudiniSplineComponent::UploadControlPoints()
 	else
 	{
 		// Grab component we are attached to.
-		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(AttachParent);
-		if(HoudiniGeoPartObject.IsValid() && HoudiniAssetComponent)
+		UHoudiniAssetComponent* AttachComponent = Cast<UHoudiniAssetComponent>(AttachParent);
+		if(HoudiniGeoPartObject.IsValid() && AttachComponent)
 		{
-			NodeId = HoudiniGeoPartObject.GetNodeId(HoudiniAssetComponent->GetAssetId());
+			NodeId = HoudiniGeoPartObject.GetNodeId(AttachComponent->GetAssetId());
 		}
 	}
 

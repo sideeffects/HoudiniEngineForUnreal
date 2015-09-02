@@ -508,8 +508,10 @@ UHoudiniAssetInput::PostEditUndo()
 {
 	Super::PostEditUndo();
 
+	/*
 	FString* NewChoice = new FString(ChoiceStringValue);
 	OnChoiceChange(TSharedPtr<FString>(NewChoice), ESelectInfo::Direct);
+	*/
 }
 
 
@@ -600,7 +602,10 @@ UHoudiniAssetInput::ClearInputCurveParameters()
 	for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(InputCurveParameters); IterParams; ++IterParams)
 	{
 		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-		HoudiniAssetParameter->ConditionalBeginDestroy();
+		if(HoudiniAssetParameter)
+		{
+			HoudiniAssetParameter->ConditionalBeginDestroy();
+		}
 	}
 
 	InputCurveParameters.Empty();
@@ -769,7 +774,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 	{
 		return;
 	}
-
+	/*
 	if(ESelectInfo::Direct != SelectType)
 	{
 		FScopedTransaction Transaction(
@@ -778,6 +783,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			HoudiniAssetComponent);
 		Modify();
 	}
+	*/
 
 	ChoiceStringValue = *(NewChoice.Get());
 
@@ -859,7 +865,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 
 				// Create new spline component.
 				UHoudiniSplineComponent* HoudiniSplineComponent =
-					NewObject<UHoudiniSplineComponent>(HoudiniAssetComponent, UHoudiniSplineComponent::StaticClass(),
+					NewObject<UHoudiniSplineComponent>(this, UHoudiniSplineComponent::StaticClass(),
 						NAME_None, RF_Public | RF_Transactional);
 
 				HoudiniSplineComponent->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);

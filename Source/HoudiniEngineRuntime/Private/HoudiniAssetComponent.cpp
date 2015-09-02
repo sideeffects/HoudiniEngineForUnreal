@@ -3411,16 +3411,22 @@ UHoudiniAssetComponent::SerializeInputs(FArchive& Ar)
 {
 	if(Ar.IsLoading())
 	{
-		ClearInputs();
+		if(!Ar.IsTransacting())
+		{
+			ClearInputs();
+		}
 	}
 
 	Ar << Inputs;
 
 	if(Ar.IsLoading())
 	{
-		for(int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
+		if(!Ar.IsTransacting())
 		{
-			Inputs[InputIdx]->SetHoudiniAssetComponent(this);
+			for(int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
+			{
+				Inputs[InputIdx]->SetHoudiniAssetComponent(this);
+			}
 		}
 	}
 }
