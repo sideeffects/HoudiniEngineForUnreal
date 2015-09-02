@@ -28,7 +28,7 @@ class UHoudiniAssetActorFactory : public UActorFactory
 	GENERATED_UCLASS_BODY()
 
 /** UActorFactory methods. **/
-public: 
+public:
 
 	/** Return true if Actor can be created from a given asset. **/
 	virtual bool CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg) override;
