@@ -4028,7 +4028,10 @@ FHoudiniEngineUtils::CreatePositionsString(const TArray<FVector>& Positions, FSt
 			check(0);
 		}
 
-		Position /= GeneratedGeometryScaleFactor;
+		if(GeneratedGeometryScaleFactor != 0.0f)
+		{
+			Position /= GeneratedGeometryScaleFactor;
+		}
 
 		PositionString += FString::Printf(TEXT("%f, %f, %f "), Position.X, Position.Y, Position.Z);
 	}
