@@ -70,6 +70,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 	UHoudiniAsset* HoudiniAsset = NewObject<UHoudiniAsset>(InParent, InName, Flags);
 	HoudiniAsset->CreateAsset(Buffer, BufferEnd, UFactory::CurrentFilename);
 
+	/*
 	// Create reimport information.
 	UAssetImportData* AssetImportData = HoudiniAsset->AssetImportData;
 	if(!AssetImportData)
@@ -78,9 +79,14 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 		HoudiniAsset->AssetImportData = AssetImportData;
 	}
 
-	AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, HoudiniAsset);
-	AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
+	FAssetImportInfo::FSourceFile SourceFile(FReimportManager::SanitizeImportFilename(CurrentFilename, HoudiniAsset),
+		IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString());
+	AssetImportData->SourceData.Insert(SourceFile);
+
+	//AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, HoudiniAsset);
+	//AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
 	AssetImportData->bDirty = false;
+	*/
 
 	// Broadcast notification that the new asset has been imported.
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
@@ -92,6 +98,7 @@ UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FN
 bool
 UHoudiniAssetFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 {
+	/*
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
 	if(HoudiniAsset && HoudiniAsset->AssetImportData)
 	{
@@ -99,6 +106,7 @@ UHoudiniAssetFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 			HoudiniAsset));
 		return true;
 	}
+	*/
 
 	return false;
 }
@@ -107,18 +115,21 @@ UHoudiniAssetFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 void
 UHoudiniAssetFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
 {
+	/*
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
 	if(HoudiniAsset && (1 == NewReimportPaths.Num()))
 	{
 		HoudiniAsset->AssetImportData->SourceFilePath = FReimportManager::ResolveImportFilename(NewReimportPaths[0],
 			HoudiniAsset);
 	}
+	*/
 }
 
 
 EReimportResult::Type
 UHoudiniAssetFactory::Reimport(UObject* Obj)
 {
+	/*
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
 	if(!HoudiniAsset)
 	{
@@ -150,6 +161,7 @@ UHoudiniAssetFactory::Reimport(UObject* Obj)
 
 		return EReimportResult::Succeeded;
 	}
+	*/
 
 	HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimport has failed."));
 	return EReimportResult::Failed;

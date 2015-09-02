@@ -123,6 +123,7 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAs
 		UHoudiniAsset* HoudiniAsset = (*ObjIt).Get();
 		if(HoudiniAsset && HoudiniAsset->AssetImportData)
 		{
+			/*
 			const FString SourceFilePath =
 				FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath, HoudiniAsset);
 
@@ -130,6 +131,7 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAs
 			{
 				FPlatformProcess::ExploreFolder(*SourceFilePath);
 			}
+			*/
 		}
 	}
 }

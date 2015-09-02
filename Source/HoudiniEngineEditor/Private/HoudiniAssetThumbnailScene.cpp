@@ -27,7 +27,7 @@ FHoudiniAssetThumbnailScene::FHoudiniAssetThumbnailScene()
 
 	// Create preview actor.
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.bNoFail = true;
 
 	// Preview actor should be marked as transient.
