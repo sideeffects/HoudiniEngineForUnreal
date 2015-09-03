@@ -126,7 +126,7 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer(TArray<TWeakObjectPtr<UHoudiniAs
 			const FString SourceFilePath =
 				FReimportManager::ResolveImportFilename(HoudiniAsset->AssetImportData->SourceFilePath, HoudiniAsset);
 
-			if(INDEX_NONE != SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath))
+			if(SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath) != INDEX_NONE)
 			{
 				FPlatformProcess::ExploreFolder(*SourceFilePath);
 			}
