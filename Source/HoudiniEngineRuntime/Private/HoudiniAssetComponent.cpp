@@ -944,6 +944,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 								NotificationPtr.Reset();
 							}
 						}
+
 						FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
 						HapiGUID.Invalidate();
 
@@ -1031,6 +1032,26 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Update properties panel.
 						UpdateEditorProperties(true);
 					}
+
+					if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
+					{
+						TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
+						if(NotificationItem.IsValid())
+						{
+							NotificationItem->SetText(TaskInfo.StatusText);
+							NotificationItem->ExpireAndFadeout();
+
+							NotificationPtr.Reset();
+						}
+					}
+
+					FHoudiniEngine::Get().RemoveTaskInfo(HapiGUID);
+					HapiGUID.Invalidate();
+
+					bStopTicking = true;
+					AssetCookCount++;
+
+					break;
 				}
 
 				case EHoudiniEngineTaskState::Aborted:
@@ -1097,6 +1118,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 					HapiGUID.Invalidate();
 
 					bStopTicking = true;
+					AssetCookCount = 0;
 
 					break;
 				}
