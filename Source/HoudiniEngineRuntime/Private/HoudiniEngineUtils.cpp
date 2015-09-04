@@ -2993,9 +2993,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 							if(-1 != MaterialId && Materials.Num() > 0)
 							{
-								UMaterial* AssignedMaterial = Materials[MaterialId];
-								if(AssignedMaterial)
+								UMaterial* const* FoundMaterial = Materials.Find(MaterialId);
+								if(FoundMaterial)
 								{
+									UMaterial* AssignedMaterial = *FoundMaterial;
+
 									// If looked up material has a sampling expression or mesh has no vertex colors, use it.
 									if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
 										RawMesh.WedgeColors.Num() == 0)
@@ -3462,6 +3464,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 	// Update context for generated materials (will trigger when object goes out of scope).
 	FMaterialUpdateContext MaterialUpdateContext;
 
+	// Default Houdini material.
+	UMaterial* DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+
 	// Factory to create materials.
 	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 	MaterialFactory->AddToRoot();
@@ -3473,6 +3478,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id, MaterialId, &MaterialInfo))
 		{
+			// There was an error retrieving material information, we will use default Houdini material in this case.
+			Materials.Add(MaterialId, DefaultMaterial);
 			continue;
 		}
 
@@ -3511,30 +3518,34 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 				}
 				else
 				{
-					// Material was cached and exists, we need to retrieve necessary resources.
-
-					MaterialPackage = Cast<UPackage>(Material->GetOuter());
-					check(MaterialPackage);
-
-					ExpressionDiffuseColor = Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
-
-					ExpressionDiffuse = Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
-					if(ExpressionDiffuse)
+					// We do not want to modify default Houdini material.
+					if(Material != DefaultMaterial)
 					{
-						TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
-						if(TextureDiffuse)
+						// Material was cached and exists, we need to retrieve necessary resources.
+
+						MaterialPackage = Cast<UPackage>(Material->GetOuter());
+						check(MaterialPackage);
+
+						ExpressionDiffuseColor = Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
+
+						ExpressionDiffuse = Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
+						if(ExpressionDiffuse)
 						{
-							TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
+							TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
+							if(TextureDiffuse)
+							{
+								TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
+							}
 						}
-					}
 
-					ExpressionNormal = Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
-					if(ExpressionNormal)
-					{
-						TextureNormal = Cast<UTexture2D>(ExpressionNormal->Texture);
-						if(TextureNormal)
+						ExpressionNormal = Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
+						if(ExpressionNormal)
 						{
-							TextureNormalPackage = Cast<UPackage>(TextureNormal->GetOuter());
+							TextureNormal = Cast<UTexture2D>(ExpressionNormal->Texture);
+							if(TextureNormal)
+							{
+								TextureNormalPackage = Cast<UPackage>(TextureNormal->GetOuter());
+							}
 						}
 					}
 				}
@@ -3854,6 +3865,16 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					bMaterialGenerated = true;
 				}
 			}
+			else
+			{
+				// Material does not exist, we will use default Houdini material in this case.
+				Materials.Add(MaterialId, DefaultMaterial);
+			}
+		}
+		else
+		{
+			// Material does not exist, we will use default Houdini material in this case.
+			Materials.Add(MaterialId, DefaultMaterial);
 		}
 	}
 
