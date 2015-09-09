@@ -208,6 +208,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
 	// Sort and store new fields.
 	NewInstanceInputFields.Sort(FHoudiniAssetInstanceInputFieldSortPredicate());
+	CleanInstanceInputFields(InstanceInputFields);
 	InstanceInputFields = NewInstanceInputFields;
 
 	return true;
@@ -218,7 +219,6 @@ UHoudiniAssetInstanceInputField*
 UHoudiniAssetInstanceInput::LocateInputField(const FHoudiniGeoPartObject& GeoPartObject, const FString& InstancePathName)
 {
 	UHoudiniAssetInstanceInputField* FoundHoudiniAssetInstanceInputField = nullptr;
-
 	for(int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx)
 	{
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[FieldIdx];
@@ -232,6 +232,23 @@ UHoudiniAssetInstanceInput::LocateInputField(const FHoudiniGeoPartObject& GeoPar
 	}
 
 	return FoundHoudiniAssetInstanceInputField;
+}
+
+
+void
+UHoudiniAssetInstanceInput::CleanInstanceInputFields(TArray<UHoudiniAssetInstanceInputField*>& InInstanceInputFields)
+{
+	UHoudiniAssetInstanceInputField* FoundHoudiniAssetInstanceInputField = nullptr;
+	for(int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx)
+	{
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[FieldIdx];
+		if(HoudiniAssetInstanceInputField)
+		{
+			HoudiniAssetInstanceInputField->ConditionalBeginDestroy();
+		}
+	}
+
+	InInstanceInputFields.Empty();
 }
 
 

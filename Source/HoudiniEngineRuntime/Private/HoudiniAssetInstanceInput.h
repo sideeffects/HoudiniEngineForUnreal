@@ -127,6 +127,9 @@ protected:
 		const TArray<UHoudiniAssetInstanceInputField*>& OldInstanceInputFields, 
 		TArray<UHoudiniAssetInstanceInputField*>& NewInstanceInputFields);
 
+	/** Clean unused input fields. **/
+	void CleanInstanceInputFields(TArray<UHoudiniAssetInstanceInputField*>& InInstanceInputFields);
+
 protected:
 
 #if WITH_EDITOR
