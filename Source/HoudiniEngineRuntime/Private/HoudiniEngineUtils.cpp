@@ -2566,6 +2566,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					// Compute number of faces.
 					int32 FaceCount = SplitGroupVertexListCount / 3;
 
+					// Reset Face materials.
+					FaceMaterials.Empty();
+
 					if(bRebuildStaticMesh)
 					{
 						// Retrieve position data.
