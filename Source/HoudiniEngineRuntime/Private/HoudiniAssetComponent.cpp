@@ -621,7 +621,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 
 			{
 				// Check if object is referenced and get its referencers, if it is. Skip undo references.
-				FHoudiniScopedGlobalTransactionDisable HoudiniScopedGlobalTransactionDisable;
+				//FHoudiniScopedGlobalTransactionDisable HoudiniScopedGlobalTransactionDisable;
 				bReferenced = IsReferenced(ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS, true, &Referencers);
 			}
 
