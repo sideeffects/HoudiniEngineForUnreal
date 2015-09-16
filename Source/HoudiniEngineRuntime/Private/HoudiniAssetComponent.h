@@ -300,6 +300,9 @@ private:
 	/** Delegate for asset post import. **/
 	void OnAssetPostImport(UFactory* Factory, UObject* Object);
 
+	/** Delegate to handle drag and drop events. **/
+	void OnApplyObjectToActor(UObject* ObjectToApply, AActor* ActorToApplyTo);
+
 	/** Subscribe to Editor events. **/
 	void SubscribeEditorDelegates();
 
@@ -524,6 +527,9 @@ protected:
 
 	/** Delegate handle returned by editor asset post import delegate. **/
 	FDelegateHandle DelegateHandleAssetPostImport;
+
+	/** Delegate to handle editor viewport drag and drop events. **/
+	FDelegateHandle DelegateHandleApplyObjectToActor;
 
 	/** Timer handle, this timer is used for cooking. **/
 	FTimerHandle TimerHandleCooking;
