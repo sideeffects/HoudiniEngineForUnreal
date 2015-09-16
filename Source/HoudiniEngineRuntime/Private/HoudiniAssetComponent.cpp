@@ -1495,6 +1495,10 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
 	// Add delegate for asset post import.
 	DelegateHandleAssetPostImport =
 		FEditorDelegates::OnAssetPostImport.AddUObject(this, &UHoudiniAssetComponent::OnAssetPostImport);
+
+	// Add delegate for viewport drag and drop events.
+	DelegateHandleApplyObjectToActor =
+		FEditorDelegates::OnApplyObjectToActor.AddUObject(this, &UHoudiniAssetComponent::OnApplyObjectToActor);
 }
 
 
@@ -1507,6 +1511,9 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 
 	// Remove delegate for asset post import.
 	FEditorDelegates::OnAssetPostImport.Remove(DelegateHandleAssetPostImport);
+
+	// Remove delegate for viewport drag and drop events.
+	FEditorDelegates::OnApplyObjectToActor.Remove(DelegateHandleApplyObjectToActor);
 }
 
 
@@ -1756,6 +1763,66 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		// Mark this component as no longer copy imported and reset copied component.
 		bComponentCopyImported = false;
 		CopiedHoudiniComponent = nullptr;
+	}
+}
+
+
+void
+UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* ActorToApplyTo)
+{
+	if(GetHoudiniAssetActorOwner() == ActorToApplyTo)
+	{
+		// We want to handle material replacements.
+		UMaterial* Material = Cast<UMaterial>(ObjectToApply);
+		if(Material)
+		{
+			TMap<UStaticMesh*, int32> MaterialReplacements;
+
+			// We need to detect which components have material overriden, and replace it on their corresponding
+			// generated static meshes.
+			for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
+			{
+				UStaticMesh* StaticMesh = Iter.Key();
+				UStaticMeshComponent* StaticMeshComponent = Iter.Value();
+
+				if(StaticMeshComponent && StaticMesh)
+				{
+					const TArray<class UMaterialInterface*>& OverrideMaterials = StaticMeshComponent->OverrideMaterials;
+					for(int32 MaterialIdx = 0; MaterialIdx < OverrideMaterials.Num(); ++MaterialIdx)
+					{
+						UMaterialInterface* OverridenMaterial = OverrideMaterials[MaterialIdx];
+						if(OverridenMaterial && OverridenMaterial == Material)
+						{
+							if(MaterialIdx < StaticMesh->Materials.Num())
+							{
+								MaterialReplacements.Add(StaticMesh, MaterialIdx);
+							}
+						}
+					}
+				}
+			}
+
+			if(MaterialReplacements.Num() > 0)
+			{
+				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME), 
+					LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), this);
+
+				for(TMap<UStaticMesh*, int32>::TIterator Iter(MaterialReplacements); Iter; ++Iter)
+				{
+					UStaticMesh* StaticMesh = Iter.Key();
+					int32 MaterialIdx = Iter.Value();
+
+					StaticMesh->Modify();
+					StaticMesh->Materials[MaterialIdx] = Material;
+
+					StaticMesh->PreEditChange(nullptr);
+					StaticMesh->PostEditChange();
+					StaticMesh->MarkPackageDirty();
+				}
+
+				UpdateEditorProperties(false);
+			}
+		}
 	}
 }
 
