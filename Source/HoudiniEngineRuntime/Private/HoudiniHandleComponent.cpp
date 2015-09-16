@@ -28,6 +28,12 @@ UHoudiniHandleComponent::~UHoudiniHandleComponent()
 
 }
 
+bool
+UHoudiniHandleComponent::Construct(const FString& HandleName, const HAPI_HandleInfo& Info)
+{
+	return true;
+}
+
 void
 UHoudiniHandleComponent::Serialize(FArchive& Ar)
 {

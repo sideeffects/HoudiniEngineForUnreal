@@ -482,12 +482,13 @@ protected:
 	/** List of dependent downstream asset connections that have this asset as an asset input. **/
 	TMap<UHoudiniAssetComponent*, TSet<int32>> DownstreamAssetConnections;
 
-	/** Handles for this component's asset. **/
-	TMap<FString, UHoudiniAssetHandle*> Handles;
-
 	/** Map of HAPI objects and corresponding static meshes. Also map of static meshes and corresponding components. **/
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> StaticMeshes;
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
+
+	/** Map of asset handle components. **/
+	typedef TMap<FString, UHoudiniHandleComponent*> HandleComponentMap;
+	HandleComponentMap HandleComponents;
 
 	/** Map of curve / spline components. **/
 	TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*> SplineComponents;

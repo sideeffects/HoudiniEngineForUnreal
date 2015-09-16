@@ -102,6 +102,9 @@ private:
 	TArray<TSharedPtr<IAssetTypeActions> > AssetTypeActions;
 
 	/** Visualizer for our spline component. **/
+	TSharedPtr<FComponentVisualizer> HandleComponentVisualizer;
+
+	/** Visualizer for our spline component. **/
 	TSharedPtr<FComponentVisualizer> SplineComponentVisualizer;
 
 	/** Broker associated with Houdini asset. **/

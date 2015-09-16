@@ -18,6 +18,8 @@
 #include "HoudiniEngine.h"
 
 #include "HoudiniAssetComponent.h"
+#include "HoudiniHandleComponentVisualizer.h"
+#include "HoudiniHandleComponent.h"
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetComponentDetails.h"
@@ -125,23 +127,48 @@ FHoudiniEngineEditor::ShutdownModule()
 void
 FHoudiniEngineEditor::RegisterComponentVisualizers()
 {
-	if(GUnrealEd && !SplineComponentVisualizer.IsValid())
+	if ( GUnrealEd )
 	{
-		SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
-		GUnrealEd->RegisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName(),
-			SplineComponentVisualizer);
+		if ( !SplineComponentVisualizer.IsValid() )
+		{
+			SplineComponentVisualizer = MakeShareable(new FHoudiniSplineComponentVisualizer);
 
-		SplineComponentVisualizer->OnRegister();
+			GUnrealEd->RegisterComponentVisualizer(
+				UHoudiniSplineComponent::StaticClass()->GetFName(),
+				SplineComponentVisualizer
+			);
+
+			SplineComponentVisualizer->OnRegister();
+		}
+
+		if (!HandleComponentVisualizer.IsValid())
+		{
+			HandleComponentVisualizer = MakeShareable(new FHoudiniHandleComponentVisualizer);
+
+			GUnrealEd->RegisterComponentVisualizer(
+				UHoudiniHandleComponent::StaticClass()->GetFName(),
+				HandleComponentVisualizer
+			);
+
+			HandleComponentVisualizer->OnRegister();
+		}
 	}
 }
-
 
 void
 FHoudiniEngineEditor::UnregisterComponentVisualizers()
 {
-	if(GUnrealEd && SplineComponentVisualizer.IsValid())
+	if ( GUnrealEd )
 	{
-		GUnrealEd->UnregisterComponentVisualizer(UHoudiniSplineComponent::StaticClass()->GetFName());
+		if ( SplineComponentVisualizer.IsValid() )
+		{
+			GUnrealEd->UnregisterComponentVisualizer( UHoudiniSplineComponent::StaticClass()->GetFName() );
+		}
+
+		if ( HandleComponentVisualizer.IsValid() )
+		{
+			GUnrealEd->UnregisterComponentVisualizer( UHoudiniHandleComponent::StaticClass()->GetFName() );
+		}
 	}
 }
 
