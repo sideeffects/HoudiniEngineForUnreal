@@ -4,7 +4,7 @@
  * transmitted, or disclosed in any way without written permission.
  *
  * Produced by:
- *      Damian Campeanu, Mykola Konyk
+ *      Damian Campeanu, Mykola Konyk, Pavlo Penenko
  *      Side Effects Software Inc
  *      123 Front Street West, Suite 1401
  *      Toronto, Ontario
@@ -36,6 +36,7 @@
 #include "HoudiniAssetParameterSeparator.h"
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
+#include "HoudiniHandleComponent.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineTask.h"
@@ -199,11 +200,11 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 		}
 
 		// Add references to all handles.
-		for(TMap<FString, UHoudiniAssetHandle*>::TIterator
-			IterHandles(HoudiniAssetComponent->Handles); IterHandles; ++IterHandles)
+		for(TMap<FString, UHoudiniHandleComponent*>::TIterator
+			IterHandles(HoudiniAssetComponent->HandleComponents); IterHandles; ++IterHandles)
 		{
-			UHoudiniAssetHandle* HoudiniAssetHandle = IterHandles.Value();
-			Collector.AddReferencedObject(HoudiniAssetHandle, InThis);
+			UHoudiniHandleComponent* HandleComponent = IterHandles.Value();
+			Collector.AddReferencedObject(HandleComponent, InThis);
 		}
 
 		// Add references to all static meshes and corresponding geo parts.
@@ -3066,56 +3067,87 @@ UHoudiniAssetComponent::CreateHandles()
 	}
 
 	HAPI_AssetInfo AssetInfo;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
+	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo) )
 	{
 		return false;
 	}
 
-	TMap<FString, UHoudiniAssetHandle*> NewHandles;
+	HandleComponentMap NewHandleComponents;
 
 	// If we have handles.
-	if(AssetInfo.handleCount > 0)
+	if ( AssetInfo.handleCount > 0 )
 	{
 		TArray<HAPI_HandleInfo> HandleInfos;
 		HandleInfos.SetNumZeroed(AssetInfo.handleCount);
 
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(
-				FHoudiniEngine::Get().GetSession(), AssetId, &HandleInfos[0], 0, AssetInfo.handleCount) )
+		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(
+				FHoudiniEngine::Get().GetSession(),
+				AssetId, &HandleInfos[0], 0, AssetInfo.handleCount
+			)
+		)
 		{
 			return false;
 		}
 
-		for(int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx)
+		for ( int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx )
 		{
-		/*
 			// Retrieve handle info for this index.
 			const HAPI_HandleInfo& HandleInfo = HandleInfos[HandleIdx];
 
 			// If we do not have bindings, we can skip.
-			if(HandleInfo.bindingsCount > 0)
+			if ( HandleInfo.bindingsCount <= 0 )
 			{
-				// Retrieve name of this handle.
-				FString HandleName;
-				if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
-				{
-					continue;
-				}
-
-				// Construct new handle parameter.
-				UHoudiniAssetHandle* HoudiniAssetHandle = 
-						UHoudiniAssetHandle::Create(this, HandleInfo, HandleIdx, HandleName);
-
-				if(HoudiniAssetHandle)
-				{
-					NewHandles.Add(HandleName, HoudiniAssetHandle);
-				}
+				continue;
 			}
-		*/
+
+			FString TypeName;
+			if ( !FHoudiniEngineUtils::GetHoudiniString(HandleInfo.typeNameSH, TypeName)
+				|| TypeName != "xform" )
+			{
+				continue;
+			}
+
+			FString HandleName;
+			if ( !FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName) )
+			{
+				continue;
+			}
+
+			auto* HandleComponent = NewObject<UHoudiniHandleComponent>(
+				this, UHoudiniHandleComponent::StaticClass(), NAME_None, RF_Public | RF_Transactional
+			);
+
+			if (!HandleComponent)
+			{
+				continue;
+			}
+
+			// If we have no parent, we need to re-attach.
+			if (!HandleComponent->AttachParent)
+			{
+				HandleComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
+			}
+
+			HandleComponent->SetVisibility(true);
+
+			// If component is not registered, register it.
+			if ( !HandleComponent->IsRegistered() )
+			{
+				HandleComponent->RegisterComponent();
+			}			
+
+			// Transform the component by transformation provided by HAPI.
+			//HandleComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
+
+			if ( HandleComponent->Construct(HandleName, HandleInfo) )
+			{
+				NewHandleComponents.Add(HandleName, HandleComponent);
+			}
 		}
 	}
 
 	ClearHandles();
-	Handles = NewHandles;
+	HandleComponents = NewHandleComponents;
 
 	return true;
 }
@@ -3336,13 +3368,19 @@ UHoudiniAssetComponent::ClearParameters()
 void
 UHoudiniAssetComponent::ClearHandles()
 {
-	for(TMap<FString, UHoudiniAssetHandle*>::TIterator IterHandles(Handles); IterHandles; ++IterHandles)
+	for ( auto& NameToComponent : HandleComponents )
 	{
-		UHoudiniAssetHandle* HoudiniAssetHandle = IterHandles.Value();
-		HoudiniAssetHandle->ConditionalBeginDestroy();
+		UHoudiniHandleComponent* HandleComponent = NameToComponent.Value;
+
+		HandleComponent->DetachFromParent();
+		HandleComponent->UnregisterComponent();
+		HandleComponent->DestroyComponent();
+
+		// Remove this component from the list of attached components.
+		AttachChildren.Remove(HandleComponent);
 	}
 
-	Handles.Empty();
+	HandleComponents.Empty();
 }
 
 
@@ -3504,7 +3542,7 @@ UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
 	}
 
 	// Serialize number of handles.
-	int32 HandleCount = Handles.Num();
+	int32 HandleCount = HandleComponents.Num();
 	Ar << HandleCount;
 
 	if(Ar.IsSaving())

@@ -40,6 +40,7 @@ public:
 	virtual void PostEditUndo() override;
 
 public:
+	bool Construct( const FString& HandleName, const HAPI_HandleInfo& );
 
 protected:
 };
