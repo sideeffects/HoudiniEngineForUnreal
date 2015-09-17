@@ -2099,6 +2099,16 @@ UHoudiniAssetComponent::PostLoad()
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
 
+	// Update static mobility.
+	if(EComponentMobility::Static == Mobility)
+	{
+		for(TArray<USceneComponent*>::TIterator Iter(AttachChildren); Iter; ++Iter)
+		{
+			USceneComponent* SceneComponent = *Iter;
+			SceneComponent->SetMobility(EComponentMobility::Static);
+		}
+	}
+
 	// Need to update rendering information.
 	UpdateRenderingInformation();
 
