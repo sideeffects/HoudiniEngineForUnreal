@@ -40,7 +40,36 @@ public:
 	virtual void PostEditUndo() override;
 
 public:
-	bool Construct( const FString& HandleName, const HAPI_HandleInfo& );
+	bool Construct( HAPI_AssetId AssetId, int32 HandleIdx, const FString& HandleName,
+					const HAPI_HandleInfo&, const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& );
 
 protected:
+
+private:
+	template <class CONCRETE_PARM, typename VALUE>
+	static bool BindHandleParameter(
+		VALUE& OutValue,
+		const char* CmpName,
+		const FString& HandleParmName,
+		HAPI_ParmId AssetParamId,
+		const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& Parameters )
+	{
+		if (HandleParmName == CmpName)
+		{
+			if ( UHoudiniAssetParameter* const* FoundAbstractParm = Parameters.Find(AssetParamId) )
+			{
+				if ( CONCRETE_PARM* ConcreteParm = Cast<CONCRETE_PARM>(*FoundAbstractParm) )
+				{
+					auto Optional = ConcreteParm->GetValue(0);
+					if ( Optional.IsSet() )
+					{
+						OutValue = static_cast<VALUE>( Optional.GetValue() );
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
 };

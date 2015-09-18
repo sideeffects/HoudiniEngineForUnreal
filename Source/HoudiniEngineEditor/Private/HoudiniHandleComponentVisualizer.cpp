@@ -74,73 +74,24 @@ void
 FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View,
 	FPrimitiveDrawInterface* PDI)
 {
-	const UHoudiniHandleComponent* HoudiniHandleComponent = Cast<const UHoudiniHandleComponent>(Component);
-	if (!HoudiniHandleComponent)
+	const UHoudiniHandleComponent* HandleComponent = Cast<const UHoudiniHandleComponent>(Component);
+	if (!HandleComponent)
 	{
 		return;
 	}
 
-	//static const FColor ColorNormal(255, 255, 255);
-	//static const FColor ColorSelected(255, 0, 0);
+	static const FColor ColorNormal(255, 255, 255);
+	static const FColor ColorSelected(255, 0, 255);
 
-	//static const float GrabHandleSize = 12.0f;
+	static const float GrabHandleSize = 120.0f;
 
-	//// Get component transformation.
-	//const FTransform& HoudiniHandleComponentTransform = HoudiniHandleComponent->ComponentToWorld;
+	// Get component transformation.
+	const FTransform& ComponentTransform = HandleComponent->ComponentToWorld;
 
-	//// Get curve points.
-	//const TArray<FVector>& CurvePoints = HoudiniHandleComponent->CurvePoints;
-	//const TArray<FVector>& CurveDisplayPoints = HoudiniHandleComponent->CurveDisplayPoints;
-
-	//// Draw the curve.
-	//FVector DisplayPointFirst;
-	//FVector DisplayPointPrevious;
-
-	//int32 NumDisplayPoints = CurveDisplayPoints.Num();
-	//for(int32 DisplayPointIdx = 0; DisplayPointIdx < NumDisplayPoints; ++DisplayPointIdx)
-	//{
-	//	// Get point for this index.
-	//	const FVector& DisplayPoint =
-	//		HoudiniHandleComponentTransform.TransformPosition(CurveDisplayPoints[DisplayPointIdx]);
-
-	//	if(DisplayPointIdx > 0)
-	//	{
-	//		// Draw line from previous point to current one.
-	//		PDI->DrawLine(DisplayPointPrevious, DisplayPoint, ColorNormal, SDPG_Foreground);
-	//	}
-	//	else
-	//	{
-	//		DisplayPointFirst = DisplayPoint;
-	//	}
-
-	//	// If this is last point and curve is closed, draw link from last to first.
-	//	if(HoudiniHandleComponent->IsClosedCurve() && (NumDisplayPoints > 1) &&
-	//		(DisplayPointIdx + 1 == NumDisplayPoints))
-	//	{
-	//		PDI->DrawLine(DisplayPointFirst, DisplayPoint, ColorNormal, SDPG_Foreground);
-	//	}
-
-	//	DisplayPointPrevious = DisplayPoint;
-	//}
-
-	//// Draw control points.
-	//for(int32 PointIdx = 0; PointIdx < CurvePoints.Num(); ++PointIdx)
-	//{
-	//	// Get point at this index.
-	//	const FVector& DisplayPoint = HoudiniHandleComponentTransform.TransformPosition(CurvePoints[PointIdx]);
-
-	//	// If we are editing this control point, change color.
-	//	FColor ColorCurrent = ColorNormal;
-	//	if(bEditing && PointIdx == EditedControlPointIndex)
-	//	{
-	//		ColorCurrent = ColorSelected;
-	//	}
-
-	//	// Draw point and set hit box for it.
-	//	PDI->SetHitProxy(new HHoudiniSplineControlPointVisProxy(HoudiniHandleComponent, PointIdx));
-	//	PDI->DrawPoint(DisplayPoint, ColorCurrent, GrabHandleSize, SDPG_Foreground);
-	//	PDI->SetHitProxy(nullptr);
-	//}
+	// Draw point and set hit box for it.
+	PDI->SetHitProxy(new HHoudiniHandleVisProxy(HandleComponent));
+	PDI->DrawPoint(ComponentTransform.GetLocation(), ColorSelected, GrabHandleSize, SDPG_Foreground);
+	PDI->SetHitProxy(nullptr);
 }
 
 bool

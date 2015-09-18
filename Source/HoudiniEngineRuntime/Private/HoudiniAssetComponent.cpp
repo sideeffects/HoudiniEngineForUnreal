@@ -2347,7 +2347,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	Ar << SplineComponents;
 
 	// Serialize handles.
-	SerializeHandles(Ar);
+	Ar << HandleComponents;
 
 	// Serialize downstream asset connections.
 	Ar << DownstreamAssetConnections;
@@ -3211,12 +3211,9 @@ UHoudiniAssetComponent::CreateHandles()
 			if ( !HandleComponent->IsRegistered() )
 			{
 				HandleComponent->RegisterComponent();
-			}			
+			}
 
-			// Transform the component by transformation provided by HAPI.
-			//HandleComponent->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
-
-			if ( HandleComponent->Construct(HandleName, HandleInfo) )
+			if ( HandleComponent->Construct(AssetId, HandleIdx, HandleName, HandleInfo, Parameters) )
 			{
 				NewHandleComponents.Add(HandleName, HandleComponent);
 			}
@@ -3606,29 +3603,6 @@ UHoudiniAssetComponent::SerializeInstanceInputs(FArchive& Ar)
 			HoudiniAssetInstanceInput->SetHoudiniAssetComponent(this);
 			InstanceInputs.Add(HoudiniInstanceInputKey, HoudiniAssetInstanceInput);
 		}
-	}
-}
-
-
-void
-UHoudiniAssetComponent::SerializeHandles(FArchive& Ar)
-{
-	if(Ar.IsLoading())
-	{
-		ClearHandles();
-	}
-
-	// Serialize number of handles.
-	int32 HandleCount = HandleComponents.Num();
-	Ar << HandleCount;
-
-	if(Ar.IsSaving())
-	{
-
-	}
-	else if(Ar.IsLoading())
-	{
-
 	}
 }
 
