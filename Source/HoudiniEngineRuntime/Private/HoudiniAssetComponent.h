@@ -441,9 +441,6 @@ public:
 	/** Serialize instance inputs. **/
 	void SerializeInstanceInputs(FArchive& Ar);
 
-	/** Serialize handles. **/
-	void SerializeHandles(FArchive& Ar);
-
 	/** Used to perform post loading initialization on instance inputs. **/
 	void PostLoadInitializeInstanceInputs();
 
