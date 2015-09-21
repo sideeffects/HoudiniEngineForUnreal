@@ -72,11 +72,12 @@ public:
 	virtual void EndEditing() override;
 
 	/** Returns location of a gizmo widget. **/
-	//virtual bool GetWidgetLocation(const FEditorViewportClient* ViewportClient, FVector& OutLocation) const override;
+	virtual bool GetWidgetLocation(const FEditorViewportClient*, FVector& OutLocation) const override;
+
+	virtual bool GetCustomInputCoordinateSystem(const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const override;
 
 	/** Handle input change. **/
-	virtual bool HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate,
-		FRotator& DeltaRotate, FVector& DeltaScale) override;
+	virtual bool HandleInputDelta(FEditorViewportClient*, FViewport*, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
 
 	/** Create context menu for this visualizer. **/
 	//virtual TSharedPtr<SWidget> GenerateContextMenu() const override;
