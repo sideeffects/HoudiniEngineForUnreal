@@ -50,8 +50,9 @@ private:
 	static bool BindHandleParameter(
 		VALUE& OutValue,
 		const char* CmpName,
+		int32 TupleIdx,
 		const FString& HandleParmName,
-		HAPI_ParmId AssetParamId,
+		HAPI_ParmId AssetParamId,		
 		const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& Parameters )
 	{
 		if (HandleParmName == CmpName)
@@ -60,7 +61,7 @@ private:
 			{
 				if ( CONCRETE_PARM* ConcreteParm = Cast<CONCRETE_PARM>(*FoundAbstractParm) )
 				{
-					auto Optional = ConcreteParm->GetValue(0);
+					auto Optional = ConcreteParm->GetValue(TupleIdx);
 					if ( Optional.IsSet() )
 					{
 						OutValue = static_cast<VALUE>( Optional.GetValue() );

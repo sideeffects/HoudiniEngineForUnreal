@@ -71,20 +71,20 @@ UHoudiniHandleComponent::Construct(
 
 		const HAPI_AssetId AssetParmId = BindingInfo.assetParmId;
 
-		(void)(	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[0], "tx", HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[1], "ty", HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[2], "tz", HandleParmName, AssetParmId, Parameters )
+		(void)(	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[0], "tx", 0, HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[1], "ty", 1, HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[2], "tz", 2, HandleParmName, AssetParmId, Parameters )
 
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[0], "rx", HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[1], "ry", HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[2], "rz", HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[0], "rx", 0, HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[1], "ry", 1, HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[2], "rz", 2, HandleParmName, AssetParmId, Parameters )
 
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[0], "sx", HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[1], "sy", HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[2], "sz", HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[0], "sx", 0, HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[1], "sy", 1, HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[2], "sz", 2, HandleParmName, AssetParmId, Parameters )
 
-			||	BindHandleParameter<UHoudiniAssetParameterInt>(HapiEulerXform.rstOrder, "trs_order", HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterInt>(HapiEulerXform.rotationOrder, "xyz_order", HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterInt>(HapiEulerXform.rstOrder, "trs_order", 0, HandleParmName, AssetParmId, Parameters )
+			||	BindHandleParameter<UHoudiniAssetParameterInt>(HapiEulerXform.rotationOrder, "xyz_order", 0, HandleParmName, AssetParmId, Parameters )
 		);
 	}
 

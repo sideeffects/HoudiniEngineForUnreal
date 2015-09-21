@@ -83,14 +83,11 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 	static const FColor ColorNormal(255, 255, 255);
 	static const FColor ColorSelected(255, 0, 255);
 
-	static const float GrabHandleSize = 120.0f;
-
-	// Get component transformation.
-	const FTransform& ComponentTransform = HandleComponent->ComponentToWorld;
+	static const float GrabHandleSize = 12.0f;
 
 	// Draw point and set hit box for it.
 	PDI->SetHitProxy(new HHoudiniHandleVisProxy(HandleComponent));
-	PDI->DrawPoint(ComponentTransform.GetLocation(), ColorSelected, GrabHandleSize, SDPG_Foreground);
+	PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), ColorSelected, GrabHandleSize, SDPG_Foreground );
 	PDI->SetHitProxy(nullptr);
 }
 
@@ -100,23 +97,21 @@ FHoudiniHandleComponentVisualizer::VisProxyHandleClick(FLevelEditorViewportClien
 {
 	bEditing = false;
 
-	/*if(VisProxy && VisProxy->Component.IsValid())
+	if ( VisProxy && VisProxy->Component.IsValid() )
 	{
-		const UHoudiniHandleComponent* HoudiniHandleComponent =
+		const UHoudiniHandleComponent* Component =
 			CastChecked<const UHoudiniHandleComponent>(VisProxy->Component.Get());
 
-		EditedHoudiniHandleComponent = const_cast<UHoudiniHandleComponent*>(HoudiniHandleComponent);
+		EditedComponent = const_cast<UHoudiniHandleComponent*>(Component);
 
-		if(HoudiniHandleComponent)
+		if(Component)
 		{
-			if(VisProxy->IsA(HHoudiniSplineControlPointVisProxy::StaticGetType()))
+			if ( VisProxy->IsA(HHoudiniHandleVisProxy::StaticGetType()) )
 			{
-				HHoudiniSplineControlPointVisProxy* ControlPointProxy = (HHoudiniSplineControlPointVisProxy*) VisProxy;
 				bEditing = true;
-				EditedControlPointIndex = ControlPointProxy->ControlPointIndex;
 			}
 		}
-	}*/
+	}
 
 	return bEditing;
 }
@@ -127,63 +122,63 @@ FHoudiniHandleComponentVisualizer::EndEditing()
 	EditedComponent = nullptr;
 }
 
-//bool
-//FHoudiniHandleComponentVisualizer::GetWidgetLocation(const FEditorViewportClient* ViewportClient,
-//	FVector& OutLocation) const
-//{
-//	if(EditedComponent && EditedControlPointIndex != INDEX_NONE)
-//	{
-//		// Get curve points.
-//		const TArray<FVector>& CurvePoints = EditedComponent->CurvePoints;
-//		check(EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num());
-//		OutLocation =
-//			EditedComponent->ComponentToWorld.TransformPosition(CurvePoints[EditedControlPointIndex]);
-//
-//		return true;
-//	}
-//
-//	return false;
-//}
+bool
+FHoudiniHandleComponentVisualizer::GetWidgetLocation(
+	const FEditorViewportClient* ViewportClient,
+	FVector& OutLocation
+) const
+{
+	if ( EditedComponent )
+	{
+		OutLocation = EditedComponent->ComponentToWorld.GetLocation();
+		return true;
+	}
+
+	return false;
+}
+
+bool
+FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
+	const FEditorViewportClient* ViewportClient,
+	FMatrix& OutMatrix
+) const
+{
+	return false;
+}
 
 bool
 FHoudiniHandleComponentVisualizer::HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport,
 	FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale)
 {
-	//if(EditedComponent && EditedControlPointIndex != INDEX_NONE)
-	//{
-	//	// Get curve points.
-	//	const TArray<FVector>& CurvePoints = EditedComponent->CurvePoints;
+	if ( EditedComponent )
+	{
+		//// Get component transformation.
+		//const FTransform& ComponentToWorld = EditedComponent->ComponentToWorld;
+		//
+		//// Handle change in translation.
+		//if(!DeltaTranslate.IsZero())
+		//{
+		//	FVector PointTransformed = ComponentToWorld.TransformPosition(Point);
+		//	FVector PointTransformedDelta = PointTransformed + DeltaTranslate;
 
-	//	// Get component transformation.
-	//	const FTransform& HoudiniHandleComponentTransform = EditedComponent->ComponentToWorld;
+		//	Point = ComponentToWorld.InverseTransformPosition(PointTransformedDelta);
+		//}
 
-	//	check(EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num());
-	//	FVector Point = CurvePoints[EditedControlPointIndex];
+		//// Handle change in rotation.
+		//if(!DeltaRotate.IsZero())
+		//{
+		//	Point = DeltaRotate.RotateVector(Point);
+		//}
 
-	//	// Handle change in translation.
-	//	if(!DeltaTranslate.IsZero())
-	//	{
-	//		FVector PointTransformed = HoudiniHandleComponentTransform.TransformPosition(Point);
-	//		FVector PointTransformedDelta = PointTransformed + DeltaTranslate;
+		//if(!DeltaScale.IsZero())
+		//{
+		//	// For now in case of rescaling, do nothing.
+		//	return true;
+		//}
 
-	//		Point = HoudiniHandleComponentTransform.InverseTransformPosition(PointTransformedDelta);
-	//	}
-
-	//	// Handle change in rotation.
-	//	if(!DeltaRotate.IsZero())
-	//	{
-	//		Point = DeltaRotate.RotateVector(Point);
-	//	}
-
-	//	if(!DeltaScale.IsZero())
-	//	{
-	//		// For now in case of rescaling, do nothing.
-	//		return true;
-	//	}
-
-	//	NotifyComponentModified(EditedControlPointIndex, Point);
-	//	return true;
-	//}
+		//NotifyComponentModified(EditedControlPointIndex, Point);
+		return true;
+	}
 
 	return false;
 }
