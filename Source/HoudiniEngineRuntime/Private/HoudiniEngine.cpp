@@ -31,7 +31,9 @@ DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 FHoudiniEngine*
 FHoudiniEngine::HoudiniEngineInstance = nullptr;
 
-FHoudiniEngine::FHoudiniEngine()
+FHoudiniEngine::FHoudiniEngine() :
+	HoudiniEngineSchedulerThread(nullptr),
+	HoudiniEngineScheduler(nullptr)
 {
 	Session.type = HAPI_SESSION_MAX;
 	Session.id = -1;
@@ -120,6 +122,8 @@ FHoudiniEngine::StartupModule()
 
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
 
+#if WITH_EDITOR
+
 	// Before starting the module, we need to locate and load HAPI library.
 	{
 		void* HAPILibraryHandle = FHoudiniEngineUtils::LoadLibHAPI(LibHAPILocation);
@@ -136,6 +140,8 @@ FHoudiniEngine::StartupModule()
 			HOUDINI_LOG_MESSAGE(TEXT("Failed locating or loading %s"), *LibHAPIName);
 		}
 	}
+
+#endif
 
 	// Register settings.
 	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
@@ -188,8 +194,6 @@ FHoudiniEngine::StartupModule()
 			}
 		}
 	}
-
-#endif
 
 	// Build and running versions match, we can perform HAPI initialization.
 	if(FHoudiniApi::IsHAPIInitialized())
@@ -302,6 +306,8 @@ FHoudiniEngine::StartupModule()
 	HoudiniEngineSchedulerThread = FRunnableThread::Create(HoudiniEngineScheduler, TEXT("HoudiniTaskCookAsset"), 0,
 		TPri_Normal);
 
+#endif
+
 	// Store the instance.
 	FHoudiniEngine::HoudiniEngineInstance = this;
 }
@@ -359,7 +365,10 @@ FHoudiniEngine::ShutdownModule()
 void
 FHoudiniEngine::AddTask(const FHoudiniEngineTask& Task)
 {
-	HoudiniEngineScheduler->AddTask(Task);
+	if(HoudiniEngineScheduler)
+	{
+		HoudiniEngineScheduler->AddTask(Task);
+	}
 
 	FScopeLock ScopeLock(&CriticalSection);
 	FHoudiniEngineTaskInfo TaskInfo;
