@@ -75,7 +75,6 @@ public:
 	virtual void BeginDestroy();
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
-	virtual void PostEditUndo() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 public:

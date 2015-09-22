@@ -504,18 +504,6 @@ UHoudiniAssetInput::PostLoad()
 
 
 void
-UHoudiniAssetInput::PostEditUndo()
-{
-	Super::PostEditUndo();
-
-	/*
-	FString* NewChoice = new FString(ChoiceStringValue);
-	OnChoiceChange(TSharedPtr<FString>(NewChoice), ESelectInfo::Direct);
-	*/
-}
-
-
-void
 UHoudiniAssetInput::Serialize(FArchive& Ar)
 {
 	// Call base implementation.

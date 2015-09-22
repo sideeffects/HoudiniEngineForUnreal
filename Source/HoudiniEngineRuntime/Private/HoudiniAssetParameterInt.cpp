@@ -208,8 +208,6 @@ UHoudiniAssetParameterInt::UploadParameterValue()
 }
 
 
-#if WITH_EDITOR
-
 TOptional<int32>
 UHoudiniAssetParameterInt::GetValue(int32 Idx) const
 {
@@ -224,11 +222,17 @@ UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx)
 	{
 		if(!bSliderDragged)
 		{
+
+#if WITH_EDITOR
+
 			// If this is not a slider change (user typed in values manually), record undo information.
 			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 				LOCTEXT("HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value"),
 				HoudiniAssetComponent);
 			Modify();
+
+#endif
+
 		}
 
 		MarkPreChanged();
@@ -240,6 +244,8 @@ UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx)
 	}
 }
 
+
+#if WITH_EDITOR
 
 void
 UHoudiniAssetParameterInt::SetValueCommitted(int32 InValue, ETextCommit::Type CommitType, int32 Idx)

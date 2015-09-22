@@ -56,6 +56,8 @@ UHoudiniSplineComponent::Serialize(FArchive& Ar)
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniSplineComponent::PostEditUndo()
 {
@@ -68,6 +70,8 @@ UHoudiniSplineComponent::PostEditUndo()
 		AttachComponent->StartTaskAssetCooking(true);
 	}
 }
+
+#endif
 
 
 bool

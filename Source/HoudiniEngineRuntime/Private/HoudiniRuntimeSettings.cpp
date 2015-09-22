@@ -133,7 +133,11 @@ UHoudiniRuntimeSettings::PostInitProperties()
 	}
 
 	// Disable UI elements depending on current session type.
+#if WITH_EDITOR
+
 	UpdateSessionUi();
+
+#endif
 }
 
 
