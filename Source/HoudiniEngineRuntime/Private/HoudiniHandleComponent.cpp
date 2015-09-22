@@ -25,7 +25,6 @@ UHoudiniHandleComponent::UHoudiniHandleComponent(const FObjectInitializer& Objec
 
 UHoudiniHandleComponent::~UHoudiniHandleComponent()
 {
-
 }
 
 bool
@@ -49,13 +48,6 @@ UHoudiniHandleComponent::Construct(
 		return false;
 	}
 
-	/*float Tx = 0, Ty = 0, Tz = 0;
-	float Rx = 0, Ry = 0, Rz = 0;
-	float Sx = 1, Sy = 1, Sz = 1;
-
-	HAPI_RSTOrder RSTOrder = HAPI_SRT;
-	HAPI_XYZOrder XYZOrder = HAPI_XYZ;*/
-
 	HAPI_TransformEuler HapiEulerXform;
 	HapiEulerXform.position[0] = HapiEulerXform.position[1] = HapiEulerXform.position[2] = 0.0f;
 	HapiEulerXform.rotationEuler[0] = HapiEulerXform.rotationEuler[1] = HapiEulerXform.rotationEuler[2] = 0.0f;
@@ -63,6 +55,8 @@ UHoudiniHandleComponent::Construct(
 
 	HapiEulerXform.rstOrder = HAPI_SRT;
 	HapiEulerXform.rotationOrder = HAPI_XYZ;
+
+	FHandleParameter<UHoudiniAssetParameterInt> RSTParm, RotOrderParm;
 	
 	for ( const auto& BindingInfo : BindingInfos )
 	{
@@ -71,20 +65,20 @@ UHoudiniHandleComponent::Construct(
 
 		const HAPI_AssetId AssetParmId = BindingInfo.assetParmId;
 
-		(void)(	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[0], "tx", 0, HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[1], "ty", 1, HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.position[2], "tz", 2, HandleParmName, AssetParmId, Parameters )
+		(void)(	XformParms[EXformParameter::TX].Bind( HapiEulerXform.position[0], "tx", 0, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::TY].Bind( HapiEulerXform.position[1], "ty", 1, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::TZ].Bind( HapiEulerXform.position[2], "tz", 2, HandleParmName, AssetParmId, Parameters )
 
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[0], "rx", 0, HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[1], "ry", 1, HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.rotationEuler[2], "rz", 2, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::RX].Bind( HapiEulerXform.rotationEuler[0], "rx", 0, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::RY].Bind( HapiEulerXform.rotationEuler[1], "ry", 1, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::RZ].Bind( HapiEulerXform.rotationEuler[2], "rz", 2, HandleParmName, AssetParmId, Parameters )
 
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[0], "sx", 0, HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[1], "sy", 1, HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterFloat>(HapiEulerXform.scale[2], "sz", 2, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::SX].Bind( HapiEulerXform.scale[0], "sx", 0, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::SY].Bind( HapiEulerXform.scale[1], "sy", 1, HandleParmName, AssetParmId, Parameters )
+			||	XformParms[EXformParameter::SZ].Bind( HapiEulerXform.scale[2], "sz", 2, HandleParmName, AssetParmId, Parameters )
 
-			||	BindHandleParameter<UHoudiniAssetParameterInt>(HapiEulerXform.rstOrder, "trs_order", 0, HandleParmName, AssetParmId, Parameters )
-			||	BindHandleParameter<UHoudiniAssetParameterInt>(HapiEulerXform.rotationOrder, "xyz_order", 0, HandleParmName, AssetParmId, Parameters )
+			||	RSTParm.Bind( HapiEulerXform.rstOrder, "trs_order", 0, HandleParmName, AssetParmId, Parameters )
+			||	RotOrderParm.Bind( HapiEulerXform.rotationOrder, "xyz_order", 0, HandleParmName, AssetParmId, Parameters )
 		);
 	}
 
@@ -103,11 +97,31 @@ UHoudiniHandleComponent::Construct(
 }
 
 void
+UHoudiniHandleComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UHoudiniHandleComponent* This = Cast<UHoudiniHandleComponent>(InThis);
+
+	if ( This && !This->IsPendingKill() )
+	{
+		for ( size_t i = 0; i < EXformParameter::COUNT; ++i )
+		{
+			if ( auto AssetParm = This->XformParms[i].AssetParameter )
+			{
+				Collector.AddReferencedObject(AssetParm, InThis);
+			}
+		}
+	}
+}
+
+void
 UHoudiniHandleComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	//Ar << HoudiniGeoPartObject;
+	for ( size_t i = 0; i < EXformParameter::COUNT; ++i )
+	{
+		Ar << XformParms[i].AssetParameter;
+	}
 }
 
 void
@@ -123,11 +137,3 @@ UHoudiniHandleComponent::PostEditUndo()
 	}
 }
 
-//void
-//UHoudiniHandleComponent::NotifyHoudiniInputCurveChanged()
-//{
-//	if(HoudiniAssetInput)
-//	{
-//		HoudiniAssetInput->OnInputCurveChanged();
-//	}
-//}

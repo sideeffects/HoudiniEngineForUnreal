@@ -54,23 +54,6 @@ FHoudiniHandleComponentVisualizer::~FHoudiniHandleComponentVisualizer()
 }
 
 void
-FHoudiniHandleComponentVisualizer::OnRegister()
-{
-	/*const auto& Commands = FHoudiniHandleComponentVisualizerCommands::Get();
-
-	VisualizerActions->MapAction(
-		Commands.CommandAddControlPoint,
-		FExecuteAction::CreateSP(this, &FHoudiniHandleComponentVisualizer::OnAddControlPoint),
-		FCanExecuteAction::CreateSP(this, &FHoudiniHandleComponentVisualizer::IsAddControlPointValid));
-
-	VisualizerActions->MapAction(
-		Commands.CommandDeleteControlPoint,
-		FExecuteAction::CreateSP(this, &FHoudiniHandleComponentVisualizer::OnDeleteControlPoint),
-		FCanExecuteAction::CreateSP(this, &FHoudiniHandleComponentVisualizer::IsDeleteControlPointValid));*/
-}
-
-
-void
 FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View,
 	FPrimitiveDrawInterface* PDI)
 {
@@ -142,8 +125,16 @@ FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
 	const FEditorViewportClient* ViewportClient,
 	FMatrix& OutMatrix
 ) const
-{
-	return false;
+{	
+	/*if ( EditedComponent )
+	{
+		OutMatrix = EditedComponent->ComponentToWorld;
+		return true;
+	}
+	else*/
+	{
+		return false;
+	}
 }
 
 bool
@@ -152,66 +143,29 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewp
 {
 	if ( EditedComponent )
 	{
-		//// Get component transformation.
-		//const FTransform& ComponentToWorld = EditedComponent->ComponentToWorld;
-		//
-		//// Handle change in translation.
-		//if(!DeltaTranslate.IsZero())
-		//{
-		//	FVector PointTransformed = ComponentToWorld.TransformPosition(Point);
-		//	FVector PointTransformedDelta = PointTransformed + DeltaTranslate;
+		// Handle change in translation.
+		if ( !DeltaTranslate.IsZero() )
+		{
+			FTransform UnrealXform;
+			UnrealXform.SetTranslation(DeltaTranslate);
 
-		//	Point = ComponentToWorld.InverseTransformPosition(PointTransformedDelta);
-		//}
+			HAPI_Transform HapiXform;
+			FHoudiniEngineUtils::TranslateUnrealTransform(UnrealXform, HapiXform);
 
-		//// Handle change in rotation.
-		//if(!DeltaRotate.IsZero())
-		//{
-		//	Point = DeltaRotate.RotateVector(Point);
-		//}
+			EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::TX] += HapiXform.position[0];
+			EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::TY] += HapiXform.position[1];
+			EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::TZ] += HapiXform.position[2];
+		}
 
-		//if(!DeltaScale.IsZero())
-		//{
-		//	// For now in case of rescaling, do nothing.
-		//	return true;
-		//}
-
-		//NotifyComponentModified(EditedControlPointIndex, Point);
+		if(GEditor)
+		{
+			GEditor->RedrawLevelEditingViewports(true);
+		}
 		return true;
 	}
 
 	return false;
 }
-
-//TSharedPtr<SWidget>
-//FHoudiniHandleComponentVisualizer::GenerateContextMenu() const
-//{
-//	FHoudiniEngineEditor& HoudiniEngineEditor = FHoudiniEngineEditor::Get();
-//	TSharedPtr<ISlateStyle> StyleSet = HoudiniEngineEditor.GetSlateStyle();
-//
-//	FMenuBuilder MenuBuilder(true, VisualizerActions);
-//	{
-//		MenuBuilder.BeginSection("CurveKeyEdit");
-//
-//		{
-//			if(INDEX_NONE != EditedControlPointIndex)
-//			{
-//				MenuBuilder.AddMenuEntry(FHoudiniHandleComponentVisualizerCommands::Get().CommandAddControlPoint,
-//					NAME_None, TAttribute<FText>(), TAttribute<FText>(),
-//					FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
-//
-//				MenuBuilder.AddMenuEntry(FHoudiniHandleComponentVisualizerCommands::Get().CommandDeleteControlPoint,
-//					NAME_None, TAttribute<FText>(), TAttribute<FText>(),
-//					FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
-//			}
-//		}
-//
-//		MenuBuilder.EndSection();
-//	}
-//
-//	TSharedPtr<SWidget> MenuWidget = MenuBuilder.MakeWidget();
-//	return MenuWidget;
-//}
 
 void
 FHoudiniHandleComponentVisualizer::UpdateHoudiniComponents()

@@ -57,9 +57,6 @@ public:
 /** FComponentVisualizer methods. **/
 public:
 
-	/** Registration of this component visualizer. **/
-	virtual void OnRegister() override;
-
 	/** Draw visualization for the given component. **/
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View,
 		FPrimitiveDrawInterface* PDI) override;
@@ -78,9 +75,6 @@ public:
 
 	/** Handle input change. **/
 	virtual bool HandleInputDelta(FEditorViewportClient*, FViewport*, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
-
-	/** Create context menu for this visualizer. **/
-	//virtual TSharedPtr<SWidget> GenerateContextMenu() const override;
 
 protected:
 
