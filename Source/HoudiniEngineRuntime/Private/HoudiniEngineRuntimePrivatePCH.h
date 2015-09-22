@@ -47,6 +47,7 @@
 #include "ScopedTransaction.h"
 #include "RawMesh.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "IPluginManager.h"
 #endif
 
 /** Other Unreal headers. **/
@@ -55,11 +56,11 @@
 #include "EngineModule.h"
 #include "Engine/TextureDefines.h"
 #include "Engine/EngineTypes.h"
+#include "MaterialShared.h"
 #include "CollisionQueryParams.h"
 #include "Engine/CollisionProfile.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "MaterialShared.h"
 #include "Core.h"
 #include "AssetData.h"
 #include "AssetRegistryModule.h"
@@ -75,7 +76,6 @@
 #include "Materials/MaterialExpressionConstant4Vector.h"
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
-#include "IPluginManager.h"
 #include "TargetPlatform.h"
 
 /** Houdini Engine headers. **/

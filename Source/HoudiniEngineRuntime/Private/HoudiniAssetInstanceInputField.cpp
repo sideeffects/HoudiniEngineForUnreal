@@ -166,6 +166,8 @@ UHoudiniAssetInstanceInputField::BeginDestroy()
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetInstanceInputField::PostEditUndo()
 {
@@ -192,6 +194,8 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 		HoudiniAssetComponent->UpdateEditorProperties(false);
 	}
 }
+
+#endif
 
 
 void
@@ -388,6 +392,9 @@ UHoudiniAssetInstanceInputField::InstanceVariationCount()
 	return StaticMeshes.Num();
 }
 
+
+#if WITH_EDITOR
+
 void
 UHoudiniAssetInstanceInputField::AssignThumbnailBorder(TSharedPtr<SBorder> InThumbnailBorder)
 {
@@ -414,6 +421,8 @@ UHoudiniAssetInstanceInputField::GetComboButton() const
 {
 	return StaticMeshComboButton;
 }
+
+#endif
 
 
 const FRotator&

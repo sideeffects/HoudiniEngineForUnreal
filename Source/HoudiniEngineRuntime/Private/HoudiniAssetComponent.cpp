@@ -641,12 +641,16 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 	// Remove unused meshes.
 	StaticMeshMap.Empty();
 
+#if WITH_EDITOR
+
 	// Delete no longer used generated static meshes.
 	if(bDeletePackages && StaticMeshesToDelete.Num() > 0)
 	{
 		FHoudiniScopedGlobalSilence HoudiniScopedGlobalSilence;
 		ObjectTools::ForceDeleteObjects(StaticMeshesToDelete, false);
 	}
+
+#endif
 }
 
 

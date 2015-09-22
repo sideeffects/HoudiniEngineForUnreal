@@ -119,8 +119,13 @@ private:
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void PostEditUndo() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
+#if WITH_EDITOR
+
+	virtual void PostEditUndo() override;
+
+#endif
 
 protected:
 
