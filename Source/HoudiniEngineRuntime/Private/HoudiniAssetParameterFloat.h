@@ -57,13 +57,13 @@ public:
 
 public:
 
-#if WITH_EDITOR
-
 	/** Get value of this property, used by Slate. **/
 	TOptional<float> GetValue(int32 Idx) const;
 
 	/** Set value of this property, used by Slate. **/
 	void SetValue(float InValue, int32 Idx);
+
+#if WITH_EDITOR
 
 	/** Set value of this property through commit action, used by Slate. **/
 	void SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx);

@@ -258,8 +258,6 @@ UHoudiniAssetParameterFloat::UploadParameterValue()
 }
 
 
-#if WITH_EDITOR
-
 TOptional<float>
 UHoudiniAssetParameterFloat::GetValue(int32 Idx) const
 {
@@ -274,11 +272,17 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 	{
 		if(!bSliderDragged)
 		{
+
+#if WITH_EDITOR
+
 			// If this is not a slider change (user typed in values manually), record undo information.
 			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 				LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
 				HoudiniAssetComponent);
 			Modify();
+
+#endif
+
 		}
 
 		MarkPreChanged();
@@ -289,6 +293,9 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 		MarkChanged();
 	}
 }
+
+
+#if WITH_EDITOR
 
 
 void

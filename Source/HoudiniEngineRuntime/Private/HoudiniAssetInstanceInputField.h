@@ -51,7 +51,12 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void BeginDestroy() override;
+
+#if WITH_EDITOR
+
 	virtual void PostEditUndo() override;
+
+#endif
 
 public:
 
@@ -82,6 +87,8 @@ public:
 	void FindStaticMeshIndices(UStaticMesh * InStaticMesh, 
 								TArray<int> & Indices);
 
+#if WITH_EDITOR
+
 	/** Set thumbnail border used by static mesh used by this field. **/
 	void AssignThumbnailBorder(TSharedPtr<SBorder> InThumbnailBorder);
 
@@ -93,6 +100,8 @@ public:
 
 	/** Get combo button used by static mesh used by this field. **/
 	TSharedPtr<SComboButton> GetComboButton() const;
+
+#endif
 
 	/** Get rotator used by this field. **/
 	const FRotator& GetRotationOffset(int32 VariationIdx) const;

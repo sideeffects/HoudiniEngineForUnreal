@@ -38,7 +38,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
+
+#if WITH_EDITOR
+
 	virtual void PostEditUndo() override;
+
+#endif
 
 public:
 	bool Construct( HAPI_AssetId AssetId, int32 HandleIdx, const FString& HandleName,

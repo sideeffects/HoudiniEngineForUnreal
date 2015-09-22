@@ -124,6 +124,8 @@ UHoudiniHandleComponent::Serialize(FArchive& Ar)
 	}
 }
 
+#if WITH_EDITOR
+
 void
 UHoudiniHandleComponent::PostEditUndo()
 {
@@ -136,4 +138,6 @@ UHoudiniHandleComponent::PostEditUndo()
 		AttachComponent->StartTaskAssetCooking(true);
 	}
 }
+
+#endif
 

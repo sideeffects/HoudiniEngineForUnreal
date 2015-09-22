@@ -314,6 +314,9 @@ UHoudiniAssetParameterMultiparm::Serialize(FArchive& Ar)
 	Ar << Value;
 }
 
+
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameterMultiparm::PostEditUndo()
 {
@@ -331,3 +334,4 @@ UHoudiniAssetParameterMultiparm::PostEditUndo()
 	Super::PostEditUndo();
 }
 
+#endif

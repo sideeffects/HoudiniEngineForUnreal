@@ -303,6 +303,8 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameter::PostEditUndo()
 {
@@ -311,6 +313,8 @@ UHoudiniAssetParameter::PostEditUndo()
 	MarkPreChanged();
 	MarkChanged();
 }
+
+#endif
 
 
 void
