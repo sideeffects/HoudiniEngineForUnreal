@@ -50,10 +50,10 @@ protected:
 
 private:
 	template <class ASSET_PARM>
-	class FHandleParameter
+	class THandleParameter
 	{
 	public:
-		FHandleParameter()
+		THandleParameter()
 			: AssetParameter(nullptr)
 		{}
 
@@ -88,7 +88,7 @@ private:
 		}
 
 		template <typename VALUE>
-		FHandleParameter& operator+=(VALUE Delta)
+		THandleParameter& operator+=(VALUE Delta)
 		{
 			if ( AssetParameter )
 			{
@@ -117,6 +117,6 @@ private:
 		};		
 	};
 
-	typedef FHandleParameter<UHoudiniAssetParameterFloat> FXformParameter;
+	typedef THandleParameter<UHoudiniAssetParameterFloat> FXformParameter;
 	FXformParameter XformParms[EXformParameter::COUNT];
 };

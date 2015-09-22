@@ -56,7 +56,7 @@ UHoudiniHandleComponent::Construct(
 	HapiEulerXform.rstOrder = HAPI_SRT;
 	HapiEulerXform.rotationOrder = HAPI_XYZ;
 
-	FHandleParameter<UHoudiniAssetParameterInt> RSTParm, RotOrderParm;
+	THandleParameter<UHoudiniAssetParameterInt> RSTParm, RotOrderParm;
 	
 	for ( const auto& BindingInfo : BindingInfos )
 	{
