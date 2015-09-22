@@ -3149,7 +3149,7 @@ UHoudiniAssetComponent::CreateHandles()
 		return false;
 	}
 
-	HandleComponentMap NewHandleComponents;
+	FHandleComponentMap NewHandleComponents;
 
 	// If we have handles.
 	if ( AssetInfo.handleCount > 0 )
@@ -3188,11 +3188,23 @@ UHoudiniAssetComponent::CreateHandles()
 			if ( !FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName) )
 			{
 				continue;
-			}
+			}			
 
-			auto* HandleComponent = NewObject<UHoudiniHandleComponent>(
-				this, UHoudiniHandleComponent::StaticClass(), NAME_None, RF_Public | RF_Transactional
-			);
+			UHoudiniHandleComponent* HandleComponent = nullptr;
+
+			if ( UHoudiniHandleComponent** FoundHandleComponent = HandleComponents.Find(HandleName) )
+			{
+				HandleComponent = *FoundHandleComponent;
+
+				// remove so that it's not destroyed
+				HandleComponents.Remove(HandleName);
+			}
+			else
+			{
+				HandleComponent = NewObject<UHoudiniHandleComponent>(
+					this, UHoudiniHandleComponent::StaticClass(), NAME_None, RF_Public | RF_Transactional
+				);
+			}
 
 			if (!HandleComponent)
 			{

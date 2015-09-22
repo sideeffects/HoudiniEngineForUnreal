@@ -488,8 +488,8 @@ protected:
 	TMap<UStaticMesh*, UStaticMeshComponent*> StaticMeshComponents;
 
 	/** Map of asset handle components. **/
-	typedef TMap<FString, UHoudiniHandleComponent*> HandleComponentMap;
-	HandleComponentMap HandleComponents;
+	typedef TMap<FString, UHoudiniHandleComponent*> FHandleComponentMap;
+	FHandleComponentMap HandleComponents;
 
 	/** Map of curve / spline components. **/
 	TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*> SplineComponents;
