@@ -14,6 +14,7 @@
 
 #pragma once
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniAssetParameterFloat.h"
 #include "HoudiniHandleComponent.generated.h"
 
 class UHoudiniAssetInput;
@@ -43,34 +44,79 @@ public:
 	bool Construct( HAPI_AssetId AssetId, int32 HandleIdx, const FString& HandleName,
 					const HAPI_HandleInfo&, const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& );
 
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
 protected:
 
 private:
-	template <class CONCRETE_PARM, typename VALUE>
-	static bool BindHandleParameter(
-		VALUE& OutValue,
-		const char* CmpName,
-		int32 TupleIdx,
-		const FString& HandleParmName,
-		HAPI_ParmId AssetParamId,		
-		const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& Parameters )
+	template <class ASSET_PARM>
+	class FHandleParameter
 	{
-		if (HandleParmName == CmpName)
-		{
-			if ( UHoudiniAssetParameter* const* FoundAbstractParm = Parameters.Find(AssetParamId) )
+	public:
+		FHandleParameter()
+			: AssetParameter(nullptr)
+		{}
+
+		template <typename VALUE>
+		bool Bind(
+			VALUE& OutValue,
+			const char* CmpName,
+			int32 InTupleIdx,
+			const FString& HandleParmName,
+			HAPI_ParmId AssetParamId,
+			const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& Parameters )
+		{			
+			if (HandleParmName == CmpName)
 			{
-				if ( CONCRETE_PARM* ConcreteParm = Cast<CONCRETE_PARM>(*FoundAbstractParm) )
+				if ( UHoudiniAssetParameter* const* FoundAbstractParm = Parameters.Find(AssetParamId) )
 				{
-					auto Optional = ConcreteParm->GetValue(TupleIdx);
-					if ( Optional.IsSet() )
+					AssetParameter = Cast<ASSET_PARM>(*FoundAbstractParm);
+					if ( AssetParameter )
 					{
-						OutValue = static_cast<VALUE>( Optional.GetValue() );
-						return true;
+						auto Optional = AssetParameter->GetValue(InTupleIdx);
+						if ( Optional.IsSet() )
+						{
+							TupleIdx = InTupleIdx;
+							OutValue = static_cast<VALUE>( Optional.GetValue() );
+							return true;
+						}
 					}
 				}
 			}
+
+			return false;
 		}
 
-		return false;
-	}
+		template <typename VALUE>
+		FHandleParameter& operator+=(VALUE Delta)
+		{
+			if ( AssetParameter )
+			{
+				auto Optional = AssetParameter->GetValue(TupleIdx);
+				if ( Optional.IsSet() )
+				{
+					AssetParameter->SetValue( Optional.GetValue() + Delta, TupleIdx );
+				}
+			}
+
+			return *this;
+		}
+		
+		ASSET_PARM* AssetParameter;
+		int32 TupleIdx;
+	};
+
+	struct EXformParameter
+	{
+		enum Type
+		{
+			TX, TY, TZ,
+			RX, RY, RZ,
+			SX, SY, SZ,
+			COUNT
+		};		
+	};
+
+	typedef FHandleParameter<UHoudiniAssetParameterFloat> FXformParameter;
+	FXformParameter XformParms[EXformParameter::COUNT];
 };
