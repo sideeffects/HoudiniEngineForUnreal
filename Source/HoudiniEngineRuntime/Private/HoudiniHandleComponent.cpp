@@ -142,6 +142,7 @@ UHoudiniHandleComponent::Serialize(FArchive& Ar)
 	for ( size_t i = 0; i < EXformParameter::COUNT; ++i )
 	{
 		Ar << XformParms[i].AssetParameter;
+		Ar << XformParms[i].TupleIdx;
 	}
 }
 
