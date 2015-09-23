@@ -214,6 +214,7 @@ UHoudiniAssetInstanceInputField::CreateInstancedComponent(int32 VariationIdx)
 	// Assign static mesh to this instanced component.
 	
 	InstancedStaticMeshComponents[VariationIdx]->SetStaticMesh(StaticMesh);
+	InstancedStaticMeshComponents[VariationIdx]->SetMobility(HoudiniAssetComponent->Mobility);
 	InstancedStaticMeshComponents[VariationIdx]->AttachTo(HoudiniAssetComponent);
 	InstancedStaticMeshComponents[VariationIdx]->RegisterComponent();
 	InstancedStaticMeshComponents[VariationIdx]->GetBodyInstance()->bAutoWeld = false;
