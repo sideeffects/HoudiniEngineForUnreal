@@ -536,6 +536,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources(TMap<FHoudiniGeoPartObject,
 
 				StaticMeshComponent->SetStaticMesh(StaticMesh);
 				StaticMeshComponent->SetVisibility(true);
+				StaticMeshComponent->SetMobility(Mobility);
 				StaticMeshComponent->RegisterComponent();
 			}
 
