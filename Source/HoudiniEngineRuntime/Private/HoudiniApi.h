@@ -177,9 +177,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetNodeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
 	static GetNodeInfoFuncPtr GetNodeInfo;
 
-	typedef HAPI_Result (*GetGlobalNodesFuncPtr)(const HAPI_Session * session, HAPI_GlobalNodes * global_nodes);
-	static GetGlobalNodesFuncPtr GetGlobalNodes;
-
 	typedef HAPI_Result (*GetEditableNodeNetworksFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count);
 	static GetEditableNodeNetworksFuncPtr GetEditableNodeNetworks;
 
