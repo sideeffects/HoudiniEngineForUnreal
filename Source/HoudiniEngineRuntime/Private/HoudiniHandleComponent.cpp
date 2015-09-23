@@ -86,7 +86,35 @@ UHoudiniHandleComponent::Construct(
 	FHoudiniEngineUtils::TranslateHapiTransform(HapiEulerXform, UnrealXform);
 
 	SetRelativeTransform(UnrealXform);
+	UpdateComponentToWorld(true, ETeleportType::None);
 	return true;
+}
+
+void
+UHoudiniHandleComponent::UpdateTransformParameters()
+{
+	HAPI_Transform HapiXform;
+	FHoudiniEngineUtils::TranslateUnrealTransform(GetRelativeTransform(), HapiXform);
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	float HapiMatrix[16];
+	FHoudiniApi::ConvertTransformQuatToMatrix(Session, &HapiXform, HapiMatrix);
+
+	HAPI_TransformEuler HapiEulerXform;
+	FHoudiniApi::ConvertMatrixToEuler(Session, HapiMatrix, HAPI_SRT, HAPI_XYZ, &HapiEulerXform);
+
+	XformParms[EXformParameter::TX] = HapiEulerXform.position[0];
+	XformParms[EXformParameter::TY] = HapiEulerXform.position[1];
+	XformParms[EXformParameter::TZ] = HapiEulerXform.position[2];
+
+	XformParms[EXformParameter::RX] = HapiEulerXform.rotationEuler[0];
+	XformParms[EXformParameter::RY] = HapiEulerXform.rotationEuler[1];
+	XformParms[EXformParameter::RZ] = HapiEulerXform.rotationEuler[2];
+
+	XformParms[EXformParameter::SX] = HapiEulerXform.scale[0];
+	XformParms[EXformParameter::SY] = HapiEulerXform.scale[1];
+	XformParms[EXformParameter::SZ] = HapiEulerXform.scale[2];
 }
 
 void

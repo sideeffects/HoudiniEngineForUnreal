@@ -49,6 +49,9 @@ public:
 	bool Construct( HAPI_AssetId AssetId, int32 HandleIdx, const FString& HandleName,
 					const HAPI_HandleInfo&, const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& );
 
+	// Update HAPI transform handle parameters from the current ComponentToWorld Unreal transform
+	void UpdateTransformParameters();
+
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 protected:
