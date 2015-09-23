@@ -171,9 +171,6 @@ FHoudiniApi::SaveHIPFile = nullptr;
 FHoudiniApi::GetNodeInfoFuncPtr
 FHoudiniApi::GetNodeInfo = nullptr;
 
-FHoudiniApi::GetGlobalNodesFuncPtr
-FHoudiniApi::GetGlobalNodes = nullptr;
-
 FHoudiniApi::GetEditableNodeNetworksFuncPtr
 FHoudiniApi::GetEditableNodeNetworks = nullptr;
 
@@ -543,7 +540,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNewAssetIds = (GetNewAssetIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNewAssetIds"));
 	FHoudiniApi::SaveHIPFile = (SaveHIPFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveHIPFile"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
-	FHoudiniApi::GetGlobalNodes = (GetGlobalNodesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGlobalNodes"));
 	FHoudiniApi::GetEditableNodeNetworks = (GetEditableNodeNetworksFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEditableNodeNetworks"));
 	FHoudiniApi::GetNodeNetworkChildren = (GetNodeNetworkChildrenFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeNetworkChildren"));
 	FHoudiniApi::CreateNode = (CreateNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateNode"));
@@ -705,7 +701,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNewAssetIds = nullptr;
 	FHoudiniApi::SaveHIPFile = nullptr;
 	FHoudiniApi::GetNodeInfo = nullptr;
-	FHoudiniApi::GetGlobalNodes = nullptr;
 	FHoudiniApi::GetEditableNodeNetworks = nullptr;
 	FHoudiniApi::GetNodeNetworkChildren = nullptr;
 	FHoudiniApi::CreateNode = nullptr;
