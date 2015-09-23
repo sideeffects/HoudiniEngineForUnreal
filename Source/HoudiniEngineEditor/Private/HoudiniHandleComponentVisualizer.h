@@ -71,21 +71,10 @@ public:
 	/** Returns location of a gizmo widget. **/
 	virtual bool GetWidgetLocation(const FEditorViewportClient*, FVector& OutLocation) const override;
 
-	virtual bool GetCustomInputCoordinateSystem(const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const override;
-
 	/** Handle input change. **/
 	virtual bool HandleInputDelta(FEditorViewportClient*, FViewport*, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
 
 protected:
-
-	/** Update owner spline component and Houdini component it is attached to. **/
-	void UpdateHoudiniComponents();
-
-	/** Perform internal component update. **/
-	void NotifyComponentModified(int32 PointIndex, const FVector& Point);
-
-protected:
-
 	/** Visualizer actions. **/
 	TSharedPtr<FUICommandList> VisualizerActions;
 

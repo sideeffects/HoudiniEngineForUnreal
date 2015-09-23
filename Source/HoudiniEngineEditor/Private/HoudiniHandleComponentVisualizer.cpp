@@ -63,14 +63,12 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent* Comp
 		return;
 	}
 
-	static const FColor ColorNormal(255, 255, 255);
-	static const FColor ColorSelected(255, 0, 255);
-
+	static const FColor Color(255, 0, 255);
 	static const float GrabHandleSize = 12.0f;
 
 	// Draw point and set hit box for it.
 	PDI->SetHitProxy(new HHoudiniHandleVisProxy(HandleComponent));
-	PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), ColorSelected, GrabHandleSize, SDPG_Foreground );
+	PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), Color, GrabHandleSize, SDPG_Foreground );
 	PDI->SetHitProxy(nullptr);
 }
 
@@ -121,98 +119,52 @@ FHoudiniHandleComponentVisualizer::GetWidgetLocation(
 }
 
 bool
-FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
-	const FEditorViewportClient* ViewportClient,
-	FMatrix& OutMatrix
-) const
-{	
-	/*if ( EditedComponent )
-	{
-		OutMatrix = EditedComponent->ComponentToWorld;
-		return true;
-	}
-	else*/
+FHoudiniHandleComponentVisualizer::HandleInputDelta(
+	FEditorViewportClient* ViewportClient, FViewport* Viewport,
+	FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale
+)
+{
+	if ( !EditedComponent )
 	{
 		return false;
 	}
-}
 
-bool
-FHoudiniHandleComponentVisualizer::HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport,
-	FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale)
-{
-	if ( EditedComponent )
+	bool bUpdated = false;
+	if ( !DeltaTranslate.IsZero() )
 	{
-		// Handle change in translation.
-		if ( !DeltaTranslate.IsZero() )
-		{
-			FTransform UnrealXform;
-			UnrealXform.SetTranslation(DeltaTranslate);
+		EditedComponent->SetWorldLocation(EditedComponent->ComponentToWorld.GetLocation() + DeltaTranslate);
+		bUpdated = true;
+	}
 
-			HAPI_Transform HapiXform;
-			FHoudiniEngineUtils::TranslateUnrealTransform(UnrealXform, HapiXform);
+	if ( !DeltaRotate.IsZero() )
+	{
+		EditedComponent->SetWorldRotation(DeltaRotate.Quaternion() * EditedComponent->ComponentToWorld.GetRotation());
+		bUpdated = true;
+	}
 
-			EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::TX] += HapiXform.position[0];
-			EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::TY] += HapiXform.position[1];
-			EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::TZ] += HapiXform.position[2];
-		}
+	if ( !DeltaScale.IsZero() )
+	{
+		FTransform UnrealXform;
+		UnrealXform.SetScale3D(DeltaScale);
 
-		if(GEditor)
+		HAPI_Transform HapiXform;
+		FHoudiniEngineUtils::TranslateUnrealTransform(UnrealXform, HapiXform);
+
+		EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::SX] += HapiXform.scale[0];
+		EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::SY] += HapiXform.scale[1];
+		EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::SZ] += HapiXform.scale[2];
+	}
+
+	if ( bUpdated )
+	{
+		if ( GEditor )
 		{
 			GEditor->RedrawLevelEditingViewports(true);
 		}
-		return true;
-	}
 
-	return false;
-}
+		EditedComponent->UpdateTransformParameters();
+	}	
 
-void
-FHoudiniHandleComponentVisualizer::UpdateHoudiniComponents()
-{
-	/*if(EditedComponent)
-	{
-		if(EditedComponent->IsInputCurve())
-		{
-			EditedComponent->NotifyHoudiniInputCurveChanged();
-		}
-		else
-		{
-			UHoudiniAssetComponent* HoudiniAssetComponent =
-				Cast<UHoudiniAssetComponent>(EditedComponent->AttachParent);
-
-			if(HoudiniAssetComponent)
-			{
-				HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedComponent);
-			}
-		}
-
-		if(GEditor)
-		{
-			GEditor->RedrawLevelEditingViewports(true);
-		}
-	}*/
-}
-
-
-void
-FHoudiniHandleComponentVisualizer::NotifyComponentModified(int32 PointIndex, const FVector& Point)
-{
-	if(EditedComponent)
-	{
-		//UHoudiniAssetComponent* HoudiniAssetComponent =
-		//		Cast<UHoudiniAssetComponent>(EditedComponent->AttachParent);
-
-		//FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_EDITOR),
-		//	LOCTEXT("HoudiniHandleComponentChange", "Houdini Spline Component: Moving a point"),
-		//	HoudiniAssetComponent);
-		//EditedComponent->Modify();
-
-		//// Update given control point.
-		//EditedComponent->UpdatePoint(PointIndex, Point);
-		//EditedComponent->UploadControlPoints();
-
-		//UpdateHoudiniComponents();
-	}
+	return true;
 }
 
