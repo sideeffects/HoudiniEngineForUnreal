@@ -82,17 +82,10 @@ UHoudiniHandleComponent::Construct(
 		);
 	}
 
-	float HapiMatrix[16];
-	FHoudiniApi::ConvertTransformEulerToMatrix(FHoudiniEngine::Get().GetSession(), &HapiEulerXform, HapiMatrix);
-
-	HAPI_Transform HapiQuatXform;
-	FHoudiniApi::ConvertMatrixToQuat(FHoudiniEngine::Get().GetSession(), HapiMatrix, HAPI_SRT, &HapiQuatXform);
-
 	FTransform UnrealXform;
-	FHoudiniEngineUtils::TranslateHapiTransform(HapiQuatXform, UnrealXform);
+	FHoudiniEngineUtils::TranslateHapiTransform(HapiEulerXform, UnrealXform);
 
 	SetRelativeTransform(UnrealXform);
-
 	return true;
 }
 

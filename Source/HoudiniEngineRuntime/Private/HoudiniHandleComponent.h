@@ -93,6 +93,32 @@ private:
 		}
 
 		template <typename VALUE>
+		VALUE Get() const
+		{
+			if ( AssetParameter )
+			{
+				auto Optional = AssetParameter->GetValue(TupleIdx);
+				if ( Optional.IsSet() )
+				{
+					return static_cast<VALUE>(Optional.GetValue());
+				}
+			}
+
+			return 0;
+		}
+
+		template <typename VALUE>
+		THandleParameter& operator=(VALUE Value)
+		{
+			if ( AssetParameter )
+			{
+				AssetParameter->SetValue( Value, TupleIdx );
+			}
+
+			return *this;
+		}
+
+		template <typename VALUE>
 		THandleParameter& operator+=(VALUE Delta)
 		{
 			if ( AssetParameter )
