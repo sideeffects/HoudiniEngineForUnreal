@@ -71,6 +71,8 @@ public:
 	/** Returns location of a gizmo widget. **/
 	virtual bool GetWidgetLocation(const FEditorViewportClient*, FVector& OutLocation) const override;
 
+	virtual bool GetCustomInputCoordinateSystem(const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const override;
+
 	/** Handle input change. **/
 	virtual bool HandleInputDelta(FEditorViewportClient*, FViewport*, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
 
