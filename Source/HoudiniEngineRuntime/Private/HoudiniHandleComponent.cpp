@@ -55,8 +55,6 @@ UHoudiniHandleComponent::Construct(
 
 	HapiEulerXform.rstOrder = HAPI_SRT;
 	HapiEulerXform.rotationOrder = HAPI_XYZ;
-
-	THandleParameter<UHoudiniAssetParameterInt> RSTParm, RotOrderParm;
 	
 	for ( const auto& BindingInfo : BindingInfos )
 	{
@@ -102,7 +100,13 @@ UHoudiniHandleComponent::UpdateTransformParameters()
 	FHoudiniApi::ConvertTransformQuatToMatrix(Session, &HapiXform, HapiMatrix);
 
 	HAPI_TransformEuler HapiEulerXform;
-	FHoudiniApi::ConvertMatrixToEuler(Session, HapiMatrix, HAPI_SRT, HAPI_XYZ, &HapiEulerXform);
+	FHoudiniApi::ConvertMatrixToEuler(
+		Session,
+		HapiMatrix,
+		RSTParm.Get(HAPI_SRT),
+		RotOrderParm.Get(HAPI_XYZ),
+		&HapiEulerXform
+	);
 
 	XformParms[EXformParameter::TX] = HapiEulerXform.position[0];
 	XformParms[EXformParameter::TY] = HapiEulerXform.position[1];
@@ -126,11 +130,11 @@ UHoudiniHandleComponent::AddReferencedObjects(UObject* InThis, FReferenceCollect
 	{
 		for ( size_t i = 0; i < EXformParameter::COUNT; ++i )
 		{
-			if ( auto AssetParm = This->XformParms[i].AssetParameter )
-			{
-				Collector.AddReferencedObject(AssetParm, InThis);
-			}
+			This->XformParms[i].AddReferencedObject(Collector, InThis);
 		}
+
+		This->RSTParm.AddReferencedObject(Collector, InThis);
+		This->RotOrderParm.AddReferencedObject(Collector, InThis);
 	}
 }
 
@@ -141,9 +145,11 @@ UHoudiniHandleComponent::Serialize(FArchive& Ar)
 
 	for ( size_t i = 0; i < EXformParameter::COUNT; ++i )
 	{
-		Ar << XformParms[i].AssetParameter;
-		Ar << XformParms[i].TupleIdx;
+		Ar << XformParms[i];
 	}
+
+	Ar << RSTParm;
+	Ar << RotOrderParm;
 }
 
 #if WITH_EDITOR

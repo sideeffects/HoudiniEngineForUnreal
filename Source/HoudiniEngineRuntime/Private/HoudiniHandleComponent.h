@@ -15,6 +15,7 @@
 #pragma once
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetParameterFloat.h"
+#include "HoudiniAssetParameterInt.h"
 #include "HoudiniHandleComponent.generated.h"
 
 class UHoudiniAssetInput;
@@ -63,7 +64,24 @@ private:
 	public:
 		THandleParameter()
 			: AssetParameter(nullptr)
+			, TupleIdx(0)
 		{}
+
+		void AddReferencedObject(FReferenceCollector& Collector, const UObject* ReferencingObject)
+		{
+			if ( AssetParameter )
+			{
+				Collector.AddReferencedObject(AssetParameter, ReferencingObject);
+			}
+		}
+
+		friend FArchive& operator<<(FArchive& Ar, THandleParameter& InThis)
+		{
+			Ar << InThis.AssetParameter;
+			Ar << InThis.TupleIdx;
+
+			return Ar;
+		}
 
 		template <typename VALUE>
 		bool Bind(
@@ -96,7 +114,7 @@ private:
 		}
 
 		template <typename VALUE>
-		VALUE Get() const
+		VALUE Get(VALUE DefaulValue) const
 		{
 			if ( AssetParameter )
 			{
@@ -107,7 +125,7 @@ private:
 				}
 			}
 
-			return 0;
+			return DefaulValue;
 		}
 
 		template <typename VALUE>
@@ -116,21 +134,6 @@ private:
 			if ( AssetParameter )
 			{
 				AssetParameter->SetValue( Value, TupleIdx );
-			}
-
-			return *this;
-		}
-
-		template <typename VALUE>
-		THandleParameter& operator+=(VALUE Delta)
-		{
-			if ( AssetParameter )
-			{
-				auto Optional = AssetParameter->GetValue(TupleIdx);
-				if ( Optional.IsSet() )
-				{
-					AssetParameter->SetValue( Optional.GetValue() + Delta, TupleIdx );
-				}
 			}
 
 			return *this;
@@ -153,4 +156,6 @@ private:
 
 	typedef THandleParameter<UHoudiniAssetParameterFloat> FXformParameter;
 	FXformParameter XformParms[EXformParameter::COUNT];
+
+	THandleParameter<UHoudiniAssetParameterInt> RSTParm, RotOrderParm;
 };
