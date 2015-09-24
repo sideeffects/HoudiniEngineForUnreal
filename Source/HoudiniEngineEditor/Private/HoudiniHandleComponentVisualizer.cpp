@@ -119,6 +119,23 @@ FHoudiniHandleComponentVisualizer::GetWidgetLocation(
 }
 
 bool
+FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
+	const FEditorViewportClient* ViewportClient,
+	FMatrix& OutMatrix
+) const
+{	
+	if ( EditedComponent && ViewportClient->GetWidgetMode() == FWidget::WM_Scale )
+	{
+		OutMatrix = FRotationMatrix::Make( EditedComponent->ComponentToWorld.GetRotation() );
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool
 FHoudiniHandleComponentVisualizer::HandleInputDelta(
 	FEditorViewportClient* ViewportClient, FViewport* Viewport,
 	FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale
@@ -144,15 +161,8 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(
 
 	if ( !DeltaScale.IsZero() )
 	{
-		FTransform UnrealXform;
-		UnrealXform.SetScale3D(DeltaScale);
-
-		HAPI_Transform HapiXform;
-		FHoudiniEngineUtils::TranslateUnrealTransform(UnrealXform, HapiXform);
-
-		EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::SX] += HapiXform.scale[0];
-		EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::SY] += HapiXform.scale[1];
-		EditedComponent->XformParms[UHoudiniHandleComponent::EXformParameter::SZ] += HapiXform.scale[2];
+		EditedComponent->SetWorldScale3D( EditedComponent->ComponentToWorld.GetScale3D() + DeltaScale );
+		bUpdated = true;
 	}
 
 	if ( bUpdated )
