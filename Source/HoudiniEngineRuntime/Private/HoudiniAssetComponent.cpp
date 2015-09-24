@@ -2272,78 +2272,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize inputs.
 	SerializeInputs(Ar);
 
-	// Serialize static meshes / geometry.
-	{
-		int32 NumStaticMeshes = StaticMeshes.Num();
-
-		// Serialize geos only if they are not Houdini logo.
-		if(Ar.IsSaving() && bContainsHoudiniLogoGeometry)
-		{
-			NumStaticMeshes = 0;
-		}
-
-		// Serialize number of geos.
-		Ar << NumStaticMeshes;
-
-		if(NumStaticMeshes > 0)
-		{
-			if(Ar.IsSaving())
-			{
-				for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(StaticMeshes); Iter; ++Iter)
-				{
-					FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-					UStaticMesh* StaticMesh = Iter.Value();
-
-					// Store the object geo part information.
-					Ar << HoudiniGeoPartObject;
-
-					// Retrieve and mesh.
-					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
-					{
-						Ar << StaticMesh;
-					}
-				}
-			}
-			else if(Ar.IsLoading())
-			{
-				for(int32 StaticMeshIdx = 0; StaticMeshIdx < NumStaticMeshes; ++StaticMeshIdx)
-				{
-					FHoudiniGeoPartObject HoudiniGeoPartObject;
-
-					// Get object geo part information.
-					Ar << HoudiniGeoPartObject;
-
-					UStaticMesh* LoadedStaticMesh = nullptr;
-					if(!HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsCurve())
-					{
-						Ar << LoadedStaticMesh;
-
-						// See if we already have a static mesh for this geo part object.
-						UStaticMesh* const* FoundOldStaticMesh = StaticMeshes.Find(HoudiniGeoPartObject);
-						if(FoundOldStaticMesh)
-						{
-							UStaticMesh* OldStaticMesh = *FoundOldStaticMesh;
-
-							// Retrieve component for old static mesh.
-							UStaticMeshComponent* const* FoundOldStaticMeshComponent =
-								StaticMeshComponents.Find(OldStaticMesh);
-							if(FoundOldStaticMeshComponent)
-							{
-								UStaticMeshComponent* OldStaticMeshComponent = *FoundOldStaticMeshComponent;
-
-								// We need to replace component's static mesh with a new one.
-								StaticMeshComponents.Remove(OldStaticMesh);
-								StaticMeshComponents.Add(LoadedStaticMesh, OldStaticMeshComponent);
-								OldStaticMeshComponent->SetStaticMesh(LoadedStaticMesh);
-							}
-						}
-					}
-
-					StaticMeshes.Add(HoudiniGeoPartObject, LoadedStaticMesh);
-				}
-			}
-		}
-	}
+	// Serialize geo parts and generated static meshes.
+	Ar << StaticMeshes;
+	Ar << StaticMeshComponents;
 
 	// Serialize instance inputs (we do this after geometry loading as we might need it).
 	SerializeInstanceInputs(Ar);
