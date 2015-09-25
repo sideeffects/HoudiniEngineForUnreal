@@ -336,7 +336,7 @@ FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_TransformEuler& HapiTrans
 	FHoudiniApi::ConvertTransformEulerToMatrix(FHoudiniEngine::Get().GetSession(), &HapiTransformEuler, HapiMatrix);
 
 	HAPI_Transform HapiTransformQuat;
-	FHoudiniApi::ConvertMatrixToQuat(FHoudiniEngine::Get().GetSession(), HapiMatrix, HapiTransformEuler.rstOrder, &HapiTransformQuat);
+	FHoudiniApi::ConvertMatrixToQuat(FHoudiniEngine::Get().GetSession(), HapiMatrix, HAPI_SRT, &HapiTransformQuat);
 
 	FHoudiniEngineUtils::TranslateHapiTransform(HapiTransformQuat, UnrealTransform);
 }
