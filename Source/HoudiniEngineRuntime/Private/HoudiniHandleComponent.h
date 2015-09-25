@@ -50,6 +50,8 @@ public:
 	bool Construct( HAPI_AssetId AssetId, int32 HandleIdx, const FString& HandleName,
 					const HAPI_HandleInfo&, const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& );
 
+	void ResolveDuplicatedParameters(const TMap<HAPI_ParmId, UHoudiniAssetParameter*>&);
+
 	// Update HAPI transform handle parameters from the current ComponentToWorld Unreal transform
 	void UpdateTransformParameters();
 
@@ -114,6 +116,21 @@ private:
 			}
 
 			return false;
+		}
+
+		void ResolveDuplicated(const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& NewParameters)
+		{
+			if (AssetParameter)
+			{
+				if ( UHoudiniAssetParameter* const* FoundNewParameter = NewParameters.Find(AssetParameter->GetParmId()) )
+				{
+					AssetParameter = Cast<ASSET_PARM>(*FoundNewParameter);
+				}
+				else
+				{
+					AssetParameter = nullptr;
+				}
+			}
 		}
 
 		template <typename VALUE>

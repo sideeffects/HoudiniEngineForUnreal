@@ -1765,6 +1765,8 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		// Perform any necessary post loading.
 		PostLoad();
 
+		DuplicateHandles(CopiedHoudiniComponent);
+
 		// Mark this component as no longer copy imported and reset copied component.
 		bComponentCopyImported = false;
 		CopiedHoudiniComponent = nullptr;
@@ -3294,6 +3296,24 @@ UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHo
 
 			DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
 			InParameters.Add(HoudiniAssetParameterKey, DuplicatedHoudiniAssetParameter);
+		}
+	}
+}
+
+
+void
+UHoudiniAssetComponent::DuplicateHandles(UHoudiniAssetComponent* SrcAssetComponent)
+{
+	for ( auto const& SrcNameToHandle : SrcAssetComponent->HandleComponents )
+	{
+		// Duplicate spline component.
+		if ( UHoudiniHandleComponent* NewHandleComponent = 
+			DuplicateObject<UHoudiniHandleComponent>(SrcNameToHandle.Value, this)
+		)
+		{
+			NewHandleComponent->SetFlags(RF_Transactional | RF_Public);
+			NewHandleComponent->ResolveDuplicatedParameters(Parameters);
+			HandleComponents.Add(SrcNameToHandle.Key, NewHandleComponent);
 		}
 	}
 }

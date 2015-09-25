@@ -356,7 +356,7 @@ private:
 	/** Create new parameters and attempt to reuse existing ones. **/
 	bool CreateParameters();
 
-	/** Create handles. **/
+	/** Create handles.**/
 	bool CreateHandles();
 
 	/** Unmark all changed parameters. **/
@@ -383,6 +383,9 @@ private:
 	/** Duplicate all parameters. Used during copying. **/
 	void DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
 		TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters);
+
+	/** Duplicate all handles. Used during copying. **/
+	void DuplicateHandles(UHoudiniAssetComponent* DuplicatedHoudiniComponent);
 
 	/** Duplicate inputs. Used during copying. **/
 	void DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent, TArray<UHoudiniAssetInput*>& InInputs);

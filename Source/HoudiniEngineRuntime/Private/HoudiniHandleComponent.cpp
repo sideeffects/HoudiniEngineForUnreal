@@ -125,6 +125,18 @@ UHoudiniHandleComponent::Construct(
 }
 
 void
+UHoudiniHandleComponent::ResolveDuplicatedParameters(const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& NewParameters)
+{
+	for ( size_t i = 0; i < EXformParameter::COUNT; ++i )
+	{
+		XformParms[i].ResolveDuplicated(NewParameters);
+	}
+
+	RSTParm.ResolveDuplicated(NewParameters);
+	RotOrderParm.ResolveDuplicated(NewParameters);
+}
+
+void
 UHoudiniHandleComponent::UpdateTransformParameters()
 {
 	HAPI_Transform HapiXform;
