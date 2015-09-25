@@ -59,6 +59,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 
 public:
+	TOptional<TSharedPtr<FString> > GetValue(int32 Idx) const;
 
 #if WITH_EDITOR
 

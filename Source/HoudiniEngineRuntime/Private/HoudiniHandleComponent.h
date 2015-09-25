@@ -14,8 +14,8 @@
 
 #pragma once
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniAssetParameterChoice.h"
 #include "HoudiniAssetParameterFloat.h"
-#include "HoudiniAssetParameterInt.h"
 #include "HoudiniHandleComponent.generated.h"
 
 class UHoudiniAssetInput;
@@ -58,6 +58,9 @@ public:
 protected:
 
 private:
+	static HAPI_RSTOrder GetHapiRSTOrder(const TSharedPtr<FString>&);
+	static HAPI_XYZOrder GetHapiXYZOrder(const TSharedPtr<FString>&);
+
 	template <class ASSET_PARM>
 	class THandleParameter
 	{
@@ -157,5 +160,5 @@ private:
 	typedef THandleParameter<UHoudiniAssetParameterFloat> FXformParameter;
 	FXformParameter XformParms[EXformParameter::COUNT];
 
-	THandleParameter<UHoudiniAssetParameterInt> RSTParm, RotOrderParm;
+	THandleParameter<UHoudiniAssetParameterChoice> RSTParm, RotOrderParm;
 };

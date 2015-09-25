@@ -16,6 +16,41 @@
 #include "HoudiniHandleComponent.h"
 #include "HoudiniApi.h"
 
+HAPI_RSTOrder
+UHoudiniHandleComponent::GetHapiRSTOrder(const TSharedPtr<FString>& StrPtr)
+{
+	if ( StrPtr.Get() )
+	{
+		FString& Str = *StrPtr;
+
+		if (Str == "trs")	return HAPI_TRS;
+		else if (Str == "tsr")	return HAPI_TSR;
+		else if (Str == "rts")	return HAPI_RTS;
+		else if (Str == "rst")	return HAPI_RST;
+		else if (Str == "str")	return HAPI_STR;
+		else if (Str == "srt")	return HAPI_SRT;
+	}
+
+	return HAPI_SRT;
+}
+
+HAPI_XYZOrder
+UHoudiniHandleComponent::GetHapiXYZOrder(const TSharedPtr<FString>& StrPtr)
+{
+	if ( StrPtr.Get() )
+	{
+		FString& Str = *StrPtr;
+
+		if (Str == "xyz")	return HAPI_XYZ;
+		else if (Str == "xzy")	return HAPI_XZY;
+		else if (Str == "yxz")	return HAPI_YXZ;
+		else if (Str == "yzx")	return HAPI_YZX;
+		else if (Str == "zxy")	return HAPI_ZXY;
+		else if (Str == "zyx")	return HAPI_ZYX;
+	}
+
+	return HAPI_XYZ;
+}
 
 UHoudiniHandleComponent::UHoudiniHandleComponent(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
@@ -53,8 +88,7 @@ UHoudiniHandleComponent::Construct(
 	HapiEulerXform.rotationEuler[0] = HapiEulerXform.rotationEuler[1] = HapiEulerXform.rotationEuler[2] = 0.0f;
 	HapiEulerXform.scale[0] = HapiEulerXform.scale[1] = HapiEulerXform.scale[2] = 1.0f;
 
-	HapiEulerXform.rstOrder = HAPI_SRT;
-	HapiEulerXform.rotationOrder = HAPI_XYZ;
+	TSharedPtr<FString> RSTOrderStrPtr, XYZOrderStrPtr;
 	
 	for ( const auto& BindingInfo : BindingInfos )
 	{
@@ -75,16 +109,18 @@ UHoudiniHandleComponent::Construct(
 			||	XformParms[EXformParameter::SY].Bind( HapiEulerXform.scale[1], "sy", 1, HandleParmName, AssetParmId, Parameters )
 			||	XformParms[EXformParameter::SZ].Bind( HapiEulerXform.scale[2], "sz", 2, HandleParmName, AssetParmId, Parameters )
 
-			||	RSTParm.Bind( HapiEulerXform.rstOrder, "trs_order", 0, HandleParmName, AssetParmId, Parameters )
-			||	RotOrderParm.Bind( HapiEulerXform.rotationOrder, "xyz_order", 0, HandleParmName, AssetParmId, Parameters )
+			||	RSTParm.Bind( RSTOrderStrPtr, "trs_order", 0, HandleParmName, AssetParmId, Parameters )
+			||	RotOrderParm.Bind( XYZOrderStrPtr, "xyz_order", 0, HandleParmName, AssetParmId, Parameters )
 		);
 	}
+
+	HapiEulerXform.rstOrder = GetHapiRSTOrder(RSTOrderStrPtr);
+	HapiEulerXform.rotationOrder = GetHapiXYZOrder(XYZOrderStrPtr);
 
 	FTransform UnrealXform;
 	FHoudiniEngineUtils::TranslateHapiTransform(HapiEulerXform, UnrealXform);
 
 	SetRelativeTransform(UnrealXform);
-	UpdateComponentToWorld(true, ETeleportType::None);
 	return true;
 }
 
@@ -103,8 +139,8 @@ UHoudiniHandleComponent::UpdateTransformParameters()
 	FHoudiniApi::ConvertMatrixToEuler(
 		Session,
 		HapiMatrix,
-		RSTParm.Get(HAPI_SRT),
-		RotOrderParm.Get(HAPI_XYZ),
+		GetHapiRSTOrder( RSTParm.Get(TSharedPtr<FString>()) ),
+		GetHapiXYZOrder( RotOrderParm.Get(TSharedPtr<FString>()) ),
 		&HapiEulerXform
 	);
 
