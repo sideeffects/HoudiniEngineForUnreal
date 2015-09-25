@@ -18,7 +18,7 @@
 #include "HoudiniHandleComponent.h"
 
 
-/** Base class for clickable spline editing proxies. **/
+/** Base class for clickable editing proxies. **/
 struct HHoudiniHandleVisProxy : public HComponentVisProxy
 {
 	DECLARE_HIT_PROXY();
@@ -46,7 +46,7 @@ public:
 };
 
 
-/** Our spline visualizer. **/
+/** Our handle visualizer. **/
 class FHoudiniHandleComponentVisualizer : public FComponentVisualizer
 {
 public:
@@ -83,6 +83,6 @@ protected:
 	/** Houdini component which is being edited. **/
 	UHoudiniHandleComponent* EditedComponent;
 
-	/** Is set to true if we are editing corresponding curve. **/
+	/** Is set to true if we are editing. **/
 	bool bEditing;
 };
