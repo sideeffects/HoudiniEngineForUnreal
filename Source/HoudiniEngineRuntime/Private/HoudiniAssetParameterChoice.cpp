@@ -241,6 +241,13 @@ UHoudiniAssetParameterChoice::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 #endif
 
 
+TOptional<TSharedPtr<FString> >
+UHoudiniAssetParameterChoice::GetValue(int32 Idx) const
+{
+	return Idx == 0 ? TOptional<TSharedPtr<FString> >(StringChoiceValues[CurrentValue]) : TOptional<TSharedPtr<FString> >();
+}
+
+
 bool
 UHoudiniAssetParameterChoice::UploadParameterValue()
 {
