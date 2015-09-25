@@ -22,7 +22,6 @@
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetInstanceInput.h"
-#include "HoudiniAssetHandle.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterButton.h"
 #include "HoudiniAssetParameterChoice.h"
