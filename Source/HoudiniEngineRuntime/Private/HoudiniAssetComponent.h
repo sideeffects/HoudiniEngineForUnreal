@@ -248,6 +248,10 @@ public:
 	UMaterialInterface* GetReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
 		const FString& MaterialName);
 
+	/** Perform material replacement. **/
+	bool ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, UMaterialInterface* NewMaterialInterface,
+		UMaterialInterface* OldMaterialInterface, int32 MaterialIndex);
+
 /** UObject methods. **/
 public:
 
@@ -504,7 +508,7 @@ protected:
 	/** Map of curve / spline components. **/
 	TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*> SplineComponents;
 
-	/** Material assignments, transient. **/
+	/** Material assignments. **/
 	TMap<FString, UMaterial*> MaterialAssignments;
 
 	/** Material replacements. **/
