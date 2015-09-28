@@ -282,6 +282,9 @@ private:
 	/** Update rendering information. **/
 	void UpdateRenderingInformation();
 
+	/** Re-attach components after loading or copying. **/
+	void PostLoadReattachComponents();
+
 #if WITH_EDITOR
 
 	/** Called after each cook. **/
@@ -496,6 +499,9 @@ protected:
 
 	/** Material assignments, transient. **/
 	TMap<HAPI_MaterialId, UMaterial*> MaterialAssignments;
+
+	/** Material replacements. **/
+	TMap<UMaterial*, UMaterial*> MaterialReplacements;
 
 	/** Buffer to hold preset data for serialization purposes. Used only during serialization. **/
 	TArray<char> PresetBuffer;

@@ -499,6 +499,7 @@ UHoudiniAssetInput::PostLoad()
 	if(InputCurve)
 	{
 		InputCurve->SetHoudiniAssetInput(this);
+		InputCurve->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
 	}
 }
 
