@@ -2315,7 +2315,8 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	// Serialize inputs.
 	SerializeInputs(Ar);
 
-	// Serialize material replacements.
+	// Serialize material replacements and material assignments.
+	Ar << MaterialAssignments;
 	Ar << MaterialReplacements;
 
 	// Serialize geo parts and generated static meshes.
@@ -3658,4 +3659,73 @@ UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& Houd
 	}
 
 	return ReplacementMaterial;
+}
+
+
+bool
+UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+	UMaterialInterface* NewMaterialInterface, UMaterialInterface* OldMaterialInterface, int32 MaterialIndex)
+{
+	UStaticMesh* StaticMesh = LocateStaticMesh(HoudiniGeoPartObject);
+	if(!StaticMesh)
+	{
+		return false;
+	}
+
+	UStaticMeshComponent* StaticMeshComponent = LocateStaticMeshComponent(StaticMesh);
+	if(!StaticMeshComponent)
+	{
+		return false;
+	}
+
+	UMaterial* DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+
+	if(!MaterialReplacements.Contains(HoudiniGeoPartObject))
+	{
+		// If there's no replacement map for this geo part object, add one.
+		MaterialReplacements.Add(HoudiniGeoPartObject, TMap<FString, UMaterialInterface*>());
+	}
+
+	// Retrieve replacements for this geo part object.
+	TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = MaterialReplacements[HoudiniGeoPartObject];
+
+	const FString* FoundMaterialShopName = MaterialReplacementsValues.FindKey(OldMaterialInterface);
+	if(FoundMaterialShopName)
+	{
+		// This material has been replaced previously. Replace old material with new material.
+		FString MaterialShopName = *FoundMaterialShopName;
+		MaterialReplacementsValues[MaterialShopName] = NewMaterialInterface;
+	}
+	else
+	{
+		UMaterial* OldMaterial = Cast<UMaterial>(OldMaterialInterface);
+
+		if(OldMaterial)
+		{
+			// We have no previous replacement for this material, see if we have it in list of material assignments.
+			FoundMaterialShopName = MaterialAssignments.FindKey(OldMaterial);
+			if(FoundMaterialShopName)
+			{
+				// This material has been assigned previously. Add material replacement entry.
+				FString MaterialShopName = *FoundMaterialShopName;
+				MaterialReplacementsValues[MaterialShopName] = NewMaterialInterface;
+			}
+			else if(OldMaterial == DefaultMaterial)
+			{
+				// This is replacement for default material. Add material replacement entry.
+				FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+				MaterialReplacementsValues[MaterialShopName] = NewMaterialInterface;
+			}
+			else
+			{
+				check(false);
+			}
+		}
+		else
+		{
+			check(false);
+		}
+	}
+
+	return true;
 }
