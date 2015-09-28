@@ -237,7 +237,7 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 		}
 
 		// Add references to all cached materials.
-		for(TMap<HAPI_MaterialId, UMaterial*>::TIterator
+		for(TMap<FString, UMaterial*>::TIterator
 			Iter(HoudiniAssetComponent->MaterialAssignments); Iter; ++Iter)
 		{
 			UMaterial* Material = Iter.Value();

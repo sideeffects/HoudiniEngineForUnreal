@@ -235,7 +235,7 @@ public:
 
 	/** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
 	static void HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo,
-		const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<HAPI_MaterialId, UMaterial*>& Materials);
+		const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<FString, UMaterial*>& Materials);
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
 	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,

@@ -501,10 +501,10 @@ protected:
 	TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*> SplineComponents;
 
 	/** Material assignments, transient. **/
-	TMap<HAPI_MaterialId, UMaterial*> MaterialAssignments;
+	TMap<FString, UMaterial*> MaterialAssignments;
 
 	/** Material replacements. **/
-	TMap<UMaterial*, UMaterial*> MaterialReplacements;
+	TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> > MaterialReplacements;
 
 	/** Buffer to hold preset data for serialization purposes. Used only during serialization. **/
 	TArray<char> PresetBuffer;
