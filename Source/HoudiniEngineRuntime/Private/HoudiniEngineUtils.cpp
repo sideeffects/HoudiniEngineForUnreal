@@ -283,8 +283,6 @@ FHoudiniEngineUtils::GetHoudiniString(int32 Name, std::string& NameString)
 bool
 FHoudiniEngineUtils::GetUniqueMaterialShopName(HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString& Name)
 {
-	Name = TEXT("");
-
 	HAPI_AssetInfo AssetInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
 
@@ -2122,7 +2120,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	FHoudiniEngineUtils::ExtractUniqueMaterialIds(AssetInfo, UniqueMaterialIds);
 
 	// Map to hold materials.
-	TMap<HAPI_MaterialId, UMaterial*> Materials;
+	TMap<FString, UMaterial*> Materials;
 
 	// Create materials.
 	FHoudiniEngineUtils::HapiCreateMaterials(HoudiniAssetComponent, AssetInfo, UniqueMaterialIds, Materials);
@@ -3032,21 +3030,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
 
 							// Get id of this single material.
-							HAPI_MaterialId MaterialId = FaceMaterialIds[0];
+							FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+							FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, FaceMaterialIds[0], MaterialShopName);
+							UMaterial* const* FoundMaterial = Materials.Find(MaterialShopName);
 
-							if(-1 != MaterialId && Materials.Num() > 0)
+							if(FoundMaterial)
 							{
-								UMaterial* const* FoundMaterial = Materials.Find(MaterialId);
-								if(FoundMaterial)
-								{
-									UMaterial* AssignedMaterial = *FoundMaterial;
+								UMaterial* AssignedMaterial = *FoundMaterial;
 
-									// If looked up material has a sampling expression or mesh has no vertex colors, use it.
-									if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
-										RawMesh.WedgeColors.Num() == 0)
-									{
-										Material = AssignedMaterial;
-									}
+								// If looked up material has a sampling expression or mesh has no vertex colors, use it.
+								if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
+									RawMesh.WedgeColors.Num() == 0)
+								{
+									Material = AssignedMaterial;
 								}
 							}
 
@@ -3072,21 +3068,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 								HAPI_MaterialId MaterialId = FaceMaterialIds[FaceIdx];
 								UMaterial* Material = MaterialDefault;
 
-								if(-1 != MaterialId)
+								FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+								FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, MaterialId, MaterialShopName);
+								UMaterial* const* FoundMaterial = Materials.Find(MaterialShopName);
+
+								if(FoundMaterial)
 								{
-									UMaterial* const* FoundMaterial = Materials.Find(MaterialId);
-									if(FoundMaterial)
+									UMaterial* AssignedMaterial = *FoundMaterial;
+
+									// If looked up material has a sampling expression or mesh has no vertex colors, use it.
+									if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
+										RawMesh.WedgeColors.Num() == 0)
 									{
-										UMaterial* AssignedMaterial = *FoundMaterial;
-										if(AssignedMaterial)
-										{
-											// If looked up material has a sampling expression or mesh has no vertex colors, use it.
-											if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
-												RawMesh.WedgeColors.Num() == 0)
-											{
-												Material = AssignedMaterial;
-											}
-										}
+										Material = AssignedMaterial;
 									}
 								}
 
@@ -3489,7 +3483,7 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 
 void
 FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo, 
-	const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<HAPI_MaterialId, UMaterial*>& Materials)
+	const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<FString, UMaterial*>& Materials)
 {
 #if WITH_EDITOR
 
@@ -3501,7 +3495,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 		return;
 	}
 
-	const TMap<HAPI_MaterialId, UMaterial*>& CachedMaterials = HoudiniAssetComponent->MaterialAssignments;
+	HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+
+	const TMap<FString, UMaterial*>& CachedMaterials = HoudiniAssetComponent->MaterialAssignments;
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 	// Update context for generated materials (will trigger when object goes out of scope).
@@ -3509,6 +3505,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 	// Default Houdini material.
 	UMaterial* DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+	Materials.Add(HAPI_UNREAL_DEFAULT_MATERIAL_NAME, DefaultMaterial);
 
 	// Factory to create materials.
 	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
@@ -3521,15 +3518,19 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id, MaterialId, &MaterialInfo))
 		{
-			// There was an error retrieving material information, we will use default Houdini material in this case.
-			Materials.Add(MaterialId, DefaultMaterial);
 			continue;
 		}
 
 		if(MaterialInfo.exists)
 		{
-			// Material exists, look it up in cached list.
-			UMaterial* const* FoundMaterial = CachedMaterials.Find(MaterialId);
+			FString MaterialShopName;
+
+			if(!FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, MaterialId, MaterialShopName))
+			{
+				continue;
+			}
+
+			UMaterial* const* FoundMaterial = CachedMaterials.Find(MaterialShopName);
 
 			UPackage* MaterialPackage = nullptr;
 			UPackage* TextureDiffusePackage = nullptr;
@@ -3556,7 +3557,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 				if(!MaterialInfo.hasChanged)
 				{
 					// We found cached material, we can reuse it.
-					Materials.Add(MaterialId, Material);
+					Materials.Add(MaterialShopName, Material);
 					continue;
 				}
 				else
@@ -3782,7 +3783,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						MaterialUpdateContext.AddMaterial(Material);
 
 						// Cache material.
-						Materials.Add(MaterialId, Material);
+						Materials.Add(MaterialShopName, Material);
 
 						// Propagate and trigger material updates.
 						{
@@ -3891,7 +3892,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 					MaterialUpdateContext.AddMaterial(Material);
 
 					// Cache material.
-					Materials.Add(MaterialId, Material);
+					Materials.Add(MaterialShopName, Material);
 
 					// Propagate and trigger material updates.
 					{
@@ -3911,13 +3912,11 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			else
 			{
 				// Material does not exist, we will use default Houdini material in this case.
-				Materials.Add(MaterialId, DefaultMaterial);
 			}
 		}
 		else
 		{
 			// Material does not exist, we will use default Houdini material in this case.
-			Materials.Add(MaterialId, DefaultMaterial);
 		}
 	}
 

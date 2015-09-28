@@ -282,6 +282,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_SESSION_SERVER_AUTOSTART				false
 #define HAPI_UNREAL_SESSION_SERVER_TIMEOUT					3000.0f
 
+/** Default material name. **/
+#define HAPI_UNREAL_DEFAULT_MATERIAL_NAME					TEXT("default_material")
+
 #define HAPI_UNREAL_ENABLE_LOADER
 
 /** Names of HAPI libraries on different platforms. **/
