@@ -3681,3 +3681,24 @@ UHoudiniAssetComponent::GetComponentGuid() const
 {
 	return ComponentGUID;
 }
+
+
+UMaterialInterface*
+UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+	const FString& MaterialName)
+{
+	UMaterialInterface* ReplacementMaterial = nullptr;
+
+	if(MaterialReplacements.Contains(HoudiniGeoPartObject))
+	{
+		TMap<FString, UMaterialInterface*>& FoundReplacements = MaterialReplacements[HoudiniGeoPartObject];
+
+		UMaterialInterface* const* FoundReplacementMaterial = FoundReplacements.Find(MaterialName);
+		if(FoundReplacementMaterial)
+		{
+			ReplacementMaterial = *FoundReplacementMaterial;
+		}
+	}
+
+	return ReplacementMaterial;
+}

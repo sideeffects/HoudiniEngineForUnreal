@@ -3030,7 +3030,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						if(bSingleFaceMaterial)
 						{
 							// Use default Houdini material if no valid material is assigned to any of the faces.
-							UMaterial* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+							UMaterialInterface* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
 							// We have only one material.
 							RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
@@ -3052,6 +3052,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 								}
 							}
 
+							// If we have replacement material for this geo part object and this shop material name.
+							UMaterialInterface* ReplacementMaterial = 
+								HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
+
+							if(ReplacementMaterial)
+							{
+								Material = ReplacementMaterial;
+							}
+
 							StaticMesh->Materials.Empty();
 							StaticMesh->Materials.Add(Material);
 						}
@@ -3062,8 +3071,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 							// We have multiple materials.
 							int32 MaterialIndex = 0;
-							TMap<UMaterial*, int32> MappedMaterials;
-							TArray<UMaterial*> MappedMaterialsList;
+							TMap<UMaterialInterface*, int32> MappedMaterials;
+							TArray<UMaterialInterface*> MappedMaterialsList;
 
 							// Reset Rawmesh material face assignments.
 							RawMesh.FaceMaterialIndices.SetNumZeroed(SplitGroupFaceIndices.Num());
@@ -3072,7 +3081,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							{
 								// Get material id for this face.
 								HAPI_MaterialId MaterialId = FaceMaterialIds[FaceIdx];
-								UMaterial* Material = MaterialDefault;
+								UMaterialInterface* Material = MaterialDefault;
 
 								FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
 								FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, MaterialId, MaterialShopName);
@@ -3088,6 +3097,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 									{
 										Material = AssignedMaterial;
 									}
+								}
+
+								// If we have replacement material for this geo part object and this shop material name.
+								UMaterialInterface* ReplacementMaterial = 
+									HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
+
+								if(ReplacementMaterial)
+								{
+									Material = ReplacementMaterial;
 								}
 
 								// See if this material has been added.
@@ -3122,7 +3140,18 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						// No materials were found, we need to use default Houdini material.
 						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
 
-						UMaterial* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+						UMaterialInterface* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+						FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+
+						// If we have replacement material for this geo part object and this shop material name.
+						UMaterialInterface* ReplacementMaterial = 
+							HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
+
+						if(ReplacementMaterial)
+						{
+							Material = ReplacementMaterial;
+						}
+
 						StaticMesh->Materials.Empty();
 						StaticMesh->Materials.Add(Material);
 					}
