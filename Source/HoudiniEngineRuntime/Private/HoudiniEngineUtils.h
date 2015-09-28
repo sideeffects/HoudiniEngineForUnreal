@@ -73,6 +73,9 @@ public:
 	/** HAPI : Get string name for a given handle. **/
 	static bool GetHoudiniString(int32 Name, std::string& NameString);
 
+	/** HAPI : Get unique material SHOP name. **/
+	static bool GetUniqueMaterialShopName(HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString& Name);
+
 	/** HAPI : Convert Unreal string to ascii one. **/
 	static void ConvertUnrealString(const FString& UnrealString, std::string& String);
 
