@@ -280,6 +280,46 @@ FHoudiniEngineUtils::GetHoudiniString(int32 Name, std::string& NameString)
 }
 
 
+bool
+FHoudiniEngineUtils::GetUniqueMaterialShopName(HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString& Name)
+{
+	Name = TEXT("");
+
+	HAPI_AssetInfo AssetInfo;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
+
+	HAPI_MaterialInfo MaterialInfo;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetId, MaterialId, &MaterialInfo), false);
+
+	HAPI_NodeInfo AssetNodeInfo;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo), false);
+
+	HAPI_NodeInfo MaterialNodeInfo;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &MaterialNodeInfo), false);
+
+	FString AssetNodeName;
+	if(!FHoudiniEngineUtils::GetHoudiniString(AssetNodeInfo.internalNodePathSH, AssetNodeName))
+	{
+		return false;
+	}
+
+	FString MaterialNodeName;
+	if(!FHoudiniEngineUtils::GetHoudiniString(MaterialNodeInfo.internalNodePathSH, MaterialNodeName))
+	{
+		return false;
+	}
+
+	if(AssetNodeName.Len() > 0 && MaterialNodeName.Len() > 0)
+	{
+		// Remove AssetNodeName part from MaterialNodeName. Extra position is for separator.
+		Name = MaterialNodeName.Mid(AssetNodeName.Len() + 1);
+		return true;
+	}
+
+	return false;
+}
+
+
 void
 FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform)
 {

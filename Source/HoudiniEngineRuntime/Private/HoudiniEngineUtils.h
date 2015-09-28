@@ -76,6 +76,9 @@ public:
 	/** HAPI : Convert Unreal string to ascii one. **/
 	static void ConvertUnrealString(const FString& UnrealString, std::string& String);
 
+	/** HAPI : Get unique material SHOP name. **/
+	static bool GetUniqueMaterialShopName(HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString& Name);
+
 	/** HAPI : Translate HAPI transform to Unreal one. **/
 	static void TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform);
 
