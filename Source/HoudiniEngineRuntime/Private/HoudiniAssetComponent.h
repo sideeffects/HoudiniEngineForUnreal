@@ -244,6 +244,10 @@ public:
 	/** Return component GUID. **/
 	const FGuid& GetComponentGuid() const;
 
+	/** If given material has been replaced for a given geo part object, return it. Otherwise return null. **/
+	UMaterialInterface* GetReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+		const FString& MaterialName);
+
 /** UObject methods. **/
 public:
 
