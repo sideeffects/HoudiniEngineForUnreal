@@ -1782,7 +1782,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 		UMaterial* Material = Cast<UMaterial>(ObjectToApply);
 		if(Material)
 		{
-			TMap<UStaticMesh*, int32> MaterialReplacements;
+			TMap<UStaticMesh*, int32> MaterialReplacementsMap;
 
 			// We need to detect which components have material overriden, and replace it on their corresponding
 			// generated static meshes.
@@ -1801,25 +1801,34 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 						{
 							if(MaterialIdx < StaticMesh->Materials.Num())
 							{
-								MaterialReplacements.Add(StaticMesh, MaterialIdx);
+								MaterialReplacementsMap.Add(StaticMesh, MaterialIdx);
 							}
 						}
 					}
 				}
 			}
 
-			if(MaterialReplacements.Num() > 0)
+			if(MaterialReplacementsMap.Num() > 0)
 			{
 				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME), 
 					LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), this);
 
-				for(TMap<UStaticMesh*, int32>::TIterator Iter(MaterialReplacements); Iter; ++Iter)
+				for(TMap<UStaticMesh*, int32>::TIterator Iter(MaterialReplacementsMap); Iter; ++Iter)
 				{
 					UStaticMesh* StaticMesh = Iter.Key();
 					int32 MaterialIdx = Iter.Value();
 
 					StaticMesh->Modify();
 					StaticMesh->Materials[MaterialIdx] = Material;
+
+					UStaticMeshComponent* const* FoundStaticMeshComponent = StaticMeshComponents.Find(StaticMesh);
+					if(FoundStaticMeshComponent)
+					{
+						UStaticMeshComponent* StaticMeshComponent = *FoundStaticMeshComponent;
+
+						StaticMeshComponent->Modify();
+						StaticMeshComponent->SetMaterial(MaterialIdx, Material);
+					}
 
 					StaticMesh->PreEditChange(nullptr);
 					StaticMesh->PostEditChange();
@@ -1935,6 +1944,38 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 
 	// Since we have new asset, we need to update bounds.
 	UpdateBounds();
+}
+
+
+void
+UHoudiniAssetComponent::PostLoadReattachComponents()
+{
+	for(TMap<UStaticMesh*, UStaticMeshComponent*>::TIterator Iter(StaticMeshComponents); Iter; ++Iter)
+	{
+		UStaticMeshComponent* StaticMeshComponent = Iter.Value();
+		if(StaticMeshComponent)
+		{
+			StaticMeshComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
+		}
+	}
+
+	for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator Iter(SplineComponents); Iter; ++Iter)
+	{
+		UHoudiniSplineComponent* HoudiniSplineComponent = Iter.Value();
+		if(HoudiniSplineComponent)
+		{
+			HoudiniSplineComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
+		}
+	}
+
+	for(TMap<FString, UHoudiniHandleComponent*>::TIterator Iter(HandleComponents); Iter; ++Iter)
+	{
+		UHoudiniHandleComponent* HoudiniHandleComponent = Iter.Value();
+		if(HoudiniHandleComponent)
+		{
+			HoudiniHandleComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
+		}
+	}
 }
 
 
@@ -2106,6 +2147,9 @@ UHoudiniAssetComponent::PostLoad()
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
 
+	// Post attach components to parent asset component.
+	PostLoadReattachComponents();
+
 	// Update static mobility.
 	if(EComponentMobility::Static == Mobility)
 	{
@@ -2272,6 +2316,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize inputs.
 	SerializeInputs(Ar);
+
+	// Serialize material replacements.
+	Ar << MaterialReplacements;
 
 	// Serialize geo parts and generated static meshes.
 	Ar << StaticMeshes;
