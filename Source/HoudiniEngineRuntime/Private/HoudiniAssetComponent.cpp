@@ -252,6 +252,23 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			// Manually add a reference to Houdini asset from this component.
 			Collector.AddReferencedObject(HoudiniAsset, InThis);
 		}
+
+		// Add references for replaced materials.
+		for(TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >::TIterator
+			Iter(HoudiniAssetComponent->MaterialReplacements); Iter; ++Iter)
+		{
+			TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = Iter.Value();
+
+			for(TMap<FString, UMaterialInterface*>::TIterator
+				IterInterfaces(MaterialReplacementsValues); IterInterfaces; ++IterInterfaces)
+			{
+				UMaterialInterface* MaterialInterface = IterInterfaces.Value();
+				if(MaterialInterface)
+				{
+					Collector.AddReferencedObject(MaterialInterface, InThis);
+				}
+			}
+		}
 	}
 
 	// Call base implementation.
