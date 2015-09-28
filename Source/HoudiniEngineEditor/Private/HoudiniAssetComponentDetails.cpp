@@ -1150,9 +1150,6 @@ FHoudiniAssetComponentDetails::OnHoudiniAssetDropped(UObject* InObject)
 		{
 			UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
 
-			// Before assigning new asset to component, record undo block.
-			//HoudiniAssetComponent->RecordUndoState();
-
 			// Assign asset to component.
 			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
 		}
