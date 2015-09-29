@@ -3572,8 +3572,7 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(UStaticMesh* StaticM
 			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = *FoundHoudiniAssetInstanceInput;
 			if(HoudiniAssetInstanceInput)
 			{
-				HoudiniAssetInstanceInput->CollectAllInstancedStaticMeshComponents(Components, StaticMesh);
-				return true;
+				return HoudiniAssetInstanceInput->CollectAllInstancedStaticMeshComponents(Components, StaticMesh);
 			}
 		}
 	}
@@ -3797,7 +3796,11 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 	UStaticMeshComponent* StaticMeshComponent = LocateStaticMeshComponent(StaticMesh);
 	if(!StaticMeshComponent)
 	{
-		return false;
+		TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
+		if(!LocateInstancedStaticMeshComponents(StaticMesh, InstancedStaticMeshComponents))
+		{
+			return false;
+		}
 	}
 
 	UMaterial* DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
