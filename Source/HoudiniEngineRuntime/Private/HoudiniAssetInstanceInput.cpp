@@ -1190,10 +1190,12 @@ UHoudiniAssetInstanceInput::UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMes
 }
 
 
-void
+bool
 UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(TArray<UInstancedStaticMeshComponent*>& Components, 
 	UStaticMesh* StaticMesh)
 {
+	bool bCollected = false;
+
 	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
 	{
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
@@ -1208,10 +1210,13 @@ UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(TArray<UInst
 					if(UsedStaticMesh == StaticMesh)
 					{
 						Components.Add(HoudiniAssetInstanceInputField->InstancedStaticMeshComponents[IdxMesh]);
+						bCollected = true;
 					}
 				}
 			}
 		}
 	}
+
+	return bCollected;
 }
 
