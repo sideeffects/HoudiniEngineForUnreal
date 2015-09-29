@@ -3694,7 +3694,7 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 	{
 		// This material has been replaced previously. Replace old material with new material.
 		FString MaterialShopName = *FoundMaterialShopName;
-		MaterialReplacementsValues[MaterialShopName] = NewMaterialInterface;
+		MaterialReplacementsValues.Add(MaterialShopName, NewMaterialInterface);
 	}
 	else
 	{
@@ -3707,7 +3707,7 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 			{
 				// This material has been assigned previously. Add material replacement entry.
 				FString MaterialShopName = *FoundMaterialShopName;
-				MaterialReplacementsValues[MaterialShopName] = NewMaterialInterface;
+				MaterialReplacementsValues.Add(MaterialShopName, NewMaterialInterface);
 			}
 			else if(OldMaterial == DefaultMaterial)
 			{
