@@ -226,6 +226,9 @@ public:
 	/** Locate static mesh component for given static mesh. **/
 	UStaticMeshComponent* LocateStaticMeshComponent(UStaticMesh* StaticMesh) const;
 
+	/** Locate instanced static mesh components for given static mesh. **/
+	bool LocateInstancedStaticMeshComponents(UStaticMesh* StaticMesh, TArray<UInstancedStaticMeshComponent*>& Components);
+
 	/** Update material information on instanced component for corresponding mesh. **/
 	void UpdateInstancedStaticMeshComponentMaterial(UStaticMesh* StaticMesh, int32 MaterialIdx,
 		UMaterialInterface* MaterialInterface);
