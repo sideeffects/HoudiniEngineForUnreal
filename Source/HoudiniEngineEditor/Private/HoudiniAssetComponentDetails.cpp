@@ -1134,22 +1134,47 @@ FReply
 FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh,
 	FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx)
 {
-	if(HoudiniGeoPartObject->HasNativeHoudiniMaterial())
+	for(TArray<UHoudiniAssetComponent*>::TIterator
+		IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 	{
-		// Geo part does have native Houdini material.
+		// Retrieve material interface which is being replaced.
+		UMaterialInterface* MaterialInterface = StaticMesh->Materials[MaterialIdx];
+		UMaterialInterface* MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
-		HoudiniGeoPartObject->ResetUnrealMaterialAssigned();
-		OnRecookAsset();
-	}
-	else
-	{
-		// Geo part does not have native Houdini material, we just use default Unreal material in this case.
-
-		UMaterialInterface* MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
-		if(MaterialInterface)
+		UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
+		if(HoudiniAssetComponent)
 		{
-			// Replace material with default.
-			OnMaterialInterfaceDropped(MaterialInterface, StaticMesh, HoudiniGeoPartObject, MaterialIdx);
+			FString MaterialShopName;
+			if(HoudiniAssetComponent->GetReplacementMaterialShopName(*HoudiniGeoPartObject, MaterialInterface, MaterialShopName))
+			{
+				HoudiniAssetComponent->RemoveReplacementMaterial(*HoudiniGeoPartObject, MaterialShopName);
+
+				UMaterial* AssignedMaterial = HoudiniAssetComponent->GetAssignmentMaterial(MaterialShopName);
+				if(AssignedMaterial)
+				{
+					MaterialInterfaceReplacement = AssignedMaterial;
+				}
+			}
+
+			//OnMaterialInterfaceDropped(MaterialInterfaceReplacement, StaticMesh, HoudiniGeoPartObject, MaterialIdx);
+
+			// Replace material on static mesh.
+			StaticMesh->Modify();
+			StaticMesh->Materials[MaterialIdx] = MaterialInterfaceReplacement;
+
+			UStaticMeshComponent* StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);
+			if(StaticMeshComponent)
+			{
+				StaticMeshComponent->Modify();
+				StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterfaceReplacement);
+			}
+
+			HoudiniAssetComponent->UpdateEditorProperties(false);
+
+			if(GEditor)
+			{
+				GEditor->RedrawAllViewports();
+			}
 		}
 	}
 
