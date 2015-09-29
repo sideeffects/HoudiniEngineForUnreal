@@ -1017,6 +1017,8 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 	UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(InObject);
 	if(MaterialInterface)
 	{
+		bool bMaterialUpdated = false;
+
 		// Replace material on component using this static mesh.
 		for(TArray<UHoudiniAssetComponent*>::TIterator
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
@@ -1024,37 +1026,52 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 			if(HoudiniAssetComponent)
 			{
-				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_EDITOR), 
-					LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), HoudiniAssetComponent);
+				// Retrieve material interface which is being replaced.
+				UMaterialInterface* OldMaterialInterface = StaticMesh->Materials[MaterialIdx];
 
-				// Replace material on static mesh.
-				StaticMesh->Modify();
-				StaticMesh->Materials[MaterialIdx] = MaterialInterface;
-
-				UStaticMeshComponent* StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);
-				if(StaticMeshComponent)
+				if(OldMaterialInterface != MaterialInterface)
 				{
-					StaticMeshComponent->Modify();
-					StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
-				}
+					// Record replaced material.
+					if(HoudiniAssetComponent->ReplaceMaterial(*HoudiniGeoPartObject, MaterialInterface, OldMaterialInterface, MaterialIdx))
+					{
+						FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_EDITOR), 
+							LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), HoudiniAssetComponent);
 
-				// Update instanced as well.
-				HoudiniAssetComponent->UpdateInstancedStaticMeshComponentMaterial(StaticMesh, MaterialIdx,
-					MaterialInterface);
+						// Replace material on static mesh.
+						StaticMesh->Modify();
+						StaticMesh->Materials[MaterialIdx] = MaterialInterface;
+
+						UStaticMeshComponent* StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);
+						if(StaticMeshComponent)
+						{
+							StaticMeshComponent->Modify();
+							StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
+						}
+
+						// Update instanced as well.
+						HoudiniAssetComponent->UpdateInstancedStaticMeshComponentMaterial(StaticMesh, MaterialIdx,
+							MaterialInterface);
+
+						bMaterialUpdated = true;
+					}
+				}
 			}
 		}
 
-		// Mark geo part object - material has been replaced.
-		HoudiniGeoPartObject->SetUnrealMaterialAssigned();
-
-		// We need to update editor to reflect changes.
-		if(HoudiniAssetComponents.Num() > 0)
+		if(bMaterialUpdated)
 		{
-			HoudiniAssetComponents[0]->UpdateEditorProperties(false);
+			// Mark geo part object - material has been replaced.
+			HoudiniGeoPartObject->SetUnrealMaterialAssigned();
 
-			if(GEditor)
+			// We need to update editor to reflect changes.
+			if(HoudiniAssetComponents.Num() > 0)
 			{
-				GEditor->RedrawAllViewports();
+				HoudiniAssetComponents[0]->UpdateEditorProperties(false);
+
+				if(GEditor)
+				{
+					GEditor->RedrawAllViewports();
+				}
 			}
 		}
 	}

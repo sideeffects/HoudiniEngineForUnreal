@@ -3759,7 +3759,6 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 	else
 	{
 		UMaterial* OldMaterial = Cast<UMaterial>(OldMaterialInterface);
-
 		if(OldMaterial)
 		{
 			// We have no previous replacement for this material, see if we have it in list of material assignments.
@@ -3774,16 +3773,18 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 			{
 				// This is replacement for default material. Add material replacement entry.
 				FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-				MaterialReplacementsValues[MaterialShopName] = NewMaterialInterface;
+				MaterialReplacementsValues.Add(MaterialShopName, NewMaterialInterface);
 			}
 			else
 			{
 				check(false);
+				return false;
 			}
 		}
 		else
 		{
 			check(false);
+			return false;
 		}
 	}
 
