@@ -1017,8 +1017,6 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 	UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(InObject);
 	if(MaterialInterface)
 	{
-		bool bMaterialUpdated = false;
-
 		// Replace material on component using this static mesh.
 		for(TArray<UHoudiniAssetComponent*>::TIterator
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
@@ -1026,6 +1024,8 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 			if(HoudiniAssetComponent)
 			{
+				bool bMaterialUpdated = false;
+
 				// Retrieve material interface which is being replaced.
 				UMaterialInterface* OldMaterialInterface = StaticMesh->Materials[MaterialIdx];
 
@@ -1055,18 +1055,8 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 						bMaterialUpdated = true;
 					}
 				}
-			}
-		}
 
-		if(bMaterialUpdated)
-		{
-			// Mark geo part object - material has been replaced.
-			HoudiniGeoPartObject->SetUnrealMaterialAssigned();
-
-			// We need to update editor to reflect changes.
-			if(HoudiniAssetComponents.Num() > 0)
-			{
-				HoudiniAssetComponents[0]->UpdateEditorProperties(false);
+				HoudiniAssetComponent->UpdateEditorProperties(false);
 
 				if(GEditor)
 				{
