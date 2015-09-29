@@ -3812,13 +3812,11 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 			}
 			else
 			{
-				check(false);
 				return false;
 			}
 		}
 		else
 		{
-			check(false);
 			return false;
 		}
 	}
