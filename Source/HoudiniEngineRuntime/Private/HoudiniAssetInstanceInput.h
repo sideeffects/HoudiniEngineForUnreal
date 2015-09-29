@@ -60,6 +60,9 @@ public:
 	void UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx,
 		UMaterialInterface* MaterialInterface);
 
+	/** Retrieve all instanced mesh components used by this input. **/
+	void CollectAllInstancedStaticMeshComponents(TArray<UInstancedStaticMeshComponent*>& Components, UStaticMesh* StaticMesh);
+
 /** UHoudiniAssetParameter methods. **/
 public:
 

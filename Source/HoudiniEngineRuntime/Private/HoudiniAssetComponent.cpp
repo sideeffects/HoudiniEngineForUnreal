@@ -3555,6 +3555,33 @@ UHoudiniAssetComponent::LocateStaticMeshComponent(UStaticMesh* StaticMesh) const
 }
 
 
+bool
+UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(UStaticMesh* StaticMesh, 
+	TArray<UInstancedStaticMeshComponent*>& Components)
+{
+	Components.Empty();
+
+	FHoudiniGeoPartObject HoudiniGeoPartObject = LocateGeoPartObject(StaticMesh);
+	if(HoudiniGeoPartObject.IsValid())
+	{
+		UHoudiniAssetInstanceInput* const* FoundHoudiniAssetInstanceInput =
+			InstanceInputs.Find(HoudiniGeoPartObject.ObjectId);
+
+		if(FoundHoudiniAssetInstanceInput)
+		{
+			UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = *FoundHoudiniAssetInstanceInput;
+			if(HoudiniAssetInstanceInput)
+			{
+				HoudiniAssetInstanceInput->CollectAllInstancedStaticMeshComponents(Components, StaticMesh);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
 void
 UHoudiniAssetComponent::UpdateInstancedStaticMeshComponentMaterial(UStaticMesh* StaticMesh, int32 MaterialIdx,
 	UMaterialInterface* MaterialInterface)
