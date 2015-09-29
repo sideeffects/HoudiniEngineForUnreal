@@ -3663,6 +3663,41 @@ UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& Houd
 
 
 bool
+UHoudiniAssetComponent::GetReplacementMaterialShopName(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+	UMaterialInterface* MaterialInterface, FString& MaterialName)
+{
+	if(MaterialReplacements.Contains(HoudiniGeoPartObject))
+	{
+		TMap<FString, UMaterialInterface*>& FoundReplacements = MaterialReplacements[HoudiniGeoPartObject];
+
+		const FString* FoundMaterialShopName = FoundReplacements.FindKey(MaterialInterface);
+		if(FoundMaterialShopName)
+		{
+			MaterialName = *FoundMaterialShopName;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+UMaterial*
+UHoudiniAssetComponent::GetAssignmentMaterial(const FString& MaterialName)
+{
+	UMaterial* Material = nullptr;
+
+	UMaterial* const* FoundMaterial = MaterialAssignments.Find(MaterialName);
+	if(FoundMaterial)
+	{
+		Material = *FoundMaterial;
+	}
+
+	return Material;
+}
+
+
+bool
 UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
 	UMaterialInterface* NewMaterialInterface, UMaterialInterface* OldMaterialInterface, int32 MaterialIndex)
 {
@@ -3729,4 +3764,16 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 	}
 
 	return true;
+}
+
+
+void
+UHoudiniAssetComponent::RemoveReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+	const FString& MaterialName)
+{
+	if(MaterialReplacements.Contains(HoudiniGeoPartObject))
+	{
+		TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = MaterialReplacements[HoudiniGeoPartObject];
+		MaterialReplacementsValues.Remove(MaterialName);
+	}
 }

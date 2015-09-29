@@ -246,9 +246,19 @@ public:
 	UMaterialInterface* GetReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
 		const FString& MaterialName);
 
+	/** If given material has been replaced for a given geo part object, return its name by reference. **/
+	bool GetReplacementMaterialShopName(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+		UMaterialInterface* MaterialInterface, FString& MaterialName);
+
+	/** Given a shop name return material assignment. **/
+	UMaterial* GetAssignmentMaterial(const FString& MaterialName);
+
 	/** Perform material replacement. **/
 	bool ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, UMaterialInterface* NewMaterialInterface,
 		UMaterialInterface* OldMaterialInterface, int32 MaterialIndex);
+
+	/** Remove material replacement. **/
+	void RemoveReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const FString& MaterialName);
 
 /** UObject methods. **/
 public:
