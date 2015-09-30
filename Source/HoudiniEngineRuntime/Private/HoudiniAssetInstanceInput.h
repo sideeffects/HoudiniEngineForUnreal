@@ -20,6 +20,7 @@
 
 class AActor;
 class UStaticMesh;
+class UMaterialInterface;
 struct FHoudiniGeoPartObject;
 class UInstancedStaticMeshComponent;
 class UHoudiniAssetInstanceInputField;
@@ -56,12 +57,11 @@ public:
 	/** Recreates physics states for used instanced static mesh components. **/
 	void RecreatePhysicsStates();
 
-	/** Update material for a given mesh and index. **/
-	void UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx,
-		UMaterialInterface* MaterialInterface);
-
 	/** Retrieve all instanced mesh components used by this input. **/
 	bool CollectAllInstancedStaticMeshComponents(TArray<UInstancedStaticMeshComponent*>& Components, UStaticMesh* StaticMesh);
+
+	/** Get material replacement meshes for a given input. **/
+	bool GetMaterialReplacementMeshes(UMaterialInterface* Material, TMap<UStaticMesh*, int32>& MaterialReplacementsMap);
 
 /** UHoudiniAssetParameter methods. **/
 public:

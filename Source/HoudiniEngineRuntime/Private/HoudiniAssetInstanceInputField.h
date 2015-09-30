@@ -18,6 +18,7 @@
 
 
 class UStaticMesh;
+class UMaterialInterface;
 class UHoudiniAssetComponent;
 struct FHoudiniGeoPartObject;
 class UInstancedStaticMeshComponent;
@@ -86,6 +87,9 @@ public:
 	    variations. **/
 	void FindStaticMeshIndices(UStaticMesh * InStaticMesh, 
 								TArray<int> & Indices);
+
+	/** Get material replacements. **/
+	bool GetMaterialReplacementMeshes(UMaterialInterface* Material, TMap<UStaticMesh*, int32>& MaterialReplacementsMap);
 
 #if WITH_EDITOR
 

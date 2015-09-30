@@ -1171,25 +1171,6 @@ UHoudiniAssetInstanceInput::IsChecked(UHoudiniAssetInstanceInputField* HoudiniAs
 #endif
 
 
-void
-UHoudiniAssetInstanceInput::UpdateStaticMeshMaterial(UStaticMesh* OtherStaticMesh, int32 MaterialIdx,
-	UMaterialInterface* MaterialInterface)
-{
-	/*
-	for(int32 MeshIdx = 0; MeshIdx < StaticMeshes.Num(); ++MeshIdx)
-	{
-		UStaticMesh* StaticMesh = StaticMeshes[MeshIdx];
-
-		if(StaticMesh == OtherStaticMesh)
-		{
-			UStaticMeshComponent* StaticMeshComponent = InstancedStaticMeshComponents[MeshIdx];
-			StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
-		}
-	}
-	*/
-}
-
-
 bool
 UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(TArray<UInstancedStaticMeshComponent*>& Components, 
 	UStaticMesh* StaticMesh)
@@ -1218,5 +1199,24 @@ UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(TArray<UInst
 	}
 
 	return bCollected;
+}
+
+
+bool
+UHoudiniAssetInstanceInput::GetMaterialReplacementMeshes(UMaterialInterface* Material, 
+	TMap<UStaticMesh*, int32>& MaterialReplacementsMap)
+{
+	bool bResult = false;
+
+	for(int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx)
+	{
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[Idx];
+		if(HoudiniAssetInstanceInputField)
+		{
+			bResult |= HoudiniAssetInstanceInputField->GetMaterialReplacementMeshes(Material, MaterialReplacementsMap);
+		}
+	}
+
+	return bResult;
 }
 
