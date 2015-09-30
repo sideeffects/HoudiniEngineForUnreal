@@ -1047,22 +1047,33 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 							StaticMeshComponent->Modify();
 							StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
 						}
-
-						// Update instanced as well.
-						HoudiniAssetComponent->UpdateInstancedStaticMeshComponentMaterial(StaticMesh, MaterialIdx,
-							MaterialInterface);
+						
+						TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
+						if(HoudiniAssetComponent->LocateInstancedStaticMeshComponents(StaticMesh, InstancedStaticMeshComponents))
+						{
+							for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+							{
+								UInstancedStaticMeshComponent* InstancedStaticMeshComponent 
+									= InstancedStaticMeshComponents[Idx];
+								if(InstancedStaticMeshComponent)
+								{
+									InstancedStaticMeshComponent->Modify();
+									InstancedStaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
+								}
+							}
+						}
 
 						bMaterialUpdated = true;
 					}
 				}
 
 				HoudiniAssetComponent->UpdateEditorProperties(false);
-
-				if(GEditor)
-				{
-					GEditor->RedrawAllViewports();
-				}
 			}
+		}
+
+		if(GEditor)
+		{
+			GEditor->RedrawAllViewports();
 		}
 	}
 }
