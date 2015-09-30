@@ -1143,6 +1143,8 @@ FReply
 FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* StaticMesh,
 	FHoudiniGeoPartObject* HoudiniGeoPartObject, int32 MaterialIdx)
 {
+	bool bViewportNeedsUpdate = false;
+
 	for(TArray<UHoudiniAssetComponent*>::TIterator
 		IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 	{
@@ -1153,6 +1155,8 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 		UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 		if(HoudiniAssetComponent)
 		{
+			bool bMaterialRestored = false;
+
 			FString MaterialShopName;
 			if(HoudiniAssetComponent->GetReplacementMaterialShopName(*HoudiniGeoPartObject, MaterialInterface, MaterialShopName))
 			{
@@ -1165,8 +1169,6 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 				}
 			}
 
-			//OnMaterialInterfaceDropped(MaterialInterfaceReplacement, StaticMesh, HoudiniGeoPartObject, MaterialIdx);
-
 			// Replace material on static mesh.
 			StaticMesh->Modify();
 			StaticMesh->Materials[MaterialIdx] = MaterialInterfaceReplacement;
@@ -1176,13 +1178,36 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 			{
 				StaticMeshComponent->Modify();
 				StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterfaceReplacement);
+
+				bMaterialRestored = true;
 			}
 
-			HoudiniAssetComponent->UpdateEditorProperties(false);
+			TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
+			if(HoudiniAssetComponent->LocateInstancedStaticMeshComponents(StaticMesh, InstancedStaticMeshComponents))
+			{
+				for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+				{
+					UInstancedStaticMeshComponent* InstancedStaticMeshComponent 
+						= InstancedStaticMeshComponents[Idx];
+					if(InstancedStaticMeshComponent)
+					{
+						InstancedStaticMeshComponent->Modify();
+						InstancedStaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterfaceReplacement);
+
+						bMaterialRestored = true;
+					}
+				}
+			}
+
+			if(bMaterialRestored)
+			{
+				HoudiniAssetComponent->UpdateEditorProperties(false);
+				bViewportNeedsUpdate = true;
+			}
 		}
 	}
 
-	if(GEditor)
+	if(GEditor && bViewportNeedsUpdate)
 	{
 		GEditor->RedrawAllViewports();
 	}
