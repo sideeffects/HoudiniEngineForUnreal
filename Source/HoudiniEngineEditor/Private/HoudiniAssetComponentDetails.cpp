@@ -1024,8 +1024,6 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 			if(HoudiniAssetComponent)
 			{
-				bool bMaterialUpdated = false;
-
 				// Retrieve material interface which is being replaced.
 				UMaterialInterface* OldMaterialInterface = StaticMesh->Materials[MaterialIdx];
 
@@ -1062,8 +1060,6 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 								}
 							}
 						}
-
-						bMaterialUpdated = true;
 					}
 				}
 
