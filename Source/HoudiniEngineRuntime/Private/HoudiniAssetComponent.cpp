@@ -1798,6 +1798,8 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 		UMaterial* Material = Cast<UMaterial>(ObjectToApply);
 		if(Material)
 		{
+			bool bMaterialReplaced = false;
+
 			TMap<UStaticMesh*, int32> MaterialReplacementsMap;
 
 			// We need to detect which components have material overriden, and replace it on their corresponding
@@ -1834,15 +1836,38 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 					UStaticMesh* StaticMesh = Iter.Key();
 					int32 MaterialIdx = Iter.Value();
 
-					StaticMesh->Modify();
-					StaticMesh->Materials[MaterialIdx] = Material;
+					// Get old material.
+					UMaterialInterface* OldMaterial = StaticMesh->Materials[MaterialIdx];
 
-					StaticMesh->PreEditChange(nullptr);
-					StaticMesh->PostEditChange();
-					StaticMesh->MarkPackageDirty();
+					// Locate geo part object.
+					FHoudiniGeoPartObject HoudiniGeoPartObject = LocateGeoPartObject(StaticMesh);
+					if(HoudiniGeoPartObject.IsValid())
+					{
+						if(ReplaceMaterial(HoudiniGeoPartObject, Material, OldMaterial, MaterialIdx))
+						{
+							bMaterialReplaced = true;
+
+							StaticMesh->Modify();
+							StaticMesh->Materials[MaterialIdx] = Material;
+
+							UStaticMeshComponent* StaticMeshComponent = LocateStaticMeshComponent(StaticMesh);
+							if(StaticMeshComponent)
+							{
+								StaticMeshComponent->Modify();
+								StaticMeshComponent->SetMaterial(MaterialIdx, Material);
+							}
+
+							StaticMesh->PreEditChange(nullptr);
+							StaticMesh->PostEditChange();
+							StaticMesh->MarkPackageDirty();
+						}
+					}
 				}
 
-				UpdateEditorProperties(false);
+				if(bMaterialReplaced)
+				{
+					UpdateEditorProperties(false);
+				}
 			}
 		}
 	}
