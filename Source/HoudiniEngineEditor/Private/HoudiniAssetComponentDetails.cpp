@@ -1017,6 +1017,8 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 	UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(InObject);
 	if(MaterialInterface)
 	{
+		bool bViewportNeedsUpdate = false;
+
 		// Replace material on component using this static mesh.
 		for(TArray<UHoudiniAssetComponent*>::TIterator
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
@@ -1024,6 +1026,8 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 			UHoudiniAssetComponent* HoudiniAssetComponent = *IterComponents;
 			if(HoudiniAssetComponent)
 			{
+				bool bMaterialReplaced = false;
+
 				// Retrieve material interface which is being replaced.
 				UMaterialInterface* OldMaterialInterface = StaticMesh->Materials[MaterialIdx];
 
@@ -1044,6 +1048,8 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 						{
 							StaticMeshComponent->Modify();
 							StaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
+
+							bMaterialReplaced = true;
 						}
 						
 						TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
@@ -1057,17 +1063,23 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 								{
 									InstancedStaticMeshComponent->Modify();
 									InstancedStaticMeshComponent->SetMaterial(MaterialIdx, MaterialInterface);
+
+									bMaterialReplaced = true;
 								}
 							}
 						}
 					}
 				}
 
-				HoudiniAssetComponent->UpdateEditorProperties(false);
+				if(bMaterialReplaced)
+				{
+					HoudiniAssetComponent->UpdateEditorProperties(false);
+					bViewportNeedsUpdate = true;
+				}
 			}
 		}
 
-		if(GEditor)
+		if(GEditor && bViewportNeedsUpdate)
 		{
 			GEditor->RedrawAllViewports();
 		}
