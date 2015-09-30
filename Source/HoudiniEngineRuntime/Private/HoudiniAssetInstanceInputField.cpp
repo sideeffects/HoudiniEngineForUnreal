@@ -519,3 +519,40 @@ UHoudiniAssetInstanceInputField::RecreatePhysicsState()
 		InstancedStaticMeshComponents[Idx]->RecreatePhysicsState();
 	}
 }
+
+
+bool
+UHoudiniAssetInstanceInputField::GetMaterialReplacementMeshes(UMaterialInterface* Material,
+	TMap<UStaticMesh*, int32>& MaterialReplacementsMap)
+{
+	bool bResult = false;
+
+	for(int32 Idx = 0; Idx < StaticMeshes.Num(); ++Idx)
+	{
+		UStaticMesh* StaticMesh = StaticMeshes[Idx];
+		if(StaticMesh && StaticMesh == OriginalStaticMesh)
+		{
+			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+			if(InstancedStaticMeshComponent)
+			{
+				const TArray<class UMaterialInterface*>& OverrideMaterials 
+					= InstancedStaticMeshComponent->OverrideMaterials;
+				for(int32 MaterialIdx = 0; MaterialIdx < OverrideMaterials.Num(); ++MaterialIdx)
+				{
+					UMaterialInterface* OverridenMaterial = OverrideMaterials[MaterialIdx];
+					if(OverridenMaterial && OverridenMaterial == Material)
+					{
+						if(MaterialIdx < StaticMesh->Materials.Num())
+						{
+							MaterialReplacementsMap.Add(StaticMesh, MaterialIdx);
+							bResult = true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return bResult;
+}
+

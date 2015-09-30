@@ -1826,6 +1826,15 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 				}
 			}
 
+			for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator Iter(InstanceInputs); Iter; ++Iter)
+			{
+				UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = Iter.Value();
+				if(HoudiniAssetInstanceInput)
+				{
+					HoudiniAssetInstanceInput->GetMaterialReplacementMeshes(Material, MaterialReplacementsMap);
+				}
+			}
+
 			if(MaterialReplacementsMap.Num() > 0)
 			{
 				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME), 
@@ -1845,21 +1854,38 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 					{
 						if(ReplaceMaterial(HoudiniGeoPartObject, Material, OldMaterial, MaterialIdx))
 						{
-							bMaterialReplaced = true;
-
 							StaticMesh->Modify();
 							StaticMesh->Materials[MaterialIdx] = Material;
+
+							StaticMesh->PreEditChange(nullptr);
+							StaticMesh->PostEditChange();
+							StaticMesh->MarkPackageDirty();
 
 							UStaticMeshComponent* StaticMeshComponent = LocateStaticMeshComponent(StaticMesh);
 							if(StaticMeshComponent)
 							{
 								StaticMeshComponent->Modify();
 								StaticMeshComponent->SetMaterial(MaterialIdx, Material);
+
+								bMaterialReplaced = true;
 							}
 
-							StaticMesh->PreEditChange(nullptr);
-							StaticMesh->PostEditChange();
-							StaticMesh->MarkPackageDirty();
+							TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
+							if(LocateInstancedStaticMeshComponents(StaticMesh, InstancedStaticMeshComponents))
+							{
+								for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+								{
+									UInstancedStaticMeshComponent* InstancedStaticMeshComponent 
+										= InstancedStaticMeshComponents[Idx];
+									if(InstancedStaticMeshComponent)
+									{
+										InstancedStaticMeshComponent->Modify();
+										InstancedStaticMeshComponent->SetMaterial(MaterialIdx, Material);
+
+										bMaterialReplaced = true;
+									}
+								}
+							}
 						}
 					}
 				}
@@ -3515,23 +3541,6 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(UStaticMesh* StaticM
 	}
 
 	return bResult;
-}
-
-
-void
-UHoudiniAssetComponent::UpdateInstancedStaticMeshComponentMaterial(UStaticMesh* StaticMesh, int32 MaterialIdx,
-	UMaterialInterface* MaterialInterface)
-{
-	// Go through all instance inputs.
-	for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator
-		IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
-	{
-		UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = IterInstanceInputs.Value();
-		if(HoudiniAssetInstanceInput)
-		{
-			HoudiniAssetInstanceInput->UpdateStaticMeshMaterial(StaticMesh, MaterialIdx, MaterialInterface);
-		}
-	}
 }
 
 
