@@ -2126,7 +2126,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	FHoudiniEngineUtils::HapiCreateMaterials(HoudiniAssetComponent, AssetInfo, UniqueMaterialIds, Materials);
 
 	// Cache all materials inside the component.
-	HoudiniAssetComponent->MaterialAssignments = Materials;
+	HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments = Materials;
 
 	// If we have no package, we will use transient package.
 	if(!Package)
@@ -3526,7 +3526,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 	HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
 
-	const TMap<FString, UMaterial*>& CachedMaterials = HoudiniAssetComponent->MaterialAssignments;
+	const TMap<FString, UMaterial*>& CachedMaterials = 
+		HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments;
+
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
 	// Update context for generated materials (will trigger when object goes out of scope).
