@@ -40,6 +40,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
+#include "HoudiniAssetComponentMaterials.h"
 
 
 // Macro to update given property on all components.
@@ -81,6 +82,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
 	PreviousTransactionHoudiniAsset(nullptr),
+	HoudiniAssetComponentMaterials(nullptr),
 #if WITH_EDITOR
 
 	CopiedHoudiniComponent(nullptr),
@@ -236,14 +238,6 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(HoudiniSplineComponent, InThis);
 		}
 
-		// Add references to all cached materials.
-		for(TMap<FString, UMaterial*>::TIterator
-			Iter(HoudiniAssetComponent->MaterialAssignments); Iter; ++Iter)
-		{
-			UMaterial* Material = Iter.Value();
-			Collector.AddReferencedObject(Material, InThis);
-		}
-
 		// Retrieve asset associated with this component and add reference to it.
 		// Also do not add reference if it is being referenced by preview component.
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
@@ -253,21 +247,10 @@ UHoudiniAssetComponent::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 			Collector.AddReferencedObject(HoudiniAsset, InThis);
 		}
 
-		// Add references for replaced materials.
-		for(TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >::TIterator
-			Iter(HoudiniAssetComponent->MaterialReplacements); Iter; ++Iter)
+		// Add reference to material replacements.
+		if(HoudiniAssetComponent->HoudiniAssetComponentMaterials)
 		{
-			TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = Iter.Value();
-
-			for(TMap<FString, UMaterialInterface*>::TIterator
-				IterInterfaces(MaterialReplacementsValues); IterInterfaces; ++IterInterfaces)
-			{
-				UMaterialInterface* MaterialInterface = IterInterfaces.Value();
-				if(MaterialInterface)
-				{
-					Collector.AddReferencedObject(MaterialInterface, InThis);
-				}
-			}
+			Collector.AddReferencedObject(HoudiniAssetComponent->HoudiniAssetComponentMaterials, InThis);
 		}
 	}
 
@@ -324,6 +307,16 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	AHoudiniAssetActor* HoudiniAssetActor = Cast<AHoudiniAssetActor>(GetOwner());
 
 	HoudiniAsset = InHoudiniAsset;
+
+	// Create material tracking.
+	if(HoudiniAssetComponentMaterials)
+	{
+		HoudiniAssetComponentMaterials->ConditionalBeginDestroy();
+	}
+
+	HoudiniAssetComponentMaterials = 
+		NewObject<UHoudiniAssetComponentMaterials>(this, UHoudiniAssetComponentMaterials::StaticClass(),
+			NAME_None, RF_Transactional);
 
 	if(!bIsNativeComponent)
 	{
@@ -1778,6 +1771,10 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 			}
 		}
 
+		// Copy material information.
+		HoudiniAssetComponentMaterials = 
+			DuplicateObject<UHoudiniAssetComponentMaterials>(CopiedHoudiniComponent->HoudiniAssetComponentMaterials, this);
+
 		// Perform any necessary post loading.
 		PostLoad();
 
@@ -2377,8 +2374,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	SerializeInputs(Ar);
 
 	// Serialize material replacements and material assignments.
-	Ar << MaterialAssignments;
-	Ar << MaterialReplacements;
+	Ar << HoudiniAssetComponentMaterials;
 
 	// Serialize geo parts and generated static meshes.
 	Ar << StaticMeshes;
@@ -3753,14 +3749,20 @@ UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& Houd
 {
 	UMaterialInterface* ReplacementMaterial = nullptr;
 
-	if(MaterialReplacements.Contains(HoudiniGeoPartObject))
+	if(HoudiniAssetComponentMaterials)
 	{
-		TMap<FString, UMaterialInterface*>& FoundReplacements = MaterialReplacements[HoudiniGeoPartObject];
+		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+			HoudiniAssetComponentMaterials->Replacements;
 
-		UMaterialInterface* const* FoundReplacementMaterial = FoundReplacements.Find(MaterialName);
-		if(FoundReplacementMaterial)
+		if(MaterialReplacements.Contains(HoudiniGeoPartObject))
 		{
-			ReplacementMaterial = *FoundReplacementMaterial;
+			TMap<FString, UMaterialInterface*>& FoundReplacements = MaterialReplacements[HoudiniGeoPartObject];
+
+			UMaterialInterface* const* FoundReplacementMaterial = FoundReplacements.Find(MaterialName);
+			if(FoundReplacementMaterial)
+			{
+				ReplacementMaterial = *FoundReplacementMaterial;
+			}
 		}
 	}
 
@@ -3772,15 +3774,21 @@ bool
 UHoudiniAssetComponent::GetReplacementMaterialShopName(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
 	UMaterialInterface* MaterialInterface, FString& MaterialName)
 {
-	if(MaterialReplacements.Contains(HoudiniGeoPartObject))
+	if(HoudiniAssetComponentMaterials)
 	{
-		TMap<FString, UMaterialInterface*>& FoundReplacements = MaterialReplacements[HoudiniGeoPartObject];
+		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+			HoudiniAssetComponentMaterials->Replacements;
 
-		const FString* FoundMaterialShopName = FoundReplacements.FindKey(MaterialInterface);
-		if(FoundMaterialShopName)
+		if(MaterialReplacements.Contains(HoudiniGeoPartObject))
 		{
-			MaterialName = *FoundMaterialShopName;
-			return true;
+			TMap<FString, UMaterialInterface*>& FoundReplacements = MaterialReplacements[HoudiniGeoPartObject];
+
+			const FString* FoundMaterialShopName = FoundReplacements.FindKey(MaterialInterface);
+			if(FoundMaterialShopName)
+			{
+				MaterialName = *FoundMaterialShopName;
+				return true;
+			}
 		}
 	}
 
@@ -3793,10 +3801,15 @@ UHoudiniAssetComponent::GetAssignmentMaterial(const FString& MaterialName)
 {
 	UMaterial* Material = nullptr;
 
-	UMaterial* const* FoundMaterial = MaterialAssignments.Find(MaterialName);
-	if(FoundMaterial)
+	if(HoudiniAssetComponentMaterials)
 	{
-		Material = *FoundMaterial;
+		TMap<FString, UMaterial*>& MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
+
+		UMaterial* const* FoundMaterial = MaterialAssignments.Find(MaterialName);
+		if(FoundMaterial)
+		{
+			Material = *FoundMaterial;
+		}
 	}
 
 	return Material;
@@ -3807,6 +3820,11 @@ bool
 UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
 	UMaterialInterface* NewMaterialInterface, UMaterialInterface* OldMaterialInterface, int32 MaterialIndex)
 {
+	if(!HoudiniAssetComponentMaterials)
+	{
+		return false;
+	}
+
 	UStaticMesh* StaticMesh = LocateStaticMesh(HoudiniGeoPartObject);
 	if(!StaticMesh)
 	{
@@ -3822,6 +3840,11 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 			return false;
 		}
 	}
+
+	TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+		HoudiniAssetComponentMaterials->Replacements;
+
+	TMap<FString, UMaterial*>& MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
 
 	UMaterial* DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
@@ -3879,9 +3902,16 @@ void
 UHoudiniAssetComponent::RemoveReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
 	const FString& MaterialName)
 {
-	if(MaterialReplacements.Contains(HoudiniGeoPartObject))
+	if(HoudiniAssetComponentMaterials)
 	{
-		TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = MaterialReplacements[HoudiniGeoPartObject];
-		MaterialReplacementsValues.Remove(MaterialName);
+		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+			HoudiniAssetComponentMaterials->Replacements;
+
+		if(MaterialReplacements.Contains(HoudiniGeoPartObject))
+		{
+			TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = MaterialReplacements[HoudiniGeoPartObject];
+			MaterialReplacementsValues.Remove(MaterialName);
+		}
 	}
 }
+
