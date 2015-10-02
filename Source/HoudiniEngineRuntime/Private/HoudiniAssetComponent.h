@@ -38,6 +38,7 @@ class UHoudiniAssetParameter;
 class UHoudiniHandleComponent;
 class UHoudiniSplineComponent;
 class UHoudiniAssetInstanceInput;
+class UHoudiniAssetComponentMaterials;
 class UFoliageType_InstancedStaticMesh;
 
 struct FTransform;
@@ -522,10 +523,7 @@ protected:
 	TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*> SplineComponents;
 
 	/** Material assignments. **/
-	TMap<FString, UMaterial*> MaterialAssignments;
-
-	/** Material replacements. **/
-	TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> > MaterialReplacements;
+	UHoudiniAssetComponentMaterials* HoudiniAssetComponentMaterials;
 
 	/** Buffer to hold preset data for serialization purposes. Used only during serialization. **/
 	TArray<char> PresetBuffer;
