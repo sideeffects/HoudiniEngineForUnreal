@@ -218,7 +218,7 @@ FHoudiniEngine::StartupModule()
 			if (HoudiniRuntimeSettings->bStartAutomaticServer)
 			{
 				FHoudiniApi::StartThriftSocketServer(
-					true,
+					HAPI_START_SERVER_AUTO_CLOSE,
 					HoudiniRuntimeSettings->ServerPort,
 					HoudiniRuntimeSettings->AutomaticServerTimeout,
 					NULL
@@ -236,7 +236,7 @@ FHoudiniEngine::StartupModule()
 			if (HoudiniRuntimeSettings->bStartAutomaticServer)
 			{
 				FHoudiniApi::StartThriftNamedPipeServer(
-					true,
+					HAPI_START_SERVER_AUTO_CLOSE,
 					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName),
 					HoudiniRuntimeSettings->AutomaticServerTimeout,
 					NULL

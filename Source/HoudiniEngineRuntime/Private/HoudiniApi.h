@@ -27,13 +27,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
 
-	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(HAPI_Bool auto_close, int port, float timeout_ms, HAPI_ProcessId * process_id);
+	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(HAPI_StartServerFlags flags, int port, float timeout_ms, HAPI_ProcessId * process_id);
 	static StartThriftSocketServerFuncPtr StartThriftSocketServer;
 
 	typedef HAPI_Result (*CreateThriftSocketSessionFuncPtr)(HAPI_Session * session, const char * host_name, int port);
 	static CreateThriftSocketSessionFuncPtr CreateThriftSocketSession;
 
-	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(HAPI_Bool auto_close, const char * pipe_name, float timeout_ms, HAPI_ProcessId * process_id);
+	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(HAPI_StartServerFlags flags, const char * pipe_name, float timeout_ms, HAPI_ProcessId * process_id);
 	static StartThriftNamedPipeServerFuncPtr StartThriftNamedPipeServer;
 
 	typedef HAPI_Result (*CreateThriftNamedPipeSessionFuncPtr)(HAPI_Session * session, const char * pipe_name);
