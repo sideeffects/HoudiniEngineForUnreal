@@ -54,7 +54,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*IsInitializedFuncPtr)(const HAPI_Session * session);
 	static IsInitializedFuncPtr IsInitialized;
 
-	typedef HAPI_Result (*InitializeFuncPtr)(const HAPI_Session * session, const HAPI_CookOptions * cook_options, HAPI_Bool use_cooking_thread, int cooking_thread_stack_size, const char * otl_search_path, const char * dso_search_path, const char * image_dso_search_path, const char * audio_dso_search_path);
+	typedef HAPI_Result (*InitializeFuncPtr)(const HAPI_Session * session, const HAPI_CookOptions * cook_options, HAPI_Bool use_cooking_thread, int cooking_thread_stack_size, const char * houdini_environment_files, const char * otl_search_path, const char * dso_search_path, const char * image_dso_search_path, const char * audio_dso_search_path);
 	static InitializeFuncPtr Initialize;
 
 	typedef HAPI_Result (*CleanupFuncPtr)(const HAPI_Session * session);

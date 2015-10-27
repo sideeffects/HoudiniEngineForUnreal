@@ -279,7 +279,7 @@ FHoudiniEngine::StartupModule()
 			CookOptions.splitGeosByGroup = false;
 			CookOptions.refineCurveToLinear = true;
 
-			HAPI_Result Result = FHoudiniApi::Initialize(SessionPtr, &CookOptions, true, -1, "", "", "", "");
+			HAPI_Result Result = FHoudiniApi::Initialize(SessionPtr, &CookOptions, true, -1, "", "", "", "", "");
 			if(HAPI_RESULT_SUCCESS == Result)
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("Successfully intialized the Houdini Engine API module."));
