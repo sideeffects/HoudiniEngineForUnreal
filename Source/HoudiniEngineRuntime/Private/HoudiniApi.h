@@ -75,6 +75,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetStatusStringFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, char * string_value, int length);
 	static GetStatusStringFuncPtr GetStatusString;
 
+	typedef HAPI_Result (*ComposeNodeCookResultFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_StatusVerbosity verbosity, int * buffer_length);
+	static ComposeNodeCookResultFuncPtr ComposeNodeCookResult;
+
+	typedef HAPI_Result (*GetComposedNodeCookResultFuncPtr)(const HAPI_Session * session, char * string_value, int length);
+	static GetComposedNodeCookResultFuncPtr GetComposedNodeCookResult;
+
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(const HAPI_Session * session, int * count);
 	static GetCookingTotalCountFuncPtr GetCookingTotalCount;
 
@@ -297,7 +303,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetAttributeInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info);
 	static GetAttributeInfoFuncPtr GetAttributeInfo;
 
-	typedef HAPI_Result (*GetAttributeNamesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle *attribute_names_array, int count);
+	typedef HAPI_Result (*GetAttributeNamesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle * attribute_names_array, int count);
 	static GetAttributeNamesFuncPtr GetAttributeNames;
 
 	typedef HAPI_Result (*GetAttributeIntDataFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length);

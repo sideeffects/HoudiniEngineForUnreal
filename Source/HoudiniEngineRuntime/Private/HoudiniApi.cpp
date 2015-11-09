@@ -69,6 +69,12 @@ FHoudiniApi::GetStatusStringBufLength = nullptr;
 FHoudiniApi::GetStatusStringFuncPtr
 FHoudiniApi::GetStatusString = nullptr;
 
+FHoudiniApi::ComposeNodeCookResultFuncPtr
+FHoudiniApi::ComposeNodeCookResult = nullptr;
+
+FHoudiniApi::GetComposedNodeCookResultFuncPtr
+FHoudiniApi::GetComposedNodeCookResult = nullptr;
+
 FHoudiniApi::GetCookingTotalCountFuncPtr
 FHoudiniApi::GetCookingTotalCount = nullptr;
 
@@ -506,6 +512,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetStatus = (GetStatusFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatus"));
 	FHoudiniApi::GetStatusStringBufLength = (GetStatusStringBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusStringBufLength"));
 	FHoudiniApi::GetStatusString = (GetStatusStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusString"));
+	FHoudiniApi::ComposeNodeCookResult = (ComposeNodeCookResultFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeNodeCookResult"));
+	FHoudiniApi::GetComposedNodeCookResult = (GetComposedNodeCookResultFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetComposedNodeCookResult"));
 	FHoudiniApi::GetCookingTotalCount = (GetCookingTotalCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingTotalCount"));
 	FHoudiniApi::GetCookingCurrentCount = (GetCookingCurrentCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingCurrentCount"));
 	FHoudiniApi::ConvertTransform = (ConvertTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConvertTransform"));
@@ -667,6 +675,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetStatus = nullptr;
 	FHoudiniApi::GetStatusStringBufLength = nullptr;
 	FHoudiniApi::GetStatusString = nullptr;
+	FHoudiniApi::ComposeNodeCookResult = nullptr;
+	FHoudiniApi::GetComposedNodeCookResult = nullptr;
 	FHoudiniApi::GetCookingTotalCount = nullptr;
 	FHoudiniApi::GetCookingCurrentCount = nullptr;
 	FHoudiniApi::ConvertTransform = nullptr;
