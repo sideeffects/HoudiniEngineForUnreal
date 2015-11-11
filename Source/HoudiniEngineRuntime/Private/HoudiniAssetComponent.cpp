@@ -2995,7 +2995,9 @@ UHoudiniAssetComponent::CreateParameters()
 				case HAPI_PARMTYPE_PATH_FILE_IMAGE:
 				case HAPI_PARMTYPE_PATH_NODE:
 				{
-					continue;
+					HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, nullptr, AssetInfo.nodeId,
+						ParmInfo);
+					break;
 				}
 
 				default:
