@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRuntimeSettings.h"
+#include "HoudiniEngineUtils.h"
 
 
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& ObjectInitializer) :

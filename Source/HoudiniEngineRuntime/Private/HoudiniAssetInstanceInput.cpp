@@ -18,6 +18,7 @@
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInputField.h"
+#include "HoudiniEngine.h"
 #include "HoudiniApi.h"
 
 

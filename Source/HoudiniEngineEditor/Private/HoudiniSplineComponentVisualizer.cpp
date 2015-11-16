@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniSplineComponentVisualizer.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
 
 

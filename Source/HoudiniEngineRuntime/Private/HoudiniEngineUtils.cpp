@@ -19,6 +19,9 @@
 #include "HoudiniApi.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngine.h"
+#include "HoudiniAssetComponentMaterials.h"
+#include "HoudiniAsset.h"
 
 
 const FString kResultStringSuccess(TEXT("Success"));

@@ -19,6 +19,7 @@
 #include "HoudiniEngineScheduler.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
+#include "HoudiniEngineUtils.h"
 
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
