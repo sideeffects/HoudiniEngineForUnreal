@@ -15,6 +15,10 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniAssetThumbnailRenderer.h"
+#include "HoudiniApi.h"
+#include "HoudiniAsset.h"
 #include "HoudiniEngine.h"
 
 #include "HoudiniAssetComponent.h"

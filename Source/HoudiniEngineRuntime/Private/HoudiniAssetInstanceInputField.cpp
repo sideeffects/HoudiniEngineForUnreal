@@ -15,6 +15,8 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetInstanceInputField.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniEngineUtils.h"
 
 
 bool

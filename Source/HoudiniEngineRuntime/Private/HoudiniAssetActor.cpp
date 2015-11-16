@@ -18,6 +18,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniApi.h"
 
 
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializer) :

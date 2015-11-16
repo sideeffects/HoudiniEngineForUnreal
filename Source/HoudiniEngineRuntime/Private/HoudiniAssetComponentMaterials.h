@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetComponentMaterials.generated.h"
 
 

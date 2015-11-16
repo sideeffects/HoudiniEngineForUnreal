@@ -16,7 +16,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
-
+#include "HoudiniEngine.h"
 
 uint32
 GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject)

@@ -16,6 +16,8 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetParameterString.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniEngine.h"
 #include "HoudiniApi.h"
 
 

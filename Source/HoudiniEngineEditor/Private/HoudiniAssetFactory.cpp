@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetFactory.h"
+#include "HoudiniAsset.h"
 
 
 UHoudiniAssetFactory::UHoudiniAssetFactory(const FObjectInitializer& ObjectInitializer) :

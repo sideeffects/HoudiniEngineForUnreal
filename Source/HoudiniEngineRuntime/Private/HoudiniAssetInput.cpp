@@ -19,6 +19,11 @@
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniAssetParameterInt.h"
+#include "HoudiniAssetParameterChoice.h"
+#include "HoudiniAssetParameterToggle.h"
+#include "HoudiniEngine.h"
+#include "HoudiniAssetActor.h"
 #include "HoudiniApi.h"
 
 
