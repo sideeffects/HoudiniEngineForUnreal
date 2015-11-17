@@ -48,6 +48,8 @@
 #include "RawMesh.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "IPluginManager.h"
+#include "DesktopPlatformModule.h"
+#include "TargetPlatform.h"
 #endif
 
 /** Other Unreal headers. **/
@@ -64,7 +66,6 @@
 #include "Core.h"
 #include "AssetData.h"
 #include "AssetRegistryModule.h"
-#include "DesktopPlatformModule.h"
 #include "HitProxies.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -76,7 +77,6 @@
 #include "Materials/MaterialExpressionConstant4Vector.h"
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
-#include "TargetPlatform.h"
 
 /** Houdini Engine headers. **/
 #include <vector>
