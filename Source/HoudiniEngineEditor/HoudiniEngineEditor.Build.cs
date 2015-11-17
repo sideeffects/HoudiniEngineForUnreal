@@ -29,6 +29,7 @@ public class HoudiniEngineEditor : ModuleRules
 {
 	public HoudiniEngineEditor( TargetInfo Target )
 	{
+		bool bIsRelease = false;
 		string HFSPath = "";
 		string HoudiniVersion = "15.5.68";
 
@@ -41,32 +42,50 @@ public class HoudiniEngineEditor : ModuleRules
 			throw new BuildException( Err );
 		}
 
-		if( HFSPath == "" )
+		if( bIsRelease )
 		{
 			if( Target.Platform == UnrealTargetPlatform.Win64 )
 			{
 				// We first check if Houdini Engine is installed.
-				HFSPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
-				if( !Directory.Exists( HFSPath ) )
+				string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
+				if( !Directory.Exists( HPath ) )
 				{
 					// If Houdini Engine is not installed, we check for Houdini installation.
-					HFSPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
-					if( !Directory.Exists( HFSPath ) )
+					HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
+					if( !Directory.Exists( HPath ) )
 					{
-						string Err = string.Format( "Houdini Engine Runtime: Please install Houdini or Houdini Engine {0}", HoudiniVersion );
-						System.Console.WriteLine( Err );
-						throw new BuildException( Err );
+						if ( !Directory.Exists( HFSPath ) )
+						{
+							string Err = string.Format( "Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion );
+							System.Console.WriteLine( Err );
+							throw new BuildException( Err );
+						}
 					}
+					else
+					{
+						HFSPath = HPath;
+					}
+				}
+				else
+				{
+					HFSPath = HPath;
 				}
 			}
 			else if( Target.Platform == UnrealTargetPlatform.Mac )
 			{
-				HFSPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion + "/Resources";
-				if( !Directory.Exists( HFSPath ) )
+				string HPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion + "/Resources";
+				if( !Directory.Exists( HPath ) )
 				{
-					string Err = string.Format( "Houdini Engine Runtime: Please install Houdini {0}", HoudiniVersion );
-					System.Console.WriteLine( Err );
-					throw new BuildException( Err );
+					if ( !Directory.Exists( HFSPath ) )
+					{
+						string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
+						System.Console.WriteLine( Err );
+						throw new BuildException( Err );
+					}
+				}
+				else
+				{
+					HFSPath = HPath;
 				}
 			}
 		}
