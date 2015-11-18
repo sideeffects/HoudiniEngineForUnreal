@@ -1330,10 +1330,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	HAPI_PartInfo Part;
 	Part.id = 0;
 	Part.nameSH = 0;
-	Part.pointAttributeCount = 0;
-	Part.faceAttributeCount = 0;
-	Part.vertexAttributeCount = 0;
-	Part.detailAttributeCount = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_PRIM ] = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_VERTEX ] = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_DETAIL ] = 0;
 	Part.vertexCount = RawMesh.WedgeIndices.Num();
 	Part.faceCount =  RawMesh.WedgeIndices.Num() / 3;
 	Part.pointCount = RawMesh.VertexPositions.Num();
