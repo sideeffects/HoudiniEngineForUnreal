@@ -278,7 +278,13 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Various session related settings. **/
 #define HAPI_UNREAL_SESSION_SERVER_HOST						TEXT("localhost")
 #define HAPI_UNREAL_SESSION_SERVER_PORT						9090
+
+#if PLATFORM_MAC
+#define HAPI_UNREAL_SESSION_SERVER_PIPENAME					TEXT("/tmp/hapi")
+#else
 #define HAPI_UNREAL_SESSION_SERVER_PIPENAME					TEXT("hapi")
+#endif
+
 #define HAPI_UNREAL_SESSION_SERVER_AUTOSTART				false
 #define HAPI_UNREAL_SESSION_SERVER_TIMEOUT					3000.0f
 
