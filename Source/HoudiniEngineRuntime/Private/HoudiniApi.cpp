@@ -468,6 +468,9 @@ FHoudiniApi::SetCurveOrders = nullptr;
 FHoudiniApi::SetCurveKnotsFuncPtr
 FHoudiniApi::SetCurveKnots = nullptr;
 
+FHoudiniApi::GetBoxInfoFuncPtr
+FHoudiniApi::GetBoxInfo = nullptr;
+
 FHoudiniApi::SaveGeoToFileFuncPtr
 FHoudiniApi::SaveGeoToFile = nullptr;
 
@@ -645,6 +648,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetCurveCounts = (SetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveCounts"));
 	FHoudiniApi::SetCurveOrders = (SetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrders"));
 	FHoudiniApi::SetCurveKnots = (SetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnots"));
+	FHoudiniApi::GetBoxInfo = (GetBoxInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetBoxInfo"));
 	FHoudiniApi::SaveGeoToFile = (SaveGeoToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToFile"));
 	FHoudiniApi::LoadGeoFromFile = (LoadGeoFromFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromFile"));
 	FHoudiniApi::GetGeoSize = (GetGeoSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSize"));
@@ -808,6 +812,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetCurveCounts = nullptr;
 	FHoudiniApi::SetCurveOrders = nullptr;
 	FHoudiniApi::SetCurveKnots = nullptr;
+	FHoudiniApi::GetBoxInfo = nullptr;
 	FHoudiniApi::SaveGeoToFile = nullptr;
 	FHoudiniApi::LoadGeoFromFile = nullptr;
 	FHoudiniApi::GetGeoSize = nullptr;
