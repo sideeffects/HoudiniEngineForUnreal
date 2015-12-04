@@ -1312,11 +1312,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+	int32 GeneratedLightMapResolution = 32;
 
 	if(HoudiniRuntimeSettings)
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
 		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+		GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
 	}
 
 	// Grab base LOD level.
@@ -1646,6 +1648,33 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
 			MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks,
 			(const int32*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
+	}
+
+	// Marshall lightmap resolution.
+	if(StaticMesh->LightMapResolution != GeneratedLightMapResolution)
+	{
+		std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION;
+		if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution,
+				MarshallingAttributeName);
+		}
+
+		TArray<int32> LightMapResolutions;
+		LightMapResolutions.Add(StaticMesh->LightMapResolution);
+
+		HAPI_AttributeInfo AttributeInfoLightMapResolution;
+		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
+		AttributeInfoLightMapResolution.tupleSize = 1;
+		AttributeInfoLightMapResolution.exists = true;
+		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
+		AttributeInfoLightMapResolution.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfoLightMapResolution.originalOwner = HAPI_ATTROWNER_INVALID;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
+			MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+			MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution,
+			(const int32*) LightMapResolutions.GetData(), 0, LightMapResolutions.Num()), false);
 	}
 
 	// Commit the geo.
@@ -2123,6 +2152,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	TArray<float> Colors;
 	TArray<FString> FaceMaterials;
 	TArray<int32> FaceSmoothingMasks;
+	TArray<int32> LightMapResolutions;
 
 	// Retrieve all used unique material ids.
 	TSet<HAPI_MaterialId> UniqueMaterialIds;
@@ -2637,6 +2667,21 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							}
 
 							break;
+						}
+
+						// Get name of attribute used for marshalling lightmap resolution.
+						HAPI_AttributeInfo AttribLightmapResolution;
+
+						{
+							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION;
+							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution.IsEmpty())
+							{
+								FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution,
+									MarshallingAttributeName);
+							}
+
+							FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
+								MarshallingAttributeName.c_str(), AttribLightmapResolution, LightMapResolutions);
 						}
 
 						// Get name of attribute used for marshalling materials.
@@ -3204,6 +3249,16 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					// Assign generation parameters for this static mesh.
 					HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
 
+					// If we have an override for lightmap resolution.
+					if(LightMapResolutions.Num() > 0)
+					{
+						int32 LightMapResolutionOverride = LightMapResolutions[0];
+						if(LightMapResolutionOverride > 0)
+						{
+							StaticMesh->LightMapResolution = LightMapResolutionOverride;
+						}
+					}
+
 					// See if we need to enable collisions.
 					if(HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
 					{
@@ -3471,6 +3526,12 @@ FHoudiniEngineUtils::BakeStaticMesh(UHoudiniAssetComponent* HoudiniAssetComponen
 
 	// Assign generation parameters for this static mesh.
 	HoudiniAssetComponent->SetStaticMeshGenerationParameters(StaticMesh);
+
+	// Copy custom lightmap resolution if it is set.
+	if(InStaticMesh->LightMapResolution != StaticMesh->LightMapResolution)
+	{
+		StaticMesh->LightMapResolution = InStaticMesh->LightMapResolution;
+	}
 
 	if(HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
 	{
