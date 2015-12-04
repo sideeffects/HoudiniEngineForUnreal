@@ -208,11 +208,12 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** HAPI related attribute definitions. **/
 
-/** Names of attributes used for marshalling Unreal data into Houdini Engine. **/
+/** Names of attributes used for data exchange between Unreal and Houdini Engine. **/
 #define HAPI_UNREAL_ATTRIB_TANGENT						"unreal_tangent"
 #define HAPI_UNREAL_ATTRIB_BINORMAL						"unreal_binormal"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
+#define HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION			"unreal_lightmap_resolution"
 
 /** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"

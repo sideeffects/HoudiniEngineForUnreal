@@ -188,6 +188,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryMarshalling)
 	FString MarshallingAttributeFaceSmoothingMask;
 
+	// Name of attribute used for marshalling light map resolution.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
+	FString MarshallingAttributeLightmapResolution;
+
 /** Geometry scaling. **/
 public:
 
