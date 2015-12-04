@@ -44,6 +44,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	MarshallingAttributeBinormal(TEXT(HAPI_UNREAL_ATTRIB_BINORMAL)),
 	MarshallingAttributeMaterial(TEXT(HAPI_UNREAL_ATTRIB_MATERIAL)),
 	MarshallingAttributeFaceSmoothingMask(TEXT(HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK)),
+	MarshallingAttributeLightmapResolution(TEXT(HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION)),
 
 	/** Geometry scaling. **/
 	GeneratedGeometryScaleFactor(50.0f),
