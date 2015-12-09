@@ -89,6 +89,9 @@ public:
 	/** Return true if this object has a custom name. **/
 	bool HasCustomName() const;
 
+	/** Set custom name. **/
+	void SetCustomName(const FString& CustomName);
+
 public:
 
 	/** Get node id for this geo part object. **/

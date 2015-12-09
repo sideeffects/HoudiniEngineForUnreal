@@ -2343,6 +2343,22 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 				// Retrieve part name.
 				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
 
+				// Get name of attribute used for marshalling generated mesh name.
+				HAPI_AttributeInfo AttribGeneratedMeshName;
+				TArray<FString> GeneratedMeshNames;
+
+				{
+					std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME;
+					if(HoudiniRuntimeSettings)
+					{
+						FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeGeneratedMeshName,
+							MarshallingAttributeName);
+					}
+
+					FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+						MarshallingAttributeName.c_str(), AttribGeneratedMeshName, GeneratedMeshNames);
+				}
+
 				// Create geo part object identifier.
 				FHoudiniGeoPartObject HoudiniGeoPartObject(TransformMatrix, ObjectName, PartName, AssetId,
 					ObjectInfo.id, GeoInfo.id, PartInfo.id);
@@ -2352,6 +2368,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 				HoudiniGeoPartObject.bIsCurve = PartInfo.type == HAPI_PARTTYPE_CURVE;
 				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
 				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
+
+				if(AttribGeneratedMeshName.exists && GeneratedMeshNames.Num() > 0)
+				{
+					const FString& CustomPartName = GeneratedMeshNames[0];
+					if(!CustomPartName.IsEmpty())
+					{
+						HoudiniGeoPartObject.SetCustomName(CustomPartName);
+					}
+				}
 
 				// We do not create mesh for instancers.
 				if(ObjectInfo.isInstancer)
