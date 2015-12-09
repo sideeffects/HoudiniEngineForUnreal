@@ -192,6 +192,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
 	FString MarshallingAttributeLightmapResolution;
 
+	// Name of attribute used to set generated mesh name.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
+	FString MarshallingAttributeGeneratedMeshName;
+
 /** Geometry scaling. **/
 public:
 
