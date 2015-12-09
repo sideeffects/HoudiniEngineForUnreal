@@ -86,6 +86,9 @@ public:
 	/** Return true if this object has native Houdini material. **/
 	bool HasNativeHoudiniMaterial() const;
 
+	/** Return true if this object has a custom name. **/
+	bool HasCustomName() const;
+
 public:
 
 	/** Get node id for this geo part object. **/
@@ -165,6 +168,9 @@ public:
 
 			/** Is set to true when referenced object has been loaded during transaction. **/
 			uint32 bIsTransacting : 1;
+
+			/** Is set to true when referenced object has a custom name. **/
+			uint32 bHasCustomName : 1;
 		};
 
 		uint32 HoudiniGeoPartObjectFlagsPacked;
