@@ -85,7 +85,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bHasNativeHoudiniMaterial(false),
 	bHasUnrealMaterialAssigned(false),
 	bNativeHoudiniMaterialRefetch(false),
-	bIsTransacting(false)
+	bIsTransacting(false),
+	bHasCustomName(false)
 {
 
 }
@@ -113,7 +114,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bHasNativeHoudiniMaterial(false),
 	bHasUnrealMaterialAssigned(false),
 	bNativeHoudiniMaterialRefetch(false),
-	bIsTransacting(false)
+	bIsTransacting(false),
+	bHasCustomName(false)
 {
 
 }
@@ -142,7 +144,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bHasNativeHoudiniMaterial(false),
 	bHasUnrealMaterialAssigned(false),
 	bNativeHoudiniMaterialRefetch(false),
-	bIsTransacting(false)
+	bIsTransacting(false),
+	bHasCustomName(false)
 {
 
 }
@@ -169,7 +172,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	bHasNativeHoudiniMaterial(GeoPartObject.bHasNativeHoudiniMaterial),
 	bHasUnrealMaterialAssigned(GeoPartObject.bHasUnrealMaterialAssigned),
 	bNativeHoudiniMaterialRefetch(GeoPartObject.bNativeHoudiniMaterialRefetch),
-	bIsTransacting(GeoPartObject.bIsTransacting)
+	bIsTransacting(GeoPartObject.bIsTransacting),
+	bHasCustomName(GeoPartObject.bHasCustomName)
 {
 	if(bCopyLoaded)
 	{
@@ -368,4 +372,11 @@ bool
 FHoudiniGeoPartObject::HasNativeHoudiniMaterial() const
 {
 	return bHasNativeHoudiniMaterial;
+}
+
+
+bool
+FHoudiniGeoPartObject::HasCustomName() const
+{
+	return bHasCustomName;
 }
