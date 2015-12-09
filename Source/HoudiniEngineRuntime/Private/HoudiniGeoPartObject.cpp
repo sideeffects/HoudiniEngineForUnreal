@@ -380,3 +380,11 @@ FHoudiniGeoPartObject::HasCustomName() const
 {
 	return bHasCustomName;
 }
+
+
+void
+FHoudiniGeoPartObject::SetCustomName(const FString& CustomName)
+{
+	PartName = CustomName;
+	bHasCustomName = true;
+}
