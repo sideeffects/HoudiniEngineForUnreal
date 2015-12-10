@@ -59,6 +59,12 @@ public:
 	/** Return true if this geo part object is a curve. **/
 	bool IsCurve() const;
 
+	/** Return true if this geo part object is a box. **/
+	bool IsBox() const;
+
+	/** Return true if this geo part object is a sphere. **/
+	bool IsSphere() const;
+
 	/** Return true if this geo part object has just been loaded. **/
 	bool IsLoaded() const;
 
@@ -174,6 +180,12 @@ public:
 
 			/** Is set to true when referenced object has a custom name. **/
 			uint32 bHasCustomName : 1;
+
+			/** Is set to true when referenced object is a box. **/
+			uint32 bIsBox : 1;
+
+			/** Is set to true when referenced object is a sphere. **/
+			uint32 bIsSphere : 1;
 		};
 
 		uint32 HoudiniGeoPartObjectFlagsPacked;
