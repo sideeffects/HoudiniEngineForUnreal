@@ -2375,7 +2375,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 				HoudiniGeoPartObject.bIsCurve = (PartInfo.type == HAPI_PARTTYPE_CURVE);
 				HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
 				HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
-				HoudiniGeoPartObject.bIsBox = (PartInfo.type == HAPI_PARTTYPE_BOX);
+				//HoudiniGeoPartObject.bIsBox = (PartInfo.type == HAPI_PARTTYPE_BOX);
 
 				if(AttribGeneratedMeshName.exists && GeneratedMeshNames.Num() > 0)
 				{
