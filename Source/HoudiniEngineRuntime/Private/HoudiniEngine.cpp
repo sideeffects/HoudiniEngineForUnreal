@@ -209,6 +209,12 @@ FHoudiniEngine::StartupModule()
 
 		HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
 
+		HAPI_ThriftServerOptions ServerOptions;
+		ServerOptions.autoClose = true;
+		ServerOptions.serverType = HAPI_THRIFT_SERVER_SIMPLE;
+		ServerOptions.transportType = HAPI_THRIFT_TRANSPORT_BUFFERED;
+		ServerOptions.timeoutMs = HoudiniRuntimeSettings->AutomaticServerTimeout;
+
 		switch ( HoudiniRuntimeSettings->SessionType.GetValue() )
 		{
 		case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
@@ -219,17 +225,17 @@ FHoudiniEngine::StartupModule()
 			if (HoudiniRuntimeSettings->bStartAutomaticServer)
 			{
 				FHoudiniApi::StartThriftSocketServer(
-					HAPI_START_SERVER_AUTO_CLOSE,
+					&ServerOptions,
 					HoudiniRuntimeSettings->ServerPort,
-					HoudiniRuntimeSettings->AutomaticServerTimeout,
-					NULL
+					nullptr
 				);
 			}
 
 			SessionResult = FHoudiniApi::CreateThriftSocketSession(
 				&this->Session,
 				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost),
-				HoudiniRuntimeSettings->ServerPort
+				HoudiniRuntimeSettings->ServerPort,
+				ServerOptions.transportType
 			);
 			break;
 
@@ -237,16 +243,16 @@ FHoudiniEngine::StartupModule()
 			if (HoudiniRuntimeSettings->bStartAutomaticServer)
 			{
 				FHoudiniApi::StartThriftNamedPipeServer(
-					HAPI_START_SERVER_AUTO_CLOSE,
+					&ServerOptions,
 					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName),
-					HoudiniRuntimeSettings->AutomaticServerTimeout,
-					NULL
+					nullptr
 				);
 			}
 
 			SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
 				&this->Session,
-				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
+				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName),
+				ServerOptions.transportType
 			);			
 			break;
 

@@ -27,16 +27,16 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
 
-	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(HAPI_StartServerFlags flags, int port, float timeout_ms, HAPI_ProcessId * process_id);
+	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id);
 	static StartThriftSocketServerFuncPtr StartThriftSocketServer;
 
-	typedef HAPI_Result (*CreateThriftSocketSessionFuncPtr)(HAPI_Session * session, const char * host_name, int port);
+	typedef HAPI_Result (*CreateThriftSocketSessionFuncPtr)(HAPI_Session * session, const char * host_name, int port, HAPI_ThriftTransportType transport_type);
 	static CreateThriftSocketSessionFuncPtr CreateThriftSocketSession;
 
-	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(HAPI_StartServerFlags flags, const char * pipe_name, float timeout_ms, HAPI_ProcessId * process_id);
+	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(const HAPI_ThriftServerOptions * options, const char * pipe_name, HAPI_ProcessId * process_id);
 	static StartThriftNamedPipeServerFuncPtr StartThriftNamedPipeServer;
 
-	typedef HAPI_Result (*CreateThriftNamedPipeSessionFuncPtr)(HAPI_Session * session, const char * pipe_name);
+	typedef HAPI_Result (*CreateThriftNamedPipeSessionFuncPtr)(HAPI_Session * session, const char * pipe_name, HAPI_ThriftTransportType transport_type);
 	static CreateThriftNamedPipeSessionFuncPtr CreateThriftNamedPipeSession;
 
 	typedef HAPI_Result (*BindCustomImplementationFuncPtr)(HAPI_SessionType session_type, const char * dll_path);
