@@ -1739,10 +1739,16 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 
 		// We only want half of generated guid string.
 		FString BakeGUIDString = BakeGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDItemNameLength);
+		FString PartName = TEXT("");
+
+		if(HoudiniGeoPartObject.HasCustomName())
+		{
+			PartName = TEXT("_") + HoudiniGeoPartObject.PartName;
+		}
 
 		if(bBake)
 		{
-			MeshName = HoudiniAsset->GetName() + FString::Printf(TEXT("_bake%d_"), BakeCount) +
+			MeshName = HoudiniAsset->GetName() + PartName + FString::Printf(TEXT("_bake%d_"), BakeCount) +
 				FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
@@ -1755,7 +1761,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 		}
 		else
 		{
-			MeshName = HoudiniAsset->GetName() + TEXT("_") +
+			MeshName = HoudiniAsset->GetName() + PartName + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") +
 				FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
@@ -1765,7 +1771,8 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetCompon
 
 			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) +
 				TEXT("/") +
-				HoudiniAsset->GetName() + 
+				HoudiniAsset->GetName() +
+				PartName + 
 				TEXT("_") + 
 				ComponentGUIDString +
 				TEXT("/") +
