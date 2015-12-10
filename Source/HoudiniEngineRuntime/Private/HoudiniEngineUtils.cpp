@@ -2676,10 +2676,25 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					// Reset Face materials.
 					FaceMaterials.Empty();
 
+					// Attributes we are interested in.
+					HAPI_AttributeInfo AttribInfoPositions;
+					FMemory::Memset<HAPI_AttributeInfo>(AttribInfoPositions, 0);
+					HAPI_AttributeInfo AttribLightmapResolution;
+					FMemory::Memset<HAPI_AttributeInfo>(AttribLightmapResolution, 0);
+					HAPI_AttributeInfo AttribFaceMaterials;
+					FMemory::Memset<HAPI_AttributeInfo>(AttribFaceMaterials, 0);
+					HAPI_AttributeInfo AttribInfoColors;
+					FMemory::Memset<HAPI_AttributeInfo>(AttribInfoColors, 0);
+					HAPI_AttributeInfo AttribInfoNormals;
+					FMemory::Memset<HAPI_AttributeInfo>(AttribInfoNormals, 0);
+					HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
+					FMemory::Memset<HAPI_AttributeInfo>(AttribInfoFaceSmoothingMasks, 0);
+					HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
+					FMemory::Memset(&AttribInfoUVs[0], 0, sizeof(HAPI_AttributeInfo) * MAX_STATIC_TEXCOORDS);
+
 					if(bRebuildStaticMesh)
 					{
 						// Retrieve position data.
-						HAPI_AttributeInfo AttribInfoPositions;
 						if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
 							HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
 						{
@@ -2700,8 +2715,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						}
 
 						// Get name of attribute used for marshalling lightmap resolution.
-						HAPI_AttributeInfo AttribLightmapResolution;
-
 						{
 							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION;
 							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution.IsEmpty())
@@ -2715,8 +2728,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						}
 
 						// Get name of attribute used for marshalling materials.
-						HAPI_AttributeInfo AttribFaceMaterials;
-
 						{
 							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
 							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
@@ -2730,7 +2741,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						}
 
 						// Retrieve color data.
-						HAPI_AttributeInfo AttribInfoColors;
 						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
 							HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
 
@@ -2738,13 +2748,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoColors, Colors);
 
 						// Retrieve normal data.
-						HAPI_AttributeInfo AttribInfoNormals;
 						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
 							HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
 
 						// Retrieve face smoothing data.
-						HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
-
 						{
 							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
 							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
@@ -2764,7 +2771,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							SplitGroupVertexList, AttribInfoNormals, Normals);
 
 						// Retrieve UVs.
-						HAPI_AttributeInfo AttribInfoUVs[MAX_STATIC_TEXCOORDS];
 						for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 						{
 							std::string UVAttributeName = HAPI_ATTRIB_UV;
@@ -3060,6 +3066,11 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					if(FaceMaterials.Num() > 0)
 					{
 						// Material names were marshalled in.
+						if(FaceMaterials.Num() == 1 && (HAPI_ATTROWNER_DETAIL == AttribFaceMaterials.owner))
+						{
+							FString SingleFaceMaterial = FaceMaterials[0];
+							FaceMaterials.Init(SingleFaceMaterial, SplitGroupVertexList.Num() * 3);
+						}
 
 						StaticMesh->Materials.Empty();
 
