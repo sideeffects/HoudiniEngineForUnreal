@@ -477,6 +477,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetBoxInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info);
 	static GetBoxInfoFuncPtr GetBoxInfo;
 
+	typedef HAPI_Result (*GetSphereInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_SphereInfo * sphere_info);
+	static GetSphereInfoFuncPtr GetSphereInfo;
+
 	typedef HAPI_Result (*SaveGeoToFileFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name);
 	static SaveGeoToFileFuncPtr SaveGeoToFile;
 
