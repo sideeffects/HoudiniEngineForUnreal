@@ -86,7 +86,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bHasUnrealMaterialAssigned(false),
 	bNativeHoudiniMaterialRefetch(false),
 	bIsTransacting(false),
-	bHasCustomName(false)
+	bHasCustomName(false),
+	bIsBox(false),
+	bIsSphere(false)
 {
 
 }
@@ -115,7 +117,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bHasUnrealMaterialAssigned(false),
 	bNativeHoudiniMaterialRefetch(false),
 	bIsTransacting(false),
-	bHasCustomName(false)
+	bHasCustomName(false),
+	bIsBox(false),
+	bIsSphere(false)
 {
 
 }
@@ -145,7 +149,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bHasUnrealMaterialAssigned(false),
 	bNativeHoudiniMaterialRefetch(false),
 	bIsTransacting(false),
-	bHasCustomName(false)
+	bHasCustomName(false),
+	bIsBox(false),
+	bIsSphere(false)
 {
 
 }
@@ -173,7 +179,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	bHasUnrealMaterialAssigned(GeoPartObject.bHasUnrealMaterialAssigned),
 	bNativeHoudiniMaterialRefetch(GeoPartObject.bNativeHoudiniMaterialRefetch),
 	bIsTransacting(GeoPartObject.bIsTransacting),
-	bHasCustomName(GeoPartObject.bHasCustomName)
+	bHasCustomName(GeoPartObject.bHasCustomName),
+	bIsBox(GeoPartObject.bIsBox),
+	bIsSphere(GeoPartObject.bIsSphere)
 {
 	if(bCopyLoaded)
 	{
@@ -200,6 +208,20 @@ bool
 FHoudiniGeoPartObject::IsCurve() const
 {
 	return bIsCurve;
+}
+
+
+bool
+FHoudiniGeoPartObject::IsBox() const
+{
+	return bIsBox;
+}
+
+
+bool
+FHoudiniGeoPartObject::IsSphere() const
+{
+	return bIsSphere;
 }
 
 
