@@ -2282,6 +2282,25 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					continue;
 				}
 
+				// Retrieve part name.
+				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
+
+				// Get name of attribute used for marshalling generated mesh name.
+				HAPI_AttributeInfo AttribGeneratedMeshName;
+				TArray<FString> GeneratedMeshNames;
+
+				{
+					std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME;
+					if(HoudiniRuntimeSettings)
+					{
+						FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeGeneratedMeshName,
+							MarshallingAttributeName);
+					}
+
+					FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+						MarshallingAttributeName.c_str(), AttribGeneratedMeshName, GeneratedMeshNames);
+				}
+
 				// There are no vertices and no points.
 				if(PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0)
 				{
@@ -2342,25 +2361,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							bMaterialsChanged = true;
 						}
 					}
-				}
-
-				// Retrieve part name.
-				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
-
-				// Get name of attribute used for marshalling generated mesh name.
-				HAPI_AttributeInfo AttribGeneratedMeshName;
-				TArray<FString> GeneratedMeshNames;
-
-				{
-					std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME;
-					if(HoudiniRuntimeSettings)
-					{
-						FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeGeneratedMeshName,
-							MarshallingAttributeName);
-					}
-
-					FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-						MarshallingAttributeName.c_str(), AttribGeneratedMeshName, GeneratedMeshNames);
 				}
 
 				// Create geo part object identifier.
