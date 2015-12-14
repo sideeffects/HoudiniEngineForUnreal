@@ -2345,20 +2345,23 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					}
 
 					// Set flag if any of the materials have changed.
-					for(int32 MaterialFaceIdx = 0; MaterialFaceIdx < FaceMaterialIds.Num(); ++MaterialFaceIdx)
+					if(bMaterialsFound)
 					{
-						HAPI_MaterialInfo MaterialInfo;
-
-						if(HAPI_RESULT_SUCCESS != 
-							FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id, FaceMaterialIds[MaterialFaceIdx], 
-								&MaterialInfo))
+						for(int32 MaterialFaceIdx = 0; MaterialFaceIdx < FaceMaterialIds.Num(); ++MaterialFaceIdx)
 						{
-							continue;
-						}
+							HAPI_MaterialInfo MaterialInfo;
 
-						if(MaterialInfo.hasChanged)
-						{
-							bMaterialsChanged = true;
+							if(HAPI_RESULT_SUCCESS != 
+								FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id, FaceMaterialIds[MaterialFaceIdx], 
+									&MaterialInfo))
+							{
+								continue;
+							}
+
+							if(MaterialInfo.hasChanged)
+							{
+								bMaterialsChanged = true;
+							}
 						}
 					}
 				}
@@ -3063,10 +3066,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						InRawMeshBulkData->LoadRawMesh(RawMesh);
 					}
 
+					// Process material replacements first.
+					bool bMissingReplacement = false;
+					bool bMaterialsReplaced = false;
+
 					if(FaceMaterials.Num() > 0)
 					{
-						// Material names were marshalled in.
-						if(FaceMaterials.Num() == 1 && (HAPI_ATTROWNER_DETAIL == AttribFaceMaterials.owner))
+						// If material name was assigned per detail we replicate it for each primitive.
+						if(HAPI_ATTROWNER_DETAIL == AttribFaceMaterials.owner)
 						{
 							FString SingleFaceMaterial = FaceMaterials[0];
 							FaceMaterials.Init(SingleFaceMaterial, SplitGroupVertexList.Num() * 3);
@@ -3092,6 +3099,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							{
 								// Material does not exist, use default material.
 								MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+								bMissingReplacement = true;
 							}
 
 							StaticMesh->Materials.Add(MaterialInterface);
@@ -3113,58 +3121,20 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							RawMesh.FaceMaterialIndices[ValidFaceIdx] = UniqueFaceMaterialMap[MaterialName];
 							ValidFaceIdx++;
 						}
+
+						bMaterialsReplaced = true;
 					}
-					else if(bMaterialsFound)
+
+					if(bMaterialsReplaced)
 					{
-						if(bSingleFaceMaterial)
-						{
-							// Use default Houdini material if no valid material is assigned to any of the faces.
-							UMaterialInterface* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
-
-							// We have only one material.
-							RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-
-							// Get id of this single material.
-							FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-							FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, FaceMaterialIds[0], MaterialShopName);
-							UMaterial* const* FoundMaterial = Materials.Find(MaterialShopName);
-
-							if(FoundMaterial)
-							{
-								UMaterial* AssignedMaterial = *FoundMaterial;
-
-								// If looked up material has a sampling expression or mesh has no vertex colors, use it.
-								if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
-									RawMesh.WedgeColors.Num() == 0)
-								{
-									Material = AssignedMaterial;
-								}
-							}
-
-							// If we have replacement material for this geo part object and this shop material name.
-							UMaterialInterface* ReplacementMaterial = 
-								HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
-
-							if(ReplacementMaterial)
-							{
-								Material = ReplacementMaterial;
-							}
-
-							StaticMesh->Materials.Empty();
-							StaticMesh->Materials.Add(Material);
-						}
-						else
+						// We want to fallback to supplied material only if replacement occurred and there was an issue in the process.
+						if(bMaterialsFound && bMissingReplacement)
 						{
 							// Get default Houdini material.
 							UMaterial* MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
-							// We have multiple materials.
-							int32 MaterialIndex = 0;
-							TMap<UMaterialInterface*, int32> MappedMaterials;
-							TArray<UMaterialInterface*> MappedMaterialsList;
-
-							// Reset Rawmesh material face assignments.
-							RawMesh.FaceMaterialIndices.SetNumZeroed(SplitGroupFaceIndices.Num());
+							// Extract native Houdini materials.
+							TMap<HAPI_MaterialId, UMaterialInterface*> NativeMaterials;
 
 							for(int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
 							{
@@ -3198,51 +3168,165 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 								}
 
 								// See if this material has been added.
-								int32 const* FoundMaterialIdx = MappedMaterials.Find(Material);
-								if(FoundMaterialIdx)
+								UMaterialInterface* const* FoundNativeMaterial = NativeMaterials.Find(MaterialId);
+								if(!FoundNativeMaterial)
 								{
-									// This material has been mapped already.
-									RawMesh.FaceMaterialIndices[FaceIdx] = *FoundMaterialIdx;
-								}
-								else
-								{
-									// This is the first time we've seen this material.
-									MappedMaterials.Add(Material, MaterialIndex);
-									MappedMaterialsList.Add(Material);
-
-									RawMesh.FaceMaterialIndices[FaceIdx] = MaterialIndex;
-
-									MaterialIndex++;
+									NativeMaterials.Add(MaterialId, Material);
 								}
 							}
 
-							StaticMesh->Materials.Empty();
-
-							for(int32 MaterialIdx = 0; MaterialIdx < MappedMaterialsList.Num(); ++MaterialIdx)
+							for(int32 FaceIdx = 0; FaceIdx < RawMesh.FaceMaterialIndices.Num(); ++FaceIdx)
 							{
-								StaticMesh->Materials.Add(MappedMaterialsList[MaterialIdx]);
+								int32 MaterialIdx = RawMesh.FaceMaterialIndices[FaceIdx];
+								UMaterialInterface* FaceMaterial = StaticMesh->Materials[MaterialIdx];
+
+								if(FaceMaterial == MaterialDefault)
+								{
+									HAPI_MaterialId MaterialId = FaceMaterialIds[FaceIdx];
+									if(MaterialId >= 0)
+									{
+										UMaterialInterface* const* FoundNativeMaterial = NativeMaterials.Find(MaterialId);
+										if(FoundNativeMaterial)
+										{
+											StaticMesh->Materials[MaterialIdx] = *FoundNativeMaterial;
+										}
+									}
+								}
 							}
 						}
 					}
 					else
 					{
-						// No materials were found, we need to use default Houdini material.
-						RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
-
-						UMaterialInterface* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
-						FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
-
-						// If we have replacement material for this geo part object and this shop material name.
-						UMaterialInterface* ReplacementMaterial = 
-							HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
-
-						if(ReplacementMaterial)
+						if(bMaterialsFound)
 						{
-							Material = ReplacementMaterial;
-						}
+							if(bSingleFaceMaterial)
+							{
+								// Use default Houdini material if no valid material is assigned to any of the faces.
+								UMaterialInterface* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
-						StaticMesh->Materials.Empty();
-						StaticMesh->Materials.Add(Material);
+								// We have only one material.
+								RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+
+								// Get id of this single material.
+								FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+								FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, FaceMaterialIds[0], MaterialShopName);
+								UMaterial* const* FoundMaterial = Materials.Find(MaterialShopName);
+
+								if(FoundMaterial)
+								{
+									UMaterial* AssignedMaterial = *FoundMaterial;
+
+									// If looked up material has a sampling expression or mesh has no vertex colors, use it.
+									if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
+										RawMesh.WedgeColors.Num() == 0)
+									{
+										Material = AssignedMaterial;
+									}
+								}
+
+								// If we have replacement material for this geo part object and this shop material name.
+								UMaterialInterface* ReplacementMaterial = 
+									HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
+
+								if(ReplacementMaterial)
+								{
+									Material = ReplacementMaterial;
+								}
+
+								StaticMesh->Materials.Empty();
+								StaticMesh->Materials.Add(Material);
+							}
+							else
+							{
+								// Get default Houdini material.
+								UMaterial* MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+
+								// We have multiple materials.
+								int32 MaterialIndex = 0;
+								TMap<UMaterialInterface*, int32> MappedMaterials;
+								TArray<UMaterialInterface*> MappedMaterialsList;
+
+								// Reset Rawmesh material face assignments.
+								RawMesh.FaceMaterialIndices.SetNumZeroed(SplitGroupFaceIndices.Num());
+
+								for(int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
+								{
+									// Get material id for this face.
+									HAPI_MaterialId MaterialId = FaceMaterialIds[FaceIdx];
+									UMaterialInterface* Material = MaterialDefault;
+
+									FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+									FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, MaterialId, MaterialShopName);
+									UMaterial* const* FoundMaterial = Materials.Find(MaterialShopName);
+
+									if(FoundMaterial)
+									{
+										UMaterial* AssignedMaterial = *FoundMaterial;
+
+										// If looked up material has a sampling expression or mesh has no vertex colors, use it.
+										if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
+											RawMesh.WedgeColors.Num() == 0)
+										{
+											Material = AssignedMaterial;
+										}
+									}
+
+									// If we have replacement material for this geo part object and this shop material name.
+									UMaterialInterface* ReplacementMaterial = 
+										HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
+
+									if(ReplacementMaterial)
+									{
+										Material = ReplacementMaterial;
+									}
+
+									// See if this material has been added.
+									int32 const* FoundMaterialIdx = MappedMaterials.Find(Material);
+									if(FoundMaterialIdx)
+									{
+										// This material has been mapped already.
+										RawMesh.FaceMaterialIndices[FaceIdx] = *FoundMaterialIdx;
+									}
+									else
+									{
+										// This is the first time we've seen this material.
+										MappedMaterials.Add(Material, MaterialIndex);
+										MappedMaterialsList.Add(Material);
+
+										RawMesh.FaceMaterialIndices[FaceIdx] = MaterialIndex;
+
+										MaterialIndex++;
+									}
+								}
+
+								StaticMesh->Materials.Empty();
+
+								for(int32 MaterialIdx = 0; MaterialIdx < MappedMaterialsList.Num(); ++MaterialIdx)
+								{
+									StaticMesh->Materials.Add(MappedMaterialsList[MaterialIdx]);
+								}
+							}
+						}
+						else
+						{
+							// No materials were found, we need to use default Houdini material.
+							RawMesh.FaceMaterialIndices.SetNumZeroed(FaceCount);
+
+							UMaterialInterface* Material = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+							FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+
+							// If we have replacement material for this geo part object and this shop material name.
+							UMaterialInterface* ReplacementMaterial = 
+								HoudiniAssetComponent->GetReplacementMaterial(HoudiniGeoPartObject, MaterialShopName);
+
+							if(ReplacementMaterial)
+							{
+								Material = ReplacementMaterial;
+							}
+
+							StaticMesh->Materials.Empty();
+							StaticMesh->Materials.Add(Material);
+						}
 					}
 
 					// Some mesh generation settings.
