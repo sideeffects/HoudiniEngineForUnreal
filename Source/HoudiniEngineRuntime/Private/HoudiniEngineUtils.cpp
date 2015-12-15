@@ -4970,28 +4970,33 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(UStaticMesh* StaticMesh
 
 		for(int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
 		{
-			UMaterial* Material = Cast<UMaterial>(Materials[MaterialIdx]);
-			if(Material)
+			UMaterialInterface* MaterialInterface = Materials[MaterialIdx];
+			if(MaterialInterface)
 			{
-				UPackage* MaterialPackage = Cast<UPackage>(Material->GetOuter());
+				UPackage* MaterialPackage = Cast<UPackage>(MaterialInterface->GetOuter());
 				if(MaterialPackage)
 				{
 					FString MaterialName;
-					if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(MaterialPackage, Material, 
+					if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(MaterialPackage, MaterialInterface,
 						MaterialName))
 					{
-						// Duplicate material.
-						UMaterial* DuplicatedMaterial = 
-							FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(Material, Component, MaterialName, bBake);
+						// We only deal with materials.
+						UMaterial* Material = Cast<UMaterial>(MaterialInterface);
+						if(Material)
+						{
+							// Duplicate material resource.
+							UMaterial* DuplicatedMaterial = 
+								FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(Material, Component, MaterialName, bBake);
 
-						// Store duplicated material.
-						DuplicatedMaterials.Add(DuplicatedMaterial);
-						continue;
+							// Store duplicated material.
+							DuplicatedMaterials.Add(DuplicatedMaterial);
+							continue;
+						}
 					}
 				}
 			}
 
-			DuplicatedMaterials.Add(Material);
+			DuplicatedMaterials.Add(MaterialInterface);
 		}
 
 		// Assign duplicated materials.
