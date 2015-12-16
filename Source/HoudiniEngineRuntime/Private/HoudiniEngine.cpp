@@ -280,11 +280,14 @@ FHoudiniEngine::StartupModule()
 		   RunningEngineApi == HAPI_VERSION_HOUDINI_ENGINE_API)
 		{
 			HAPI_CookOptions CookOptions;
+			FMemory::Memzero<HAPI_CookOptions>(CookOptions);
 			CookOptions.curveRefineLOD = 8.0f;
 			CookOptions.clearErrorsAndWarnings = false;
 			CookOptions.maxVerticesPerPrimitive = 3;
 			CookOptions.splitGeosByGroup = false;
 			CookOptions.refineCurveToLinear = true;
+			CookOptions.handleBoxPartTypes = false;
+			CookOptions.handleSpherePartTypes = false;
 
 			HAPI_Result Result = FHoudiniApi::Initialize(SessionPtr, &CookOptions, true, -1, "", "", "", "", "");
 			if(HAPI_RESULT_SUCCESS == Result)
