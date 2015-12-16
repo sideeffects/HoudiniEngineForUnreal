@@ -161,7 +161,7 @@ FHoudiniEngine::StartupModule()
 	HoudiniLogoStaticMesh->AddToRoot();
 
 	// Create default material.
-	HoudiniDefaultMaterial = 
+	HoudiniDefaultMaterial =
 		LoadObject<UMaterial>(NULL, TEXT("/HoudiniEngine/houdini_default_material.houdini_default_material"), NULL, LOAD_None, NULL);
 	HoudiniDefaultMaterial->AddToRoot();
 
@@ -233,7 +233,7 @@ FHoudiniEngine::StartupModule()
 			);
 			break;
 
-		case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:				
+		case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:
 			if (HoudiniRuntimeSettings->bStartAutomaticServer)
 			{
 				FHoudiniApi::StartThriftNamedPipeServer(
@@ -247,7 +247,7 @@ FHoudiniEngine::StartupModule()
 			SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
 				&this->Session,
 				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
-			);			
+			);
 			break;
 
 		default:
@@ -274,6 +274,7 @@ FHoudiniEngine::StartupModule()
 		   RunningEngineApi == HAPI_VERSION_HOUDINI_ENGINE_API)
 		{
 			HAPI_CookOptions CookOptions;
+			FMemory::Memzero<HAPI_CookOptions>(CookOptions);
 			CookOptions.curveRefineLOD = 8.0f;
 			CookOptions.clearErrorsAndWarnings = false;
 			CookOptions.maxVerticesPerPrimitive = 3;
