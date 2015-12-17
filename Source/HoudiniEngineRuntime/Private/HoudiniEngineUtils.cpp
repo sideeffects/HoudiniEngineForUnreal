@@ -3407,7 +3407,19 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					StaticMesh->PreEditChange(nullptr);
 
 					FHoudiniScopedGlobalSilence ScopedGlobalSilence;
-					StaticMesh->Build(true);
+
+					TArray<FText> BuildErrors;
+					StaticMesh->Build(true, &BuildErrors);
+
+					for(int32 BuildErrorIdx = 0; BuildErrorIdx < BuildErrors.Num(); ++BuildErrorIdx)
+					{
+						const FText& TextError = BuildErrors[BuildErrorIdx];
+						HOUDINI_LOG_MESSAGE(
+							TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d] build error ")
+							TEXT("- %s."),
+							ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName, SplitId, *(TextError.ToString()));
+					}
+
 					StaticMesh->MarkPackageDirty();
 					//StaticMesh->PostEditChange();
 
