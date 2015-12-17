@@ -172,8 +172,11 @@ public:
 	/** HAPI : Get element count by group type. **/
 	static int32 HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HAPI_PartInfo& PartInfo);
 
-	/** HAPI : Return group membership count. **/
-	static int32 HapiCheckGroupMembership(const TArray<int32>& GroupMembership);
+	/** HAPI : Check if object geo part has group membership. **/
+	static bool HapiCheckGroupMembership(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+		HAPI_GroupType GroupType, const FString& GroupName);
+	static bool HapiCheckGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+		HAPI_PartId PartId, HAPI_GroupType GroupType, const FString& GroupName);
 
 	/** HAPI : Check if given attribute exists. **/
 	static bool HapiCheckAttributeExists(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
