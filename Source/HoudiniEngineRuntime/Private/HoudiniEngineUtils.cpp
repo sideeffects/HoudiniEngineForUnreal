@@ -2105,6 +2105,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 		return false;
 	}
 
+	// Make sure rendering is done - so we are not changing data being used by collision drawing.
+	FlushRenderingCommands();
+
 	// Get runtime settings.
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	check(HoudiniRuntimeSettings);
@@ -3401,7 +3404,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
 					}
 
-					//StaticMesh->PreEditChange(nullptr);
+					// Free any RHI resources.
+					StaticMesh->PreEditChange(nullptr);
+
 					FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 					StaticMesh->Build(true);
 					StaticMesh->MarkPackageDirty();
