@@ -624,19 +624,31 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
 }
 
 
-int32
-FHoudiniEngineUtils::HapiCheckGroupMembership(const TArray<int32>& GroupMembership)
+bool
+FHoudiniEngineUtils::HapiCheckGroupMembership(const FHoudiniGeoPartObject& HoudiniGeoPartObject, HAPI_GroupType GroupType, const FString& GroupName)
 {
-	int32 GroupMembershipCount = 0;
-	for(int32 Idx = 0; Idx < GroupMembership.Num(); ++Idx)
+	return FHoudiniEngineUtils::HapiCheckGroupMembership(HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId,
+		HoudiniGeoPartObject.PartId, GroupType, GroupName);
+}
+
+
+bool
+FHoudiniEngineUtils::HapiCheckGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+	HAPI_GroupType GroupType, const FString& GroupName)
+{
+	TArray<int32> GroupMembership;
+	if(FHoudiniEngineUtils::HapiGetGroupMembership(AssetId, ObjectId, GeoId, PartId, GroupType, GroupName, GroupMembership))
 	{
-		if(GroupMembership[Idx] > 0)
+		int32 GroupSum = 0;
+		for(int32 Idx = 0; Idx < GroupMembership.Num(); ++Idx)
 		{
-			++GroupMembershipCount;
+			GroupSum += GroupMembership[Idx];
 		}
+
+		return GroupSum > 0;
 	}
 
-	return GroupMembershipCount;
+	return false;
 }
 
 
