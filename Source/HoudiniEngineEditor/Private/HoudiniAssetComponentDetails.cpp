@@ -666,6 +666,49 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 			SAssignNew(ButtonReset, SButton)
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeBlueprint)
+			.Text(LOCTEXT("BakeBlueprintHoudiniActor", "Bake Blueprint"))
+			.ToolTipText( LOCTEXT("BakeBlueprintHoudiniActorToolTip", "Bake Blueprint"))
+		];
+
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SAssignNew(ButtonReset, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeBlueprintReplace)
+			.Text(LOCTEXT("BakeReplaceBlueprintHoudiniActor", "Replace With Blueprint"))
+			.ToolTipText( LOCTEXT("BakeReplaceBlueprintHoudiniActorToolTip", "Replace With Blueprint"))
+		];
+	}
+
+	{
+		TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew(SHorizontalBox);
+		DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.Padding(0, 2.0f, 0, 0)
+			.FillHeight(1.0f)
+			.VAlign(VAlign_Center)
+			[
+				SAssignNew(HorizontalButtonBox, SHorizontalBox)
+			]
+		];
+
+		HorizontalButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SAssignNew(ButtonReset, SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
 			.OnClicked(this, &FHoudiniAssetComponentDetails::OnFetchCookLog)
 			.Text(LOCTEXT("FetchCookLogHoudiniActor", "Fetch Cook Log"))
 			.ToolTipText( LOCTEXT("FetchCookLogHoudiniActorToolTip", "Fetch Cook Log"))
@@ -683,20 +726,6 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget(IDetailCategoryBuilder& 
 			.OnClicked(this, &FHoudiniAssetComponentDetails::OnFetchAssetHelp, HoudiniAssetComponent)
 			.Text(LOCTEXT("FetchAssetHelpHoudiniActor", "Asset Help"))
 			.ToolTipText( LOCTEXT("FetchAssetHelpHoudiniActorToolTip", "Asset Help"))
-		];
-
-		HorizontalButtonBox->AddSlot()
-		.AutoWidth()
-		.Padding(2.0f, 0.0f)
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		[
-			SAssignNew(ButtonReset, SButton)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeBlueprint)
-			.Text(LOCTEXT("BakeBlueprintHoudiniActor", "Bake Blueprint"))
-			.ToolTipText( LOCTEXT("BakeBlueprintHoudiniActorToolTip", "Bake Blueprint"))
 		];
 	}
 
@@ -929,6 +958,13 @@ FHoudiniAssetComponentDetails::OnBakeBlueprint()
 		}
 	}
 
+	return FReply::Handled();
+}
+
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeBlueprintReplace()
+{
 	return FReply::Handled();
 }
 

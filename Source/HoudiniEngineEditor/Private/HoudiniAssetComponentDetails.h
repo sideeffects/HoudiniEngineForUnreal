@@ -88,6 +88,9 @@ private:
 	/** Handler for bake blueprint action. **/
 	FReply OnBakeBlueprint();
 
+	/** Handler for bake blueprint replace action. **/
+	FReply OnBakeBlueprintReplace();
+
 	/** Handler for fetch asset help action. **/
 	FReply OnFetchAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent);
 
