@@ -53,6 +53,12 @@ public:
 	/** Returns true if this asset contains Houdini logo. **/
 	bool IsPreviewHoudiniLogo() const;
 
+	/** Return true if this asset is a limited commercial asset. **/
+	bool IsAssetLimitedCommercial() const;
+
+	/** Return true if this asset is a non commercial asset. **/
+	bool IsAssetNonCommercial() const;
+
 public:
 
 	/** Filename of the OTL. **/
