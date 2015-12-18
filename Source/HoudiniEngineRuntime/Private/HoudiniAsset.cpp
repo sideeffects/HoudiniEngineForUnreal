@@ -27,7 +27,9 @@ UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
 	AssetBytes(nullptr),
 	AssetBytesCount(0),
 	FileFormatVersion(UHoudiniAsset::PersistenceFormatVersion),
-	bPreviewHoudiniLogo(false)
+	bPreviewHoudiniLogo(false),
+	bAssetLimitedCommercial(false),
+	bAssetNonCommercial(false)
 {
 
 }
@@ -51,6 +53,19 @@ UHoudiniAsset::CreateAsset(const uint8*& BufferStart, const uint8* BufferEnd, co
 			// Copy data into a newly allocated buffer.
 			FMemory::Memcpy(AssetBytes, BufferStart, AssetBytesCount);
 		}
+	}
+
+	FString FileExtension = FPaths::GetExtension(InFileName);
+
+	if(FileExtension.Equals(TEXT("hdalc"), ESearchCase::IgnoreCase) ||
+		FileExtension.Equals(TEXT("otlc"), ESearchCase::IgnoreCase))
+	{
+		bAssetLimitedCommercial = true;
+	}
+	else if(FileExtension.Equals(TEXT("hdanc"), ESearchCase::IgnoreCase) ||
+		FileExtension.Equals(TEXT("otlnc"), ESearchCase::IgnoreCase))
+	{
+		bAssetNonCommercial = true;
 	}
 }
 
@@ -108,35 +123,27 @@ UHoudiniAsset::Serialize(FArchive& Ar)
 	// Serialize persistence format version.
 	Ar << FileFormatVersion;
 
-	// Make sure persistence format version matches.
-	if(Ar.IsLoading() && (FileFormatVersion != UHoudiniAsset::PersistenceFormatVersion))
+	Ar << AssetBytesCount;
+
+	if(Ar.IsLoading())
 	{
-		return;
+		// If buffer was previously used, release it.
+		if(AssetBytes)
+		{
+			FMemory::Free(AssetBytes);
+			AssetBytes = nullptr;
+		}
+
+		// Allocate sufficient space to read stored raw OTL data.
+		if(AssetBytesCount)
+		{
+			AssetBytes = static_cast<uint8*>(FMemory::Malloc(AssetBytesCount));
+		}
 	}
 
+	if(AssetBytes && AssetBytesCount)
 	{
-		Ar << AssetBytesCount;
-
-		if(Ar.IsLoading())
-		{
-			// If buffer was previously used, release it.
-			if(AssetBytes)
-			{
-				FMemory::Free(AssetBytes);
-				AssetBytes = nullptr;
-			}
-
-			// Allocate sufficient space to read stored raw OTL data.
-			if(AssetBytesCount)
-			{
-				AssetBytes = static_cast<uint8*>(FMemory::Malloc(AssetBytesCount));
-			}
-		}
-
-		if(AssetBytes && AssetBytesCount)
-		{
-			Ar.Serialize(AssetBytes, AssetBytesCount);
-		}
+		Ar.Serialize(AssetBytes, AssetBytesCount);
 	}
 
 	// Serialize flags.
@@ -155,12 +162,19 @@ UHoudiniAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag("Bytes", FString::FromInt(AssetBytesCount), FAssetRegistryTag::TT_Numerical));
 
+	FString AssetType = TEXT("Full");
+
+	if(bAssetLimitedCommercial)
+	{
+		AssetType = TEXT("Limited Commercial (LC)");
+	}
+	else if(bAssetNonCommercial)
+	{
+		AssetType = TEXT("Non Commercial (NC)");
+	}
+
+	OutTags.Add(FAssetRegistryTag("Asset Type", AssetType, FAssetRegistryTag::TT_Alphabetical));
+
 	Super::GetAssetRegistryTags(OutTags);
 }
 
-
-bool
-UHoudiniAsset::IsSupportedFileFormat() const
-{
-	return UHoudiniAsset::PersistenceFormatVersion == FileFormatVersion;
-}
