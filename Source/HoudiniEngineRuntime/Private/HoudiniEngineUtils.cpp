@@ -3746,6 +3746,86 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint(UHoudiniAssetComponent* Ho
 
 #if WITH_EDITOR
 
+	// Create package for our Blueprint.
+	FString BlueprintName = TEXT("");
+	UPackage* Package =
+		FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(HoudiniAssetComponent, BlueprintName);
+
+	if(Package)
+	{
+		AActor* ClonedActor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
+		if(ClonedActor)
+		{
+			UBlueprint* Blueprint = 
+				FKismetEditorUtilities::CreateBlueprint(ClonedActor->GetClass(), Package, *BlueprintName,
+					EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor"));
+
+			if(Blueprint)
+			{
+				Package->MarkPackageDirty();
+
+				if(ClonedActor->GetInstanceComponents().Num() > 0)
+				{
+					FKismetEditorUtilities::AddComponentsToBlueprint(Blueprint, ClonedActor->GetInstanceComponents());
+				}
+
+				if(Blueprint->GeneratedClass)
+				{
+					AActor* CDO = CastChecked<AActor>(Blueprint->GeneratedClass->GetDefaultObject());
+
+					const auto CopyOptions = 
+						(EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | 
+							EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances);
+
+					EditorUtilities::CopyActorProperties(ClonedActor, CDO, CopyOptions);
+
+					USceneComponent* Scene = CDO->GetRootComponent();
+					if(Scene)
+					{
+						Scene->RelativeLocation = FVector::ZeroVector;
+						Scene->RelativeRotation = FRotator::ZeroRotator;
+
+						// Clear out the attachment info after having copied the properties from the source actor
+						Scene->AttachParent = nullptr;
+						Scene->AttachChildren.Empty();
+
+						// Ensure the light mass information is cleaned up
+						Scene->InvalidateLightingCache();
+					}
+				}
+
+				// Compile our blueprint and notify asset system about blueprint.
+				FKismetEditorUtilities::CompileBlueprint(Blueprint);
+				FAssetRegistryModule::AssetCreated(Blueprint);
+
+				// Retrieve actor transform.
+				FVector Location = ClonedActor->GetActorLocation();
+				FRotator Rotator = ClonedActor->GetActorRotation();
+
+				// Replace cloned actor with Blueprint instance.
+				{
+					TArray<AActor*> Actors;
+					Actors.Add(ClonedActor);
+
+					ClonedActor->RemoveFromRoot();
+					Actor = FKismetEditorUtilities::CreateBlueprintInstanceFromSelection(Blueprint, Actors, Location, Rotator);
+				}
+
+				// We can initiate Houdini actor deletion.
+				AHoudiniAssetActor* HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
+
+				// Remove Houdini actor from active selection in editor and delete it.
+				if(GEditor)
+				{
+					GEditor->SelectActor(HoudiniAssetActor, false, false);
+					GEditor->Layers->DisassociateActorFromLayers(HoudiniAssetActor);
+				}
+				
+				UWorld* World = HoudiniAssetActor->GetWorld();
+				World->EditorDestroyActor(HoudiniAssetActor, false);
+			}
+		}
+	}
 
 #endif
 
