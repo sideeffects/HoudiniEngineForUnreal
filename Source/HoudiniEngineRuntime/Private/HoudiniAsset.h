@@ -53,9 +53,6 @@ public:
 	/** Returns true if this asset contains Houdini logo. **/
 	bool IsPreviewHoudiniLogo() const;
 
-	/** Return true if file format is matching the latest version. **/
-	bool IsSupportedFileFormat() const;
-
 public:
 
 	/** Filename of the OTL. **/
@@ -97,6 +94,12 @@ protected:
 		{
 			/** Flag which is set to true when preview geometry contains Houdini logo. **/
 			uint32 bPreviewHoudiniLogo : 1;
+
+			/** Flag which indicates if this is a limited commercial license asset. **/
+			uint32 bAssetLimitedCommercial : 1;
+
+			/** Flag which indicates if this is a non-commercial license asset. **/
+			uint32 bAssetNonCommercial : 1;
 		};
 
 		uint32 HoudiniAssetFlagsPacked;
