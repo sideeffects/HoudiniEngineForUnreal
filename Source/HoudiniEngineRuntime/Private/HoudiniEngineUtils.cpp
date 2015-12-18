@@ -3834,6 +3834,11 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint(UHoudiniAssetComponent* Ho
 				UWorld* World = HoudiniAssetActor->GetWorld();
 				World->EditorDestroyActor(HoudiniAssetActor, false);
 			}
+			else
+			{
+				ClonedActor->RemoveFromRoot();
+				ClonedActor->ConditionalBeginDestroy();
+			}
 		}
 	}
 
