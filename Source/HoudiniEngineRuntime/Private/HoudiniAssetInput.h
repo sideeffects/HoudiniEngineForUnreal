@@ -30,7 +30,8 @@ namespace EHoudiniAssetInputType
 	{
 		GeometryInput = 0,
 		AssetInput,
-		CurveInput
+		CurveInput,
+		LandscapeInput
 	};
 }
 
@@ -90,6 +91,9 @@ public:
 
 	/** Return true if connected asset is a curve asset. **/
 	bool IsCurveAssetConnected() const;
+
+	/** Return true if connected asset is a landscape asset. **/
+	bool IsLandscapeAssetConnected() const;
 
 	/** Disconnect connected input asset. **/
 	void DisconnectAndDestroyInputAsset();
