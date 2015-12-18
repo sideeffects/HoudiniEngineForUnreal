@@ -109,6 +109,9 @@ public:
 	/** Bake blueprint. **/
 	static UBlueprint* BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent);
 
+	/** Bake blueprint, instantiate and replace Houdini actor. **/
+	static AActor* ReplaceHoudiniActorWithBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent);
+
 	/** Extract position information from coords string. **/
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
 

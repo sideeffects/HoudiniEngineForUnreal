@@ -3719,8 +3719,6 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 
 #if WITH_EDITOR
 
-	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-
 	// Create package for our Blueprint.
 	FString BlueprintName = TEXT("");
 	UPackage* Package = 
@@ -3729,14 +3727,32 @@ FHoudiniEngineUtils::BakeBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent
 	AActor* Actor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
 	Blueprint = FKismetEditorUtilities::CreateBlueprintFromActor(*BlueprintName, Package, Actor, false);
 
-	// If actor is rooted, unroot it.
+	// If actor is rooted, unroot it. We can also delete intermediate actor.
 	Actor->RemoveFromRoot();
-
 	Actor->ConditionalBeginDestroy();
+
+	if(Blueprint)
+	{
+		FAssetRegistryModule::AssetCreated(Blueprint);
+	}
 
 #endif
 
 	return Blueprint;
+}
+
+
+AActor*
+FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint(UHoudiniAssetComponent* HoudiniAssetComponent)
+{
+	AActor* Actor = nullptr;
+
+#if WITH_EDITOR
+
+
+#endif
+
+	return Actor;
 }
 
 
