@@ -123,34 +123,32 @@ EReimportResult::Type
 UHoudiniAssetFactory::Reimport(UObject* Obj)
 {
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
-	if(!HoudiniAsset && HoudiniAsset->AssetImportData)
+	if(HoudiniAsset && HoudiniAsset->AssetImportData)
 	{
-		return EReimportResult::Failed;
-	}
+		// Make sure file is valid and exists.
+		const FString& Filename = HoudiniAsset->AssetImportData->GetFirstFilename();
 
-	// Make sure file is valid and exists.
-	const FString Filename = HoudiniAsset->AssetImportData->GetFirstFilename();
-
-	if(!Filename.Len() || (INDEX_NONE == IFileManager::Get().FileSize(*Filename)))
-	{
-		return EReimportResult::Failed;
-	}
-
-	if(UFactory::StaticImportObject(HoudiniAsset->GetClass(), HoudiniAsset->GetOuter(), *HoudiniAsset->GetName(),
-		RF_Public | RF_Standalone, *Filename, NULL, this))
-	{
-		HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimported successfully."));
-
-		if(HoudiniAsset->GetOuter())
+		if(!Filename.Len() || (INDEX_NONE == IFileManager::Get().FileSize(*Filename)))
 		{
-			HoudiniAsset->GetOuter()->MarkPackageDirty();
-		}
-		else
-		{
-			HoudiniAsset->MarkPackageDirty();
+			return EReimportResult::Failed;
 		}
 
-		return EReimportResult::Succeeded;
+		if(UFactory::StaticImportObject(HoudiniAsset->GetClass(), HoudiniAsset->GetOuter(), *HoudiniAsset->GetName(),
+			RF_Public | RF_Standalone, *Filename, NULL, this))
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimported successfully."));
+
+			if(HoudiniAsset->GetOuter())
+			{
+				HoudiniAsset->GetOuter()->MarkPackageDirty();
+			}
+			else
+			{
+				HoudiniAsset->MarkPackageDirty();
+			}
+
+			return EReimportResult::Succeeded;
+		}
 	}
 
 	HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimport has failed."));
