@@ -178,3 +178,18 @@ UHoudiniAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	Super::GetAssetRegistryTags(OutTags);
 }
 
+
+bool
+UHoudiniAsset::IsAssetLimitedCommercial() const
+{
+	return bAssetLimitedCommercial;
+}
+
+
+
+bool
+UHoudiniAsset::IsAssetNonCommercial() const
+{
+	return bAssetNonCommercial;
+}
+
