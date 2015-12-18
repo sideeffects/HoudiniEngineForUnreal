@@ -949,12 +949,7 @@ FHoudiniAssetComponentDetails::OnBakeBlueprint()
 		// If component is not cooking or instancing, we can bake blueprint.
 		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
 		{
-			UBlueprint* Blueprint = FHoudiniEngineUtils::BakeBlueprint(HoudiniAssetComponent);
-
-			if(Blueprint)
-			{
-				FAssetRegistryModule::AssetCreated(Blueprint);
-			}
+			FHoudiniEngineUtils::BakeBlueprint(HoudiniAssetComponent);
 		}
 	}
 
