@@ -111,6 +111,15 @@ UHoudiniAssetInput::CreateWidgetResources()
 			ChoiceStringValue = *ChoiceLabel;
 		}
 	}
+	{
+		FString* ChoiceLabel = new FString(TEXT("Landscape Input"));
+		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+
+		if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
+		{
+			ChoiceStringValue = *ChoiceLabel;
+		}
+	}
 }
 
 
@@ -334,6 +343,10 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			}
 		}
 	}
+	else if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
+	{
+		// No widgets.
+	}
 
 	Row.ValueWidget.Widget = VerticalBox;
 	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
@@ -454,6 +467,10 @@ UHoudiniAssetInput::UploadParameterValue()
 		UpdateInputCurve();
 
 		bSwitchedToCurve = false;
+	}
+	else if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
+	{
+		// Handle Landscape marshalling.
 	}
 
 	bLoadedParameter = false;
@@ -784,16 +801,6 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 	{
 		return;
 	}
-	/*
-	if(ESelectInfo::Direct != SelectType)
-	{
-		FScopedTransaction Transaction(
-			TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniInputChange", "Houdini Input Type Change"),
-			HoudiniAssetComponent);
-		Modify();
-	}
-	*/
 
 	ChoiceStringValue = *(NewChoice.Get());
 
@@ -837,6 +844,12 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			{
 				// We are switching away from curve input.
 				DestroyInputCurve();
+				break;
+			}
+
+			case EHoudiniAssetInputType::LandscapeInput:
+			{
+				// We are switching away from landscape input.
 				break;
 			}
 
@@ -887,6 +900,12 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 				InputCurve = HoudiniSplineComponent;
 
 				bSwitchedToCurve = true;
+				break;
+			}
+
+			case EHoudiniAssetInputType::LandscapeInput:
+			{
+				// We are switching to Landscape input.
 				break;
 			}
 
@@ -1054,6 +1073,21 @@ UHoudiniAssetInput::IsCurveAssetConnected() const
 	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
 	{
 		if(InputCurve)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool
+UHoudiniAssetInput::IsLandscapeAssetConnected() const
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+	{
+		if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
 		{
 			return true;
 		}
