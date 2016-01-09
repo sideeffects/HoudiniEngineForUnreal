@@ -165,7 +165,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*SetAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_TransformEuler * transform);
 	static SetAssetTransformFuncPtr SetAssetTransform;
 
-	typedef HAPI_Result (*GetInputNameFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, int input_type, HAPI_StringHandle * name);
+	typedef HAPI_Result (*GetInputNameFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, HAPI_InputType input_type, HAPI_StringHandle * name);
 	static GetInputNameFuncPtr GetInputName;
 
 	typedef HAPI_Result (*LoadHIPFileFuncPtr)(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load);
