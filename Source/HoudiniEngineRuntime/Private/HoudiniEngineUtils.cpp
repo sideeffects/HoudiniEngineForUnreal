@@ -618,7 +618,7 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
 
 	GroupMembership.SetNumUninitialized(ElementCount);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, PartId, GroupType,
-		ConvertedGroupName.c_str(), &GroupMembership[0], 0, ElementCount), false);
+		ConvertedGroupName.c_str(), NULL, &GroupMembership[0], 0, ElementCount), false);
 
 	return true;
 }

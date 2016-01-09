@@ -318,7 +318,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetGroupNamesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	static GetGroupNamesFuncPtr GetGroupNames;
 
-	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, int * membership_array, int start, int length);
+	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	static GetGroupMembershipFuncPtr GetGroupMembership;
 
 	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
