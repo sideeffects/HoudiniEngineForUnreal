@@ -471,6 +471,32 @@ UHoudiniAssetInput::UploadParameterValue()
 	else if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
 	{
 		// Handle Landscape marshalling.
+
+		// Disconnect and destroy currently connected asset, if there's one.
+		DisconnectAndDestroyInputAsset();
+
+		AHoudiniAssetActor* HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
+		UWorld* World = HoudiniAssetActor->GetWorld();
+
+		TArray<ALandscapeProxy*> LandscapeActors;
+
+		int32 ActorCount = World->GetCurrentLevel()->Actors.Num();
+		for(int32 ActorIdx = 0; ActorIdx < ActorCount; ++ActorIdx)
+		{
+			ALandscapeProxy* LandscapeActor = Cast<ALandscapeProxy>(World->GetCurrentLevel()->Actors[ActorIdx]);
+			if(LandscapeActor)
+			{
+				LandscapeActors.Add(LandscapeActor);
+			}
+		}
+
+		// Connect input and create connected asset. Will return by reference.
+		if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, LandscapeActors, ConnectedAssetId))
+		{
+			bChanged = false;
+			ConnectedAssetId = -1;
+			return false;
+		}
 	}
 
 	bLoadedParameter = false;

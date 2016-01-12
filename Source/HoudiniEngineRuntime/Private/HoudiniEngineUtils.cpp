@@ -1287,6 +1287,14 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 
 
 bool
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, 
+	const TArray<ALandscapeProxy*>& Landscapes, HAPI_AssetId& ConnectedAssetId)
+{
+	return false;
+}
+
+
+bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* StaticMesh,
 	HAPI_AssetId& ConnectedAssetId)
 {
@@ -1360,7 +1368,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
 	AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION,
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_POSITION,
 		&AttributeInfoPoint), false);
 
 	// Extract vertices from static mesh.
@@ -1391,7 +1399,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 
 	// Now that we have raw positions, we can upload them for our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_ATTRIB_POSITION,
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_POSITION,
 		&AttributeInfoPoint, StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
 
 	// See if we have texture coordinates to upload.
@@ -1436,7 +1444,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			}
 
 			// Construct attribute name for this index.
-			std::string UVAttributeName = HAPI_ATTRIB_UV;
+			std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
 
 			if(MeshTexCoordIdx > 0)
 			{
@@ -1501,9 +1509,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_NORMAL,
 			&AttributeInfoVertex), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_ATTRIB_NORMAL,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_NORMAL,
 			&AttributeInfoVertex, (const float*) ChangedNormals.GetData(), 0, AttributeInfoVertex.count), false);
 	}
 
@@ -1541,9 +1549,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_ATTRIB_COLOR,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_COLOR,
 			&AttributeInfoVertex), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_ATTRIB_COLOR,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_COLOR,
 			&AttributeInfoVertex, (const float*) ChangedColors.GetData(), 0, AttributeInfoVertex.count), false);
 	}
 
@@ -2714,7 +2722,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					{
 						// Retrieve position data.
 						if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							HAPI_ATTRIB_POSITION, AttribInfoPositions, Positions))
+							HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions))
 						{
 							// Error retrieving positions.
 							bGeoError = true;
@@ -2760,14 +2768,14 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 						// Retrieve color data.
 						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							HAPI_ATTRIB_COLOR, AttribInfoColors, Colors);
+							HAPI_UNREAL_ATTRIB_COLOR, AttribInfoColors, Colors);
 
 						// See if we need to transfer color point attributes to vertex attributes.
 						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoColors, Colors);
 
 						// Retrieve normal data.
 						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							HAPI_ATTRIB_NORMAL, AttribInfoNormals, Normals);
+							HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals);
 
 						// Retrieve face smoothing data.
 						{
@@ -2791,7 +2799,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 						// Retrieve UVs.
 						for(int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
 						{
-							std::string UVAttributeName = HAPI_ATTRIB_UV;
+							std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
 
 							if(TexCoordIdx > 0)
 							{

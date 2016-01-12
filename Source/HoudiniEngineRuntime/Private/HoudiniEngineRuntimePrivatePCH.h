@@ -78,6 +78,8 @@
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
 #include "TargetPlatform.h"
+#include "LandscapeProxy.h"
+#include "Engine/Level.h"
 
 /** Houdini Engine headers. **/
 #include <vector>
@@ -221,8 +223,13 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_ROTATION			"rot"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE				"scale"
-#define HAPI_UNREAL_ATTRIB_INSTANCE_POSITION			"P"
-#define HAPI_UNREAL_ATTRIB_POSITION						"P"
+#define HAPI_UNREAL_ATTRIB_INSTANCE_POSITION			HAPI_ATTRIB_POSITION
+#define HAPI_UNREAL_ATTRIB_POSITION						HAPI_ATTRIB_POSITION
+#define HAPI_UNREAL_ATTRIB_COLOR						HAPI_ATTRIB_COLOR
+#define HAPI_UNREAL_ATTRIB_NORMAL						HAPI_ATTRIB_NORMAL
+
+#define HAPI_UNREAL_ATTRIB_UV							HAPI_ATTRIB_UV
+#define HAPI_UNREAL_ATTRIB_UV2							HAPI_ATTRIB_UV2
 
 #define HAPI_UNREAL_PARAM_CURVE_TYPE					"type"
 #define HAPI_UNREAL_PARAM_CURVE_METHOD					"method"
