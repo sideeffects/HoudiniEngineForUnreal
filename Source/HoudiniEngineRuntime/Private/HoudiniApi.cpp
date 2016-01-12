@@ -60,6 +60,18 @@ FHoudiniApi::GetEnvInt = nullptr;
 FHoudiniApi::GetSessionEnvIntFuncPtr
 FHoudiniApi::GetSessionEnvInt = nullptr;
 
+FHoudiniApi::GetServerEnvIntFuncPtr
+FHoudiniApi::GetServerEnvInt = nullptr;
+
+FHoudiniApi::GetServerEnvStringFuncPtr
+FHoudiniApi::GetServerEnvString = nullptr;
+
+FHoudiniApi::SetServerEnvIntFuncPtr
+FHoudiniApi::SetServerEnvInt = nullptr;
+
+FHoudiniApi::SetServerEnvStringFuncPtr
+FHoudiniApi::SetServerEnvString = nullptr;
+
 FHoudiniApi::GetStatusFuncPtr
 FHoudiniApi::GetStatus = nullptr;
 
@@ -515,6 +527,10 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::Cleanup = (CleanupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Cleanup"));
 	FHoudiniApi::GetEnvInt = (GetEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEnvInt"));
 	FHoudiniApi::GetSessionEnvInt = (GetSessionEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSessionEnvInt"));
+	FHoudiniApi::GetServerEnvInt = (GetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvInt"));
+	FHoudiniApi::GetServerEnvString = (GetServerEnvStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvString"));
+	FHoudiniApi::SetServerEnvInt = (SetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetServerEnvInt"));
+	FHoudiniApi::SetServerEnvString = (SetServerEnvStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetServerEnvString"));
 	FHoudiniApi::GetStatus = (GetStatusFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatus"));
 	FHoudiniApi::GetStatusStringBufLength = (GetStatusStringBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusStringBufLength"));
 	FHoudiniApi::GetStatusString = (GetStatusStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusString"));
@@ -680,6 +696,10 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::Cleanup = nullptr;
 	FHoudiniApi::GetEnvInt = nullptr;
 	FHoudiniApi::GetSessionEnvInt = nullptr;
+	FHoudiniApi::GetServerEnvInt = nullptr;
+	FHoudiniApi::GetServerEnvString = nullptr;
+	FHoudiniApi::SetServerEnvInt = nullptr;
+	FHoudiniApi::SetServerEnvString = nullptr;
 	FHoudiniApi::GetStatus = nullptr;
 	FHoudiniApi::GetStatusStringBufLength = nullptr;
 	FHoudiniApi::GetStatusString = nullptr;

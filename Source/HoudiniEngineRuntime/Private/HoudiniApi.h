@@ -66,6 +66,18 @@ struct HOUDINIENGINERUNTIME_API FHoudiniApi
 	typedef HAPI_Result (*GetSessionEnvIntFuncPtr)(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
 	static GetSessionEnvIntFuncPtr GetSessionEnvInt;
 
+	typedef HAPI_Result (*GetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int * value);
+	static GetServerEnvIntFuncPtr GetServerEnvInt;
+
+	typedef HAPI_Result (*GetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value);
+	static GetServerEnvStringFuncPtr GetServerEnvString;
+
+	typedef HAPI_Result (*SetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int value);
+	static SetServerEnvIntFuncPtr SetServerEnvInt;
+
+	typedef HAPI_Result (*SetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, const char * value);
+	static SetServerEnvStringFuncPtr SetServerEnvString;
+
 	typedef HAPI_Result (*GetStatusFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
 	static GetStatusFuncPtr GetStatus;
 
