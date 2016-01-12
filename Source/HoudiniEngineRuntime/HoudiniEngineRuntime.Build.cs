@@ -127,7 +127,8 @@ public class HoudiniEngineRuntime : ModuleRules
 				"InputCore",
 				"RHI",
 				"Settings",
-				"Foliage"
+				"Foliage",
+				"Landscape"
 			}
 		);
 
