@@ -24,6 +24,7 @@ class UTexture2D;
 class UBlueprint;
 class UStaticMesh;
 class UHoudiniAsset;
+class ALandscapeProxy;
 class AHoudiniAssetActor;
 class UHoudiniAssetMaterial;
 class UHoudiniAssetComponent;
@@ -148,6 +149,10 @@ public:
 
 	/** HAPI : Retrieve Node id from given parameters. **/
 	static bool HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId& NodeId);
+
+	/** HAPI : Marshalling, extract landscape geometry and upload it. Return new asset id. **/
+	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
+		const TArray<ALandscapeProxy*>& Landscapes, HAPI_AssetId& ConnectedAssetId);
 
 	/** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return	**/
 	/** new asset id.																								**/
