@@ -157,12 +157,12 @@ FHoudiniEngine::StartupModule()
 
 	// Create static mesh Houdini logo.
 	HoudiniLogoStaticMesh =
-		LoadObject<UStaticMesh>(NULL, TEXT("/HoudiniEngine/houdini_logo.houdini_logo"), NULL, LOAD_None, NULL);
+		LoadObject<UStaticMesh>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_LOGO, nullptr, LOAD_None, nullptr);
 	HoudiniLogoStaticMesh->AddToRoot();
 
 	// Create default material.
 	HoudiniDefaultMaterial =
-		LoadObject<UMaterial>(NULL, TEXT("/HoudiniEngine/houdini_default_material.houdini_default_material"), NULL, LOAD_None, NULL);
+		LoadObject<UMaterial>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL, nullptr, LOAD_None, nullptr);
 	HoudiniDefaultMaterial->AddToRoot();
 
 #if WITH_EDITOR
@@ -205,62 +205,76 @@ FHoudiniEngine::StartupModule()
 		int32 RunningEngineApi = 0;
 
 #ifdef HAPI_UNREAL_ENABLE_LOADER
+
 		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
 		HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
 
-		switch ( HoudiniRuntimeSettings->SessionType.GetValue() )
+		switch(HoudiniRuntimeSettings->SessionType.GetValue())
 		{
-		case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
-			SessionResult = FHoudiniApi::CreateInProcessSession( &this->Session );
-			break;
-
-		case EHoudiniRuntimeSettingsSessionType::HRSST_Socket:
-			if (HoudiniRuntimeSettings->bStartAutomaticServer)
+			case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
 			{
-				FHoudiniApi::StartThriftSocketServer(
-					true,
-					HoudiniRuntimeSettings->ServerPort,
-					HoudiniRuntimeSettings->AutomaticServerTimeout,
-					NULL
-				);
+				SessionResult = FHoudiniApi::CreateInProcessSession(&this->Session);
+				break;
 			}
 
-			SessionResult = FHoudiniApi::CreateThriftSocketSession(
-				&this->Session,
-				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost),
-				HoudiniRuntimeSettings->ServerPort
-			);
-			break;
-
-		case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:
-			if (HoudiniRuntimeSettings->bStartAutomaticServer)
+			case EHoudiniRuntimeSettingsSessionType::HRSST_Socket:
 			{
-				FHoudiniApi::StartThriftNamedPipeServer(
-					true,
-					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName),
-					HoudiniRuntimeSettings->AutomaticServerTimeout,
-					NULL
+				if(HoudiniRuntimeSettings->bStartAutomaticServer)
+				{
+					FHoudiniApi::StartThriftSocketServer(
+						true,
+						HoudiniRuntimeSettings->ServerPort,
+						HoudiniRuntimeSettings->AutomaticServerTimeout,
+						NULL
+					);
+				}
+
+				SessionResult = FHoudiniApi::CreateThriftSocketSession(
+					&this->Session,
+					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost),
+					HoudiniRuntimeSettings->ServerPort
 				);
+
+				break;
 			}
 
-			SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-				&this->Session,
-				TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
-			);
-			break;
+			case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:
+			{
+				if(HoudiniRuntimeSettings->bStartAutomaticServer)
+				{
+					FHoudiniApi::StartThriftNamedPipeServer(
+						true,
+						TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName),
+						HoudiniRuntimeSettings->AutomaticServerTimeout,
+						NULL
+					);
+				}
 
-		default:
-			HOUDINI_LOG_ERROR(TEXT("Unsupported Houdini Engine session type"));
+				SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
+					&this->Session,
+					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
+				);
+
+				break;
+			}
+
+			default:
+
+				HOUDINI_LOG_ERROR(TEXT("Unsupported Houdini Engine session type"));
 		}
+
 #endif // HAPI_UNREAL_ENABLE_LOADER
+
 		const HAPI_Session* SessionPtr = GetSession();
 
 #ifdef HAPI_UNREAL_ENABLE_LOADER
-		if (SessionResult != HAPI_RESULT_SUCCESS || !SessionPtr)
+
+		if(SessionResult != HAPI_RESULT_SUCCESS || !SessionPtr)
 		{
 			HOUDINI_LOG_ERROR(TEXT("Failed to create a Houdini Engine session"));
 		}
+
 #endif
 
 		// Retrieve version numbers for running Houdini Engine.
