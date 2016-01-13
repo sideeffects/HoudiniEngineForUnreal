@@ -1287,10 +1287,75 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 
 
 bool
-FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, 
-	const TArray<ALandscapeProxy*>& Landscapes, HAPI_AssetId& ConnectedAssetId)
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
+	ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId)
 {
-	return false;
+
+#if WITH_EDITOR
+
+	// If we don't have any landscapes or host asset is invalid then there's nothing to do.
+	if(!LandscapeProxy || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
+	{
+		return false;
+	}
+
+	// Check if connected asset id is invalid, if it is not, we need to create an input asset.
+	if(ConnectedAssetId < 0)
+	{
+		HAPI_AssetId AssetId = -1;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputAsset(FHoudiniEngine::Get().GetSession(), &AssetId, nullptr), false);
+
+		// Check if we have a valid id for this new input asset.
+		if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
+		{
+			return false;
+		}
+
+		// We now have a valid id.
+		ConnectedAssetId = AssetId;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
+	}
+
+	// Get runtime settings.
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
+	if(HoudiniRuntimeSettings)
+	{
+		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+	}
+
+	// Create part.
+	/*
+	HAPI_PartInfo Part;
+	FMemory::Memzero<HAPI_PartInfo>(Part);
+	Part.id = 0;
+	Part.nameSH = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_PRIM ] = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_VERTEX ] = 0;
+	Part.attributeCounts[ HAPI_ATTROWNER_DETAIL ] = 0;
+	Part.vertexCount = 0;
+	Part.faceCount = 0;
+	Part.pointCount = 777;
+	Part.type = HAPI_PARTTYPE_MESH;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, &Part), false);
+	*/
+
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0), false);
+
+	// Now we can connect assets together.
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, InputIndex), false);
+
+#endif
+
+	return true;
 }
 
 
@@ -1310,7 +1375,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	if(ConnectedAssetId < 0)
 	{
 		HAPI_AssetId AssetId = -1;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputAsset(FHoudiniEngine::Get().GetSession(), &AssetId, nullptr), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputAsset(FHoudiniEngine::Get().GetSession(), &AssetId,
+			nullptr), false);
 
 		// Check if we have a valid id for this new input asset.
 		if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
@@ -1347,6 +1413,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 	// Create part.
 	HAPI_PartInfo Part;
+	FMemory::Memzero<HAPI_PartInfo>(Part);
 	Part.id = 0;
 	Part.nameSH = 0;
 	Part.pointAttributeCount = 0;
@@ -1361,6 +1428,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 	// Create point attribute info.
 	HAPI_AttributeInfo AttributeInfoPoint;
+	FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPoint);
 	AttributeInfoPoint.count = RawMesh.VertexPositions.Num();
 	AttributeInfoPoint.tupleSize = 3;
 	AttributeInfoPoint.exists = true;
@@ -1455,6 +1523,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 			// Create attribute for UVs
 			HAPI_AttributeInfo AttributeInfoVertex;
+			FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoVertex);
 			AttributeInfoVertex.count = StaticMeshUVCount;
 			AttributeInfoVertex.tupleSize = 2;
 			AttributeInfoVertex.exists = true;
@@ -1503,6 +1572,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		// Create attribute for normals.
 		HAPI_AttributeInfo AttributeInfoVertex;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoVertex);
 		AttributeInfoVertex.count = ChangedNormals.Num();
 		AttributeInfoVertex.tupleSize = 3;
 		AttributeInfoVertex.exists = true;
@@ -1543,6 +1613,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		// Create attribute for colors.
 		HAPI_AttributeInfo AttributeInfoVertex;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoVertex);
 		AttributeInfoVertex.count = ChangedColors.Num();
 		AttributeInfoVertex.tupleSize = 4;
 		AttributeInfoVertex.exists = true;
@@ -1610,6 +1681,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		// Create attribute for materials.
 		HAPI_AttributeInfo AttributeInfoMaterial;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoMaterial);
 		AttributeInfoMaterial.count = RawMesh.FaceMaterialIndices.Num();
 		AttributeInfoMaterial.tupleSize = 1;
 		AttributeInfoMaterial.exists = true;
@@ -1654,6 +1726,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		}
 
 		HAPI_AttributeInfo AttributeInfoSmoothingMasks;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoSmoothingMasks);
 		AttributeInfoSmoothingMasks.count = RawMesh.FaceSmoothingMasks.Num();
 		AttributeInfoSmoothingMasks.tupleSize = 1;
 		AttributeInfoSmoothingMasks.exists = true;
@@ -1681,6 +1754,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		LightMapResolutions.Add(StaticMesh->LightMapResolution);
 
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoLightMapResolution);
 		AttributeInfoLightMapResolution.count = LightMapResolutions.Num();
 		AttributeInfoLightMapResolution.tupleSize = 1;
 		AttributeInfoLightMapResolution.exists = true;

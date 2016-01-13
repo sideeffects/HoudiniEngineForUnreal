@@ -21,6 +21,7 @@
 #include "HoudiniAssetInput.generated.h"
 
 
+class ALandscapeProxy;
 class UHoudiniSplineComponent;
 
 
@@ -159,6 +160,18 @@ protected:
 	/** Called when the input actor selection combo is used. **/
 	void OnInputActorUse();
 
+	/** Called on landscape selection to filter the actors by type. **/
+	bool OnLandscapeActorFilter(const AActor* const Actor) const;
+
+	/** Called when change of landscape selection. **/
+	void OnLandscapeActorSelected(AActor* Actor);
+
+	/** Called when the landscape actor selection combo is closed. **/
+	void OnLandscapeActorCloseComboButton();
+
+	/** Called when the landscape actor selection combo is used. **/
+	void OnLandscapeActorUse();
+
 #endif
 
 	/** Called to retrieve the name of selected item. **/
@@ -171,6 +184,12 @@ protected:
 
 	/** Disconnect the input asset in Houdini. **/
 	void DisconnectInputAssetActor();
+
+	/** Connect the landscape asset in Houdini. **/
+	void ConnectLandscapeActor();
+
+	/** Disconnect the landscape asset in Houdini. **/
+	void DisconnectLandscapeActor();
 
 	/** Extract curve parameters and update the attached spline component. **/
 	void UpdateInputCurve();
@@ -219,6 +238,9 @@ protected:
 
 	/** Houdini asset component pointer of the input asset (actor). **/
 	UHoudiniAssetComponent* InputAssetComponent;
+
+	/** Landscape actor used for input. **/
+	ALandscapeProxy* LandscapeProxy;
 
 	/** Id of currently connected asset. **/
 	HAPI_AssetId ConnectedAssetId;
