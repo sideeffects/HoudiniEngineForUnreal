@@ -495,16 +495,6 @@ UHoudiniAssetInput::UploadParameterValue()
 
 		case EHoudiniAssetInputType::LandscapeInput:
 		{
-			/*
-			// Connect input and create connected asset. Will return by reference.
-			if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, LandscapeActors, ConnectedAssetId))
-			{
-				bChanged = false;
-				ConnectedAssetId = -1;
-				return false;
-			}
-			*/
-
 			break;
 		}
 
