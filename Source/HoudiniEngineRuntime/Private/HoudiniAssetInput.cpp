@@ -32,6 +32,7 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	InputObject(nullptr),
 	InputCurve(nullptr),
 	InputAssetComponent(nullptr),
+	LandscapeProxy(nullptr),
 	ConnectedAssetId(-1),
 	InputIndex(0),
 	ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
@@ -350,7 +351,17 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 	}
 	else if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
 	{
-		// No widgets.
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			PropertyCustomizationHelpers::MakeActorPickerWithMenu(
+				nullptr,
+				true,
+				FOnShouldFilterActor::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorFilter),
+				FOnActorSelected::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorSelected),
+				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorCloseComboButton),
+				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorUse)
+			)
+		];
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
@@ -365,144 +376,147 @@ UHoudiniAssetInput::UploadParameterValue()
 {
 	HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
 
-	if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
+	switch(ChoiceIndex)
 	{
-		UStaticMesh* StaticMesh = Cast<UStaticMesh>(InputObject);
-		if(StaticMesh)
+		case EHoudiniAssetInputType::GeometryInput:
 		{
-			if(bStaticMeshChanged || bLoadedParameter)
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(InputObject);
+			if(StaticMesh)
 			{
-				// Disconnect and destroy currently connected asset, if there's one.
-				DisconnectAndDestroyInputAsset();
-
-				// Connect input and create connected asset. Will return by reference.
-				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh, ConnectedAssetId))
+				if(bStaticMeshChanged || bLoadedParameter)
 				{
-					bChanged = false;
-					ConnectedAssetId = -1;
-					return false;
-				}
+					// Disconnect and destroy currently connected asset, if there's one.
+					DisconnectAndDestroyInputAsset();
 
-				bStaticMeshChanged = false;
+					// Connect input and create connected asset. Will return by reference.
+					if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh, 
+						ConnectedAssetId))
+					{
+						bChanged = false;
+						ConnectedAssetId = -1;
+						return false;
+					}
+
+					bStaticMeshChanged = false;
+				}
 			}
+			else
+			{
+				// Either mesh was reset or null mesh has been assigned.
+				DisconnectAndDestroyInputAsset();
+			}
+
+			break;
 		}
-		else
+	
+		case EHoudiniAssetInputType::AssetInput:
 		{
-			// Either mesh was reset or null mesh has been assigned.
-			DisconnectAndDestroyInputAsset();
-		}
-	}
-	else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
-	{
-		// Process connected asset.
-		if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()) 
-			&& !bInputAssetConnectedInHoudini)
-		{
-			ConnectInputAssetActor();
-		}
-		else if(bInputAssetConnectedInHoudini && !InputAssetComponent)
-		{
-			DisconnectInputAssetActor();
-		}
-		else
-		{
-			bChanged = false;
-			return false;
-		}
-	}
-	else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
-	{
-		// If we have no curve asset, create it.
-		if(!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
-		{
-			if(!FHoudiniEngineUtils::HapiCreateCurve(ConnectedAssetId))
+			// Process connected asset.
+			if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId())
+				&& !bInputAssetConnectedInHoudini)
+			{
+				ConnectInputAssetActor();
+			}
+			else if(bInputAssetConnectedInHoudini && !InputAssetComponent)
+			{
+				DisconnectInputAssetActor();
+			}
+			else
 			{
 				bChanged = false;
 				return false;
 			}
 
-			// Connect asset.
-			FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex);
+			break;
 		}
 
-		if(bLoadedParameter)
+		case EHoudiniAssetInputType::CurveInput:
 		{
-			HAPI_AssetInfo CurveAssetInfo;
-			FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo);
-
-			// If we just loaded our curve, we need to set parameters.
-			for(TMap<FString, UHoudiniAssetParameter*>::TIterator
-				IterParams(InputCurveParameters); IterParams; ++IterParams)
+			// If we have no curve asset, create it.
+			if(!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
 			{
-				UHoudiniAssetParameter* Parameter = IterParams.Value();
-				if(Parameter)
+				if(!FHoudiniEngineUtils::HapiCreateCurve(ConnectedAssetId))
 				{
-					// We need to update node id for loaded parameters.
-					Parameter->SetNodeId(CurveAssetInfo.nodeId);
+					bChanged = false;
+					return false;
+				}
 
-					// Upload parameter value.
-					Parameter->UploadParameterValue();
+				// Connect asset.
+				FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex);
+			}
+
+			if(bLoadedParameter)
+			{
+				HAPI_AssetInfo CurveAssetInfo;
+				FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo);
+
+				// If we just loaded our curve, we need to set parameters.
+				for(TMap<FString, UHoudiniAssetParameter*>::TIterator
+					IterParams(InputCurveParameters); IterParams; ++IterParams)
+				{
+					UHoudiniAssetParameter* Parameter = IterParams.Value();
+					if(Parameter)
+					{
+						// We need to update node id for loaded parameters.
+						Parameter->SetNodeId(CurveAssetInfo.nodeId);
+
+						// Upload parameter value.
+						Parameter->UploadParameterValue();
+					}
 				}
 			}
-		}
 
-		// Also upload points.
-		HAPI_NodeId NodeId = -1;
-		if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
-		{
-			const TArray<FVector>& CurvePoints = InputCurve->GetCurvePoints();
-
-			FString PositionString = TEXT("");
-			FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
-
-			// Get param id.
-			HAPI_ParmId ParmId = -1;
-			if(HAPI_RESULT_SUCCESS == 
-				FHoudiniApi::GetParmIdFromName(FHoudiniEngine::Get().GetSession(), NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+			// Also upload points.
+			HAPI_NodeId NodeId = -1;
+			if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
 			{
-				std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-				FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0);
+				const TArray<FVector>& CurvePoints = InputCurve->GetCurvePoints();
+
+				FString PositionString = TEXT("");
+				FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
+
+				// Get param id.
+				HAPI_ParmId ParmId = -1;
+				if(HAPI_RESULT_SUCCESS == 
+					FHoudiniApi::GetParmIdFromName(FHoudiniEngine::Get().GetSession(), NodeId,
+						HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+				{
+					std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+					FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId,
+						ConvertedString.c_str(), ParmId, 0);
+				}
 			}
+
+			// Cook the spline asset.
+			FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
+
+			// We need to update the curve.
+			UpdateInputCurve();
+
+			bSwitchedToCurve = false;
+
+			break;
 		}
 
-		// Cook the spline asset.
-		FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
-
-		// We need to update the curve.
-		UpdateInputCurve();
-
-		bSwitchedToCurve = false;
-	}
-	else if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
-	{
-		// Handle Landscape marshalling.
-
-		// Disconnect and destroy currently connected asset, if there's one.
-		DisconnectAndDestroyInputAsset();
-
-		AHoudiniAssetActor* HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
-		UWorld* World = HoudiniAssetActor->GetWorld();
-
-		TArray<ALandscapeProxy*> LandscapeActors;
-
-		int32 ActorCount = World->GetCurrentLevel()->Actors.Num();
-		for(int32 ActorIdx = 0; ActorIdx < ActorCount; ++ActorIdx)
+		case EHoudiniAssetInputType::LandscapeInput:
 		{
-			ALandscapeProxy* LandscapeActor = Cast<ALandscapeProxy>(World->GetCurrentLevel()->Actors[ActorIdx]);
-			if(LandscapeActor)
+			/*
+			if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, LandscapeActors, ConnectedAssetId))
 			{
-				LandscapeActors.Add(LandscapeActor);
+				bChanged = false;
+				ConnectedAssetId = -1;
+				return false;
 			}
+			*/
+			break;
 		}
 
-		// Connect input and create connected asset. Will return by reference.
-		if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, LandscapeActors, ConnectedAssetId))
+		default:
 		{
-			bChanged = false;
-			ConnectedAssetId = -1;
-			return false;
+			check(0);
 		}
 	}
+
 
 	bLoadedParameter = false;
 	return Super::UploadParameterValue();
@@ -1032,6 +1046,34 @@ UHoudiniAssetInput::OnInputActorUse()
 
 }
 
+
+bool
+UHoudiniAssetInput::OnLandscapeActorFilter(const AActor* const Actor) const
+{
+	return (Actor && Actor->IsA(ALandscapeProxy::StaticClass()));
+}
+
+
+void
+UHoudiniAssetInput::OnLandscapeActorSelected(AActor* Actor)
+{
+
+}
+
+
+void
+UHoudiniAssetInput::OnLandscapeActorCloseComboButton()
+{
+
+}
+
+
+void
+UHoudiniAssetInput::OnLandscapeActorUse()
+{
+
+}
+
 #endif
 
 void
@@ -1062,6 +1104,20 @@ UHoudiniAssetInput::DisconnectInputAssetActor()
 		FHoudiniEngineUtils::HapiDisconnectAsset(HoudiniAssetComponent->GetAssetId(), InputIndex);
 		bInputAssetConnectedInHoudini = false;
 	}
+}
+
+
+void
+UHoudiniAssetInput::ConnectLandscapeActor()
+{
+
+}
+
+
+void
+UHoudiniAssetInput::DisconnectLandscapeActor()
+{
+
 }
 
 

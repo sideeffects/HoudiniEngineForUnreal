@@ -152,7 +152,7 @@ public:
 
 	/** HAPI : Marshalling, extract landscape geometry and upload it. Return new asset id. **/
 	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
-		const TArray<ALandscapeProxy*>& Landscapes, HAPI_AssetId& ConnectedAssetId);
+		ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId);
 
 	/** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return	**/
 	/** new asset id.																								**/
