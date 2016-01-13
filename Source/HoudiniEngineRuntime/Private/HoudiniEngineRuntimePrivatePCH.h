@@ -218,7 +218,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION			"unreal_lightmap_resolution"
 #define HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME			"unreal_generated_mesh_name"
-#define HAPI_UNERAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX	"name"
+#define HAPI_UNERAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX	HAPI_ATTRIB_NAME
 #define HAPI_UNERAL_ATTRIB_LANDSCAPE_VERTEX_INDEX_X		"unreal_landscape_vertex_index_x"
 #define HAPI_UNERAL_ATTRIB_LANDSCAPE_VERTEX_INDEX_Y		"unreal_landscape_vertex_index_y"
 
