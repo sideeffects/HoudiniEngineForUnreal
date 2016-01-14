@@ -3,6 +3,8 @@ Houdini Engine for Unreal Engine is a Unreal Engine plug-in that allows integrat
 
 This plug-in brings Houdini's powerful and flexible procedural workflow into Unreal Engine through Houdini Digital Assets. Artists can interactively adjust asset parameters inside Unreal Engine and use Unreal Engine geometries as asset inputs. Houdini's procedural engine will then "cook" the asset and the results will be available inside Unreal Engine.
 
+You can use the [Houdini Engine for UE4 Forum](https://www.sidefx.com/index.php?option=com_forum&Itemid=172&page=viewforum&f=58) on the Side Effects website to ask questions, discuss new features work, and share your ideas.
+
 ## Supported Unreal Engine Versions
 Currently, the supported Unreal Engine versions are:
 
