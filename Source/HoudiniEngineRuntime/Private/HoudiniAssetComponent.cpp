@@ -43,6 +43,192 @@
 #include "HoudiniAssetComponentMaterials.h"
 
 
+#if WITH_EDITOR
+
+/** Slate widget used to pick an asset to instantiate from an HDA with multiple assets inside. **/
+class SAssetSelectionWidget : public SCompoundWidget
+{
+	public:
+		SLATE_BEGIN_ARGS(SAssetSelectionWidget)
+			: _WidgetWindow(), _AvailableAssetNames()
+		{}
+		
+		SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
+		SLATE_ARGUMENT(TArray<int32>, AvailableAssetNames)
+		SLATE_END_ARGS()
+
+	public:
+
+		SAssetSelectionWidget();
+
+	public:
+
+		/** Widget construct. **/
+		void Construct(const FArguments& InArgs);
+
+		/** Return true if cancel button has been pressed. **/
+		bool IsCancelled() const;
+
+		/** Return true if constructed widget is valid. **/
+		bool IsValidWidget() const;
+
+		/** Return selected asset name. **/
+		int32 GetSelectedAssetName() const;
+
+	protected:
+
+		/** Called when Ok button is pressed. **/
+		FReply OnButtonOk();
+
+		/** Called when Cancel button is pressed. **/
+		FReply OnButtonCancel();
+
+		/** Called when user picks an asset. **/
+		FReply OnButtonAssetPick(int32 AssetName);
+
+	protected:
+
+		/** Parent widget window. **/
+		TSharedPtr<SWindow> WidgetWindow;
+
+		/** List of available Houdini Engine asset names. **/
+		TArray<int32> AvailableAssetNames;
+
+		/** Selected asset name. **/
+		int32 SelectedAssetName;
+
+		/** Is set to true if constructed widget is valid. **/
+		bool bIsValidWidget;
+
+		/** Is set to true if selection process has been cancelled. **/
+		bool bIsCancelled;
+};
+
+
+SAssetSelectionWidget::SAssetSelectionWidget() :
+	SelectedAssetName(-1),
+	bIsValidWidget(false),
+	bIsCancelled(false)
+{
+
+}
+
+
+bool
+SAssetSelectionWidget::IsCancelled() const
+{
+	return bIsCancelled;
+}
+
+
+bool
+SAssetSelectionWidget::IsValidWidget() const
+{
+	return bIsValidWidget;
+}
+
+
+int32
+SAssetSelectionWidget::GetSelectedAssetName() const
+{
+	return SelectedAssetName;
+}
+
+
+void
+SAssetSelectionWidget::Construct(const FArguments& InArgs)
+{
+	WidgetWindow = InArgs._WidgetWindow;
+	AvailableAssetNames = InArgs._AvailableAssetNames;
+
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+
+	this->ChildSlot
+	[
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
+		.Content()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SAssignNew(VerticalBox, SVerticalBox)
+			]
+		]
+	];
+
+	for(int32 AssetNameIdx = 0, AssetNameNum = AvailableAssetNames.Num(); AssetNameIdx < AssetNameNum; ++AssetNameIdx)
+	{
+		FString AssetNameString;
+		int32 AssetName = AvailableAssetNames[AssetNameIdx];
+
+		if(FHoudiniEngineUtils::GetHoudiniString(AssetName, AssetNameString))
+		{
+			bIsValidWidget = true;
+			FText AssetNameStringText = FText::FromString(AssetNameString);
+
+			VerticalBox->AddSlot()
+			.HAlign(HAlign_Center)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Padding(2.0f, 4.0f)
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.OnClicked(this, &SAssetSelectionWidget::OnButtonAssetPick, AssetName)
+					.Text(AssetNameStringText)
+					.ToolTipText(AssetNameStringText)
+				]
+			];
+		}
+	}
+}
+
+
+FReply
+SAssetSelectionWidget::OnButtonAssetPick(int32 AssetName)
+{
+	SelectedAssetName = AssetName;
+
+	WidgetWindow->HideWindow();
+	WidgetWindow->RequestDestroyWindow();
+
+	return FReply::Handled();
+}
+
+
+FReply
+SAssetSelectionWidget::OnButtonOk()
+{
+	WidgetWindow->HideWindow();
+	WidgetWindow->RequestDestroyWindow();
+
+	return FReply::Handled();
+}
+
+
+FReply
+SAssetSelectionWidget::OnButtonCancel()
+{
+	bIsCancelled = true;
+
+	WidgetWindow->HideWindow();
+	WidgetWindow->RequestDestroyWindow();
+
+	return FReply::Handled();
+}
+
+
+#endif
+
+
 // Macro to update given property on all components.
 #define HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(COMPONENT_CLASS, PROPERTY)										\
 	do																										\
@@ -1310,6 +1496,49 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool 
 
 		if(FHoudiniEngineUtils::GetAssetNames(HoudiniAsset, AssetLibraryId, AssetNames))
 		{
+			int32 PickedAssetName = AssetNames[0];
+
+			if(AssetNames.Num() > 1)
+			{
+				// If we have more than one asset, we need to present user with choice dialog.
+
+				TSharedPtr<SWindow> ParentWindow;
+
+				// Check if the main frame is loaded. When using the old main frame it may not be.
+				if(FModuleManager::Get().IsModuleLoaded("MainFrame"))
+				{
+					IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+					ParentWindow = MainFrame.GetParentWindow();
+				}
+
+				if(ParentWindow.IsValid())
+				{
+					TSharedPtr<SAssetSelectionWidget> AssetSelectionWidget;
+
+					TSharedRef<SWindow> Window = SNew(SWindow)
+						.Title(LOCTEXT("WindowTitle", "Select an asset to instantiate"))
+						.ClientSize(FVector2D(640, 480))
+						.SupportsMinimize(false)
+						.SupportsMaximize(false)
+						.HasCloseButton(false);
+
+					Window->SetContent(SAssignNew(AssetSelectionWidget, SAssetSelectionWidget)
+						.WidgetWindow(Window)
+						.AvailableAssetNames(AssetNames));
+
+					if(AssetSelectionWidget->IsValidWidget())
+					{
+						FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
+
+						int32 DialogPickedAssetName = AssetSelectionWidget->GetSelectedAssetName();
+						if(-1 != DialogPickedAssetName)
+						{
+							PickedAssetName = DialogPickedAssetName;
+						}
+					}
+				}
+			}
+
 			// Create new GUID to identify this request.
 			HapiGUID = FGuid::NewGuid();
 
@@ -1318,7 +1547,7 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool 
 			Task.ActorName = GetOuter()->GetName();
 			Task.bLoadedComponent = bLoadedComponent;
 			Task.AssetLibraryId = AssetLibraryId;
-			Task.AssetHapiName = AssetNames[0];
+			Task.AssetHapiName = PickedAssetName;
 			FHoudiniEngine::Get().AddTask(Task);
 		}
 		else
