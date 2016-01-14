@@ -5131,6 +5131,76 @@ FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(UInstancedStati
 }
 
 
+bool
+FHoudiniEngineUtils::GetAssetNames(UHoudiniAsset* HoudiniAsset, HAPI_AssetLibraryId& OutAssetLibraryId,
+	TArray<int32>& OutAssetNames)
+{
+	OutAssetLibraryId = -1;
+	OutAssetNames.Empty();
+
+	if(FHoudiniEngineUtils::IsInitialized() && HoudiniAsset)
+	{
+		const FString& AssetFileName = HoudiniAsset->GetAssetFileName();
+		HAPI_Result Result = HAPI_RESULT_SUCCESS;
+		HAPI_AssetLibraryId AssetLibraryId = -1;
+		int32 AssetCount = 0;
+		TArray<int32> AssetNames;
+
+		if(!AssetFileName.IsEmpty() && FPaths::FileExists(AssetFileName))
+		{
+			// File does exist, we can load asset from file.
+			std::string AssetFileNamePlain;
+			FHoudiniEngineUtils::ConvertUnrealString(AssetFileName, AssetFileNamePlain);
+
+			Result = FHoudiniApi::LoadAssetLibraryFromFile(
+				FHoudiniEngine::Get().GetSession(), AssetFileNamePlain.c_str(), true, &AssetLibraryId);
+		}
+		else
+		{
+			// Otherwise we will try to load from buffer we've cached.
+			Result = FHoudiniApi::LoadAssetLibraryFromMemory(FHoudiniEngine::Get().GetSession(),
+				reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
+				HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId);
+		}
+
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Error loading asset library for %s"), *AssetFileName);
+			return false;
+		}
+
+		Result = FHoudiniApi::GetAvailableAssetCount(FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetCount);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Error getting asset count for %s"), *AssetFileName);
+			return false;
+		}
+
+		AssetNames.SetNumUninitialized(AssetCount);
+
+		Result = FHoudiniApi::GetAvailableAssets(FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetNames[0], AssetCount);
+		if(HAPI_RESULT_SUCCESS != Result)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Unable to retrieve asset names for %s"), *AssetFileName);
+			return false;
+		}
+
+		if(!AssetCount)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("No assets found within %s"), *AssetFileName);
+			return false;
+		}
+
+		OutAssetLibraryId = AssetLibraryId;
+		OutAssetNames = AssetNames;
+	
+		return true;
+	}
+
+	return false;
+}
+
+
 void
 FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
 	const TCHAR* Value)
