@@ -139,6 +139,10 @@ public:
 	static void UpdateInstancedStaticMeshComponentInstances(UInstancedStaticMeshComponent* Component,
 		const TArray<FTransform>& InstancedTransforms, const FRotator& RotationOffset, const FVector& ScaleOffset);
 
+	/** Retrieves list of asset names contained within the HDA. **/
+	static bool GetAssetNames(UHoudiniAsset* HoudiniAsset, HAPI_AssetLibraryId& AssetLibraryId,
+		TArray<int32>& AssetNames); 
+
 public:
 
 	/** HAPI : Return true if given asset id is valid. **/
