@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 15.0.360
+    Houdini Version: 15.0.355
     Houdini Engine Version: 2.0.18
     Unreal Version: 4.10.0
 
@@ -31,7 +31,7 @@ public class HoudiniEngineEditor : ModuleRules
 	{
 		bool bIsRelease = true;
 		string HFSPath = "";
-		string HoudiniVersion = "15.0.360";
+		string[] HoudiniVersions = { "15.0.355", "15.0.347", "15.0.244.16", };
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -44,53 +44,77 @@ public class HoudiniEngineEditor : ModuleRules
 
 		if( bIsRelease )
 		{
-			if( Target.Platform == UnrealTargetPlatform.Win64 )
-			{
-				// We first check if Houdini Engine is installed.
-				string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
-				if( !Directory.Exists( HPath ) )
-				{
-					// If Houdini Engine is not installed, we check for Houdini installation.
-					HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
-					if( !Directory.Exists( HPath ) )
-					{
-						if ( !Directory.Exists( HFSPath ) )
-						{
-							string Err = string.Format( "Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion );
-							System.Console.WriteLine( Err );
-							throw new BuildException( Err );
-						}
-					}
-					else
-					{
-						HFSPath = HPath;
-					}
-				}
-				else
-				{
-					HFSPath = HPath;
-				}
-			}
-			else if( Target.Platform == UnrealTargetPlatform.Mac )
-			{
-				string HPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion + "/Resources";
-				if( !Directory.Exists( HPath ) )
-				{
-					if ( !Directory.Exists( HFSPath ) )
-					{
-						string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
-						System.Console.WriteLine( Err );
-						throw new BuildException( Err );
-					}
-				}
-				else
-				{
-					HFSPath = HPath;
-				}
-			}
+            foreach (var HoudiniVersion in HoudiniVersions)
+            {
+			    if( Target.Platform == UnrealTargetPlatform.Win64 )
+			    {
+				    // We first check if Houdini Engine is installed.
+				    string HPath = "C:/Program Files/Side Effects Software/Houdini Engine " + HoudiniVersion;
+				    if( !Directory.Exists( HPath ) )
+				    {
+					    // If Houdini Engine is not installed, we check for Houdini installation.
+					    HPath = "C:/Program Files/Side Effects Software/Houdini " + HoudiniVersion;
+					    if( !Directory.Exists( HPath ) )
+					    {
+						    // [PHX][jsuter] - BEGIN modification        
+
+                                // We've changed this plugin so that not having Houdini installed is no longer fatal (at least on Windows).
+                        
+                                // string Err = string.Format( "Houdini Engine Runtime: Please install Houdini or Houdini Engine {0}", HoudiniVersion );
+						        // System.Console.WriteLine( Err );
+						        // throw new BuildException( Err );
+
+                            // [PHX][jsuter] - END modification
+					    }
+				        else
+					    {
+						    HFSPath = HPath;
+					    }
+				    }
+				    else
+				    {
+					    HFSPath = HPath;
+				    }
+			    }
+			    else if( Target.Platform == UnrealTargetPlatform.Mac )
+			    {
+				    string HPath = "/Library/Frameworks/Houdini.framework/Versions/" + HoudiniVersion + "/Resources";
+				    if( !Directory.Exists( HPath ) )
+				    {
+					    if ( !Directory.Exists( HFSPath ) )
+					    {
+						    string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
+						    System.Console.WriteLine( Err );
+						    throw new BuildException( Err );
+					    }
+				    }
+				    else
+				    {
+					    HFSPath = HPath;
+				    }
+			    }
+
+                if (HFSPath != "")
+                {
+                    break;
+                }
+            }
 		}
 
-		string HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
+		// [PHX][jsuter] - BEGIN modification
+        string HAPIIncludePath = "";
+        if ( HFSPath != "" )
+        {
+            System.Console.WriteLine( "\n [HoudiniEngineEditor] Note, Houdini plugin is enabled, and relying on \"{0}\").\n", HFSPath);
+            HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";            
+        }
+        else
+        {
+            // If Houdini is not installed, fall back on the HAPI directory that we included alongside the plugin.
+            HAPIIncludePath = Path.GetFullPath(Path.Combine(ModuleDirectory, "../toolkit/include/HAPI" ));
+            System.Console.WriteLine( "\n [HoudiniEngineEditor] Note, Houdini plugin is enabled but you don't have Houdini (or Houdini Engine) installed, you should avoid using Houdini assets in your project. (also, you're relying on HAPI includes from \"{0}\").\n", HAPIIncludePath );
+        }
+        // [PHX][jsuter] - END modification
 
 		if( HFSPath != "" )
 		{
