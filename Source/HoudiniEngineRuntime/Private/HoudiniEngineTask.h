@@ -62,6 +62,12 @@ struct FHoudiniEngineTask
 	/** Asset Id. **/
 	HAPI_AssetId AssetId;
 
+	/** Library Id. **/
+	HAPI_AssetLibraryId AssetLibraryId;
+
+	/** HAPI name of the asset. **/
+	int32 AssetHapiName;
+
 	/** Is set to true if component has been loaded. **/
 	bool bLoadedComponent;
 };

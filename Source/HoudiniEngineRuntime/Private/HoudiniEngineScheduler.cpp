@@ -108,71 +108,24 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 		return;
 	}
 
+	if(Task.AssetHapiName < 0)
+	{
+		// Asset is no longer valid, return.
+		AddResponseMessageTaskInfo(HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetInstantiation,
+			EHoudiniEngineTaskState::FinishedInstantiationWithErrors, -1, Task, TEXT("Asset name is invalid."));
+
+		return;
+	}
+
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	UHoudiniAsset* HoudiniAsset = Task.Asset.Get();
-	HAPI_AssetLibraryId AssetLibraryId = 0;
 	int32 AssetCount = 0;
 	HAPI_AssetId AssetId = -1;
-	TArray<int32> AssetNames;
 	std::string AssetNameString;
 	double LastUpdateTime;
 
-	// We will try to instantiate asset from file if it exists.
-	const FString& AssetFileName = HoudiniAsset->GetAssetFileName();
-	if(!AssetFileName.IsEmpty() && FPaths::FileExists(AssetFileName))
-	{
-		// File does exist, we can load asset from file.
-		std::string AssetFileNamePlain;
-		FHoudiniEngineUtils::ConvertUnrealString(AssetFileName, AssetFileNamePlain);
-
-		Result = FHoudiniApi::LoadAssetLibraryFromFile(
-			FHoudiniEngine::Get().GetSession(), AssetFileNamePlain.c_str(), true, &AssetLibraryId);
-	}
-	else
-	{
-		// Otherwise we will try to load from buffer we've cached.
-		Result = FHoudiniApi::LoadAssetLibraryFromMemory(FHoudiniEngine::Get().GetSession(),
-			reinterpret_cast<const char*>(HoudiniAsset->GetAssetBytes()),
-				HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId);
-	}
-
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
-		AddResponseTaskInfo(Result, EHoudiniEngineTaskType::AssetInstantiation,
-			EHoudiniEngineTaskState::FinishedInstantiationWithErrors, -1, Task);
-
-		return;
-	}
-
-	Result = FHoudiniApi::GetAvailableAssetCount(FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetCount);
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
-		AddResponseMessageTaskInfo(Result, EHoudiniEngineTaskType::AssetInstantiation,
-			EHoudiniEngineTaskState::FinishedInstantiationWithErrors, -1, Task, TEXT("Error getting asset count."));
-
-		return;
-	}
-
-	AssetNames.SetNumUninitialized(AssetCount);
-	Result = FHoudiniApi::GetAvailableAssets(FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetNames[0], AssetCount);
-	if(HAPI_RESULT_SUCCESS != Result)
-	{
-		AddResponseMessageTaskInfo(Result, EHoudiniEngineTaskType::AssetInstantiation,
-			EHoudiniEngineTaskState::FinishedInstantiationWithErrors, -1, Task, TEXT("Error retrieving assets."));
-
-		return;
-	}
-
-	if(!AssetCount)
-	{
-		AddResponseMessageTaskInfo(HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetInstantiation,
-			EHoudiniEngineTaskState::FinishedInstantiationWithErrors, -1, Task, TEXT("No assets to instantiate."));
-
-		return;
-	}
-
 	// If we have assets, instantiate first one.
-	if(FHoudiniEngineUtils::GetHoudiniString(AssetNames[0], AssetNameString))
+	if(FHoudiniEngineUtils::GetHoudiniString(Task.AssetHapiName, AssetNameString))
 	{
 		// Translate asset name into Unreal string.
 		FString AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());
