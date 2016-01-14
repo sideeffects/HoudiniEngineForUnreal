@@ -1304,14 +1304,28 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool 
 
 	if(!bWaitingForUpstreamAssetsToInstantiate)
 	{
-		// Create new GUID to identify this request.
-		HapiGUID = FGuid::NewGuid();
+		// Check if asset has multiple Houdini assets inside.
+		HAPI_AssetLibraryId AssetLibraryId = -1;
+		TArray<int32> AssetNames;
 
-		FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
-		Task.Asset = HoudiniAsset;
-		Task.ActorName = GetOuter()->GetName();
-		Task.bLoadedComponent = bLoadedComponent;
-		FHoudiniEngine::Get().AddTask(Task);
+		if(FHoudiniEngineUtils::GetAssetNames(HoudiniAsset, AssetLibraryId, AssetNames))
+		{
+			// Create new GUID to identify this request.
+			HapiGUID = FGuid::NewGuid();
+
+			FHoudiniEngineTask Task(EHoudiniEngineTaskType::AssetInstantiation, HapiGUID);
+			Task.Asset = HoudiniAsset;
+			Task.ActorName = GetOuter()->GetName();
+			Task.bLoadedComponent = bLoadedComponent;
+			Task.AssetLibraryId = AssetLibraryId;
+			Task.AssetHapiName = AssetNames[0];
+			FHoudiniEngine::Get().AddTask(Task);
+		}
+		else
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Cancelling asset instantiation - unable to retrieve asset names."));
+			return;
+		}
 	}
 
 	// Start ticking - this will poll the cooking system for completion.
