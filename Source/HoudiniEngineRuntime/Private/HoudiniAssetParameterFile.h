@@ -69,6 +69,15 @@ public:
 
 protected:
 
+#if WITH_EDITOR
+
+	void HandleFilePathPickerPathPicked(const FString& PickedPath, int32 Idx);
+
+#endif
+
+
+protected:
+
 	/** Values of this property. **/
 	TArray<FString> Values;
 
