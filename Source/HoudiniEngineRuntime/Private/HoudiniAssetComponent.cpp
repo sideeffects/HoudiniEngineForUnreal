@@ -34,6 +34,7 @@
 #include "HoudiniAssetParameterMultiparm.h"
 #include "HoudiniAssetParameterSeparator.h"
 #include "HoudiniAssetParameterString.h"
+#include "HoudiniAssetParameterFile.h"
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniHandleComponent.h"
 #include "HoudiniSplineComponent.h"
@@ -3248,6 +3249,12 @@ UHoudiniAssetComponent::CreateParameters()
 				case HAPI_PARMTYPE_PATH_FILE:
 				case HAPI_PARMTYPE_PATH_FILE_GEO:
 				case HAPI_PARMTYPE_PATH_FILE_IMAGE:
+				{
+					HoudiniAssetParameter = UHoudiniAssetParameterFile::Create(this, nullptr, AssetInfo.nodeId,
+						ParmInfo);
+					break;
+				}
+
 				case HAPI_PARMTYPE_PATH_NODE:
 				{
 					HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, nullptr, AssetInfo.nodeId,
