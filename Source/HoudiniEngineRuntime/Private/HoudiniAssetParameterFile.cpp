@@ -66,10 +66,20 @@ UHoudiniAssetParameterFile::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 		return false;
 	}
 
-	// We can only handle file type.
-	if(HAPI_PARMTYPE_FILE != ParmInfo.type)
+	// We can only handle file types.
+	switch(ParmInfo.type)
 	{
-		return false;
+		case HAPI_PARMTYPE_PATH_FILE:
+		case HAPI_PARMTYPE_PATH_FILE_GEO:
+		case HAPI_PARMTYPE_PATH_FILE_IMAGE:
+		{
+			break;
+		}
+
+		default:
+		{
+			return false;
+		}
 	}
 
 	// Assign internal Hapi values index.
