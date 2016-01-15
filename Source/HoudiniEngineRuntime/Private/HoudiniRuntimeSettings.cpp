@@ -28,6 +28,10 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	bStartAutomaticServer(HAPI_UNREAL_SESSION_SERVER_AUTOSTART),
 	AutomaticServerTimeout(HAPI_UNREAL_SESSION_SERVER_TIMEOUT),
 
+	/** Instantiation options. **/
+	bShowMultiAssetDialog(true),
+	
+
 	/** Cooking options. **/
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(false),

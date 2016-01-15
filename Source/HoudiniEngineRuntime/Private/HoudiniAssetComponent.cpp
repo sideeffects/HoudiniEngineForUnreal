@@ -1497,8 +1497,15 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool 
 		if(FHoudiniEngineUtils::GetAssetNames(HoudiniAsset, AssetLibraryId, AssetNames))
 		{
 			int32 PickedAssetName = AssetNames[0];
+			bool bShowMultiAssetDialog = false;
 
-			if(AssetNames.Num() > 1)
+			const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+			if(HoudiniRuntimeSettings)
+			{
+				bShowMultiAssetDialog = HoudiniRuntimeSettings->bShowMultiAssetDialog;
+			}
+
+			if(bShowMultiAssetDialog && AssetNames.Num() > 1)
 			{
 				// If we have more than one asset, we need to present user with choice dialog.
 

@@ -139,6 +139,13 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 	float AutomaticServerTimeout;
 
+/** Instantiation options. **/
+public:
+
+	// Whether to ask user to select an asset when instantiating an HDA with multiple assets inside. If disabled, will always instantiate first asset.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Instantiating)
+	bool bShowMultiAssetDialog;
+
 /** Cooking options. **/
 public:
 
@@ -224,7 +231,7 @@ public:
 		meta=(DisplayName="Simple Collision Physical Material"))
 	UPhysicalMaterial* PhysMaterial;
 
-	//* Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate for new Houdini Assets.
+	// Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate for new Houdini Assets.
 	UPROPERTY(GlobalConfig, VisibleDefaultsOnly, Category=GeneratedStaticMeshSettings,
 		meta=(DisplayName="Collision Complexity"))
 	TEnumAsByte<enum ECollisionTraceFlag> CollisionTraceFlag;
