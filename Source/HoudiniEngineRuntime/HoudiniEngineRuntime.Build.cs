@@ -150,7 +150,8 @@ public class HoudiniEngineRuntime : ModuleRules
 					"EditorWidgets",
 					"AppFramework",
 					"TargetPlatform",
-					"RawMesh"
+					"RawMesh",
+					"DesktopWidgets"
 				}
 			);
 		}
