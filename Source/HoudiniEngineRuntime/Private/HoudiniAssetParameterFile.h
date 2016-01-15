@@ -19,19 +19,19 @@
 
 
 UCLASS()
-class HOUDINIENGINERUNTIME_API HoudiniAssetParameterFile : public UHoudiniAssetParameter
+class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFile : public UHoudiniAssetParameter
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 	/** Destructor. **/
-	virtual ~HoudiniAssetParameterFile();
+	virtual ~UHoudiniAssetParameterFile();
 
 public:
 
 	/** Create instance of this class. **/
-	static HoudiniAssetParameterFile* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+	static UHoudiniAssetParameterFile* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
