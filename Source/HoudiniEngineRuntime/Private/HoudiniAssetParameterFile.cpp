@@ -154,25 +154,19 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
-		/*
-		TSharedPtr<SEditableTextBox> EditableTextBox;
-
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
-			SAssignNew(EditableTextBox, SEditableTextBox)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-
-			.Text(FText::FromString(Values[Idx]))
-			.OnTextChanged(FOnTextChanged::CreateUObject(this, &UHoudiniAssetParameterFile::SetValue, Idx))
-			.OnTextCommitted(FOnTextCommitted::CreateUObject(this,
-				&UHoudiniAssetParameterFile::SetValueCommitted, Idx))
+			SNew(SFilePathPicker)
+			.BrowseButtonImage(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
+			.BrowseButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+			.BrowseButtonToolTip(LOCTEXT("FileButtonToolTipText", "Choose a file from this computer"))
+			.BrowseDirectory(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN))
+			.BrowseTitle(LOCTEXT("PropertyEditorTitle", "File picker..."))
+			//.FilePath(this, &FFilePathStructCustomization::HandleFilePathPickerFilePath)
+			//.FileTypeFilter(FileTypeFilter)
+			.OnPathPicked(FOnPathPicked::CreateUObject(this, 
+				&UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked, Idx))
 		];
-
-		if(EditableTextBox.IsValid())
-		{
-			EditableTextBox->SetEnabled(!bIsDisabled);
-		}
-		*/
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
@@ -228,6 +222,13 @@ UHoudiniAssetParameterFile::SetValueCommitted(const FText& InValue, ETextCommit:
 		// Mark this parameter as changed.
 		MarkChanged();
 	}
+}
+
+
+void
+UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked(const FString& PickedPath, int32 Idx)
+{
+
 }
 
 #endif
