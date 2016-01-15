@@ -999,7 +999,7 @@ UHoudiniAssetComponent::StopHoudiniTicking()
 
 
 void
-UHoudiniAssetComponent::PostCook()
+UHoudiniAssetComponent::PostCook(bool bCookError)
 {
 	// Show busy cursor.
 	FScopedBusyCursor ScopedBusyCursor;
@@ -1008,6 +1008,11 @@ UHoudiniAssetComponent::PostCook()
 	CreateParameters();
 	CreateInputs();
 	CreateHandles();
+
+	if(bCookError)
+	{
+		return;
+	}
 
 	FTransform ComponentTransform;
 	TMap<FHoudiniGeoPartObject, UStaticMesh*> NewStaticMeshes;
@@ -1224,8 +1229,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 					if(FHoudiniEngineUtils::IsValidAssetId(TaskInfo.AssetId))
 					{
-						// Compute number of inputs.
-						CreateInputs();
+						// Call post cook event with error parameter. This will create parameters, inputs and handles.
+						PostCook(true);
 
 						// Create default preset buffer.
 						CreateDefaultPreset();

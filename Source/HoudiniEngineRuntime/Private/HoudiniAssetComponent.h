@@ -312,7 +312,7 @@ private:
 #if WITH_EDITOR
 
 	/** Called after each cook. **/
-	void PostCook();
+	void PostCook(bool bCookError = false);
 
 	/** Remove all attached components. **/
 	void RemoveAllAttachedComponents();
