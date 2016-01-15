@@ -131,7 +131,8 @@ public class HoudiniEngineRuntime : ModuleRules
 					"EditorStyle",
 					"EditorWidgets",
 					"AppFramework",
-					"RawMesh"
+					"RawMesh",
+					"DesktopWidgets"
 				}
 			);
 		}
