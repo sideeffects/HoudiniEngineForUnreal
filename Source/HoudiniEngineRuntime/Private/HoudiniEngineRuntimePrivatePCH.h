@@ -35,6 +35,7 @@
 #include "SAssetSearchBox.h"
 #include "SColorBlock.h"
 #include "SColorPicker.h"
+#include "Widgets/Input/SFilePathPicker.h"
 #include "SNumericEntryBox.h"
 #include "SRotatorInputBox.h"
 #include "SVectorInputBox.h"
