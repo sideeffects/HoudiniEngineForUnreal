@@ -71,4 +71,7 @@ protected:
 
 	/** Values of this property. **/
 	TArray<FString> Values;
+
+	/** Filters of this property. **/
+	FString Filters;
 };

@@ -22,7 +22,8 @@
 
 
 UHoudiniAssetParameterFile::UHoudiniAssetParameterFile(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer)
+	Super(ObjectInitializer),
+	Filters(TEXT(""))
 {
 	Values.Add(TEXT(""));
 }
@@ -70,9 +71,19 @@ UHoudiniAssetParameterFile::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 	switch(ParmInfo.type)
 	{
 		case HAPI_PARMTYPE_PATH_FILE:
+		{
+			break;
+		}
+
 		case HAPI_PARMTYPE_PATH_FILE_GEO:
+		{
+			ParameterLabel += TEXT(" (geo)");
+			break;
+		}
+
 		case HAPI_PARMTYPE_PATH_FILE_IMAGE:
 		{
+			ParameterLabel += TEXT(" (img)");
 			break;
 		}
 
@@ -103,6 +114,15 @@ UHoudiniAssetParameterFile::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 		Values[Idx] = ValueString;
 	}
 
+	// Retrieve filters for this file.
+	if(ParmInfo.typeInfoSH > 0 && FHoudiniEngineUtils::GetHoudiniString(ParmInfo.typeInfoSH, Filters))
+	{
+		if(!Filters.IsEmpty())
+		{
+			ParameterLabel = FString::Printf(TEXT("%s (%s)"), *ParameterLabel, *Filters);
+		}
+	}
+
 	return true;
 }
 
@@ -114,6 +134,7 @@ UHoudiniAssetParameterFile::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 
 	Ar << Values;
+	Ar << Filters;
 }
 
 
@@ -133,6 +154,7 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
+		/*
 		TSharedPtr<SEditableTextBox> EditableTextBox;
 
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
@@ -150,6 +172,7 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		{
 			EditableTextBox->SetEnabled(!bIsDisabled);
 		}
+		*/
 	}
 
 	Row.ValueWidget.Widget = VerticalBox;
