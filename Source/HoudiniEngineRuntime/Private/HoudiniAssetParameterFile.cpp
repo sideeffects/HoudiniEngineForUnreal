@@ -154,10 +154,21 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	FString FileTypeWidgetFilter = ComputeFiletypeFilter(Filters);
+	FString BrowseWidgetDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN);
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
 		FString FileWidgetPath = Values[Idx];
+		FString FileWidgetBrowsePath = BrowseWidgetDirectory;
+
+		if(!FileWidgetPath.IsEmpty())
+		{
+			FString FileWidgetDirPath = FPaths::GetPath(FileWidgetPath);
+			if(!FileWidgetDirPath.IsEmpty())
+			{
+				FileWidgetBrowsePath = FileWidgetDirPath;
+			}
+		}
 
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
@@ -165,7 +176,7 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			.BrowseButtonImage(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
 			.BrowseButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 			.BrowseButtonToolTip(LOCTEXT("FileButtonToolTipText", "Choose a file"))
-			.BrowseDirectory(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN))
+			.BrowseDirectory(FileWidgetBrowsePath)
 			.BrowseTitle(LOCTEXT("PropertyEditorTitle", "File picker..."))
 			.FilePath(FileWidgetPath)
 			.FileTypeFilter(FileTypeWidgetFilter)
