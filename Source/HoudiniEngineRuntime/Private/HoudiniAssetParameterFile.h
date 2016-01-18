@@ -63,6 +63,13 @@ protected:
 
 #endif
 
+protected:
+
+	/** Given a path check if it's relative. If it is, try to transform it into an absolute one. **/
+	FString UpdateCheckRelativePath(const FString& PickedPath) const;
+
+	/** Return filetype filter. **/
+	FString ComputeFiletypeFilter(const FString& FilterList) const;
 
 protected:
 
