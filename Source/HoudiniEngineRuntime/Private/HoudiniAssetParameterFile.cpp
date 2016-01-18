@@ -154,6 +154,8 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
+		FString FileWidgetPath = Values[Idx];
+
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
 			SNew(SFilePathPicker)
@@ -162,9 +164,9 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			.BrowseButtonToolTip(LOCTEXT("FileButtonToolTipText", "Choose a file from this computer"))
 			.BrowseDirectory(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN))
 			.BrowseTitle(LOCTEXT("PropertyEditorTitle", "File picker..."))
-			//.FilePath(this, &FFilePathStructCustomization::HandleFilePathPickerFilePath)
+			.FilePath(FileWidgetPath)
 			//.FileTypeFilter(FileTypeFilter)
-			.OnPathPicked(FOnPathPicked::CreateUObject(this, 
+			.OnPathPicked(FOnPathPicked::CreateUObject(this,
 				&UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked, Idx))
 		];
 	}
@@ -196,18 +198,9 @@ UHoudiniAssetParameterFile::UploadParameterValue()
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFile::SetValue(const FText& InValue, int32 Idx)
+UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked(const FString& PickedPath, int32 Idx)
 {
-
-}
-
-
-void
-UHoudiniAssetParameterFile::SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx)
-{
-	FString CommittedValue = InValue.ToString();
-
-	if(Values[Idx] != CommittedValue)
+	if (Values[Idx] != PickedPath)
 	{
 		// Record undo information.
 		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
@@ -217,18 +210,11 @@ UHoudiniAssetParameterFile::SetValueCommitted(const FText& InValue, ETextCommit:
 
 		MarkPreChanged();
 
-		Values[Idx] = CommittedValue;
+		Values[Idx] = PickedPath;
 
 		// Mark this parameter as changed.
 		MarkChanged();
 	}
-}
-
-
-void
-UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked(const FString& PickedPath, int32 Idx)
-{
-
 }
 
 #endif

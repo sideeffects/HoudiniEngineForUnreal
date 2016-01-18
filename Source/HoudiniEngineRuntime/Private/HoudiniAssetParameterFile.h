@@ -55,18 +55,6 @@ public:
 
 	virtual void Serialize(FArchive& Ar) override;
 
-public:
-
-#if WITH_EDITOR
-
-	/** Set value of this property, used by Slate. **/
-	void SetValue(const FText& InValue, int32 Idx);
-
-	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 Idx);
-
-#endif
-
 protected:
 
 #if WITH_EDITOR
