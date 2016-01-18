@@ -4076,7 +4076,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 			// See if diffuse color is available.
 			int32 ParmNameBaseDiffuseColorIdx = 
-				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_DIFFUSE_COLOR, NodeParamNames);
+				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE, NodeParamNames);
 
 			if(ParmNameBaseIdx >= 0 || ParmNameBaseDiffuseColorIdx >= 0)
 			{
