@@ -111,7 +111,9 @@ UHoudiniAssetParameterFile::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 	{
 		FString ValueString = TEXT("");
 		FHoudiniEngineUtils::GetHoudiniString(StringHandles[Idx], ValueString);
-		Values[Idx] = ValueString;
+
+		// Detect and update relative paths.
+		Values[Idx] = UpdateCheckRelativePath(ValueString);
 	}
 
 	// Retrieve filters for this file.
@@ -151,6 +153,7 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	CreateNameWidget(Row, true);
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+	FString FileTypeWidgetFilter = ComputeFiletypeFilter(Filters);
 
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
@@ -161,11 +164,11 @@ UHoudiniAssetParameterFile::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			SNew(SFilePathPicker)
 			.BrowseButtonImage(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
 			.BrowseButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-			.BrowseButtonToolTip(LOCTEXT("FileButtonToolTipText", "Choose a file from this computer"))
+			.BrowseButtonToolTip(LOCTEXT("FileButtonToolTipText", "Choose a file"))
 			.BrowseDirectory(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_OPEN))
 			.BrowseTitle(LOCTEXT("PropertyEditorTitle", "File picker..."))
 			.FilePath(FileWidgetPath)
-			//.FileTypeFilter(FileTypeFilter)
+			.FileTypeFilter(FileTypeWidgetFilter)
 			.OnPathPicked(FOnPathPicked::CreateUObject(this,
 				&UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked, Idx))
 		];
@@ -210,7 +213,7 @@ UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked(const FString& Picked
 
 		MarkPreChanged();
 
-		Values[Idx] = PickedPath;
+		Values[Idx] = UpdateCheckRelativePath(PickedPath);
 
 		// Mark this parameter as changed.
 		MarkChanged();
@@ -218,3 +221,41 @@ UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked(const FString& Picked
 }
 
 #endif
+
+
+FString
+UHoudiniAssetParameterFile::UpdateCheckRelativePath(const FString& PickedPath) const
+{
+	if(HoudiniAssetComponent && !PickedPath.IsEmpty() && FPaths::IsRelative(PickedPath))
+	{
+		const UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+		if(HoudiniAsset)
+		{
+			FString AssetFilePath = FPaths::GetPath(HoudiniAsset->AssetFileName);
+			if(FPaths::FileExists(AssetFilePath))
+			{
+				FString UpdatedFileWidgetPath = FPaths::Combine(*AssetFilePath, *PickedPath);
+				if(FPaths::FileExists(UpdatedFileWidgetPath))
+				{
+					return UpdatedFileWidgetPath;
+				}
+			}
+		}
+	}
+
+	return PickedPath;
+}
+
+
+FString
+UHoudiniAssetParameterFile::ComputeFiletypeFilter(const FString& FilterList) const
+{
+	FString FileTypeFilter = TEXT("All files (*.*)|*.*");
+
+	if(!FilterList.IsEmpty())
+	{
+		FileTypeFilter = FString::Printf(TEXT("%s files (*.%s)|*.%s"), *FilterList, *FilterList, *FilterList);
+	}
+
+	return FileTypeFilter;
+}
