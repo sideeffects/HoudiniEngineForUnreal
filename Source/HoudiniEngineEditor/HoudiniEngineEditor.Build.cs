@@ -58,7 +58,6 @@ public class HoudiniEngineEditor : ModuleRules
 						{
 							string Err = string.Format( "Houdini Engine : Please install Houdini or Houdini Engine {0}", HoudiniVersion );
 							System.Console.WriteLine( Err );
-							throw new BuildException( Err );
 						}
 					}
 					else
@@ -80,7 +79,6 @@ public class HoudiniEngineEditor : ModuleRules
 					{
 						string Err = string.Format( "Houdini Engine : Please install Houdini {0}", HoudiniVersion );
 						System.Console.WriteLine( Err );
-						throw new BuildException( Err );
 					}
 				}
 				else
@@ -90,10 +88,12 @@ public class HoudiniEngineEditor : ModuleRules
 			}
 		}
 
-		string HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
+		string HAPIIncludePath = "";
 
 		if( HFSPath != "" )
 		{
+			HAPIIncludePath = HFSPath + "/toolkit/include/HAPI";
+
 			if( Target.Platform == UnrealTargetPlatform.Win64 )
 			{
 				Definitions.Add( "HOUDINI_ENGINE_HFS_PATH_DEFINE=" + HFSPath );
@@ -102,8 +102,8 @@ public class HoudiniEngineEditor : ModuleRules
 
 		PublicIncludePaths.AddRange(
 			new string[] {
-				// ... add public include paths required here ...
 				HAPIIncludePath,
+				"HoudiniEngineRuntime/Public/HAPI",
 				"HoudiniEngineRuntime/Public",
 				"HoudiniEngineEditor/Public"
 			}
@@ -113,7 +113,6 @@ public class HoudiniEngineEditor : ModuleRules
 			new string[] {
 				"HoudiniEngineEditor/Private",
 				"HoudiniEngineRuntime/Private"
-				// ... add other private include paths required here ...
 			}
 		);
 
