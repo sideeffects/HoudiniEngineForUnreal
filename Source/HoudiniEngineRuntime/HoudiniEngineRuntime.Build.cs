@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 15.0.355
+    Houdini Version: 15.0.357
     Houdini Engine Version: 2.0.18
     Unreal Version: 4.10.0
 
@@ -174,7 +174,8 @@ public class HoudiniEngineRuntime : ModuleRules
 					"EditorWidgets",
 					"AppFramework",
 					"TargetPlatform",
-					"RawMesh"
+					"RawMesh",
+					"DesktopWidgets"
 				}
 			);
 		}

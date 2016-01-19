@@ -21,6 +21,10 @@
 
 FHoudiniEngineTask::FHoudiniEngineTask() :
 	TaskType(EHoudiniEngineTaskType::None),
+	ActorName(TEXT("")),
+	AssetId(-1),
+	AssetLibraryId(-1),
+	AssetHapiName(-1),
 	bLoadedComponent(false)
 {
 	HapiGUID.Invalidate();
@@ -30,6 +34,10 @@ FHoudiniEngineTask::FHoudiniEngineTask() :
 FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID) :
 	HapiGUID(InHapiGUID),
 	TaskType(InTaskType),
+	ActorName(TEXT("")),
+	AssetId(-1),
+	AssetLibraryId(-1),
+	AssetHapiName(-1),
 	bLoadedComponent(false)
 {
 

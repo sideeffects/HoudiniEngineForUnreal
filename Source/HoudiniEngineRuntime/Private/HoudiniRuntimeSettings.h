@@ -139,6 +139,13 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 	float AutomaticServerTimeout;
 
+/** Instantiation options. **/
+public:
+
+	// Whether to ask user to select an asset when instantiating an HDA with multiple assets inside. If disabled, will always instantiate first asset.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Instantiating)
+	bool bShowMultiAssetDialog;
+
 /** Cooking options. **/
 public:
 

@@ -31,7 +31,11 @@ public class HoudiniEngineEditor : ModuleRules
 	{
 		bool bIsRelease = true;
 		string HFSPath = "";
+<<<<<<< HEAD
 		string[] HoudiniVersions = { "15.0.355", "15.0.347", "15.0.244.16", };
+=======
+		string HoudiniVersion = "15.0.357";
+>>>>>>> upstream/Houdini15.0-Unreal4.10
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
