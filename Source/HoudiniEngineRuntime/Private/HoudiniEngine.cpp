@@ -166,7 +166,7 @@ FHoudiniEngine::StartupModule()
 
 #if WITH_EDITOR
 
-	if(!IsRunningCommandlet())
+	if(!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
 		// Create Houdini logo brush.
 		const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
