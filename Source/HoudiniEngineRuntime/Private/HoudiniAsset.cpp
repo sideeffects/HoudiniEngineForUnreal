@@ -19,7 +19,7 @@
 
 const uint32
 UHoudiniAsset::PersistenceFormatVersion = 2u;
- 
+
 
 UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
