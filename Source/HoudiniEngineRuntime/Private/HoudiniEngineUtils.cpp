@@ -1303,7 +1303,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	if(ConnectedAssetId < 0)
 	{
 		HAPI_AssetId AssetId = -1;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputAsset(FHoudiniEngine::Get().GetSession(), &AssetId, nullptr), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputAsset(FHoudiniEngine::Get().GetSession(), &AssetId,
+			nullptr), false);
 
 		// Check if we have a valid id for this new input asset.
 		if(!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
@@ -1343,15 +1344,18 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	Part.faceCount = 0;
 	Part.pointCount = 777;
 	Part.type = HAPI_PARTTYPE_MESH;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, &Part), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
+		&Part), false);
 	*/
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0), 
+		false);
 
 	// Now we can connect assets together.
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, InputIndex), false);
+		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, 
+			InputIndex), false);
 
 #endif
 

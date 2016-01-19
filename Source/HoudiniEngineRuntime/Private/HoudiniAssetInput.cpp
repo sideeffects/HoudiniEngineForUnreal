@@ -127,7 +127,17 @@ UHoudiniAssetInput::CreateWidgetResources()
 void
 UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
 {
-	if(ChoiceIndex != EHoudiniAssetInputType::AssetInput)
+	if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
+	{
+		if(InputAssetComponent)
+		{
+			InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
+		}
+
+		InputAssetComponent = nullptr;
+		ConnectedAssetId = -1;
+	}
+	else
 	{
 		if(HoudiniAssetComponent)
 		{
@@ -143,16 +153,6 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
 			FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
 			ConnectedAssetId = -1;
 		}
-	}
-	else
-	{
-		if(InputAssetComponent)
-		{
-			InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
-		}
-
-		InputAssetComponent = nullptr;
-		ConnectedAssetId = -1;
 	}
 }
 
@@ -881,6 +881,9 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 			case EHoudiniAssetInputType::LandscapeInput:
 			{
 				// We are switching away from landscape input.
+
+				// Reset selected landscape.
+				LandscapeProxy = nullptr;
 				break;
 			}
 
