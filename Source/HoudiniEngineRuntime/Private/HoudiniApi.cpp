@@ -816,1085 +816,1085 @@ FHoudiniApi::IsHAPIInitialized()
 
 
 HAPI_Result
-AddAttributeEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info)
+FHoudiniApi::AddAttributeEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-AddGroupEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name)
+FHoudiniApi::AddGroupEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-BindCustomImplementationEmptyStub(HAPI_SessionType session_type, const char * dll_path)
+FHoudiniApi::BindCustomImplementationEmptyStub(HAPI_SessionType session_type, const char * dll_path)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CheckForNewAssetsEmptyStub(const HAPI_Session * session, int * new_asset_count)
+FHoudiniApi::CheckForNewAssetsEmptyStub(const HAPI_Session * session, int * new_asset_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CleanupEmptyStub(const HAPI_Session * session)
+FHoudiniApi::CleanupEmptyStub(const HAPI_Session * session)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CloseSessionEmptyStub(const HAPI_Session * session)
+FHoudiniApi::CloseSessionEmptyStub(const HAPI_Session * session)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CommitGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id)
+FHoudiniApi::CommitGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConnectAssetGeometryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_ObjectId object_id_from, HAPI_AssetId asset_id_to, int input_idx)
+FHoudiniApi::ConnectAssetGeometryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_ObjectId object_id_from, HAPI_AssetId asset_id_to, int input_idx)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConnectAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_AssetId asset_id_to, int input_idx)
+FHoudiniApi::ConnectAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_AssetId asset_id_to, int input_idx)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect)
+FHoudiniApi::ConnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index, HAPI_NodeId node_id_to_connect)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConvertMatrixToEulerEmptyStub(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out)
+FHoudiniApi::ConvertMatrixToEulerEmptyStub(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConvertMatrixToQuatEmptyStub(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_Transform * transform_out)
+FHoudiniApi::ConvertMatrixToQuatEmptyStub(const HAPI_Session * session, const float * matrix, HAPI_RSTOrder rst_order, HAPI_Transform * transform_out)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConvertTransformEmptyStub(const HAPI_Session * session, const HAPI_TransformEuler * transform_in, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out)
+FHoudiniApi::ConvertTransformEmptyStub(const HAPI_Session * session, const HAPI_TransformEuler * transform_in, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform_out)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConvertTransformEulerToMatrixEmptyStub(const HAPI_Session * session, const HAPI_TransformEuler * transform, float * matrix)
+FHoudiniApi::ConvertTransformEulerToMatrixEmptyStub(const HAPI_Session * session, const HAPI_TransformEuler * transform, float * matrix)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ConvertTransformQuatToMatrixEmptyStub(const HAPI_Session * session, const HAPI_Transform * transform, float * matrix)
+FHoudiniApi::ConvertTransformQuatToMatrixEmptyStub(const HAPI_Session * session, const HAPI_Transform * transform, float * matrix)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CookAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_CookOptions * cook_options)
+FHoudiniApi::CookAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_CookOptions * cook_options)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CreateCurveEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_id)
+FHoudiniApi::CreateCurveEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session)
+FHoudiniApi::CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CreateInProcessSessionEmptyStub(HAPI_Session * session)
+FHoudiniApi::CreateInProcessSessionEmptyStub(HAPI_Session * session)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CreateInputAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_id, const char * name)
+FHoudiniApi::CreateInputAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_id, const char * name)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CreateNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, HAPI_NodeId * new_node_id)
+FHoudiniApi::CreateNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, HAPI_NodeId * new_node_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CreateThriftNamedPipeSessionEmptyStub(HAPI_Session * session, const char * pipe_name)
+FHoudiniApi::CreateThriftNamedPipeSessionEmptyStub(HAPI_Session * session, const char * pipe_name)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const char * host_name, int port)
+FHoudiniApi::CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const char * host_name, int port)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
+FHoudiniApi::DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-DestroyAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id)
+FHoudiniApi::DestroyAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-DisconnectAssetGeometryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx)
+FHoudiniApi::DisconnectAssetGeometryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-DisconnectAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx)
+FHoudiniApi::DisconnectAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index)
+FHoudiniApi::DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ExtractImageToFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path)
+FHoudiniApi::ExtractImageToFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ExtractImageToMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, int * buffer_size)
+FHoudiniApi::ExtractImageToMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, int * buffer_size)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info)
+FHoudiniApi::GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform)
+FHoudiniApi::GetAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data_array, int start, int length)
+FHoudiniApi::GetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, float * data_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAttributeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info)
+FHoudiniApi::GetAttributeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length)
+FHoudiniApi::GetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAttributeNamesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle *attribute_names_array, int count)
+FHoudiniApi::GetAttributeNamesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle *attribute_names_array, int count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length)
+FHoudiniApi::GetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAvailableAssetCountEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, int * asset_count)
+FHoudiniApi::GetAvailableAssetCountEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, int * asset_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetAvailableAssetsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count)
+FHoudiniApi::GetAvailableAssetsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetCookingCurrentCountEmptyStub(const HAPI_Session * session, int * count)
+FHoudiniApi::GetCookingCurrentCountEmptyStub(const HAPI_Session * session, int * count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetCookingTotalCountEmptyStub(const HAPI_Session * session, int * count)
+FHoudiniApi::GetCookingTotalCountEmptyStub(const HAPI_Session * session, int * count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * counts_array, int start, int length)
+FHoudiniApi::GetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * counts_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info)
+FHoudiniApi::GetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float * knots_array, int start, int length)
+FHoudiniApi::GetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float * knots_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length)
+FHoudiniApi::GetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetEditableNodeNetworksEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count)
+FHoudiniApi::GetEditableNodeNetworksEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetEnvIntEmptyStub(HAPI_EnvIntType int_type, int * value)
+FHoudiniApi::GetEnvIntEmptyStub(HAPI_EnvIntType int_type, int * value)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts_array, int start, int length)
+FHoudiniApi::GetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetFirstVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
+FHoudiniApi::GetFirstVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info)
+FHoudiniApi::GetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetGeoSizeEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, int * size)
+FHoudiniApi::GetGeoSizeEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, int * size)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, int * membership_array, int start, int length)
+FHoudiniApi::GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, int * membership_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count)
+FHoudiniApi::GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length)
+FHoudiniApi::GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length)
+FHoudiniApi::GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ImageInfo * image_info)
+FHoudiniApi::GetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ImageInfo * image_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetImageMemoryBufferEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int length)
+FHoudiniApi::GetImageMemoryBufferEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetImagePlaneCountEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, int * image_plane_count)
+FHoudiniApi::GetImagePlaneCountEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, int * image_plane_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetImagePlanesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_StringHandle * image_planes_array, int image_plane_count)
+FHoudiniApi::GetImagePlanesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_StringHandle * image_planes_array, int image_plane_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetInputNameEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, int input_type, HAPI_StringHandle * name)
+FHoudiniApi::GetInputNameEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, int input_type, HAPI_StringHandle * name)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
+FHoudiniApi::GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetInstancedPartIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length)
+FHoudiniApi::GetInstancedPartIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetInstancerPartTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
+FHoudiniApi::GetInstancerPartTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetMaterialIdsOnFacesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids_array, int start, int length)
+FHoudiniApi::GetMaterialIdsOnFacesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetMaterialInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info)
+FHoudiniApi::GetMaterialInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetMaterialOnGroupEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info)
+FHoudiniApi::GetMaterialOnGroupEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetMaterialOnPartEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info)
+FHoudiniApi::GetMaterialOnPartEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetNewAssetIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_ids_array, int new_asset_count)
+FHoudiniApi::GetNewAssetIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_ids_array, int new_asset_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
+FHoudiniApi::GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info)
+FHoudiniApi::GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetNodeNetworkChildrenEmptyStub(const HAPI_Session * session, HAPI_NodeId network_node_id, HAPI_NodeId * child_node_ids_array, int count)
+FHoudiniApi::GetNodeNetworkChildrenEmptyStub(const HAPI_Session * session, HAPI_NodeId network_node_id, HAPI_NodeId * child_node_ids_array, int count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetObjectTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
+FHoudiniApi::GetObjectTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetObjectsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos_array, int start, int length)
+FHoudiniApi::GetObjectsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParametersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length)
+FHoudiniApi::GetParametersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmChoiceListsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length)
+FHoudiniApi::GetParmChoiceListsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float * value)
+FHoudiniApi::GetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float * value)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, float * values_array, int start, int length)
+FHoudiniApi::GetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, float * values_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmIdFromNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmId * parm_id)
+FHoudiniApi::GetParmIdFromNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmId * parm_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, HAPI_ParmInfo * parm_info)
+FHoudiniApi::GetParmInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, HAPI_ParmInfo * parm_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmInfoFromNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmInfo * parm_info)
+FHoudiniApi::GetParmInfoFromNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmInfo * parm_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int * value)
+FHoudiniApi::GetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int * value)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmIntValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * values_array, int start, int length)
+FHoudiniApi::GetParmIntValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * values_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool evaluate, HAPI_StringHandle * value)
+FHoudiniApi::GetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool evaluate, HAPI_StringHandle * value)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetParmStringValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values_array, int start, int length)
+FHoudiniApi::GetParmStringValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info)
+FHoudiniApi::GetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length)
+FHoudiniApi::GetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetPresetBufLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length)
+FHoudiniApi::GetPresetBufLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetSessionEnvIntEmptyStub(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value)
+FHoudiniApi::GetSessionEnvIntEmptyStub(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetStatusEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, int * status)
+FHoudiniApi::GetStatusEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, int * status)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetStatusStringEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, char * string_value, int length)
+FHoudiniApi::GetStatusStringEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, char * string_value, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetStatusStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_length)
+FHoudiniApi::GetStatusStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity, int * buffer_length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetStringEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, char * string_value, int length)
+FHoudiniApi::GetStringEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, char * string_value, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, int * buffer_length)
+FHoudiniApi::GetStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, int * buffer_length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetSupportedImageFileFormatCountEmptyStub(const HAPI_Session * session, int * file_format_count)
+FHoudiniApi::GetSupportedImageFileFormatCountEmptyStub(const HAPI_Session * session, int * file_format_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetSupportedImageFileFormatsEmptyStub(const HAPI_Session * session, HAPI_ImageFileFormat * formats_array, int file_format_count)
+FHoudiniApi::GetSupportedImageFileFormatsEmptyStub(const HAPI_Session * session, HAPI_ImageFileFormat * formats_array, int file_format_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetTimeEmptyStub(const HAPI_Session * session, float * time)
+FHoudiniApi::GetTimeEmptyStub(const HAPI_Session * session, float * time)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetTimelineOptionsEmptyStub(const HAPI_Session * session, HAPI_TimelineOptions * timeline_options)
+FHoudiniApi::GetTimelineOptionsEmptyStub(const HAPI_Session * session, HAPI_TimelineOptions * timeline_options)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetVertexListEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * vertex_list_array, int start, int length)
+FHoudiniApi::GetVertexListEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * vertex_list_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeInfo * volume_info)
+FHoudiniApi::GetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeInfo * volume_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length)
+FHoudiniApi::GetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int fill_value, const HAPI_VolumeTileInfo * tile, int * values_array, int length)
+FHoudiniApi::GetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int fill_value, const HAPI_VolumeTileInfo * tile, int * values_array, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetVolumeVoxelFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count)
+FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-GetVolumeVoxelIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count)
+FHoudiniApi::GetVolumeVoxelIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-InitializeEmptyStub(const HAPI_Session * session, const HAPI_CookOptions * cook_options, HAPI_Bool use_cooking_thread, int cooking_thread_stack_size, const char * otl_search_path, const char * dso_search_path, const char * image_dso_search_path, const char * audio_dso_search_path)
+FHoudiniApi::InitializeEmptyStub(const HAPI_Session * session, const HAPI_CookOptions * cook_options, HAPI_Bool use_cooking_thread, int cooking_thread_stack_size, const char * otl_search_path, const char * dso_search_path, const char * image_dso_search_path, const char * audio_dso_search_path)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-InsertMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position)
+FHoudiniApi::InsertMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-InstantiateAssetEmptyStub(const HAPI_Session * session, const char * asset_name, HAPI_Bool cook_on_load, HAPI_AssetId * asset_id)
+FHoudiniApi::InstantiateAssetEmptyStub(const HAPI_Session * session, const char * asset_name, HAPI_Bool cook_on_load, HAPI_AssetId * asset_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-InterruptEmptyStub(const HAPI_Session * session)
+FHoudiniApi::InterruptEmptyStub(const HAPI_Session * session)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-IsAssetValidEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int asset_validation_id, int * answer)
+FHoudiniApi::IsAssetValidEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int asset_validation_id, int * answer)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-IsInitializedEmptyStub(const HAPI_Session * session)
+FHoudiniApi::IsInitializedEmptyStub(const HAPI_Session * session)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-IsSessionValidEmptyStub(const HAPI_Session * session)
+FHoudiniApi::IsSessionValidEmptyStub(const HAPI_Session * session)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-LoadAssetLibraryFromFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId* library_id)
+FHoudiniApi::LoadAssetLibraryFromFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId* library_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-LoadAssetLibraryFromMemoryEmptyStub(const HAPI_Session * session, const char * library_buffer, int library_buffer_length, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id)
+FHoudiniApi::LoadAssetLibraryFromMemoryEmptyStub(const HAPI_Session * session, const char * library_buffer, int library_buffer_length, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-LoadGeoFromFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name)
+FHoudiniApi::LoadGeoFromFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-LoadGeoFromMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, const char * buffer, int length)
+FHoudiniApi::LoadGeoFromMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, const char * buffer, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-LoadHIPFileEmptyStub(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load)
+FHoudiniApi::LoadHIPFileEmptyStub(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-PythonThreadInterpreterLockEmptyStub(const HAPI_Session * session, HAPI_Bool locked)
+FHoudiniApi::PythonThreadInterpreterLockEmptyStub(const HAPI_Session * session, HAPI_Bool locked)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-QueryNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id)
+FHoudiniApi::QueryNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position)
+FHoudiniApi::RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name)
+FHoudiniApi::RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-RenderTextureToImageEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ParmId parm_id)
+FHoudiniApi::RenderTextureToImageEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ParmId parm_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id)
+FHoudiniApi::ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-RevertGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id)
+FHoudiniApi::RevertGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SaveGeoToFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name)
+FHoudiniApi::SaveGeoToFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SaveGeoToMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, char * buffer, int length)
+FHoudiniApi::SaveGeoToMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, char * buffer, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SaveHIPFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes)
+FHoudiniApi::SaveHIPFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count)
+FHoudiniApi::SetAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_TransformEuler * transform)
+FHoudiniApi::SetAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_TransformEuler * transform)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length)
+FHoudiniApi::SetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const int * data_array, int start, int length)
+FHoudiniApi::SetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo * attr_info, const int * data_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo *attr_info, const char ** data_array, int start, int length)
+FHoudiniApi::SetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo *attr_info, const char ** data_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * counts_array, int start, int length)
+FHoudiniApi::SetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * counts_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const HAPI_CurveInfo * info)
+FHoudiniApi::SetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const HAPI_CurveInfo * info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const float * knots_array, int start, int length)
+FHoudiniApi::SetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const float * knots_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * orders_array, int start, int length)
+FHoudiniApi::SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * orders_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * face_counts_array, int start, int length)
+FHoudiniApi::SetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * face_counts_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info)
+FHoudiniApi::SetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length)
+FHoudiniApi::SetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const HAPI_ImageInfo * image_info)
+FHoudiniApi::SetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const HAPI_ImageInfo * image_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, const HAPI_TransformEuler * transform)
+FHoudiniApi::SetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, const HAPI_TransformEuler * transform)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float value)
+FHoudiniApi::SetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float value)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const float * values_array, int start, int length)
+FHoudiniApi::SetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const float * values_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int value)
+FHoudiniApi::SetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int value)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetParmIntValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const int * values_array, int start, int length)
+FHoudiniApi::SetParmIntValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const int * values_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index)
+FHoudiniApi::SetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_PartInfo * part_info)
+FHoudiniApi::SetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_PartInfo * part_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length)
+FHoudiniApi::SetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetTimeEmptyStub(const HAPI_Session * session, float time)
+FHoudiniApi::SetTimeEmptyStub(const HAPI_Session * session, float time)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetTimelineOptionsEmptyStub(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options)
+FHoudiniApi::SetTimelineOptionsEmptyStub(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetTransformAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count)
+FHoudiniApi::SetTransformAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetVertexListEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * vertex_list_array, int start, int length)
+FHoudiniApi::SetVertexListEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * vertex_list_array, int start, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeInfo * volume_info)
+FHoudiniApi::SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeInfo * volume_info)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
+FHoudiniApi::SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
+FHoudiniApi::SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-StartThriftNamedPipeServerEmptyStub(HAPI_Bool auto_close, const char * pipe_name, float timeout_ms, HAPI_ProcessId * process_id)
+FHoudiniApi::StartThriftNamedPipeServerEmptyStub(HAPI_Bool auto_close, const char * pipe_name, float timeout_ms, HAPI_ProcessId * process_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
 
 
 HAPI_Result
-StartThriftSocketServerEmptyStub(HAPI_Bool auto_close, int port, float timeout_ms, HAPI_ProcessId * process_id)
+FHoudiniApi::StartThriftSocketServerEmptyStub(HAPI_Bool auto_close, int port, float timeout_ms, HAPI_ProcessId * process_id)
 {
 	return HAPI_RESULT_SUCCESS;
 }
