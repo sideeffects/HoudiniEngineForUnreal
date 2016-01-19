@@ -155,35 +155,19 @@ FHoudiniEngine::StartupModule()
 			);
 	}
 
-    // [PHX][jsuter] - BEGIN modification        
+	// Create static mesh Houdini logo.
+	HoudiniLogoStaticMesh =
+		LoadObject<UStaticMesh>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_LOGO, nullptr, LOAD_None, nullptr);
+	HoudiniLogoStaticMesh->AddToRoot();
 
-        // The two default assets for material and static mesh that came with the Houdini plugin were causing the ContentChangedTest to fail on Jenkins due to some path issue:
-        //
-        //          Fatal error: [File:D:\Jenkins\workspace\Code_CI_Build\mainline\Engine\Source\Runtime\CoreUObject\Private\Misc\PackageName.cpp] [Line: 326] 
-        //                      FilenameToLongPackageName failed to convert 'D:\Jenkins\workspace\Content_Processing\mainline\Engine\Plugins\Runtime\HoudiniEngine\Content\houdini_default_material.uasset'.
-        //                      Attempt result was '../../Plugins/Runtime/HoudiniEngine/Content/houdini_default_material', but the path contains illegal characters '.'
-        //
-        // While it would be good to figure out what the root cause was, for the time being we've removed those two assets from the Houdini plugin, and changed the two LoadObject calls below
-        // to use the Cube and DefaultMaterial assets that come with Unreal.
-
-	    // Create static mesh Houdini logo.
-		HoudiniLogoStaticMesh =
-			// LoadObject<UStaticMesh>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_LOGO, nullptr, LOAD_None, nullptr);
-			LoadObject<UStaticMesh>(NULL, TEXT("/HoudiniEngine/houdini_logo.houdini_logo"), NULL, LOAD_None, NULL);
-	    HoudiniLogoStaticMesh->AddToRoot();
-
-	    // Create default material.        
-		HoudiniDefaultMaterial =
-			// LoadObject<UMaterial>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL, nullptr, LOAD_None, nullptr);
-			LoadObject<UMaterial>(NULL, TEXT("/HoudiniEngine/houdini_default_material.houdini_default_material"), NULL, LOAD_None, NULL);
-	    HoudiniDefaultMaterial->AddToRoot();
-
-    // [PHX][jsuter] - end modification        
+	// Create default material.
+	HoudiniDefaultMaterial =
+		LoadObject<UMaterial>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL, nullptr, LOAD_None, nullptr);
+	HoudiniDefaultMaterial->AddToRoot();
 
 #if WITH_EDITOR
 
-
-	if (!IsRunningCommandlet() && !IsRunningDedicatedServer()) //[PHX][FR] - added check against dedicated server, as it is headless it will crash here
+	if(!IsRunningCommandlet())
 	{
 		// Create Houdini logo brush.
 		const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
