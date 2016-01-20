@@ -563,6 +563,34 @@ HAPI_DECL HAPI_GetComposedNodeCookResult( const HAPI_Session * session,
                                           char * string_value,
                                           int length );
 
+/// @brief  Recursively check for specific errors by error code on a node.
+///
+///         Note that checking for errors can be expensive because it checks
+///         ALL child nodes within a node and then tries to do a string match
+///         for the errors being looked for. This is why such error checking
+///         is part of a standalone function and not done during the cooking
+///         step.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      errors_to_look_for
+///                 The HAPI_ErrorCode error codes (as a bitfield) to look for.
+///
+/// @param[out]     errors_found
+///                 Returned HAPI_ErrorCode bitfield indicating which of the
+///                 looked for errors have been found.
+///
+HAPI_DECL HAPI_CheckForSpecificErrors( const HAPI_Session * session,
+                                       HAPI_NodeId node_id,
+                                       HAPI_ErrorCodeBits errors_to_look_for,
+                                       HAPI_ErrorCodeBits * errors_found );
+
 /// @brief  Get total number of nodes that need to cook in the current
 ///         session.
 ///

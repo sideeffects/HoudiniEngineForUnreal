@@ -214,6 +214,14 @@ enum HAPI_Result
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_Result )
 
+enum HAPI_ErrorCode
+{
+    HAPI_ERRORCODE_ASSET_DEF_NOT_FOUND                  = 1 << 0,
+    HAPI_ERRORCODE_PYTHON_NODE_ERROR                    = 1 << 1
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_ErrorCode )
+typedef int HAPI_ErrorCodeBits;
+
 enum HAPI_SessionType
 {
     HAPI_SESSION_INPROCESS,
