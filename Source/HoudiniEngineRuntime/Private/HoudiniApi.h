@@ -32,6 +32,7 @@ public:
 	typedef HAPI_Result (*AddGroupFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name);
 	typedef HAPI_Result (*BindCustomImplementationFuncPtr)(HAPI_SessionType session_type, const char * dll_path);
 	typedef HAPI_Result (*CheckForNewAssetsFuncPtr)(const HAPI_Session * session, int * new_asset_count);
+	typedef HAPI_Result (*CheckForSpecificErrorsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ErrorCodeBits errors_to_look_for, HAPI_ErrorCodeBits * errors_found);
 	typedef HAPI_Result (*CleanupFuncPtr)(const HAPI_Session * session);
 	typedef HAPI_Result (*CloseSessionFuncPtr)(const HAPI_Session * session);
 	typedef HAPI_Result (*CommitGeoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
@@ -198,6 +199,7 @@ public:
 	static AddGroupFuncPtr AddGroup;
 	static BindCustomImplementationFuncPtr BindCustomImplementation;
 	static CheckForNewAssetsFuncPtr CheckForNewAssets;
+	static CheckForSpecificErrorsFuncPtr CheckForSpecificErrors;
 	static CleanupFuncPtr Cleanup;
 	static CloseSessionFuncPtr CloseSession;
 	static CommitGeoFuncPtr CommitGeo;
@@ -364,6 +366,7 @@ public:
 	static HAPI_Result AddGroupEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name);
 	static HAPI_Result BindCustomImplementationEmptyStub(HAPI_SessionType session_type, const char * dll_path);
 	static HAPI_Result CheckForNewAssetsEmptyStub(const HAPI_Session * session, int * new_asset_count);
+	static HAPI_Result CheckForSpecificErrorsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ErrorCodeBits errors_to_look_for, HAPI_ErrorCodeBits * errors_found);
 	static HAPI_Result CleanupEmptyStub(const HAPI_Session * session);
 	static HAPI_Result CloseSessionEmptyStub(const HAPI_Session * session);
 	static HAPI_Result CommitGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);

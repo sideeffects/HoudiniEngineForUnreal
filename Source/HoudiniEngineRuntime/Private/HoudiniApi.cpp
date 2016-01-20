@@ -30,6 +30,9 @@ FHoudiniApi::BindCustomImplementation = &FHoudiniApi::BindCustomImplementationEm
 FHoudiniApi::CheckForNewAssetsFuncPtr
 FHoudiniApi::CheckForNewAssets = &FHoudiniApi::CheckForNewAssetsEmptyStub;
 
+FHoudiniApi::CheckForSpecificErrorsFuncPtr
+FHoudiniApi::CheckForSpecificErrors = &FHoudiniApi::CheckForSpecificErrorsEmptyStub;
+
 FHoudiniApi::CleanupFuncPtr
 FHoudiniApi::Cleanup = &FHoudiniApi::CleanupEmptyStub;
 
@@ -517,6 +520,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::AddGroup = (AddGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_AddGroup"));
 	FHoudiniApi::BindCustomImplementation = (BindCustomImplementationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_BindCustomImplementation"));
 	FHoudiniApi::CheckForNewAssets = (CheckForNewAssetsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CheckForNewAssets"));
+	FHoudiniApi::CheckForSpecificErrors = (CheckForSpecificErrorsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CheckForSpecificErrors"));
 	FHoudiniApi::Cleanup = (CleanupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Cleanup"));
 	FHoudiniApi::CloseSession = (CloseSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CloseSession"));
 	FHoudiniApi::CommitGeo = (CommitGeoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CommitGeo"));
@@ -686,6 +690,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::AddGroup = &FHoudiniApi::AddGroupEmptyStub;
 	FHoudiniApi::BindCustomImplementation = &FHoudiniApi::BindCustomImplementationEmptyStub;
 	FHoudiniApi::CheckForNewAssets = &FHoudiniApi::CheckForNewAssetsEmptyStub;
+	FHoudiniApi::CheckForSpecificErrors = &FHoudiniApi::CheckForSpecificErrorsEmptyStub;
 	FHoudiniApi::Cleanup = &FHoudiniApi::CleanupEmptyStub;
 	FHoudiniApi::CloseSession = &FHoudiniApi::CloseSessionEmptyStub;
 	FHoudiniApi::CommitGeo = &FHoudiniApi::CommitGeoEmptyStub;
@@ -878,6 +883,13 @@ FHoudiniApi::BindCustomImplementationEmptyStub(HAPI_SessionType session_type, co
 
 HAPI_Result
 FHoudiniApi::CheckForNewAssetsEmptyStub(const HAPI_Session * session, int * new_asset_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CheckForSpecificErrorsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ErrorCodeBits errors_to_look_for, HAPI_ErrorCodeBits * errors_found)
 {
 	return HAPI_RESULT_FAILURE;
 }
