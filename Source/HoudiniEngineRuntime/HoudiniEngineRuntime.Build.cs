@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 15.0.361
+    Houdini Version: 15.0.367
     Houdini Engine Version: 2.0.18
     Unreal Version: 4.9.0
 
@@ -30,7 +30,7 @@ public class HoudiniEngineRuntime : ModuleRules
 	public HoudiniEngineRuntime( TargetInfo Target )
 	{
 		string HFSPath = "";
-		string HoudiniVersion = "15.0.361";
+		string HoudiniVersion = "15.0.367";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -81,9 +81,13 @@ public class HoudiniEngineRuntime : ModuleRules
 			}
 		}
 
+		if( HAPIIncludePath != "" )
+		{
+			PublicIncludePaths.Add( HAPIIncludePath );
+		}
+
 		PublicIncludePaths.AddRange(
 			new string[] {
-				HAPIIncludePath,
 				"HoudiniEngineRuntime/Public/HAPI",
 				"HoudiniEngineRuntime/Public"
 			}
