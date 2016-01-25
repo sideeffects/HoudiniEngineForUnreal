@@ -1288,7 +1288,7 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 
 bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
-	ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId)
+	ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves)
 {
 
 #if WITH_EDITOR
@@ -1315,7 +1315,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		// We now have a valid id.
 		ConnectedAssetId = AssetId;
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr),
+			false);
 	}
 
 	// Get runtime settings.
@@ -1330,31 +1331,135 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
 	}
 
+	const ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo(false);
+
+	TSet<ULandscapeComponent*> SelectedComponents;
+	if(bExportOnlySelected && LandscapeInfo)
+	{
+		SelectedComponents = LandscapeInfo->GetSelectedComponents();
+	}
+
+	bExportOnlySelected = bExportOnlySelected && SelectedComponents.Num() > 0;
+
+	int32 MinX = TNumericLimits<int32>::Max();
+	int32 MinY = TNumericLimits<int32>::Max();
+	int32 MaxX = TNumericLimits<int32>::Lowest();
+	int32 MaxY = TNumericLimits<int32>::Lowest();
+
+	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
+		ComponentIdx < ComponentNum; ComponentIdx++)
+	{
+		ULandscapeComponent* LandscapeComponent = LandscapeProxy->LandscapeComponents[ComponentIdx];
+
+		if(bExportOnlySelected && !SelectedComponents.Contains(LandscapeComponent))
+		{
+			continue;
+		}
+
+		LandscapeComponent->GetComponentExtent(MinX, MinY, MaxX, MaxY);
+	}
+
+	const int32 ComponentSizeQuads = ((LandscapeProxy->ComponentSizeQuads + 1) >> LandscapeProxy->ExportLOD) - 1;
+	const float ScaleFactor = (float) LandscapeProxy->ComponentSizeQuads / (float) ComponentSizeQuads;
+	const int32 NumComponents = bExportOnlySelected ? SelectedComponents.Num() : LandscapeProxy->LandscapeComponents.Num();
+	const int32 VertexCountPerComponent = FMath::Square(ComponentSizeQuads + 1);
+	const int32 VertexCount = NumComponents * VertexCountPerComponent;
+	const int32 TriangleCount = NumComponents * FMath::Square(ComponentSizeQuads) * 2;
+
+	if(!VertexCount)
+	{
+		return false;
+	}
+
 	// Create part.
-	/*
 	HAPI_PartInfo Part;
 	FMemory::Memzero<HAPI_PartInfo>(Part);
 	Part.id = 0;
 	Part.nameSH = 0;
-	Part.attributeCounts[ HAPI_ATTROWNER_POINT ] = 0;
-	Part.attributeCounts[ HAPI_ATTROWNER_PRIM ] = 0;
-	Part.attributeCounts[ HAPI_ATTROWNER_VERTEX ] = 0;
-	Part.attributeCounts[ HAPI_ATTROWNER_DETAIL ] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
 	Part.vertexCount = 0;
 	Part.faceCount = 0;
-	Part.pointCount = 777;
+	Part.pointCount = VertexCount;
 	Part.type = HAPI_PARTTYPE_MESH;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
 		&Part), false);
-	*/
+
+	// Extract point data.
+
+	TArray<float> AllPositions;
+	AllPositions.SetNumUninitialized(VertexCount * 3);
+
+	int32 AllPositionsIdx = 0;
+
+	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
+		ComponentIdx < ComponentNum; ComponentIdx++)
+	{
+		ULandscapeComponent* LandscapeComponent = LandscapeProxy->LandscapeComponents[ComponentIdx];
+
+		if(bExportOnlySelected && !SelectedComponents.Contains(LandscapeComponent))
+		{
+			continue;
+		}
+
+		FLandscapeComponentDataInterface CDI(LandscapeComponent, LandscapeProxy->ExportLOD);
+
+		for(int32 VertexIdx = 0; VertexIdx < VertexCountPerComponent; VertexIdx++)
+		{
+			int32 VertX, VertY;
+			CDI.VertexIndexToXY(VertexIdx, VertX, VertY);
+
+			FVector PositionVector = CDI.GetLocalVertex(VertX, VertY) + LandscapeComponent->RelativeLocation;
+
+			if(HRSAI_Unreal == ImportAxis)
+			{
+				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
+				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Z / GeneratedGeometryScaleFactor;
+				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Y / GeneratedGeometryScaleFactor;
+			}
+			else if(HRSAI_Houdini == ImportAxis)
+			{
+				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
+				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Y / GeneratedGeometryScaleFactor;
+				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Z / GeneratedGeometryScaleFactor;
+			}
+			else
+			{
+				// Not a valid enum value.
+				check(0);
+			}
+
+			AllPositionsIdx++;
+		}
+	}
+
+	// Create point attribute info.
+	HAPI_AttributeInfo AttributeInfoPoint;
+	FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPoint);
+	AttributeInfoPoint.count = VertexCount;
+	AttributeInfoPoint.tupleSize = 3;
+	AttributeInfoPoint.exists = true;
+	AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
+
+	// Now that we have raw positions, we can upload them for our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+		0, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint, AllPositions.GetData(), 0,
+		AttributeInfoPoint.count), false);
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0), 
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0),
 		false);
 
 	// Now we can connect assets together.
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, 
+		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId,
 			InputIndex), false);
 
 #endif
