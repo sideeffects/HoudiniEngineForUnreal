@@ -80,6 +80,7 @@
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
 #include "LandscapeProxy.h"
+#include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
 
 /** Houdini Engine headers. **/
