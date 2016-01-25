@@ -80,6 +80,7 @@
 #include "ISettingsModule.h"
 #include "TargetPlatform.h"
 #include "LandscapeProxy.h"
+#include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
 
 /** Houdini Engine headers. **/
