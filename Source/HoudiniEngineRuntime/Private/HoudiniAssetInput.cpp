@@ -34,7 +34,9 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	bStaticMeshChanged(false),
 	bSwitchedToCurve(false),
 	bLoadedParameter(false),
-	bInputAssetConnectedInHoudini(false)
+	bInputAssetConnectedInHoudini(false),
+	bLandscapeInputSelectionOnly(false),
+	bLandscapeExportCurves(false)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -356,6 +358,65 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorCloseComboButton),
 				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorUse)
 			)
+		];
+
+		TSharedPtr<SCheckBox> CheckBoxExportOnlySelected;
+
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SAssignNew(CheckBoxExportOnlySelected, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeSelectedOnlyCheckBox", "Import Selected Parts Only"))
+				.ToolTipText(LOCTEXT("LandscapeSelectedOnlyCheckBoxTip", "Import Selected Parts Only"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked(TAttribute<ECheckBoxState>::Create(
+				TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+					&UHoudiniAssetInput::IsCheckedExportOnlySelected)))
+			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+				&UHoudiniAssetInput::CheckStateChangedExportOnlySelected))
+		];
+
+		TSharedPtr<SCheckBox> CheckBoxExportCurves;
+
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SAssignNew(CheckBoxExportCurves, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeCurvesCheckbox", "Import Landscape Curves"))
+				.ToolTipText(LOCTEXT("LandscapeCurvesCheckbox", "Import Landscape Curves"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked(TAttribute<ECheckBoxState>::Create(
+				TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+					&UHoudiniAssetInput::IsCheckedExportCurves)))
+			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+				&UHoudiniAssetInput::CheckStateChangedExportCurves))
+		];
+
+		// Disable curves until we have them implemented.
+		if(CheckBoxExportCurves.IsValid())
+		{
+			CheckBoxExportCurves->SetEnabled(false);
+		}
+
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.Padding(1, 2, 4, 2)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Text(LOCTEXT("LandscapeInputRecommit", "Recommit Landscape"))
+				.ToolTipText(LOCTEXT("LandscapeInputRecommit", "Recommit Landscape"))
+				.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickRecommit))
+			]
 		];
 	}
 
@@ -1411,3 +1472,90 @@ UHoudiniAssetInput::HandleChoiceContentText() const
 {
 	return FText::FromString(ChoiceStringValue);
 }
+
+
+#if WITH_EDITOR
+
+void
+UHoudiniAssetInput::CheckStateChangedExportOnlySelected(ECheckBoxState NewState)
+{
+	int32 bState = (ECheckBoxState::Checked == NewState);
+
+	if(bLandscapeInputSelectionOnly != bState)
+	{
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Landscape Selection mode change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		bLandscapeInputSelectionOnly = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportOnlySelected() const
+{
+	if(bLandscapeInputSelectionOnly)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+void
+UHoudiniAssetInput::CheckStateChangedExportCurves(ECheckBoxState NewState)
+{
+	int32 bState = (ECheckBoxState::Checked == NewState);
+
+	if(bLandscapeExportCurves != bState)
+	{
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Landscape Curve mode change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		bLandscapeExportCurves = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportCurves() const
+{
+	if(bLandscapeExportCurves)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+FReply
+UHoudiniAssetInput::OnButtonClickRecommit()
+{
+	// There's no undo operation for button.
+
+	MarkPreChanged();
+	MarkChanged();
+
+	return FReply::Handled();
+}
+
+#endif
+
