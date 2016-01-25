@@ -225,6 +225,21 @@ protected:
 	/** Delegate for filtering static meshes. **/
 	FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
+	/** Check if state of landscape selection checkbox has changed. **/
+	void CheckStateChangedExportOnlySelected(ECheckBoxState NewState);
+
+	/** Return checked state of landscape selection checkbox. **/
+	ECheckBoxState IsCheckedExportOnlySelected() const;
+
+	/** Check if state of landscape curves checkbox has changed. **/
+	void CheckStateChangedExportCurves(ECheckBoxState NewState);
+
+	/** Return checked state of landscape curves checkbox. **/
+	ECheckBoxState IsCheckedExportCurves() const;
+
+	/** Handler for landscape recommit button. **/
+	FReply OnButtonClickRecommit();
+
 #endif
 
 	/** Value of choice option. **/
@@ -267,6 +282,12 @@ protected:
 
 			/** Is set to true if the input asset is actually connected inside Houdini. **/
 			uint32 bInputAssetConnectedInHoudini : 1;
+
+			/** Is set to true when landscape input is set to selection only. **/
+			uint32 bLandscapeInputSelectionOnly : 1;
+
+			/** Is set to true when landscape curves are to be exported. **/
+			uint32 bLandscapeExportCurves : 1;
 		};
 
 		uint32 HoudiniAssetInputFlagsPacked;
