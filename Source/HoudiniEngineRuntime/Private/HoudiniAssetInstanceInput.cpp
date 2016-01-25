@@ -408,55 +408,55 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			TSharedPtr<SBorder> StaticMeshThumbnailBorder;
 
 			VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
+			[
+				SNew(SAssetDropTarget)
+				.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this,
+					&UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver))
+				.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this,
+					&UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, Idx,
+						VariationIdx))
 				[
-					SNew(SAssetDropTarget)
-					.OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver))
-					.OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, Idx,
-							VariationIdx))
-					[
-						SAssignNew(HorizontalBox, SHorizontalBox)
-					]
-				];
+					SAssignNew(HorizontalBox, SHorizontalBox)
+				]
+			];
 
 			HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
-				[
-					SAssignNew(StaticMeshThumbnailBorder, SBorder)
-					.Padding(5.0f)
+			[
+				SAssignNew(StaticMeshThumbnailBorder, SBorder)
+				.Padding(5.0f)
 
-					.BorderImage(TAttribute<const FSlateBrush*>::Create(
-					TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, Idx, 
-							VariationIdx)))
-					.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*) StaticMesh))
+				.BorderImage(TAttribute<const FSlateBrush*>::Create(
+				TAttribute<const FSlateBrush*>::FGetter::CreateUObject(this,
+					&UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, Idx, 
+						VariationIdx)))
+				.OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this,
+					&UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*) StaticMesh))
+				[
+					SNew(SBox)
+					.WidthOverride(64)
+					.HeightOverride(64)
+					.ToolTipText(FText::FromString(StaticMesh->GetPathName()))
 					[
-						SNew(SBox)
-						.WidthOverride(64)
-						.HeightOverride(64)
-						.ToolTipText(FText::FromString(StaticMesh->GetPathName()))
-						[
-							StaticMeshThumbnail->MakeThumbnailWidget()
-						]
+						StaticMeshThumbnail->MakeThumbnailWidget()
 					]
-				];
+				]
+			];
 
 			HorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 28.0f, 0.0f, 28.0f)
-				[
-					PropertyCustomizationHelpers::MakeAddButton(
-						FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAddInstanceVariation,
-							HoudiniAssetInstanceInputField, VariationIdx),
-							LOCTEXT("AddAnotherInstanceToolTip", "Add Another Instance"))
-				];
+			[
+				PropertyCustomizationHelpers::MakeAddButton(
+					FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnAddInstanceVariation,
+						HoudiniAssetInstanceInputField, VariationIdx),
+						LOCTEXT("AddAnotherInstanceToolTip", "Add Another Instance"))
+			];
 
 			HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 28.0f, 4.0f, 28.0f)
-				[
-					PropertyCustomizationHelpers::MakeRemoveButton(
-						FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation,
-							HoudiniAssetInstanceInputField, VariationIdx),
-							LOCTEXT("RemoveLastInstanceToolTip", "Remove Last Instance"))
-				];
+			[
+				PropertyCustomizationHelpers::MakeRemoveButton(
+					FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnRemoveInstanceVariation,
+						HoudiniAssetInstanceInputField, VariationIdx),
+						LOCTEXT("RemoveLastInstanceToolTip", "Remove Last Instance"))
+			];
 
 			// Store thumbnail border for this static mesh.
 			HoudiniAssetInstanceInputField->AssignThumbnailBorder(StaticMeshThumbnailBorder);
@@ -549,95 +549,95 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 			FText LabelRotationText = LOCTEXT("HoudiniRotationOffset", "Rotation Offset:");
 			VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
-				[
-					SNew(STextBlock)
-					.Text(LabelRotationText)
-					.ToolTipText(LabelRotationText)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				];
+			[
+				SNew(STextBlock)
+				.Text(LabelRotationText)
+				.ToolTipText(LabelRotationText)
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			];
 
 			VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot().MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-					[
-						SNew(SRotatorInputBox)
-						.AllowSpin(true)
-						.bColorAxisLabels(true)
-						.Roll(TAttribute<TOptional<float> >::Create(
-							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::GetRotationRoll, HoudiniAssetInstanceInputField, 
-									VariationIdx)))
-						.Pitch(TAttribute<TOptional<float> >::Create(
-							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::GetRotationPitch, HoudiniAssetInstanceInputField, 
-									VariationIdx)))
-						.Yaw(TAttribute<TOptional<float> >::Create(
-							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::GetRotationYaw, HoudiniAssetInstanceInputField, 
-									VariationIdx)))
-						.OnRollChanged(FOnFloatValueChanged::CreateUObject(this,
-							&UHoudiniAssetInstanceInput::SetRotationRoll, HoudiniAssetInstanceInputField, 
-								VariationIdx))
-						.OnPitchChanged(FOnFloatValueChanged::CreateUObject(this,
-							&UHoudiniAssetInstanceInput::SetRotationPitch, HoudiniAssetInstanceInputField, 
-								VariationIdx))
-						.OnYawChanged(FOnFloatValueChanged::CreateUObject(this,
-							&UHoudiniAssetInstanceInput::SetRotationYaw, HoudiniAssetInstanceInputField, VariationIdx))
-					]
-				];
+					SNew(SRotatorInputBox)
+					.AllowSpin(true)
+					.bColorAxisLabels(true)
+					.Roll(TAttribute<TOptional<float> >::Create(
+						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::GetRotationRoll, HoudiniAssetInstanceInputField, 
+								VariationIdx)))
+					.Pitch(TAttribute<TOptional<float> >::Create(
+						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::GetRotationPitch, HoudiniAssetInstanceInputField, 
+								VariationIdx)))
+					.Yaw(TAttribute<TOptional<float> >::Create(
+						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::GetRotationYaw, HoudiniAssetInstanceInputField, 
+								VariationIdx)))
+					.OnRollChanged(FOnFloatValueChanged::CreateUObject(this,
+						&UHoudiniAssetInstanceInput::SetRotationRoll, HoudiniAssetInstanceInputField, 
+							VariationIdx))
+					.OnPitchChanged(FOnFloatValueChanged::CreateUObject(this,
+						&UHoudiniAssetInstanceInput::SetRotationPitch, HoudiniAssetInstanceInputField, 
+							VariationIdx))
+					.OnYawChanged(FOnFloatValueChanged::CreateUObject(this,
+						&UHoudiniAssetInstanceInput::SetRotationYaw, HoudiniAssetInstanceInputField, VariationIdx))
+				]
+			];
 
 			FText LabelScaleText = LOCTEXT("HoudiniScaleOffset", "Scale Offset:");
 			VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
-				[
-					SNew(STextBlock)
-					.Text(LabelScaleText)
-					.ToolTipText(LabelScaleText)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				];
+			[
+				SNew(STextBlock)
+				.Text(LabelScaleText)
+				.ToolTipText(LabelScaleText)
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			];
 
 			VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot().MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-					[
-						SNew(SVectorInputBox)
-						.bColorAxisLabels(true)
-						.X(TAttribute<TOptional<float> >::Create(
-							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::GetScaleX, HoudiniAssetInstanceInputField, VariationIdx)))
-						.Y(TAttribute<TOptional<float> >::Create(
-							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::GetScaleY, HoudiniAssetInstanceInputField, VariationIdx)))
-						.Z(TAttribute<TOptional<float> >::Create(
-							TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::GetScaleZ, HoudiniAssetInstanceInputField, VariationIdx)))
-						.OnXChanged(FOnFloatValueChanged::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::SetScaleX, HoudiniAssetInstanceInputField, VariationIdx))
-						.OnYChanged(FOnFloatValueChanged::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::SetScaleY, HoudiniAssetInstanceInputField, VariationIdx))
-						.OnZChanged(FOnFloatValueChanged::CreateUObject(this,
-								&UHoudiniAssetInstanceInput::SetScaleZ, HoudiniAssetInstanceInputField, VariationIdx))
-					]
-				];
+					SNew(SVectorInputBox)
+					.bColorAxisLabels(true)
+					.X(TAttribute<TOptional<float> >::Create(
+						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::GetScaleX, HoudiniAssetInstanceInputField, VariationIdx)))
+					.Y(TAttribute<TOptional<float> >::Create(
+						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::GetScaleY, HoudiniAssetInstanceInputField, VariationIdx)))
+					.Z(TAttribute<TOptional<float> >::Create(
+						TAttribute<TOptional<float> >::FGetter::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::GetScaleZ, HoudiniAssetInstanceInputField, VariationIdx)))
+					.OnXChanged(FOnFloatValueChanged::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::SetScaleX, HoudiniAssetInstanceInputField, VariationIdx))
+					.OnYChanged(FOnFloatValueChanged::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::SetScaleY, HoudiniAssetInstanceInputField, VariationIdx))
+					.OnZChanged(FOnFloatValueChanged::CreateUObject(this,
+							&UHoudiniAssetInstanceInput::SetScaleZ, HoudiniAssetInstanceInputField, VariationIdx))
+				]
+			];
 
 			FText LabelLinearScaleText = LOCTEXT("HoudiniScaleFieldsLinearly", "Scale all fields linearly");
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+			[
+				SNew(SCheckBox)
+				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+					&UHoudiniAssetInstanceInput::CheckStateChanged, HoudiniAssetInstanceInputField, VariationIdx))
+				.IsChecked(TAttribute<ECheckBoxState>::Create(
+					TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+						&UHoudiniAssetInstanceInput::IsChecked, HoudiniAssetInstanceInputField, VariationIdx)))
+				.Content()
 				[
-					SNew(SCheckBox)
-					.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-						&UHoudiniAssetInstanceInput::CheckStateChanged, HoudiniAssetInstanceInputField, VariationIdx))
-					.IsChecked(TAttribute<ECheckBoxState>::Create(
-						TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-							&UHoudiniAssetInstanceInput::IsChecked, HoudiniAssetInstanceInputField, VariationIdx)))
-					.Content()
-					[
-						SNew(STextBlock)
-						.Text(LabelLinearScaleText)
-						.ToolTipText(LabelLinearScaleText)
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					]
-				];
+					SNew(STextBlock)
+					.Text(LabelLinearScaleText)
+					.ToolTipText(LabelLinearScaleText)
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+			];
 
 			Row.ValueWidget.Widget = VerticalBox;
 			Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
