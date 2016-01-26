@@ -83,6 +83,9 @@
 #include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
 
+/** Houdini Engine Runtime Module Localization. **/
+#include "HoudiniEngineRuntimeLocalization.h"
+
 /** Houdini Engine headers. **/
 #include <vector>
 #include <string>

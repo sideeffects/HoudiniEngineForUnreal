@@ -17,3 +17,6 @@
 
 #define HOUDINI_ENGINE_EDITOR
 #include "HoudiniEngineRuntimePrivatePCH.h"
+
+ /** Houdini Engine Editor Module Localization. **/
+#include "HoudiniEngineEditorLocalization.h"
