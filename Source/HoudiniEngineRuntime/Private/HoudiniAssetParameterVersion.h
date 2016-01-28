@@ -14,3 +14,17 @@
  */
 
 #pragma once
+
+enum EHoudiniAssetParameterVersion
+{
+	VER_HOUDINI_ENGINE_PARAM_BASE = 0,
+
+	// Landscape serialization in asset inputs.
+	VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT,
+
+	// -----<new versions can be added before this line>-------------------------------------------------
+	// - this needs to be the last line (see note below)
+	VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION_PLUS_ONE,
+	VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION_PLUS_ONE - 1
+};
+
