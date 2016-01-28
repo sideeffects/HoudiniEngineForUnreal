@@ -20,6 +20,7 @@
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
+#include "HoudiniAssetParameterVersion.h"
 
 
 UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :
@@ -27,7 +28,7 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	InputObject(nullptr),
 	InputCurve(nullptr),
 	InputAssetComponent(nullptr),
-	LandscapeProxy(nullptr),
+	InputLandscapeProxy(nullptr),
 	ConnectedAssetId(-1),
 	InputIndex(0),
 	ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
@@ -642,6 +643,12 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
 	Ar << InputCurve;
 	Ar << InputCurveParameters;
 
+	// Serialize landscape used for input.
+	if(HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT)
+	{
+		Ar << InputLandscapeProxy;
+	}
+
 	// Create necessary widget resources.
 	if(Ar.IsLoading())
 	{
@@ -944,7 +951,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 				// We are switching away from landscape input.
 
 				// Reset selected landscape.
-				LandscapeProxy = nullptr;
+				InputLandscapeProxy = nullptr;
 				break;
 			}
 

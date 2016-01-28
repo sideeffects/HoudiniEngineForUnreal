@@ -255,7 +255,7 @@ protected:
 	UHoudiniAssetComponent* InputAssetComponent;
 
 	/** Landscape actor used for input. **/
-	ALandscapeProxy* LandscapeProxy;
+	ALandscapeProxy* InputLandscapeProxy;
 
 	/** Id of currently connected asset. **/
 	HAPI_AssetId ConnectedAssetId;
