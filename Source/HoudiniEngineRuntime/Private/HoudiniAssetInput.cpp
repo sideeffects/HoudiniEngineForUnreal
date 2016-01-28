@@ -711,8 +711,14 @@ UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 			Collector.AddReferencedObject(HoudiniAssetInput->InputCurve, InThis);
 		}
 
+		// Add reference to held landscape.
+		if(HoudiniAssetInput->InputLandscapeProxy)
+		{
+			Collector.AddReferencedObject(HoudiniAssetInput->InputLandscapeProxy, InThis);
+		}
+
 		// Add references for all curve input parameters.
-		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetInput->InputCurveParameters); 
+		for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetInput->InputCurveParameters);
 			IterParams; ++IterParams)
 		{
 			UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
@@ -1141,7 +1147,8 @@ UHoudiniAssetInput::OnLandscapeActorUse()
 void
 UHoudiniAssetInput::ConnectInputAssetActor()
 {
-	if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()) && !bInputAssetConnectedInHoudini)
+	if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId())
+		&& !bInputAssetConnectedInHoudini)
 	{
 		FHoudiniEngineUtils::HapiConnectAsset(
 			InputAssetComponent->GetAssetId(),
@@ -1357,20 +1364,21 @@ UHoudiniAssetInput::UpdateInputCurve()
 
 	{
 		HAPI_NodeInfo NodeInfo;
-		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo), false);
+		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId,
+			&NodeInfo), false);
 
 		TArray<HAPI_ParmInfo> ParmInfos;
 		ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[0], 0, NodeInfo.parmCount),
-			false);
+		HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeId,
+			&ParmInfos[0], 0, NodeInfo.parmCount), false);
 
 		// Retrieve integer values for this asset.
 		TArray<int32> ParmValueInts;
 		ParmValueInts.SetNumZeroed(NodeInfo.parmIntValueCount);
 		if(NodeInfo.parmIntValueCount > 0)
 		{
-			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueInts[0], 0,
-				NodeInfo.parmIntValueCount), false);
+			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(),
+				NodeId, &ParmValueInts[0], 0, NodeInfo.parmIntValueCount), false);
 		}
 
 		// Retrieve float values for this asset.
@@ -1378,8 +1386,8 @@ UHoudiniAssetInput::UpdateInputCurve()
 		ParmValueFloats.SetNumZeroed(NodeInfo.parmFloatValueCount);
 		if(NodeInfo.parmFloatValueCount > 0)
 		{
-			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueFloats[0], 0,
-				NodeInfo.parmFloatValueCount), false);
+			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(),
+				NodeId, &ParmValueFloats[0], 0, NodeInfo.parmFloatValueCount), false);
 		}
 
 		// Retrieve string values for this asset.
@@ -1387,8 +1395,8 @@ UHoudiniAssetInput::UpdateInputCurve()
 		ParmValueStrings.SetNumZeroed(NodeInfo.parmStringValueCount);
 		if(NodeInfo.parmStringValueCount > 0)
 		{
-			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(), NodeId, true, &ParmValueStrings[0], 0,
-				NodeInfo.parmStringValueCount), false);
+			HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(),
+				NodeId, true, &ParmValueStrings[0], 0, NodeInfo.parmStringValueCount), false);
 		}
 
 		// Create properties for parameters.
