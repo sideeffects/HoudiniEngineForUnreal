@@ -562,6 +562,26 @@ UHoudiniAssetInput::UploadParameterValue()
 
 		case EHoudiniAssetInputType::LandscapeInput:
 		{
+			if(InputLandscapeProxy)
+			{
+				// Disconnect and destroy currently connected asset, if there's one.
+				DisconnectAndDestroyInputAsset();
+
+				// Connect input and create connected asset. Will return by reference.
+				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, InputLandscapeProxy,
+					ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves))
+				{
+					bChanged = false;
+					ConnectedAssetId = -1;
+					return false;
+				}
+			}
+			else
+			{
+				// Either landscape was reset or null landscape has been assigned.
+				DisconnectAndDestroyInputAsset();
+			}
+
 			break;
 		}
 
@@ -1125,7 +1145,35 @@ UHoudiniAssetInput::OnLandscapeActorFilter(const AActor* const Actor) const
 void
 UHoudiniAssetInput::OnLandscapeActorSelected(AActor* Actor)
 {
+	ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
+	if(LandscapeProxy)
+	{
+		// If we just selected the already selected landscape, do nothing.
+		if(LandscapeProxy == InputLandscapeProxy)
+		{
+			return;
+		}
 
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Landscape Change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		// Store new landscape.
+		InputLandscapeProxy = LandscapeProxy;
+	}
+	else
+	{
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Input Landscape Change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		InputLandscapeProxy = nullptr;
+	}
+
+	MarkPreChanged();
+	MarkChanged();
 }
 
 
