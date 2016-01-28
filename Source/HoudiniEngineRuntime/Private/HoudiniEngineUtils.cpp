@@ -1013,8 +1013,9 @@ FHoudiniEngineUtils::HapiExtractImage(
 #if WITH_EDITOR
 
 UTexture2D*
-FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo, UPackage* Package, 
-	const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer, bool bNormal)
+FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo,
+	UPackage* Package, const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer,
+	const FString& TextureType)
 {
 	UTexture2D* Texture = nullptr;
 	if(ExistingTexture)
@@ -1032,21 +1033,13 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
 			HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName);
 
-		if(bNormal)
-		{
-			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
-				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL);
-		}
-		else
-		{
-			FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
-				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE);
-		}
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture,
+			HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType);
 	}
 
 	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8);
 
-	if(bNormal)
+	if(!TextureType.Compare(HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL))
 	{
 		Texture->CompressionSettings = TC_Normalmap;
 		Texture->SRGB = false;
@@ -4243,7 +4236,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 						// Reuse existing diffuse texture, or create new one.
 						TextureDiffuse = 
 							FHoudiniEngineUtils::CreateUnrealTexture(TextureDiffuse, ImageInfo, 
-								TextureDiffusePackage, TextureDiffuseName, PF_R8G8B8A8, ImageBuffer);
+								TextureDiffusePackage, TextureDiffuseName, PF_R8G8B8A8, ImageBuffer,
+								HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE);
 
 						// Create sampling expression and add it to material, if we don't have one.
 						if(!ExpressionDiffuse)
@@ -4305,7 +4299,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 							// Reuse existing normal texture, or create new one.
 							TextureNormal = 
 								FHoudiniEngineUtils::CreateUnrealTexture(TextureNormal, ImageInfo, 
-									TextureNormalPackage, TextureNormalName, PF_R8G8B8A8, ImageBuffer, true);
+									TextureNormalPackage, TextureNormalName, PF_R8G8B8A8, ImageBuffer,
+									HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL);
 
 							// Create sampling expression and add it to material, if we don't have one.
 							if(!ExpressionNormal)
