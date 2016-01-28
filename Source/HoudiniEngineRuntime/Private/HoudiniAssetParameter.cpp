@@ -17,6 +17,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniApi.h"
+#include "HoudiniAssetParameterVersion.h"
 
 
 uint32
@@ -272,7 +273,7 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
-	int32 Version = 0; // Placeholder until we need to use it.
+	int32 Version = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION;
 	Ar << Version;
 
 	Ar << HoudiniAssetParameterFlagsPacked;
