@@ -249,6 +249,9 @@ protected:
 
 		uint32 HoudiniAssetParameterFlagsPacked;
 	};
+
+	/** Temporary variable holding parameter serialization version. **/
+	uint32 HoudiniAssetParameterVersion;
 };
 
 

@@ -54,7 +54,8 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	bIsDisabled(false),
 	bChanged(false),
 	bSliderDragged(false),
-	bIsChildOfMultiparm(false)
+	bIsChildOfMultiparm(false),
+	HoudiniAssetParameterVersion(VER_HOUDINI_ENGINE_PARAM_BASE)
 {
 	ParameterName = TEXT("");
 	ParameterLabel = TEXT("");
@@ -276,8 +277,8 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
-	int32 Version = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION;
-	Ar << Version;
+	HoudiniAssetParameterVersion = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION;
+	Ar << HoudiniAssetParameterVersion;
 
 	Ar << HoudiniAssetParameterFlagsPacked;
 
