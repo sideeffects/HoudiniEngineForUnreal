@@ -58,7 +58,8 @@ public:
 	void RecreatePhysicsStates();
 
 	/** Retrieve all instanced mesh components used by this input. **/
-	bool CollectAllInstancedStaticMeshComponents(TArray<UInstancedStaticMeshComponent*>& Components, UStaticMesh* StaticMesh);
+	bool CollectAllInstancedStaticMeshComponents(TArray<UInstancedStaticMeshComponent*>& Components,
+		UStaticMesh* StaticMesh);
 
 	/** Get material replacement meshes for a given input. **/
 	bool GetMaterialReplacementMeshes(UMaterialInterface* Material, TMap<UStaticMesh*, int32>& MaterialReplacementsMap);
@@ -77,7 +78,7 @@ public:
 #if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
-	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);    
+	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder);
 
 #endif
 
@@ -127,7 +128,7 @@ protected:
 	/** Locate or create (if it does not exist) an input field. **/
 	void CreateInstanceInputField(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
 		const TArray<FTransform>& ObjectTransforms, const FString& InstancePathName,
-		const TArray<UHoudiniAssetInstanceInputField*>& OldInstanceInputFields, 
+		const TArray<UHoudiniAssetInstanceInputField*>& OldInstanceInputFields,
 		TArray<UHoudiniAssetInstanceInputField*>& NewInstanceInputFields);
 
 	/** Clean unused input fields. **/
@@ -177,19 +178,28 @@ protected:
 	void OnRemoveInstanceVariation(UHoudiniAssetInstanceInputField* InstanceInputField, int32 Index);
 
 	/** Get rotation components for given index. **/
-	TOptional<float> GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
-	TOptional<float> GetRotationPitch(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
-	TOptional<float> GetRotationYaw(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
+	TOptional<float> GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx) const;
+	TOptional<float> GetRotationPitch(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx) const;
+	TOptional<float> GetRotationYaw(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx) const;
 
 	/** Set rotation components for given index. **/
-	void SetRotationRoll(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx);
-	void SetRotationPitch(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx);
-	void SetRotationYaw(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx);
+	void SetRotationRoll(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx);
+	void SetRotationPitch(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx);
+	void SetRotationYaw(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx);
 
 	/** Get scale components for a given index. **/
-	TOptional<float> GetScaleX(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
-	TOptional<float> GetScaleY(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
-	TOptional<float> GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
+	TOptional<float> GetScaleX(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx) const;
+	TOptional<float> GetScaleY(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx) const;
+	TOptional<float> GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx) const;
 
 	/** Set scale components for a given index. **/
 	void SetScaleX(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx);
@@ -200,7 +210,8 @@ protected:
 	ECheckBoxState IsChecked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
 
 	/** Set option for whether scale should be linear. **/
-	void CheckStateChanged(ECheckBoxState NewState, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx);
+	void CheckStateChanged(ECheckBoxState NewState, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+		int32 VariationIdx);
 
 #endif
 
