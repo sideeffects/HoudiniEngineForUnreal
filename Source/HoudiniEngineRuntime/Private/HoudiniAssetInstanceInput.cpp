@@ -45,14 +45,8 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 
 	// Get name of this input. For the time being we only support geometry inputs.
 	HAPI_ObjectInfo ObjectInfo;
-	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(
-			FHoudiniEngine::Get().GetSession(),
-			InHoudiniAssetComponent->GetAssetId(),
-			&ObjectInfo,
-			InHoudiniGeoPartObject.ObjectId,
-			1
-		)
-	)
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(),
+		InHoudiniAssetComponent->GetAssetId(), &ObjectInfo, InHoudiniGeoPartObject.ObjectId, 1))
 	{
 		return HoudiniAssetInstanceInput;
 	}
@@ -344,8 +338,7 @@ UHoudiniAssetInstanceInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 
 
 void
-UHoudiniAssetInstanceInput::OnAddInstanceVariation( 
-	UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index)
+UHoudiniAssetInstanceInput::OnAddInstanceVariation(UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index)
 {
 	UStaticMesh * StaticMesh =  InstanceInputField->GetInstanceVariation(Index);
 	InstanceInputField->AddInstanceVariation( StaticMesh, Index );
@@ -358,8 +351,7 @@ UHoudiniAssetInstanceInput::OnAddInstanceVariation(
 
 
 void
-UHoudiniAssetInstanceInput::OnRemoveInstanceVariation(
-	UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index)
+UHoudiniAssetInstanceInput::OnRemoveInstanceVariation(UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index)
 {
 	InstanceInputField->RemoveInstanceVariation(Index);	
 
@@ -517,35 +509,35 @@ UHoudiniAssetInstanceInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			Args.Add(TEXT("Asset"), FText::FromString(StaticMesh->GetName()));
 			FText StaticMeshTooltip =
 				FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"),
-				Args);
+					Args);
 
 			ButtonBox->AddSlot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					PropertyCustomizationHelpers::MakeBrowseButton(
-					FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshBrowse, StaticMesh),
-					TAttribute<FText>(StaticMeshTooltip))
-				];
+			.AutoWidth()
+			.Padding(2.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			[
+				PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInstanceInput::OnStaticMeshBrowse, StaticMesh),
+				TAttribute<FText>(StaticMeshTooltip))
+			];
 
 			ButtonBox->AddSlot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(2.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ToolTipText(LOCTEXT("ResetToBase", "Reset to default static mesh"))
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ContentPadding(0)
+				.Visibility(EVisibility::Visible)
+				.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnResetStaticMeshClicked,
+					HoudiniAssetInstanceInputField, Idx, VariationIdx))
 				[
-					SNew(SButton)
-					.ToolTipText(LOCTEXT("ResetToBase", "Reset to default static mesh"))
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-					.ContentPadding(0)
-					.Visibility(EVisibility::Visible)
-					.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInstanceInput::OnResetStaticMeshClicked,
-						HoudiniAssetInstanceInputField, Idx, VariationIdx))
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
-					]
-				];
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				]
+			];
 
 			FText LabelRotationText = LOCTEXT("HoudiniRotationOffset", "Rotation Offset:");
 			VerticalBox->AddSlot().Padding(5, 2).AutoHeight()
@@ -754,7 +746,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 			// If original static mesh is used, then we need to bake it.
 			if (HoudiniAssetInstanceInputField->IsOriginalStaticMeshUsed(VariationIdx) && !HasBakedOriginalStaticMesh)
 			{
-				
+
 				const FHoudiniGeoPartObject& ItemHoudiniGeoPartObject =					
 					HoudiniAssetComponent->LocateGeoPartObject(HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx));
 
@@ -774,7 +766,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 				}
 			}
 			else
-			{				
+			{
 				OutStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
 			}
 
@@ -786,7 +778,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 			DuplicatedComponent->SetStaticMesh(OutStaticMesh);
 
 			// Set component instances.
-			{				
+			{
 				FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
 				FVector ScaleOffset = HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx);
 
@@ -813,8 +805,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor(AActor* Actor)
 
 void
 UHoudiniAssetInstanceInput::GetPathInstaceTransforms(const FString& ObjectInstancePath,
-	const TArray<FString>& PointInstanceValues, const TArray<FTransform>& Transforms,
-	TArray<FTransform>& OutTransforms)
+	const TArray<FString>& PointInstanceValues, const TArray<FTransform>& Transforms, TArray<FTransform>& OutTransforms)
 {
 	OutTransforms.Empty();
 
@@ -844,10 +835,8 @@ UHoudiniAssetInstanceInput::CheckInstanceAttribute(HAPI_AssetId InAssetId, const
 #if WITH_EDITOR
 
 void
-UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject, 
-												UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, 
-												int32 Idx, 
-												int32 VariationIdx)
+UHoudiniAssetInstanceInput::OnStaticMeshDropped(UObject* InObject,
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, int32 VariationIdx)
 {
 	UStaticMesh* InputStaticMesh = Cast<UStaticMesh>(InObject);	
 	UStaticMesh* UsedStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation(VariationIdx);
@@ -975,7 +964,7 @@ UHoudiniAssetInstanceInput::OnStaticMeshSelected(const FAssetData& AssetData,
 
 TOptional<float>
 UHoudiniAssetInstanceInput::GetRotationRoll(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-											int32 VariationIdx) const
+	int32 VariationIdx) const
 {
 	const FRotator& Rotator = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
 	return Rotator.Roll;
@@ -984,7 +973,7 @@ UHoudiniAssetInstanceInput::GetRotationRoll(UHoudiniAssetInstanceInputField* Hou
 
 TOptional<float>
 UHoudiniAssetInstanceInput::GetRotationPitch(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-											 int32 VariationIdx) const
+	int32 VariationIdx) const
 {
 	const FRotator& Rotator = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
 	return Rotator.Pitch;
@@ -993,7 +982,7 @@ UHoudiniAssetInstanceInput::GetRotationPitch(UHoudiniAssetInstanceInputField* Ho
 
 TOptional<float>
 UHoudiniAssetInstanceInput::GetRotationYaw(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-										   int32 VariationIdx) const
+	int32 VariationIdx) const
 {
 	const FRotator& Rotator = HoudiniAssetInstanceInputField->GetRotationOffset(VariationIdx);
 	return Rotator.Yaw;
@@ -1001,9 +990,8 @@ UHoudiniAssetInstanceInput::GetRotationYaw(UHoudiniAssetInstanceInputField* Houd
 
 
 void
-UHoudiniAssetInstanceInput::SetRotationRoll(float Value, 
-	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-	int32 VariationIdx)
+UHoudiniAssetInstanceInput::SetRotationRoll(float Value,
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx)
 {
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
@@ -1017,9 +1005,8 @@ UHoudiniAssetInstanceInput::SetRotationRoll(float Value,
 
 
 void
-UHoudiniAssetInstanceInput::SetRotationPitch(float Value, 
-	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-	int32 VariationIdx)
+UHoudiniAssetInstanceInput::SetRotationPitch(float Value,
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx)
 {
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
@@ -1033,9 +1020,8 @@ UHoudiniAssetInstanceInput::SetRotationPitch(float Value,
 
 
 void
-UHoudiniAssetInstanceInput::SetRotationYaw(float Value, 
-	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-	int32 VariationIdx)
+UHoudiniAssetInstanceInput::SetRotationYaw(float Value,
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx)
 {
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
@@ -1050,7 +1036,7 @@ UHoudiniAssetInstanceInput::SetRotationYaw(float Value,
 
 TOptional<float>
 UHoudiniAssetInstanceInput::GetScaleX(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-									  int32 VariationIdx) const
+	int32 VariationIdx) const
 {
 	const FVector& Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx);
 	return Scale3D.X;
@@ -1059,7 +1045,7 @@ UHoudiniAssetInstanceInput::GetScaleX(UHoudiniAssetInstanceInputField* HoudiniAs
 
 TOptional<float>
 UHoudiniAssetInstanceInput::GetScaleY(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-									  int32 VariationIdx) const
+	int32 VariationIdx) const
 {
 	const FVector& Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx);
 	return Scale3D.Y;
@@ -1068,7 +1054,7 @@ UHoudiniAssetInstanceInput::GetScaleY(UHoudiniAssetInstanceInputField* HoudiniAs
 
 TOptional<float>
 UHoudiniAssetInstanceInput::GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-									  int32 VariationIdx) const
+	int32 VariationIdx) const
 {
 	const FVector& Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset(VariationIdx);
 	return Scale3D.Z;
@@ -1076,9 +1062,8 @@ UHoudiniAssetInstanceInput::GetScaleZ(UHoudiniAssetInstanceInputField* HoudiniAs
 
 
 void
-UHoudiniAssetInstanceInput::SetScaleX(float Value, 
-									  UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-									  int32 VariationIdx)
+UHoudiniAssetInstanceInput::SetScaleX(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	int32 VariationIdx)
 {
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
@@ -1099,9 +1084,8 @@ UHoudiniAssetInstanceInput::SetScaleX(float Value,
 
 
 void
-UHoudiniAssetInstanceInput::SetScaleY(float Value, 
-									  UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-									  int32 VariationIdx)
+UHoudiniAssetInstanceInput::SetScaleY(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	int32 VariationIdx)
 {
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME), 
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
@@ -1122,9 +1106,8 @@ UHoudiniAssetInstanceInput::SetScaleY(float Value,
 
 
 void
-UHoudiniAssetInstanceInput::SetScaleZ(float Value, 
-									  UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-									  int32 VariationIdx)
+UHoudiniAssetInstanceInput::SetScaleZ(float Value, UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
+	int32 VariationIdx)
 {
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
@@ -1146,8 +1129,7 @@ UHoudiniAssetInstanceInput::SetScaleZ(float Value,
 
 void
 UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState,
-	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-	int32 VariationIdx)
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx)
 {
 	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 		LOCTEXT("HoudiniInstanceInputChange", "Houdini Instance Input Change"), HoudiniAssetComponent);
@@ -1159,7 +1141,7 @@ UHoudiniAssetInstanceInput::CheckStateChanged(ECheckBoxState NewState,
 
 ECheckBoxState
 UHoudiniAssetInstanceInput::IsChecked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField,
-									  int32 VariationIdx) const
+	int32 VariationIdx) const
 {
 	if (HoudiniAssetInstanceInputField->AreOffsetsScaledLinearly(VariationIdx))
 	{
