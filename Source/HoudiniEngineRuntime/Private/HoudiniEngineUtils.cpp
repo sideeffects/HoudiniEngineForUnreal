@@ -5427,59 +5427,19 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHou
 	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, DuplicatedMaterial,
 		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName);
 
-	// Retrieve and check diffuse expression.
-	UMaterialExpressionTextureSample* ExpressionDiffuse = 
-		Cast<UMaterialExpressionTextureSample>(DuplicatedMaterial->BaseColor.Expression);
-	if(ExpressionDiffuse)
-	{
-		UTexture2D* TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
-		if(TextureDiffuse)
-		{
-			UPackage* TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
-			if(TextureDiffusePackage)
-			{
-				FString GeneratedTextureName;
-				if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(TextureDiffusePackage, TextureDiffuse, 
-					GeneratedTextureName))
-				{
-					// Duplicate diffuse texture.
-					UTexture2D* DuplicatedDiffuseTexture = 
-						FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(TextureDiffuse, Component,
-							GeneratedTextureName, bBake);
-
-					// Re-assign generated diffuse texture.
-					ExpressionDiffuse->Texture = DuplicatedDiffuseTexture;
-				}
-			}
-		}
-	}
-
-	// Retrieve and check normal expression.
-	UMaterialExpressionTextureSample* ExpressionNormal = 
-		Cast<UMaterialExpressionTextureSample>(DuplicatedMaterial->Normal.Expression);
-	if(ExpressionNormal)
-	{
-		UTexture2D* TextureNormal = Cast<UTexture2D>(ExpressionNormal->Texture);
-		if(TextureNormal)
-		{
-			UPackage* TextureNormalPackage = Cast<UPackage>(TextureNormal->GetOuter());
-			if(TextureNormalPackage)
-			{
-				FString GeneratedTextureName;
-				if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(TextureNormalPackage, TextureNormal, 
-					GeneratedTextureName))
-				{
-					// Duplicate normal texture.
-					UTexture2D* DuplicatedNormalTexture = 
-						FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(TextureNormal, Component,
-							GeneratedTextureName, bBake);
-
-					// Re-assign generated normal texture.
-					ExpressionNormal->Texture = DuplicatedNormalTexture;
-				}
-			}
-		}
-	}
+	// Retrieve and check various sampling expressions. If they contain textures, duplicate (and bake) them.
+	FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(DuplicatedMaterial->BaseColor.Expression,
+		Component, bBake);
+	FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(DuplicatedMaterial->Normal.Expression,
+		Component, bBake);
+	FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(DuplicatedMaterial->Metallic.Expression,
+		Component, bBake);
+	FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(DuplicatedMaterial->Specular.Expression,
+		Component, bBake);
+	FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(DuplicatedMaterial->Roughness.Expression,
+		Component, bBake);
+	FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(DuplicatedMaterial->EmissiveColor.Expression,
+		Component, bBake);
 
 	// Notify registry that we have created a new duplicate material.
 	FAssetRegistryModule::AssetCreated(DuplicatedMaterial);
@@ -5488,6 +5448,37 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(UMaterial* Material, UHou
 	DuplicatedMaterial->MarkPackageDirty();
 
 	return DuplicatedMaterial;
+}
+
+
+void
+FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(UMaterialExpression* MaterialExpression,
+	UHoudiniAssetComponent* Component, bool bBake)
+{
+	UMaterialExpressionTextureSample* TextureSample = Cast<UMaterialExpressionTextureSample>(MaterialExpression);
+	if(TextureSample)
+	{
+		UTexture2D* Texture = Cast<UTexture2D>(TextureSample->Texture);
+		if(Texture)
+		{
+			UPackage* TexturePackage = Cast<UPackage>(Texture->GetOuter());
+			if(TexturePackage)
+			{
+				FString GeneratedTextureName;
+				if(FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(TexturePackage, Texture,
+					GeneratedTextureName))
+				{
+					// Duplicate texture.
+					UTexture2D* DuplicatedTexture =
+						FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(Texture, Component,
+							GeneratedTextureName, bBake);
+
+					// Re-assign generated texture.
+					TextureSample->Texture = DuplicatedTexture;
+				}
+			}
+		}
+	}
 }
 
 

@@ -314,6 +314,10 @@ protected:
 	static UTexture2D* DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoudiniAssetComponent* Component, 
 		const FString& SubTextureName, bool bBake = false);
 
+	/** Replace duplicated texture with a new copy within a given sampling expression. **/
+	static void ReplaceDuplicatedMaterialTextureSample(UMaterialExpression* MaterialExpression,
+		UHoudiniAssetComponent* Component, bool bBake);
+
 	/** Add Houdini meta information to package for a given object. **/
 	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
 		const TCHAR* Value);
