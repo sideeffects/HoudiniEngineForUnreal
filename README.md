@@ -9,7 +9,7 @@ You can use the [Houdini Engine for UE4 Forum](https://www.sidefx.com/index.php?
 Currently, the supported Unreal Engine versions are:
 
 * 4.10
-* 4.9 ([in Houdini15.0-Unreal4.9 branch](https://github.com/sideeffects/HoudiniEngineForUnreal/tree/Houdini15.0-Unreal4.9)
+* 4.9 [in Houdini15.0-Unreal4.9 branch](https://github.com/sideeffects/HoudiniEngineForUnreal/tree/Houdini15.0-Unreal4.9)
 
 ## Installing from Source
 01. Have a local copy of Unreal Engine 4.10 checked out. Inside Unreal Engine copy navigate to Engine/Plugins/Runtime .
