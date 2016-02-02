@@ -4149,7 +4149,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 				FString MaterialName;
 
 				// Create material package and get material name.
-				UPackage* MaterialPackage = 
+				UPackage* MaterialPackage =
 					FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent, MaterialInfo,
 						MaterialName);
 
@@ -4244,7 +4244,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	int32 DiffuseTexCount = 0;
 
 	int32 ParmNumDiffuseTex =
-		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_NUM, NodeParamNames);
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_TEXTURE_LAYERS_NUM, NodeParamNames);
 
 	if(-1 != ParmNumDiffuseTex)
 	{
@@ -4267,12 +4267,6 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	{
 		ParmNameBaseIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
-	}
-
-	if(-1 == ParmNameBaseIdx)
-	{
-		ParmNameBaseIdx =
-			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_2, NodeParamNames);
 	}
 
 	if(ParmNameBaseIdx >= 0)
@@ -4397,7 +4391,13 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	}
 
 	int32 ParmNameBaseDiffuseColorIdx =
-		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE, NodeParamNames);
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0, NodeParamNames);
+
+	if(-1 == ParmNameBaseDiffuseColorIdx)
+	{
+		ParmNameBaseDiffuseColorIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1, NodeParamNames);
+	}
 
 	if(!bExpressionCreated && ParmNameBaseDiffuseColorIdx >= 0)
 	{
@@ -4462,7 +4462,13 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 
 	// See if separate normal texture is available.
 	int32 ParmNameNormalIdx =
-		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL, NodeParamNames);
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL_0, NodeParamNames);
+
+	if(-1 == ParmNameNormalIdx)
+	{
+		ParmNameNormalIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL_1, NodeParamNames);
+	}
 
 	if(ParmNameNormalIdx >= 0)
 	{
@@ -4590,12 +4596,6 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 		{
 			ParmNameBaseIdx =
 				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
-		}
-
-		if(-1 == ParmNameBaseIdx)
-		{
-			ParmNameBaseIdx =
-				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_2, NodeParamNames);
 		}
 
 		if(ParmNameBaseIdx >= 0)
