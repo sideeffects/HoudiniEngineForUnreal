@@ -4240,6 +4240,25 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	CreateTexture2DParameters.bDeferCompression = true;
 	CreateTexture2DParameters.bSRGB = true;
 
+	// Get number of diffuse textures in use.
+	int32 DiffuseTexCount = 0;
+
+	int32 ParmNumDiffuseTex =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_NUM, NodeParamNames);
+
+	if(-1 != ParmNumDiffuseTex)
+	{
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNumDiffuseTex];
+		int DiffuseTexCountValue = 0;
+
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (int*) &DiffuseTexCountValue,
+				ParmInfo.intValuesIndex, ParmInfo.size))
+		{
+			DiffuseTexCount = DiffuseTexCountValue;
+		}
+	}
+
 	// See if diffuse texture is available.
 	int32 ParmNameBaseIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames);
