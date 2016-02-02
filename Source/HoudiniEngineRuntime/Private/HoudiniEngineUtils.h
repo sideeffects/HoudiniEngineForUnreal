@@ -243,7 +243,7 @@ public:
 
 	/** HAPI : Extract image data. **/
 	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
-		TArray<char>& ImageBuffer, const char* Type = HAPI_UNREAL_MATERIAL_TEXTURE_MAIN);
+		TArray<char>& ImageBuffer, const char* Type);
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
@@ -251,6 +251,35 @@ public:
 	/** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
 	static void HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo,
 		const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<FString, UMaterial*>& Materials);
+
+	/** Create various material components. **/
+	static bool CreateMaterialComponentDiffuse(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
+	static bool CreateMaterialComponentNormal(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
+	static bool CreateMaterialComponentSpecular(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
+	static bool CreateMaterialComponentRoughness(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
+	static bool CreateMaterialComponentMetallic(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
+	static bool CreateMaterialComponentEmissive(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
+	static bool CreateMaterialComponentOpacity(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
 	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
@@ -363,8 +392,8 @@ protected:
 
 	/** Create a texture from given information. **/
 	static UTexture2D* CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo,
-		UPackage* Package, const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer,
-		const FString& TextureType);
+		UPackage* Package, const FString& TextureName, const TArray<char>& ImageBuffer, const FString& TextureType,
+		const FCreateTexture2DParameters& TextureParameters, TextureGroup LODGroup);
 
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
@@ -386,4 +415,9 @@ public:
 
 	/** How many GUID symbols are used for package item name generation. **/
 	static const int32 PackageGUIDItemNameLength;
+
+	/** Material node construction offsets. **/
+	static const int32 MaterialExpressionNodeX;
+	static const int32 MaterialExpressionNodeY;
+	static const int32 MaterialExpressionNodeStepY;
 };
