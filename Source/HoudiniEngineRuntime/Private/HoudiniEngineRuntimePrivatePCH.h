@@ -82,6 +82,7 @@
 #include "LandscapeProxy.h"
 #include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
+#include "ImageUtils.h"
 
 /** Houdini Engine Runtime Module Localization. **/
 #include "HoudiniEngineRuntimeLocalization.h"
@@ -219,6 +220,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Names of attributes used for data exchange between Unreal and Houdini Engine. **/
 #define HAPI_UNREAL_ATTRIB_TANGENT						"unreal_tangent"
 #define HAPI_UNREAL_ATTRIB_BINORMAL						"unreal_binormal"
+#define HAPI_UNREAL_ATTRIB_INSTANCE						"unreal_instance"
 #define HAPI_UNREAL_ATTRIB_MATERIAL						"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION			"unreal_lightmap_resolution"
@@ -250,12 +252,17 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_PIVOT							"p"
 #define HAPI_UNREAL_PARAM_UNIFORMSCALE					"scale"
 
-#define HAPI_UNREAL_MATERIAL_TEXTURE_MAIN				"C A"
+#define HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA		"C A"
+#define HAPI_UNREAL_MATERIAL_TEXTURE_COLOR				"C"
+#define HAPI_UNREAL_MATERIAL_TEXTURE_ALPHA				"A"
 #define HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL				"N"
 
 #define HAPI_UNREAL_PARAM_MAP_DIFFUSE_0					"ogl_tex1"
 #define HAPI_UNREAL_PARAM_MAP_DIFFUSE_1					"baseColorMap"
 #define HAPI_UNREAL_PARAM_MAP_DIFFUSE_2					"map"
+
+#define HAPI_UNREAL_PARAM_MAP_NORMAL					"ogl_normalmap"
+#define HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE				"ogl_normalmap_type"
 
 #define HAPI_UNREAL_PARAM_MAP_SPECULAR					"ogl_specmap"
 #define HAPI_UNREAL_PARAM_MAP_ROUGHNESS					"ogl_roughmap"

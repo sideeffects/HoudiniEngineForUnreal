@@ -51,6 +51,15 @@ FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
 const int32
 FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
 
+const int32
+FHoudiniEngineUtils::MaterialExpressionNodeX = -400;
+
+const int32
+FHoudiniEngineUtils::MaterialExpressionNodeY = -150;
+
+const int32
+FHoudiniEngineUtils::MaterialExpressionNodeStepY = 180;
+
 
 const FString
 FHoudiniEngineUtils::GetErrorDescription(HAPI_Result Result)
@@ -1014,8 +1023,8 @@ FHoudiniEngineUtils::HapiExtractImage(
 
 UTexture2D*
 FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI_ImageInfo& ImageInfo,
-	UPackage* Package, const FString& TextureName, EPixelFormat PixelFormat, const TArray<char>& ImageBuffer,
-	const FString& TextureType)
+	UPackage* Package, const FString& TextureName, const TArray<char>& ImageBuffer, const FString& TextureType,
+	const FCreateTexture2DParameters& TextureParameters, TextureGroup LODGroup)
 {
 	UTexture2D* Texture = nullptr;
 	if(ExistingTexture)
@@ -1024,6 +1033,7 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 	}
 	else
 	{
+		// Create new texture object.
 		Texture = NewObject<UTexture2D>(Package, UTexture2D::StaticClass(), *TextureName,
 			RF_Public | RF_Standalone | RF_Transactional);
 
@@ -1032,19 +1042,17 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 			HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture, 
 			HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName);
-
 		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(Package, Texture,
 			HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType);
+
+		// Assign texture group.
+		Texture->LODGroup = LODGroup;
 	}
 
+	// Initialize texture source.
 	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8);
 
-	if(!TextureType.Compare(HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL))
-	{
-		Texture->CompressionSettings = TC_Normalmap;
-		Texture->SRGB = false;
-	}
-
+	// Lock the texture.
 	uint8* MipData = Texture->Source.LockMip(0);
 
 	// Create base map.
@@ -1064,12 +1072,36 @@ FHoudiniEngineUtils::CreateUnrealTexture(UTexture2D* ExistingTexture, const HAPI
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 2); //B
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 1); //G
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 0); //R
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
+
+			if(TextureParameters.bUseAlpha)
+			{
+				*DestPtr++ = *(uint8*)(SrcData + DataOffset + 3); //A
+			}
+			else
+			{
+				*DestPtr++ = 0xFF;
+			}
+			
 		}
 	}
 
 	// Unlock the texture.
 	Texture->Source.UnlockMip(0);
+
+	// Texture creation parameters.
+	Texture->SRGB = TextureParameters.bSRGB;
+	Texture->CompressionSettings = TextureParameters.CompressionSettings;
+	Texture->CompressionNoAlpha = !TextureParameters.bUseAlpha;
+	Texture->DeferCompression = TextureParameters.bDeferCompression;
+
+	// Set the Source Guid/Hash if specified.
+	/*
+	if(TextureParameters.SourceGuidHash.IsValid())
+	{
+		Texture->Source.SetId(TextureParameters.SourceGuidHash, true);
+	}
+	*/
+
 	Texture->PostEditChange();
 
 	return Texture;
@@ -4023,8 +4055,9 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint(UHoudiniAssetComponent* Ho
 
 
 void
-FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo, 
-	const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<FString, UMaterial*>& Materials)
+FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent,
+	const HAPI_AssetInfo& AssetInfo, const TSet<HAPI_MaterialId>& UniqueMaterialIds,
+	TMap<FString, UMaterial*>& Materials)
 {
 #if WITH_EDITOR
 
@@ -4057,9 +4090,19 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 	for(TSet<HAPI_MaterialId>::TConstIterator IterMaterialId(UniqueMaterialIds); IterMaterialId; ++IterMaterialId)
 	{
 		HAPI_MaterialId MaterialId = *IterMaterialId;
-		HAPI_MaterialInfo MaterialInfo;
 
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id, MaterialId, &MaterialInfo))
+		// Get material information.
+		HAPI_MaterialInfo MaterialInfo;
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id,
+			MaterialId, &MaterialInfo))
+		{
+			continue;
+		}
+
+		// Get node information.
+		HAPI_NodeInfo NodeInfo;
+		if(HAPI_RESULT_SUCCESS !=
+			FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &NodeInfo))
 		{
 			continue;
 		}
@@ -4074,7 +4117,92 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			}
 
 			UMaterial* const* FoundMaterial = CachedMaterials.Find(MaterialShopName);
+			UMaterial* Material = nullptr;
+			bool bCreatedNewMaterial = false;
 
+			if(FoundMaterial)
+			{
+				Material = *FoundMaterial;
+
+				// If cached material exists and has not changed, we can reuse it.
+				if(!MaterialInfo.hasChanged)
+				{
+					// We found cached material, we can reuse it.
+					Materials.Add(MaterialShopName, Material);
+					continue;
+				}
+			}
+			else
+			{
+				// Material was not found, we need to create it.
+
+				FString MaterialName;
+
+				// Create material package and get material name.
+				UPackage* MaterialPackage = 
+					FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(HoudiniAssetComponent, MaterialInfo,
+						MaterialName);
+
+				// Create new material.
+				Material = (UMaterial*) MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), MaterialPackage,
+					*MaterialName, RF_Public | RF_Standalone | RF_Transactional, NULL, GWarn);
+
+				// Add meta information to this package.
+				FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+				FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(MaterialPackage, Material,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName);
+
+				bCreatedNewMaterial = true;
+			}
+
+			// Get node parameters.
+			TArray<HAPI_ParmInfo> NodeParams;
+			NodeParams.SetNumUninitialized(NodeInfo.parmCount);
+			FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeInfo.id, &NodeParams[0], 0,
+				NodeInfo.parmCount);
+
+			// Get names of parameters.
+			TArray<std::string> NodeParamNames;
+			FHoudiniEngineUtils::HapiRetrieveParameterNames(NodeParams, NodeParamNames);
+
+			// Reset material expressions.
+			Material->Expressions.Empty();
+
+			// Generate various components for this material.
+			bool bMaterialComponentCreated = false;
+			int32 MaterialNodeY = FHoudiniEngineUtils::MaterialExpressionNodeY;
+
+			// Extract diffuse plane.
+			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentDiffuse(HoudiniAssetComponent,
+				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
+
+			// Extract normal plane.
+			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentNormal(HoudiniAssetComponent,
+				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
+
+
+			// Set other material properties.
+			Material->TwoSided = true;
+			Material->SetShadingModel(MSM_DefaultLit);
+
+			// Schedule this material for update.
+			MaterialUpdateContext.AddMaterial(Material);
+
+			// Cache material.
+			Materials.Add(MaterialShopName, Material);
+
+			// Propagate and trigger material updates.
+			if(bCreatedNewMaterial)
+			{
+				FAssetRegistryModule::AssetCreated(Material);
+			}
+
+			Material->PreEditChange(nullptr);
+			Material->PostEditChange();
+			Material->MarkPackageDirty();
+
+			/*
 			UPackage* MaterialPackage = nullptr;
 			UPackage* TextureDiffusePackage = nullptr;
 			UPackage* TextureNormalPackage = nullptr;
@@ -4458,6 +4586,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			{
 				// Material does not exist, we will use default Houdini material in this case.
 			}
+			*/
 		}
 		else
 		{
@@ -4468,6 +4597,510 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 	MaterialFactory->RemoveFromRoot();
 
 #endif
+}
+
+
+bool
+FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	bool bExpressionCreated = false;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// Diffuse texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = true;
+	CreateTexture2DParameters.CompressionSettings = TC_Default;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = true;
+
+	// See if diffuse texture is available.
+	int32 ParmNameBaseIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames);
+
+	if(-1 == ParmNameBaseIdx)
+	{
+		ParmNameBaseIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
+	}
+
+	if(-1 == ParmNameBaseIdx)
+	{
+		ParmNameBaseIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_2, NodeParamNames);
+	}
+
+	if(ParmNameBaseIdx >= 0)
+	{
+		// Diffuse map is available.
+
+		TArray<char> ImageBuffer;
+
+		// Retrieve color plane.
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo, ImageBuffer,
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA))
+		{
+			UMaterialExpressionTextureSample* ExpressionDiffuse =
+				Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
+
+			UTexture2D* TextureDiffuse = nullptr;
+			if(ExpressionDiffuse)
+			{
+				TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
+			}
+			else
+			{
+				// Otherwise new expression is of a different type.
+				if(Material->BaseColor.Expression)
+				{
+					Material->BaseColor.Expression->ConditionalBeginDestroy();
+				}
+			}
+
+			UPackage* TextureDiffusePackage = nullptr;
+			if(TextureDiffuse)
+			{
+				TextureDiffusePackage = Cast<UPackage>(TextureDiffuse->GetOuter());
+			}
+
+			HAPI_ImageInfo ImageInfo;
+			Result = FHoudiniApi::GetImageInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+				MaterialInfo.id, &ImageInfo);
+
+			if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+			{
+				// Create texture.
+				FString TextureDiffuseName;
+				bool bCreatedNewTextureDiffuse = false;
+
+				// Create diffuse texture package, if this is a new diffuse texture.
+				if(!TextureDiffusePackage)
+				{
+					TextureDiffusePackage =
+						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
+							TextureDiffuseName);
+				}
+
+				// Create diffuse texture, if we need to create one.
+				if(!TextureDiffuse)
+				{
+					bCreatedNewTextureDiffuse = true;
+				}
+
+				// Reuse existing diffuse texture, or create new one.
+				TextureDiffuse =
+					FHoudiniEngineUtils::CreateUnrealTexture(TextureDiffuse, ImageInfo,
+						TextureDiffusePackage, TextureDiffuseName, ImageBuffer,
+						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE, CreateTexture2DParameters,
+						TEXTUREGROUP_World);
+
+				// Create diffuse sampling expression, if needed.
+				if(!ExpressionDiffuse)
+				{
+					ExpressionDiffuse = NewObject<UMaterialExpressionTextureSample>(Material,
+						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+				}
+
+				ExpressionDiffuse->Texture = TextureDiffuse;
+				ExpressionDiffuse->SamplerType = SAMPLERTYPE_Color;
+
+				// Offset node placement.
+				ExpressionDiffuse->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+				ExpressionDiffuse->MaterialExpressionEditorY = MaterialNodeY;
+				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+				// Assign expression to material.
+				Material->Expressions.Add(ExpressionDiffuse);
+				Material->BaseColor.Expression = ExpressionDiffuse;
+
+				// Check if material is transparent. If it is, we need to hook up alpha.
+				if(FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo))
+				{
+					// This material contains transparency.
+					Material->BlendMode = BLEND_Masked;
+
+					TArray<FExpressionOutput> Outputs = ExpressionDiffuse->GetOutputs();
+					FExpressionOutput* Output = Outputs.GetData();
+
+					Material->OpacityMask.Expression = ExpressionDiffuse;
+					Material->OpacityMask.Mask = Output->Mask;
+					Material->OpacityMask.MaskR = 0;
+					Material->OpacityMask.MaskG = 0;
+					Material->OpacityMask.MaskB = 0;
+					Material->OpacityMask.MaskA = 1;
+				}
+				else
+				{
+					// Material is opaque.
+					Material->BlendMode = BLEND_Opaque;
+				}
+
+				// Propagate and trigger diffuse texture updates.
+				if(bCreatedNewTextureDiffuse)
+				{
+					FAssetRegistryModule::AssetCreated(TextureDiffuse);
+				}
+
+				TextureDiffuse->PreEditChange(nullptr);
+				TextureDiffuse->PostEditChange();
+				TextureDiffuse->MarkPackageDirty();
+
+				bExpressionCreated = true;
+			}
+		}
+	}
+
+	int32 ParmNameBaseDiffuseColorIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE, NodeParamNames);
+
+	if(!bExpressionCreated && ParmNameBaseDiffuseColorIdx >= 0)
+	{
+		// Diffuse color is available.
+
+		FLinearColor Color = FLinearColor::White;
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameBaseDiffuseColorIdx];
+
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &Color.R,
+				ParmInfo.floatValuesIndex, ParmInfo.size))
+		{
+			if(3 == ParmInfo.size)
+			{
+				Color.A = 1.0f;
+			}
+
+			UMaterialExpressionConstant4Vector* ExpressionDiffuseColor =
+				Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
+
+			// Create color const expression and add it to material, if we don't have one.
+			if(!ExpressionDiffuseColor)
+			{
+				ExpressionDiffuseColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
+					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
+			}
+
+			ExpressionDiffuseColor->Constant = Color;
+
+			// Offset node placement.
+			ExpressionDiffuseColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+			ExpressionDiffuseColor->MaterialExpressionEditorY = MaterialNodeY;
+			MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+			// Assign expression to material.
+			Material->Expressions.Add(ExpressionDiffuseColor);
+			Material->BaseColor.Expression = ExpressionDiffuseColor;
+
+			bExpressionCreated = true;
+		}
+	}
+
+	return bExpressionCreated;
+}
+
+
+bool
+FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	bool bExpressionCreated = false;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// Normal texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Normalmap;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = false;
+
+	// See if separate normal texture is available.
+	int32 ParmNameNormalIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL, NodeParamNames);
+
+	if(ParmNameNormalIdx >= 0)
+	{
+		/*
+		// Retrieve space for this normal texture.
+		int32 ParmNormalTypeIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE, NodeParamNames);
+
+		// Retrieve value for normal type choice list (if exists).
+		FString NormalType = TEXT("Tangent Space");
+
+		if(ParmNormalTypeIdx >= 0)
+		{
+			const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNormalTypeIdx];
+			if(ParmInfo.size > 0 && ParmInfo.stringValuesIndex >= 0)
+			{
+				HAPI_StringHandle StringHandle;
+				if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(),
+					NodeInfo.id, false, &StringHandle, ParmInfo.stringValuesIndex, ParmInfo.size))
+				{
+					// Get the actual string value.
+					FString NormalTypeString = TEXT("");
+					if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, NormalTypeString))
+					{
+						NormalType = NormalTypeString;
+					}
+				}
+			}
+		}
+		*/
+
+		TArray<char> ImageBuffer;
+
+		// Retrieve color plane.
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameNormalIdx].id, MaterialInfo, ImageBuffer,
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR))
+		{
+			UMaterialExpressionTextureSample* ExpressionNormal =
+				Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
+
+			UTexture2D* TextureNormal = nullptr;
+			if(ExpressionNormal)
+			{
+				TextureNormal = Cast<UTexture2D>(ExpressionNormal->Texture);
+			}
+			else
+			{
+				// Otherwise new expression is of a different type.
+				if(Material->Normal.Expression)
+				{
+					Material->Normal.Expression->ConditionalBeginDestroy();
+				}
+			}
+
+			UPackage* TextureNormalPackage = nullptr;
+			if(TextureNormal)
+			{
+				TextureNormalPackage = Cast<UPackage>(TextureNormal->GetOuter());
+			}
+
+			HAPI_ImageInfo ImageInfo;
+			Result = FHoudiniApi::GetImageInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+				MaterialInfo.id, &ImageInfo);
+
+			if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+			{
+				// Create texture.
+				FString TextureNormalName;
+				bool bCreatedNewTextureNormal = false;
+
+				// Create normal texture package, if this is a new normal texture.
+				if(!TextureNormalPackage)
+				{
+					TextureNormalPackage =
+						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
+							TextureNormalName);
+				}
+
+				// Create normal texture, if we need to create one.
+				if(!TextureNormal)
+				{
+					bCreatedNewTextureNormal = true;
+				}
+
+				// Reuse existing normal texture, or create new one.
+				TextureNormal =
+					FHoudiniEngineUtils::CreateUnrealTexture(TextureNormal, ImageInfo,
+						TextureNormalPackage, TextureNormalName, ImageBuffer,
+						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, CreateTexture2DParameters,
+						TEXTUREGROUP_WorldNormalMap);
+
+				// Create normal sampling expression, if needed.
+				if(!ExpressionNormal)
+				{
+					ExpressionNormal = NewObject<UMaterialExpressionTextureSample>(Material,
+						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+				}
+
+				ExpressionNormal->Texture = TextureNormal;
+				ExpressionNormal->SamplerType = SAMPLERTYPE_Normal;
+
+				// Offset node placement.
+				ExpressionNormal->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+				ExpressionNormal->MaterialExpressionEditorY = MaterialNodeY;
+				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+				// Assign expression to material.
+				Material->Expressions.Add(ExpressionNormal);
+				Material->Normal.Expression = ExpressionNormal;
+
+				bExpressionCreated = true;
+			}
+		}
+	}
+
+	// If separate normal map was not found, see if normal plane exists in diffuse map.
+	if(!bExpressionCreated)
+	{
+		// See if diffuse texture is available.
+		int32 ParmNameBaseIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames);
+
+		if(-1 == ParmNameBaseIdx)
+		{
+			ParmNameBaseIdx =
+				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
+		}
+
+		if(-1 == ParmNameBaseIdx)
+		{
+			ParmNameBaseIdx =
+				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_2, NodeParamNames);
+		}
+
+		if(ParmNameBaseIdx >= 0)
+		{
+			// Normal plane is available in diffuse map.
+
+			TArray<char> ImageBuffer;
+
+			// Retrieve color plane - this will contain normal data.
+			if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo, ImageBuffer,
+				HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL))
+			{
+				UMaterialExpressionTextureSample* ExpressionNormal =
+					Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
+
+				UTexture2D* TextureNormal = nullptr;
+				if(ExpressionNormal)
+				{
+					TextureNormal = Cast<UTexture2D>(ExpressionNormal->Texture);
+				}
+				else
+				{
+					// Otherwise new expression is of a different type.
+					if(Material->Normal.Expression)
+					{
+						Material->Normal.Expression->ConditionalBeginDestroy();
+					}
+				}
+
+				UPackage* TextureNormalPackage = nullptr;
+				if(TextureNormal)
+				{
+					TextureNormalPackage = Cast<UPackage>(TextureNormal->GetOuter());
+				}
+
+				HAPI_ImageInfo ImageInfo;
+				Result = FHoudiniApi::GetImageInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+					MaterialInfo.id, &ImageInfo);
+
+				if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+				{
+					// Create texture.
+					FString TextureNormalName;
+					bool bCreatedNewTextureNormal = false;
+
+					// Create normal texture package, if this is a new normal texture.
+					if(!TextureNormalPackage)
+					{
+						TextureNormalPackage =
+							FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
+								MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
+								TextureNormalName);
+					}
+
+					// Create normal texture, if we need to create one.
+					if(!TextureNormal)
+					{
+						bCreatedNewTextureNormal = true;
+					}
+
+					// Reuse existing normal texture, or create new one.
+					TextureNormal =
+						FHoudiniEngineUtils::CreateUnrealTexture(TextureNormal, ImageInfo,
+							TextureNormalPackage, TextureNormalName, ImageBuffer,
+							HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, CreateTexture2DParameters,
+							TEXTUREGROUP_WorldNormalMap);
+
+					// Create normal sampling expression, if needed.
+					if(!ExpressionNormal)
+					{
+						ExpressionNormal = NewObject<UMaterialExpressionTextureSample>(Material,
+							UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+					}
+
+					ExpressionNormal->Texture = TextureNormal;
+					ExpressionNormal->SamplerType = SAMPLERTYPE_Normal;
+
+					// Offset node placement.
+					ExpressionNormal->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+					ExpressionNormal->MaterialExpressionEditorY = MaterialNodeY;
+					MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+					// Assign expression to material.
+					Material->Expressions.Add(ExpressionNormal);
+					Material->Normal.Expression = ExpressionNormal;
+
+					// Propagate and trigger diffuse texture updates.
+					if(bCreatedNewTextureNormal)
+					{
+						FAssetRegistryModule::AssetCreated(TextureNormal);
+					}
+
+					TextureNormal->PreEditChange(nullptr);
+					TextureNormal->PostEditChange();
+					TextureNormal->MarkPackageDirty();
+
+					bExpressionCreated = true;
+				}
+			}
+		}
+	}
+
+	return bExpressionCreated;
+}
+
+
+bool
+FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::CreateMaterialComponentEmissive(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::CreateMaterialComponentOpacity(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	return true;
 }
 
 
