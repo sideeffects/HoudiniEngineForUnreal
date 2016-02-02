@@ -257,23 +257,60 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_MATERIAL_TEXTURE_ALPHA				"A"
 #define HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL				"N"
 
-#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_NUM				"ogl_numtex"
+/** Materials Diffuse. **/
+#define HAPI_UNREAL_PARAM_TEXTURE_LAYERS_NUM			"ogl_numtex"
 
 #define HAPI_UNREAL_PARAM_MAP_DIFFUSE_0					"ogl_tex1"
-#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_1					"baseColorMap"
-#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_2					"map"
+#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_1					"basecolor_texture"
 
-#define HAPI_UNREAL_PARAM_MAP_NORMAL					"ogl_normalmap"
+#define HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0				"ogl_diff"
+#define HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1				"basecolor"
+
+#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_COLOR_SPACE		"basecolor_textureColorSpace"
+
+/** Materials Normal. **/
+#define HAPI_UNREAL_PARAM_MAP_NORMAL_0					"ogl_normalmap"
+#define HAPI_UNREAL_PARAM_MAP_NORMAL_1					"normalTexture"
+
 #define HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE				"ogl_normalmap_type"
+#define HAPI_UNREAL_PARAM_USE_MAP_NORMAL_TYPE			"normalTexType"
 
-#define HAPI_UNREAL_PARAM_MAP_SPECULAR					"ogl_specmap"
-#define HAPI_UNREAL_PARAM_MAP_ROUGHNESS					"ogl_roughmap"
+#define HAPI_UNREAL_PARAM_MAP_NORMAL_COLOR_SPACE		"normalTexColorSpace"
 
-#define HAPI_UNREAL_PARAM_COLOR_DIFFUSE					"ogl_diff"
-#define HAPI_UNREAL_PARAM_COLOR_SPECULAR				"ogl_spec"
+/** Materials Specular. **/
+#define HAPI_UNREAL_PARAM_MAP_SPECULAR_0				"ogl_specmap"
+#define HAPI_UNREAL_PARAM_MAP_SPECULAR_1				"reflect_texture"
 
-#define HAPI_UNREAL_PARAM_ROUGHNESS						"ogl_rough"
+#define HAPI_UNREAL_PARAM_COLOR_SPECULAR_0				"ogl_spec"
+#define HAPI_UNREAL_PARAM_COLOR_SPECULAR_1				"reflect"
+
+#define HAPI_UNREAL_PARAM_MAP_SPECULAR_COLOR_SPACE		"reflect_textureColorSpace"
+
+/** Materials Roughness. **/
+#define HAPI_UNREAL_PARAM_MAP_ROUGHNESS_0				"ogl_roughmap"
+#define HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1				"rough_texture"
+
+#define HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0				"ogl_rough"
+#define HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1				"rough"
+
+#define HAPI_UNREAL_PARAM_MAP_ROUGHNESS_COLOR_SPACE		"rough_textureColorSpace"
+
+/** Materials Metallic. **/
+#define HAPI_UNREAL_PARAM_MAP_METALLIC					"metallic_texture"
+#define HAPI_UNREAL_PARAM_VALUE_METALLIC				"metallic"
+
+#define HAPI_UNREAL_PARAM_MAP_METALLIC_COLOR_SPACE		"metallic_textureColorSpace"
+
+/** Materials Emissive. **/
+#define HAPI_UNREAL_PARAM_MAP_EMISSIVE					"emitcolor_texture"
+#define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_0				"ogl_emit"
+#define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_1				"emitcolor"
+
+#define HAPI_UNREAL_PARAM_MAP_EMISSIVE_COLOR_SPACE		"emitcolor_textureColorSpace"
+
+/** Materials Opacity. **/
 #define HAPI_UNREAL_PARAM_ALPHA							"ogl_alpha"
+#define HAPI_UNREAL_PARAM_MAP_OPACITY_1					"ogl_opacitymap"
 
 /** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT	"0.0, 0.0, 3.0 3.0, 0.0, 3.0"
