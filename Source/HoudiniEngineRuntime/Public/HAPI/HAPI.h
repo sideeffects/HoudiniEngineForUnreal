@@ -268,6 +268,28 @@ HAPI_DECL HAPI_Initialize( const HAPI_Session * session,
                            const char * audio_dso_search_path );
 /// [HAPI_Initialize]
 
+/// @brief  Set custom .env files. You MUST call this function just before
+///         the HAPI_Initialize() call for it to take affect.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      houdini_environment_files
+///                 A list of paths, separated by a ";" on Windows and a ":"
+///                 on Linux and Mac, to .env files that follow the same 
+///                 syntax as the houdini.env file in Houdini's user prefs
+///                 folder. These will be applied after the default
+///                 houdini.env file and will overwrite the process'
+///                 environment variable values. You an use this to enforce
+///                 a stricter environment when running engine.
+///                 For more info, see:
+///                 http://www.sidefx.com/docs/houdini/basics/config_env
+///
+HAPI_DECL HAPI_SetEnvFiles( const HAPI_Session * session,
+                            const char * houdini_environment_files );
+
 /// @brief  Clean up memory. This will unload all assets and you will
 ///         need to call ::HAPI_Initialize() again to be able to use any
 ///         HAPI methods again.
