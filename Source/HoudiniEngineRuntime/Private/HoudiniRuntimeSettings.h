@@ -193,7 +193,7 @@ public:
 
 	// Name of attribute used for marshalling Unreal instances.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryMarshalling)
-	FString MarshallingAttributeInstance;
+	FString MarshallingAttributeInstanceOverride;
 
 	// Name of attribute used for marshalling Unreal face smoothing masks.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryMarshalling)
