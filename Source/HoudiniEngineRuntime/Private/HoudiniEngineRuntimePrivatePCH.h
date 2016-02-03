@@ -76,6 +76,7 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionConstant.h"
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
 #include "TargetPlatform.h"
