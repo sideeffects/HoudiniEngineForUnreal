@@ -4225,6 +4225,9 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	bool bExpressionCreated = false;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
 	// Diffuse texture creation parameters.
 	FCreateTexture2DParameters CreateTexture2DParameters;
 	CreateTexture2DParameters.SourceGuidHash = FGuid();
@@ -4256,10 +4259,19 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	int32 ParmNameBaseIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames);
 
-	if(-1 == ParmNameBaseIdx)
+	if(ParmNameBaseIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0);
+	}
+	else
 	{
 		ParmNameBaseIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
+
+		if(ParmNameBaseIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1);
+		}
 	}
 
 	if(ParmNameBaseIdx >= 0)
@@ -4386,10 +4398,19 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	int32 ParmNameBaseDiffuseColorIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0, NodeParamNames);
 
-	if(-1 == ParmNameBaseDiffuseColorIdx)
+	if(ParmNameBaseDiffuseColorIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0);
+	}
+	else
 	{
 		ParmNameBaseDiffuseColorIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1, NodeParamNames);
+
+		if(ParmNameBaseDiffuseColorIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1);
+		}
 	}
 
 	if(!bExpressionCreated && ParmNameBaseDiffuseColorIdx >= 0)
@@ -4445,6 +4466,9 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 	bool bExpressionCreated = false;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
 	// Normal texture creation parameters.
 	FCreateTexture2DParameters CreateTexture2DParameters;
 	CreateTexture2DParameters.SourceGuidHash = FGuid();
@@ -4457,10 +4481,19 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 	int32 ParmNameNormalIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL_0, NodeParamNames);
 
-	if(-1 == ParmNameNormalIdx)
+	if(ParmNameNormalIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_NORMAL_0);
+	}
+	else
 	{
 		ParmNameNormalIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL_1, NodeParamNames);
+
+		if(ParmNameNormalIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_NORMAL_1);
+		}
 	}
 
 	if(ParmNameNormalIdx >= 0)
@@ -4585,10 +4618,19 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 		int32 ParmNameBaseIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames);
 
-		if(-1 == ParmNameBaseIdx)
+		if(ParmNameBaseIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0);
+		}
+		else
 		{
 			ParmNameBaseIdx =
 				FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
+
+			if(ParmNameBaseIdx >= 0)
+			{
+				GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1);
+			}
 		}
 
 		if(ParmNameBaseIdx >= 0)
@@ -4703,6 +4745,9 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 	bool bExpressionCreated = false;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
 	// Specular texture creation parameters.
 	FCreateTexture2DParameters CreateTexture2DParameters;
 	CreateTexture2DParameters.SourceGuidHash = FGuid();
@@ -4715,10 +4760,19 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 	int32 ParmNameSpecularIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_SPECULAR_0, NodeParamNames);
 
-	if(-1 == ParmNameSpecularIdx)
+	if(ParmNameSpecularIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_SPECULAR_0);
+	}
+	else
 	{
 		ParmNameSpecularIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_SPECULAR_1, NodeParamNames);
+
+		if(ParmNameSpecularIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_SPECULAR_1);
+		}
 	}
 
 	if(ParmNameSpecularIdx >= 0)
@@ -4811,10 +4865,19 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 	int32 ParmNameSpecularColorIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_SPECULAR_0, NodeParamNames);
 
-	if(-1 == ParmNameSpecularColorIdx)
+	if(ParmNameSpecularColorIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_COLOR_SPECULAR_0);
+	}
+	else
 	{
 		ParmNameSpecularColorIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_SPECULAR_1, NodeParamNames);
+
+		if(ParmNameSpecularColorIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_COLOR_SPECULAR_1);
+		}
 	}
 
 	if(!bExpressionCreated && ParmNameSpecularColorIdx >= 0)
