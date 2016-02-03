@@ -4181,6 +4181,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentNormal(HoudiniAssetComponent,
 				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
 
+			// Extract specular plane.
+			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentSpecular(HoudiniAssetComponent,
+				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
 
 			// Set other material properties.
 			Material->TwoSided = true;
@@ -4697,7 +4700,165 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
 {
-	return true;
+	bool bExpressionCreated = false;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// Specular texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = false;
+
+	// See if specular texture is available.
+	int32 ParmNameSpecularIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_SPECULAR_0, NodeParamNames);
+
+	if(-1 == ParmNameSpecularIdx)
+	{
+		ParmNameSpecularIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_SPECULAR_1, NodeParamNames);
+	}
+
+	if(ParmNameSpecularIdx >= 0)
+	{
+		TArray<char> ImageBuffer;
+
+		// Retrieve color plane.
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameSpecularIdx].id, MaterialInfo, ImageBuffer,
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR))
+		{
+			UMaterialExpressionTextureSample* ExpressionSpecular =
+				Cast<UMaterialExpressionTextureSample>(Material->Specular.Expression);
+
+			UTexture2D* TextureSpecular = nullptr;
+			if(ExpressionSpecular)
+			{
+				TextureSpecular = Cast<UTexture2D>(ExpressionSpecular->Texture);
+			}
+			else
+			{
+				// Otherwise new expression is of a different type.
+				if(Material->Specular.Expression)
+				{
+					Material->Specular.Expression->ConditionalBeginDestroy();
+				}
+			}
+
+			UPackage* TextureSpecularPackage = nullptr;
+			if(TextureSpecular)
+			{
+				TextureSpecularPackage = Cast<UPackage>(TextureSpecular->GetOuter());
+			}
+
+			HAPI_ImageInfo ImageInfo;
+			Result = FHoudiniApi::GetImageInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+				MaterialInfo.id, &ImageInfo);
+
+			if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+			{
+				// Create texture.
+				FString TextureSpecularName;
+				bool bCreatedNewTextureSpecular = false;
+
+				// Create specular texture package, if this is a new specular texture.
+				if(!TextureSpecularPackage)
+				{
+					TextureSpecularPackage =
+						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
+							TextureSpecularName);
+				}
+
+				// Create specular texture, if we need to create one.
+				if(!TextureSpecular)
+				{
+					bCreatedNewTextureSpecular = true;
+				}
+
+				// Reuse existing specular texture, or create new one.
+				TextureSpecular =
+					FHoudiniEngineUtils::CreateUnrealTexture(TextureSpecular, ImageInfo,
+						TextureSpecularPackage, TextureSpecularName, ImageBuffer,
+						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR, CreateTexture2DParameters,
+						TEXTUREGROUP_World);
+
+				// Create specular sampling expression, if needed.
+				if(!ExpressionSpecular)
+				{
+					ExpressionSpecular = NewObject<UMaterialExpressionTextureSample>(Material,
+						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+				}
+
+				ExpressionSpecular->Texture = TextureSpecular;
+				ExpressionSpecular->SamplerType = SAMPLERTYPE_LinearGrayscale;
+
+				// Offset node placement.
+				ExpressionSpecular->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+				ExpressionSpecular->MaterialExpressionEditorY = MaterialNodeY;
+				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+				// Assign expression to material.
+				Material->Expressions.Add(ExpressionSpecular);
+				Material->Specular.Expression = ExpressionSpecular;
+
+				bExpressionCreated = true;
+			}
+		}
+	}
+
+	int32 ParmNameSpecularColorIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_SPECULAR_0, NodeParamNames);
+
+	if(-1 == ParmNameSpecularColorIdx)
+	{
+		ParmNameSpecularColorIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_SPECULAR_1, NodeParamNames);
+	}
+
+	if(!bExpressionCreated && ParmNameSpecularColorIdx >= 0)
+	{
+		// Specular color is available.
+
+		FLinearColor Color = FLinearColor::White;
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameSpecularColorIdx];
+
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &Color.R,
+				ParmInfo.floatValuesIndex, ParmInfo.size))
+		{
+			if(3 == ParmInfo.size)
+			{
+				Color.A = 1.0f;
+			}
+
+			UMaterialExpressionConstant4Vector* ExpressionSpecularColor =
+				Cast<UMaterialExpressionConstant4Vector>(Material->Specular.Expression);
+
+			// Create color const expression and add it to material, if we don't have one.
+			if(!ExpressionSpecularColor)
+			{
+				ExpressionSpecularColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
+					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
+			}
+
+			ExpressionSpecularColor->Constant = Color;
+
+			// Offset node placement.
+			ExpressionSpecularColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+			ExpressionSpecularColor->MaterialExpressionEditorY = MaterialNodeY;
+			MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+			// Assign expression to material.
+			Material->Expressions.Add(ExpressionSpecularColor);
+			Material->Specular.Expression = ExpressionSpecularColor;
+
+			bExpressionCreated = true;
+		}
+	}
+
+	return bExpressionCreated;
 }
 
 
