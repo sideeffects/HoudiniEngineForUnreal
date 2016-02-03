@@ -39,14 +39,11 @@ const FString kResultStringCannotLoadPreset(TEXT("Uneable to Load Preset"));
 const float
 FHoudiniEngineUtils::ScaleFactorPosition = 50.0f;
 
-
 const float
 FHoudiniEngineUtils::ScaleFactorTranslate = 50.0f;
 
-
 const float
 FHoudiniEngineUtils::ScaleSmallValue = KINDA_SMALL_NUMBER * 2.0f;
-
 
 const int32
 FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
@@ -61,7 +58,7 @@ const int32
 FHoudiniEngineUtils::MaterialExpressionNodeY = -150;
 
 const int32
-FHoudiniEngineUtils::MaterialExpressionNodeStepY = 180;
+FHoudiniEngineUtils::MaterialExpressionNodeStepY = 220;
 
 
 const FString
@@ -4355,6 +4352,9 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 				}
 
+				// Record generating parameter.
+				ExpressionDiffuse->Desc = GeneratingParameterName;
+
 				ExpressionDiffuse->Texture = TextureDiffuse;
 				ExpressionDiffuse->SamplerType = SAMPLERTYPE_Color;
 
@@ -4447,6 +4447,9 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 				ExpressionDiffuseColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
 					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
 			}
+
+			// Record generating parameter.
+			ExpressionDiffuseColor->Desc = GeneratingParameterName;
 
 			ExpressionDiffuseColor->Constant = Color;
 
@@ -4603,6 +4606,9 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 				}
 
+				// Record generating parameter.
+				ExpressionNormal->Desc = GeneratingParameterName;
+
 				ExpressionNormal->Texture = TextureNormal;
 				ExpressionNormal->SamplerType = SAMPLERTYPE_Normal;
 
@@ -4713,6 +4719,9 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 						ExpressionNormal = NewObject<UMaterialExpressionTextureSample>(Material,
 							UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 					}
+
+					// Record generating parameter.
+					ExpressionNormal->Desc = GeneratingParameterName;
 
 					ExpressionNormal->Texture = TextureNormal;
 					ExpressionNormal->SamplerType = SAMPLERTYPE_Normal;
@@ -4854,6 +4863,9 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 				}
 
+				// Record generating parameter.
+				ExpressionSpecular->Desc = GeneratingParameterName;
+
 				ExpressionSpecular->Texture = TextureSpecular;
 				ExpressionSpecular->SamplerType = SAMPLERTYPE_LinearGrayscale;
 
@@ -4914,6 +4926,9 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 				ExpressionSpecularColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
 					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
 			}
+
+			// Record generating parameter.
+			ExpressionSpecularColor->Desc = GeneratingParameterName;
 
 			ExpressionSpecularColor->Constant = Color;
 
