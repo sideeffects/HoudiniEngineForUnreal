@@ -4309,6 +4309,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 				if(Material->BaseColor.Expression)
 				{
 					Material->BaseColor.Expression->ConditionalBeginDestroy();
+					Material->BaseColor.Expression = nullptr;
 				}
 			}
 
@@ -4449,6 +4450,13 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 			// Create color const expression and add it to material, if we don't have one.
 			if(!ExpressionDiffuseColor)
 			{
+				// Otherwise new expression is of a different type.
+				if(Material->BaseColor.Expression)
+				{
+					Material->BaseColor.Expression->ConditionalBeginDestroy();
+					Material->BaseColor.Expression = nullptr;
+				}
+
 				ExpressionDiffuseColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
 					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
 			}
@@ -4563,6 +4571,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 				if(Material->Normal.Expression)
 				{
 					Material->Normal.Expression->ConditionalBeginDestroy();
+					Material->Normal.Expression = nullptr;
 				}
 			}
 
@@ -4677,6 +4686,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 					if(Material->Normal.Expression)
 					{
 						Material->Normal.Expression->ConditionalBeginDestroy();
+						Material->Normal.Expression = nullptr;
 					}
 				}
 
@@ -4820,6 +4830,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 				if(Material->Specular.Expression)
 				{
 					Material->Specular.Expression->ConditionalBeginDestroy();
+					Material->Specular.Expression = nullptr;
 				}
 			}
 
@@ -4928,6 +4939,13 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 			// Create color const expression and add it to material, if we don't have one.
 			if(!ExpressionSpecularColor)
 			{
+				// Otherwise new expression is of a different type.
+				if(Material->Specular.Expression)
+				{
+					Material->Specular.Expression->ConditionalBeginDestroy();
+					Material->Specular.Expression = nullptr;
+				}
+
 				ExpressionSpecularColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
 					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
 			}
@@ -5014,6 +5032,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* Ho
 				if(Material->Roughness.Expression)
 				{
 					Material->Roughness.Expression->ConditionalBeginDestroy();
+					Material->Roughness.Expression = nullptr;
 				}
 			}
 
@@ -5117,6 +5136,13 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* Ho
 			// Create color const expression and add it to material, if we don't have one.
 			if(!ExpressionRoughnessValue)
 			{
+				// Otherwise new expression is of a different type.
+				if(Material->Roughness.Expression)
+				{
+					Material->Roughness.Expression->ConditionalBeginDestroy();
+					Material->Roughness.Expression = nullptr;
+				}
+
 				ExpressionRoughnessValue = NewObject<UMaterialExpressionConstant>(Material,
 					UMaterialExpressionConstant::StaticClass(), NAME_None, RF_Transactional);
 			}
