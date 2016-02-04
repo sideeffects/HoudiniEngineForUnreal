@@ -4491,6 +4491,40 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 
 
 bool
+FHoudiniEngineUtils::CreateMaterialComponentOpacity(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	bool bExpressionCreated = false;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+	float OpacityValue = 1.0f;
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
+	// Retrieve opacity uniform parameter.
+	int32 ParmOpacityValueIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_ALPHA, NodeParamNames);
+
+	if(ParmOpacityValueIdx >= 0)
+	{
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmOpacityValueIdx];
+		if(ParmInfo.size > 0 && ParmInfo.floatValuesIndex >= 0)
+		{
+			float OpacityValueRetrieved = 1.0f;
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id,
+				(float*) &OpacityValue, ParmInfo.floatValuesIndex, 1))
+			{
+				OpacityValue = OpacityValueRetrieved;
+			}
+		}
+	}
+
+	return bExpressionCreated;
+}
+
+
+bool
 FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* HoudiniAssetComponent,
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
@@ -5197,15 +5231,6 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentEmissive(UHoudiniAssetComponent* HoudiniAssetComponent,
-	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
-	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
-{
-	return true;
-}
-
-
-bool
-FHoudiniEngineUtils::CreateMaterialComponentOpacity(UHoudiniAssetComponent* HoudiniAssetComponent,
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
 {
