@@ -243,7 +243,8 @@ public:
 
 	/** HAPI : Extract image data. **/
 	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
-		TArray<char>& ImageBuffer, const char* Type);
+		TArray<char>& ImageBuffer, const char* PlaneType, HAPI_ImageDataFormat ImageDataFormat,
+		HAPI_ImagePacking ImagePacking);
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
