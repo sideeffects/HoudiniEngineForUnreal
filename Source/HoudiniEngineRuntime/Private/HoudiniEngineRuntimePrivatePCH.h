@@ -78,6 +78,7 @@
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
 #include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionMultiply.h"
 #include "StaticMeshResources.h"
 #include "ISettingsModule.h"
 #include "LandscapeProxy.h"
