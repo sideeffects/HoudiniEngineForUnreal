@@ -19,6 +19,7 @@
 
 
 class AActor;
+class UClass;
 class FArchive;
 class UTexture2D;
 class UBlueprint;
@@ -26,9 +27,11 @@ class UStaticMesh;
 class UHoudiniAsset;
 class ALandscapeProxy;
 class AHoudiniAssetActor;
+class UMaterialExpression;
 class UHoudiniAssetMaterial;
 class UHoudiniAssetComponent;
 class FHoudiniAssetObjectGeo;
+class UMaterialExpressionMultiply;
 class UInstancedStaticMeshComponent;
 
 struct FRawMesh;
@@ -390,6 +393,10 @@ protected:
 
 	/** Helper function to detect whether material has a texture component. **/
 	static bool MaterialHasTextureSampleExpression(UMaterial* Material);
+
+	/** Helper function to locate first Material expression of given class within given multiply subgraph. **/
+	static UMaterialExpression* MaterialLocateExpression(UMaterialExpressionMultiply* ExpressionMultiply,
+		UClass* MaterialExpressionClass);
 
 protected:
 
