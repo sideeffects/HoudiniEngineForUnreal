@@ -967,6 +967,43 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
 
 
 bool
+FHoudiniEngineUtils::HapiGetImagePlanes(const HAPI_MaterialInfo& MaterialInfo, TArray<FString>& ImagePlanes)
+{
+	ImagePlanes.Empty();
+	int32 ImagePlaneCount = 0;
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetImagePlaneCount(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+		MaterialInfo.id, &ImagePlaneCount))
+	{
+		return false;
+	}
+
+	if(!ImagePlaneCount)
+	{
+		return true;
+	}
+
+	TArray<HAPI_StringHandle> ImagePlaneStringHandles;
+	ImagePlaneStringHandles.SetNumUninitialized(ImagePlaneCount);
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetImagePlanes(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+		MaterialInfo.id, &ImagePlaneStringHandles[0], ImagePlaneCount))
+	{
+		return false;
+	}
+
+	for(int32 IdxPlane = 0, IdxPlaneMax = ImagePlaneStringHandles.Num(); IdxPlane < IdxPlaneMax; ++IdxPlane)
+	{
+		FString ValueString = TEXT("");
+		FHoudiniEngineUtils::GetHoudiniString(ImagePlaneStringHandles[IdxPlane], ValueString);
+		ImagePlanes.Add(ValueString);
+	}
+
+	return true;
+}
+
+
+bool
 FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
 	TArray<char>& ImageBuffer, const char* PlaneType, HAPI_ImageDataFormat ImageDataFormat,
 	HAPI_ImagePacking ImagePacking)
