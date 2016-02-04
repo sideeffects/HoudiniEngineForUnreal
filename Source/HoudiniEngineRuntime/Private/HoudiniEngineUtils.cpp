@@ -4180,8 +4180,15 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			bool bMaterialComponentCreated = false;
 			int32 MaterialNodeY = FHoudiniEngineUtils::MaterialExpressionNodeY;
 
+			// By default we mark material as opaque.
+			Material->BlendMode = BLEND_Opaque;
+
 			// Extract diffuse plane.
 			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentDiffuse(HoudiniAssetComponent,
+				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
+
+			// Extract opacity plane.
+			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacity(HoudiniAssetComponent,
 				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
 
 			// Extract normal plane.
@@ -4194,6 +4201,14 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 			// Extract roughness plane.
 			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentRoughness(HoudiniAssetComponent,
+				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
+
+			// Extract metallic plane.
+			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentMetallic(HoudiniAssetComponent,
+				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
+
+			// Extract emissive plane.
+			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentEmissive(HoudiniAssetComponent,
 				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
 
 			// Set other material properties.
@@ -4373,6 +4388,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 				Material->Expressions.Add(ExpressionDiffuse);
 				Material->BaseColor.Expression = ExpressionDiffuse;
 
+				/*
 				// Check if material is transparent. If it is, we need to hook up alpha.
 				if(FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo))
 				{
@@ -4394,6 +4410,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 					// Material is opaque.
 					Material->BlendMode = BLEND_Opaque;
 				}
+				*/
 
 				// Propagate and trigger diffuse texture updates.
 				if(bCreatedNewTextureDiffuse)
@@ -4489,6 +4506,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
 {
 	bool bExpressionCreated = false;
+	bool bTangentSpaceNormal = true;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	// Name of generating Houdini parameter.
@@ -4523,33 +4541,39 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 
 	if(ParmNameNormalIdx >= 0)
 	{
-		/*
 		// Retrieve space for this normal texture.
 		int32 ParmNormalTypeIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE, NodeParamNames);
 
 		// Retrieve value for normal type choice list (if exists).
-		FString NormalType = TEXT("Tangent Space");
+		
 
 		if(ParmNormalTypeIdx >= 0)
 		{
-		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNormalTypeIdx];
-		if(ParmInfo.size > 0 && ParmInfo.stringValuesIndex >= 0)
-		{
-		HAPI_StringHandle StringHandle;
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(),
-		NodeInfo.id, false, &StringHandle, ParmInfo.stringValuesIndex, ParmInfo.size))
-		{
-		// Get the actual string value.
-		FString NormalTypeString = TEXT("");
-		if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, NormalTypeString))
-		{
-		NormalType = NormalTypeString;
+			FString NormalType = TEXT(HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE_TANGENT);
+
+			const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNormalTypeIdx];
+			if(ParmInfo.size > 0 && ParmInfo.stringValuesIndex >= 0)
+			{
+				HAPI_StringHandle StringHandle;
+				if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(),
+					NodeInfo.id, false, &StringHandle, ParmInfo.stringValuesIndex, ParmInfo.size))
+				{
+					// Get the actual string value.
+					FString NormalTypeString = TEXT("");
+					if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, NormalTypeString))
+					{
+						NormalType = NormalTypeString;
+					}
+				}
+			}
+
+			// Check if we require world space normals.
+			if(NormalType.Equals(TEXT(HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE_WORLD), ESearchCase::IgnoreCase))
+			{
+				bTangentSpaceNormal = false;
+			}
 		}
-		}
-		}
-		}
-		*/
 
 		TArray<char> ImageBuffer;
 
@@ -4630,6 +4654,9 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 				ExpressionNormal->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
 				ExpressionNormal->MaterialExpressionEditorY = MaterialNodeY;
 				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+				// Set normal space.
+				Material->bTangentSpaceNormal = bTangentSpaceNormal;
 
 				// Assign expression to material.
 				Material->Expressions.Add(ExpressionNormal);
@@ -4745,6 +4772,9 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 					ExpressionNormal->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
 					ExpressionNormal->MaterialExpressionEditorY = MaterialNodeY;
 					MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+					// Set normal space.
+					Material->bTangentSpaceNormal = bTangentSpaceNormal;
 
 					// Assign expression to material.
 					Material->Expressions.Add(ExpressionNormal);

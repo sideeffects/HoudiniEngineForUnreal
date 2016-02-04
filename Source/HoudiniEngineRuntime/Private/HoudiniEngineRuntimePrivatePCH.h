@@ -277,7 +277,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_MAP_NORMAL_1					"normalTexture"
 
 #define HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE				"ogl_normalmap_type"
-#define HAPI_UNREAL_PARAM_USE_MAP_NORMAL_TYPE			"normalTexType"
+#define HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE_TANGENT		"Tangent Space"
+#define HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE_WORLD			"World Space"
 
 #define HAPI_UNREAL_PARAM_MAP_NORMAL_COLOR_SPACE		"normalTexColorSpace"
 
