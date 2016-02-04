@@ -5978,6 +5978,57 @@ FHoudiniEngineUtils::MaterialHasTextureSampleExpression(UMaterial* Material)
 }
 
 
+UMaterialExpression*
+FHoudiniEngineUtils::MaterialLocateExpression(UMaterialExpressionMultiply* ExpressionMultiply,
+	UClass* MaterialExpressionClass)
+{
+	UMaterialExpression* MaterialExpression = nullptr;
+
+	if(!ExpressionMultiply)
+	{
+		return nullptr;
+	}
+
+	MaterialExpression = ExpressionMultiply->A.Expression;
+	if(MaterialExpression)
+	{
+		if(MaterialExpression->GetClass() == MaterialExpressionClass)
+		{
+			return MaterialExpression;
+		}
+
+		MaterialExpression =
+			FHoudiniEngineUtils::MaterialLocateExpression(Cast<UMaterialExpressionMultiply>(MaterialExpression),
+				MaterialExpressionClass);
+
+		if(MaterialExpression)
+		{
+			return MaterialExpression;
+		}
+	}
+
+	MaterialExpression = ExpressionMultiply->B.Expression;
+	if(MaterialExpression)
+	{
+		if(MaterialExpression->GetClass() == MaterialExpressionClass)
+		{
+			return MaterialExpression;
+		}
+
+		MaterialExpression =
+			FHoudiniEngineUtils::MaterialLocateExpression(Cast<UMaterialExpressionMultiply>(MaterialExpression),
+				MaterialExpressionClass);
+
+		if(MaterialExpression)
+		{
+			return MaterialExpression;
+		}
+	}
+
+	return nullptr;
+}
+
+
 AHoudiniAssetActor*
 FHoudiniEngineUtils::LocateClipboardActor(const FString& ClipboardText)
 {
