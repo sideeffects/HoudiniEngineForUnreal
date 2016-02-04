@@ -4357,10 +4357,33 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 		bool bFoundImagePlanes = FHoudiniEngineUtils::HapiGetImagePlanes(NodeParams[ParmNameBaseIdx].id, MaterialInfo,
 			DiffuseImagePlanes);
 
+		HAPI_ImagePacking ImagePacking = HAPI_IMAGE_PACKING_UNKNOWN;
+		const char* PlaneType = "";
+
+		if(bFoundImagePlanes && DiffuseImagePlanes.Contains(TEXT(HAPI_UNREAL_MATERIAL_TEXTURE_COLOR)))
+		{
+			if(DiffuseImagePlanes.Contains(TEXT(HAPI_UNREAL_MATERIAL_TEXTURE_ALPHA)))
+			{
+				ImagePacking = HAPI_IMAGE_PACKING_RGBA;
+				PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA;
+
+				// Material does use alpha.
+				CreateTexture2DParameters.bUseAlpha = true;
+			}
+			else
+			{
+				ImagePacking = HAPI_IMAGE_PACKING_RGB;
+				PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR;
+			}
+		}
+		else
+		{
+			bFoundImagePlanes = false;
+		}
+
 		// Retrieve color plane.
 		if(bFoundImagePlanes && FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo,
-			ImageBuffer, HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA,
-				false))
+			ImageBuffer, PlaneType, HAPI_IMAGE_DATA_INT8, ImagePacking, false))
 		{
 			UMaterialExpressionTextureSample* ExpressionDiffuse =
 				Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
