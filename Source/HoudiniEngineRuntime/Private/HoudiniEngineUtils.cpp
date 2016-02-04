@@ -964,14 +964,61 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
 
 
 bool
-FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
-	TArray<char>& ImageBuffer, const char* PlaneType, HAPI_ImageDataFormat ImageDataFormat,
-	HAPI_ImagePacking ImagePacking)
+FHoudiniEngineUtils::HapiGetImagePlanes(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
+	TArray<FString>& ImagePlanes)
 {
+	ImagePlanes.Empty();
+	int32 ImagePlaneCount = 0;
+
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::RenderTextureToImage(FHoudiniEngine::Get().GetSession(),
 		MaterialInfo.assetId, MaterialInfo.id, NodeParmId))
 	{
 		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetImagePlaneCount(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+		MaterialInfo.id, &ImagePlaneCount))
+	{
+		return false;
+	}
+
+	if(!ImagePlaneCount)
+	{
+		return true;
+	}
+
+	TArray<HAPI_StringHandle> ImagePlaneStringHandles;
+	ImagePlaneStringHandles.SetNumUninitialized(ImagePlaneCount);
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetImagePlanes(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+		MaterialInfo.id, &ImagePlaneStringHandles[0], ImagePlaneCount))
+	{
+		return false;
+	}
+
+	for(int32 IdxPlane = 0, IdxPlaneMax = ImagePlaneStringHandles.Num(); IdxPlane < IdxPlaneMax; ++IdxPlane)
+	{
+		FString ValueString = TEXT("");
+		FHoudiniEngineUtils::GetHoudiniString(ImagePlaneStringHandles[IdxPlane], ValueString);
+		ImagePlanes.Add(ValueString);
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
+	TArray<char>& ImageBuffer, const char* PlaneType, HAPI_ImageDataFormat ImageDataFormat,
+	HAPI_ImagePacking ImagePacking, bool bRenderToImage)
+{
+	if(bRenderToImage)
+	{
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::RenderTextureToImage(FHoudiniEngine::Get().GetSession(),
+			MaterialInfo.assetId, MaterialInfo.id, NodeParmId))
+		{
+			return false;
+		}
 	}
 
 	HAPI_ImageInfo ImageInfo;
@@ -4293,13 +4340,17 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 
 	if(ParmNameBaseIdx >= 0)
 	{
-		// Diffuse map is available.
-
 		TArray<char> ImageBuffer;
 
+		// Get image planes of diffuse map.
+		TArray<FString> DiffuseImagePlanes;
+		bool bFoundImagePlanes = FHoudiniEngineUtils::HapiGetImagePlanes(NodeParams[ParmNameBaseIdx].id, MaterialInfo,
+			DiffuseImagePlanes);
+
 		// Retrieve color plane.
-		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo, ImageBuffer,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA))
+		if(bFoundImagePlanes && FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo,
+			ImageBuffer, HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA,
+				false))
 		{
 			UMaterialExpressionTextureSample* ExpressionDiffuse =
 				Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
@@ -4603,7 +4654,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 
 		// Retrieve color plane.
 		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameNormalIdx].id, MaterialInfo, ImageBuffer,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB))
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
 			UMaterialExpressionTextureSample* ExpressionNormal =
 				Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
@@ -4721,7 +4772,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 
 			// Retrieve color plane - this will contain normal data.
 			if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo, ImageBuffer,
-				HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB))
+				HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 			{
 				UMaterialExpressionTextureSample* ExpressionNormal =
 					Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
@@ -4868,7 +4919,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 
 		// Retrieve color plane.
 		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameSpecularIdx].id, MaterialInfo, ImageBuffer,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB))
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
 			UMaterialExpressionTextureSample* ExpressionSpecular =
 				Cast<UMaterialExpressionTextureSample>(Material->Specular.Expression);
@@ -5070,7 +5121,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* Ho
 
 		// Retrieve color plane.
 		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameRoughnessIdx].id, MaterialInfo, ImageBuffer,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB))
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
 			UMaterialExpressionTextureSample* ExpressionRoughness =
 				Cast<UMaterialExpressionTextureSample>(Material->Roughness.Expression);

@@ -241,10 +241,14 @@ public:
 	/** HAPI : Look for parameter by name and return its index. Return -1 if not found. **/
 	static int32 HapiFindParameterByName(const std::string& ParmName, const TArray<std::string>& Names);
 
+	/** HAPI : Retrieve a list of image planes. **/
+	static bool HapiGetImagePlanes(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
+		TArray<FString>& ImagePlanes);
+
 	/** HAPI : Extract image data. **/
 	static bool HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
 		TArray<char>& ImageBuffer, const char* PlaneType, HAPI_ImageDataFormat ImageDataFormat,
-		HAPI_ImagePacking ImagePacking);
+		HAPI_ImagePacking ImagePacking, bool bRenderToImage);
 
 	/** HAPI : Return true if given material is transparent. **/
 	static bool HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo);
