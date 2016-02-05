@@ -3430,14 +3430,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 								if(FoundMaterial)
 								{
-									UMaterial* AssignedMaterial = *FoundMaterial;
-
-									// If looked up material has a sampling expression or mesh has no vertex colors, use it.
-									if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
-										RawMesh.WedgeColors.Num() == 0)
-									{
-										Material = AssignedMaterial;
-									}
+									Material = *FoundMaterial;
 								}
 
 								// If we have replacement material for this geo part object and this shop material name.
@@ -3496,14 +3489,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 								if(FoundMaterial)
 								{
-									UMaterial* AssignedMaterial = *FoundMaterial;
-
-									// If looked up material has a sampling expression or mesh has no vertex colors, use it.
-									if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
-										RawMesh.WedgeColors.Num() == 0)
-									{
-										Material = AssignedMaterial;
-									}
+									Material = *FoundMaterial;
 								}
 
 								// If we have replacement material for this geo part object and this shop material name.
@@ -3543,14 +3529,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 									if(FoundMaterial)
 									{
-										UMaterial* AssignedMaterial = *FoundMaterial;
-
-										// If looked up material has a sampling expression or mesh has no vertex colors, use it.
-										if(FHoudiniEngineUtils::MaterialHasTextureSampleExpression(AssignedMaterial) ||
-											RawMesh.WedgeColors.Num() == 0)
-										{
-											Material = AssignedMaterial;
-										}
+										Material = *FoundMaterial;
 									}
 
 									// If we have replacement material for this geo part object and this shop material name.
@@ -5965,26 +5944,6 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 	MaterialIds.Remove(-1);
 
 	return true;
-}
-
-
-bool
-FHoudiniEngineUtils::MaterialHasTextureSampleExpression(UMaterial* Material)
-{
-	if(Material)
-	{
-		if(Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression))
-		{
-			return true;
-		}
-
-		if(Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression))
-		{
-			return true;
-		}
-	}
-
-	return false;
 }
 
 
