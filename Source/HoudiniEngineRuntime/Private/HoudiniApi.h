@@ -69,16 +69,7 @@ public:
 	typedef HAPI_Result (*GetAttributeStringDataFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length);
 	typedef HAPI_Result (*GetAvailableAssetCountFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, int * asset_count);
 	typedef HAPI_Result (*GetAvailableAssetsFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count);
-<<<<<<< .working
 	typedef HAPI_Result (*GetCachePropertyFuncPtr)(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int * property_value);
-||||||| .merge-left.r245175
-	typedef HAPI_Result (*GetBoxInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info);
-	typedef HAPI_Result (*GetComposedNodeCookResultFuncPtr)(const HAPI_Session * session, char * string_value, int length);
-=======
-	typedef HAPI_Result (*GetBoxInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info);
-	typedef HAPI_Result (*GetCachePropertyFuncPtr)(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int * property_value);
-	typedef HAPI_Result (*GetComposedNodeCookResultFuncPtr)(const HAPI_Session * session, char * string_value, int length);
->>>>>>> .merge-right.r245176
 	typedef HAPI_Result (*GetCookingCurrentCountFuncPtr)(const HAPI_Session * session, int * count);
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(const HAPI_Session * session, int * count);
 	typedef HAPI_Result (*GetCurveCountsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * counts_array, int start, int length);
@@ -241,16 +232,7 @@ public:
 	static GetAttributeStringDataFuncPtr GetAttributeStringData;
 	static GetAvailableAssetCountFuncPtr GetAvailableAssetCount;
 	static GetAvailableAssetsFuncPtr GetAvailableAssets;
-<<<<<<< .working
 	static GetCachePropertyFuncPtr GetCacheProperty;
-||||||| .merge-left.r245175
-	static GetBoxInfoFuncPtr GetBoxInfo;
-	static GetComposedNodeCookResultFuncPtr GetComposedNodeCookResult;
-=======
-	static GetBoxInfoFuncPtr GetBoxInfo;
-	static GetCachePropertyFuncPtr GetCacheProperty;
-	static GetComposedNodeCookResultFuncPtr GetComposedNodeCookResult;
->>>>>>> .merge-right.r245176
 	static GetCookingCurrentCountFuncPtr GetCookingCurrentCount;
 	static GetCookingTotalCountFuncPtr GetCookingTotalCount;
 	static GetCurveCountsFuncPtr GetCurveCounts;
@@ -413,16 +395,7 @@ public:
 	static HAPI_Result GetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int * data_array, int start, int length);
 	static HAPI_Result GetAvailableAssetCountEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, int * asset_count);
 	static HAPI_Result GetAvailableAssetsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count);
-<<<<<<< .working
 	static HAPI_Result GetCachePropertyEmptyStub(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int * property_value);
-||||||| .merge-left.r245175
-	static HAPI_Result GetBoxInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info);
-	static HAPI_Result GetComposedNodeCookResultEmptyStub(const HAPI_Session * session, char * string_value, int length);
-=======
-	static HAPI_Result GetBoxInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info);
-	static HAPI_Result GetCachePropertyEmptyStub(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int * property_value);
-	static HAPI_Result GetComposedNodeCookResultEmptyStub(const HAPI_Session * session, char * string_value, int length);
->>>>>>> .merge-right.r245176
 	static HAPI_Result GetCookingCurrentCountEmptyStub(const HAPI_Session * session, int * count);
 	static HAPI_Result GetCookingTotalCountEmptyStub(const HAPI_Session * session, int * count);
 	static HAPI_Result GetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * counts_array, int start, int length);
