@@ -4611,6 +4611,86 @@ HAPI_DECL HAPI_SetCurveKnots( const HAPI_Session * session,
 
 // CACHING ------------------------------------------------------------------
 
+/// @brief  Get the number of currently active caches.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     active_cache_count
+///                 The number of currently active caches.
+///
+HAPI_DECL HAPI_GetActiveCacheCount( const HAPI_Session * session,
+                                    int * active_cache_count );
+
+/// @brief  Get the names of the currently active caches.
+///
+///         Requires a valid active cache count which you get from:
+///         ::HAPI_GetActiveCacheCount().
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     cache_names_array
+///                 String array with the returned cache names. Must be
+///                 at least the size of @a active_cache_count.
+///
+/// @param[in]      active_cache_count
+///                 The count returned by ::HAPI_GetActiveCacheCount().
+///
+HAPI_DECL HAPI_GetActiveCacheNames( const HAPI_Session * session,
+                                    HAPI_StringHandle * cache_names_array,
+                                    int active_cache_count );
+
+/// @brief  Lets you inspect specific properties of the different memory
+///         caches in the current Houdini context.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      cache_name
+///                 Cache name from ::HAPI_GetActiveCacheNames().
+///
+/// @param[in]      cache_property
+///                 The specific property of the cache to get the value for.
+///
+/// @param[out]     property_value
+///                 Returned property value.
+///
+HAPI_DECL HAPI_GetCacheProperty( const HAPI_Session * session,
+                                 const char * cache_name,
+                                 HAPI_CacheProperty cache_property,
+                                 int * property_value );
+
+/// @brief  Lets you modify specific properties of the different memory
+///         caches in the current Houdini context. This includes clearing
+///         caches, reducing their memory use, or changing how memory limits
+///         are respected by a cache.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      cache_name
+///                 Cache name from ::HAPI_GetActiveCacheNames().
+///
+/// @param[in]      cache_property
+///                 The specific property of the cache to modify.
+///
+/// @param[in]      property_value
+///                 The new property value.
+///
+HAPI_DECL HAPI_SetCacheProperty( const HAPI_Session * session,
+                                 const char * cache_name,
+                                 HAPI_CacheProperty cache_property,
+                                 int property_value );
+
 /// @brief  Saves a geometry to file.  The type of file to save is
 ///         to be determined by the extension ie. .bgeo, .obj
 ///
