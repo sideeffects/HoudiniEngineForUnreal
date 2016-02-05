@@ -76,6 +76,17 @@
 /// Name of subnet OBJ node containing the global nodes.
 #define HAPI_GLOBAL_NODES_NODE_NAME         "GlobalNodes"
 
+/// Common cache names. You can see these same cache names in the
+/// Cache Manager window in Houdini (Windows > Cache Manager).
+#define HAPI_CACHE_COP_COOK                 "COP Cook Cache"
+#define HAPI_CACHE_COP_FLIPBOOK             "COP Flipbook Cache"
+#define HAPI_CACHE_IMAGE                    "Image Cache"
+#define HAPI_CACHE_OBJ                      "Object Transform Cache"
+#define HAPI_CACHE_GL_TEXTURE               "OpenGL Texture Cache"
+#define HAPI_CACHE_GL_VERTEX                "OpenGL Vertex Cache"
+#define HAPI_CACHE_SOP                      "SOP Cache"
+#define HAPI_CACHE_VEX                      "VEX File Cache"
+
 // Make sure our enums and structs are usable without those keywords, as-is,
 // in C.
 #ifdef __cplusplus
@@ -551,7 +562,7 @@ HAPI_C_ENUM_TYPEDEF( HAPI_ImagePacking );
 
 /// This enum is to be used with ::HAPI_GetEnvInt() to retrieve basic
 /// information about the HAPI implementation currently being linked
-/// against. Note that as of HAPI version 2.0, these enum values are 
+/// against. Note that as of HAPI version 2.0, these enum values are
 /// guaranteed never to change so you can reliably get this information from
 /// any post-2.0 version of HAPI. The same goes for the actual
 /// ::HAPI_GetEnvInt() API call.
@@ -598,6 +609,37 @@ enum HAPI_SessionEnvIntType
     HAPI_SESSIONENVINT_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_SessionEnvIntType );
+
+enum HAPI_CacheProperty
+{
+    /// Current memory usage in MB. Setting this to 0 invokes
+    /// a cache clear.
+    HAPI_CACHEPROP_CURRENT,
+
+    HAPI_CACHEPROP_HAS_MIN, ///< True if it actually has a minimum size.
+    HAPI_CACHEPROP_MIN, ///< Min cache memory limit in MB.
+    HAPI_CACHEPROP_HAS_MAX, ///< True if it actually has a maximum size.
+    HAPI_CACHEPROP_MAX, ///< Max cache memory limit in MB.
+
+    /// How aggressive to cull memory. This only works for:
+    ///     - ::HAPI_CACHE_COP_COOK where:
+    ///         0   ->  Never reduce inactive cache.
+    ///         1   ->  Always reduce inactive cache.
+    ///     - ::HAPI_CACHE_OBJ where:
+    ///         0   ->  Never enforce the max memory limit.
+    ///         1   ->  Always enforce the max memory limit.
+    ///     - ::HAPI_CACHE_SOP where:
+    ///         0   ->  When to Unload = Never
+    ///                 When to Limit Max Memory = Never
+    ///         1-2 ->  When to Unload = Based on Flag
+    ///                 When to Limit Max Memory = Never
+    ///         3-4 ->  When to Unload = Based on Flag
+    ///                 When to Limit Max Memory = Always
+    ///         5   ->  When to Unload = Always
+    ///                 When to Limit Max Memory = Always
+    HAPI_CACHEPROP_CULL_LEVEL,
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty );
 
 /////////////////////////////////////////////////////////////////////////////
 // Main API Structs
