@@ -114,6 +114,12 @@ FHoudiniApi::ExtractImageToFile = &FHoudiniApi::ExtractImageToFileEmptyStub;
 FHoudiniApi::ExtractImageToMemoryFuncPtr
 FHoudiniApi::ExtractImageToMemory = &FHoudiniApi::ExtractImageToMemoryEmptyStub;
 
+FHoudiniApi::GetActiveCacheCountFuncPtr
+FHoudiniApi::GetActiveCacheCount = &FHoudiniApi::GetActiveCacheCountEmptyStub;
+
+FHoudiniApi::GetActiveCacheNamesFuncPtr
+FHoudiniApi::GetActiveCacheNames = &FHoudiniApi::GetActiveCacheNamesEmptyStub;
+
 FHoudiniApi::GetAssetInfoFuncPtr
 FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
 
@@ -143,6 +149,9 @@ FHoudiniApi::GetAvailableAssets = &FHoudiniApi::GetAvailableAssetsEmptyStub;
 
 FHoudiniApi::GetBoxInfoFuncPtr
 FHoudiniApi::GetBoxInfo = &FHoudiniApi::GetBoxInfoEmptyStub;
+
+FHoudiniApi::GetCachePropertyFuncPtr
+FHoudiniApi::GetCacheProperty = &FHoudiniApi::GetCachePropertyEmptyStub;
 
 FHoudiniApi::GetComposedNodeCookResultFuncPtr
 FHoudiniApi::GetComposedNodeCookResult = &FHoudiniApi::GetComposedNodeCookResultEmptyStub;
@@ -429,6 +438,9 @@ FHoudiniApi::SetAttributeIntData = &FHoudiniApi::SetAttributeIntDataEmptyStub;
 FHoudiniApi::SetAttributeStringDataFuncPtr
 FHoudiniApi::SetAttributeStringData = &FHoudiniApi::SetAttributeStringDataEmptyStub;
 
+FHoudiniApi::SetCachePropertyFuncPtr
+FHoudiniApi::SetCacheProperty = &FHoudiniApi::SetCachePropertyEmptyStub;
+
 FHoudiniApi::SetCurveCountsFuncPtr
 FHoudiniApi::SetCurveCounts = &FHoudiniApi::SetCurveCountsEmptyStub;
 
@@ -548,6 +560,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::DisconnectNodeInput = (DisconnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectNodeInput"));
 	FHoudiniApi::ExtractImageToFile = (ExtractImageToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToFile"));
 	FHoudiniApi::ExtractImageToMemory = (ExtractImageToMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToMemory"));
+	FHoudiniApi::GetActiveCacheCount = (GetActiveCacheCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheCount"));
+	FHoudiniApi::GetActiveCacheNames = (GetActiveCacheNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheNames"));
 	FHoudiniApi::GetAssetInfo = (GetAssetInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetInfo"));
 	FHoudiniApi::GetAssetTransform = (GetAssetTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetTransform"));
 	FHoudiniApi::GetAttributeFloatData = (GetAttributeFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloatData"));
@@ -558,6 +572,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetAvailableAssetCount = (GetAvailableAssetCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAvailableAssetCount"));
 	FHoudiniApi::GetAvailableAssets = (GetAvailableAssetsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAvailableAssets"));
 	FHoudiniApi::GetBoxInfo = (GetBoxInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetBoxInfo"));
+	FHoudiniApi::GetCacheProperty = (GetCachePropertyFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCacheProperty"));
 	FHoudiniApi::GetComposedNodeCookResult = (GetComposedNodeCookResultFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetComposedNodeCookResult"));
 	FHoudiniApi::GetCookingCurrentCount = (GetCookingCurrentCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingCurrentCount"));
 	FHoudiniApi::GetCookingTotalCount = (GetCookingTotalCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingTotalCount"));
@@ -653,6 +668,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetAttributeFloatData = (SetAttributeFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloatData"));
 	FHoudiniApi::SetAttributeIntData = (SetAttributeIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeIntData"));
 	FHoudiniApi::SetAttributeStringData = (SetAttributeStringDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeStringData"));
+	FHoudiniApi::SetCacheProperty = (SetCachePropertyFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCacheProperty"));
 	FHoudiniApi::SetCurveCounts = (SetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveCounts"));
 	FHoudiniApi::SetCurveInfo = (SetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveInfo"));
 	FHoudiniApi::SetCurveKnots = (SetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnots"));
@@ -718,6 +734,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::DisconnectNodeInput = &FHoudiniApi::DisconnectNodeInputEmptyStub;
 	FHoudiniApi::ExtractImageToFile = &FHoudiniApi::ExtractImageToFileEmptyStub;
 	FHoudiniApi::ExtractImageToMemory = &FHoudiniApi::ExtractImageToMemoryEmptyStub;
+	FHoudiniApi::GetActiveCacheCount = &FHoudiniApi::GetActiveCacheCountEmptyStub;
+	FHoudiniApi::GetActiveCacheNames = &FHoudiniApi::GetActiveCacheNamesEmptyStub;
 	FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
 	FHoudiniApi::GetAssetTransform = &FHoudiniApi::GetAssetTransformEmptyStub;
 	FHoudiniApi::GetAttributeFloatData = &FHoudiniApi::GetAttributeFloatDataEmptyStub;
@@ -728,6 +746,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetAvailableAssetCount = &FHoudiniApi::GetAvailableAssetCountEmptyStub;
 	FHoudiniApi::GetAvailableAssets = &FHoudiniApi::GetAvailableAssetsEmptyStub;
 	FHoudiniApi::GetBoxInfo = &FHoudiniApi::GetBoxInfoEmptyStub;
+	FHoudiniApi::GetCacheProperty = &FHoudiniApi::GetCachePropertyEmptyStub;
 	FHoudiniApi::GetComposedNodeCookResult = &FHoudiniApi::GetComposedNodeCookResultEmptyStub;
 	FHoudiniApi::GetCookingCurrentCount = &FHoudiniApi::GetCookingCurrentCountEmptyStub;
 	FHoudiniApi::GetCookingTotalCount = &FHoudiniApi::GetCookingTotalCountEmptyStub;
@@ -823,6 +842,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetAttributeFloatData = &FHoudiniApi::SetAttributeFloatDataEmptyStub;
 	FHoudiniApi::SetAttributeIntData = &FHoudiniApi::SetAttributeIntDataEmptyStub;
 	FHoudiniApi::SetAttributeStringData = &FHoudiniApi::SetAttributeStringDataEmptyStub;
+	FHoudiniApi::SetCacheProperty = &FHoudiniApi::SetCachePropertyEmptyStub;
 	FHoudiniApi::SetCurveCounts = &FHoudiniApi::SetCurveCountsEmptyStub;
 	FHoudiniApi::SetCurveInfo = &FHoudiniApi::SetCurveInfoEmptyStub;
 	FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
@@ -1085,6 +1105,20 @@ FHoudiniApi::ExtractImageToMemoryEmptyStub(const HAPI_Session * session, HAPI_As
 
 
 HAPI_Result
+FHoudiniApi::GetActiveCacheCountEmptyStub(const HAPI_Session * session, int * active_cache_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetActiveCacheNamesEmptyStub(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info)
 {
 	return HAPI_RESULT_FAILURE;
@@ -1149,6 +1183,13 @@ FHoudiniApi::GetAvailableAssetsEmptyStub(const HAPI_Session * session, HAPI_Asse
 
 HAPI_Result
 FHoudiniApi::GetBoxInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetCachePropertyEmptyStub(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int * property_value)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1814,6 +1855,13 @@ FHoudiniApi::SetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_Ass
 
 HAPI_Result
 FHoudiniApi::SetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * name, const HAPI_AttributeInfo *attr_info, const char ** data_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetCachePropertyEmptyStub(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int property_value)
 {
 	return HAPI_RESULT_FAILURE;
 }
