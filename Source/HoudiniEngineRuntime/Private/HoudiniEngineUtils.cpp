@@ -5959,49 +5959,60 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 
 
 UMaterialExpression*
-FHoudiniEngineUtils::MaterialLocateExpression(UMaterialExpressionMultiply* ExpressionMultiply,
-	UClass* MaterialExpressionClass)
+FHoudiniEngineUtils::MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass)
 {
-	UMaterialExpression* MaterialExpression = nullptr;
-
-	if(!ExpressionMultiply)
+	if(!Expression)
 	{
 		return nullptr;
 	}
 
-	MaterialExpression = ExpressionMultiply->A.Expression;
-	if(MaterialExpression)
+	if(ExpressionClass == Expression->GetClass())
 	{
-		if(MaterialExpression->GetClass() == MaterialExpressionClass)
-		{
-			return MaterialExpression;
-		}
-
-		MaterialExpression =
-			FHoudiniEngineUtils::MaterialLocateExpression(Cast<UMaterialExpressionMultiply>(MaterialExpression),
-				MaterialExpressionClass);
-
-		if(MaterialExpression)
-		{
-			return MaterialExpression;
-		}
+		return Expression;
 	}
 
-	MaterialExpression = ExpressionMultiply->B.Expression;
-	if(MaterialExpression)
+	// If this is a channel multiply expression, we can recurse.
+	UMaterialExpressionMultiply* MaterialExpressionMultiply = Cast<UMaterialExpressionMultiply>(Expression);
+	if(MaterialExpressionMultiply)
 	{
-		if(MaterialExpression->GetClass() == MaterialExpressionClass)
 		{
-			return MaterialExpression;
+			UMaterialExpression* MaterialExpression = MaterialExpressionMultiply->A.Expression;
+			if(MaterialExpression)
+			{
+				if(MaterialExpression->GetClass() == ExpressionClass)
+				{
+					return MaterialExpression;
+				}
+
+				MaterialExpression =
+					FHoudiniEngineUtils::MaterialLocateExpression(Cast<UMaterialExpressionMultiply>(MaterialExpression),
+						ExpressionClass);
+
+				if(MaterialExpression)
+				{
+					return MaterialExpression;
+				}
+			}
 		}
 
-		MaterialExpression =
-			FHoudiniEngineUtils::MaterialLocateExpression(Cast<UMaterialExpressionMultiply>(MaterialExpression),
-				MaterialExpressionClass);
-
-		if(MaterialExpression)
 		{
-			return MaterialExpression;
+			UMaterialExpression* MaterialExpression = MaterialExpressionMultiply->B.Expression;
+			if(MaterialExpression)
+			{
+				if(MaterialExpression->GetClass() == ExpressionClass)
+				{
+					return MaterialExpression;
+				}
+
+				MaterialExpression =
+					FHoudiniEngineUtils::MaterialLocateExpression(Cast<UMaterialExpressionMultiply>(MaterialExpression),
+						ExpressionClass);
+
+				if(MaterialExpression)
+				{
+					return MaterialExpression;
+				}
+			}
 		}
 	}
 
