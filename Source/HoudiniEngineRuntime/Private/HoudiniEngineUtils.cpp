@@ -55,6 +55,9 @@ const int32
 FHoudiniEngineUtils::MaterialExpressionNodeY = -150;
 
 const int32
+FHoudiniEngineUtils::MaterialExpressionNodeStepX = 220;
+
+const int32
 FHoudiniEngineUtils::MaterialExpressionNodeStepY = 220;
 
 
@@ -4283,11 +4286,12 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
 {
-	bool bExpressionCreated = false;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
+	// Names of generating Houdini parameters.
+	FString GeneratingParameterNameDiffuseTexture = TEXT("");
+	FString GeneratingParameterNameUniformColor = TEXT("");
+	FString GeneratingParameterNameVertexColor = TEXT(HAPI_UNREAL_ATTRIB_COLOR);
 
 	// Diffuse texture creation parameters.
 	FCreateTexture2DParameters CreateTexture2DParameters;
@@ -4297,7 +4301,74 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	CreateTexture2DParameters.bDeferCompression = true;
 	CreateTexture2DParameters.bSRGB = true;
 
+	// Attempt to look up previously created expressions.
+	UMaterialExpression* MaterialExpression = Material->BaseColor.Expression;
+
+	// Locate sampling expression.
+	UMaterialExpressionTextureSample* ExpressionTextureSample =
+		Cast<UMaterialExpressionTextureSample>(FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
+			UMaterialExpressionTextureSample::StaticClass()));
+
+	// If texture sampling expression does exist, attempt to look up corresponding texture.
+	UTexture2D* TextureDiffuse = nullptr;
+	if(ExpressionTextureSample)
+	{
+		TextureDiffuse = Cast<UTexture2D>(ExpressionTextureSample->Texture);
+	}
+
+	// Locate uniform color expression.
+	UMaterialExpressionConstant4Vector* ExpressionConstant4Vector =
+		Cast<UMaterialExpressionConstant4Vector>(FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
+			UMaterialExpressionConstant4Vector::StaticClass()));
+
+	// If uniform color expression does not exist, create it.
+	if(!ExpressionConstant4Vector)
+	{
+		ExpressionConstant4Vector = NewObject<UMaterialExpressionConstant4Vector>(Material,
+			UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
+		ExpressionConstant4Vector->Constant = FLinearColor::White;
+	}
+
+	// Add expression.
+	Material->Expressions.Add(ExpressionConstant4Vector);
+
+	// Locate vertex color expression.
+	UMaterialExpressionVertexColor* ExpressionVertexColor =
+		Cast<UMaterialExpressionVertexColor>(FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
+			UMaterialExpressionVertexColor::StaticClass()));
+
+	// If vertex color expression does not exist, create it.
+	if(!ExpressionVertexColor)
+	{
+		ExpressionVertexColor = NewObject<UMaterialExpressionVertexColor>(Material,
+			UMaterialExpressionVertexColor::StaticClass(), NAME_None, RF_Transactional);
+		ExpressionVertexColor->Desc = GeneratingParameterNameVertexColor;
+	}
+
+	// Add expression.
+	Material->Expressions.Add(ExpressionVertexColor);
+
+	// Material should have at least one multiply expression.
+	UMaterialExpressionMultiply* MaterialExpressionMultiply = Cast<UMaterialExpressionMultiply>(MaterialExpression);
+	if(!MaterialExpression)
+	{
+		MaterialExpressionMultiply = NewObject<UMaterialExpressionMultiply>(Material,
+			UMaterialExpressionMultiply::StaticClass(), NAME_None, RF_Transactional);
+	}
+
+	// Add expression.
+	Material->Expressions.Add(MaterialExpressionMultiply);
+
+	// See if primary multiplication has secondary multiplication as A input.
+	UMaterialExpressionMultiply* MaterialExpressionMultiplySecondary = nullptr;
+	if(MaterialExpressionMultiply->A.Expression)
+	{
+		MaterialExpressionMultiplySecondary =
+				Cast<UMaterialExpressionMultiply>(MaterialExpressionMultiply->A.Expression);
+	}
+
 	// Get number of diffuse textures in use.
+	/*
 	int32 DiffuseTexCount = 0;
 
 	int32 ParmNumDiffuseTex =
@@ -4315,33 +4386,54 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 			DiffuseTexCount = DiffuseTexCountValue;
 		}
 	}
+	*/
 
 	// See if diffuse texture is available.
-	int32 ParmNameBaseIdx =
+	int32 ParmDiffuseTextureIdx =
 		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames);
 
-	if(ParmNameBaseIdx >= 0)
+	if(ParmDiffuseTextureIdx >= 0)
 	{
-		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0);
+		GeneratingParameterNameDiffuseTexture = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_0);
 	}
 	else
 	{
-		ParmNameBaseIdx =
+		ParmDiffuseTextureIdx =
 			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames);
 
-		if(ParmNameBaseIdx >= 0)
+		if(ParmDiffuseTextureIdx >= 0)
 		{
-			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1);
+			GeneratingParameterNameDiffuseTexture = TEXT(HAPI_UNREAL_PARAM_MAP_DIFFUSE_1);
 		}
 	}
 
-	if(ParmNameBaseIdx >= 0)
+	// See if uniform color is available.
+	int32 ParmDiffuseColorIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0, NodeParamNames);
+
+	if(ParmDiffuseColorIdx >= 0)
+	{
+		GeneratingParameterNameUniformColor = TEXT(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0);
+	}
+	else
+	{
+		ParmDiffuseColorIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1, NodeParamNames);
+
+		if(ParmDiffuseColorIdx >= 0)
+		{
+			GeneratingParameterNameUniformColor = TEXT(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1);
+		}
+	}
+
+	// If we have diffuse texture parameter.
+	if(ParmDiffuseTextureIdx >= 0)
 	{
 		TArray<char> ImageBuffer;
 
 		// Get image planes of diffuse map.
 		TArray<FString> DiffuseImagePlanes;
-		bool bFoundImagePlanes = FHoudiniEngineUtils::HapiGetImagePlanes(NodeParams[ParmNameBaseIdx].id, MaterialInfo,
+		bool bFoundImagePlanes = FHoudiniEngineUtils::HapiGetImagePlanes(NodeParams[ParmDiffuseTextureIdx].id, MaterialInfo,
 			DiffuseImagePlanes);
 
 		HAPI_ImagePacking ImagePacking = HAPI_IMAGE_PACKING_UNKNOWN;
@@ -4369,27 +4461,9 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 		}
 
 		// Retrieve color plane.
-		if(bFoundImagePlanes && FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo,
+		if(bFoundImagePlanes && FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmDiffuseTextureIdx].id, MaterialInfo,
 			ImageBuffer, PlaneType, HAPI_IMAGE_DATA_INT8, ImagePacking, false))
 		{
-			UMaterialExpressionTextureSample* ExpressionDiffuse =
-				Cast<UMaterialExpressionTextureSample>(Material->BaseColor.Expression);
-
-			UTexture2D* TextureDiffuse = nullptr;
-			if(ExpressionDiffuse)
-			{
-				TextureDiffuse = Cast<UTexture2D>(ExpressionDiffuse->Texture);
-			}
-			else
-			{
-				// Otherwise new expression is of a different type.
-				if(Material->BaseColor.Expression)
-				{
-					Material->BaseColor.Expression->ConditionalBeginDestroy();
-					Material->BaseColor.Expression = nullptr;
-				}
-			}
-
 			UPackage* TextureDiffusePackage = nullptr;
 			if(TextureDiffuse)
 			{
@@ -4429,26 +4503,24 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 						TEXTUREGROUP_World);
 
 				// Create diffuse sampling expression, if needed.
-				if(!ExpressionDiffuse)
+				if(!ExpressionTextureSample)
 				{
-					ExpressionDiffuse = NewObject<UMaterialExpressionTextureSample>(Material,
+					ExpressionTextureSample = NewObject<UMaterialExpressionTextureSample>(Material,
 						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 				}
 
 				// Record generating parameter.
-				ExpressionDiffuse->Desc = GeneratingParameterName;
+				ExpressionTextureSample->Desc = GeneratingParameterNameDiffuseTexture;
+				ExpressionTextureSample->Texture = TextureDiffuse;
+				ExpressionTextureSample->SamplerType = SAMPLERTYPE_Color;
 
-				ExpressionDiffuse->Texture = TextureDiffuse;
-				ExpressionDiffuse->SamplerType = SAMPLERTYPE_Color;
+				// Add expression.
+				Material->Expressions.Add(ExpressionTextureSample);
 
 				// Offset node placement.
-				ExpressionDiffuse->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
-				ExpressionDiffuse->MaterialExpressionEditorY = MaterialNodeY;
-				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
-
-				// Assign expression to material.
-				Material->Expressions.Add(ExpressionDiffuse);
-				Material->BaseColor.Expression = ExpressionDiffuse;
+				//ExpressionTextureSample->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+				//ExpressionTextureSample->MaterialExpressionEditorY = MaterialNodeY;
+				//MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
 
 				/*
 				// Check if material is transparent. If it is, we need to hook up alpha.
@@ -4483,36 +4555,15 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 				TextureDiffuse->PreEditChange(nullptr);
 				TextureDiffuse->PostEditChange();
 				TextureDiffuse->MarkPackageDirty();
-
-				bExpressionCreated = true;
 			}
 		}
 	}
 
-	int32 ParmNameBaseDiffuseColorIdx =
-		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0, NodeParamNames);
-
-	if(ParmNameBaseDiffuseColorIdx >= 0)
+	// If we have uniform color parameter.
+	if(ParmDiffuseColorIdx >= 0)
 	{
-		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0);
-	}
-	else
-	{
-		ParmNameBaseDiffuseColorIdx =
-			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1, NodeParamNames);
-
-		if(ParmNameBaseDiffuseColorIdx >= 0)
-		{
-			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1);
-		}
-	}
-
-	if(!bExpressionCreated && ParmNameBaseDiffuseColorIdx >= 0)
-	{
-		// Diffuse color is available.
-
 		FLinearColor Color = FLinearColor::White;
-		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameBaseDiffuseColorIdx];
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmDiffuseColorIdx];
 
 		if(HAPI_RESULT_SUCCESS ==
 			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &Color.R,
@@ -4523,42 +4574,94 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 				Color.A = 1.0f;
 			}
 
-			UMaterialExpressionConstant4Vector* ExpressionDiffuseColor =
-				Cast<UMaterialExpressionConstant4Vector>(Material->BaseColor.Expression);
-
-			// Create color const expression and add it to material, if we don't have one.
-			if(!ExpressionDiffuseColor)
-			{
-				// Otherwise new expression is of a different type.
-				if(Material->BaseColor.Expression)
-				{
-					Material->BaseColor.Expression->ConditionalBeginDestroy();
-					Material->BaseColor.Expression = nullptr;
-				}
-
-				ExpressionDiffuseColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
-					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
-			}
-
 			// Record generating parameter.
-			ExpressionDiffuseColor->Desc = GeneratingParameterName;
-
-			ExpressionDiffuseColor->Constant = Color;
+			ExpressionConstant4Vector->Desc = GeneratingParameterNameUniformColor;
+			ExpressionConstant4Vector->Constant = Color;
 
 			// Offset node placement.
-			ExpressionDiffuseColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
-			ExpressionDiffuseColor->MaterialExpressionEditorY = MaterialNodeY;
-			MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
-
-			// Assign expression to material.
-			Material->Expressions.Add(ExpressionDiffuseColor);
-			Material->BaseColor.Expression = ExpressionDiffuseColor;
-
-			bExpressionCreated = true;
+			//ExpressionDiffuseColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+			//ExpressionDiffuseColor->MaterialExpressionEditorY = MaterialNodeY;
+			//MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
 		}
 	}
 
-	return bExpressionCreated;
+	// If we have have texture sample expression present, we need a secondary multiplication expression.
+	if(ExpressionTextureSample)
+	{
+		if(!MaterialExpressionMultiplySecondary)
+		{
+			MaterialExpressionMultiplySecondary = NewObject<UMaterialExpressionMultiply>(Material,
+				UMaterialExpressionMultiply::StaticClass(), NAME_None, RF_Transactional);
+
+			// Add expression.
+			Material->Expressions.Add(MaterialExpressionMultiplySecondary);
+		}
+	}
+	else
+	{
+		// If secondary multiplication exists, but we have no sampling, we can free it.
+		if(MaterialExpressionMultiplySecondary)
+		{
+			MaterialExpressionMultiplySecondary->A.Expression = nullptr;
+			MaterialExpressionMultiplySecondary->B.Expression = nullptr;
+			MaterialExpressionMultiplySecondary->ConditionalBeginDestroy();
+		}
+	}
+
+	float SecondaryExpressionScale = 1.0f;
+	if(MaterialExpressionMultiplySecondary)
+	{
+		SecondaryExpressionScale = 1.5f;
+	}
+
+	// Create multiplication expression which has uniform color and vertex color.
+	MaterialExpressionMultiply->A.Expression = ExpressionConstant4Vector;
+	MaterialExpressionMultiply->B.Expression = ExpressionVertexColor;
+
+	ExpressionConstant4Vector->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX -
+		FHoudiniEngineUtils::MaterialExpressionNodeStepX * SecondaryExpressionScale;
+	ExpressionConstant4Vector->MaterialExpressionEditorY = MaterialNodeY;
+	MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+	ExpressionVertexColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX -
+		FHoudiniEngineUtils::MaterialExpressionNodeStepX * SecondaryExpressionScale;
+	ExpressionVertexColor->MaterialExpressionEditorY = MaterialNodeY;
+	MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+	MaterialExpressionMultiply->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+	MaterialExpressionMultiply->MaterialExpressionEditorY =
+		(ExpressionVertexColor->MaterialExpressionEditorY - ExpressionConstant4Vector->MaterialExpressionEditorY) / 2;
+
+	// Hook up secondary multiplication expression to first one.
+	if(MaterialExpressionMultiplySecondary)
+	{
+		MaterialExpressionMultiplySecondary->A.Expression = MaterialExpressionMultiply;
+		MaterialExpressionMultiplySecondary->B.Expression = ExpressionTextureSample;
+
+		ExpressionTextureSample->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX -
+			FHoudiniEngineUtils::MaterialExpressionNodeStepX * SecondaryExpressionScale;
+		ExpressionTextureSample->MaterialExpressionEditorY = MaterialNodeY;
+		MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+		MaterialExpressionMultiplySecondary->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+		MaterialExpressionMultiplySecondary->MaterialExpressionEditorY =
+			MaterialExpressionMultiply->MaterialExpressionEditorY + FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+		// Assign expression.
+		Material->BaseColor.Expression = MaterialExpressionMultiplySecondary;
+	}
+	else
+	{
+		// Assign expression.
+		Material->BaseColor.Expression = MaterialExpressionMultiply;
+
+		MaterialExpressionMultiply->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+		MaterialExpressionMultiply->MaterialExpressionEditorY =
+			(ExpressionVertexColor->MaterialExpressionEditorY -
+				ExpressionConstant4Vector->MaterialExpressionEditorY) / 2;
+	}
+
+	return true;
 }
 
 

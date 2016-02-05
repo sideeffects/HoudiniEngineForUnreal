@@ -427,5 +427,6 @@ public:
 	/** Material node construction offsets. **/
 	static const int32 MaterialExpressionNodeX;
 	static const int32 MaterialExpressionNodeY;
+	static const int32 MaterialExpressionNodeStepX;
 	static const int32 MaterialExpressionNodeStepY;
 };
