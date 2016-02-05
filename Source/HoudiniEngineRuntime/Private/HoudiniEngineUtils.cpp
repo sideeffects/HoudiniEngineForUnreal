@@ -5890,7 +5890,8 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 
 	TArray<HAPI_ObjectInfo> ObjectInfos;
 	ObjectInfos.SetNumUninitialized(AssetInfo.objectCount);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(), AssetInfo.id, &ObjectInfos[0], 0, AssetInfo.objectCount), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(), AssetInfo.id,
+		&ObjectInfos[0], 0, AssetInfo.objectCount), false);
 
 	// Iterate through all objects.
 	for(int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx)
@@ -5898,24 +5899,26 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 		// Retrieve object at this index.
 		const HAPI_ObjectInfo& ObjectInfo = ObjectInfos[ObjectIdx];
 
-		// Iterate through all Geo informations within this object.
+		// Iterate through all geos.
 		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
 		{
 			// Get Geo information.
 			HAPI_GeoInfo GeoInfo;
-			if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id, ObjectInfo.id, GeoIdx, &GeoInfo))
+			if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id,
+				ObjectInfo.id, GeoIdx, &GeoInfo))
 			{
 				continue;
 			}
 
+			// Iterate through all parts.
 			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
 			{
 				// Get part information.
 				HAPI_PartInfo PartInfo;
 				FString PartName = TEXT("");
 
-				if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id, ObjectInfo.id, GeoInfo.id, PartIdx,
-					&PartInfo))
+				if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.id,
+					ObjectInfo.id, GeoInfo.id, PartIdx, &PartInfo))
 				{
 					continue;
 				}
@@ -5929,13 +5932,31 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 				{
 					FaceMaterialIds.SetNumUninitialized(PartInfo.faceCount);
 
-					if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(), AssetInfo.id, ObjectInfo.id, 
-						GeoInfo.id, PartInfo.id, &bSingleFaceMaterial, &FaceMaterialIds[0], 0, PartInfo.faceCount))
+					if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
+						AssetInfo.id, ObjectInfo.id, GeoInfo.id, PartInfo.id, &bSingleFaceMaterial,
+						&FaceMaterialIds[0], 0, PartInfo.faceCount))
 					{
 						continue;
 					}
 
 					MaterialIds.Append(FaceMaterialIds);
+				}
+				else
+				{
+					// If this is an instancer, attempt to look up instancer material.
+					if(ObjectInfo.isInstancer)
+					{
+						FaceMaterialIds.SetNumUninitialized(1);
+
+						if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
+							AssetInfo.id, ObjectInfo.id, GeoInfo.id, PartInfo.id, &bSingleFaceMaterial,
+							&FaceMaterialIds[0], 0, 1))
+						{
+							continue;
+						}
+
+						MaterialIds.Append(FaceMaterialIds);
+					}
 				}
 			}
 		}
