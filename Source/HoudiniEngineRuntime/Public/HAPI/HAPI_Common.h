@@ -94,9 +94,9 @@
     #define HAPI_C_STRUCT_TYPEDEF( struct_name )
 #else
     #define HAPI_C_ENUM_TYPEDEF( enum_name ) \
-        typedef enum enum_name enum_name
+        typedef enum enum_name enum_name;
     #define HAPI_C_STRUCT_TYPEDEF( struct_name ) \
-        typedef struct struct_name struct_name
+        typedef struct struct_name struct_name;
 #endif // __cplusplus
 
 /////////////////////////////////////////////////////////////////////////////
@@ -160,7 +160,7 @@ enum HAPI_License
     HAPI_LICENSE_HOUDINI_INDIE,
     HAPI_LICENSE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_License );
+HAPI_C_ENUM_TYPEDEF( HAPI_License )
 
 enum HAPI_StatusType
 {
@@ -169,7 +169,7 @@ enum HAPI_StatusType
     HAPI_STATUS_COOK_STATE,
     HAPI_STATUS_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_StatusType );
+HAPI_C_ENUM_TYPEDEF( HAPI_StatusType )
 
 enum HAPI_StatusVerbosity
 {
@@ -188,7 +188,7 @@ enum HAPI_StatusVerbosity
     HAPI_STATUSVERBOSITY_MESSAGES = HAPI_STATUSVERBOSITY_2,
                                 ///< Equilvalent to ::HAPI_STATUSVERBOSITY_2.
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_StatusVerbosity );
+HAPI_C_ENUM_TYPEDEF( HAPI_StatusVerbosity )
 
 enum HAPI_Result
 {
@@ -217,7 +217,7 @@ enum HAPI_Result
 
     HAPI_RESULT_INVALID_SESSION                         = 400
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_Result );
+HAPI_C_ENUM_TYPEDEF( HAPI_Result )
 
 enum HAPI_SessionType
 {
@@ -228,7 +228,7 @@ enum HAPI_SessionType
     HAPI_SESSION_CUSTOM3,
     HAPI_SESSION_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_SessionType );
+HAPI_C_ENUM_TYPEDEF( HAPI_SessionType )
 
 enum HAPI_State
 {
@@ -243,7 +243,7 @@ enum HAPI_State
 
     HAPI_STATE_MAX_READY_STATE = HAPI_STATE_READY_WITH_COOK_ERRORS
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_State );
+HAPI_C_ENUM_TYPEDEF( HAPI_State )
 
 enum HAPI_PackedPrimInstancingMode
 {
@@ -253,7 +253,7 @@ enum HAPI_PackedPrimInstancingMode
     HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT,
     HAPI_PACKEDPRIM_INSTANCING_MODE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_PackedPrimInstancingMode );
+HAPI_C_ENUM_TYPEDEF( HAPI_PackedPrimInstancingMode )
 
 enum HAPI_Permissions
 {
@@ -263,7 +263,7 @@ enum HAPI_Permissions
     HAPI_PERMISSIONS_WRITE_ONLY,
     HAPI_PERMISSIONS_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_Permissions );
+HAPI_C_ENUM_TYPEDEF( HAPI_Permissions )
 
 enum HAPI_RampType
 {
@@ -272,7 +272,7 @@ enum HAPI_RampType
     HAPI_RAMPTYPE_COLOR,
     HAPI_RAMPTYPE_MAX,
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_RampType );
+HAPI_C_ENUM_TYPEDEF( HAPI_RampType )
 
 /// As you can see, some of these high level types share the same underlying
 /// raw data type. For instance, both string and file parameter types can be
@@ -330,7 +330,7 @@ enum HAPI_ParmType
     HAPI_PARMTYPE_NONVALUE_START    = HAPI_PARMTYPE_FOLDER,
     HAPI_PARMTYPE_NONVALUE_END      = HAPI_PARMTYPE_SEPARATOR
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_ParmType );
+HAPI_C_ENUM_TYPEDEF( HAPI_ParmType )
 
 enum HAPI_ChoiceListType
 {
@@ -340,7 +340,7 @@ enum HAPI_ChoiceListType
     HAPI_CHOICELISTTYPE_REPLACE, ///< Field + Single Selection Menu
     HAPI_CHOICELISTTYPE_TOGGLE ///< Field + Multiple Selection Menu
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_ChoiceListType );
+HAPI_C_ENUM_TYPEDEF( HAPI_ChoiceListType )
 
 enum HAPI_PresetType
 {
@@ -349,7 +349,7 @@ enum HAPI_PresetType
     HAPI_PRESETTYPE_IDX, ///< Presets blob within an .idx file format.
     HAPI_PRESETTYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_PresetType );
+HAPI_C_ENUM_TYPEDEF( HAPI_PresetType )
 
 enum HAPI_AssetType
 {
@@ -371,7 +371,7 @@ enum HAPI_AssetType
     HAPI_ASSETTYPE_DIR,
     HAPI_ASSETTYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_AssetType );
+HAPI_C_ENUM_TYPEDEF( HAPI_AssetType )
 
 enum HAPI_AssetSubType
 {
@@ -381,7 +381,7 @@ enum HAPI_AssetSubType
     HAPI_ASSETSUBTYPE_INPUT,
     HAPI_ASSETSUBTYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_AssetSubType );
+HAPI_C_ENUM_TYPEDEF( HAPI_AssetSubType )
 
 enum HAPI_GroupType
 {
@@ -390,7 +390,7 @@ enum HAPI_GroupType
     HAPI_GROUPTYPE_PRIM,
     HAPI_GROUPTYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_GroupType );
+HAPI_C_ENUM_TYPEDEF( HAPI_GroupType )
 
 enum HAPI_AttributeOwner
 {
@@ -401,7 +401,7 @@ enum HAPI_AttributeOwner
     HAPI_ATTROWNER_DETAIL,
     HAPI_ATTROWNER_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_AttributeOwner );
+HAPI_C_ENUM_TYPEDEF( HAPI_AttributeOwner )
 
 enum HAPI_CurveType
 {
@@ -411,7 +411,7 @@ enum HAPI_CurveType
     HAPI_CURVETYPE_BEZIER,
     HAPI_CURVETYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_CurveType );
+HAPI_C_ENUM_TYPEDEF( HAPI_CurveType )
 
 enum HAPI_VolumeType
 {
@@ -420,7 +420,7 @@ enum HAPI_VolumeType
     HAPI_VOLUMETYPE_VDB,
     HAPI_VOLUMETYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_VolumeType );
+HAPI_C_ENUM_TYPEDEF( HAPI_VolumeType )
 
 enum HAPI_StorageType
 {
@@ -430,7 +430,7 @@ enum HAPI_StorageType
     HAPI_STORAGETYPE_STRING,
     HAPI_STORAGETYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_StorageType );
+HAPI_C_ENUM_TYPEDEF( HAPI_StorageType )
 
 enum HAPI_GeoType
 {
@@ -454,7 +454,7 @@ enum HAPI_GeoType
 
     HAPI_GEOTYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_GeoType );
+HAPI_C_ENUM_TYPEDEF( HAPI_GeoType )
 
 enum HAPI_PartType
 {
@@ -465,7 +465,7 @@ enum HAPI_PartType
     HAPI_PARTTYPE_INSTANCER,
     HAPI_PARTTYPE_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_PartType );
+HAPI_C_ENUM_TYPEDEF( HAPI_PartType )
 
 enum HAPI_InputType
 {
@@ -474,7 +474,7 @@ enum HAPI_InputType
     HAPI_INPUT_GEOMETRY,
     HAPI_INPUT_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_InputType );
+HAPI_C_ENUM_TYPEDEF( HAPI_InputType )
 
 enum HAPI_CurveOrders
 {
@@ -484,7 +484,7 @@ enum HAPI_CurveOrders
     HAPI_CURVE_ORDER_QUADRATIC = 3,
     HAPI_CURVE_ORDER_CUBIC = 4,
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_CurveOrders );
+HAPI_C_ENUM_TYPEDEF( HAPI_CurveOrders )
 
 enum HAPI_TransformComponent
 {
@@ -502,7 +502,7 @@ enum HAPI_TransformComponent
     HAPI_TRANSFORM_SY,
     HAPI_TRANSFORM_SZ
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_TransformComponent );
+HAPI_C_ENUM_TYPEDEF( HAPI_TransformComponent )
 
 enum HAPI_RSTOrder
 {
@@ -515,7 +515,7 @@ enum HAPI_RSTOrder
 
     HAPI_RSTORDER_DEFAULT = HAPI_SRT
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_RSTOrder );
+HAPI_C_ENUM_TYPEDEF( HAPI_RSTOrder )
 
 enum HAPI_XYZOrder
 {
@@ -528,7 +528,7 @@ enum HAPI_XYZOrder
 
     HAPI_XYZORDER_DEFAULT = HAPI_XYZ
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_XYZOrder );
+HAPI_C_ENUM_TYPEDEF( HAPI_XYZOrder )
 
 enum HAPI_ImageDataFormat
 {
@@ -542,7 +542,7 @@ enum HAPI_ImageDataFormat
 
     HAPI_IMAGE_DATA_DEFAULT = HAPI_IMAGE_DATA_INT8
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_ImageDataFormat );
+HAPI_C_ENUM_TYPEDEF( HAPI_ImageDataFormat )
 
 enum HAPI_ImagePacking
 {
@@ -558,7 +558,7 @@ enum HAPI_ImagePacking
     HAPI_IMAGE_PACKING_DEFAULT3 = HAPI_IMAGE_PACKING_RGB,
     HAPI_IMAGE_PACKING_DEFAULT4 = HAPI_IMAGE_PACKING_RGBA
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_ImagePacking );
+HAPI_C_ENUM_TYPEDEF( HAPI_ImagePacking )
 
 /// This enum is to be used with ::HAPI_GetEnvInt() to retrieve basic
 /// information about the HAPI implementation currently being linked
@@ -595,7 +595,7 @@ enum HAPI_EnvIntType
 
     HAPI_ENVINT_MAX,
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_EnvIntType );
+HAPI_C_ENUM_TYPEDEF( HAPI_EnvIntType )
 
 /// This enum is to be used with ::HAPI_GetSessionEnvInt() to retrieve basic
 /// session-specific information.
@@ -608,7 +608,7 @@ enum HAPI_SessionEnvIntType
 
     HAPI_SESSIONENVINT_MAX
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_SessionEnvIntType );
+HAPI_C_ENUM_TYPEDEF( HAPI_SessionEnvIntType )
 
 enum HAPI_CacheProperty
 {
@@ -639,7 +639,7 @@ enum HAPI_CacheProperty
     ///                 When to Limit Max Memory = Always
     HAPI_CACHEPROP_CULL_LEVEL,
 };
-HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty );
+HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty )
 
 /////////////////////////////////////////////////////////////////////////////
 // Main API Structs
@@ -654,7 +654,7 @@ struct HAPI_API HAPI_Transform
 
     HAPI_RSTOrder rstOrder;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_Transform );
+HAPI_C_STRUCT_TYPEDEF( HAPI_Transform )
 
 struct HAPI_API HAPI_TransformEuler
 {
@@ -665,7 +665,7 @@ struct HAPI_API HAPI_TransformEuler
     HAPI_XYZOrder rotationOrder;
     HAPI_RSTOrder rstOrder;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_TransformEuler );
+HAPI_C_STRUCT_TYPEDEF( HAPI_TransformEuler )
 
 // SESSIONS -----------------------------------------------------------------
 
@@ -679,7 +679,7 @@ struct HAPI_API HAPI_Session
     /// that each session needs to have a unique identifier.
     HAPI_SessionId id;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_Session );
+HAPI_C_STRUCT_TYPEDEF( HAPI_Session )
 
 // TIME ---------------------------------------------------------------------
 
@@ -690,7 +690,7 @@ struct HAPI_API HAPI_TimelineOptions
     float startTime;
     float endTime;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions );
+HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions )
 
 // ASSETS -------------------------------------------------------------------
 
@@ -777,7 +777,7 @@ struct HAPI_API HAPI_AssetInfo
     /// materials have changed. Refreshed only during an asset cook.
     HAPI_Bool haveMaterialsChanged;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_AssetInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_AssetInfo )
 
 struct HAPI_API HAPI_CookOptions
 {
@@ -823,7 +823,7 @@ struct HAPI_API HAPI_CookOptions
     /// The default is: ::HAPI_PACKEDPRIM_INSTANCING_MODE_DISABLED
     HAPI_PackedPrimInstancingMode packedPrimInstancingMode;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_CookOptions );
+HAPI_C_STRUCT_TYPEDEF( HAPI_CookOptions )
 
 // NODES --------------------------------------------------------------------
 
@@ -880,7 +880,7 @@ struct HAPI_API HAPI_NodeInfo
     /// ::HAPI_DeleteNode().
     HAPI_Bool createdPostAssetLoad;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_NodeInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_NodeInfo )
 
 // PARAMETERS ---------------------------------------------------------------
 
@@ -1023,7 +1023,7 @@ struct HAPI_API HAPI_ParmInfo
     HAPI_RampType rampType;
     /// @}
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_ParmInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_ParmInfo )
 
 struct HAPI_API HAPI_ParmChoiceInfo
 {
@@ -1034,7 +1034,7 @@ struct HAPI_API HAPI_ParmChoiceInfo
     /// applies to string menus only.
     HAPI_StringHandle valueSH;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_ParmChoiceInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_ParmChoiceInfo )
 
 // HANDLES ------------------------------------------------------------------
 
@@ -1051,7 +1051,7 @@ struct HAPI_API HAPI_HandleInfo
 
     int bindingsCount;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_HandleInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_HandleInfo )
 
 /// @struct HAPI_HandleBindingInfo
 ///
@@ -1065,7 +1065,7 @@ struct HAPI_API HAPI_HandleBindingInfo
 
     HAPI_ParmId assetParmId;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo )
 
 // OBJECTS ------------------------------------------------------------------
 
@@ -1110,7 +1110,7 @@ struct HAPI_API HAPI_ObjectInfo
     /// See @ref HAPI_Instancing.
     HAPI_ObjectId objectToInstanceId;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_ObjectInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_ObjectInfo )
 
 // GEOMETRY -----------------------------------------------------------------
 
@@ -1155,7 +1155,7 @@ struct HAPI_API HAPI_GeoInfo
     /// See @ref HAPI_ObjectsGeosParts_Parts.
     int partCount;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInfo )
 
 struct HAPI_API HAPI_GeoInputInfo
 {
@@ -1163,7 +1163,7 @@ struct HAPI_API HAPI_GeoInputInfo
     HAPI_GeoId geoId;
     HAPI_NodeId objectNodeId;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInputInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInputInfo )
 
 struct HAPI_API HAPI_PartInfo
 {
@@ -1202,7 +1202,7 @@ struct HAPI_API HAPI_PartInfo
     /// each instance.
     int instanceCount;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_PartInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_PartInfo )
 
 /// See @ref HAPI_Attributes.
 struct HAPI_API HAPI_AttributeInfo
@@ -1239,7 +1239,7 @@ struct HAPI_API HAPI_AttributeInfo
     /// size per attribute.
     int tupleSize;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_AttributeInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_AttributeInfo )
 
 // MATERIALS ----------------------------------------------------------------
 
@@ -1260,7 +1260,7 @@ struct HAPI_API HAPI_MaterialInfo
 
     HAPI_Bool hasChanged;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_MaterialInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_MaterialInfo )
 
 struct HAPI_API HAPI_ImageFileFormat
 {
@@ -1268,7 +1268,7 @@ struct HAPI_API HAPI_ImageFileFormat
     HAPI_StringHandle descriptionSH;
     HAPI_StringHandle defaultExtensionSH;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_ImageFileFormat );
+HAPI_C_STRUCT_TYPEDEF( HAPI_ImageFileFormat )
 
 struct HAPI_API HAPI_ImageInfo
 {
@@ -1292,7 +1292,7 @@ struct HAPI_API HAPI_ImageInfo
     /// ::HAPI_IMAGE_DATA_INT16, you probably want to leave this as 2.2.
     double gamma;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_ImageInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_ImageInfo )
 
 // ANIMATION ----------------------------------------------------------------
 
@@ -1303,7 +1303,7 @@ struct HAPI_API HAPI_Keyframe
     float inTangent;
     float outTangent;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_Keyframe );
+HAPI_C_STRUCT_TYPEDEF( HAPI_Keyframe )
 
 // VOLUMES ------------------------------------------------------------------
 
@@ -1357,7 +1357,7 @@ struct HAPI_API HAPI_VolumeInfo
     float yTaper;
     /// @}
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeInfo )
 
 /// @struct HAPI_VolumeTileInfo
 ///
@@ -1372,7 +1372,7 @@ struct HAPI_API HAPI_VolumeTileInfo
     int minZ;
     HAPI_Bool isValid;
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeTileInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_VolumeTileInfo )
 
 // CURVES -------------------------------------------------------------------
 
@@ -1395,6 +1395,6 @@ struct HAPI_API HAPI_CurveInfo
 
     HAPI_Bool hasKnots; ///< Whether the curve has knots.
 };
-HAPI_C_STRUCT_TYPEDEF( HAPI_CurveInfo );
+HAPI_C_STRUCT_TYPEDEF( HAPI_CurveInfo )
 
 #endif // __HAPI_COMMON_h__
