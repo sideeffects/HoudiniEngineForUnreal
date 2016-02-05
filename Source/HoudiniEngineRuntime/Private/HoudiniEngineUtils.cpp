@@ -5924,12 +5924,12 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 				}
 
 				// Retrieve material information for this geo part.
-				TArray<HAPI_MaterialId> FaceMaterialIds;
 				HAPI_Bool bSingleFaceMaterial = false;
 				bool bMaterialsFound = false;
 
 				if(PartInfo.faceCount > 0)
 				{
+					TArray<HAPI_MaterialId> FaceMaterialIds;
 					FaceMaterialIds.SetNumUninitialized(PartInfo.faceCount);
 
 					if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
@@ -5946,16 +5946,16 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 					// If this is an instancer, attempt to look up instancer material.
 					if(ObjectInfo.isInstancer)
 					{
-						FaceMaterialIds.SetNumUninitialized(1);
+						HAPI_MaterialId InstanceMaterialId = -1;
 
 						if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
 							AssetInfo.id, ObjectInfo.id, GeoInfo.id, PartInfo.id, &bSingleFaceMaterial,
-							&FaceMaterialIds[0], 0, 1))
+							&InstanceMaterialId, 0, 1))
 						{
 							continue;
 						}
 
-						MaterialIds.Append(FaceMaterialIds);
+						MaterialIds.Add(InstanceMaterialId);
 					}
 				}
 			}
