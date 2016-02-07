@@ -5467,7 +5467,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 				{
 					TextureMetallicPackage =
 						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
-							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
 							TextureMetallicName);
 				}
 
