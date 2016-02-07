@@ -18,7 +18,7 @@
 
 
 bool
-FHoudiniAssetInstanceInputFieldSortPredicate::operator()(const UHoudiniAssetInstanceInputField& A, 
+FHoudiniAssetInstanceInputFieldSortPredicate::operator()(const UHoudiniAssetInstanceInputField& A,
 	const UHoudiniAssetInstanceInputField& B) const
 {
 	FHoudiniGeoPartObjectSortPredicate HoudiniGeoPartObjectSortPredicate;
@@ -28,9 +28,9 @@ FHoudiniAssetInstanceInputFieldSortPredicate::operator()(const UHoudiniAssetInst
 
 UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	OriginalStaticMesh(nullptr),		
+	OriginalStaticMesh(nullptr),
 	HoudiniAssetComponent(nullptr),
-	InstancePathName(TEXT("")),		
+	InstancePathName(TEXT("")),
 	HoudiniAssetInstanceInputFieldFlagsPacked(0)
 {
 	
@@ -44,7 +44,7 @@ UHoudiniAssetInstanceInputField::~UHoudiniAssetInstanceInputField()
 
 
 UHoudiniAssetInstanceInputField*
-UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* HoudiniAssetComponent, 
+UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, const FString& InstancePathName)
 {
 	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField
@@ -60,7 +60,7 @@ UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* HoudiniAssetComp
 
 
 UHoudiniAssetInstanceInputField*
-UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+UHoudiniAssetInstanceInputField::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 	UHoudiniAssetInstanceInputField* OtherInputField)
 {
 	UHoudiniAssetInstanceInputField* InputField
@@ -97,8 +97,8 @@ UHoudiniAssetInstanceInputField::Serialize(FArchive& Ar)
 
 	Ar << InstancedTransforms;
 	Ar << VariationTransformsArray;
-	Ar << InstancedStaticMeshComponents;	
-	Ar << StaticMeshes;    
+	Ar << InstancedStaticMeshComponents;
+	Ar << StaticMeshes;
 	Ar << OriginalStaticMesh;
 }
 
@@ -114,7 +114,7 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 			Collector.AddReferencedObject(HoudiniAssetInstanceInputField->OriginalStaticMesh, InThis);
 		}
 
-		for (int32 Idx = 0; Idx < HoudiniAssetInstanceInputField->StaticMeshes.Num(); ++Idx)
+		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInputField->StaticMeshes.Num(); ++Idx)
 		{
 			UStaticMesh* StaticMesh = HoudiniAssetInstanceInputField->StaticMeshes[Idx];
 			if(StaticMesh)
@@ -123,7 +123,7 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 			}
 		}
 		
-		for (int32 Idx = 0; Idx < HoudiniAssetInstanceInputField->InstancedStaticMeshComponents.Num(); ++Idx)
+		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInputField->InstancedStaticMeshComponents.Num(); ++Idx)
 		{
 			UInstancedStaticMeshComponent* InstancedStaticMeshComponent = 
 				HoudiniAssetInstanceInputField->InstancedStaticMeshComponents[Idx];
@@ -145,17 +145,17 @@ void
 UHoudiniAssetInstanceInputField::BeginDestroy()
 {
 
-	for (int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+	for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
 	{
 		UInstancedStaticMeshComponent* InstancedStaticMeshComponent
 			= InstancedStaticMeshComponents[Idx];
-		if (InstancedStaticMeshComponent)
+		if(InstancedStaticMeshComponent)
 		{
 			InstancedStaticMeshComponent->UnregisterComponent();
 			InstancedStaticMeshComponent->DetachFromParent();
 			InstancedStaticMeshComponent->DestroyComponent();
 
-			if (HoudiniAssetComponent)
+			if(HoudiniAssetComponent)
 			{
 				HoudiniAssetComponent->AttachChildren.Remove(InstancedStaticMeshComponent);
 			}
@@ -174,15 +174,15 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 	Super::PostEditUndo();
 
 	int32 VariationCount = InstanceVariationCount();
-	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	for(int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
 		UInstancedStaticMeshComponent* InstancedStaticMeshComponent
-			= InstancedStaticMeshComponents.Num() ? InstancedStaticMeshComponents[Idx] : NULL;
+			= InstancedStaticMeshComponents.Num() ? InstancedStaticMeshComponents[Idx] : nullptr;
 
-		if (InstancedStaticMeshComponent)
+		if(InstancedStaticMeshComponent)
 		{
 			UStaticMesh* StaticMesh = StaticMeshes[Idx];
-			InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);			
+			InstancedStaticMeshComponent->SetStaticMesh(StaticMesh);
 		}
 		
 	}
@@ -206,10 +206,11 @@ UHoudiniAssetInstanceInputField::CreateInstancedComponent(int32 VariationIdx)
 	UStaticMesh* StaticMesh = StaticMeshes[VariationIdx];
 	check(HoudiniAssetComponent);
 	
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
-		UInstancedStaticMeshComponent::StaticClass(), NAME_None);
+	UInstancedStaticMeshComponent* InstancedStaticMeshComponent 
+		= NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
+			UInstancedStaticMeshComponent::StaticClass(), NAME_None);
 	
-	InstancedStaticMeshComponents.Insert(InstancedStaticMeshComponent,VariationIdx);	
+	InstancedStaticMeshComponents.Insert(InstancedStaticMeshComponent,VariationIdx);
 
 	// Assign static mesh to this instanced component.
 	
@@ -233,27 +234,27 @@ UHoudiniAssetInstanceInputField::SetInstanceTransforms(const TArray<FTransform>&
 
 
 void
-UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariationAssignments )
+UHoudiniAssetInstanceInputField::UpdateInstanceTransforms(bool RecomputeVariationAssignments)
 {
 	int32 NumInstancTransforms = InstancedTransforms.Num();
 	int32 VariationCount = InstanceVariationCount();
 
-	if (RecomputeVariationAssignments)
+	if(RecomputeVariationAssignments)
 	{
 		//clear the previous cached transform assignments.
-		for (int32 Idx = 0; Idx < VariationTransformsArray.Num(); Idx++)
+		for(int32 Idx = 0; Idx < VariationTransformsArray.Num(); Idx++)
 		{
 			VariationTransformsArray[Idx].Empty();
 		}
 		VariationTransformsArray.Empty();
 
-		for (int32 Idx = 0; Idx < VariationCount; Idx++)
+		for(int32 Idx = 0; Idx < VariationCount; Idx++)
 		{
 			TArray<FTransform> VariationTransforms;
 			VariationTransformsArray.Add(VariationTransforms);
 		}
 
-		for (int32 Idx = 0; Idx < NumInstancTransforms; Idx++)
+		for(int32 Idx = 0; Idx < NumInstancTransforms; Idx++)
 		{
 			FTransform Xform = InstancedTransforms[Idx];
 			int32 VariationIndex = rand() % VariationCount;
@@ -261,17 +262,12 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
 		}
 	}
 
-	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	for(int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
 		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
-		FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(
-			InstancedStaticMeshComponent, 
-			VariationTransformsArray[Idx],
-			RotationOffsets[Idx], ScaleOffsets[Idx]);
-
+		FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(InstancedStaticMeshComponent,
+			VariationTransformsArray[Idx], RotationOffsets[Idx], ScaleOffsets[Idx]);
 	}
-
-	
 }
 
 
@@ -279,7 +275,7 @@ void
 UHoudiniAssetInstanceInputField::UpdateRelativeTransform()
 {
 	int32 VariationCount = InstanceVariationCount();
-	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	for(int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
 		InstancedStaticMeshComponents[Idx]->SetRelativeTransform(HoudiniGeoPartObject.TransformMatrix);
 	}
@@ -301,10 +297,12 @@ UHoudiniAssetInstanceInputField::GetOriginalStaticMesh() const
 
 
 UStaticMesh*
-UHoudiniAssetInstanceInputField::GetInstanceVariation( int32 VariationIndex ) const
+UHoudiniAssetInstanceInputField::GetInstanceVariation(int32 VariationIndex) const
 {
-	if ( VariationIndex < 0 || VariationIndex >= StaticMeshes.Num() )
-		return NULL;
+	if(VariationIndex < 0 || VariationIndex >= StaticMeshes.Num())
+	{
+		return nullptr;
+	}
 	
 	UStaticMesh* StaticMesh = StaticMeshes[VariationIndex];
 	return StaticMesh;
@@ -331,8 +329,10 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation(int32 VariationIdx)
 {
 	check(VariationIdx >=0 && VariationIdx < InstanceVariationCount());
 
-	if (InstanceVariationCount() == 1)
+	if(InstanceVariationCount() == 1)
+	{
 		return;
+	}
 
 	StaticMeshes.RemoveAt(VariationIdx);
 	RotationOffsets.RemoveAt(VariationIdx);
@@ -340,8 +340,7 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation(int32 VariationIdx)
 	bScaleOffsetsLinearlyArray.RemoveAt(VariationIdx);
 
 	// Remove instanced component.	
-	UInstancedStaticMeshComponent* InstancedStaticMeshComponent
-		= InstancedStaticMeshComponents[VariationIdx];
+	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[VariationIdx];
 
 	InstancedStaticMeshComponent->UnregisterComponent();
 	InstancedStaticMeshComponent->DetachFromParent();
@@ -349,7 +348,7 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation(int32 VariationIdx)
 
 	InstancedStaticMeshComponents.RemoveAt(VariationIdx);
 
-	if (HoudiniAssetComponent)
+	if(HoudiniAssetComponent)
 	{
 		HoudiniAssetComponent->AttachChildren.Remove(InstancedStaticMeshComponent);
 	}
@@ -359,9 +358,7 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation(int32 VariationIdx)
 }
 
 void
-UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(
-								UStaticMesh * InStaticMesh,
-								int Index)
+UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(UStaticMesh * InStaticMesh, int Index)
 {
 	check(InStaticMesh);
 	check(Index >= 0 && Index < StaticMeshes.Num());	
@@ -373,18 +370,16 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(
 }
 
 void 
-UHoudiniAssetInstanceInputField::FindStaticMeshIndices(
-							UStaticMesh * InStaticMesh, 
-							TArray<int> & Indices)
+UHoudiniAssetInstanceInputField::FindStaticMeshIndices(UStaticMesh * InStaticMesh, TArray<int> & Indices)
 {
-	for (int32 Idx = 0; Idx < StaticMeshes.Num(); ++Idx)
+	for(int32 Idx = 0; Idx < StaticMeshes.Num(); ++Idx)
 	{
 		UStaticMesh* StaticMesh = StaticMeshes[Idx];
-		if (StaticMesh == InStaticMesh)
+		if(StaticMesh == InStaticMesh)
 		{
 			Indices.Add(Idx);
 		}
-	}	
+	}
 }
 
 int32 
@@ -434,8 +429,7 @@ UHoudiniAssetInstanceInputField::GetRotationOffset(int32 VariationIdx) const
 
 
 void
-UHoudiniAssetInstanceInputField::SetRotationOffset(const FRotator& Rotator,
-												   int32 VariationIdx)
+UHoudiniAssetInstanceInputField::SetRotationOffset(const FRotator& Rotator, int32 VariationIdx)
 {
 	RotationOffsets[VariationIdx] = Rotator;
 }
@@ -449,8 +443,7 @@ UHoudiniAssetInstanceInputField::GetScaleOffset(int32 VariationIdx) const
 
 
 void
-UHoudiniAssetInstanceInputField::SetScaleOffset(const FVector& InScale,
-												int32 VariationIdx)
+UHoudiniAssetInstanceInputField::SetScaleOffset(const FVector& InScale, int32 VariationIdx)
 {
 	ScaleOffsets[VariationIdx] = InScale;
 }
@@ -464,15 +457,14 @@ UHoudiniAssetInstanceInputField::AreOffsetsScaledLinearly(int32 VariationIdx) co
 
 
 void
-UHoudiniAssetInstanceInputField::SetLinearOffsetScale(bool bEnabled,
-													  int32 VariationIdx)
+UHoudiniAssetInstanceInputField::SetLinearOffsetScale(bool bEnabled, int32 VariationIdx)
 {
 	bScaleOffsetsLinearlyArray[VariationIdx] = bEnabled;
 }
 
 
 bool
-UHoudiniAssetInstanceInputField::IsOriginalStaticMeshUsed( int32 VariationIdx ) const
+UHoudiniAssetInstanceInputField::IsOriginalStaticMeshUsed(int32 VariationIdx) const
 {
 	check(VariationIdx >= 0 && VariationIdx < StaticMeshes.Num());
 	UStaticMesh* StaticMesh = StaticMeshes[VariationIdx];
@@ -489,7 +481,7 @@ UHoudiniAssetInstanceInputField::GetInstancedStaticMeshComponent(int32 Variation
 
 
 const TArray<FTransform>&
-UHoudiniAssetInstanceInputField::GetInstancedTransforms( int32 VariationIdx ) const
+UHoudiniAssetInstanceInputField::GetInstancedTransforms(int32 VariationIdx) const
 {
 	check(VariationIdx >= 0 && VariationIdx < VariationTransformsArray.Num());
 	return VariationTransformsArray[VariationIdx];
@@ -501,7 +493,7 @@ UHoudiniAssetInstanceInputField::RecreateRenderState()
 {
 	check(InstancedStaticMeshComponents.Num() == StaticMeshes.Num());
 	int32 VariationCount = InstanceVariationCount();
-	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	for(int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
 		InstancedStaticMeshComponents[Idx]->RecreateRenderState_Concurrent();
 	}
@@ -514,7 +506,7 @@ UHoudiniAssetInstanceInputField::RecreatePhysicsState()
 {
 	check(InstancedStaticMeshComponents.Num() == StaticMeshes.Num());
 	int32 VariationCount = InstanceVariationCount();
-	for (int32 Idx = 0; Idx < VariationCount; Idx++)
+	for(int32 Idx = 0; Idx < VariationCount; Idx++)
 	{
 		InstancedStaticMeshComponents[Idx]->RecreatePhysicsState();
 	}
