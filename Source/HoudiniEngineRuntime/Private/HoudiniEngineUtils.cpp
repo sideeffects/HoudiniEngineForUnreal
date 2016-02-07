@@ -2682,8 +2682,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 							HAPI_MaterialId InstancerMaterialId = *FoundInstancerMaterialId;
 
 							FString InstancerMaterialShopName = TEXT("");
-							if(FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, InstancerMaterialId,
-								InstancerMaterialShopName))
+							if(InstancerMaterialId > -1 &&
+								FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, InstancerMaterialId,
+									InstancerMaterialShopName))
 							{
 								HoudiniGeoPartObject.bInstancerMaterialAvailable = true;
 								HoudiniGeoPartObject.InstancerMaterialName = InstancerMaterialShopName;
