@@ -4577,11 +4577,6 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 			// Record generating parameter.
 			ExpressionConstant4Vector->Desc = GeneratingParameterNameUniformColor;
 			ExpressionConstant4Vector->Constant = Color;
-
-			// Offset node placement.
-			//ExpressionDiffuseColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
-			//ExpressionDiffuseColor->MaterialExpressionEditorY = MaterialNodeY;
-			//MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
 		}
 	}
 
@@ -5402,7 +5397,175 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
 {
-	return true;
+	bool bExpressionCreated = false;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
+	// Metallic texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = false;
+
+	// See if metallic texture is available.
+	int32 ParmNameMetallicIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_METALLIC, NodeParamNames);
+
+	if(ParmNameMetallicIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_METALLIC);
+	}
+
+	if(ParmNameMetallicIdx >= 0)
+	{
+		TArray<char> ImageBuffer;
+
+		// Retrieve color plane.
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameMetallicIdx].id, MaterialInfo, ImageBuffer,
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
+		{
+			UMaterialExpressionTextureSample* ExpressionMetallic =
+				Cast<UMaterialExpressionTextureSample>(Material->Metallic.Expression);
+
+			UTexture2D* TextureMetallic = nullptr;
+			if(ExpressionMetallic)
+			{
+				TextureMetallic = Cast<UTexture2D>(ExpressionMetallic->Texture);
+			}
+			else
+			{
+				// Otherwise new expression is of a different type.
+				if(Material->Metallic.Expression)
+				{
+					Material->Metallic.Expression->ConditionalBeginDestroy();
+					Material->Metallic.Expression = nullptr;
+				}
+			}
+
+			UPackage* TextureMetallicPackage = nullptr;
+			if(TextureMetallic)
+			{
+				TextureMetallicPackage = Cast<UPackage>(TextureMetallic->GetOuter());
+			}
+
+			HAPI_ImageInfo ImageInfo;
+			Result = FHoudiniApi::GetImageInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+				MaterialInfo.id, &ImageInfo);
+
+			if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+			{
+				// Create texture.
+				FString TextureMetallicName;
+				bool bCreatedNewTextureMetallic = false;
+
+				// Create metallic texture package, if this is a new metallic texture.
+				if(!TextureMetallicPackage)
+				{
+					TextureMetallicPackage =
+						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
+							TextureMetallicName);
+				}
+
+				// Create metallic texture, if we need to create one.
+				if(!TextureMetallic)
+				{
+					bCreatedNewTextureMetallic = true;
+				}
+
+				// Reuse existing metallic texture, or create new one.
+				TextureMetallic =
+					FHoudiniEngineUtils::CreateUnrealTexture(TextureMetallic, ImageInfo,
+						TextureMetallicPackage, TextureMetallicName, ImageBuffer,
+						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC, CreateTexture2DParameters,
+						TEXTUREGROUP_World);
+
+				// Create metallic sampling expression, if needed.
+				if(!ExpressionMetallic)
+				{
+					ExpressionMetallic = NewObject<UMaterialExpressionTextureSample>(Material,
+						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+				}
+
+				// Record generating parameter.
+				ExpressionMetallic->Desc = GeneratingParameterName;
+
+				ExpressionMetallic->Texture = TextureMetallic;
+				ExpressionMetallic->SamplerType = SAMPLERTYPE_LinearGrayscale;
+
+				// Offset node placement.
+				ExpressionMetallic->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+				ExpressionMetallic->MaterialExpressionEditorY = MaterialNodeY;
+				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+				// Assign expression to material.
+				Material->Expressions.Add(ExpressionMetallic);
+				Material->Metallic.Expression = ExpressionMetallic;
+
+				bExpressionCreated = true;
+			}
+		}
+	}
+
+	int32 ParmNameMetallicValueIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_VALUE_METALLIC, NodeParamNames);
+
+	if(ParmNameMetallicValueIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_METALLIC);
+	}
+
+	if(!bExpressionCreated && ParmNameMetallicValueIdx >= 0)
+	{
+		// Metallic value is available.
+
+		float MetallicValue = 0.0f;
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameMetallicValueIdx];
+
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &MetallicValue,
+				ParmInfo.floatValuesIndex, 1))
+		{
+			UMaterialExpressionConstant* ExpressionMetallicValue =
+				Cast<UMaterialExpressionConstant>(Material->Metallic.Expression);
+
+			// Create color const expression and add it to material, if we don't have one.
+			if(!ExpressionMetallicValue)
+			{
+				// Otherwise new expression is of a different type.
+				if(Material->Metallic.Expression)
+				{
+					Material->Metallic.Expression->ConditionalBeginDestroy();
+					Material->Metallic.Expression = nullptr;
+				}
+
+				ExpressionMetallicValue = NewObject<UMaterialExpressionConstant>(Material,
+					UMaterialExpressionConstant::StaticClass(), NAME_None, RF_Transactional);
+			}
+
+			// Record generating parameter.
+			ExpressionMetallicValue->Desc = GeneratingParameterName;
+
+			ExpressionMetallicValue->R = MetallicValue;
+
+			// Offset node placement.
+			ExpressionMetallicValue->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+			ExpressionMetallicValue->MaterialExpressionEditorY = MaterialNodeY;
+			MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+			// Assign expression to material.
+			Material->Expressions.Add(ExpressionMetallicValue);
+			Material->Metallic.Expression = ExpressionMetallicValue;
+
+			bExpressionCreated = true;
+		}
+	}
+
+	return bExpressionCreated;
 }
 
 
