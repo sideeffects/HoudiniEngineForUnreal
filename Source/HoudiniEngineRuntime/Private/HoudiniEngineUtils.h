@@ -391,7 +391,8 @@ protected:
 
 	/** Extract all unique material ids for all geo object parts. **/
 	static bool ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds,
-		TSet<HAPI_MaterialId>& InstancerMaterialIds);
+		TSet<HAPI_MaterialId>& InstancerMaterialIds,
+		TMap<FHoudiniGeoPartObject, HAPI_MaterialId>& InstancerMaterialMap);
 
 	/** Helper function to locate first Material expression of given class within given expression subgraph. **/
 	static UMaterialExpression* MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass);

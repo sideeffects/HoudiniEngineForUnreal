@@ -2440,7 +2440,9 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	// Retrieve all used unique material ids.
 	TSet<HAPI_MaterialId> UniqueMaterialIds;
 	TSet<HAPI_MaterialId> UniqueInstancerMaterialIds;
-	FHoudiniEngineUtils::ExtractUniqueMaterialIds(AssetInfo, UniqueMaterialIds, UniqueInstancerMaterialIds);
+	TMap<FHoudiniGeoPartObject, HAPI_MaterialId> InstancerMaterialMap;
+	FHoudiniEngineUtils::ExtractUniqueMaterialIds(AssetInfo, UniqueMaterialIds, UniqueInstancerMaterialIds,
+		InstancerMaterialMap);
 
 	// Map to hold materials.
 	TMap<FString, UMaterial*> Materials;
@@ -6166,11 +6168,12 @@ FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVer
 
 bool
 FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds,
-	TSet<HAPI_MaterialId>& InstancerMaterialIds)
+	TSet<HAPI_MaterialId>& InstancerMaterialIds, TMap<FHoudiniGeoPartObject, HAPI_MaterialId>& InstancerMaterialMap)
 {
-	// Empty passed material id containers.
+	// Empty passed in containers.
 	MaterialIds.Empty();
 	InstancerMaterialIds.Empty();
+	InstancerMaterialMap.Empty();
 
 	TArray<HAPI_ObjectInfo> ObjectInfos;
 	ObjectInfos.SetNumUninitialized(AssetInfo.objectCount);
@@ -6243,6 +6246,9 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 
 						if(-1 != InstanceMaterialId)
 						{
+							FHoudiniGeoPartObject GeoPartObject(ObjectInfo.id, GeoInfo.id, PartInfo.id, 0);
+							InstancerMaterialMap.Add(GeoPartObject, InstanceMaterialId);
+
 							InstancerMaterialIds.Add(InstanceMaterialId);
 						}
 					}
