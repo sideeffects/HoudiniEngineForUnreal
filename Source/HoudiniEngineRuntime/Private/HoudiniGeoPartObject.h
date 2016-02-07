@@ -122,6 +122,9 @@ public:
 	/** Name of group which was used for splitting, empty if there's none. **/
 	FString SplitName;
 
+	/** Name of the instancer material, if available. **/
+	FString InstancerMaterialName;
+
 	/** Id of corresponding HAPI Asset. **/
 	HAPI_AssetId AssetId;
 
@@ -186,10 +189,16 @@ public:
 
 			/** Is set to true when referenced object is a sphere. **/
 			uint32 bIsSphere : 1;
+
+			/** Is set to true when instancer material is available. **/
+			uint32 bInstancerMaterialAvailable : 1;
 		};
 
 		uint32 HoudiniGeoPartObjectFlagsPacked;
 	};
+
+	/** Temporary variable holding serialization version. **/
+	uint32 HoudiniGeoPartObjectVersion;
 };
 
 
