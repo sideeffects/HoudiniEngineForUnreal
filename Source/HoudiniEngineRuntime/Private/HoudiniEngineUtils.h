@@ -258,7 +258,8 @@ public:
 
 	/** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
 	static void HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo,
-		const TSet<HAPI_MaterialId>& UniqueMaterialIds, TMap<FString, UMaterial*>& Materials);
+		const TSet<HAPI_MaterialId>& UniqueMaterialIds, const TSet<HAPI_MaterialId>& UniqueInstancerMaterialIds,
+		TMap<FString, UMaterial*>& Materials);
 
 	/** Create various material components. **/
 	static bool CreateMaterialComponentDiffuse(UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -389,7 +390,8 @@ protected:
 	static const FString GetStatusString(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity);
 
 	/** Extract all unique material ids for all geo object parts. **/
-	static bool ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds);
+	static bool ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds,
+		TSet<HAPI_MaterialId>& InstancerMaterialIds);
 
 	/** Helper function to locate first Material expression of given class within given expression subgraph. **/
 	static UMaterialExpression* MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass);
