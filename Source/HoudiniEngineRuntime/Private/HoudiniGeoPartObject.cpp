@@ -16,6 +16,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
+#include "HoudiniGeoPartObjectVersion.h"
 
 
 uint32
@@ -69,6 +70,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
 	SplitName(TEXT("")),
+	InstancerMaterialName(TEXT("")),
 	AssetId(-1),
 	ObjectId(-1),
 	GeoId(-1),
@@ -88,7 +90,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsTransacting(false),
 	bHasCustomName(false),
 	bIsBox(false),
-	bIsSphere(false)
+	bIsSphere(false),
+	bInstancerMaterialAvailable(false),
+	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
 }
@@ -100,6 +104,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	ObjectName(TEXT("Empty")),
 	PartName(TEXT("Empty")),
 	SplitName(TEXT("")),
+	InstancerMaterialName(TEXT("")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
@@ -119,7 +124,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsTransacting(false),
 	bHasCustomName(false),
 	bIsBox(false),
-	bIsSphere(false)
+	bIsSphere(false),
+	bInstancerMaterialAvailable(false),
+	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
 }
@@ -132,6 +139,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	ObjectName(InObjectName),
 	PartName(InPartName),
 	SplitName(TEXT("")),
+	InstancerMaterialName(TEXT("")),
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
@@ -151,7 +159,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsTransacting(false),
 	bHasCustomName(false),
 	bIsBox(false),
-	bIsSphere(false)
+	bIsSphere(false),
+	bInstancerMaterialAvailable(false),
+	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
 }
@@ -162,6 +172,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	ObjectName(GeoPartObject.ObjectName),
 	PartName(GeoPartObject.PartName),
 	SplitName(GeoPartObject.SplitName),
+	InstancerMaterialName(GeoPartObject.InstancerMaterialName),
 	AssetId(GeoPartObject.AssetId),
 	ObjectId(GeoPartObject.ObjectId),
 	GeoId(GeoPartObject.GeoId),
@@ -181,7 +192,9 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	bIsTransacting(GeoPartObject.bIsTransacting),
 	bHasCustomName(GeoPartObject.bHasCustomName),
 	bIsBox(GeoPartObject.bIsBox),
-	bIsSphere(GeoPartObject.bIsSphere)
+	bIsSphere(GeoPartObject.bIsSphere),
+	bInstancerMaterialAvailable(GeoPartObject.bInstancerMaterialAvailable),
+	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 	if(bCopyLoaded)
 	{
@@ -281,14 +294,20 @@ FHoudiniGeoPartObject::GetTypeHash() const
 void
 FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 {
-	int32 Version = 0; // Placeholder until we need to use it.
-	Ar << Version;
+	HoudiniGeoPartObjectVersion = VER_HOUDINI_ENGINE_GEOPARTOBJECT_AUTOMATIC_VERSION;
+	Ar << HoudiniGeoPartObjectVersion;
 
 	Ar << TransformMatrix;
 
 	Ar << ObjectName;
 	Ar << PartName;
 	Ar << SplitName;
+
+	// Serialize instancer material.
+	if(HoudiniGeoPartObjectVersion >= VER_HOUDINI_ENGINE_GEOPARTOBJECT_INSTANCER_MATERIAL_NAME)
+	{
+		Ar << InstancerMaterialName;
+	}
 
 	Ar << AssetId;
 	Ar << ObjectId;

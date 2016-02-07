@@ -43,7 +43,7 @@ public:
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject, const FString& InstancePathName);
 
 	/** Create an instance of input field from another input field. **/
-	static UHoudiniAssetInstanceInputField* Create(UHoudiniAssetComponent* InHoudiniAssetComponent, 
+	static UHoudiniAssetInstanceInputField* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetInstanceInputField* OtherInputField);
 
 /** UObject methods. **/
@@ -70,20 +70,20 @@ public:
 	/** Return the static mesh associated with an instance variation. **/
 	UStaticMesh* GetInstanceVariation(int32 VariationIndex) const;	
 
-	/** Add a variation to the instancing **/
-	void AddInstanceVariation(UStaticMesh * InstaticMesh, int32 VariationIdx);
+	/** Add a variation to the instancing. **/
+	void AddInstanceVariation(UStaticMesh* InstaticMesh, int32 VariationIdx);
 
-	/** Replace the instance variation in a particular slot **/
-	void ReplaceInstanceVariation(UStaticMesh * InStaticMesh, int Index);
+	/** Replace the instance variation in a particular slot. **/
+	void ReplaceInstanceVariation(UStaticMesh* InStaticMesh, int Index);
 
-	/** Remove a variation from instancing **/
+	/** Remove a variation from instancing. **/
 	void RemoveInstanceVariation(int32 VariationIdx);
 
-	/** Returns the number of instance variations **/
+	/** Returns the number of instance variations. **/
 	int32 InstanceVariationCount();
 
 	/** Given a static mesh, find which slot(s) it occupies in the instance variations. **/
-	void FindStaticMeshIndices(UStaticMesh * InStaticMesh, TArray<int> & Indices);
+	void FindStaticMeshIndices(UStaticMesh* InStaticMesh, TArray<int> & Indices);
 
 	/** Get material replacements. **/
 	bool GetMaterialReplacementMeshes(UMaterialInterface* Material,
