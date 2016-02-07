@@ -4192,7 +4192,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			{
 				// Material was not found, we need to create it.
 
-				FString MaterialName;
+				FString MaterialName = TEXT("");
 
 				// Create material package and get material name.
 				UPackage* MaterialPackage =
