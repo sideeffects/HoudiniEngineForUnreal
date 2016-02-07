@@ -2677,6 +2677,22 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 				{
 					if(PartInfo.pointCount > 0)
 					{
+						// We need to check whether this instancer has a material.
+						HAPI_MaterialId const* FoundInstancerMaterialId = 
+							InstancerMaterialMap.Find(HoudiniGeoPartObject);
+						if(FoundInstancerMaterialId)
+						{
+							HAPI_MaterialId InstancerMaterialId = *FoundInstancerMaterialId;
+
+							FString InstancerMaterialShopName = TEXT("");
+							if(FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, InstancerMaterialId,
+								InstancerMaterialShopName))
+							{
+								HoudiniGeoPartObject.bInstancerMaterialAvailable = true;
+								HoudiniGeoPartObject.InstancerMaterialName = InstancerMaterialShopName;
+							}
+						}
+
 						// Instancer objects have no mesh assigned.
 						StaticMesh = nullptr;
 						StaticMeshesOut.Add(HoudiniGeoPartObject, StaticMesh);
@@ -4167,8 +4183,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 
 		if(MaterialInfo.exists)
 		{
-			FString MaterialShopName;
-
+			FString MaterialShopName = TEXT("");
 			if(!FHoudiniEngineUtils::GetUniqueMaterialShopName(AssetId, MaterialId, MaterialShopName))
 			{
 				continue;
@@ -6256,7 +6271,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 
 						if(-1 != InstanceMaterialId)
 						{
-							FHoudiniGeoPartObject GeoPartObject(ObjectInfo.id, GeoInfo.id, PartInfo.id, 0);
+							FHoudiniGeoPartObject GeoPartObject(AssetInfo.id, ObjectInfo.id, GeoInfo.id, PartInfo.id);
 							InstancerMaterialMap.Add(GeoPartObject, InstanceMaterialId);
 
 							InstancerMaterialIds.Add(InstanceMaterialId);
