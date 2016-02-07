@@ -4213,6 +4213,12 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 				bCreatedNewMaterial = true;
 			}
 
+			// If this is an instancer material, enable the instancing flag.
+			if(UniqueInstancerMaterialIds.Contains(MaterialId))
+			{
+				Material->bUsedWithInstancedStaticMeshes = true;
+			}
+
 			// Get node parameters.
 			TArray<HAPI_ParmInfo> NodeParams;
 			NodeParams.SetNumUninitialized(NodeInfo.parmCount);
