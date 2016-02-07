@@ -4586,11 +4586,6 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 			// Record generating parameter.
 			ExpressionConstant4Vector->Desc = GeneratingParameterNameUniformColor;
 			ExpressionConstant4Vector->Constant = Color;
-
-			// Offset node placement.
-			//ExpressionDiffuseColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
-			//ExpressionDiffuseColor->MaterialExpressionEditorY = MaterialNodeY;
-			//MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
 		}
 	}
 
@@ -5412,7 +5407,195 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
 {
-	return true;
+	bool bExpressionCreated = false;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
+	// Roughness texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = false;
+
+	// See if roughness texture is available.
+	int32 ParmNameRoughnessIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_0, NodeParamNames);
+
+	if(ParmNameRoughnessIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_0);
+	}
+	else
+	{
+		ParmNameRoughnessIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1, NodeParamNames);
+
+		if(ParmNameRoughnessIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1);
+		}
+	}
+
+	if(ParmNameRoughnessIdx >= 0)
+	{
+		TArray<char> ImageBuffer;
+
+		// Retrieve color plane.
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameRoughnessIdx].id, MaterialInfo, ImageBuffer,
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
+		{
+			UMaterialExpressionTextureSample* ExpressionRoughness =
+				Cast<UMaterialExpressionTextureSample>(Material->Roughness.Expression);
+
+			UTexture2D* TextureRoughness = nullptr;
+			if(ExpressionRoughness)
+			{
+				TextureRoughness = Cast<UTexture2D>(ExpressionRoughness->Texture);
+			}
+			else
+			{
+				// Otherwise new expression is of a different type.
+				if(Material->Roughness.Expression)
+				{
+					Material->Roughness.Expression->ConditionalBeginDestroy();
+					Material->Roughness.Expression = nullptr;
+				}
+			}
+
+			UPackage* TextureRoughnessPackage = nullptr;
+			if(TextureRoughness)
+			{
+				TextureRoughnessPackage = Cast<UPackage>(TextureRoughness->GetOuter());
+			}
+
+			HAPI_ImageInfo ImageInfo;
+			Result = FHoudiniApi::GetImageInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+				MaterialInfo.id, &ImageInfo);
+
+			if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+			{
+				// Create texture.
+				FString TextureRoughnessName;
+				bool bCreatedNewTextureRoughness = false;
+
+				// Create roughness texture package, if this is a new roughness texture.
+				if(!TextureRoughnessPackage)
+				{
+					TextureRoughnessPackage =
+						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
+							TextureRoughnessName);
+				}
+
+				// Create roughness texture, if we need to create one.
+				if(!TextureRoughness)
+				{
+					bCreatedNewTextureRoughness = true;
+				}
+
+				// Reuse existing roughness texture, or create new one.
+				TextureRoughness =
+					FHoudiniEngineUtils::CreateUnrealTexture(TextureRoughness, ImageInfo,
+						TextureRoughnessPackage, TextureRoughnessName, ImageBuffer,
+						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS, CreateTexture2DParameters,
+						TEXTUREGROUP_World);
+
+				// Create roughness sampling expression, if needed.
+				if(!ExpressionRoughness)
+				{
+					ExpressionRoughness = NewObject<UMaterialExpressionTextureSample>(Material,
+						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+				}
+
+				// Record generating parameter.
+				ExpressionRoughness->Desc = GeneratingParameterName;
+
+				ExpressionRoughness->Texture = TextureRoughness;
+				ExpressionRoughness->SamplerType = SAMPLERTYPE_LinearGrayscale;
+
+				// Offset node placement.
+				ExpressionRoughness->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+				ExpressionRoughness->MaterialExpressionEditorY = MaterialNodeY;
+				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+				// Assign expression to material.
+				Material->Expressions.Add(ExpressionRoughness);
+				Material->Roughness.Expression = ExpressionRoughness;
+
+				bExpressionCreated = true;
+			}
+		}
+	}
+
+	int32 ParmNameRoughnessValueIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0, NodeParamNames);
+
+	if(ParmNameRoughnessValueIdx >= 0)
+	{
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0);
+	}
+	else
+	{
+		ParmNameRoughnessValueIdx =
+			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1, NodeParamNames);
+
+		if(ParmNameRoughnessValueIdx >= 0)
+		{
+			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1);
+		}
+	}
+
+	if(!bExpressionCreated && ParmNameRoughnessValueIdx >= 0)
+	{
+		// Roughness value is available.
+
+		float RoughnessValue = 0.0f;
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameRoughnessValueIdx];
+
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &RoughnessValue,
+				ParmInfo.floatValuesIndex, 1))
+		{
+			UMaterialExpressionConstant* ExpressionRoughnessValue =
+				Cast<UMaterialExpressionConstant>(Material->Roughness.Expression);
+
+			// Create color const expression and add it to material, if we don't have one.
+			if(!ExpressionRoughnessValue)
+			{
+				// Otherwise new expression is of a different type.
+				if(Material->Roughness.Expression)
+				{
+					Material->Roughness.Expression->ConditionalBeginDestroy();
+					Material->Roughness.Expression = nullptr;
+				}
+
+				ExpressionRoughnessValue = NewObject<UMaterialExpressionConstant>(Material,
+					UMaterialExpressionConstant::StaticClass(), NAME_None, RF_Transactional);
+			}
+
+			// Record generating parameter.
+			ExpressionRoughnessValue->Desc = GeneratingParameterName;
+
+			ExpressionRoughnessValue->R = RoughnessValue;
+
+			// Offset node placement.
+			ExpressionRoughnessValue->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+			ExpressionRoughnessValue->MaterialExpressionEditorY = MaterialNodeY;
+			MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+			// Assign expression to material.
+			Material->Expressions.Add(ExpressionRoughnessValue);
+			Material->Roughness.Expression = ExpressionRoughnessValue;
+
+			bExpressionCreated = true;
+		}
+	}
+
+	return bExpressionCreated;
 }
 
 
