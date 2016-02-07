@@ -315,7 +315,7 @@ UHoudiniAssetInstanceInputField::GetInstanceVariation(int32 VariationIndex) cons
 
 
 void 
-UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh, int32 VariationIdx)
+UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh* InStaticMesh, int32 VariationIdx)
 {
 	check(InStaticMesh);
 	
@@ -324,8 +324,8 @@ UHoudiniAssetInstanceInputField::AddInstanceVariation(UStaticMesh * InStaticMesh
 	ScaleOffsets.Insert(FVector(1, 1, 1),VariationIdx);
 	bScaleOffsetsLinearlyArray.Insert(true,VariationIdx);
 
-	// Create instanced component.	
-	CreateInstancedComponent( VariationIdx );
+	// Create instanced component.
+	CreateInstancedComponent(VariationIdx);
 	UpdateInstanceTransforms(true);
 }
 
@@ -363,7 +363,7 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation(int32 VariationIdx)
 }
 
 void
-UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(UStaticMesh * InStaticMesh, int Index)
+UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(UStaticMesh* InStaticMesh, int Index)
 {
 	check(InStaticMesh);
 	check(Index >= 0 && Index < StaticMeshes.Num());
@@ -375,7 +375,7 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation(UStaticMesh * InStatic
 }
 
 void 
-UHoudiniAssetInstanceInputField::FindStaticMeshIndices(UStaticMesh * InStaticMesh, TArray<int> & Indices)
+UHoudiniAssetInstanceInputField::FindStaticMeshIndices(UStaticMesh* InStaticMesh, TArray<int> & Indices)
 {
 	for(int32 Idx = 0; Idx < StaticMeshes.Num(); ++Idx)
 	{
