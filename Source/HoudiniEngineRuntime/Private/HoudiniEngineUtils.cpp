@@ -5413,7 +5413,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 	// Name of generating Houdini parameter.
 	FString GeneratingParameterName = TEXT("");
 
-	// Roughness texture creation parameters.
+	// Metallic texture creation parameters.
 	FCreateTexture2DParameters CreateTexture2DParameters;
 	CreateTexture2DParameters.SourceGuidHash = FGuid();
 	CreateTexture2DParameters.bUseAlpha = false;
@@ -5421,55 +5421,45 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 	CreateTexture2DParameters.bDeferCompression = true;
 	CreateTexture2DParameters.bSRGB = false;
 
-	// See if roughness texture is available.
-	int32 ParmNameRoughnessIdx =
-		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_0, NodeParamNames);
+	// See if metallic texture is available.
+	int32 ParmNameMetallicIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_METALLIC, NodeParamNames);
 
-	if(ParmNameRoughnessIdx >= 0)
+	if(ParmNameMetallicIdx >= 0)
 	{
-		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_0);
-	}
-	else
-	{
-		ParmNameRoughnessIdx =
-			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1, NodeParamNames);
-
-		if(ParmNameRoughnessIdx >= 0)
-		{
-			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1);
-		}
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_MAP_METALLIC);
 	}
 
-	if(ParmNameRoughnessIdx >= 0)
+	if(ParmNameMetallicIdx >= 0)
 	{
 		TArray<char> ImageBuffer;
 
 		// Retrieve color plane.
-		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameRoughnessIdx].id, MaterialInfo, ImageBuffer,
+		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameMetallicIdx].id, MaterialInfo, ImageBuffer,
 			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
-			UMaterialExpressionTextureSample* ExpressionRoughness =
-				Cast<UMaterialExpressionTextureSample>(Material->Roughness.Expression);
+			UMaterialExpressionTextureSample* ExpressionMetallic =
+				Cast<UMaterialExpressionTextureSample>(Material->Metallic.Expression);
 
-			UTexture2D* TextureRoughness = nullptr;
-			if(ExpressionRoughness)
+			UTexture2D* TextureMetallic = nullptr;
+			if(ExpressionMetallic)
 			{
-				TextureRoughness = Cast<UTexture2D>(ExpressionRoughness->Texture);
+				TextureMetallic = Cast<UTexture2D>(ExpressionMetallic->Texture);
 			}
 			else
 			{
 				// Otherwise new expression is of a different type.
-				if(Material->Roughness.Expression)
+				if(Material->Metallic.Expression)
 				{
-					Material->Roughness.Expression->ConditionalBeginDestroy();
-					Material->Roughness.Expression = nullptr;
+					Material->Metallic.Expression->ConditionalBeginDestroy();
+					Material->Metallic.Expression = nullptr;
 				}
 			}
 
-			UPackage* TextureRoughnessPackage = nullptr;
-			if(TextureRoughness)
+			UPackage* TextureMetallicPackage = nullptr;
+			if(TextureMetallic)
 			{
-				TextureRoughnessPackage = Cast<UPackage>(TextureRoughness->GetOuter());
+				TextureMetallicPackage = Cast<UPackage>(TextureMetallic->GetOuter());
 			}
 
 			HAPI_ImageInfo ImageInfo;
@@ -5479,117 +5469,107 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 			if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
 			{
 				// Create texture.
-				FString TextureRoughnessName;
-				bool bCreatedNewTextureRoughness = false;
+				FString TextureMetallicName;
+				bool bCreatedNewTextureMetallic = false;
 
-				// Create roughness texture package, if this is a new roughness texture.
-				if(!TextureRoughnessPackage)
+				// Create metallic texture package, if this is a new metallic texture.
+				if(!TextureMetallicPackage)
 				{
-					TextureRoughnessPackage =
+					TextureMetallicPackage =
 						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
-							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
-							TextureRoughnessName);
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
+							TextureMetallicName);
 				}
 
-				// Create roughness texture, if we need to create one.
-				if(!TextureRoughness)
+				// Create metallic texture, if we need to create one.
+				if(!TextureMetallic)
 				{
-					bCreatedNewTextureRoughness = true;
+					bCreatedNewTextureMetallic = true;
 				}
 
-				// Reuse existing roughness texture, or create new one.
-				TextureRoughness =
-					FHoudiniEngineUtils::CreateUnrealTexture(TextureRoughness, ImageInfo,
-						TextureRoughnessPackage, TextureRoughnessName, ImageBuffer,
-						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS, CreateTexture2DParameters,
+				// Reuse existing metallic texture, or create new one.
+				TextureMetallic =
+					FHoudiniEngineUtils::CreateUnrealTexture(TextureMetallic, ImageInfo,
+						TextureMetallicPackage, TextureMetallicName, ImageBuffer,
+						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC, CreateTexture2DParameters,
 						TEXTUREGROUP_World);
 
-				// Create roughness sampling expression, if needed.
-				if(!ExpressionRoughness)
+				// Create metallic sampling expression, if needed.
+				if(!ExpressionMetallic)
 				{
-					ExpressionRoughness = NewObject<UMaterialExpressionTextureSample>(Material,
+					ExpressionMetallic = NewObject<UMaterialExpressionTextureSample>(Material,
 						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
 				}
 
 				// Record generating parameter.
-				ExpressionRoughness->Desc = GeneratingParameterName;
+				ExpressionMetallic->Desc = GeneratingParameterName;
 
-				ExpressionRoughness->Texture = TextureRoughness;
-				ExpressionRoughness->SamplerType = SAMPLERTYPE_LinearGrayscale;
+				ExpressionMetallic->Texture = TextureMetallic;
+				ExpressionMetallic->SamplerType = SAMPLERTYPE_LinearGrayscale;
 
 				// Offset node placement.
-				ExpressionRoughness->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
-				ExpressionRoughness->MaterialExpressionEditorY = MaterialNodeY;
+				ExpressionMetallic->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+				ExpressionMetallic->MaterialExpressionEditorY = MaterialNodeY;
 				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
 
 				// Assign expression to material.
-				Material->Expressions.Add(ExpressionRoughness);
-				Material->Roughness.Expression = ExpressionRoughness;
+				Material->Expressions.Add(ExpressionMetallic);
+				Material->Metallic.Expression = ExpressionMetallic;
 
 				bExpressionCreated = true;
 			}
 		}
 	}
 
-	int32 ParmNameRoughnessValueIdx =
-		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0, NodeParamNames);
+	int32 ParmNameMetallicValueIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_VALUE_METALLIC, NodeParamNames);
 
-	if(ParmNameRoughnessValueIdx >= 0)
+	if(ParmNameMetallicValueIdx >= 0)
 	{
-		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0);
-	}
-	else
-	{
-		ParmNameRoughnessValueIdx =
-			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1, NodeParamNames);
-
-		if(ParmNameRoughnessValueIdx >= 0)
-		{
-			GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1);
-		}
+		GeneratingParameterName = TEXT(HAPI_UNREAL_PARAM_VALUE_METALLIC);
 	}
 
-	if(!bExpressionCreated && ParmNameRoughnessValueIdx >= 0)
+	if(!bExpressionCreated && ParmNameMetallicValueIdx >= 0)
 	{
-		// Roughness value is available.
+		// Metallic value is available.
 
-		float RoughnessValue = 0.0f;
-		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameRoughnessValueIdx];
+		float MetallicValue = 0.0f;
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameMetallicValueIdx];
 
 		if(HAPI_RESULT_SUCCESS ==
-			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &RoughnessValue,
+			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &MetallicValue,
 				ParmInfo.floatValuesIndex, 1))
 		{
-			UMaterialExpressionConstant* ExpressionRoughnessValue =
-				Cast<UMaterialExpressionConstant>(Material->Roughness.Expression);
+			UMaterialExpressionConstant* ExpressionMetallicValue =
+				Cast<UMaterialExpressionConstant>(Material->Metallic.Expression);
 
 			// Create color const expression and add it to material, if we don't have one.
-			if(!ExpressionRoughnessValue)
+			if(!ExpressionMetallicValue)
 			{
 				// Otherwise new expression is of a different type.
-				if(Material->Roughness.Expression)
+				if(Material->Metallic.Expression)
 				{
-					Material->Roughness.Expression->ConditionalBeginDestroy();
-					Material->Roughness.Expression = nullptr;
+					Material->Metallic.Expression->ConditionalBeginDestroy();
+					Material->Metallic.Expression = nullptr;
 				}
 
-				ExpressionRoughnessValue = NewObject<UMaterialExpressionConstant>(Material,
+				ExpressionMetallicValue = NewObject<UMaterialExpressionConstant>(Material,
 					UMaterialExpressionConstant::StaticClass(), NAME_None, RF_Transactional);
 			}
 
 			// Record generating parameter.
-			ExpressionRoughnessValue->Desc = GeneratingParameterName;
+			ExpressionMetallicValue->Desc = GeneratingParameterName;
 
-			ExpressionRoughnessValue->R = RoughnessValue;
+			ExpressionMetallicValue->R = MetallicValue;
 
 			// Offset node placement.
-			ExpressionRoughnessValue->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
-			ExpressionRoughnessValue->MaterialExpressionEditorY = MaterialNodeY;
+			ExpressionMetallicValue->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+			ExpressionMetallicValue->MaterialExpressionEditorY = MaterialNodeY;
 			MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
 
 			// Assign expression to material.
-			Material->Expressions.Add(ExpressionRoughnessValue);
-			Material->Roughness.Expression = ExpressionRoughnessValue;
+			Material->Expressions.Add(ExpressionMetallicValue);
+			Material->Metallic.Expression = ExpressionMetallicValue;
 
 			bExpressionCreated = true;
 		}
