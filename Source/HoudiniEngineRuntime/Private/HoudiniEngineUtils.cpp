@@ -2439,13 +2439,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 	// Retrieve all used unique material ids.
 	TSet<HAPI_MaterialId> UniqueMaterialIds;
-	FHoudiniEngineUtils::ExtractUniqueMaterialIds(AssetInfo, UniqueMaterialIds);
+	TSet<HAPI_MaterialId> UniqueInstancerMaterialIds;
+	FHoudiniEngineUtils::ExtractUniqueMaterialIds(AssetInfo, UniqueMaterialIds, UniqueInstancerMaterialIds);
 
 	// Map to hold materials.
 	TMap<FString, UMaterial*> Materials;
 
 	// Create materials.
-	FHoudiniEngineUtils::HapiCreateMaterials(HoudiniAssetComponent, AssetInfo, UniqueMaterialIds, Materials);
+	FHoudiniEngineUtils::HapiCreateMaterials(HoudiniAssetComponent, AssetInfo, UniqueMaterialIds,
+		UniqueInstancerMaterialIds, Materials);
 
 	// Cache all materials inside the component.
 	HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments = Materials;
@@ -4102,7 +4104,7 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint(UHoudiniAssetComponent* Ho
 void
 FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const HAPI_AssetInfo& AssetInfo, const TSet<HAPI_MaterialId>& UniqueMaterialIds,
-	TMap<FString, UMaterial*>& Materials)
+	const TSet<HAPI_MaterialId>& UniqueInstancerMaterialIds, TMap<FString, UMaterial*>& Materials)
 {
 #if WITH_EDITOR
 
@@ -6157,10 +6159,12 @@ FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVer
 
 
 bool
-FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds)
+FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, TSet<HAPI_MaterialId>& MaterialIds,
+	TSet<HAPI_MaterialId>& InstancerMaterialIds)
 {
-	// Empty passed material id container.
+	// Empty passed material id containers.
 	MaterialIds.Empty();
+	InstancerMaterialIds.Empty();
 
 	TArray<HAPI_ObjectInfo> ObjectInfos;
 	ObjectInfos.SetNumUninitialized(AssetInfo.objectCount);
@@ -6230,6 +6234,11 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(const HAPI_AssetInfo& AssetInfo, T
 						}
 
 						MaterialIds.Add(InstanceMaterialId);
+
+						if(-1 != InstanceMaterialId)
+						{
+							InstancerMaterialIds.Add(InstanceMaterialId);
+						}
 					}
 				}
 			}
