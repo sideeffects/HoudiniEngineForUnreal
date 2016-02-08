@@ -84,9 +84,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsCollidable(false),
 	bIsRenderCollidable(false),
 	bIsLoaded(false),
-	bHasNativeHoudiniMaterial(false),
-	bHasUnrealMaterialAssigned(false),
-	bNativeHoudiniMaterialRefetch(false),
+	bPlaceHolderFlags(0),
 	bIsTransacting(false),
 	bHasCustomName(false),
 	bIsBox(false),
@@ -119,9 +117,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsCollidable(false),
 	bIsRenderCollidable(false),
 	bIsLoaded(false),
-	bHasNativeHoudiniMaterial(false),
-	bHasUnrealMaterialAssigned(false),
-	bNativeHoudiniMaterialRefetch(false),
+	bPlaceHolderFlags(0),
 	bIsTransacting(false),
 	bHasCustomName(false),
 	bIsBox(false),
@@ -155,9 +151,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsCollidable(false),
 	bIsRenderCollidable(false),
 	bIsLoaded(false),
-	bHasNativeHoudiniMaterial(false),
-	bHasUnrealMaterialAssigned(false),
-	bNativeHoudiniMaterialRefetch(false),
+	bPlaceHolderFlags(0),
 	bIsTransacting(false),
 	bHasCustomName(false),
 	bIsBox(false),
@@ -189,9 +183,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	bIsCollidable(GeoPartObject.bIsCollidable),
 	bIsRenderCollidable(GeoPartObject.bIsRenderCollidable),
 	bIsLoaded(GeoPartObject.bIsLoaded),
-	bHasNativeHoudiniMaterial(GeoPartObject.bHasNativeHoudiniMaterial),
-	bHasUnrealMaterialAssigned(GeoPartObject.bHasUnrealMaterialAssigned),
-	bNativeHoudiniMaterialRefetch(GeoPartObject.bNativeHoudiniMaterialRefetch),
+	bPlaceHolderFlags(GeoPartObject.bPlaceHolderFlags),
 	bIsTransacting(GeoPartObject.bIsTransacting),
 	bHasCustomName(GeoPartObject.bHasCustomName),
 	bIsBox(GeoPartObject.bIsBox),
@@ -395,35 +387,6 @@ FHoudiniGeoPartObject::HasParameters(HAPI_AssetId InAssetId) const
 	FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
 
 	return (NodeInfo.parmCount > 0);
-}
-
-
-void
-FHoudiniGeoPartObject::SetUnrealMaterialAssigned()
-{
-	bHasUnrealMaterialAssigned = true;
-}
-
-
-bool
-FHoudiniGeoPartObject::HasUnrealMaterialAssigned() const
-{
-	return bHasUnrealMaterialAssigned;
-}
-
-
-void
-FHoudiniGeoPartObject::ResetUnrealMaterialAssigned()
-{
-	bHasUnrealMaterialAssigned = false;
-	bNativeHoudiniMaterialRefetch = true;
-}
-
-
-bool
-FHoudiniGeoPartObject::HasNativeHoudiniMaterial() const
-{
-	return bHasNativeHoudiniMaterial;
 }
 
 

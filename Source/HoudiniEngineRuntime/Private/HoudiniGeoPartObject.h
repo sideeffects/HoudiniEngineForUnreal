@@ -83,18 +83,6 @@ public:
 	/** Return true if corresponding geometry has changed. **/
 	bool HasGeoChanged() const;
 
-	/** Set to true flag which specifies that Unreal material has been assigned. **/
-	void SetUnrealMaterialAssigned();
-
-	/** Return true if this object has Unreal material assigned. **/
-	bool HasUnrealMaterialAssigned() const;
-
-	/** Reset flag which specifies that Unreal material has been assigned. **/
-	void ResetUnrealMaterialAssigned();
-
-	/** Return true if this object has native Houdini material. **/
-	bool HasNativeHoudiniMaterial() const;
-
 	/** Return true if this object has a custom name. **/
 	bool HasCustomName() const;
 
@@ -172,14 +160,8 @@ public:
 			/** Is set to true when referenced object has just been loaded. **/
 			uint32 bIsLoaded : 1;
 
-			/** Is set to true if referenced Geo Part Object object has native Houdini material. **/
-			uint32 bHasNativeHoudiniMaterial : 1;
-
-			/** Is set to true if referenced object has Unreal material assigned. **/
-			uint32 bHasUnrealMaterialAssigned : 1;
-
-			/** Is set to true when native material needs to be refetched. **/
-			uint32 bNativeHoudiniMaterialRefetch : 1;
+			/** Unused flags. **/
+			uint32 bPlaceHolderFlags : 3;
 
 			/** Is set to true when referenced object has been loaded during transaction. **/
 			uint32 bIsTransacting : 1;

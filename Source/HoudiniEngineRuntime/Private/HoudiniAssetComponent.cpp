@@ -2949,28 +2949,6 @@ UHoudiniAssetComponent::LocateGeoPartObject(UStaticMesh* StaticMesh) const
 
 
 bool
-UHoudiniAssetComponent::CheckMaterialInformationChanged(FHoudiniGeoPartObject& OtherHoudiniGeoPartObject)
-{
-	for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
-	{
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
-
-		if(OtherHoudiniGeoPartObject == HoudiniGeoPartObject)
-		{
-			OtherHoudiniGeoPartObject.bHasNativeHoudiniMaterial = HoudiniGeoPartObject.bHasNativeHoudiniMaterial;
-			OtherHoudiniGeoPartObject.bHasUnrealMaterialAssigned = HoudiniGeoPartObject.bHasUnrealMaterialAssigned;
-			OtherHoudiniGeoPartObject.bNativeHoudiniMaterialRefetch =
-				HoudiniGeoPartObject.bNativeHoudiniMaterialRefetch;
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
-
-bool
 UHoudiniAssetComponent::IsPlayModeActive() const
 {
 	return bIsPlayModeActive;
