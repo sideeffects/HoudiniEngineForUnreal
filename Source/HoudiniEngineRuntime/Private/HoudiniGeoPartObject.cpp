@@ -93,6 +93,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsBox(false),
 	bIsSphere(false),
 	bInstancerMaterialAvailable(false),
+	bIsVolume(false),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
@@ -127,6 +128,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsBox(false),
 	bIsSphere(false),
 	bInstancerMaterialAvailable(false),
+	bIsVolume(false),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
@@ -162,6 +164,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsBox(false),
 	bIsSphere(false),
 	bInstancerMaterialAvailable(false),
+	bIsVolume(false),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
@@ -195,6 +198,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	bIsBox(GeoPartObject.bIsBox),
 	bIsSphere(GeoPartObject.bIsSphere),
 	bInstancerMaterialAvailable(GeoPartObject.bInstancerMaterialAvailable),
+	bIsVolume(GeoPartObject.bIsVolume),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 	if(bCopyLoaded)
@@ -236,6 +240,13 @@ bool
 FHoudiniGeoPartObject::IsSphere() const
 {
 	return bIsSphere;
+}
+
+
+bool
+FHoudiniGeoPartObject::IsVolume() const
+{
+	return bIsVolume;
 }
 
 

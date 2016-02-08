@@ -65,6 +65,9 @@ public:
 	/** Return true if this geo part object is a sphere. **/
 	bool IsSphere() const;
 
+	/** Return true if this geo part object is a volume. **/
+	bool IsVolume() const;
+
 	/** Return true if this geo part object has just been loaded. **/
 	bool IsLoaded() const;
 
@@ -192,6 +195,9 @@ public:
 
 			/** Is set to true when instancer material is available. **/
 			uint32 bInstancerMaterialAvailable : 1;
+
+			/** Is set to true when referenced object is a volume. **/
+			uint32 bIsVolume : 1;
 		};
 
 		uint32 HoudiniGeoPartObjectFlagsPacked;
