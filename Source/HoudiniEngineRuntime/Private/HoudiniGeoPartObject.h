@@ -190,12 +190,13 @@ public:
 };
 
 
-/** Function used by hasing containers to create a unique hash for this type of object. **/
+/** Function used by hashing containers to create a unique hash for this type of object. **/
 HOUDINIENGINERUNTIME_API uint32 GetTypeHash(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 
 /** Serialization function. **/
 HOUDINIENGINERUNTIME_API FArchive& operator<<(FArchive& Ar, FHoudiniGeoPartObject& HoudiniGeoPartObject);
+
 
 /** Functor used to sort geo part objects. **/
 struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObjectSortPredicate
