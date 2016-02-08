@@ -2897,9 +2897,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 					// Attempt to locate static mesh from previous instantiation.
 					UStaticMesh* const* FoundStaticMesh = StaticMeshesIn.Find(HoudiniGeoPartObject);
 
-					// See if materials have changed for this geo part object.
-					HoudiniAssetComponent->CheckMaterialInformationChanged(HoudiniGeoPartObject);
-
 					// Flag whether we need to rebuild the mesh.
 					bool bRebuildStaticMesh = false;
 
