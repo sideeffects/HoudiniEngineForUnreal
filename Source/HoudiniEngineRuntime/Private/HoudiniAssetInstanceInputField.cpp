@@ -127,7 +127,7 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 				Collector.AddReferencedObject(StaticMesh, InThis);
 			}
 		}
-		
+
 		for(int32 Idx = 0; Idx < HoudiniAssetInstanceInputField->InstancedStaticMeshComponents.Num(); ++Idx)
 		{
 			UInstancedStaticMeshComponent* InstancedStaticMeshComponent =
@@ -138,7 +138,6 @@ UHoudiniAssetInstanceInputField::AddReferencedObjects(UObject* InThis, FReferenc
 				Collector.AddReferencedObject(InstancedStaticMeshComponent, InThis);
 			}
 		}
-		
 	}
 
 	// Call base implementation.
@@ -209,18 +208,16 @@ void
 UHoudiniAssetInstanceInputField::CreateInstancedComponent(int32 VariationIdx)
 {
 	check(StaticMeshes.Num() > 0 && (VariationIdx < StaticMeshes.Num()));
-	
+
 	UStaticMesh* StaticMesh = StaticMeshes[VariationIdx];
 	check(HoudiniAssetComponent);
-	
+
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent =
 		NewObject<UInstancedStaticMeshComponent>(HoudiniAssetComponent->GetOwner(),
 			UInstancedStaticMeshComponent::StaticClass(), NAME_None);
-	
+
 	InstancedStaticMeshComponents.Insert(InstancedStaticMeshComponent, VariationIdx);
 
-	// Assign static mesh to this instanced component.
-	
 	InstancedStaticMeshComponents[VariationIdx]->SetStaticMesh(StaticMesh);
 	InstancedStaticMeshComponents[VariationIdx]->SetMobility(HoudiniAssetComponent->Mobility);
 	InstancedStaticMeshComponents[VariationIdx]->AttachTo(HoudiniAssetComponent);
@@ -229,6 +226,24 @@ UHoudiniAssetInstanceInputField::CreateInstancedComponent(int32 VariationIdx)
 
 	// We want to make this invisible if it's a collision instancer.
 	InstancedStaticMeshComponents[VariationIdx]->SetVisibility(!HoudiniGeoPartObject.bIsCollidable);
+
+	// Check if instancer material is available.
+	const FHoudiniGeoPartObject& InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
+	if(StaticMesh && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable)
+	{
+		UMaterial* InstancerMaterial =
+			HoudiniAssetComponent->GetAssignmentMaterial(InstancerHoudiniGeoPartObject.InstancerMaterialName);
+		if(InstancerMaterial)
+		{
+			InstancedStaticMeshComponent->OverrideMaterials.Empty();
+
+			int32 MeshMaterialCount = StaticMesh->Materials.Num();
+			for(int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
+			{
+				InstancedStaticMeshComponent->SetMaterial(Idx, InstancerMaterial);
+			}
+		}
+	}
 }
 
 
@@ -253,6 +268,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms(bool RecomputeVariatio
 		{
 			VariationTransformsArray[Idx].Empty();
 		}
+
 		VariationTransformsArray.Empty();
 
 		for(int32 Idx = 0; Idx < VariationCount; Idx++)
@@ -274,10 +290,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms(bool RecomputeVariatio
 		UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
 		FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(InstancedStaticMeshComponent,
 			VariationTransformsArray[Idx], RotationOffsets[Idx], ScaleOffsets[Idx]);
-
 	}
-
-	
 }
 
 
