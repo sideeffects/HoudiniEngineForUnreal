@@ -237,6 +237,12 @@ protected:
 	/** Return checked state of landscape curves checkbox. **/
 	ECheckBoxState IsCheckedExportCurves() const;
 
+	/** Check if state of landscape full geometry checkbox has changed. **/
+	void CheckStateChangedExportFullGeometry(ECheckBoxState NewState);
+
+	/** Return checked state of landscape full geometry checkbox. **/
+	ECheckBoxState IsCheckedExportFullGeometry() const;
+
 	/** Handler for landscape recommit button. **/
 	FReply OnButtonClickRecommit();
 
@@ -288,6 +294,9 @@ protected:
 
 			/** Is set to true when landscape curves are to be exported. **/
 			uint32 bLandscapeExportCurves : 1;
+
+			/** Is set to true when full geometry needs to be exported. **/
+			uint32 bLandscapeExportFullGeometry : 1;
 		};
 
 		uint32 HoudiniAssetInputFlagsPacked;

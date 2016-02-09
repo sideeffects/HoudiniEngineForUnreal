@@ -37,7 +37,8 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	bLoadedParameter(false),
 	bInputAssetConnectedInHoudini(false),
 	bLandscapeInputSelectionOnly(false),
-	bLandscapeExportCurves(false)
+	bLandscapeExportCurves(false),
+	bLandscapeExportFullGeometry(false)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -361,25 +362,6 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			)
 		];
 
-		TSharedPtr<SCheckBox> CheckBoxExportOnlySelected;
-
-		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-		[
-			SAssignNew(CheckBoxExportOnlySelected, SCheckBox)
-			.Content()
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("LandscapeSelectedOnlyCheckBox", "Import Selected Parts Only"))
-				.ToolTipText(LOCTEXT("LandscapeSelectedOnlyCheckBoxTip", "Import Selected Parts Only"))
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-			.IsChecked(TAttribute<ECheckBoxState>::Create(
-				TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-					&UHoudiniAssetInput::IsCheckedExportOnlySelected)))
-			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-				&UHoudiniAssetInput::CheckStateChangedExportOnlySelected))
-		];
-
 		TSharedPtr<SCheckBox> CheckBoxExportCurves;
 
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
@@ -388,8 +370,8 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 			.Content()
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("LandscapeCurvesCheckbox", "Import Landscape Curves"))
-				.ToolTipText(LOCTEXT("LandscapeCurvesCheckbox", "Import Landscape Curves"))
+				.Text(LOCTEXT("LandscapeCurvesCheckbox", "Export Landscape Curves"))
+				.ToolTipText(LOCTEXT("LandscapeCurvesCheckbox", "Export Landscape Curves"))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.IsChecked(TAttribute<ECheckBoxState>::Create(
@@ -403,6 +385,31 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		if(CheckBoxExportCurves.IsValid())
 		{
 			CheckBoxExportCurves->SetEnabled(false);
+		}
+
+		TSharedPtr<SCheckBox> CheckBoxExportFullGeometry;
+
+		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+		[
+			SAssignNew(CheckBoxExportFullGeometry, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry"))
+				.ToolTipText(LOCTEXT("LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry"))
+				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked(TAttribute<ECheckBoxState>::Create(
+				TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+					&UHoudiniAssetInput::IsCheckedExportFullGeometry)))
+			.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+				&UHoudiniAssetInput::CheckStateChangedExportFullGeometry))
+		];
+
+		// Disable full geometry export until we have it implemented.
+		if(CheckBoxExportFullGeometry.IsValid())
+		{
+			CheckBoxExportFullGeometry->SetEnabled(false);
 		}
 
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
@@ -564,7 +571,8 @@ UHoudiniAssetInput::UploadParameterValue()
 
 				// Connect input and create connected asset. Will return by reference.
 				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, InputLandscapeProxy,
-					ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves))
+					ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
+					bLandscapeExportFullGeometry))
 				{
 					bChanged = false;
 					ConnectedAssetId = -1;
@@ -1583,7 +1591,7 @@ UHoudiniAssetInput::CheckStateChangedExportCurves(ECheckBoxState NewState)
 	{
 		// Record undo information.
 		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniInputChange", "Houdini Input Landscape Curve mode change."),
+			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Curve mode change."),
 			HoudiniAssetComponent);
 		Modify();
 
@@ -1601,6 +1609,41 @@ ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportCurves() const
 {
 	if(bLandscapeExportCurves)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+void
+UHoudiniAssetInput::CheckStateChangedExportFullGeometry(ECheckBoxState NewState)
+{
+	int32 bState = (ECheckBoxState::Checked == NewState);
+
+	if(bLandscapeExportFullGeometry != bState)
+	{
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Full Geometry mode change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		bLandscapeExportFullGeometry = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportFullGeometry() const
+{
+	if(bLandscapeExportFullGeometry)
 	{
 		return ECheckBoxState::Checked;
 	}
