@@ -3080,12 +3080,12 @@ UHoudiniAssetComponent::CreateParameters()
 	TMap<HAPI_ParmId, UHoudiniAssetParameter*> NewParameters;
 
 	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false );
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo),
+		false);
 
 	HAPI_NodeInfo NodeInfo;
-	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &NodeInfo), false );
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId,
+		&NodeInfo), false );
 
 	if(NodeInfo.parmCount > 0)
 	{
@@ -3093,8 +3093,8 @@ UHoudiniAssetComponent::CreateParameters()
 		TArray<HAPI_ParmInfo> ParmInfos;
 		ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
 		HOUDINI_CHECK_ERROR_RETURN(
-			FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &ParmInfos[0], 0, NodeInfo.parmCount),
-			false);
+			FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &ParmInfos[0], 0,
+				NodeInfo.parmCount), false);
 
 		// Create properties for parameters.
 		for(int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
@@ -3426,7 +3426,7 @@ UHoudiniAssetComponent::CreateHandles()
 	}
 
 	HAPI_AssetInfo AssetInfo;
-	if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo) )
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
 	{
 		return false;
 	}
@@ -3434,51 +3434,49 @@ UHoudiniAssetComponent::CreateHandles()
 	FHandleComponentMap NewHandleComponents;
 
 	// If we have handles.
-	if ( AssetInfo.handleCount > 0 )
+	if(AssetInfo.handleCount > 0)
 	{
 		TArray<HAPI_HandleInfo> HandleInfos;
 		HandleInfos.SetNumZeroed(AssetInfo.handleCount);
 
-		if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(
-				FHoudiniEngine::Get().GetSession(),
-				AssetId, &HandleInfos[0], 0, AssetInfo.handleCount
-			)
-		)
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetHandleInfo(FHoudiniEngine::Get().GetSession(), AssetId,
+			&HandleInfos[0], 0, AssetInfo.handleCount))
 		{
 			return false;
 		}
 
-		for ( int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx )
+		for(int32 HandleIdx = 0; HandleIdx < AssetInfo.handleCount; ++HandleIdx)
 		{
 			// Retrieve handle info for this index.
 			const HAPI_HandleInfo& HandleInfo = HandleInfos[HandleIdx];
 
 			// If we do not have bindings, we can skip.
-			if ( HandleInfo.bindingsCount <= 0 )
+			if(HandleInfo.bindingsCount <= 0)
 			{
 				continue;
 			}
 
-			FString TypeName;
-			if ( !FHoudiniEngineUtils::GetHoudiniString(HandleInfo.typeNameSH, TypeName)
-				|| TypeName != "xform" )
+			FString TypeName = TEXT("");
+			if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.typeNameSH, TypeName)
+				|| TypeName != "xform")
 			{
 				continue;
 			}
 
 			FString HandleName;
-			if ( !FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName) )
+			if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
 			{
 				continue;
-			}			
+			}
 
 			UHoudiniHandleComponent* HandleComponent = nullptr;
+			UHoudiniHandleComponent** FoundHandleComponent = HandleComponents.Find(HandleName);
 
-			if ( UHoudiniHandleComponent** FoundHandleComponent = HandleComponents.Find(HandleName) )
+			if(FoundHandleComponent)
 			{
 				HandleComponent = *FoundHandleComponent;
 
-				// remove so that it's not destroyed
+				// Remove so that it's not destroyed.
 				HandleComponents.Remove(HandleName);
 			}
 			else
@@ -3488,13 +3486,13 @@ UHoudiniAssetComponent::CreateHandles()
 				);
 			}
 
-			if (!HandleComponent)
+			if(!HandleComponent)
 			{
 				continue;
 			}
 
 			// If we have no parent, we need to re-attach.
-			if (!HandleComponent->AttachParent)
+			if(!HandleComponent->AttachParent)
 			{
 				HandleComponent->AttachTo(this, NAME_None, EAttachLocation::KeepRelativeOffset);
 			}
@@ -3502,12 +3500,12 @@ UHoudiniAssetComponent::CreateHandles()
 			HandleComponent->SetVisibility(true);
 
 			// If component is not registered, register it.
-			if ( !HandleComponent->IsRegistered() )
+			if(!HandleComponent->IsRegistered())
 			{
 				HandleComponent->RegisterComponent();
 			}
 
-			if ( HandleComponent->Construct(AssetId, HandleIdx, HandleName, HandleInfo, Parameters) )
+			if (HandleComponent->Construct(AssetId, HandleIdx, HandleName, HandleInfo, Parameters))
 			{
 				NewHandleComponents.Add(HandleName, HandleComponent);
 			}
@@ -3538,7 +3536,8 @@ UHoudiniAssetComponent::CreateInputs()
 
 	HAPI_AssetInfo AssetInfo;
 	int32 InputCount = 0;
-	if((HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo)) && AssetInfo.hasEverCooked)
+	if((HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
+		&& AssetInfo.hasEverCooked)
 	{
 		InputCount = AssetInfo.geoInputCount;
 	}
@@ -3648,12 +3647,13 @@ UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHo
 void
 UHoudiniAssetComponent::DuplicateHandles(UHoudiniAssetComponent* SrcAssetComponent)
 {
-	for ( auto const& SrcNameToHandle : SrcAssetComponent->HandleComponents )
+	for(auto const& SrcNameToHandle : SrcAssetComponent->HandleComponents)
 	{
 		// Duplicate spline component.
-		if ( UHoudiniHandleComponent* NewHandleComponent = 
-			DuplicateObject<UHoudiniHandleComponent>(SrcNameToHandle.Value, this)
-		)
+		UHoudiniHandleComponent* NewHandleComponent =
+			DuplicateObject<UHoudiniHandleComponent>(SrcNameToHandle.Value, this);
+
+		if(NewHandleComponent)
 		{
 			NewHandleComponent->SetFlags(RF_Transactional | RF_Public);
 			NewHandleComponent->ResolveDuplicatedParameters(Parameters);
@@ -3664,7 +3664,8 @@ UHoudiniAssetComponent::DuplicateHandles(UHoudiniAssetComponent* SrcAssetCompone
 
 
 void
-UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent, TArray<UHoudiniAssetInput*>& InInputs)
+UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
+	TArray<UHoudiniAssetInput*>& InInputs)
 {
 	for(int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
 	{
@@ -3754,7 +3755,7 @@ UHoudiniAssetComponent::ClearParameters()
 void
 UHoudiniAssetComponent::ClearHandles()
 {
-	for ( auto& NameToComponent : HandleComponents )
+	for(auto& NameToComponent : HandleComponents)
 	{
 		UHoudiniHandleComponent* HandleComponent = NameToComponent.Value;
 
@@ -3790,8 +3791,7 @@ void
 UHoudiniAssetComponent::ClearDownstreamAssets()
 {
 	for(TMap<UHoudiniAssetComponent*, TSet<int32>>::TIterator IterAssets(DownstreamAssetConnections);
-		IterAssets;
-		++IterAssets)
+		IterAssets; ++IterAssets)
 	{
 		UHoudiniAssetComponent* DownstreamAsset = IterAssets.Key();
 		TSet<int32>& LocalInputIndicies = IterAssets.Value();
@@ -3836,7 +3836,7 @@ UHoudiniAssetComponent::LocateStaticMeshComponent(UStaticMesh* StaticMesh) const
 
 
 bool
-UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(UStaticMesh* StaticMesh, 
+UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(UStaticMesh* StaticMesh,
 	TArray<UInstancedStaticMeshComponent*>& Components)
 {
 	Components.Empty();
@@ -3993,7 +3993,7 @@ UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& Houd
 
 	if(HoudiniAssetComponentMaterials)
 	{
-		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements =
 			HoudiniAssetComponentMaterials->Replacements;
 
 		if(MaterialReplacements.Contains(HoudiniGeoPartObject))
@@ -4018,7 +4018,7 @@ UHoudiniAssetComponent::GetReplacementMaterialShopName(const FHoudiniGeoPartObje
 {
 	if(HoudiniAssetComponentMaterials)
 	{
-		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements =
 			HoudiniAssetComponentMaterials->Replacements;
 
 		if(MaterialReplacements.Contains(HoudiniGeoPartObject))
@@ -4146,12 +4146,14 @@ UHoudiniAssetComponent::RemoveReplacementMaterial(const FHoudiniGeoPartObject& H
 {
 	if(HoudiniAssetComponentMaterials)
 	{
-		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+		TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements =
 			HoudiniAssetComponentMaterials->Replacements;
 
 		if(MaterialReplacements.Contains(HoudiniGeoPartObject))
 		{
-			TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = MaterialReplacements[HoudiniGeoPartObject];
+			TMap<FString, UMaterialInterface*>& MaterialReplacementsValues =
+				MaterialReplacements[HoudiniGeoPartObject];
+
 			MaterialReplacementsValues.Remove(MaterialName);
 		}
 	}

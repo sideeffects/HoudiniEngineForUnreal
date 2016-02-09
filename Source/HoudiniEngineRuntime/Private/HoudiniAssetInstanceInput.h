@@ -29,6 +29,8 @@ class UHoudiniAssetInstanceInputField;
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAssetParameter
 {
+	friend class UHoudiniAssetInstanceInputField;
+
 	GENERATED_UCLASS_BODY()
 
 public:
@@ -49,7 +51,7 @@ public:
 public:
 
 	/** Create this instance input. **/
-	bool CreateInstanceInput();	
+	bool CreateInstanceInput();
 
 	/** Recreates render states for used instanced static mesh components. **/
 	void RecreateRenderStates();
@@ -62,7 +64,8 @@ public:
 		UStaticMesh* StaticMesh);
 
 	/** Get material replacement meshes for a given input. **/
-	bool GetMaterialReplacementMeshes(UMaterialInterface* Material, TMap<UStaticMesh*, int32>& MaterialReplacementsMap);
+	bool GetMaterialReplacementMeshes(UMaterialInterface* Material,
+		TMap<UStaticMesh*, int32>& MaterialReplacementsMap);
 
 /** UHoudiniAssetParameter methods. **/
 public:
@@ -157,7 +160,7 @@ protected:
 		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, int32 VariationIdx);
 
 	/** Closes the combo button. **/
-	void CloseStaticMeshComboButton(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx, 
+	void CloseStaticMeshComboButton(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx,
 		int32 VariationIdx);
 
 	/** Triggered when combo button is opened or closed. **/
@@ -168,8 +171,8 @@ protected:
 	void OnStaticMeshBrowse(UStaticMesh* StaticMesh);
 
 	/** Handler for reset static mesh button. **/
-	FReply OnResetStaticMeshClicked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, 
-									int32 Idx, int32 VariationIdx);
+	FReply OnResetStaticMeshClicked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 Idx,
+		int32 VariationIdx);
 
 	/** Handler for adding instance variation **/
 	void OnAddInstanceVariation(UHoudiniAssetInstanceInputField* InstanceInputField, int32 Index);

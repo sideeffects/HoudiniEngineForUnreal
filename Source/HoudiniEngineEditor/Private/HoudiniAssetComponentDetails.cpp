@@ -1085,16 +1085,19 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 				if(OldMaterialInterface != MaterialInterface)
 				{
 					// Record replaced material.
-					if(HoudiniAssetComponent->ReplaceMaterial(*HoudiniGeoPartObject, MaterialInterface, OldMaterialInterface, MaterialIdx))
+					if(HoudiniAssetComponent->ReplaceMaterial(*HoudiniGeoPartObject, MaterialInterface,
+						OldMaterialInterface, MaterialIdx))
 					{
 						FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_EDITOR), 
-							LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), HoudiniAssetComponent);
+							LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"),
+								HoudiniAssetComponent);
 
 						// Replace material on static mesh.
 						StaticMesh->Modify();
 						StaticMesh->Materials[MaterialIdx] = MaterialInterface;
 
-						UStaticMeshComponent* StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);
+						UStaticMeshComponent* StaticMeshComponent =
+							HoudiniAssetComponent->LocateStaticMeshComponent(StaticMesh);
 						if(StaticMeshComponent)
 						{
 							StaticMeshComponent->Modify();
@@ -1104,12 +1107,13 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(UObject* InObject, USt
 						}
 						
 						TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents;
-						if(HoudiniAssetComponent->LocateInstancedStaticMeshComponents(StaticMesh, InstancedStaticMeshComponents))
+						if(HoudiniAssetComponent->LocateInstancedStaticMeshComponents(StaticMesh,
+							InstancedStaticMeshComponents))
 						{
 							for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
 							{
-								UInstancedStaticMeshComponent* InstancedStaticMeshComponent 
-									= InstancedStaticMeshComponents[Idx];
+								UInstancedStaticMeshComponent* InstancedStaticMeshComponent =
+									InstancedStaticMeshComponents[Idx];
 								if(InstancedStaticMeshComponent)
 								{
 									InstancedStaticMeshComponent->Modify();
@@ -1209,7 +1213,8 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 			bool bMaterialRestored = false;
 
 			FString MaterialShopName;
-			if(HoudiniAssetComponent->GetReplacementMaterialShopName(*HoudiniGeoPartObject, MaterialInterface, MaterialShopName))
+			if(HoudiniAssetComponent->GetReplacementMaterialShopName(*HoudiniGeoPartObject, MaterialInterface,
+				MaterialShopName))
 			{
 				HoudiniAssetComponent->RemoveReplacementMaterial(*HoudiniGeoPartObject, MaterialShopName);
 
@@ -1238,8 +1243,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(UStaticMesh* Stat
 			{
 				for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
 				{
-					UInstancedStaticMeshComponent* InstancedStaticMeshComponent 
-						= InstancedStaticMeshComponents[Idx];
+					UInstancedStaticMeshComponent* InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
 					if(InstancedStaticMeshComponent)
 					{
 						InstancedStaticMeshComponent->Modify();
