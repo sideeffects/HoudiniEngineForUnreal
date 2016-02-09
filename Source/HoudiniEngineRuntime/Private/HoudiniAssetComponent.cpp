@@ -3986,7 +3986,7 @@ UHoudiniAssetComponent::GetComponentGuid() const
 
 
 UMaterialInterface*
-UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
 	const FString& MaterialName)
 {
 	UMaterialInterface* ReplacementMaterial = nullptr;
@@ -4013,7 +4013,7 @@ UHoudiniAssetComponent::GetReplacementMaterial(const FHoudiniGeoPartObject& Houd
 
 
 bool
-UHoudiniAssetComponent::GetReplacementMaterialShopName(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+UHoudiniAssetComponent::GetReplacementMaterialShopName(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
 	UMaterialInterface* MaterialInterface, FString& MaterialName)
 {
 	if(HoudiniAssetComponentMaterials)
@@ -4059,7 +4059,7 @@ UHoudiniAssetComponent::GetAssignmentMaterial(const FString& MaterialName)
 
 
 bool
-UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, 
+UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject,
 	UMaterialInterface* NewMaterialInterface, UMaterialInterface* OldMaterialInterface, int32 MaterialIndex)
 {
 	if(!HoudiniAssetComponentMaterials)
@@ -4083,7 +4083,7 @@ UHoudiniAssetComponent::ReplaceMaterial(const FHoudiniGeoPartObject& HoudiniGeoP
 		}
 	}
 
-	TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements = 
+	TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >& MaterialReplacements =
 		HoudiniAssetComponentMaterials->Replacements;
 
 	TMap<FString, UMaterial*>& MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
