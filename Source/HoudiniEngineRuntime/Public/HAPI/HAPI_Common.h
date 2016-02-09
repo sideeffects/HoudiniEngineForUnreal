@@ -76,6 +76,7 @@
 /// Name of subnet OBJ node containing the global nodes.
 #define HAPI_GLOBAL_NODES_NODE_NAME         "GlobalNodes"
 
+/// [HAPI_CACHE]
 /// Common cache names. You can see these same cache names in the
 /// Cache Manager window in Houdini (Windows > Cache Manager).
 #define HAPI_CACHE_COP_COOK                 "COP Cook Cache"
@@ -86,6 +87,7 @@
 #define HAPI_CACHE_GL_VERTEX                "OpenGL Vertex Cache"
 #define HAPI_CACHE_SOP                      "SOP Cache"
 #define HAPI_CACHE_VEX                      "VEX File Cache"
+/// [HAPI_CACHE]
 
 // Make sure our enums and structs are usable without those keywords, as-is,
 // in C.
@@ -610,6 +612,7 @@ enum HAPI_SessionEnvIntType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_SessionEnvIntType )
 
+/// [HAPI_CacheProperty]
 enum HAPI_CacheProperty
 {
     /// Current memory usage in MB. Setting this to 0 invokes
@@ -639,6 +642,7 @@ enum HAPI_CacheProperty
     ///                 When to Limit Max Memory = Always
     HAPI_CACHEPROP_CULL_LEVEL,
 };
+/// [HAPI_CacheProperty]
 HAPI_C_ENUM_TYPEDEF( HAPI_CacheProperty )
 
 /////////////////////////////////////////////////////////////////////////////
