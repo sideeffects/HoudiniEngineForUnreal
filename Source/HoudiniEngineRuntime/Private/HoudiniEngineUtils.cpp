@@ -1462,9 +1462,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		&Part), false);
 
 	// Extract point data.
-
 	TArray<float> AllPositions;
 	AllPositions.SetNumUninitialized(VertexCount * 3);
+
+	// Array which stores indices of landscape components, for each point.
+	TArray<int> PositionComponentIndices;
+	PositionComponentIndices.SetNumUninitialized(VertexCount);
 
 	int32 AllPositionsIdx = 0;
 
@@ -1505,27 +1508,51 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 				check(0);
 			}
 
+			// Store landscape component index for this point.
+			PositionComponentIndices[AllPositionsIdx] = ComponentIdx;
+
 			AllPositionsIdx++;
 		}
 	}
 
-	// Create point attribute info.
-	HAPI_AttributeInfo AttributeInfoPoint;
-	FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPoint);
-	AttributeInfoPoint.count = VertexCount;
-	AttributeInfoPoint.tupleSize = 3;
-	AttributeInfoPoint.exists = true;
-	AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
-	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
-	AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
+	// Create point attribute info containing positions.
+	{
+		HAPI_AttributeInfo AttributeInfoPointPosition;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointPosition);
+		AttributeInfoPointPosition.count = VertexCount;
+		AttributeInfoPointPosition.tupleSize = 3;
+		AttributeInfoPointPosition.exists = true;
+		AttributeInfoPointPosition.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointPosition.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoPointPosition.originalOwner = HAPI_ATTROWNER_INVALID;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
-		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointPosition), false);
 
-	// Now that we have raw positions, we can upload them for our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-		0, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint, AllPositions.GetData(), 0,
-		AttributeInfoPoint.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointPosition, AllPositions.GetData(),
+			0, AttributeInfoPointPosition.count), false);
+	}
+
+	// Create point attribute containing landscape component indices.
+	{
+		HAPI_AttributeInfo AttributeInfoPointLandscapeComponentIndices;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointLandscapeComponentIndices);
+		AttributeInfoPointLandscapeComponentIndices.count = VertexCount;
+		AttributeInfoPointLandscapeComponentIndices.tupleSize = 1;
+		AttributeInfoPointLandscapeComponentIndices.exists = true;
+		AttributeInfoPointLandscapeComponentIndices.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointLandscapeComponentIndices.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfoPointLandscapeComponentIndices.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointLandscapeComponentIndices), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNERAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX,
+			&AttributeInfoPointLandscapeComponentIndices, PositionComponentIndices.GetData(), 0,
+			AttributeInfoPointLandscapeComponentIndices.count), false);
+	}
 
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0),
@@ -1570,7 +1597,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		// We now have a valid id.
 		ConnectedAssetId = AssetId;
 
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr),
+			false);
 	}
 
 	// Get runtime settings.
@@ -1607,7 +1635,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	Part.faceCount =  RawMesh.WedgeIndices.Num() / 3;
 	Part.pointCount = RawMesh.VertexPositions.Num();
 	Part.type = HAPI_PARTTYPE_MESH;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, &Part), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+		&Part), false);
 
 	// Create point attribute info.
 	HAPI_AttributeInfo AttributeInfoPoint;
@@ -1619,8 +1648,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
 	AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_POSITION,
-		&AttributeInfoPoint), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	// Extract vertices from static mesh.
 	TArray<float> StaticMeshVertices;
@@ -1650,8 +1679,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 
 	// Now that we have raw positions, we can upload them for our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_POSITION,
-		&AttributeInfoPoint, StaticMeshVertices.GetData(), 0, AttributeInfoPoint.count), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+		0, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint, StaticMeshVertices.GetData(), 0,
+			AttributeInfoPoint.count), false);
 
 	// See if we have texture coordinates to upload.
 	for(int32 MeshTexCoordIdx = 0; MeshTexCoordIdx < MAX_STATIC_TEXCOORDS; ++MeshTexCoordIdx)
@@ -1713,11 +1743,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, UVAttributeNameString,
-				&AttributeInfoVertex), false);
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
-				UVAttributeNameString, &AttributeInfoVertex, (const float*) StaticMeshUVs.GetData(), 0, 
-					AttributeInfoVertex.count), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+				0, 0, UVAttributeNameString, &AttributeInfoVertex), false);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, UVAttributeNameString, &AttributeInfoVertex,
+				(const float*) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count), false);
 		}
 	}
 
@@ -1762,10 +1793,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_NORMAL,
-			&AttributeInfoVertex), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_NORMAL,
-			&AttributeInfoVertex, (const float*) ChangedNormals.GetData(), 0, AttributeInfoVertex.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex,
+			(const float*) ChangedNormals.GetData(), 0, AttributeInfoVertex.count), false);
 	}
 
 	// See if we have colors to upload.
@@ -1803,10 +1835,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
 		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
 		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_COLOR,
-			&AttributeInfoVertex), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_COLOR,
-			&AttributeInfoVertex, (const float*) ChangedColors.GetData(), 0, AttributeInfoVertex.count), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
+			(const float*) ChangedColors.GetData(), 0, AttributeInfoVertex.count), false);
 	}
 
 	// Extract indices from static mesh.
@@ -1836,14 +1869,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		}
 
 		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
-			StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num()), false);
 
 		// We need to generate array of face counts.
 		TArray<int32> StaticMeshFaceCounts;
 		StaticMeshFaceCounts.Init(3, Part.faceCount);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
-			StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num()), false);
 	}
 
 	// Marshall face material indices.
@@ -1880,9 +1913,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			bAttributeError = true;
 		}
 
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
-			MarshallingAttributeName.c_str(), &AttributeInfoMaterial, (const char**) StaticMeshFaceMaterials.GetData(),
-			0, StaticMeshFaceMaterials.Num()))
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfoMaterial,
+			(const char**) StaticMeshFaceMaterials.GetData(), 0, StaticMeshFaceMaterials.Num()))
 		{
 			bAttributeError = true;
 		}
@@ -1916,10 +1949,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
 		AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
 		AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
-			MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
-			MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks,
 			(const int32*) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num()), false);
 	}
 
@@ -1944,19 +1977,21 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
 		AttributeInfoLightMapResolution.storage = HAPI_STORAGETYPE_INT;
 		AttributeInfoLightMapResolution.originalOwner = HAPI_ATTROWNER_INVALID;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, 
-			MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution), false);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
-			MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution,
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution,
 			(const int32*) LightMapResolutions.GetData(), 0, LightMapResolutions.Num()), false);
 	}
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0),
+		false);
 
 	// Now we can connect assets together.
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, InputIndex), false);
+		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId,
+			InputIndex), false);
 
 #endif
 
@@ -1969,7 +2004,8 @@ FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIn
 {
 #if WITH_EDITOR
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::DisconnectAssetGeometry(FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::DisconnectAssetGeometry(FHoudiniEngine::Get().GetSession(), HostAssetId,
+		InputIndex), false);
 
 #endif
 
@@ -1978,13 +2014,13 @@ FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIn
 
 
 bool
-FHoudiniEngineUtils::HapiConnectAsset(
-	HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex)
+FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo,
+	int32 InputIndex)
 {
 #if WITH_EDITOR
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), AssetIdFrom, ObjectIdFrom, AssetIdTo, 
-		InputIndex), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), AssetIdFrom,
+		ObjectIdFrom, AssetIdTo, InputIndex), false);
 
 #endif
 
