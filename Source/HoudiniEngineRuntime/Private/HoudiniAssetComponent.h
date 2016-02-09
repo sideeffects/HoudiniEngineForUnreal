@@ -232,10 +232,6 @@ public:
 	/** Locate instanced static mesh components for given static mesh. **/
 	bool LocateInstancedStaticMeshComponents(UStaticMesh* StaticMesh, TArray<UInstancedStaticMeshComponent*>& Components);
 
-	/** Update material information on instanced component for corresponding mesh. **/
-	void UpdateInstancedStaticMeshComponentMaterial(UStaticMesh* StaticMesh, int32 MaterialIdx,
-		UMaterialInterface* MaterialInterface);
-
 	/** Locate geo part object for given static mesh. Reverse map search. **/
 	FHoudiniGeoPartObject LocateGeoPartObject(UStaticMesh* StaticMesh) const;
 
