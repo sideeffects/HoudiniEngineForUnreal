@@ -1433,12 +1433,22 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		LandscapeComponent->GetComponentExtent(MinX, MinY, MaxX, MaxY);
 	}
 
-	const int32 ComponentSizeQuads = ((LandscapeProxy->ComponentSizeQuads + 1) >> LandscapeProxy->ExportLOD) - 1;
-	const float ScaleFactor = (float) LandscapeProxy->ComponentSizeQuads / (float) ComponentSizeQuads;
-	const int32 NumComponents = bExportOnlySelected ? SelectedComponents.Num() : LandscapeProxy->LandscapeComponents.Num();
-	const int32 VertexCountPerComponent = FMath::Square(ComponentSizeQuads + 1);
-	const int32 VertexCount = NumComponents * VertexCountPerComponent;
-	const int32 TriangleCount = NumComponents * FMath::Square(ComponentSizeQuads) * 2;
+	int32 ComponentSizeQuads = ((LandscapeProxy->ComponentSizeQuads + 1) >> LandscapeProxy->ExportLOD) - 1;
+	float ScaleFactor = (float) LandscapeProxy->ComponentSizeQuads / (float) ComponentSizeQuads;
+
+	int32 NumComponents = LandscapeProxy->LandscapeComponents.Num();
+	if(bExportOnlySelected)
+	{
+		NumComponents = SelectedComponents.Num();
+	}
+
+	int32 VertexCountPerComponent = FMath::Square(ComponentSizeQuads + 1);
+	int32 VertexCount = NumComponents * VertexCountPerComponent;
+	int32 TriangleCount = NumComponents * FMath::Square(ComponentSizeQuads) * 2;
+
+	// Compute number of necessary indices.
+	int32 FaceCount = NumComponents * ComponentSizeQuads * ComponentSizeQuads;
+	int32 IndexCount = NumComponents * ComponentSizeQuads * ComponentSizeQuads * 3;
 
 	if(!VertexCount)
 	{
@@ -1458,6 +1468,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	Part.faceCount = 0;
 	Part.pointCount = VertexCount;
 	Part.type = HAPI_PARTTYPE_MESH;
+
+	// If we are exporting full geometry.
+	if(bExportFullGeometry)
+	{
+		Part.vertexCount = IndexCount;
+		Part.faceCount = FaceCount;
+	}
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
 		&Part), false);
 
@@ -1470,7 +1488,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	PositionComponentIndices.SetNumUninitialized(VertexCount);
 
 	int32 AllPositionsIdx = 0;
-
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
 		ComponentIdx < ComponentNum; ComponentIdx++)
 	{
@@ -1546,12 +1563,47 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoPointLandscapeComponentIndices.originalOwner = HAPI_ATTROWNER_INVALID;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-			0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointLandscapeComponentIndices), false);
+			0, HAPI_UNREAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX, &AttributeInfoPointLandscapeComponentIndices), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(),
-			ConnectedAssetId, 0, 0, HAPI_UNERAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX,
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX,
 			&AttributeInfoPointLandscapeComponentIndices, PositionComponentIndices.GetData(), 0,
 			AttributeInfoPointLandscapeComponentIndices.count), false);
+	}
+
+	// Set indices if we are exporting full geometry.
+	if(bExportFullGeometry && IndexCount > 0)
+	{
+		// Array holding indices data.
+		TArray<int32> LandscapeIndices;
+		LandscapeIndices.SetNumUninitialized(IndexCount);
+
+		int32 FaceIdx = 0;
+		for(int32 ComponentIdx = 0; ComponentIdx < NumComponents; ComponentIdx++)
+		{
+			int32 BaseVertIndex = ComponentIdx * VertexCountPerComponent;
+			for(int32 YIdx = 0; YIdx < ComponentSizeQuads; YIdx++)
+			{
+				for(int32 XIdx = 0; XIdx < ComponentSizeQuads; XIdx++)
+				{
+					LandscapeIndices[FaceIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) * (ComponentSizeQuads + 1);
+					LandscapeIndices[FaceIdx + 1] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) * (ComponentSizeQuads + 1);
+					LandscapeIndices[FaceIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) * (ComponentSizeQuads + 1);
+
+					FaceIdx += 3;
+				}
+			}
+		}
+
+		// We can now set vertex list.
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, LandscapeIndices.GetData(), 0, LandscapeIndices.Num()), false);
+
+		// We need to generate array of face counts.
+		TArray<int32> LandscapeFaces;
+		LandscapeFaces.Init(3, FaceCount);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()), false);
 	}
 
 	// Commit the geo.
@@ -1559,9 +1611,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		false);
 
 	// Now we can connect assets together.
-	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId,
-			InputIndex), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+		0, HostAssetId, InputIndex), false);
 
 #endif
 
@@ -1989,9 +2040,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		false);
 
 	// Now we can connect assets together.
-	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId,
-			InputIndex), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+		0, HostAssetId, InputIndex), false);
 
 #endif
 
