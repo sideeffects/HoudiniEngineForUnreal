@@ -31,7 +31,6 @@ class UMaterialExpression;
 class UHoudiniAssetMaterial;
 class UHoudiniAssetComponent;
 class FHoudiniAssetObjectGeo;
-class UMaterialExpressionMultiply;
 class UInstancedStaticMeshComponent;
 
 struct FRawMesh;
@@ -144,7 +143,7 @@ public:
 
 	/** Retrieves list of asset names contained within the HDA. **/
 	static bool GetAssetNames(UHoudiniAsset* HoudiniAsset, HAPI_AssetLibraryId& AssetLibraryId,
-		TArray<int32>& AssetNames); 
+		TArray<int32>& AssetNames);
 
 public:
 
@@ -345,11 +344,11 @@ protected:
 
 	/** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
 	/** and their corresponding packages. **/
-	static UMaterial* DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component, 
+	static UMaterial* DuplicateMaterialAndCreatePackage(UMaterial* Material, UHoudiniAssetComponent* Component,
 		const FString& SubMaterialName, bool bBake = false);
 
 	/** Duplicate a given texture. This will create a new package for it. **/
-	static UTexture2D* DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoudiniAssetComponent* Component, 
+	static UTexture2D* DuplicateTextureAndCreatePackage(UTexture2D* Texture, UHoudiniAssetComponent* Component,
 		const FString& SubTextureName, bool bBake = false);
 
 	/** Replace duplicated texture with a new copy within a given sampling expression. **/
@@ -357,7 +356,7 @@ protected:
 		UHoudiniAssetComponent* Component, bool bBake);
 
 	/** Add Houdini meta information to package for a given object. **/
-	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key, 
+	static void AddHoudiniMetaInformationToPackage(UPackage* Package, UObject* Object, const TCHAR* Key,
 		const TCHAR* Value);
 
 	/** Retrieve item name from Houdini meta information. **/

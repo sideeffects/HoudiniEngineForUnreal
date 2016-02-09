@@ -41,7 +41,8 @@ public:
 
 	/** Create an instance of input field. **/
 	static UHoudiniAssetInstanceInputField* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject, const FString& InstancePathName);
+		UHoudiniAssetInstanceInput* InHoudiniAssetInstanceInput, const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+		const FString& InstancePathName);
 
 	/** Create an instance of input field from another input field. **/
 	static UHoudiniAssetInstanceInputField* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
@@ -176,6 +177,9 @@ protected:
 
 	/** Parent Houdini asset component. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;
+
+	/** Owner input. **/
+	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput;
 
 	/** Transforms, one for each instance. **/
 	TArray<FTransform> InstancedTransforms;
