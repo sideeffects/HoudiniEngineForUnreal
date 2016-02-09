@@ -430,12 +430,6 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 				&UHoudiniAssetInput::CheckStateChangedExportFullGeometry))
 		];
 
-		// Disable full geometry export until we have it implemented.
-		if(CheckBoxExportFullGeometry.IsValid())
-		{
-			CheckBoxExportFullGeometry->SetEnabled(false);
-		}
-
 		VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 		[
 			SNew(SHorizontalBox)
