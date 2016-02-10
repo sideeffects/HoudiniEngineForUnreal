@@ -1491,6 +1491,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	TArray<int> PositionComponentVertexIndices;
 	PositionComponentVertexIndices.SetNumUninitialized(VertexCount * 2);
 
+	// Array which stores point normals.
+	TArray<FVector> PositionNormals;
+	PositionNormals.SetNumUninitialized(VertexCount);
+
 	int32 AllPositionsIdx = 0;
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
 		ComponentIdx < ComponentNum; ComponentIdx++)
@@ -1510,7 +1514,27 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			int32 VertY = 0;
 			CDI.VertexIndexToXY(VertexIdx, VertX, VertY);
 
+			// Get position.
 			FVector PositionVector = CDI.GetLocalVertex(VertX, VertY) + LandscapeComponent->RelativeLocation;
+
+			// Get normal / tangent / binormal.
+			FVector Normal = FVector::ZeroVector;
+			FVector TangentX = FVector::ZeroVector;
+			FVector TangentY = FVector::ZeroVector;
+			CDI.GetLocalTangentVectors(VertX, VertY, TangentX, TangentY, Normal);
+
+			// Perform normalization.
+			FVector ScaleVector = LandscapeComponent->ComponentToWorld.GetScale3D();
+
+			Normal /= ScaleVector;
+			Normal.Normalize();
+			Swap(Normal.Y, Normal.Z);
+			
+			TangentX /= ScaleVector;
+			TangentX.Normalize();
+
+			TangentY /= ScaleVector;
+			TangentY.Normalize();
 
 			if(HRSAI_Unreal == ImportAxis)
 			{
@@ -1537,6 +1561,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			PositionComponentVertexIndices[AllPositionsIdx * 2 + 0] = VertX;
 			PositionComponentVertexIndices[AllPositionsIdx * 2 + 1] = VertY;
 
+			// Store point normal.
+			PositionNormals[AllPositionsIdx] = Normal;
+
 			AllPositionsIdx++;
 		}
 	}
@@ -1558,6 +1585,25 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
 			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointPosition, AllPositions.GetData(),
 			0, AttributeInfoPointPosition.count), false);
+	}
+
+	// Create point attribute info containing normals.
+	{
+		HAPI_AttributeInfo AttributeInfoPointNormal;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointNormal);
+		AttributeInfoPointNormal.count = VertexCount;
+		AttributeInfoPointNormal.tupleSize = 3;
+		AttributeInfoPointNormal.exists = true;
+		AttributeInfoPointNormal.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointNormal.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoPointNormal.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoPointNormal), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoPointNormal,
+			(const float*) PositionNormals.GetData(), 0, AttributeInfoPointNormal.count), false);
 	}
 
 	// Create point attribute containing landscape component indices.
