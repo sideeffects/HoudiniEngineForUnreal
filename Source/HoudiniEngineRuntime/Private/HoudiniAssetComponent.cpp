@@ -1140,6 +1140,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 						// Create default preset buffer.
 						CreateDefaultPreset();
 
+						// If necessary, set asset transform.
+						if(bUploadTransformsToHoudiniEngine)
+						{
+							// Retrieve the current component-to-world transform for this component.
+							if(!FHoudiniEngineUtils::HapiSetAssetTransform(AssetId, GetComponentTransform()))
+							{
+								HOUDINI_LOG_MESSAGE(TEXT("Failed Uploading Initial Transformation back to HAPI."));
+							}
+						}
+
 						if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
 						{
 							TSharedPtr<SNotificationItem> NotificationItem = NotificationPtr.Pin();
@@ -1238,6 +1248,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
 						// Update properties panel.
 						UpdateEditorProperties(true);
+
+						// If necessary, set asset transform.
+						if(bUploadTransformsToHoudiniEngine)
+						{
+							// Retrieve the current component-to-world transform for this component.
+							if(!FHoudiniEngineUtils::HapiSetAssetTransform(AssetId, GetComponentTransform()))
+							{
+								HOUDINI_LOG_MESSAGE(TEXT("Failed Uploading Initial Transformation back to HAPI."));
+							}
+						}
 					}
 
 					if(NotificationPtr.IsValid() && bDisplaySlateCookingNotifications)
@@ -2206,23 +2226,14 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType T
 
 #if WITH_EDITOR
 
-	// If we have a valid asset id and asset has been cooked.
-	if(FHoudiniEngineUtils::IsValidAssetId(AssetId) && AssetCookCount > 0)
+	// Only if asset has been cooked.
+	if(AssetCookCount > 0)
 	{
-		// If transform update push to HAPI is enabled.
+		// If we have to upload transforms.
 		if(bUploadTransformsToHoudiniEngine)
 		{
-			// We want to upload transform to Houdini Engine.
-			
 			// Retrieve the current component-to-world transform for this component.
-			const FTransform& ComponentWorldTransform = GetComponentTransform();
-
-			// Translate Unreal transform to HAPI Euler one.
-			HAPI_TransformEuler TransformEuler;
-			FHoudiniEngineUtils::TranslateUnrealTransform(ComponentWorldTransform, TransformEuler);
-
-			if(HAPI_RESULT_SUCCESS != 
-				FHoudiniApi::SetAssetTransform(FHoudiniEngine::Get().GetSession(), GetAssetId(), &TransformEuler))
+			if(!FHoudiniEngineUtils::HapiSetAssetTransform(AssetId, GetComponentTransform()))
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("Failed Uploading Transformation change back to HAPI."));
 			}
@@ -2237,6 +2248,7 @@ UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType T
 	}
 
 #endif
+
 }
 
 

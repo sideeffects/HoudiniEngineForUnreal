@@ -2236,8 +2236,8 @@ FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIn
 
 
 bool
-FHoudiniEngineUtils::HapiConnectAsset(
-	HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex)
+FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo,
+	int32 InputIndex)
 {
 #if WITH_EDITOR
 
@@ -2247,6 +2247,26 @@ FHoudiniEngineUtils::HapiConnectAsset(
 #endif
 
 	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiSetAssetTransform(HAPI_AssetId AssetId, const FTransform& Transform)
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		// Translate Unreal transform to HAPI Euler one.
+		HAPI_TransformEuler TransformEuler;
+		FHoudiniEngineUtils::TranslateUnrealTransform(Transform, TransformEuler);
+
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::SetAssetTransform(FHoudiniEngine::Get().GetSession(), AssetId, &TransformEuler))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
