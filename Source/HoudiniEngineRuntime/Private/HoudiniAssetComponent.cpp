@@ -276,8 +276,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 
 #endif
 	AssetId(-1),
-	GeneratedGeometryScaleFactor(FHoudiniEngineUtils::ScaleFactorPosition),
-	TransformScaleFactor(FHoudiniEngineUtils::ScaleFactorTranslate),
+	GeneratedGeometryScaleFactor(HAPI_UNREAL_SCALE_FACTOR_POSITION),
+	TransformScaleFactor(HAPI_UNREAL_SCALE_FACTOR_TRANSLATION),
 	ImportAxis(HRSAI_Unreal),
 	HapiNotificationStarted(0.0),
 	AssetCookCount(0),
@@ -895,8 +895,8 @@ UHoudiniAssetComponent::CheckGlobalSettingScaleFactors() const
 				TransformScaleFactor == HoudiniRuntimeSettings->TransformScaleFactor);
 	}
 
-	return (GeneratedGeometryScaleFactor == FHoudiniEngineUtils::ScaleFactorPosition &&
-			TransformScaleFactor == FHoudiniEngineUtils::ScaleFactorTranslate);
+	return (GeneratedGeometryScaleFactor == HAPI_UNREAL_SCALE_FACTOR_POSITION &&
+			TransformScaleFactor == HAPI_UNREAL_SCALE_FACTOR_TRANSLATION);
 }
 
 

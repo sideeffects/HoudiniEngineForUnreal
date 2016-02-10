@@ -416,14 +416,6 @@ protected:
 
 public:
 
-	/** Geometry scale values. **/
-	static const float ScaleFactorPosition;
-	static const float ScaleFactorTranslate;
-
-	/** Epsilon value used as a check for scale / inverse transform computations.	**/
-	/** This is necessary due to bug in Unreal.										**/
-	static const float ScaleSmallValue;
-
 	/** How many GUID symbols are used for package component name generation. **/
 	static const int32 PackageGUIDComponentNameLength;
 

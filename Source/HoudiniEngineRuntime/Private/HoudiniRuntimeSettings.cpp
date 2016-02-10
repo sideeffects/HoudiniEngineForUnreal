@@ -52,8 +52,8 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	MarshallingAttributeGeneratedMeshName(TEXT(HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME)),
 
 	/** Geometry scaling. **/
-	GeneratedGeometryScaleFactor(50.0f),
-	TransformScaleFactor(50.0f),
+	GeneratedGeometryScaleFactor(HAPI_UNREAL_SCALE_FACTOR_POSITION),
+	TransformScaleFactor(HAPI_UNREAL_SCALE_FACTOR_TRANSLATION),
 	ImportAxis(HRSAI_Unreal),
 
 	/** Generated StaticMesh settings. **/

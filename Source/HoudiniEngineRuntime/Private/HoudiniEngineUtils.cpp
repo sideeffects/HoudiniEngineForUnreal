@@ -33,15 +33,6 @@ const FString kResultStringCannotGeneratePreset(TEXT("Uneable to Generate Preset
 const FString kResultStringCannotLoadPreset(TEXT("Uneable to Load Preset"));
 
 
-const float
-FHoudiniEngineUtils::ScaleFactorPosition = 50.0f;
-
-const float
-FHoudiniEngineUtils::ScaleFactorTranslate = 50.0f;
-
-const float
-FHoudiniEngineUtils::ScaleSmallValue = KINDA_SMALL_NUMBER * 2.0f;
-
 const int32
 FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
 
@@ -332,7 +323,7 @@ FHoudiniEngineUtils::TranslateHapiTransform(const HAPI_Transform& HapiTransform,
 {
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	float TransformScaleFactor = HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -394,7 +385,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 {
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	float TransformScaleFactor = HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -457,7 +448,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 {
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float TransformScaleFactor = FHoudiniEngineUtils::ScaleFactorTranslate;
+	float TransformScaleFactor = HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -1397,7 +1388,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	// Get runtime settings.
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -1825,7 +1816,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	// Get runtime settings.
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 	int32 GeneratedLightMapResolution = 32;
 
@@ -2662,7 +2653,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	check(HoudiniRuntimeSettings);
 
-	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -5971,7 +5962,7 @@ FHoudiniEngineUtils::ExtractStringPositions(const FString& Positions, TArray<FVe
 
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -6017,7 +6008,7 @@ FHoudiniEngineUtils::CreatePositionsString(const TArray<FVector>& Positions, FSt
 
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -6059,7 +6050,7 @@ FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(const TArray<float>& DataRaw,
 {
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 
-	float GeneratedGeometryScaleFactor = FHoudiniEngineUtils::ScaleFactorPosition;
+	float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
 	if(HoudiniRuntimeSettings)
@@ -6685,19 +6676,19 @@ FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(UInstancedStati
 
 		// Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
 		// Happens in blueprint as well.
-		if(TransformScale3D.X < FHoudiniEngineUtils::ScaleSmallValue)
+		if(TransformScale3D.X < HAPI_UNREAL_SCALE_SMALL_VALUE)
 		{
-			TransformScale3D.X = FHoudiniEngineUtils::ScaleSmallValue;
+			TransformScale3D.X = HAPI_UNREAL_SCALE_SMALL_VALUE;
 		}
 
-		if(TransformScale3D.Y < FHoudiniEngineUtils::ScaleSmallValue)
+		if(TransformScale3D.Y < HAPI_UNREAL_SCALE_SMALL_VALUE)
 		{
-			TransformScale3D.Y = FHoudiniEngineUtils::ScaleSmallValue;
+			TransformScale3D.Y = HAPI_UNREAL_SCALE_SMALL_VALUE;
 		}
 
-		if(TransformScale3D.Z < FHoudiniEngineUtils::ScaleSmallValue)
+		if(TransformScale3D.Z < HAPI_UNREAL_SCALE_SMALL_VALUE)
 		{
-			TransformScale3D.Z = FHoudiniEngineUtils::ScaleSmallValue;
+			TransformScale3D.Z = HAPI_UNREAL_SCALE_SMALL_VALUE;
 		}
 
 		Transform.SetRotation(TransformRotation);
