@@ -46,6 +46,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	MarshallingAttributeTangent(TEXT(HAPI_UNREAL_ATTRIB_TANGENT)),
 	MarshallingAttributeBinormal(TEXT(HAPI_UNREAL_ATTRIB_BINORMAL)),
 	MarshallingAttributeMaterial(TEXT(HAPI_UNREAL_ATTRIB_MATERIAL)),
+	MarshallingAttributeMaterialHole(TEXT(HAPI_UNREAL_ATTRIB_MATERIAL_HOLE)),
 	MarshallingAttributeInstanceOverride(TEXT(HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE)),
 	MarshallingAttributeFaceSmoothingMask(TEXT(HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK)),
 	MarshallingAttributeLightmapResolution(TEXT(HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION)),

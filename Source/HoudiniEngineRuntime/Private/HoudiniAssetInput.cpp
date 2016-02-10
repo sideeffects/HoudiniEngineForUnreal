@@ -43,7 +43,8 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	bInputAssetConnectedInHoudini(false),
 	bLandscapeInputSelectionOnly(false),
 	bLandscapeExportCurves(false),
-	bLandscapeExportFullGeometry(false)
+	bLandscapeExportFullGeometry(false),
+	bLandscapeExportMaterials(true)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -410,6 +411,27 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		}
 
 		{
+			TSharedPtr<SCheckBox> CheckBoxExportMaterials;
+
+			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			[
+				SAssignNew(CheckBoxExportMaterials, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("LandscapeMaterialsCheckbox", "Export Landscape Materials"))
+					.ToolTipText(LOCTEXT("LandscapeMaterialsCheckbox", "Export Landscape Materials"))
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked(TAttribute<ECheckBoxState>::Create(
+					TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+						&UHoudiniAssetInput::IsCheckedExportMaterials)))
+				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+					&UHoudiniAssetInput::CheckStateChangedExportMaterials))
+			];
+		}
+
+		{
 			TSharedPtr<SCheckBox> CheckBoxExportCurves;
 
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
@@ -596,7 +618,7 @@ UHoudiniAssetInput::UploadParameterValue()
 				// Connect input and create connected asset. Will return by reference.
 				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, InputLandscapeProxy,
 					ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
-					bLandscapeExportFullGeometry))
+					bLandscapeExportMaterials, bLandscapeExportFullGeometry))
 				{
 					bChanged = false;
 					ConnectedAssetId = -1;
@@ -1669,6 +1691,41 @@ ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportFullGeometry() const
 {
 	if(bLandscapeExportFullGeometry)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+void
+UHoudiniAssetInput::CheckStateChangedExportMaterials(ECheckBoxState NewState)
+{
+	int32 bState = (ECheckBoxState::Checked == NewState);
+
+	if(bLandscapeExportMaterials != bState)
+	{
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Materials mode change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		bLandscapeExportMaterials = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportMaterials() const
+{
+	if(bLandscapeExportMaterials)
 	{
 		return ECheckBoxState::Checked;
 	}

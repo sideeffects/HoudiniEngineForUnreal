@@ -243,6 +243,12 @@ protected:
 	/** Return checked state of landscape full geometry checkbox. **/
 	ECheckBoxState IsCheckedExportFullGeometry() const;
 
+	/** Check if state of landscape materials checkbox has changed. **/
+	void CheckStateChangedExportMaterials(ECheckBoxState NewState);
+
+	/** Return checked state of landscape materials checkbox. **/
+	ECheckBoxState IsCheckedExportMaterials() const;
+
 	/** Handler for landscape recommit button. **/
 	FReply OnButtonClickRecommit();
 
@@ -297,6 +303,9 @@ protected:
 
 			/** Is set to true when full geometry needs to be exported. **/
 			uint32 bLandscapeExportFullGeometry : 1;
+
+			/** Is set to true when materials are to be exported. **/
+			uint32 bLandscapeExportMaterials : 1;
 		};
 
 		uint32 HoudiniAssetInputFlagsPacked;

@@ -159,7 +159,7 @@ public:
 	/** HAPI : Marshalling, extract landscape geometry and upload it. Return new asset id. **/
 	static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
 		ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
-		bool bExportFullGeometry);
+		bool bExportMaterials, bool bExportFullGeometry);
 
 	/** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return	**/
 	/** new asset id.																								**/
