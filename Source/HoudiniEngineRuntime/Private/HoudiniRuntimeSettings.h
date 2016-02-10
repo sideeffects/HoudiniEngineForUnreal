@@ -191,6 +191,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryMarshalling)
 	FString MarshallingAttributeMaterial;
 
+	// Name of attribute used for marshalling Unreal hole materials.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryMarshalling)
+	FString MarshallingAttributeMaterialHole;
+
 	// Name of attribute used for marshalling Unreal instances.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=GeometryMarshalling)
 	FString MarshallingAttributeInstanceOverride;
