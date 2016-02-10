@@ -1514,15 +1514,15 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 			if(HRSAI_Unreal == ImportAxis)
 			{
-				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
-				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Z / GeneratedGeometryScaleFactor;
-				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Y / GeneratedGeometryScaleFactor;
+				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X;
+				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Z;
+				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Y;
 			}
 			else if(HRSAI_Houdini == ImportAxis)
 			{
-				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
-				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Y / GeneratedGeometryScaleFactor;
-				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Z / GeneratedGeometryScaleFactor;
+				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X;
+				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Y;
+				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Z;
 			}
 			else
 			{
