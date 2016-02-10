@@ -1434,6 +1434,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		LandscapeComponent->GetComponentExtent(MinX, MinY, MaxX, MaxY);
 	}
 
+	// Landscape actor transform.
+	const FTransform& LandscapeTransform = LandscapeProxy->LandscapeActorToWorld();
+
 	// Add Weightmap UVs to match with an exported weightmap, not the original weightmap UVs, which are per-component.
 	const FVector2D UVScale = FVector2D(1.0f, 1.0f) / FVector2D((MaxX - MinX) + 1, (MaxY - MinY) + 1);
 
@@ -1527,7 +1530,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			CDI.VertexIndexToXY(VertexIdx, VertX, VertY);
 
 			// Get position.
-			FVector PositionVector = CDI.GetLocalVertex(VertX, VertY) + LandscapeComponent->RelativeLocation;
+			//FVector PositionVector = CDI.GetLocalVertex(VertX, VertY) + LandscapeComponent->RelativeLocation;
+			FVector PositionVector = CDI.GetWorldVertex(VertX, VertY);
 
 			// Get normal / tangent / binormal.
 			FVector Normal = FVector::ZeroVector;
@@ -1538,18 +1542,19 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			// Get UV data.
 			FIntPoint IntPoint = LandscapeComponent->GetSectionBase();
 			FVector2D TextureUV = FVector2D(VertX * ScaleFactor + IntPoint.X, VertY * ScaleFactor + IntPoint.Y);
-			TextureUV.Y = 1.0f - TextureUV.Y;
+			//TextureUV.Y = 1.0f - TextureUV.Y;
 
 			// Get Weightmap UV data.
 			FVector2D WeightmapUV = (TextureUV - FVector2D(MinX, MinY)) * UVScale;
-			WeightmapUV.Y = 1.0f - WeightmapUV.Y;
+			//WeightmapUV.Y = 1.0f - WeightmapUV.Y;
 
 			// Retrieve component transform.
 			const FTransform& ComponentTransform = LandscapeComponent->ComponentToWorld;
 
-			// Perform normalization.
+			// Retrieve component scale.
 			const FVector& ScaleVector = ComponentTransform.GetScale3D();
 
+			// Perform normalization.
 			Normal /= ScaleVector;
 			Normal.Normalize();
 			
@@ -1559,19 +1564,22 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			TangentY /= ScaleVector;
 			TangentY.Normalize();
 
+			// Peform position scaling.
+			FVector PositionTransformed = PositionVector / GeneratedGeometryScaleFactor;
+
 			if(HRSAI_Unreal == ImportAxis)
 			{
-				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X;
-				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Z;
-				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Y;
+				AllPositions[AllPositionsIdx * 3 + 0] = PositionTransformed.X;
+				AllPositions[AllPositionsIdx * 3 + 1] = PositionTransformed.Z;
+				AllPositions[AllPositionsIdx * 3 + 2] = PositionTransformed.Y;
 
 				Swap(Normal.Y, Normal.Z);
 			}
 			else if(HRSAI_Houdini == ImportAxis)
 			{
-				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X;
-				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Y;
-				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Z;
+				AllPositions[AllPositionsIdx * 3 + 0] = PositionTransformed.X;
+				AllPositions[AllPositionsIdx * 3 + 1] = PositionTransformed.Y;
+				AllPositions[AllPositionsIdx * 3 + 2] = PositionTransformed.Z;
 			}
 			else
 			{
