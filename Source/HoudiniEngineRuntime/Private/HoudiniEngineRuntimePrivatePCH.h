@@ -369,6 +369,13 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_SESSION_SERVER_AUTOSTART				false
 #define HAPI_UNREAL_SESSION_SERVER_TIMEOUT					3000.0f
 
+/** Default position and transformation scaling options. **/
+#define HAPI_UNREAL_SCALE_FACTOR_POSITION					100.0f
+#define HAPI_UNREAL_SCALE_FACTOR_TRANSLATION				100.0f
+
+/** Small value used for comparisons. **/
+#define HAPI_UNREAL_SCALE_SMALL_VALUE						KINDA_SMALL_NUMBER * 2.0f
+
 /** Default material name. **/
 #define HAPI_UNREAL_DEFAULT_MATERIAL_NAME					TEXT("default_material")
 
