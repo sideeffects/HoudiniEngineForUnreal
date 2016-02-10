@@ -34,7 +34,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 
 	/** Cooking options. **/
 	bEnableCooking(true),
-	bUploadTransformsToHoudiniEngine(false),
+	bUploadTransformsToHoudiniEngine(true),
 	bTransformChangeTriggersCooks(false),
 	bDisplaySlateCookingNotifications(true),
 
