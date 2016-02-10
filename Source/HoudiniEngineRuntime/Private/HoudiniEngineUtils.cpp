@@ -1357,7 +1357,7 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
 	ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
-	bool bExportFullGeometry)
+	bool bExportMaterials, bool bExportFullGeometry)
 {
 
 #if WITH_EDITOR
@@ -1767,6 +1767,81 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		LandscapeFaces.Init(4, QuadCount);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
 			0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()), false);
+	}
+
+	// If we are marshalling material information.
+	if(bExportMaterials)
+	{
+		// Get name of attribute used for marshalling materials.
+		std::string MarshallingAttributeMaterialName = HAPI_UNREAL_ATTRIB_MATERIAL;
+		if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial,
+				MarshallingAttributeMaterialName);
+		}
+
+		// Get name of attribute used for marshalling hole materials.
+		std::string MarshallingAttributeMaterialHoleName = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
+		if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterialHole,
+				MarshallingAttributeMaterialHoleName);
+		}
+
+		// If there's a global landscape material, we marshall it as detail.
+		{
+			UMaterialInterface* MaterialInterface = LandscapeProxy->GetLandscapeMaterial();
+			if(MaterialInterface)
+			{
+				FString FullMaterialName = MaterialInterface->GetPathName();
+				const char* ConvertedString = TCHAR_TO_UTF8(*FullMaterialName);
+
+				HAPI_AttributeInfo AttributeInfoDetailMaterial;
+				FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoDetailMaterial);
+				AttributeInfoDetailMaterial.count = 1;
+				AttributeInfoDetailMaterial.tupleSize = 1;
+				AttributeInfoDetailMaterial.exists = true;
+				AttributeInfoDetailMaterial.owner = HAPI_ATTROWNER_DETAIL;
+				AttributeInfoDetailMaterial.storage = HAPI_STORAGETYPE_STRING;
+				AttributeInfoDetailMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial),
+					false);
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial,
+					(const char**) &ConvertedString, 0, AttributeInfoDetailMaterial.count), false);
+			}
+		}
+
+		// If there's a global landscape hole material, we marshall it as detail.
+		{
+			UMaterialInterface* MaterialInterface = LandscapeProxy->GetLandscapeHoleMaterial();
+			if(MaterialInterface)
+			{
+				FString FullMaterialName = MaterialInterface->GetPathName();
+				const char* ConvertedString = TCHAR_TO_UTF8(*FullMaterialName);
+
+				HAPI_AttributeInfo AttributeInfoDetailMaterialHole;
+				FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoDetailMaterialHole);
+				AttributeInfoDetailMaterialHole.count = 1;
+				AttributeInfoDetailMaterialHole.tupleSize = 1;
+				AttributeInfoDetailMaterialHole.exists = true;
+				AttributeInfoDetailMaterialHole.owner = HAPI_ATTROWNER_DETAIL;
+				AttributeInfoDetailMaterialHole.storage = HAPI_STORAGETYPE_STRING;
+				AttributeInfoDetailMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
+					&AttributeInfoDetailMaterialHole), false);
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
+					&AttributeInfoDetailMaterialHole, (const char**) &ConvertedString, 0,
+					AttributeInfoDetailMaterialHole.count), false);
+			}
+		}
 	}
 
 	// Commit the geo.
@@ -5882,8 +5957,6 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(UHoudiniAssetComponent* Hou
 char*
 FHoudiniEngineUtils::ExtractMaterialName(UMaterialInterface* MaterialInterface)
 {
-	UPackage* Package = Cast<UPackage>(MaterialInterface->GetOuter());
-
 	FString FullMaterialName = MaterialInterface->GetPathName();
 	std::string ConvertedString = TCHAR_TO_UTF8(*FullMaterialName);
 
