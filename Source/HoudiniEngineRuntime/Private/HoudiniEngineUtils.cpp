@@ -1329,9 +1329,9 @@ FHoudiniEngineUtils::HapiCreateCurve(HAPI_AssetId& CurveAssetId)
 
 	// Submit default points to curve.
 	HAPI_ParmId ParmId = -1;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIdFromName(FHoudiniEngine::Get().GetSession(), NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId), 
-		false);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId, 
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIdFromName(FHoudiniEngine::Get().GetSession(), NodeId,
+		HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId,
 		HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT, ParmId, 0), false);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
 
@@ -1347,7 +1347,8 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
 	{
 		HAPI_GeoInfo GeoInfo;
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, &GeoInfo))
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId,
+			&GeoInfo))
 		{
 			NodeId = GeoInfo.nodeId;
 			return true;
@@ -1433,6 +1434,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		LandscapeComponent->GetComponentExtent(MinX, MinY, MaxX, MaxY);
 	}
 
+	// Add Weightmap UVs to match with an exported weightmap, not the original weightmap UVs, which are per-component.
+	const FVector2D UVScale = FVector2D(1.0f, 1.0f) / FVector2D((MaxX - MinX) + 1, (MaxY - MinY) + 1);
+
 	int32 ComponentSizeQuads = ((LandscapeProxy->ComponentSizeQuads + 1) >> LandscapeProxy->ExportLOD) - 1;
 	float ScaleFactor = (float) LandscapeProxy->ComponentSizeQuads / (float) ComponentSizeQuads;
 
@@ -1495,6 +1499,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	TArray<FVector> PositionNormals;
 	PositionNormals.SetNumUninitialized(VertexCount);
 
+	// Array which stores uvs.
+	TArray<FVector2D> PositionUVs;
+	PositionUVs.SetNumUninitialized(VertexCount);
+
+	// Array which stores weightmap uvs.
+	TArray<FVector2D> PositionWeightmapUVs;
+	PositionWeightmapUVs.SetNumUninitialized(VertexCount);
+
 	int32 AllPositionsIdx = 0;
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
 		ComponentIdx < ComponentNum; ComponentIdx++)
@@ -1522,6 +1534,15 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			FVector TangentX = FVector::ZeroVector;
 			FVector TangentY = FVector::ZeroVector;
 			CDI.GetLocalTangentVectors(VertX, VertY, TangentX, TangentY, Normal);
+
+			// Get UV data.
+			FIntPoint IntPoint = LandscapeComponent->GetSectionBase();
+			FVector2D TextureUV = FVector2D(VertX * ScaleFactor + IntPoint.X, VertY * ScaleFactor + IntPoint.Y);
+			TextureUV.Y = 1.0f - TextureUV.Y;
+
+			// Get Weightmap UV data.
+			FVector2D WeightmapUV = (TextureUV - FVector2D(MinX, MinY)) * UVScale;
+			WeightmapUV.Y = 1.0f - WeightmapUV.Y;
 
 			// Retrieve component transform.
 			const FTransform& ComponentTransform = LandscapeComponent->ComponentToWorld;
@@ -1567,6 +1588,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 			// Store point normal.
 			PositionNormals[AllPositionsIdx] = Normal;
+
+			// Store uv.
+			PositionUVs[AllPositionsIdx] = TextureUV;
+
+			// Store weightmap uv.
+			PositionWeightmapUVs[AllPositionsIdx] = WeightmapUV;
 
 			AllPositionsIdx++;
 		}
@@ -1649,6 +1676,44 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX,
 			&AttributeInfoPointLandscapeComponentVertexIndices, PositionComponentVertexIndices.GetData(), 0,
 			AttributeInfoPointLandscapeComponentVertexIndices.count), false);
+	}
+
+	// Create point attribute info containing UVs.
+	{
+		HAPI_AttributeInfo AttributeInfoPointUV;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointUV);
+		AttributeInfoPointUV.count = VertexCount;
+		AttributeInfoPointUV.tupleSize = 2;
+		AttributeInfoPointUV.exists = true;
+		AttributeInfoPointUV.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointUV.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoPointUV.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoPointUV), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoPointUV,
+			(const float*) PositionUVs.GetData(), 0, AttributeInfoPointUV.count), false);
+	}
+
+	// Create point attribute info containing weightmap UVs.
+	{
+		HAPI_AttributeInfo AttributeInfoPointWeightmapUV;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointWeightmapUV);
+		AttributeInfoPointWeightmapUV.count = VertexCount;
+		AttributeInfoPointWeightmapUV.tupleSize = 2;
+		AttributeInfoPointWeightmapUV.exists = true;
+		AttributeInfoPointWeightmapUV.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointWeightmapUV.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoPointWeightmapUV.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP, &AttributeInfoPointWeightmapUV), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP, &AttributeInfoPointWeightmapUV,
+			(const float*) PositionWeightmapUVs.GetData(), 0, AttributeInfoPointWeightmapUV.count), false);
 	}
 
 	// Set indices if we are exporting full geometry.

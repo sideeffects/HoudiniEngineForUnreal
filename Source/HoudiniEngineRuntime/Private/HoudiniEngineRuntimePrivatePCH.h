@@ -242,6 +242,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 #define HAPI_UNREAL_ATTRIB_UV							HAPI_ATTRIB_UV
 #define HAPI_UNREAL_ATTRIB_UV2							HAPI_ATTRIB_UV2
+#define HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP					"unreal_weightmap_uv"
 
 #define HAPI_UNREAL_PARAM_CURVE_TYPE					"type"
 #define HAPI_UNREAL_PARAM_CURVE_METHOD					"method"
