@@ -1445,9 +1445,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	int32 VertexCountPerComponent = FMath::Square(ComponentSizeQuads + 1);
 	int32 VertexCount = NumComponents * VertexCountPerComponent;
 	int32 TriangleCount = NumComponents * FMath::Square(ComponentSizeQuads) * 2;
+	int32 QuadCount = NumComponents * FMath::Square(ComponentSizeQuads);
 
 	// Compute number of necessary indices.
-	int32 IndexCount = TriangleCount * 3;
+	int32 IndexCount = QuadCount * 4;
 
 	if(!VertexCount)
 	{
@@ -1472,7 +1473,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	if(bExportFullGeometry)
 	{
 		Part.vertexCount = IndexCount;
-		Part.faceCount = TriangleCount;
+		Part.faceCount = QuadCount;
 	}
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
@@ -1608,6 +1609,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		LandscapeIndices.SetNumUninitialized(IndexCount);
 
 		int32 FaceIdx = 0;
+		const int32 QuadComponentCount = (ComponentSizeQuads + 1);
 		for(int32 ComponentIdx = 0; ComponentIdx < NumComponents; ComponentIdx++)
 		{
 			int32 BaseVertIndex = ComponentIdx * VertexCountPerComponent;
@@ -1617,35 +1619,17 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 				{
 					if(HRSAI_Unreal == ImportAxis)
 					{
-						LandscapeIndices[FaceIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 1] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) *
-							(ComponentSizeQuads + 1);
-
-						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 5] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 4] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
-							(ComponentSizeQuads + 1);
+						LandscapeIndices[FaceIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) * QuadComponentCount;
+						LandscapeIndices[FaceIdx + 1] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) * QuadComponentCount;
+						LandscapeIndices[FaceIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) * QuadComponentCount;
+						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) * QuadComponentCount;
 					}
 					else if(HRSAI_Houdini == ImportAxis)
 					{
-						LandscapeIndices[FaceIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 1] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) *
-							(ComponentSizeQuads + 1);
-
-						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 4] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) *
-							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 5] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
-							(ComponentSizeQuads + 1);
+						LandscapeIndices[FaceIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) * QuadComponentCount;
+						LandscapeIndices[FaceIdx + 1] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) * QuadComponentCount;
+						LandscapeIndices[FaceIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) * QuadComponentCount;
+						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) * QuadComponentCount;
 					}
 					else
 					{
@@ -1653,7 +1637,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 						check(0);
 					}
 
-					FaceIdx += 6;
+					FaceIdx += 4;
 				}
 			}
 		}
@@ -1664,7 +1648,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		// We need to generate array of face counts.
 		TArray<int32> LandscapeFaces;
-		LandscapeFaces.Init(3, TriangleCount);
+		LandscapeFaces.Init(4, QuadCount);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
 			0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()), false);
 	}
