@@ -173,6 +173,9 @@ public:
 	static bool HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo,
 		int32 InputIndex);
 
+	/** HAPI : Set asset transform. **/
+	static bool HapiSetAssetTransform(HAPI_AssetId AssetId, const FTransform& Transform);
+
 	/** HAPI : Return all group names for a given Geo. **/
 	static bool HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		HAPI_GroupType GroupType, TArray<FString>& GroupNames);

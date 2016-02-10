@@ -2248,6 +2248,26 @@ FHoudiniEngineUtils::HapiConnectAsset(HAPI_AssetId AssetIdFrom, HAPI_ObjectId Ob
 }
 
 
+bool
+FHoudiniEngineUtils::HapiSetAssetTransform(HAPI_AssetId AssetId, const FTransform& Transform)
+{
+	if(FHoudiniEngineUtils::IsValidAssetId(AssetId))
+	{
+		// Translate Unreal transform to HAPI Euler one.
+		HAPI_TransformEuler TransformEuler;
+		FHoudiniEngineUtils::TranslateUnrealTransform(Transform, TransformEuler);
+
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::SetAssetTransform(FHoudiniEngine::Get().GetSession(), AssetId, &TransformEuler))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 UPackage*
 FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniGeoPartObject& HoudiniGeoPartObject, FString& MeshName, FGuid& BakeGUID, bool bBake)
