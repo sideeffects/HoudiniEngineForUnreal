@@ -1489,6 +1489,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	TArray<int> PositionComponentIndices;
 	PositionComponentIndices.SetNumUninitialized(VertexCount);
 
+	// Array which stores indices of vertices (x,y) within each landscape component.
+	TArray<int> PositionComponentVertexIndices;
+	PositionComponentVertexIndices.SetNumUninitialized(VertexCount * 2);
+
 	int32 AllPositionsIdx = 0;
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
 	ComponentIdx < ComponentNum; ComponentIdx++)
@@ -1504,7 +1508,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		for(int32 VertexIdx = 0; VertexIdx < VertexCountPerComponent; VertexIdx++)
 		{
-			int32 VertX, VertY;
+			int32 VertX = 0;
+			int32 VertY = 0;
 			CDI.VertexIndexToXY(VertexIdx, VertX, VertY);
 
 			FVector PositionVector = CDI.GetLocalVertex(VertX, VertY) + LandscapeComponent->RelativeLocation;
@@ -1529,6 +1534,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 			// Store landscape component index for this point.
 			PositionComponentIndices[AllPositionsIdx] = ComponentIdx;
+
+			// Store vertex index (x,y) for this point.
+			PositionComponentVertexIndices[AllPositionsIdx * 2 + 0] = VertX;
+			PositionComponentVertexIndices[AllPositionsIdx * 2 + 1] = VertY;
 
 			AllPositionsIdx++;
 		}
@@ -1571,6 +1580,27 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX,
 			&AttributeInfoPointLandscapeComponentIndices, PositionComponentIndices.GetData(), 0,
 			AttributeInfoPointLandscapeComponentIndices.count), false);
+	}
+
+	// Create point attribute containing landscape component vertex indices (indices of vertices within the grid - x,y).
+	{
+		HAPI_AttributeInfo AttributeInfoPointLandscapeComponentVertexIndices;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointLandscapeComponentVertexIndices);
+		AttributeInfoPointLandscapeComponentVertexIndices.count = VertexCount;
+		AttributeInfoPointLandscapeComponentVertexIndices.tupleSize = 2;
+		AttributeInfoPointLandscapeComponentVertexIndices.exists = true;
+		AttributeInfoPointLandscapeComponentVertexIndices.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointLandscapeComponentVertexIndices.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfoPointLandscapeComponentVertexIndices.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX, &AttributeInfoPointLandscapeComponentVertexIndices),
+			false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX,
+			&AttributeInfoPointLandscapeComponentVertexIndices, PositionComponentVertexIndices.GetData(), 0,
+			AttributeInfoPointLandscapeComponentVertexIndices.count), false);
 	}
 
 	// Set indices if we are exporting full geometry.
