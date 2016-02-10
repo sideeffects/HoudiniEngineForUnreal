@@ -1596,9 +1596,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) *
 							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 5] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
+						LandscapeIndices[FaceIdx + 5] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) *
 							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 4] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) *
+						LandscapeIndices[FaceIdx + 4] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
 							(ComponentSizeQuads + 1);
 					}
 					else if(HRSAI_Houdini == ImportAxis)
@@ -1612,9 +1612,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) *
 							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 4] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
+						LandscapeIndices[FaceIdx + 4] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) *
 							(ComponentSizeQuads + 1);
-						LandscapeIndices[FaceIdx + 5] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) *
+						LandscapeIndices[FaceIdx + 5] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) *
 							(ComponentSizeQuads + 1);
 					}
 					else
