@@ -3384,6 +3384,15 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
 							FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
 								MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
+
+							// If material attribute was not found, check fallback compatibility attribute.
+							if(!AttribFaceMaterials.exists)
+							{
+								FaceMaterials.Empty();
+								MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK;
+								FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id,
+									PartInfo.id, MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
+							}
 						}
 
 						// Retrieve color data.
