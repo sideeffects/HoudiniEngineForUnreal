@@ -1525,12 +1525,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			FVector TangentY = FVector::ZeroVector;
 			CDI.GetLocalTangentVectors(VertX, VertY, TangentX, TangentY, Normal);
 
+			// Retrieve component transform.
+			const FTransform& ComponentTransform = LandscapeComponent->ComponentToWorld;
+
 			// Perform normalization.
-			FVector ScaleVector = LandscapeComponent->ComponentToWorld.GetScale3D();
+			const FVector& ScaleVector = ComponentTransform.GetScale3D();
 
 			Normal /= ScaleVector;
 			Normal.Normalize();
-			Swap(Normal.Y, Normal.Z);
 
 			TangentX /= ScaleVector;
 			TangentX.Normalize();
@@ -1543,6 +1545,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 				AllPositions[AllPositionsIdx * 3 + 0] = PositionVector.X;
 				AllPositions[AllPositionsIdx * 3 + 1] = PositionVector.Z;
 				AllPositions[AllPositionsIdx * 3 + 2] = PositionVector.Y;
+
+				Swap(Normal.Y, Normal.Z);
 			}
 			else if(HRSAI_Houdini == ImportAxis)
 			{
