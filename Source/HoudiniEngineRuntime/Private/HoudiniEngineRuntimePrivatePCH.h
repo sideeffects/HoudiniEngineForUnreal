@@ -230,8 +230,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK			"unreal_face_smoothing_mask"
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION			"unreal_lightmap_resolution"
 #define HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME			"unreal_generated_mesh_name"
-#define HAPI_UNREAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX	HAPI_ATTRIB_NAME
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME			HAPI_ATTRIB_NAME
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX		"unreal_vertex_index"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_NAME				"unreal_landscape"
 
 /** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE						"instance"

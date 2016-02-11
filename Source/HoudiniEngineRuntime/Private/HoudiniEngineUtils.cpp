@@ -1482,8 +1482,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	AllPositions.SetNumUninitialized(VertexCount * 3);
 
 	// Array which stores indices of landscape components, for each point.
-	TArray<int> PositionComponentIndices;
-	PositionComponentIndices.SetNumUninitialized(VertexCount);
+	TArray<const char*> PositionTileNames;
+	PositionTileNames.SetNumUninitialized(VertexCount);
+
+	// Temporary array to hold unique component names.
+	TArray<char*> UniqueTileNames;
 
 	// Array which stores indices of vertices (x,y) within each landscape component.
 	TArray<int> PositionComponentVertexIndices;
@@ -1512,7 +1515,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			continue;
 		}
 
+		// Construct landscape component data interface to access raw data.
 		FLandscapeComponentDataInterface CDI(LandscapeComponent, LandscapeProxy->ExportLOD);
+
+		// Get name of this landscape component.
+		char* LandscapeComponentNameStr = FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->GetName());
+		UniqueTileNames.Add(LandscapeComponentNameStr);
 
 		for(int32 VertexIdx = 0; VertexIdx < VertexCountPerComponent; VertexIdx++)
 		{
@@ -1578,8 +1586,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 				check(0);
 			}
 
-			// Store landscape component index for this point.
-			PositionComponentIndices[AllPositionsIdx] = ComponentIdx;
+			// Store landscape component name for this point.
+			PositionTileNames[AllPositionsIdx] = LandscapeComponentNameStr;
 
 			// Store vertex index (x,y) for this point.
 			PositionComponentVertexIndices[AllPositionsIdx * 2 + 0] = VertX;
@@ -1595,6 +1603,48 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			PositionWeightmapUVs[AllPositionsIdx] = WeightmapUV;
 
 			AllPositionsIdx++;
+		}
+	}
+
+	// Create point attribute containing landscape component name.
+	{
+		HAPI_AttributeInfo AttributeInfoPointLandscapeComponentNames;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointLandscapeComponentNames);
+		AttributeInfoPointLandscapeComponentNames.count = VertexCount;
+		AttributeInfoPointLandscapeComponentNames.tupleSize = 1;
+		AttributeInfoPointLandscapeComponentNames.exists = true;
+		AttributeInfoPointLandscapeComponentNames.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointLandscapeComponentNames.storage = HAPI_STORAGETYPE_STRING;
+		AttributeInfoPointLandscapeComponentNames.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		bool bFailedAttribute = false;
+
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME, &AttributeInfoPointLandscapeComponentNames))
+		{
+			bFailedAttribute = true;
+		}
+
+		if(bFailedAttribute || HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeStringData(
+			FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME,
+			&AttributeInfoPointLandscapeComponentNames, (const char**) PositionTileNames.GetData(), 0,
+			AttributeInfoPointLandscapeComponentNames.count))
+		{
+			bFailedAttribute = true;
+		}
+
+		// Delete allocated raw names.
+		for(int32 NameIdx = 0, NameNum = UniqueTileNames.Num(); NameIdx < NameNum; ++NameIdx)
+		{
+			char* RawTileName = UniqueTileNames[NameIdx];
+			FMemory::Free(RawTileName);
+		}
+
+		UniqueTileNames.Empty();
+
+		if(bFailedAttribute)
+		{
+			return false;
 		}
 	}
 
@@ -1634,26 +1684,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
 			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoPointNormal,
 			(const float*) PositionNormals.GetData(), 0, AttributeInfoPointNormal.count), false);
-	}
-
-	// Create point attribute containing landscape component indices.
-	{
-		HAPI_AttributeInfo AttributeInfoPointLandscapeComponentIndices;
-		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointLandscapeComponentIndices);
-		AttributeInfoPointLandscapeComponentIndices.count = VertexCount;
-		AttributeInfoPointLandscapeComponentIndices.tupleSize = 1;
-		AttributeInfoPointLandscapeComponentIndices.exists = true;
-		AttributeInfoPointLandscapeComponentIndices.owner = HAPI_ATTROWNER_POINT;
-		AttributeInfoPointLandscapeComponentIndices.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfoPointLandscapeComponentIndices.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-			0, HAPI_UNREAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX, &AttributeInfoPointLandscapeComponentIndices), false);
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(FHoudiniEngine::Get().GetSession(),
-			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_COMPONENT_INDEX,
-			&AttributeInfoPointLandscapeComponentIndices, PositionComponentIndices.GetData(), 0,
-			AttributeInfoPointLandscapeComponentIndices.count), false);
 	}
 
 	// Create point attribute containing landscape component vertex indices (indices of vertices within the grid - x,y).
@@ -5955,19 +5985,23 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(UHoudiniAssetComponent* Hou
 
 
 char*
-FHoudiniEngineUtils::ExtractMaterialName(UMaterialInterface* MaterialInterface)
+FHoudiniEngineUtils::ExtractRawName(const FString& Name)
 {
-	FString FullMaterialName = MaterialInterface->GetPathName();
-	std::string ConvertedString = TCHAR_TO_UTF8(*FullMaterialName);
+	if(!Name.IsEmpty())
+	{
+		std::string ConvertedString = TCHAR_TO_UTF8(*Name);
 
-	// Allocate space for unique string.
-	int32 UniqueNameBytes = ConvertedString.size() + 1;
-	char* UniqueName = static_cast<char*>(FMemory::Malloc(UniqueNameBytes));
+		// Allocate space for unique string.
+		int32 UniqueNameBytes = ConvertedString.size() + 1;
+		char* UniqueName = static_cast<char*>(FMemory::Malloc(UniqueNameBytes));
 
-	FMemory::Memzero(UniqueName, UniqueNameBytes);
-	FMemory::Memcpy(UniqueName, ConvertedString.c_str(), ConvertedString.size());
+		FMemory::Memzero(UniqueName, UniqueNameBytes);
+		FMemory::Memcpy(UniqueName, ConvertedString.c_str(), ConvertedString.size());
 
-	return UniqueName;
+		return UniqueName;
+	}
+
+	return nullptr;
 }
 
 
@@ -5995,7 +6029,8 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
 				MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 			}
 
-			UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+			FString FullMaterialName = MaterialInterface->GetPathName();
+			UniqueName = FHoudiniEngineUtils::ExtractRawName(FullMaterialName);
 			UniqueMaterialList.Add(UniqueName);
 		}
 	}
@@ -6003,7 +6038,8 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
 	{
 		// We do not have any materials, add default.
 		MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
-		UniqueName = FHoudiniEngineUtils::ExtractMaterialName(MaterialInterface);
+		FString FullMaterialName = MaterialInterface->GetPathName();
+		UniqueName = FHoudiniEngineUtils::ExtractRawName(FullMaterialName);
 		UniqueMaterialList.Add(UniqueName);
 	}
 
