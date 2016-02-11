@@ -379,8 +379,8 @@ protected:
 
 #endif
 
-	/** Helper function to extract a material name from given material interface. **/
-	static char* ExtractMaterialName(UMaterialInterface* MaterialInterface);
+	/** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
+	static char* ExtractRawName(const FString& Name);
 
 	/** Create helper array of material names, we use it for marshalling. **/
 	static void CreateFaceMaterialArray(const TArray<UMaterialInterface*>& Materials,
