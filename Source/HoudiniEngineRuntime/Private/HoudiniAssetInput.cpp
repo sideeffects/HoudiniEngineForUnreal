@@ -39,7 +39,8 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	bLandscapeInputSelectionOnly(false),
 	bLandscapeExportCurves(false),
 	bLandscapeExportFullGeometry(false),
-	bLandscapeExportMaterials(true)
+	bLandscapeExportMaterials(true),
+	bLandscapeExportLighting(false)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -427,6 +428,27 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		}
 
 		{
+			TSharedPtr<SCheckBox> CheckBoxExportLighting;
+
+			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			[
+				SAssignNew(CheckBoxExportLighting, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("LandscapeLightingCheckbox", "Export Landscape Lighting"))
+					.ToolTipText(LOCTEXT("LandscapeLightingCheckbox", "Export Landscape Lighting"))
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked(TAttribute<ECheckBoxState>::Create(
+					TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+						&UHoudiniAssetInput::IsCheckedExportLighting)))
+				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+					&UHoudiniAssetInput::CheckStateChangedExportLighting))
+			];
+		}
+
+		{
 			TSharedPtr<SCheckBox> CheckBoxExportCurves;
 
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
@@ -613,7 +635,7 @@ UHoudiniAssetInput::UploadParameterValue()
 				// Connect input and create connected asset. Will return by reference.
 				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, InputLandscapeProxy,
 					ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
-					bLandscapeExportMaterials, bLandscapeExportFullGeometry))
+					bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting))
 				{
 					bChanged = false;
 					ConnectedAssetId = -1;
@@ -1720,6 +1742,41 @@ ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportMaterials() const
 {
 	if(bLandscapeExportMaterials)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+void
+UHoudiniAssetInput::CheckStateChangedExportLighting(ECheckBoxState NewState)
+{
+	int32 bState = (ECheckBoxState::Checked == NewState);
+
+	if(bLandscapeExportLighting != bState)
+	{
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Lighting mode change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		bLandscapeExportLighting = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportLighting() const
+{
+	if(bLandscapeExportLighting)
 	{
 		return ECheckBoxState::Checked;
 	}

@@ -249,6 +249,12 @@ protected:
 	/** Return checked state of landscape materials checkbox. **/
 	ECheckBoxState IsCheckedExportMaterials() const;
 
+	/** Check if state of landscape lighting checkbox has changed. **/
+	void CheckStateChangedExportLighting(ECheckBoxState NewState);
+
+	/** Return checked state of landscape lighting checkbox. **/
+	ECheckBoxState IsCheckedExportLighting() const;
+
 	/** Handler for landscape recommit button. **/
 	FReply OnButtonClickRecommit();
 
@@ -306,6 +312,9 @@ protected:
 
 			/** Is set to true when materials are to be exported. **/
 			uint32 bLandscapeExportMaterials : 1;
+
+			/** Is set to true when lightmap information export is desired. **/
+			uint32 bLandscapeExportLighting : 1;
 		};
 
 		uint32 HoudiniAssetInputFlagsPacked;
