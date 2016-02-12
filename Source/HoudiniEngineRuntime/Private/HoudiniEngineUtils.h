@@ -428,3 +428,30 @@ public:
 	static const int32 MaterialExpressionNodeStepX;
 	static const int32 MaterialExpressionNodeStepY;
 };
+
+
+/** Helper struct to deallocate array of raw pointers when it goes out of scope. **/
+struct FScopedMemoryArrayDeallocate
+{
+	FScopedMemoryArrayDeallocate(TArray<char*>& MemoryArray) :
+		MemoryArrayRef(MemoryArray)
+	{
+
+	}
+
+	~FScopedMemoryArrayDeallocate()
+	{
+		// Delete allocated raw names.
+		for(int32 NameIdx = 0, NameNum = MemoryArrayRef.Num(); NameIdx < NameNum; ++NameIdx)
+		{
+			char* RawName = MemoryArrayRef[NameIdx];
+			FMemory::Free(RawName);
+			RawName = nullptr;
+		}
+
+		MemoryArrayRef.Empty();
+	}
+
+	TArray<char*>& MemoryArrayRef;
+};
+
