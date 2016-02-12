@@ -445,8 +445,11 @@ struct FScopedMemoryArrayDeallocate
 		for(int32 NameIdx = 0, NameNum = MemoryArrayRef.Num(); NameIdx < NameNum; ++NameIdx)
 		{
 			char* RawName = MemoryArrayRef[NameIdx];
-			FMemory::Free(RawName);
-			RawName = nullptr;
+			if(RawName)
+			{
+				FMemory::Free(RawName);
+				RawName = nullptr;
+			}
 		}
 
 		MemoryArrayRef.Empty();
