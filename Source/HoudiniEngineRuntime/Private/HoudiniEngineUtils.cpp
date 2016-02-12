@@ -1488,8 +1488,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	TArray<const char*> PositionTileNames;
 	PositionTileNames.SetNumUninitialized(VertexCount);
 
-	// Temporary array to hold unique component names.
-	TArray<char*> UniqueTileNames;
+	// Temporary array to hold unique raw names.
+	TArray<char*> UniqueNames;
 
 	// Array which stores indices of vertices (x,y) within each landscape component.
 	TArray<int> PositionComponentVertexIndices;
@@ -1506,9 +1506,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	TArray<FVector2D> PositionWeightmapUVs;
 	PositionWeightmapUVs.SetNumUninitialized(VertexCount);
 
+	// Array which holds face materials and face hole materials.
+	TArray<const char*> FaceMaterials;
+	TArray<const char*> FaceHoleMaterials;
+
 	int32 AllPositionsIdx = 0;
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
-	ComponentIdx < ComponentNum; ComponentIdx++)
+		ComponentIdx < ComponentNum; ComponentIdx++)
 	{
 		ULandscapeComponent* LandscapeComponent = LandscapeProxy->LandscapeComponents[ComponentIdx];
 
@@ -1522,7 +1526,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		// Get name of this landscape component.
 		char* LandscapeComponentNameStr = FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->GetName());
-		UniqueTileNames.Add(LandscapeComponentNameStr);
+		UniqueNames.Add(LandscapeComponentNameStr);
 
 		for(int32 VertexIdx = 0; VertexIdx < VertexCountPerComponent; VertexIdx++)
 		{
@@ -1619,30 +1623,22 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		AttributeInfoPointLandscapeComponentNames.storage = HAPI_STORAGETYPE_STRING;
 		AttributeInfoPointLandscapeComponentNames.originalOwner = HAPI_ATTROWNER_INVALID;
 
-		bool bFailedAttribute = false;
+		bool bFailedAttribute = true;
 
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
 			0, HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME, &AttributeInfoPointLandscapeComponentNames))
 		{
-			bFailedAttribute = true;
-		}
-
-		if(bFailedAttribute || HAPI_RESULT_SUCCESS != FHoudiniApi::SetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME,
-			&AttributeInfoPointLandscapeComponentNames, (const char**) PositionTileNames.GetData(), 0,
-			AttributeInfoPointLandscapeComponentNames.count))
-		{
-			bFailedAttribute = true;
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME,
+				&AttributeInfoPointLandscapeComponentNames, (const char**) PositionTileNames.GetData(), 0,
+				AttributeInfoPointLandscapeComponentNames.count))
+			{
+				bFailedAttribute = false;
+			}
 		}
 
 		// Delete allocated raw names.
-		for(int32 NameIdx = 0, NameNum = UniqueTileNames.Num(); NameIdx < NameNum; ++NameIdx)
-		{
-			char* RawTileName = UniqueTileNames[NameIdx];
-			FMemory::Free(RawTileName);
-		}
-
-		UniqueTileNames.Empty();
+		FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
 
 		if(bFailedAttribute)
 		{
@@ -1754,10 +1750,35 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		TArray<int32> LandscapeIndices;
 		LandscapeIndices.SetNumUninitialized(IndexCount);
 
-		int32 FaceIdx = 0;
+		// Allocate space for face names.
+		FaceMaterials.SetNumUninitialized(QuadCount);
+		FaceHoleMaterials.SetNumUninitialized(QuadCount);
+
+		int32 VertIdx = 0;
+		int32 QuadIdx = 0;
+		char* MaterialRawStr = "";
+		char* MaterialHoleRawStr = "";
 		const int32 QuadComponentCount = (ComponentSizeQuads + 1);
 		for(int32 ComponentIdx = 0; ComponentIdx < NumComponents; ComponentIdx++)
 		{
+			ULandscapeComponent* LandscapeComponent = LandscapeProxy->LandscapeComponents[ComponentIdx];
+
+			// If component has an override material, we need to get the raw name (if exporting materials).
+			if(bExportMaterials && LandscapeComponent->OverrideMaterial)
+			{
+				
+				MaterialRawStr = FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->OverrideMaterial->GetName());
+				UniqueNames.Add(MaterialRawStr);
+			}
+
+			// If component has an override hole material, we need to get the raw name (if exporting materials).
+			if(bExportMaterials && LandscapeComponent->OverrideHoleMaterial)
+			{
+				char* MaterialHoleRawStr = 
+					FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->OverrideHoleMaterial->GetName());
+				UniqueNames.Add(MaterialHoleRawStr);
+			}
+
 			int32 BaseVertIndex = ComponentIdx * VertexCountPerComponent;
 			for(int32 YIdx = 0; YIdx < ComponentSizeQuads; YIdx++)
 			{
@@ -1765,17 +1786,17 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 				{
 					if(HRSAI_Unreal == ImportAxis)
 					{
-						LandscapeIndices[FaceIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) * QuadComponentCount;
-						LandscapeIndices[FaceIdx + 1] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) * QuadComponentCount;
-						LandscapeIndices[FaceIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) * QuadComponentCount;
-						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 1] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 3] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) * QuadComponentCount;
 					}
 					else if(HRSAI_Houdini == ImportAxis)
 					{
-						LandscapeIndices[FaceIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) * QuadComponentCount;
-						LandscapeIndices[FaceIdx + 1] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) * QuadComponentCount;
-						LandscapeIndices[FaceIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) * QuadComponentCount;
-						LandscapeIndices[FaceIdx + 3] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 0] = BaseVertIndex + (XIdx + 0) + (YIdx + 0) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 1] = BaseVertIndex + (XIdx + 0) + (YIdx + 1) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 2] = BaseVertIndex + (XIdx + 1) + (YIdx + 1) * QuadComponentCount;
+						LandscapeIndices[VertIdx + 3] = BaseVertIndex + (XIdx + 1) + (YIdx + 0) * QuadComponentCount;
 					}
 					else
 					{
@@ -1783,20 +1804,46 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 						check(0);
 					}
 
-					FaceIdx += 4;
+					// Store override materials (if exporting materials).
+					if(bExportMaterials)
+					{
+						FaceMaterials[QuadIdx] = MaterialRawStr;
+						FaceHoleMaterials[QuadIdx] = MaterialHoleRawStr;
+					}
+
+					VertIdx += 4;
+					QuadIdx++;
 				}
 			}
 		}
 
 		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-			0, LandscapeIndices.GetData(), 0, LandscapeIndices.Num()), false);
+		bool bFailedHapiCall = true;
 
-		// We need to generate array of face counts.
-		TArray<int32> LandscapeFaces;
-		LandscapeFaces.Init(4, QuadCount);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-			0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()), false);
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, LandscapeIndices.GetData(), 0, LandscapeIndices.Num()))
+		{
+			// We need to generate array of face counts.
+			TArray<int32> LandscapeFaces;
+			LandscapeFaces.Init(4, QuadCount);
+
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+				0, 0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()))
+			{
+				bFailedHapiCall = false;
+			}
+		}
+
+		if(bFailedHapiCall)
+		{
+			// Delete allocated raw names.
+			if(bExportMaterials)
+			{
+				FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
+			}
+
+			return false;
+		}
 	}
 
 	// If we are marshalling material information.
@@ -1816,6 +1863,70 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		{
 			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterialHole,
 				MarshallingAttributeMaterialHoleName);
+		}
+
+		// Marshall in override primitive material names.
+		{
+			HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
+			FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPrimitiveMaterial);
+			AttributeInfoPrimitiveMaterial.count = FaceMaterials.Num();
+			AttributeInfoPrimitiveMaterial.tupleSize = 1;
+			AttributeInfoPrimitiveMaterial.exists = true;
+			AttributeInfoPrimitiveMaterial.owner = HAPI_ATTROWNER_PRIM;
+			AttributeInfoPrimitiveMaterial.storage = HAPI_STORAGETYPE_STRING;
+			AttributeInfoPrimitiveMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			bool bFailedHapiCall = true;
+
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial))
+			{
+				if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial,
+					(const char**) FaceMaterials.GetData(), 0, AttributeInfoPrimitiveMaterial.count))
+				{
+					bFailedHapiCall = false;
+				}
+			}
+
+			if(bFailedHapiCall)
+			{
+				FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
+				return false;
+			}
+		}
+
+		// Marshall in override primitive material hole names.
+		{
+			HAPI_AttributeInfo AttributeInfoPrimitiveMaterialHole;
+			FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPrimitiveMaterialHole);
+			AttributeInfoPrimitiveMaterialHole.count = FaceHoleMaterials.Num();
+			AttributeInfoPrimitiveMaterialHole.tupleSize = 1;
+			AttributeInfoPrimitiveMaterialHole.exists = true;
+			AttributeInfoPrimitiveMaterialHole.owner = HAPI_ATTROWNER_PRIM;
+			AttributeInfoPrimitiveMaterialHole.storage = HAPI_STORAGETYPE_STRING;
+			AttributeInfoPrimitiveMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			bool bFailedHapiCall = true;
+
+			if(HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
+					&AttributeInfoPrimitiveMaterialHole))
+			{
+				if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
+					&AttributeInfoPrimitiveMaterialHole, (const char**) FaceHoleMaterials.GetData(), 0,
+					AttributeInfoPrimitiveMaterialHole.count))
+				{
+					bFailedHapiCall = false;
+				}
+			}
+
+			if(bFailedHapiCall)
+			{
+				FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
+				return false;
+			}
 		}
 
 		// If there's a global landscape material, we marshall it as detail.
@@ -1872,6 +1983,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 					AttributeInfoDetailMaterialHole.count), false);
 			}
 		}
+
+		// We no longer need unique names.
+		FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
 	}
 
 	// Commit the geo.
