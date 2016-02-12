@@ -1844,7 +1844,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		// Get name of attribute used for marshalling hole materials.
 		std::string MarshallingAttributeMaterialHoleName = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
-		if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterialHole.IsEmpty())
 		{
 			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterialHole,
 				MarshallingAttributeMaterialHoleName);
@@ -1894,56 +1894,58 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		// If there's a global landscape material, we marshall it as detail.
 		{
 			UMaterialInterface* MaterialInterface = LandscapeProxy->GetLandscapeMaterial();
+			const char* MaterialNameStr = "";
 			if(MaterialInterface)
 			{
 				FString FullMaterialName = MaterialInterface->GetPathName();
-				const char* ConvertedString = TCHAR_TO_UTF8(*FullMaterialName);
-
-				HAPI_AttributeInfo AttributeInfoDetailMaterial;
-				FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoDetailMaterial);
-				AttributeInfoDetailMaterial.count = 1;
-				AttributeInfoDetailMaterial.tupleSize = 1;
-				AttributeInfoDetailMaterial.exists = true;
-				AttributeInfoDetailMaterial.owner = HAPI_ATTROWNER_DETAIL;
-				AttributeInfoDetailMaterial.storage = HAPI_STORAGETYPE_STRING;
-				AttributeInfoDetailMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
-
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
-					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial),
-						false);
-
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
-					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial,
-					(const char**) &ConvertedString, 0, AttributeInfoDetailMaterial.count), false);
+				MaterialNameStr = TCHAR_TO_UTF8(*FullMaterialName);
 			}
+
+			HAPI_AttributeInfo AttributeInfoDetailMaterial;
+			FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoDetailMaterial);
+			AttributeInfoDetailMaterial.count = 1;
+			AttributeInfoDetailMaterial.tupleSize = 1;
+			AttributeInfoDetailMaterial.exists = true;
+			AttributeInfoDetailMaterial.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfoDetailMaterial.storage = HAPI_STORAGETYPE_STRING;
+			AttributeInfoDetailMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial),
+				false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial,
+				(const char**) &MaterialNameStr, 0, AttributeInfoDetailMaterial.count), false);
 		}
 
 		// If there's a global landscape hole material, we marshall it as detail.
 		{
 			UMaterialInterface* MaterialInterface = LandscapeProxy->GetLandscapeHoleMaterial();
+			const char* MaterialNameStr = "";
 			if(MaterialInterface)
 			{
 				FString FullMaterialName = MaterialInterface->GetPathName();
-				const char* ConvertedString = TCHAR_TO_UTF8(*FullMaterialName);
-
-				HAPI_AttributeInfo AttributeInfoDetailMaterialHole;
-				FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoDetailMaterialHole);
-				AttributeInfoDetailMaterialHole.count = 1;
-				AttributeInfoDetailMaterialHole.tupleSize = 1;
-				AttributeInfoDetailMaterialHole.exists = true;
-				AttributeInfoDetailMaterialHole.owner = HAPI_ATTROWNER_DETAIL;
-				AttributeInfoDetailMaterialHole.storage = HAPI_STORAGETYPE_STRING;
-				AttributeInfoDetailMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
-
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
-					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
-					&AttributeInfoDetailMaterialHole), false);
-
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
-					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
-					&AttributeInfoDetailMaterialHole, (const char**) &ConvertedString, 0,
-					AttributeInfoDetailMaterialHole.count), false);
+				MaterialNameStr = TCHAR_TO_UTF8(*FullMaterialName);
 			}
+
+			HAPI_AttributeInfo AttributeInfoDetailMaterialHole;
+			FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoDetailMaterialHole);
+			AttributeInfoDetailMaterialHole.count = 1;
+			AttributeInfoDetailMaterialHole.tupleSize = 1;
+			AttributeInfoDetailMaterialHole.exists = true;
+			AttributeInfoDetailMaterialHole.owner = HAPI_ATTROWNER_DETAIL;
+			AttributeInfoDetailMaterialHole.storage = HAPI_STORAGETYPE_STRING;
+			AttributeInfoDetailMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
+				&AttributeInfoDetailMaterialHole), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
+				&AttributeInfoDetailMaterialHole, (const char**) &MaterialNameStr, 0,
+				AttributeInfoDetailMaterialHole.count), false);
 		}
 	}
 
