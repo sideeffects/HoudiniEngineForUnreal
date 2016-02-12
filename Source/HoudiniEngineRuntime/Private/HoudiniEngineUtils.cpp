@@ -1741,6 +1741,9 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			(const float*) PositionWeightmapUVs.GetData(), 0, AttributeInfoPointWeightmapUV.count), false);
 	}
 
+	// Delete raw names when out of scope.
+	FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
+
 	// Set indices if we are exporting full geometry.
 	if(bExportFullGeometry && IndexCount > 0)
 	{
@@ -1815,32 +1818,15 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		}
 
 		// We can now set vertex list.
-		bool bFailedHapiCall = true;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, LandscapeIndices.GetData(), 0, LandscapeIndices.Num()), false);
 
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-			0, LandscapeIndices.GetData(), 0, LandscapeIndices.Num()))
-		{
-			// We need to generate array of face counts.
-			TArray<int32> LandscapeFaces;
-			LandscapeFaces.Init(4, QuadCount);
+		// We need to generate array of face counts.
+		TArray<int32> LandscapeFaces;
+		LandscapeFaces.Init(4, QuadCount);
 
-			if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-				0, 0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()))
-			{
-				bFailedHapiCall = false;
-			}
-		}
-
-		if(bFailedHapiCall)
-		{
-			// Delete allocated raw names.
-			if(bExportMaterials)
-			{
-				FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
-			}
-
-			return false;
-		}
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+				0, 0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()), false);
 	}
 
 	// If we are marshalling material information.
@@ -1873,24 +1859,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			AttributeInfoPrimitiveMaterial.storage = HAPI_STORAGETYPE_STRING;
 			AttributeInfoPrimitiveMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			bool bFailedHapiCall = true;
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial),
+					false);
 
-			if(HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
-				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial))
-			{
-				if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
 					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial,
-					(const char**) FaceMaterials.GetData(), 0, AttributeInfoPrimitiveMaterial.count))
-				{
-					bFailedHapiCall = false;
-				}
-			}
-
-			if(bFailedHapiCall)
-			{
-				FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
-				return false;
-			}
+					(const char**) FaceMaterials.GetData(), 0, AttributeInfoPrimitiveMaterial.count), false);
 		}
 
 		// Marshall in override primitive material hole names.
@@ -1904,26 +1879,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			AttributeInfoPrimitiveMaterialHole.storage = HAPI_STORAGETYPE_STRING;
 			AttributeInfoPrimitiveMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
 
-			bool bFailedHapiCall = true;
-
-			if(HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),
 				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
-					&AttributeInfoPrimitiveMaterialHole))
-			{
-				if(HAPI_RESULT_SUCCESS == FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
+					&AttributeInfoPrimitiveMaterialHole), false);
+
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
 					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
 					&AttributeInfoPrimitiveMaterialHole, (const char**) FaceHoleMaterials.GetData(), 0,
-					AttributeInfoPrimitiveMaterialHole.count))
-				{
-					bFailedHapiCall = false;
-				}
-			}
-
-			if(bFailedHapiCall)
-			{
-				FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
-				return false;
-			}
+					AttributeInfoPrimitiveMaterialHole.count), false);
 		}
 
 		// If there's a global landscape material, we marshall it as detail.
@@ -1980,9 +1943,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 					AttributeInfoDetailMaterialHole.count), false);
 			}
 		}
-
-		// We no longer need unique names.
-		FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
 	}
 
 	// Commit the geo.
