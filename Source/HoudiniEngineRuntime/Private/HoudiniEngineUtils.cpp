@@ -1058,6 +1058,31 @@ FHoudiniEngineUtils::HapiExtractImage(HAPI_ParmId NodeParmId, const HAPI_Materia
 }
 
 
+FColor
+FHoudiniEngineUtils::PickVertexColorFromTextureMip(const uint8* MipBytes, FVector2D& UVCoord, int32 MipWidth,
+	int32 MipHeight)
+{
+	check(MipBytes);
+
+	FColor ResultColor(0, 0, 0, 255);
+
+	if((UVCoord.X >= 0.0f) && (UVCoord.X < 1.0f) && (UVCoord.Y >= 0.0f) && (UVCoord.Y < 1.0f))
+	{
+		const int32 X = MipWidth * UVCoord.X;
+		const int32 Y = MipHeight * UVCoord.Y;
+
+		const int32 Index = ((Y * MipWidth) + X) * 4;
+
+		ResultColor.B = MipBytes[Index + 0];
+		ResultColor.G = MipBytes[Index + 1];
+		ResultColor.R = MipBytes[Index + 2];
+		ResultColor.A = MipBytes[Index + 3];
+	}
+
+	return ResultColor;
+}
+
+
 #if WITH_EDITOR
 
 UTexture2D*
