@@ -1482,7 +1482,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	AllPositions.SetNumUninitialized(VertexCount * 3);
 
 	// Array which stores indices of landscape components, for each point.
-	TArray<const char*> PositionTileNames;
+	TArray<char*> PositionTileNames;
 	PositionTileNames.SetNumUninitialized(VertexCount);
 
 	// Temporary array to hold unique raw names.
@@ -1505,8 +1505,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	PositionWeightmapUVs.SetNumUninitialized(VertexCount);
 
 	// Array which holds face materials and face hole materials.
-	TArray<const char*> FaceMaterials;
-	TArray<const char*> FaceHoleMaterials;
+	TArray<char*> FaceMaterials;
+	TArray<char*> FaceHoleMaterials;
 
 	int32 AllPositionsIdx = 0;
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
@@ -1826,7 +1826,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		LandscapeFaces.Init(4, QuadCount);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-				0, 0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()), false);
+			0, 0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num()), false);
 	}
 
 	// If we are marshalling material information.
@@ -1864,7 +1864,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 					false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
-					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial,
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial,
 					(const char**) FaceMaterials.GetData(), 0, AttributeInfoPrimitiveMaterial.count), false);
 		}
 
@@ -1884,7 +1884,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 					&AttributeInfoPrimitiveMaterialHole), false);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(FHoudiniEngine::Get().GetSession(),
-					ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
+				ConnectedAssetId, 0, 0, MarshallingAttributeMaterialHoleName.c_str(),
 					&AttributeInfoPrimitiveMaterialHole, (const char**) FaceHoleMaterials.GetData(), 0,
 					AttributeInfoPrimitiveMaterialHole.count), false);
 		}
