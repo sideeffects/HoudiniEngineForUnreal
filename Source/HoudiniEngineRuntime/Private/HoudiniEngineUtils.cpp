@@ -1482,7 +1482,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	AllPositions.SetNumUninitialized(VertexCount * 3);
 
 	// Array which stores indices of landscape components, for each point.
-	TArray<char*> PositionTileNames;
+	TArray<const char*> PositionTileNames;
 	PositionTileNames.SetNumUninitialized(VertexCount);
 
 	// Temporary array to hold unique raw names.
@@ -1505,8 +1505,8 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	PositionWeightmapUVs.SetNumUninitialized(VertexCount);
 
 	// Array which holds face materials and face hole materials.
-	TArray<char*> FaceMaterials;
-	TArray<char*> FaceHoleMaterials;
+	TArray<const char*> FaceMaterials;
+	TArray<const char*> FaceHoleMaterials;
 
 	int32 AllPositionsIdx = 0;
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
@@ -1757,8 +1757,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		int32 VertIdx = 0;
 		int32 QuadIdx = 0;
-		char* MaterialRawStr = "";
-		char* MaterialHoleRawStr = "";
+
+		char* MaterialRawStr = nullptr;
+		char* MaterialHoleRawStr = nullptr;
+
 		const int32 QuadComponentCount = (ComponentSizeQuads + 1);
 		for(int32 ComponentIdx = 0; ComponentIdx < NumComponents; ComponentIdx++)
 		{
@@ -1774,7 +1776,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			// If component has an override hole material, we need to get the raw name (if exporting materials).
 			if(bExportMaterials && LandscapeComponent->OverrideHoleMaterial)
 			{
-				char* MaterialHoleRawStr = 
+				MaterialHoleRawStr = 
 					FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->OverrideHoleMaterial->GetName());
 				UniqueNames.Add(MaterialHoleRawStr);
 			}
