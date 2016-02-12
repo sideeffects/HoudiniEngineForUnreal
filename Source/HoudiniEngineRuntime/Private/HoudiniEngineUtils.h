@@ -400,6 +400,10 @@ protected:
 	/** Helper function to locate first Material expression of given class within given expression subgraph. **/
 	static UMaterialExpression* MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass);
 
+	/** Pick vertex color from texture mip level. **/
+	static FColor PickVertexColorFromTextureMip(const uint8* MipBytes, FVector2D& UVCoord, int32 MipWidth,
+		int32 MipHeight);
+
 protected:
 
 #if WITH_EDITOR
