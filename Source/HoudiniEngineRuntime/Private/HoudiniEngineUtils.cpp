@@ -1560,7 +1560,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			CDI.VertexIndexToXY(VertexIdx, VertX, VertY);
 
 			// Get position.
-			//FVector PositionVector = CDI.GetLocalVertex(VertX, VertY) + LandscapeComponent->RelativeLocation;
 			FVector PositionVector = CDI.GetWorldVertex(VertX, VertY);
 
 			// Get normal / tangent / binormal.
@@ -1750,6 +1749,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 
 	// Create point attribute info containing weightmap UVs.
+	/*
 	{
 		HAPI_AttributeInfo AttributeInfoPointWeightmapUV;
 		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointWeightmapUV);
@@ -1767,6 +1767,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP, &AttributeInfoPointWeightmapUV,
 			(const float*) PositionWeightmapUVs.GetData(), 0, AttributeInfoPointWeightmapUV.count), false);
 	}
+	*/
 
 	// Delete raw names when out of scope.
 	FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
