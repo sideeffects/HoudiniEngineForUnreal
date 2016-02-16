@@ -1472,9 +1472,50 @@ UHoudiniAssetComponent::UpdateEditorProperties(bool bConditionalUpdate)
 {
 	AHoudiniAssetActor* HoudiniAssetActor = GetHoudiniAssetActorOwner();
 
-	// If our actor is not selected don't do any updates.
-	if(!HoudiniAssetActor->IsSelected())
+	FPropertyEditorModule& PropertyModule =
+		FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	// Locate the details panel.
+	FName DetailsPanelName = "LevelEditorSelectionDetails";
+	TSharedPtr<IDetailsView> DetailsView = PropertyModule.FindDetailView(DetailsPanelName);
+
+	if(DetailsView.IsValid())
 	{
+		if(DetailsView->IsLocked())
+		{
+			// If details panel is locked, locate selected actors and check if this component belongs to one of them.
+
+			const TArray<TWeakObjectPtr<AActor> >& SelectedDetailActors = DetailsView->GetSelectedActors();
+			bool bFoundActor = false;
+
+			for(int32 ActorIdx = 0, ActorNum = SelectedDetailActors.Num(); ActorIdx < ActorNum; ++ActorIdx)
+			{
+				TWeakObjectPtr<AActor> SelectedActor = SelectedDetailActors[ActorIdx];
+				if(SelectedActor.IsValid() && SelectedActor.Get() == HoudiniAssetActor)
+				{
+					bFoundActor = true;
+					break;
+				}
+			}
+
+			// Details panel is locked, but our actor is not selected.
+			if(!bFoundActor)
+			{
+				return;
+			}
+		}
+		else
+		{
+			// If our actor is not selected (and details panel is not locked) don't do any updates.
+			if(!HoudiniAssetActor->IsSelected())
+			{
+				return;
+			}
+		}
+	}
+	else
+	{
+		// We have no details panel, nothing to update.
 		return;
 	}
 
@@ -1487,12 +1528,11 @@ UHoudiniAssetComponent::UpdateEditorProperties(bool bConditionalUpdate)
 			return;
 		}
 
-		TArray<UObject*> SelectedActor;
-		SelectedActor.Add(HoudiniAssetActor);
+		TArray<UObject*> SelectedActors;
+		SelectedActors.Add(HoudiniAssetActor);
 
-		FPropertyEditorModule& PropertyModule =
-			FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.UpdatePropertyViews(SelectedActor);
+		// Reset selected actor to itself, force refresh and override the lock.
+		DetailsView->SetObjects(SelectedActors, true, true);
 	}
 
 	StopHoudiniUIUpdateTicking();
