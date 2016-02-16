@@ -1382,7 +1382,8 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
 	ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
-	bool bExportMaterials, bool bExportFullGeometry, bool bLandscapeExportLighting)
+	bool bExportMaterials, bool bExportFullGeometry, bool bLandscapeExportLighting,
+	bool bLandscapeExportUniformUVs, bool bLandscapeExportTileUVs)
 {
 
 #if WITH_EDITOR
@@ -1457,7 +1458,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	const FTransform& LandscapeTransform = LandscapeProxy->LandscapeActorToWorld();
 
 	// Add Weightmap UVs to match with an exported weightmap, not the original weightmap UVs, which are per-component.
-	const FVector2D UVScale = FVector2D(1.0f, 1.0f) / FVector2D((MaxX - MinX) + 1, (MaxY - MinY) + 1);
+	//const FVector2D UVScale = FVector2D(1.0f, 1.0f) / FVector2D((MaxX - MinX) + 1, (MaxY - MinY) + 1);
 
 	int32 ComponentSizeQuads = ((LandscapeProxy->ComponentSizeQuads + 1) >> LandscapeProxy->ExportLOD) - 1;
 	float ScaleFactor = (float) LandscapeProxy->ComponentSizeQuads / (float) ComponentSizeQuads;
@@ -1528,12 +1529,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	PositionUVs.SetNumUninitialized(VertexCount);
 
 	// Array which stores weightmap uvs.
-	TArray<FVector2D> PositionWeightmapUVs;
-	PositionWeightmapUVs.SetNumUninitialized(VertexCount);
+	//TArray<FVector2D> PositionWeightmapUVs;
+	//PositionWeightmapUVs.SetNumUninitialized(VertexCount);
 
 	// Array which holds face materials and face hole materials.
 	TArray<const char*> FaceMaterials;
 	TArray<const char*> FaceHoleMaterials;
+
+	FIntPoint IntPointMax = FIntPoint::ZeroValue;
 
 	int32 AllPositionsIdx = 0;
 	for(int32 ComponentIdx = 0, ComponentNum = LandscapeProxy->LandscapeComponents.Num();
@@ -1568,13 +1571,32 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			FVector TangentY = FVector::ZeroVector;
 			CDI.GetLocalTangentVectors(VertX, VertY, TangentX, TangentY, Normal);
 
-			// Get UV data.
-			FIntPoint IntPoint = LandscapeComponent->GetSectionBase();
-			FVector2D TextureUV = FVector2D(VertX * ScaleFactor + IntPoint.X, VertY * ScaleFactor + IntPoint.Y);
-			//TextureUV.Y = 1.0f - TextureUV.Y;
+			// Export UVs.
+			FVector2D TextureUV = FVector2D::ZeroVector;
+
+			if(bLandscapeExportTileUVs)
+			{
+				// We want to export uvs per tile.
+				TextureUV = FVector2D(VertX, VertY);
+
+				// If we need to normalize UV space.
+				if(bLandscapeExportUniformUVs)
+				{
+					TextureUV /= ComponentSizeQuads;
+				}
+			}
+			else
+			{
+				// We want to export global uvs (default).
+				FIntPoint IntPoint = LandscapeComponent->GetSectionBase();
+				TextureUV = FVector2D(VertX * ScaleFactor + IntPoint.X, VertY * ScaleFactor + IntPoint.Y);
+
+				// Keep track of max offset.
+				IntPointMax = IntPointMax.ComponentMax(IntPoint);
+			}
 
 			// Get Weightmap UV data.
-			FVector2D WeightmapUV = (TextureUV - FVector2D(MinX, MinY)) * UVScale;
+			//FVector2D WeightmapUV = (TextureUV - FVector2D(MinX, MinY)) * UVScale;
 			//WeightmapUV.Y = 1.0f - WeightmapUV.Y;
 
 			// Retrieve component transform.
@@ -1630,9 +1652,23 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			PositionUVs[AllPositionsIdx] = TextureUV;
 
 			// Store weightmap uv.
-			PositionWeightmapUVs[AllPositionsIdx] = WeightmapUV;
+			//PositionWeightmapUVs[AllPositionsIdx] = WeightmapUV;
 
 			AllPositionsIdx++;
+		}
+	}
+
+	// If we need to normalize UV space and we are doing global UVs.
+	if(!bLandscapeExportTileUVs && bLandscapeExportUniformUVs)
+	{
+		IntPointMax += FIntPoint(ComponentSizeQuads, ComponentSizeQuads);
+		IntPointMax = IntPointMax.ComponentMax(FIntPoint(1, 1));
+
+		for(int32 UVIdx = 0; UVIdx < VertexCount; ++UVIdx)
+		{
+			FVector2D& PositionUV = PositionUVs[UVIdx];
+			PositionUV.X /= IntPointMax.X;
+			PositionUV.Y /= IntPointMax.Y;
 		}
 	}
 
@@ -1797,7 +1833,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			// If component has an override material, we need to get the raw name (if exporting materials).
 			if(bExportMaterials && LandscapeComponent->OverrideMaterial)
 			{
-				
 				MaterialRawStr = FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->OverrideMaterial->GetName());
 				UniqueNames.Add(MaterialRawStr);
 			}
@@ -1880,6 +1915,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		}
 
 		// Marshall in override primitive material names.
+		if(bExportFullGeometry)
 		{
 			HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
 			FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPrimitiveMaterial);
@@ -1900,6 +1936,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		}
 
 		// Marshall in override primitive material hole names.
+		if(bExportFullGeometry)
 		{
 			HAPI_AttributeInfo AttributeInfoPrimitiveMaterialHole;
 			FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPrimitiveMaterialHole);

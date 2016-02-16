@@ -45,7 +45,9 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	bLandscapeExportCurves(false),
 	bLandscapeExportFullGeometry(false),
 	bLandscapeExportMaterials(true),
-	bLandscapeExportLighting(false)
+	bLandscapeExportLighting(false),
+	bLandscapeExportUniformUVs(false),
+	bLandscapeExportTileUVs(false)
 {
 	ChoiceStringValue = TEXT("");
 }
@@ -433,6 +435,48 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		}
 
 		{
+			TSharedPtr<SCheckBox> CheckBoxExportTileUVs;
+
+			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			[
+				SAssignNew(CheckBoxExportTileUVs, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("LandscapeTileUVsCheckbox", "Export Landscape Tile UVs"))
+					.ToolTipText(LOCTEXT("LandscapeTileUVsCheckbox", "Export Landscape Tile UVs"))
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked(TAttribute<ECheckBoxState>::Create(
+					TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+						&UHoudiniAssetInput::IsCheckedExportTileUVs)))
+				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+					&UHoudiniAssetInput::CheckStateChangedExportTileUVs))
+			];
+		}
+
+		{
+			TSharedPtr<SCheckBox> CheckBoxExportUniformUVs;
+
+			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+			[
+				SAssignNew(CheckBoxExportUniformUVs, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("LandscapeUniformUVsCheckbox", "Export Landscape Uniform UVs"))
+					.ToolTipText(LOCTEXT("LandscapeUniformUVsCheckbox", "Export Landscape Uniform UVs"))
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked(TAttribute<ECheckBoxState>::Create(
+					TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
+						&UHoudiniAssetInput::IsCheckedExportUniformUVs)))
+				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
+					&UHoudiniAssetInput::CheckStateChangedExportUniformUVs))
+			];
+		}
+
+		{
 			TSharedPtr<SCheckBox> CheckBoxExportLighting;
 
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
@@ -640,7 +684,8 @@ UHoudiniAssetInput::UploadParameterValue()
 				// Connect input and create connected asset. Will return by reference.
 				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, InputLandscapeProxy,
 					ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
-					bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting))
+					bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting,
+					bLandscapeExportUniformUVs, bLandscapeExportTileUVs))
 				{
 					bChanged = false;
 					ConnectedAssetId = -1;
@@ -1791,6 +1836,76 @@ UHoudiniAssetInput::IsCheckedExportLighting() const
 }
 
 
+void
+UHoudiniAssetInput::CheckStateChangedExportUniformUVs(ECheckBoxState NewState)
+{
+	int32 bState = (ECheckBoxState::Checked == NewState);
+
+	if(bLandscapeExportUniformUVs != bState)
+	{
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Uniform UVs mode change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		bLandscapeExportUniformUVs = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportUniformUVs() const
+{
+	if(bLandscapeExportUniformUVs)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+void
+UHoudiniAssetInput::CheckStateChangedExportTileUVs(ECheckBoxState NewState)
+{
+	int32 bState = (ECheckBoxState::Checked == NewState);
+
+	if(bLandscapeExportTileUVs != bState)
+	{
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Tile UVs mode change."),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		bLandscapeExportTileUVs = bState;
+
+		// Mark this parameter as changed.
+		MarkChanged();
+	}
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportTileUVs() const
+{
+	if(bLandscapeExportTileUVs)
+	{
+		return ECheckBoxState::Checked;
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
 FReply
 UHoudiniAssetInput::OnButtonClickRecommit()
 {
@@ -1803,4 +1918,3 @@ UHoudiniAssetInput::OnButtonClickRecommit()
 }
 
 #endif
-

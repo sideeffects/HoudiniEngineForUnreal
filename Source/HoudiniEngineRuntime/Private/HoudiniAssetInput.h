@@ -255,6 +255,18 @@ protected:
 	/** Return checked state of landscape lighting checkbox. **/
 	ECheckBoxState IsCheckedExportLighting() const;
 
+	/** Check if state of landscape uniform uv checkbox has changed. **/
+	void CheckStateChangedExportUniformUVs(ECheckBoxState NewState);
+
+	/** Return checked state of landscape uniform uv checkbox. **/
+	ECheckBoxState IsCheckedExportUniformUVs() const;
+
+	/** Check if state of landscape tile uv checkbox has changed. **/
+	void CheckStateChangedExportTileUVs(ECheckBoxState NewState);
+
+	/** Return checked state of landscape tile uv checkbox. **/
+	ECheckBoxState IsCheckedExportTileUVs() const;
+
 	/** Handler for landscape recommit button. **/
 	FReply OnButtonClickRecommit();
 
@@ -315,6 +327,12 @@ protected:
 
 			/** Is set to true when lightmap information export is desired. **/
 			uint32 bLandscapeExportLighting : 1;
+
+			/** Is set to true when uvs should be exported in uniform space. **/
+			uint32 bLandscapeExportUniformUVs : 1;
+
+			/** Is set to true when uvs should be exported for each tile separately. **/
+			uint32 bLandscapeExportTileUVs : 1;
 		};
 
 		uint32 HoudiniAssetInputFlagsPacked;
