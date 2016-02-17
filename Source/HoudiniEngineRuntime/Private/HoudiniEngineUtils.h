@@ -265,6 +265,8 @@ public:
 		const TSet<HAPI_MaterialId>& UniqueMaterialIds, const TSet<HAPI_MaterialId>& UniqueInstancerMaterialIds,
 		TMap<FString, UMaterial*>& Materials);
 
+#if WITH_EDITOR
+
 	/** Create various material components. **/
 	static bool CreateMaterialComponentDiffuse(UHoudiniAssetComponent* HoudiniAssetComponent,
 		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
@@ -293,6 +295,8 @@ public:
 	static bool CreateMaterialComponentOpacity(UHoudiniAssetComponent* HoudiniAssetComponent,
 		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
+#endif
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
 	static bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,

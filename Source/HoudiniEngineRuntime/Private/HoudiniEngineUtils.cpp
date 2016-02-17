@@ -4837,6 +4837,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 }
 
 
+#if WITH_EDITOR
+
 bool
 FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* HoudiniAssetComponent,
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
@@ -6133,6 +6135,8 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(UHoudiniAssetComponent* Hou
 {
 	return true;
 }
+
+#endif
 
 
 char*
