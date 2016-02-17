@@ -123,6 +123,16 @@ FHoudiniEngine::StartupModule()
 
 	HOUDINI_LOG_MESSAGE(TEXT("Starting the Houdini Engine module."));
 
+	// Register settings.
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if(SettingsModule)
+	{
+		SettingsModule->RegisterSettings("Project", "Plugins", "HoudiniEngine",
+			LOCTEXT("RuntimeSettingsName", "Houdini Engine"),
+			LOCTEXT("RuntimeSettingsDescription", "Configure the HoudiniEngine plugin"),
+			GetMutableDefault<UHoudiniRuntimeSettings>());
+	}
+
 #if WITH_EDITOR
 
 	// Before starting the module, we need to locate and load HAPI library.
@@ -137,23 +147,11 @@ FHoudiniEngine::StartupModule()
 		{
 			// Get platform specific name of libHAPI.
 			FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
-
 			HOUDINI_LOG_MESSAGE(TEXT("Failed locating or loading %s"), *LibHAPIName);
 		}
 	}
 
 #endif
-
-	// Register settings.
-	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-	if(SettingsModule)
-	{
-		SettingsModule->RegisterSettings("Project", "Plugins", "HoudiniEngine",
-				LOCTEXT("RuntimeSettingsName", "Houdini Engine"),
-				LOCTEXT("RuntimeSettingsDescription", "Configure the HoudiniEngine plugin"),
-				GetMutableDefault<UHoudiniRuntimeSettings>()
-			);
-	}
 
 	// Create static mesh Houdini logo.
 	HoudiniLogoStaticMesh =
