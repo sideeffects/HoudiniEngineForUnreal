@@ -318,4 +318,16 @@ public:
 	// Action to take when tangents are missing.
 	UPROPERTY(EditAnywhere, Category=StaticMeshBuildSettings, meta=(DisplayName="Recompute Tangents"))
 	TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> RecomputeTangentsFlag;
+
+/** Custom Houdini location. **/
+public:
+
+	// Whether to use custom Houdini location.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Use custom Houdini location (requires restart)"))
+	bool bUseCustomHoudiniLocation;
+
+	// Custom Houdini location.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Custom Houdini location"))
+	FDirectoryPath CustomHoudiniLocation;
+
 };
