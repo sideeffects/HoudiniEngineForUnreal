@@ -145,6 +145,7 @@ public class HoudiniEngineEditor : ModuleRules
 				"EditorStyle",
 				"EditorWidgets",
 				"AppFramework",
+				"DesktopWidgets",
 				"HoudiniEngineRuntime"
 			}
 		);
