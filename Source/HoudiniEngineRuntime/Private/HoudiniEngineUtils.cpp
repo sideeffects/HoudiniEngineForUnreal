@@ -1512,7 +1512,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	PositionTileNames.SetNumUninitialized(VertexCount);
 
 	// Temporary array to hold unique raw names.
-	TArray<char*> UniqueNames;
+	TArray<TSharedPtr<char> > UniqueNames;
 
 	// Array which stores indices of vertices (x,y) within each landscape component.
 	TArray<int> PositionComponentVertexIndices;
@@ -1552,7 +1552,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		// Get name of this landscape component.
 		char* LandscapeComponentNameStr = FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->GetName());
-		UniqueNames.Add(LandscapeComponentNameStr);
+		UniqueNames.Add(TSharedPtr<char>(LandscapeComponentNameStr));
 
 		for(int32 VertexIdx = 0; VertexIdx < VertexCountPerComponent; VertexIdx++)
 		{
@@ -1696,7 +1696,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		}
 
 		// Delete allocated raw names.
-		FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
+		UniqueNames.Empty();
 
 		if(bFailedAttribute)
 		{
@@ -1803,9 +1803,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 	*/
 
-	// Delete raw names when out of scope.
-	FScopedMemoryArrayDeallocate ScopedMemoryArrayDeallocate(UniqueNames);
-
 	// Set indices if we are exporting full geometry.
 	if(bExportFullGeometry && IndexCount > 0)
 	{
@@ -1832,7 +1829,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			if(bExportMaterials && LandscapeComponent->OverrideMaterial)
 			{
 				MaterialRawStr = FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->OverrideMaterial->GetName());
-				UniqueNames.Add(MaterialRawStr);
+				UniqueNames.Add(TSharedPtr<char>(MaterialRawStr));
 			}
 
 			// If component has an override hole material, we need to get the raw name (if exporting materials).
@@ -1840,7 +1837,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			{
 				MaterialHoleRawStr = 
 					FHoudiniEngineUtils::ExtractRawName(LandscapeComponent->OverrideHoleMaterial->GetName());
-				UniqueNames.Add(MaterialHoleRawStr);
+				UniqueNames.Add(TSharedPtr<char>(MaterialHoleRawStr));
 			}
 
 			int32 BaseVertIndex = ComponentIdx * VertexCountPerComponent;
