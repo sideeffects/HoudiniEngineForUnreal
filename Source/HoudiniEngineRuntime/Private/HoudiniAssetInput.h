@@ -255,11 +255,11 @@ protected:
 	/** Return checked state of landscape lighting checkbox. **/
 	ECheckBoxState IsCheckedExportLighting() const;
 
-	/** Check if state of landscape uniform uv checkbox has changed. **/
-	void CheckStateChangedExportUniformUVs(ECheckBoxState NewState);
+	/** Check if state of landscape normalized uv checkbox has changed. **/
+	void CheckStateChangedExportNormalizedUVs(ECheckBoxState NewState);
 
-	/** Return checked state of landscape uniform uv checkbox. **/
-	ECheckBoxState IsCheckedExportUniformUVs() const;
+	/** Return checked state of landscape normalized uv checkbox. **/
+	ECheckBoxState IsCheckedExportNormalizedUVs() const;
 
 	/** Check if state of landscape tile uv checkbox has changed. **/
 	void CheckStateChangedExportTileUVs(ECheckBoxState NewState);
@@ -328,8 +328,8 @@ protected:
 			/** Is set to true when lightmap information export is desired. **/
 			uint32 bLandscapeExportLighting : 1;
 
-			/** Is set to true when uvs should be exported in uniform space. **/
-			uint32 bLandscapeExportUniformUVs : 1;
+			/** Is set to true when uvs should be exported in [0,1] space. **/
+			uint32 bLandscapeExportNormalizedUVs : 1;
 
 			/** Is set to true when uvs should be exported for each tile separately. **/
 			uint32 bLandscapeExportTileUVs : 1;
