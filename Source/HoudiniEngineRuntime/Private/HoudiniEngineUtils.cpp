@@ -1379,8 +1379,8 @@ FHoudiniEngineUtils::HapiGetNodeId(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId,
 bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex,
 	ALandscapeProxy* LandscapeProxy, HAPI_AssetId& ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
-	bool bExportMaterials, bool bExportFullGeometry, bool bLandscapeExportLighting,
-	bool bLandscapeExportUniformUVs, bool bLandscapeExportTileUVs)
+	bool bExportMaterials, bool bExportFullGeometry, bool bExportLighting, bool bExportNormalizedUVs,
+	bool bExportTileUVs)
 {
 
 #if WITH_EDITOR
@@ -1572,13 +1572,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			// Export UVs.
 			FVector TextureUV = FVector::ZeroVector;
 
-			if(bLandscapeExportTileUVs)
+			if(bExportTileUVs)
 			{
 				// We want to export uvs per tile.
 				TextureUV = FVector(VertX, VertY, 0.0f);
 
 				// If we need to normalize UV space.
-				if(bLandscapeExportUniformUVs)
+				if(bExportNormalizedUVs)
 				{
 					TextureUV /= ComponentSizeQuads;
 				}
@@ -1657,7 +1657,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	}
 
 	// If we need to normalize UV space and we are doing global UVs.
-	if(!bLandscapeExportTileUVs && bLandscapeExportUniformUVs)
+	if(!bExportTileUVs && bExportNormalizedUVs)
 	{
 		IntPointMax += FIntPoint(ComponentSizeQuads, ComponentSizeQuads);
 		IntPointMax = IntPointMax.ComponentMax(FIntPoint(1, 1));

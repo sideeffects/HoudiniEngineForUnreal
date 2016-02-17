@@ -41,7 +41,7 @@ UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializ
 	bLandscapeExportFullGeometry(false),
 	bLandscapeExportMaterials(true),
 	bLandscapeExportLighting(false),
-	bLandscapeExportUniformUVs(false),
+	bLandscapeExportNormalizedUVs(false),
 	bLandscapeExportTileUVs(false)
 {
 	ChoiceStringValue = TEXT("");
@@ -451,23 +451,23 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 		}
 
 		{
-			TSharedPtr<SCheckBox> CheckBoxExportUniformUVs;
+			TSharedPtr<SCheckBox> CheckBoxExportNormalizedUVs;
 
 			VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
 			[
-				SAssignNew(CheckBoxExportUniformUVs, SCheckBox)
+				SAssignNew(CheckBoxExportNormalizedUVs, SCheckBox)
 				.Content()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("LandscapeUniformUVsCheckbox", "Export Landscape Uniform UVs"))
-					.ToolTipText(LOCTEXT("LandscapeUniformUVsCheckbox", "Export Landscape Uniform UVs"))
+					.Text(LOCTEXT("LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs"))
+					.ToolTipText(LOCTEXT("LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs"))
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 				.IsChecked(TAttribute<ECheckBoxState>::Create(
 					TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-						&UHoudiniAssetInput::IsCheckedExportUniformUVs)))
+						&UHoudiniAssetInput::IsCheckedExportNormalizedUVs)))
 				.OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-					&UHoudiniAssetInput::CheckStateChangedExportUniformUVs))
+					&UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs))
 			];
 		}
 
@@ -680,7 +680,7 @@ UHoudiniAssetInput::UploadParameterValue()
 				if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, InputLandscapeProxy,
 					ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
 					bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting,
-					bLandscapeExportUniformUVs, bLandscapeExportTileUVs))
+					bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs))
 				{
 					bChanged = false;
 					ConnectedAssetId = -1;
@@ -1831,21 +1831,21 @@ UHoudiniAssetInput::IsCheckedExportLighting() const
 
 
 void
-UHoudiniAssetInput::CheckStateChangedExportUniformUVs(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs(ECheckBoxState NewState)
 {
 	int32 bState = (ECheckBoxState::Checked == NewState);
 
-	if(bLandscapeExportUniformUVs != bState)
+	if(bLandscapeExportNormalizedUVs != bState)
 	{
 		// Record undo information.
 		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Uniform UVs mode change."),
+			LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Normalized UVs mode change."),
 			HoudiniAssetComponent);
 		Modify();
 
 		MarkPreChanged();
 
-		bLandscapeExportUniformUVs = bState;
+		bLandscapeExportNormalizedUVs = bState;
 
 		// Mark this parameter as changed.
 		MarkChanged();
@@ -1854,9 +1854,9 @@ UHoudiniAssetInput::CheckStateChangedExportUniformUVs(ECheckBoxState NewState)
 
 
 ECheckBoxState
-UHoudiniAssetInput::IsCheckedExportUniformUVs() const
+UHoudiniAssetInput::IsCheckedExportNormalizedUVs() const
 {
-	if(bLandscapeExportUniformUVs)
+	if(bLandscapeExportNormalizedUVs)
 	{
 		return ECheckBoxState::Checked;
 	}
