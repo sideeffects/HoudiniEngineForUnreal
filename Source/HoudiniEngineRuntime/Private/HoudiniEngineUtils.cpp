@@ -1523,7 +1523,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	PositionNormals.SetNumUninitialized(VertexCount);
 
 	// Array which stores uvs.
-	TArray<FVector2D> PositionUVs;
+	TArray<FVector> PositionUVs;
 	PositionUVs.SetNumUninitialized(VertexCount);
 
 	// Array which stores weightmap uvs.
@@ -1570,12 +1570,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			CDI.GetLocalTangentVectors(VertX, VertY, TangentX, TangentY, Normal);
 
 			// Export UVs.
-			FVector2D TextureUV = FVector2D::ZeroVector;
+			FVector TextureUV = FVector::ZeroVector;
 
 			if(bLandscapeExportTileUVs)
 			{
 				// We want to export uvs per tile.
-				TextureUV = FVector2D(VertX, VertY);
+				TextureUV = FVector(VertX, VertY, 0.0f);
 
 				// If we need to normalize UV space.
 				if(bLandscapeExportUniformUVs)
@@ -1587,7 +1587,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 			{
 				// We want to export global uvs (default).
 				FIntPoint IntPoint = LandscapeComponent->GetSectionBase();
-				TextureUV = FVector2D(VertX * ScaleFactor + IntPoint.X, VertY * ScaleFactor + IntPoint.Y);
+				TextureUV = FVector(VertX * ScaleFactor + IntPoint.X, VertY * ScaleFactor + IntPoint.Y, 0.0f);
 
 				// Keep track of max offset.
 				IntPointMax = IntPointMax.ComponentMax(IntPoint);
@@ -1664,7 +1664,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 		for(int32 UVIdx = 0; UVIdx < VertexCount; ++UVIdx)
 		{
-			FVector2D& PositionUV = PositionUVs[UVIdx];
+			FVector& PositionUV = PositionUVs[UVIdx];
 			PositionUV.X /= IntPointMax.X;
 			PositionUV.Y /= IntPointMax.Y;
 		}
@@ -1768,7 +1768,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		HAPI_AttributeInfo AttributeInfoPointUV;
 		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointUV);
 		AttributeInfoPointUV.count = VertexCount;
-		AttributeInfoPointUV.tupleSize = 2;
+		AttributeInfoPointUV.tupleSize = 3;
 		AttributeInfoPointUV.exists = true;
 		AttributeInfoPointUV.owner = HAPI_ATTROWNER_POINT;
 		AttributeInfoPointUV.storage = HAPI_STORAGETYPE_FLOAT;
