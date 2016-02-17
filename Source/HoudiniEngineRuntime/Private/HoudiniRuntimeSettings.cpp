@@ -75,9 +75,12 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	bRemoveDegenerates(true),
 	GenerateLightmapUVsFlag(HRSRF_OnlyIfMissing),
 	RecomputeNormalsFlag(HRSRF_OnlyIfMissing),
-	RecomputeTangentsFlag(HRSRF_OnlyIfMissing)
-{
+	RecomputeTangentsFlag(HRSRF_OnlyIfMissing),
 
+	/** Custom Houdini location. **/
+	bUseCustomHoudiniLocation(false)
+{
+	CustomHoudiniLocation.Path = TEXT("");
 }
 
 
@@ -146,6 +149,8 @@ UHoudiniRuntimeSettings::PostInitProperties()
 	UpdateSessionUi();
 
 #endif
+
+	SetPropertyReadOnly(TEXT("CustomHoudiniLocation"), !bUseCustomHoudiniLocation);
 }
 
 
@@ -175,6 +180,11 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	else if(Property->GetName() == TEXT("SessionType"))
 	{
 		UpdateSessionUi();
+	}
+
+	if(Property->GetName() == TEXT("bUseCustomHoudiniLocation"))
+	{
+		SetPropertyReadOnly(TEXT("CustomHoudiniLocation"), !bUseCustomHoudiniLocation);
 	}
 
 	/*
