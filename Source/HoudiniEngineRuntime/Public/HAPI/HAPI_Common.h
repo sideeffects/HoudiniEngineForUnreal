@@ -941,6 +941,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_CookOptions )
 struct HAPI_API HAPI_NodeInfo
 {
     HAPI_NodeId id;
+    HAPI_NodeId parentId;
     HAPI_AssetId assetId;
     HAPI_StringHandle nameSH;
     HAPI_NodeType type;
