@@ -6442,23 +6442,46 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 	// Get platform specific name of libHAPI.
 	FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
 
-	// We have HFS environment variable defined, attempt to load libHAPI from it.
+	// If we have a custom location specified through settings, attempt to use that.
+	bool bCustomPathFound = false;
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings && HoudiniRuntimeSettings->bUseCustomHoudiniLocation)
+	{
+		// Create full path to libHAPI binary.
+		const FString& CustomHoudiniLocationPath = HoudiniRuntimeSettings->CustomHoudiniLocation.Path;
+		if(!CustomHoudiniLocationPath.IsEmpty())
+		{
+			FString LibHAPICustomPath = FString::Printf(TEXT("%s/%s"), *CustomHoudiniLocationPath,
+				*LibHAPIName);
+
+			if(FPaths::FileExists(LibHAPICustomPath))
+			{
+				HFSPath = CustomHoudiniLocationPath;
+				bCustomPathFound = true;
+			}
+		}
+	}
+
+	// We have HFS environment variable defined (or custom location), attempt to load libHAPI from it.
 	if(!HFSPath.IsEmpty())
 	{
+		if(!bCustomPathFound)
+		{
 
 #if PLATFORM_WINDOWS
 
-		HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_WINDOWS);
+			HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_WINDOWS);
 
 #elif PLATFORM_MAC
 
-		HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_MAC);
+			HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_MAC);
 
 #elif PLATFORM_LINUX
 
-		HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_LINUX);
+			HFSPath += FString::Printf(TEXT("/%s"), HAPI_HFS_SUBFOLDER_LINUX);
 
 #endif
+		}
 
 		// Create full path to libHAPI binary.
 		FString LibHAPIPath = FString::Printf(TEXT("%s/%s"), *HFSPath, *LibHAPIName);
@@ -6483,7 +6506,15 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 			// If library has been loaded successfully we can stop.
 			if(HAPILibraryHandle)
 			{
-				HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from HFS environment path %s"), *LibHAPIName, *HFSPath);
+				if(bCustomPathFound)
+				{
+					HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from custom path %s"), *LibHAPIName, *HFSPath);
+				}
+				else
+				{
+					HOUDINI_LOG_MESSAGE(TEXT("Loaded %s from HFS environment path %s"), *LibHAPIName, *HFSPath);
+				}
+
 				StoredLibHAPILocation = HFSPath;
 				return HAPILibraryHandle;
 			}

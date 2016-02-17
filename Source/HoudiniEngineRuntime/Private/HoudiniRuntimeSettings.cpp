@@ -181,10 +181,27 @@ UHoudiniRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 	{
 		UpdateSessionUi();
 	}
-
-	if(Property->GetName() == TEXT("bUseCustomHoudiniLocation"))
+	else if(Property->GetName() == TEXT("bUseCustomHoudiniLocation"))
 	{
 		SetPropertyReadOnly(TEXT("CustomHoudiniLocation"), !bUseCustomHoudiniLocation);
+	}
+	else if(Property->GetName() == TEXT("CustomHoudiniLocation"))
+	{
+		FString LibHAPIName = FHoudiniEngineUtils::HoudiniGetLibHAPIName();
+		FString& CustomHoudiniLocationPath = CustomHoudiniLocation.Path;
+		FString LibHAPICustomPath = FString::Printf(TEXT("%s/%s"), *CustomHoudiniLocationPath, *LibHAPIName);
+
+		// If path does not point to libHAPI location, we need to let user know.
+		if(!FPaths::FileExists(LibHAPICustomPath))
+		{
+			FString MessageString = FString::Printf(TEXT("%s was not found in %s"), *LibHAPIName, 
+				*CustomHoudiniLocationPath);
+
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *MessageString,
+				TEXT("Invalid Custom Location Specified, resetting."));
+
+			CustomHoudiniLocationPath = TEXT("");
+		}
 	}
 
 	/*

@@ -326,7 +326,7 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Use custom Houdini location (requires restart)"))
 	bool bUseCustomHoudiniLocation;
 
-	// Custom Houdini location.
+	// Custom Houdini location (where HAPI library is located).
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = HoudiniLocation, Meta = (DisplayName = "Custom Houdini location"))
 	FDirectoryPath CustomHoudiniLocation;
 
