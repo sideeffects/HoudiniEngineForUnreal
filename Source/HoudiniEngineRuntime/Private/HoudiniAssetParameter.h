@@ -42,6 +42,15 @@ public:
 	/** Set component for this parameter. **/
 	virtual void SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent);
 
+	/** Set parent parameter for this parameter. **/
+	void SetParentParameter(UHoudiniAssetParameter* InParentParameter);
+
+	/** Return component associated with this parameter, if there's one. **/
+	UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
+
+	/** Return parent parameter for this parameter, if there's one. **/
+	UHoudiniAssetParameter* GetParentParameter() const;
+
 #if WITH_EDITOR
 
 	/** Create widget for this parameter and add it to a given category. **/
@@ -74,9 +83,6 @@ public:
 
 	/** Return parameter id of a parent of this parameter. **/
 	HAPI_ParmId GetParmParentId() const;
-
-	/** Set parent parameter for this parameter. **/
-	void SetParentParameter(UHoudiniAssetParameter* InParentParameter);
 
 	/** Return true if parent parameter exists for this parameter. **/
 	bool IsChildParameter() const;
