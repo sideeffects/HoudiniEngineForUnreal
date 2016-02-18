@@ -171,7 +171,7 @@ UHoudiniAssetParameterChoice::CreateWidget(IDetailCategoryBuilder& DetailCategor
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
-	
+
 	// Create the standard parameter name widget.
 	CreateNameWidget(Row, true);
 
@@ -247,7 +247,12 @@ UHoudiniAssetParameterChoice::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 TOptional<TSharedPtr<FString> >
 UHoudiniAssetParameterChoice::GetValue(int32 Idx) const
 {
-	return Idx == 0 ? TOptional<TSharedPtr<FString> >(StringChoiceValues[CurrentValue]) : TOptional<TSharedPtr<FString> >();
+	if(Idx == 0)
+	{
+		return TOptional<TSharedPtr<FString> >(StringChoiceValues[CurrentValue]);
+	}
+
+	return TOptional<TSharedPtr<FString> >();
 }
 
 

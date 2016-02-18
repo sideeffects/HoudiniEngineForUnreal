@@ -261,6 +261,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_PIVOT							"p"
 #define HAPI_UNREAL_PARAM_UNIFORMSCALE					"scale"
 
+/** Handle types. **/
+#define HAPI_UNREAL_HANDLE_TRANSFORM					"xform"
+
 /** Texture planes. **/
 #define HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA		"C A"
 #define HAPI_UNREAL_MATERIAL_TEXTURE_COLOR				"C"
