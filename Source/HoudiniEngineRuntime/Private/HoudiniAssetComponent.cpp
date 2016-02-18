@@ -36,6 +36,8 @@
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterFile.h"
 #include "HoudiniAssetParameterToggle.h"
+#include "HoudiniAssetParameterRampFloat.h"
+#include "HoudiniAssetParameterRampColor.h"
 #include "HoudiniHandleComponent.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniApi.h"
@@ -501,7 +503,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		HoudiniAssetComponentMaterials->ConditionalBeginDestroy();
 	}
 
-	HoudiniAssetComponentMaterials = 
+	HoudiniAssetComponentMaterials =
 		NewObject<UHoudiniAssetComponentMaterials>(this, UHoudiniAssetComponentMaterials::StaticClass(),
 			NAME_None, RF_Transactional);
 
@@ -852,7 +854,8 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 
 
 bool
-UHoudiniAssetComponent::IsObjectReferencedLocally(UStaticMesh* StaticMesh, FReferencerInformationList& Referencers) const
+UHoudiniAssetComponent::IsObjectReferencedLocally(UStaticMesh* StaticMesh,
+	FReferencerInformationList& Referencers) const
 {
 	if(Referencers.InternalReferences.Num() == 0 && Referencers.ExternalReferences.Num() == 1)
 	{
@@ -1416,7 +1419,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 			else if(bFinishedLoadedInstantiation)
 			{
 				// If we are doing first cook after instantiation.
-				
+
 				// Update parameter node id for all loaded parameters.
 				UpdateLoadedParameters();
 
@@ -2053,7 +2056,8 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		}
 
 		// We need to reconstruct geometry from copied actor.
-		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes); Iter; ++Iter)
+		for(TMap<FHoudiniGeoPartObject, UStaticMesh*>::TIterator Iter(CopiedHoudiniComponent->StaticMeshes);
+			Iter; ++Iter)
 		{
 			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
 			UStaticMesh* StaticMesh = Iter.Value();
@@ -2070,7 +2074,7 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		}
 
 		// We need to reconstruct splines.
-		for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator 
+		for(TMap<FHoudiniGeoPartObject, UHoudiniSplineComponent*>::TIterator
 			Iter(CopiedHoudiniComponent->SplineComponents); Iter; ++Iter)
 		{
 			FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
@@ -2089,7 +2093,8 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 
 		// Copy material information.
 		HoudiniAssetComponentMaterials = 
-			DuplicateObject<UHoudiniAssetComponentMaterials>(CopiedHoudiniComponent->HoudiniAssetComponentMaterials, this);
+			DuplicateObject<UHoudiniAssetComponentMaterials>(CopiedHoudiniComponent->HoudiniAssetComponentMaterials,
+				this);
 
 		// Perform any necessary post loading.
 		PostLoad();
@@ -2151,7 +2156,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 
 			if(MaterialReplacementsMap.Num() > 0)
 			{
-				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME), 
+				FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 					LOCTEXT("HoudiniMaterialReplacement", "Houdini Material Replacement"), this);
 
 				for(TMap<UStaticMesh*, int32>::TIterator Iter(MaterialReplacementsMap); Iter; ++Iter)
@@ -2189,8 +2194,9 @@ UHoudiniAssetComponent::OnApplyObjectToActor(UObject* ObjectToApply, AActor* Act
 							{
 								for(int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
 								{
-									UInstancedStaticMeshComponent* InstancedStaticMeshComponent 
-										= InstancedStaticMeshComponents[Idx];
+									UInstancedStaticMeshComponent* InstancedStaticMeshComponent =
+										InstancedStaticMeshComponents[Idx];
+
 									if(InstancedStaticMeshComponent)
 									{
 										InstancedStaticMeshComponent->Modify();
@@ -2506,7 +2512,7 @@ UHoudiniAssetComponent::PostLoad()
 	}
 
 	// Perform post load initialization on parameters.
-	PostLoadInitializeParameters();	
+	PostLoadInitializeParameters();
 
 	// Perform post load initialization on instance inputs.
 	PostLoadInitializeInstanceInputs();
@@ -2666,7 +2672,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		if(bPresetSaved)
 		{
 			Ar << PresetBuffer;
-			
+
 			if(Ar.IsSaving())
 			{
 				// We no longer need preset buffer.
@@ -2773,12 +2779,15 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 	AActor* Actor = NewObject<AActor>(Level, NAME_None);
 	Actor->AddToRoot();
 
-	USceneComponent* RootComponent = NewObject<USceneComponent>(Actor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+	USceneComponent* RootComponent =
+		NewObject<USceneComponent>(Actor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+
 	RootComponent->Mobility = EComponentMobility::Movable;
 	RootComponent->bVisualizeComponent = true;
 
 	const FTransform& ComponentWorldTransform = GetComponentTransform();
-	RootComponent->SetWorldLocationAndRotation(ComponentWorldTransform.GetLocation(), ComponentWorldTransform.GetRotation());
+	RootComponent->SetWorldLocationAndRotation(ComponentWorldTransform.GetLocation(),
+		ComponentWorldTransform.GetRotation());
 
 	Actor->SetRootComponent(RootComponent);
 	Actor->AddInstanceComponent(RootComponent);
@@ -3178,7 +3187,6 @@ UHoudiniAssetComponent::CreateParameters()
 				continue;
 			}
 
-			// Skip unsupported param types for now.
 			switch(ParmInfo.type)
 			{
 				case HAPI_PARMTYPE_STRING:
@@ -3271,8 +3279,28 @@ UHoudiniAssetComponent::CreateParameters()
 
 				case HAPI_PARMTYPE_MULTIPARMLIST:
 				{
-					HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr, AssetInfo.nodeId,
-						ParmInfo);
+					if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType)
+					{
+						//HoudiniAssetParameter = UHoudiniAssetParameterRampFloat::Create(this, nullptr,
+						//	AssetInfo.nodeId, ParmInfo);
+
+						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
+							AssetInfo.nodeId, ParmInfo);
+					}
+					else if(HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
+					{
+						//HoudiniAssetParameter = UHoudiniAssetParameterRampColor::Create(this, nullptr,
+						//	AssetInfo.nodeId, ParmInfo);
+
+						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
+							AssetInfo.nodeId, ParmInfo);
+					}
+					else
+					{
+						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
+							AssetInfo.nodeId, ParmInfo);
+					}
+
 					break;
 				}
 
@@ -3510,7 +3538,7 @@ UHoudiniAssetComponent::CreateHandles()
 
 			FString TypeName = TEXT("");
 			if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.typeNameSH, TypeName)
-				|| TypeName != "xform")
+				|| TypeName != TEXT(HAPI_UNREAL_HANDLE_TRANSFORM))
 			{
 				continue;
 			}
@@ -3533,9 +3561,9 @@ UHoudiniAssetComponent::CreateHandles()
 			}
 			else
 			{
-				HandleComponent = NewObject<UHoudiniHandleComponent>(
-					this, UHoudiniHandleComponent::StaticClass(), NAME_None, RF_Public | RF_Transactional
-				);
+				HandleComponent =
+					NewObject<UHoudiniHandleComponent>(this, UHoudiniHandleComponent::StaticClass(),
+						NAME_None, RF_Public | RF_Transactional);
 			}
 
 			if(!HandleComponent)
