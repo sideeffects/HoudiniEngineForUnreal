@@ -394,8 +394,8 @@ UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, 
 	int32 ParmNameLength = 0;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-	HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetStringBufLength(FHoudiniEngine::Get().GetSession(), StringHandle, &ParmNameLength));
-	if(HAPI_RESULT_SUCCESS != Result)
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetStringBufLength(FHoudiniEngine::Get().GetSession(), StringHandle,
+		&ParmNameLength))
 	{
 		// We have encountered an error retrieving length of this parameter's name.
 		return false;
@@ -411,8 +411,8 @@ UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, 
 	TArray<char> NameBuffer;
 	NameBuffer.SetNumZeroed(ParmNameLength);
 
-	HOUDINI_CHECK_ERROR(&Result, FHoudiniApi::GetString(FHoudiniEngine::Get().GetSession(), StringHandle, &NameBuffer[0], ParmNameLength));
-	if(HAPI_RESULT_SUCCESS != Result)
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetString(FHoudiniEngine::Get().GetSession(), StringHandle, &NameBuffer[0],
+		ParmNameLength))
 	{
 		// We have encountered an error retrieving the name of this parameter.
 		return false;
