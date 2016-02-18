@@ -171,7 +171,8 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 			.MaxSliderValue(ValueUIMax)
 
 			.Value(TAttribute<TOptional<int32> >::Create(
-				TAttribute<TOptional<int32> >::FGetter::CreateUObject(this, &UHoudiniAssetParameterInt::GetValue, Idx)))
+				TAttribute<TOptional<int32> >::FGetter::CreateUObject(this,
+					&UHoudiniAssetParameterInt::GetValue, Idx)))
 			.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(
 				this, &UHoudiniAssetParameterInt::SetValue, Idx))
 			.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(
