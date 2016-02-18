@@ -40,6 +40,7 @@
 #include "SRotatorInputBox.h"
 #include "SVectorInputBox.h"
 #include "SNotificationList.h"
+#include "SCurveEditor.h"
 #include "NotificationManager.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
@@ -87,6 +88,7 @@
 #include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
 #include "ImageUtils.h"
+#include "Curves/CurveBase.h"
 
 /** Houdini Engine Runtime Module Localization. **/
 #include "HoudiniEngineRuntimeLocalization.h"
@@ -263,6 +265,12 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 
 /** Handle types. **/
 #define HAPI_UNREAL_HANDLE_TRANSFORM					"xform"
+
+/** Ramp related defines. **/
+#define HAPI_UNREAL_RAMP_FLOAT_AXIS_X					"position"
+#define HAPI_UNREAL_RAMP_FLOAT_AXIS_Y					"value"
+#define HAPI_UNREAL_RAMP_COLOR_AXIS_X					"position"
+#define HAPI_UNREAL_RAMP_COLOR_AXIS_Y					"color"
 
 /** Texture planes. **/
 #define HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA		"C A"
