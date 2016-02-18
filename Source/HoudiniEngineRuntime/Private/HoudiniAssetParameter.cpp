@@ -521,6 +521,20 @@ UHoudiniAssetParameter::IsActiveChildParameter(UHoudiniAssetParameter* ChildPara
 }
 
 
+UHoudiniAssetComponent*
+UHoudiniAssetParameter::GetHoudiniAssetComponent() const
+{
+	return HoudiniAssetComponent;
+}
+
+
+UHoudiniAssetParameter*
+UHoudiniAssetParameter::GetParentParameter() const
+{
+	return ParentParameter;
+}
+
+
 const FString&
 UHoudiniAssetParameter::GetParameterName() const
 {
