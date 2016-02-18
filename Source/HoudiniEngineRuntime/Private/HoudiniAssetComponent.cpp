@@ -36,8 +36,7 @@
 #include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterFile.h"
 #include "HoudiniAssetParameterToggle.h"
-#include "HoudiniAssetParameterRampFloat.h"
-#include "HoudiniAssetParameterRampColor.h"
+#include "HoudiniAssetParameterRamp.h"
 #include "HoudiniHandleComponent.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniApi.h"
@@ -3279,20 +3278,14 @@ UHoudiniAssetComponent::CreateParameters()
 
 				case HAPI_PARMTYPE_MULTIPARMLIST:
 				{
+					/*
+					// There's a bug in SColorGradientEditor which prevents us from using Color ramps. We will fallback
+					// to regular Multiparm parameter for those for now.
+
+					//if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType || HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
 					if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType)
 					{
-						//HoudiniAssetParameter = UHoudiniAssetParameterRampFloat::Create(this, nullptr,
-						//	AssetInfo.nodeId, ParmInfo);
-
-						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
-							AssetInfo.nodeId, ParmInfo);
-					}
-					else if(HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
-					{
-						//HoudiniAssetParameter = UHoudiniAssetParameterRampColor::Create(this, nullptr,
-						//	AssetInfo.nodeId, ParmInfo);
-
-						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
+						HoudiniAssetParameter = UHoudiniAssetParameterRamp::Create(this, nullptr,
 							AssetInfo.nodeId, ParmInfo);
 					}
 					else
@@ -3300,7 +3293,10 @@ UHoudiniAssetComponent::CreateParameters()
 						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
 							AssetInfo.nodeId, ParmInfo);
 					}
+					*/
 
+					HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
+							AssetInfo.nodeId, ParmInfo);
 					break;
 				}
 

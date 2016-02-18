@@ -2874,9 +2874,8 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(UHoudiniAssetComponent
 
 
 bool
-FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
-	UHoudiniAssetComponent* HoudiniAssetComponent, UPackage* Package,
-	const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
+FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UPackage* Package, const TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesIn,
 	TMap<FHoudiniGeoPartObject, UStaticMesh*>& StaticMeshesOut, FTransform& ComponentTransform)
 {
 #if WITH_EDITOR
