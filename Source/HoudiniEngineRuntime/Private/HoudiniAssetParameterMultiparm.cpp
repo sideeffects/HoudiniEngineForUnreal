@@ -51,8 +51,9 @@ UHoudiniAssetParameterMultiparm::Create(UHoudiniAssetComponent* InHoudiniAssetCo
 		}
 	}
 
-	UHoudiniAssetParameterMultiparm* HoudiniAssetParameterMultiparm = NewObject<UHoudiniAssetParameterMultiparm>(Outer,
-		UHoudiniAssetParameterMultiparm::StaticClass(), NAME_None, RF_Public | RF_Transactional);
+	UHoudiniAssetParameterMultiparm* HoudiniAssetParameterMultiparm =
+		NewObject<UHoudiniAssetParameterMultiparm>(Outer, UHoudiniAssetParameterMultiparm::StaticClass(),
+			NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameterMultiparm->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
 	return HoudiniAssetParameterMultiparm;
@@ -120,21 +121,21 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 	[
 		PropertyCustomizationHelpers::MakeAddButton(
 			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::AddElement),
-			LOCTEXT("AddAnotherInstanceToolTip", "Add Another Instance"))
+			LOCTEXT("AddAnotherMultiparmInstanceToolTip", "Add Another Instance"))
 	];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
 		PropertyCustomizationHelpers::MakeRemoveButton(
 			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::RemoveElement),
-			LOCTEXT("RemoveLastInstanceToolTip", "Remove Last Instance"))
+			LOCTEXT("RemoveLastMultiparmInstanceToolTip", "Remove Last Instance"))
 	];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
 		PropertyCustomizationHelpers::MakeEmptyButton(
 			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::SetValue, 0),
-			LOCTEXT("ClearAllInstanesToolTip", "Clear All Instances"))
+			LOCTEXT("ClearAllMultiparmInstanesToolTip", "Clear All Instances"))
 	];
 
 	if(NumericEntryBox.IsValid())
@@ -164,8 +165,9 @@ UHoudiniAssetParameterMultiparm::AddMultiparmInstance(int32 ChildMultiparmInstan
 
 	MarkPreChanged();
 
-	FHoudiniApi::InsertMultiparmInstance(
-		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
+	FHoudiniApi::InsertMultiparmInstance(FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+		ChildMultiparmInstanceIndex);
+
 	Value++;
 
 	// Save the Redo modification type (should be the opposite operation to this one).
@@ -192,8 +194,9 @@ UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmIns
 
 	MarkPreChanged();
 
-	FHoudiniApi::RemoveMultiparmInstance(
-		FHoudiniEngine::Get().GetSession(), NodeId, ParmId, ChildMultiparmInstanceIndex);
+	FHoudiniApi::RemoveMultiparmInstance(FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+		ChildMultiparmInstanceIndex);
+
 	Value--;
 
 	// Save the Redo modification type (should be the opposite operation to this one).
@@ -209,7 +212,8 @@ UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmIns
 bool
 UHoudiniAssetParameterMultiparm::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value, ValuesIndex, 1))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value,
+		ValuesIndex, 1))
 	{
 		return false;
 	}
@@ -324,13 +328,13 @@ UHoudiniAssetParameterMultiparm::PostEditUndo()
 {
 	if(LastModificationType == InstanceAdded)
 	{
-		FHoudiniApi::RemoveMultiparmInstance(
-			FHoudiniEngine::Get().GetSession(), NodeId, ParmId, LastRemoveAddInstanceIndex);
+		FHoudiniApi::RemoveMultiparmInstance(FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+			LastRemoveAddInstanceIndex);
 	}
 	else if(LastModificationType == InstanceRemoved)
 	{
-		FHoudiniApi::InsertMultiparmInstance(
-			FHoudiniEngine::Get().GetSession(), NodeId, ParmId, LastRemoveAddInstanceIndex);
+		FHoudiniApi::InsertMultiparmInstance(FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+			LastRemoveAddInstanceIndex);
 	}
 
 	Super::PostEditUndo();
