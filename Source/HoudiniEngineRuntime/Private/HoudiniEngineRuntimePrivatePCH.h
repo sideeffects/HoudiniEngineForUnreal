@@ -88,6 +88,7 @@
 #include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
 #include "ImageUtils.h"
+#include "Curves/CurveBase.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveLinearColor.h"
 
