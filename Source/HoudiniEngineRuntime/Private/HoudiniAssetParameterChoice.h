@@ -72,6 +72,9 @@ public:
 	/** Return true if this is a string choice list. **/
 	bool IsStringChoiceList() const;
 
+	/** Set integer value. **/
+	void SetValueInt(int32 Value, bool bRecordUndo = true);
+
 #if WITH_EDITOR
 
 	/** Helper method used to generate choice entry widget. **/
