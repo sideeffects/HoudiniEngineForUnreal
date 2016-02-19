@@ -74,6 +74,14 @@ UHoudiniAssetParameterRampCurveColor::SetParentRampParameter(UHoudiniAssetParame
 }
 
 
+const EHoudiniAssetParameterRampKeyInterpolation::Type
+UHoudiniAssetParameterRamp::DefaultSplineInterpolation = EHoudiniAssetParameterRampKeyInterpolation::MonotoneCubic;
+
+
+const EHoudiniAssetParameterRampKeyInterpolation::Type
+UHoudiniAssetParameterRamp::DefaultUnknownInterpolation = EHoudiniAssetParameterRampKeyInterpolation::Linear;
+
+
 UHoudiniAssetParameterRamp::UHoudiniAssetParameterRamp(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	CurveObject(nullptr),
@@ -135,6 +143,9 @@ UHoudiniAssetParameterRamp::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 	{
 		return false;
 	}
+
+	// Generate curve points from HAPI data.
+	GenerateCurvePoints();
 
 	return true;
 }
@@ -219,6 +230,7 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		//CurveAssetPackage->GetOutermost()->MarkPackageDirty();
 
 		// Set curve values.
+		GenerateCurvePoints();
 
 		// Set the curve that is being edited.
 		CurveEditor->SetCurveOwner(CurveObject, true);
@@ -349,5 +361,201 @@ UHoudiniAssetParameterRamp::Serialize(FArchive& Ar)
 
 	// Serialize the curve.
 	Ar << CurveObject;
+}
+
+
+void
+UHoudiniAssetParameterRamp::GenerateCurvePoints()
+{
+	if(!CurveObject)
+	{
+		return;
+	}
+
+	if(ChildParameters.Num() % 3 != 0)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : Number of child parameters is not a tuple of 3."),
+			*ParameterName);
+
+		return;
+	}
+
+	if(CurveObject->IsA(UHoudiniAssetParameterRampCurveFloat::StaticClass()))
+	{
+		UHoudiniAssetParameterRampCurveFloat* CurveObjectFloat =
+			Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject);
+
+		CurveObjectFloat->ResetCurve();
+
+		for(int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ChildIdx += 3)
+		{
+			UHoudiniAssetParameterFloat* ChildParamPosition =
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[ChildIdx + 0]);
+
+			UHoudiniAssetParameterFloat* ChildParamValue =
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[ChildIdx + 1]);
+
+			UHoudiniAssetParameterChoice* ChildParamInterpolation =
+				Cast<UHoudiniAssetParameterChoice>(ChildParameters[ChildIdx + 2]);
+
+			if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
+					*ParameterName);
+
+				CurveObjectFloat->ResetCurve();
+				return;
+			}
+
+			float CurveKeyPosition = ChildParamPosition->GetParameterValue(0, 0.0f);
+			float CurveKeyValue = ChildParamValue->GetParameterValue(0, 0.0f);
+			EHoudiniAssetParameterRampKeyInterpolation::Type RampKeyInterpolation =
+				TranslateChoiceKeyInterpolation(ChildParamInterpolation);
+			ERichCurveInterpMode RichCurveInterpMode = TranslateHoudiniRampKeyInterpolation(RampKeyInterpolation);
+
+			FKeyHandle const KeyHandle = CurveObjectFloat->FloatCurve.AddKey(CurveKeyPosition, CurveKeyValue);
+			CurveObjectFloat->FloatCurve.SetKeyInterpMode(KeyHandle, RichCurveInterpMode);
+		}
+	}
+	else if(CurveObject->IsA(UHoudiniAssetParameterRampCurveColor::StaticClass()))
+	{
+		UHoudiniAssetParameterRampCurveColor* CurveObjectColor =
+			Cast<UHoudiniAssetParameterRampCurveColor>(CurveObject);
+
+		CurveObjectColor->ResetCurve();
+
+		for(int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ChildIdx += 3)
+		{
+			UHoudiniAssetParameterFloat* ChildParamPosition =
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[ChildIdx + 0]);
+
+			UHoudiniAssetParameterColor* ChildParamColor =
+				Cast<UHoudiniAssetParameterColor>(ChildParameters[ChildIdx + 1]);
+
+			UHoudiniAssetParameterChoice* ChildParamInterpolation =
+				Cast<UHoudiniAssetParameterChoice>(ChildParameters[ChildIdx + 2]);
+
+			if(!ChildParamPosition || !ChildParamColor || !ChildParamInterpolation)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
+					*ParameterName);
+
+				CurveObjectColor->ResetCurve();
+				return;
+			}
+		}
+	}
+}
+
+
+EHoudiniAssetParameterRampKeyInterpolation::Type
+UHoudiniAssetParameterRamp::TranslateChoiceKeyInterpolation(UHoudiniAssetParameterChoice* ChoiceParam) const
+{
+	EHoudiniAssetParameterRampKeyInterpolation::Type ChoiceInterpolationValue =
+		UHoudiniAssetParameterRamp::DefaultUnknownInterpolation;
+
+	if(ChoiceParam)
+	{
+		if(ChoiceParam->IsStringChoiceList())
+		{
+			const FString& ChoiceValueString = ChoiceParam->GetParameterValueString();
+
+			if(ChoiceValueString.Equals(TEXT(HAPI_UNREAL_RAMP_KEY_INTERPOLATION_CONSTANT)))
+			{
+				ChoiceInterpolationValue = EHoudiniAssetParameterRampKeyInterpolation::Constant;
+			}
+			else if(ChoiceValueString.Equals(TEXT(HAPI_UNREAL_RAMP_KEY_INTERPOLATION_LINEAR)))
+			{
+				ChoiceInterpolationValue = EHoudiniAssetParameterRampKeyInterpolation::Linear;
+			}
+			else if(ChoiceValueString.Equals(TEXT(HAPI_UNREAL_RAMP_KEY_INTERPOLATION_CATMULL_ROM)))
+			{
+				ChoiceInterpolationValue = EHoudiniAssetParameterRampKeyInterpolation::CatmullRom;
+			}
+			else if(ChoiceValueString.Equals(TEXT(HAPI_UNREAL_RAMP_KEY_INTERPOLATION_MONOTONE_CUBIC)))
+			{
+				ChoiceInterpolationValue = EHoudiniAssetParameterRampKeyInterpolation::MonotoneCubic;
+			}
+			else if(ChoiceValueString.Equals(TEXT(HAPI_UNREAL_RAMP_KEY_INTERPOLATION_BEZIER)))
+			{
+				ChoiceInterpolationValue = EHoudiniAssetParameterRampKeyInterpolation::Bezier;
+			}
+			else if(ChoiceValueString.Equals(TEXT(HAPI_UNREAL_RAMP_KEY_INTERPOLATION_B_SPLINE)))
+			{
+				ChoiceInterpolationValue = EHoudiniAssetParameterRampKeyInterpolation::BSpline;
+			}
+			else if(ChoiceValueString.Equals(TEXT(HAPI_UNREAL_RAMP_KEY_INTERPOLATION_HERMITE)))
+			{
+				ChoiceInterpolationValue = EHoudiniAssetParameterRampKeyInterpolation::Hermite;
+			}
+		}
+		else
+		{
+			int ChoiceValueInt = ChoiceParam->GetParameterValueInt();
+			if(ChoiceValueInt >= 0 || ChoiceValueInt <= 6)
+			{
+				ChoiceInterpolationValue = (EHoudiniAssetParameterRampKeyInterpolation::Type) ChoiceValueInt;
+			}
+		}
+	}
+
+	return ChoiceInterpolationValue;
+}
+
+
+ERichCurveInterpMode
+UHoudiniAssetParameterRamp::TranslateHoudiniRampKeyInterpolation(
+	EHoudiniAssetParameterRampKeyInterpolation::Type KeyInterpolation) const
+{
+	switch(KeyInterpolation)
+	{
+		case EHoudiniAssetParameterRampKeyInterpolation::Constant:
+		{
+			return RCIM_Constant;
+		}
+
+		case EHoudiniAssetParameterRampKeyInterpolation::Linear:
+		{
+			return RCIM_Linear;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	return RCIM_Cubic;
+}
+
+
+EHoudiniAssetParameterRampKeyInterpolation::Type
+UHoudiniAssetParameterRamp::TranslateUnrealRampKeyInterpolation(ERichCurveInterpMode RichCurveInterpMode) const
+{
+	switch(RichCurveInterpMode)
+	{
+		case RCIM_Constant:
+		{
+			return EHoudiniAssetParameterRampKeyInterpolation::Constant;
+		}
+
+		case RCIM_Linear:
+		{
+			return EHoudiniAssetParameterRampKeyInterpolation::Linear;
+		}
+
+		case RCIM_Cubic:
+		{
+			return UHoudiniAssetParameterRamp::DefaultSplineInterpolation;
+		}
+
+		case RCIM_None:
+		default:
+		{
+			break;
+		}
+	}
+
+	return UHoudiniAssetParameterRamp::DefaultUnknownInterpolation;
 }
 
