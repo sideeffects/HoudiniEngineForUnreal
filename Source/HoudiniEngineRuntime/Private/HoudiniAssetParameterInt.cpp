@@ -246,6 +246,19 @@ UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx)
 	}
 }
 
+
+int32
+UHoudiniAssetParameterInt::GetParameterValue(int32 Idx, int32 DefaultValue) const
+{
+	if(Values.Num() <= Idx)
+	{
+		return DefaultValue;
+	}
+
+	return Values[Idx];
+}
+
+
 #if WITH_EDITOR
 
 void
