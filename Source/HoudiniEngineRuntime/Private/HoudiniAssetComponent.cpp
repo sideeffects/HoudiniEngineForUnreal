@@ -821,7 +821,8 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 			{
 				// Check if object is referenced and get its referencers, if it is. Skip undo references.
 				//FHoudiniScopedGlobalTransactionDisable HoudiniScopedGlobalTransactionDisable;
-				bReferenced = IsReferenced(ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS, true, &Referencers);
+				bReferenced = IsReferenced(ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS,
+					EInternalObjectFlags::GarbageCollectionKeepFlags, true, &Referencers);
 			}
 
 			if(!bReferenced || IsObjectReferencedLocally(StaticMesh, Referencers))
@@ -2374,7 +2375,7 @@ UHoudiniAssetComponent::BeginDestroy()
 
 
 void
-UHoudiniAssetComponent::OnComponentDestroyed()
+UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	// Release static mesh related resources.
 	ReleaseObjectGeoPartResources(StaticMeshes);
@@ -2409,7 +2410,7 @@ UHoudiniAssetComponent::OnComponentDestroyed()
 
 #endif
 
-	Super::OnComponentDestroyed();
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
 }
 
 
