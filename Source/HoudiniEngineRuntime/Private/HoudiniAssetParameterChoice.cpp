@@ -274,6 +274,29 @@ UHoudiniAssetParameterChoice::IsStringChoiceList() const
 }
 
 
+void
+UHoudiniAssetParameterChoice::SetValueInt(int32 Value, bool bRecordUndo)
+{
+#if WITH_EDITOR
+
+	if(bRecordUndo)
+	{
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value"),
+			HoudiniAssetComponent);
+		Modify();
+	}
+
+#endif
+
+	MarkPreChanged();
+
+	CurrentValue = Value;
+
+	MarkChanged();
+}
+
+
 bool
 UHoudiniAssetParameterChoice::UploadParameterValue()
 {
