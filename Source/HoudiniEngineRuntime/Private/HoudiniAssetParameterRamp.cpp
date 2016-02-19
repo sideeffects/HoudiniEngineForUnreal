@@ -567,7 +567,6 @@ UHoudiniAssetParameterRamp::TranslateUnrealRampKeyInterpolation(ERichCurveInterp
 			return UHoudiniAssetParameterRamp::DefaultSplineInterpolation;
 		}
 
-		case ERichCurveInterpMode::RCIM_None:
 		default:
 		{
 			break;
