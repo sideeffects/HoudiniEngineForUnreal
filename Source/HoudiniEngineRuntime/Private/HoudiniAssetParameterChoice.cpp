@@ -254,9 +254,16 @@ UHoudiniAssetParameterChoice::GetValue(int32 Idx) const
 
 
 int32
-UHoudiniAssetParameterChoice::GetParameterIntValue() const
+UHoudiniAssetParameterChoice::GetParameterValueInt() const
 {
 	return CurrentValue;
+}
+
+
+const FString&
+UHoudiniAssetParameterChoice::GetParameterValueString() const
+{
+	return StringValue;
 }
 
 
