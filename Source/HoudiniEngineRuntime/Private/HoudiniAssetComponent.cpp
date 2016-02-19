@@ -3278,6 +3278,7 @@ UHoudiniAssetComponent::CreateParameters()
 
 				case HAPI_PARMTYPE_MULTIPARMLIST:
 				{
+					/*
 					// There's a bug in SColorGradientEditor which prevents us from using Color ramps. We will fallback
 					// to regular Multiparm parameter for those for now.
 
@@ -3292,9 +3293,9 @@ UHoudiniAssetComponent::CreateParameters()
 						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
 							AssetInfo.nodeId, ParmInfo);
 					}
-
-					//HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
-					//	AssetInfo.nodeId, ParmInfo);
+					*/
+					HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
+						AssetInfo.nodeId, ParmInfo);
 					break;
 				}
 
