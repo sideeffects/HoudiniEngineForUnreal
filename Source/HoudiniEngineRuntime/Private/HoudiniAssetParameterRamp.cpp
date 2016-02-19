@@ -321,7 +321,7 @@ UHoudiniAssetParameterRamp::BakeCreateCurvePackage(FName& CurveName, bool bBake)
 #endif
 
 void
-UHoudiniAssetParameterRamp::OnCurveFloatChanged()
+UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat)
 {
 	MarkPreChanged();
 	MarkChanged();
@@ -329,7 +329,7 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged()
 
 
 void
-UHoudiniAssetParameterRamp::OnCurveColorChanged()
+UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveColor* CurveColor)
 {
 	MarkPreChanged();
 	MarkChanged();
