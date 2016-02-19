@@ -1,3 +1,5 @@
+Note: 4.11 support is in beta until 4.11 is officially released by Epic.
+
 # Houdini Engine for Unreal
 Houdini Engine for Unreal Engine is a Unreal Engine plug-in that allows integration of Houdini technology into Unreal Engine through the use of Houdini Engine.
 
