@@ -32,7 +32,10 @@ DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 FHoudiniEngine*
 FHoudiniEngine::HoudiniEngineInstance = nullptr;
 
+
 FHoudiniEngine::FHoudiniEngine() :
+	HoudiniLogoStaticMesh(nullptr),
+	HoudiniDefaultMaterial(nullptr),
 	HoudiniEngineSchedulerThread(nullptr),
 	HoudiniEngineScheduler(nullptr)
 {
@@ -333,10 +336,18 @@ FHoudiniEngine::ShutdownModule()
 	HOUDINI_LOG_MESSAGE(TEXT("Shutting down the Houdini Engine module."));
 
 	// We no longer need Houdini logo static mesh.
-	HoudiniLogoStaticMesh->RemoveFromRoot();
+	if(HoudiniLogoStaticMesh && HoudiniLogoStaticMesh->IsValidLowLevel())
+	{
+		HoudiniLogoStaticMesh->RemoveFromRoot();
+		HoudiniLogoStaticMesh = nullptr;
+	}
 
 	// We no longer need Houdini default material.
-	HoudiniDefaultMaterial->RemoveFromRoot();
+	if(HoudiniDefaultMaterial && HoudiniDefaultMaterial->IsValidLowLevel())
+	{
+		HoudiniDefaultMaterial->RemoveFromRoot();
+		HoudiniDefaultMaterial = nullptr;
+	}
 
 	// Unregister settings.
 	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
