@@ -253,6 +253,20 @@ UHoudiniAssetParameterChoice::GetValue(int32 Idx) const
 }
 
 
+int32
+UHoudiniAssetParameterChoice::GetParameterIntValue() const
+{
+	return CurrentValue;
+}
+
+
+bool
+UHoudiniAssetParameterChoice::IsStringChoiceList() const
+{
+	return bStringChoiceList;
+}
+
+
 bool
 UHoudiniAssetParameterChoice::UploadParameterValue()
 {

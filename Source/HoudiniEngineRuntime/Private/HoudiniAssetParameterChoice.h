@@ -59,7 +59,15 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 
 public:
+
+	/** Retrieve value for string choice list, used by Slate. **/
 	TOptional<TSharedPtr<FString> > GetValue(int32 Idx) const;
+
+	/** Retrieve value for integer parameter. **/
+	int32 GetParameterIntValue() const;
+
+	/** Return true if this is a string choice list. **/
+	bool IsStringChoiceList() const;
 
 #if WITH_EDITOR
 
