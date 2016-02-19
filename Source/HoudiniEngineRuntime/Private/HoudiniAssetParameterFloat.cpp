@@ -295,6 +295,18 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx)
 }
 
 
+float
+UHoudiniAssetParameterFloat::GetParameterValue(int32 Idx, float DefaultValue) const
+{
+	if(Values.Num() <= Idx)
+	{
+		return DefaultValue;
+	}
+
+	return Values[Idx];
+}
+
+
 #if WITH_EDITOR
 
 
