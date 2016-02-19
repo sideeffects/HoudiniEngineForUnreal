@@ -64,7 +64,10 @@ public:
 	TOptional<TSharedPtr<FString> > GetValue(int32 Idx) const;
 
 	/** Retrieve value for integer parameter. **/
-	int32 GetParameterIntValue() const;
+	int32 GetParameterValueInt() const;
+
+	/** Retrieve value for string parameter. **/
+	const FString& GetParameterValueString() const;
 
 	/** Return true if this is a string choice list. **/
 	bool IsStringChoiceList() const;
