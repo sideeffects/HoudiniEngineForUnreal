@@ -387,16 +387,16 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 
 		CurveObjectFloat->ResetCurve();
 
-		for(int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ChildIdx += 3)
+		for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
 		{
 			UHoudiniAssetParameterFloat* ChildParamPosition =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[ChildIdx + 0]);
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 0]);
 
 			UHoudiniAssetParameterFloat* ChildParamValue =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[ChildIdx + 1]);
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 1]);
 
 			UHoudiniAssetParameterChoice* ChildParamInterpolation =
-				Cast<UHoudiniAssetParameterChoice>(ChildParameters[ChildIdx + 2]);
+				Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * ChildIdx + 2]);
 
 			if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
 			{
@@ -424,16 +424,16 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 
 		CurveObjectColor->ResetCurve();
 
-		for(int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ChildIdx += 3)
+		for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
 		{
 			UHoudiniAssetParameterFloat* ChildParamPosition =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[ChildIdx + 0]);
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 0]);
 
 			UHoudiniAssetParameterColor* ChildParamColor =
-				Cast<UHoudiniAssetParameterColor>(ChildParameters[ChildIdx + 1]);
+				Cast<UHoudiniAssetParameterColor>(ChildParameters[3 * ChildIdx + 1]);
 
 			UHoudiniAssetParameterChoice* ChildParamInterpolation =
-				Cast<UHoudiniAssetParameterChoice>(ChildParameters[ChildIdx + 2]);
+				Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * ChildIdx + 2]);
 
 			if(!ChildParamPosition || !ChildParamColor || !ChildParamInterpolation)
 			{
@@ -445,6 +445,23 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 			}
 		}
 	}
+}
+
+
+int32
+UHoudiniAssetParameterRamp::GetRampKeyCount() const
+{
+	int32 ChildParamCount = ChildParameters.Num();
+
+	if(ChildParamCount % 3 != 0)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : Number of child parameters is not a tuple of 3."),
+			*ParameterName);
+
+		return 0;
+	}
+
+	return ChildParamCount / 3;
 }
 
 

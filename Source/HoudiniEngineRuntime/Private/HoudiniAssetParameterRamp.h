@@ -129,6 +129,9 @@ protected:
 	/** Populate curve with point data. **/
 	void GenerateCurvePoints();
 
+	/** Return number of ramp keys. **/
+	int32 GetRampKeyCount() const;
+
 	/** Translate choice value into interpolation enumeration. **/
 	EHoudiniAssetParameterRampKeyInterpolation::Type
 		TranslateChoiceKeyInterpolation(UHoudiniAssetParameterChoice* ChoiceParam) const;
