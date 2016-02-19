@@ -63,6 +63,9 @@ public:
 	/** Set value of this property, used by Slate. **/
 	void SetValue(int32 InValue, int32 Idx);
 
+	/** Return value of this property with optional fallback. **/
+	int32 GetParameterValue(int32 Idx, int32 DefaultValue) const;
+
 #if WITH_EDITOR
 
 	/** Set value of this property through commit action, used by Slate. **/
