@@ -65,6 +65,21 @@ protected:
 };
 
 
+namespace EHoudiniAssetParameterRampKeyInterpolation
+{
+	enum Type
+	{
+		Constant = 0,
+		Linear,
+		CatmullRom,
+		MonotoneCubic,
+		Bezier,
+		BSpline,
+		Hermite
+	};
+}
+
+
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAssetParameterMultiparm
 {
@@ -111,7 +126,28 @@ public:
 
 protected:
 
+	/** Populate curve with point data. **/
+	void GenerateCurvePoints();
 
+	/** Translate choice value into interpolation enumeration. **/
+	EHoudiniAssetParameterRampKeyInterpolation::Type
+		TranslateChoiceKeyInterpolation(UHoudiniAssetParameterChoice* ChoiceParam) const;
+
+	/** Return Unreal ramp key interpolation type from Houdini ramp key interpolation type. **/
+	ERichCurveInterpMode
+		TranslateHoudiniRampKeyInterpolation(EHoudiniAssetParameterRampKeyInterpolation::Type KeyInterpolation) const;
+
+	/** Return Houdini ramp key interpolation type from Unreal ramp key interpolation type. **/
+	EHoudiniAssetParameterRampKeyInterpolation::Type
+		TranslateUnrealRampKeyInterpolation(ERichCurveInterpMode RichCurveInterpMode) const;
+
+protected:
+
+	//! Default spline interpolation method.
+	static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultSplineInterpolation;
+
+	//! Default unknown interpolation method.
+	static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultUnknownInterpolation;
 
 protected:
 
