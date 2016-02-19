@@ -174,7 +174,7 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 				TAttribute<TOptional<int32> >::FGetter::CreateUObject(this,
 					&UHoudiniAssetParameterInt::GetValue, Idx)))
 			.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(
-				this, &UHoudiniAssetParameterInt::SetValue, Idx))
+				this, &UHoudiniAssetParameterInt::SetValue, Idx, true))
 			.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(
 				this, &UHoudiniAssetParameterInt::SetValueCommitted, Idx))
 			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(
@@ -219,11 +219,11 @@ UHoudiniAssetParameterInt::GetValue(int32 Idx) const
 
 
 void
-UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx)
+UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx, bool bRecordUndo)
 {
 	if(Values[Idx] != InValue)
 	{
-		if(!bSliderDragged)
+		if(!bSliderDragged && bRecordUndo)
 		{
 
 #if WITH_EDITOR

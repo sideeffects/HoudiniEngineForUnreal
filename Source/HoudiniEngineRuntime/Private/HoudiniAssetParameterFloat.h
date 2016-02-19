@@ -61,7 +61,7 @@ public:
 	TOptional<float> GetValue(int32 Idx) const;
 
 	/** Set value of this property, used by Slate. **/
-	void SetValue(float InValue, int32 Idx);
+	void SetValue(float InValue, int32 Idx, bool bRecordUndo = true);
 
 	/** Return value of this property with optional fallback. **/
 	float GetParameterValue(int32 Idx, float DefaultValue) const;

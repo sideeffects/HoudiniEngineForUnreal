@@ -330,27 +330,31 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 	}
 
 	MarkPreChanged();
-	/*
-	if(CurveFloat->GetNumKeys() < GetRampKeyCount())
+
+	FRichCurve& RichCurve = CurveFloat->FloatCurve;
+
+	if(RichCurve.GetNumKeys() < GetRampKeyCount())
 	{
 		// Keys have been removed.
 	}
-	else if(CurveFloat->GetNumKeys() > GetRampKeyCount())
+	else if(RichCurve.GetNumKeys() > GetRampKeyCount())
 	{
 		// Keys have been added.
 	}
 
 	// We need to update key positions.
-	for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
+	for(int32 KeyIdx = 0, KeyNum = RichCurve.Keys.Num(); KeyIdx < KeyNum; ++KeyIdx)
 	{
+		const FRichCurveKey& RichCurveKey = RichCurve.Keys[KeyIdx];
+
 		UHoudiniAssetParameterFloat* ChildParamPosition =
-			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 0]);
+			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 0]);
 
 		UHoudiniAssetParameterFloat* ChildParamValue =
-			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 1]);
+			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 1]);
 
 		UHoudiniAssetParameterChoice* ChildParamInterpolation =
-			Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * ChildIdx + 2]);
+			Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * KeyIdx + 2]);
 
 		if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
 		{
@@ -360,9 +364,15 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 			continue;
 		}
 
-		ChildParamPosition->
+		ChildParamPosition->SetValue(RichCurveKey.Time, 0, false);
+		ChildParamValue->SetValue(RichCurveKey.Value, 0, false);
+
+		EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation = 
+			TranslateUnrealRampKeyInterpolation(RichCurveKey.InterpMode);
+
+		ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false);
 	}
-	*/
+
 	MarkChanged();
 }
 
