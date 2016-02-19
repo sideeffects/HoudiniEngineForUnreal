@@ -34,7 +34,7 @@ UHoudiniAssetParameterRampCurveFloat::OnCurveChanged(const TArray<FRichCurveEdit
 	Super::OnCurveChanged(ChangedCurveEditInfos);
 
 	check(HoudiniAssetParameterRamp);
-	HoudiniAssetParameterRamp->OnCurveFloatChanged();
+	HoudiniAssetParameterRamp->OnCurveFloatChanged(this);
 }
 
 
@@ -60,7 +60,7 @@ UHoudiniAssetParameterRampCurveColor::OnCurveChanged(const TArray<FRichCurveEdit
 	Super::OnCurveChanged(ChangedCurveEditInfos);
 
 	check(HoudiniAssetParameterRamp);
-	HoudiniAssetParameterRamp->OnCurveColorChanged();
+	HoudiniAssetParameterRamp->OnCurveColorChanged(this);
 
 	// Unfortunately this will not work as SColorGradientEditor is missing OnCurveChange callback calls.
 	// This is most likely UE4 bug.
@@ -321,15 +321,53 @@ UHoudiniAssetParameterRamp::BakeCreateCurvePackage(FName& CurveName, bool bBake)
 #endif
 
 void
-UHoudiniAssetParameterRamp::OnCurveFloatChanged()
+UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat)
 {
+	if(!CurveFloat)
+	{
+		return;
+	}
+
 	MarkPreChanged();
+	/*
+	if(CurveFloat->GetNumKeys() < GetRampKeyCount())
+	{
+		// Keys have been removed.
+	}
+	else if(CurveFloat->GetNumKeys() > GetRampKeyCount())
+	{
+		// Keys have been added.
+	}
+
+	// We need to update key positions.
+	for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
+	{
+		UHoudiniAssetParameterFloat* ChildParamPosition =
+			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 0]);
+
+		UHoudiniAssetParameterFloat* ChildParamValue =
+			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 1]);
+
+		UHoudiniAssetParameterChoice* ChildParamInterpolation =
+			Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * ChildIdx + 2]);
+
+		if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
+				*ParameterName);
+
+			continue;
+		}
+
+		ChildParamPosition->
+	}
+	*/
 	MarkChanged();
 }
 
 
 void
-UHoudiniAssetParameterRamp::OnCurveColorChanged()
+UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveColor* CurveColor)
 {
 	MarkPreChanged();
 	MarkChanged();
@@ -528,12 +566,12 @@ UHoudiniAssetParameterRamp::TranslateHoudiniRampKeyInterpolation(
 	{
 		case EHoudiniAssetParameterRampKeyInterpolation::Constant:
 		{
-			return RCIM_Constant;
+			return ERichCurveInterpMode::RCIM_Constant;
 		}
 
 		case EHoudiniAssetParameterRampKeyInterpolation::Linear:
 		{
-			return RCIM_Linear;
+			return ERichCurveInterpMode::RCIM_Linear;
 		}
 
 		default:
@@ -542,7 +580,7 @@ UHoudiniAssetParameterRamp::TranslateHoudiniRampKeyInterpolation(
 		}
 	}
 
-	return RCIM_Cubic;
+	return ERichCurveInterpMode::RCIM_Cubic;
 }
 
 
@@ -551,22 +589,22 @@ UHoudiniAssetParameterRamp::TranslateUnrealRampKeyInterpolation(ERichCurveInterp
 {
 	switch(RichCurveInterpMode)
 	{
-		case RCIM_Constant:
+		case ERichCurveInterpMode::RCIM_Constant:
 		{
 			return EHoudiniAssetParameterRampKeyInterpolation::Constant;
 		}
 
-		case RCIM_Linear:
+		case ERichCurveInterpMode::RCIM_Linear:
 		{
 			return EHoudiniAssetParameterRampKeyInterpolation::Linear;
 		}
 
-		case RCIM_Cubic:
+		case ERichCurveInterpMode::RCIM_Cubic:
 		{
 			return UHoudiniAssetParameterRamp::DefaultSplineInterpolation;
 		}
 
-		case RCIM_None:
+		case ERichCurveInterpMode::RCIM_None:
 		default:
 		{
 			break;
