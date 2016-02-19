@@ -18,7 +18,7 @@
 
     Houdini Version: 15.0.392
     Houdini Engine Version: 2.0.20
-    Unreal Version: 4.10.0
+    Unreal Version: 4.11.0
 
 */
 
