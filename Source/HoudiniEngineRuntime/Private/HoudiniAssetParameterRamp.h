@@ -18,6 +18,7 @@
 #include "HoudiniAssetParameterRamp.generated.h"
 
 
+class UCurveBase;
 class UHoudiniAssetParameterRamp;
 
 
@@ -119,10 +120,10 @@ public:
 #endif
 
 	/** Called when float ramp parameter changes via user interface. **/
-	void OnCurveFloatChanged();
+	void OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat);
 
 	/** Called when color ramp parameter changes via user interface. **/
-	void OnCurveColorChanged();
+	void OnCurveColorChanged(UHoudiniAssetParameterRampCurveColor* CurveColor);
 
 protected:
 
