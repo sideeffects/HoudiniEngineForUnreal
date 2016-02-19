@@ -101,13 +101,17 @@ public:
 	/** Create package for curve object. **/
 	UPackage* BakeCreateCurvePackage(FName& CurveName, bool bBake);
 
+#endif
+
 	/** Called when float ramp parameter changes via user interface. **/
 	void OnCurveFloatChanged();
 
 	/** Called when color ramp parameter changes via user interface. **/
 	void OnCurveColorChanged();
 
-#endif
+protected:
+
+
 
 protected:
 
