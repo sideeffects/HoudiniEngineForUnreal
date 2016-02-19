@@ -17,6 +17,7 @@
 #include "HoudiniAssetParameterRamp.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
+#include "Curves/CurveBase.h"
 
 
 UHoudiniAssetParameterRampCurveFloat::UHoudiniAssetParameterRampCurveFloat(
