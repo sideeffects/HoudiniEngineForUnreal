@@ -364,13 +364,13 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 			continue;
 		}
 
-		ChildParamPosition->SetValue(RichCurveKey.Time, 0, false);
-		ChildParamValue->SetValue(RichCurveKey.Value, 0, false);
+		ChildParamPosition->SetValue(RichCurveKey.Time, 0, false, false);
+		ChildParamValue->SetValue(RichCurveKey.Value, 0, false, false);
 
 		EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation = 
 			TranslateUnrealRampKeyInterpolation(RichCurveKey.InterpMode);
 
-		ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false);
+		ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false, false);
 	}
 
 	MarkChanged();

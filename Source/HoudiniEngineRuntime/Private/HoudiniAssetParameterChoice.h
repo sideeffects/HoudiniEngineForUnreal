@@ -73,7 +73,7 @@ public:
 	bool IsStringChoiceList() const;
 
 	/** Set integer value. **/
-	void SetValueInt(int32 Value, bool bRecordUndo = true);
+	void SetValueInt(int32 Value, bool bTriggerModify = true, bool bRecordUndo = true);
 
 #if WITH_EDITOR
 
