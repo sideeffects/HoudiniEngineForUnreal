@@ -125,8 +125,15 @@ public:
 	/** Called when color ramp parameter changes via user interface. **/
 	void OnCurveColorChanged(UHoudiniAssetParameterRampCurveColor* CurveColor);
 
+#if WITH_EDITOR
+
 	/** Called when mouse button is released over float curve. **/
 	void OnMouseButtonUpOverCurveFloat();
+
+	/** Called when mouse button is pressed over float curve. **/
+	void OnMouseButtonDownOverCurveFloat();
+
+#endif
 
 protected:
 
