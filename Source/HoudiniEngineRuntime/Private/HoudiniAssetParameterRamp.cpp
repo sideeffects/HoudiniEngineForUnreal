@@ -139,6 +139,9 @@ protected:
 	/** Handle mouse up events. **/
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
+	/** Handle mouse down events. **/
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
 public:
 
 	/** Set parent ramp parameter. **/
@@ -186,12 +189,29 @@ FReply
 SHoudiniAssetParameterRampCurveEditor::OnMouseButtonUp(const FGeometry& MyGeometry,
 	const FPointerEvent& MouseEvent)
 {
-	return SCurveEditor::OnMouseButtonUp(MyGeometry, MouseEvent);
+	FReply Reply = SCurveEditor::OnMouseButtonUp(MyGeometry, MouseEvent);
 
 	if(HoudiniAssetParameterRamp)
 	{
 		HoudiniAssetParameterRamp->OnMouseButtonUpOverCurveFloat();
 	}
+
+	return Reply;
+}
+
+
+FReply
+SHoudiniAssetParameterRampCurveEditor::OnMouseButtonDown(const FGeometry& MyGeometry,
+	const FPointerEvent& MouseEvent)
+{
+	FReply Reply = SCurveEditor::OnMouseButtonDown(MyGeometry, MouseEvent);
+
+	if(HoudiniAssetParameterRamp)
+	{
+		HoudiniAssetParameterRamp->OnMouseButtonUpOverCurveFloat();
+	}
+
+	return Reply;
 }
 
 
@@ -465,11 +485,22 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 }
 
 
+#if WITH_EDITOR
+
 void
 UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 {
 
 }
+
+
+void
+UHoudiniAssetParameterRamp::OnMouseButtonDownOverCurveFloat()
+{
+
+}
+
+#endif
 
 
 void
