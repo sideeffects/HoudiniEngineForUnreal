@@ -275,7 +275,7 @@ UHoudiniAssetParameterChoice::IsStringChoiceList() const
 
 
 void
-UHoudiniAssetParameterChoice::SetValueInt(int32 Value, bool bRecordUndo)
+UHoudiniAssetParameterChoice::SetValueInt(int32 Value, bool bTriggerModify, bool bRecordUndo)
 {
 #if WITH_EDITOR
 
@@ -289,11 +289,11 @@ UHoudiniAssetParameterChoice::SetValueInt(int32 Value, bool bRecordUndo)
 
 #endif
 
-	MarkPreChanged();
+	MarkPreChanged(bTriggerModify);
 
 	CurrentValue = Value;
 
-	MarkChanged();
+	MarkChanged(bTriggerModify);
 }
 
 
