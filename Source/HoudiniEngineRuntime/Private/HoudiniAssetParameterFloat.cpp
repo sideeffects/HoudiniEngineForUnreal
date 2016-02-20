@@ -96,8 +96,8 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 
 	// Get the actual value for this property.
 	Values.SetNumZeroed(TupleSize);
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(
-		FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0],
+		ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -221,7 +221,7 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 			.Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(
 				this, &UHoudiniAssetParameterFloat::GetValue, Idx)))
 			.OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(
-				this, &UHoudiniAssetParameterFloat::SetValue, Idx, true))
+				this, &UHoudiniAssetParameterFloat::SetValue, Idx, true, true))
 			.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(
 				this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx))
 			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(
@@ -248,8 +248,8 @@ UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategory
 bool
 UHoudiniAssetParameterFloat::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(
-		FHoudiniEngine::Get().GetSession(), NodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeId, &Values[0],
+		ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -266,7 +266,7 @@ UHoudiniAssetParameterFloat::GetValue(int32 Idx) const
 
 
 void
-UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx, bool bRecordUndo)
+UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx, bool bTriggerModify, bool bRecordUndo)
 {
 	if(Values[Idx] != InValue)
 	{
@@ -285,12 +285,12 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx, bool bRecordUndo
 
 		}
 
-		MarkPreChanged();
+		MarkPreChanged(bTriggerModify);
 
 		Values[Idx] = FMath::Clamp<float>(InValue, ValueMin, ValueMax);
 
 		// Mark this parameter as changed.
-		MarkChanged();
+		MarkChanged(bTriggerModify);
 	}
 }
 

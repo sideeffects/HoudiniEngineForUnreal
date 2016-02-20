@@ -79,8 +79,8 @@ UHoudiniAssetParameterInt::CreateParameter(UHoudiniAssetComponent* InHoudiniAsse
 
 	// Get the actual value for this property.
 	Values.SetNumZeroed(TupleSize);
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(
-		FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0],
+		ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -172,7 +172,7 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 				TAttribute<TOptional<int32> >::FGetter::CreateUObject(this,
 					&UHoudiniAssetParameterInt::GetValue, Idx)))
 			.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(
-				this, &UHoudiniAssetParameterInt::SetValue, Idx, true))
+				this, &UHoudiniAssetParameterInt::SetValue, Idx, true, true))
 			.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(
 				this, &UHoudiniAssetParameterInt::SetValueCommitted, Idx))
 			.OnBeginSliderMovement(FSimpleDelegate::CreateUObject(
@@ -199,8 +199,8 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 bool
 UHoudiniAssetParameterInt::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(
-		FHoudiniEngine::Get().GetSession(), NodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Values[0],
+		ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -217,7 +217,7 @@ UHoudiniAssetParameterInt::GetValue(int32 Idx) const
 
 
 void
-UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx, bool bRecordUndo)
+UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx, bool bTriggerModify, bool bRecordUndo)
 {
 	if(Values[Idx] != InValue)
 	{
@@ -235,12 +235,12 @@ UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx, bool bRecordUndo)
 
 		}
 
-		MarkPreChanged();
+		MarkPreChanged(bTriggerModify);
 
 		Values[Idx] = FMath::Clamp<int32>(InValue, ValueMin, ValueMax);
 
 		// Mark this parameter as changed.
-		MarkChanged();
+		MarkChanged(bTriggerModify);
 	}
 }
 
