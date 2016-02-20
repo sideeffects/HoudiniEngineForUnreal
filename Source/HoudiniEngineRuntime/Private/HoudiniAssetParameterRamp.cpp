@@ -324,45 +324,7 @@ UHoudiniAssetParameterRamp::BakeCreateCurvePackage(FName& CurveName, bool bBake)
 void
 UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat)
 {
-	if(!CurveFloat)
-	{
-		return;
-	}
-
 	MarkPreChanged();
-	/*
-	if(CurveFloat->GetNumKeys() < GetRampKeyCount())
-	{
-		// Keys have been removed.
-	}
-	else if(CurveFloat->GetNumKeys() > GetRampKeyCount())
-	{
-		// Keys have been added.
-	}
-
-	// We need to update key positions.
-	for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
-	{
-		UHoudiniAssetParameterFloat* ChildParamPosition =
-			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 0]);
-
-		UHoudiniAssetParameterFloat* ChildParamValue =
-			Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 1]);
-
-		UHoudiniAssetParameterChoice* ChildParamInterpolation =
-			Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * ChildIdx + 2]);
-
-		if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
-				*ParameterName);
-
-			continue;
-		}
-
-		ChildParamPosition->
-	}
-	*/
 	MarkChanged();
 }
 
