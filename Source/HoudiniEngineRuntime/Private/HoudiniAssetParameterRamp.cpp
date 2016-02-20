@@ -74,6 +74,129 @@ UHoudiniAssetParameterRampCurveColor::SetParentRampParameter(UHoudiniAssetParame
 	HoudiniAssetParameterRamp = InHoudiniAssetParameterRamp;
 }
 
+#if WITH_EDITOR
+
+
+/** We need to inherit from curve editor in order to get subscription to mouse events. **/
+class HOUDINIENGINERUNTIME_API SHoudiniAssetParameterRampCurveEditor : public SCurveEditor
+{
+
+public:
+
+	SLATE_BEGIN_ARGS(SHoudiniAssetParameterRampCurveEditor)
+		: _ViewMinInput(0.0f)
+		, _ViewMaxInput(10.0f)
+		, _ViewMinOutput(0.0f)
+		, _ViewMaxOutput(1.0f)
+		, _XAxisName()
+		, _YAxisName()
+		, _HideUI(true)
+		, _DrawCurve(true)
+		, _InputSnap(0.1f)
+		, _OutputSnap(0.05f)
+		, _SnappingEnabled(false)
+		, _TimelineLength(5.0f)
+		, _DesiredSize(FVector2D::ZeroVector)
+		, _AllowZoomOutput(true)
+		, _AlwaysDisplayColorCurves(false)
+		, _ZoomToFitVertical(true)
+		, _ZoomToFitHorizontal(true)
+		, _ShowZoomButtons(true)
+		, _ShowInputGridNumbers(true)
+		, _ShowOutputGridNumbers(true)
+		, _ShowCurveSelector(true)
+		, _GridColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.3f))
+	{}
+	SLATE_ATTRIBUTE(float, ViewMinInput)
+		SLATE_ATTRIBUTE(float, ViewMaxInput)
+		SLATE_ATTRIBUTE(float, ViewMinOutput)
+		SLATE_ATTRIBUTE(float, ViewMaxOutput)
+		SLATE_ARGUMENT(TOptional<FString>, XAxisName)
+		SLATE_ARGUMENT(TOptional<FString>, YAxisName)
+		SLATE_ARGUMENT(bool, HideUI)
+		SLATE_ARGUMENT(bool, DrawCurve)
+		SLATE_ATTRIBUTE(float, InputSnap)
+		SLATE_ATTRIBUTE(float, OutputSnap)
+		SLATE_ATTRIBUTE(bool, SnappingEnabled)
+		SLATE_ATTRIBUTE(float, TimelineLength)
+		SLATE_ATTRIBUTE(FVector2D, DesiredSize)
+		SLATE_ARGUMENT(bool, AllowZoomOutput)
+		SLATE_ARGUMENT(bool, AlwaysDisplayColorCurves)
+		SLATE_ARGUMENT(bool, ZoomToFitVertical)
+		SLATE_ARGUMENT(bool, ZoomToFitHorizontal)
+		SLATE_ARGUMENT(bool, ShowZoomButtons)
+		SLATE_ARGUMENT(bool, ShowInputGridNumbers)
+		SLATE_ARGUMENT(bool, ShowOutputGridNumbers)
+		SLATE_ARGUMENT(bool, ShowCurveSelector)
+		SLATE_ARGUMENT(FLinearColor, GridColor)
+		SLATE_END_ARGS()
+
+		/** Widget construction. **/
+		void Construct(const FArguments& InArgs);
+
+protected:
+
+	/** Handle mouse up events. **/
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
+public:
+
+	/** Set parent ramp parameter. **/
+	void SetParentRampParameter(UHoudiniAssetParameterRamp* InHoudiniAssetParameterRamp);
+
+protected:
+
+	/** Parent ramp parameter. **/
+	UHoudiniAssetParameterRamp* HoudiniAssetParameterRamp;
+};
+
+
+void
+SHoudiniAssetParameterRampCurveEditor::Construct(const FArguments& InArgs)
+{
+	SCurveEditor::Construct(SCurveEditor::FArguments()
+		.ViewMinInput(InArgs._ViewMinInput)
+		.ViewMaxInput(InArgs._ViewMaxInput)
+		.ViewMinOutput(InArgs._ViewMinOutput)
+		.ViewMaxOutput(InArgs._ViewMaxOutput)
+		.XAxisName(InArgs._XAxisName)
+		.YAxisName(InArgs._YAxisName)
+		.HideUI(InArgs._HideUI)
+		.DrawCurve(InArgs._DrawCurve)
+		.TimelineLength(InArgs._TimelineLength)
+		.AllowZoomOutput(InArgs._AllowZoomOutput)
+		.ShowInputGridNumbers(InArgs._ShowInputGridNumbers)
+		.ShowOutputGridNumbers(InArgs._ShowOutputGridNumbers)
+		.ShowZoomButtons(InArgs._ShowZoomButtons)
+		.ZoomToFitHorizontal(InArgs._ZoomToFitHorizontal)
+		.ZoomToFitVertical(InArgs._ZoomToFitVertical)
+	);
+
+	HoudiniAssetParameterRamp = nullptr;
+}
+
+
+void
+SHoudiniAssetParameterRampCurveEditor::SetParentRampParameter(UHoudiniAssetParameterRamp* InHoudiniAssetParameterRamp)
+{
+	HoudiniAssetParameterRamp = InHoudiniAssetParameterRamp;
+}
+
+
+FReply
+SHoudiniAssetParameterRampCurveEditor::OnMouseButtonUp(const FGeometry& MyGeometry,
+	const FPointerEvent& MouseEvent)
+{
+	return SCurveEditor::OnMouseButtonUp(MyGeometry, MouseEvent);
+
+	if(HoudiniAssetParameterRamp)
+	{
+		HoudiniAssetParameterRamp->OnMouseButtonUpOverCurveFloat();
+	}
+}
+
+#endif
+
 
 const EHoudiniAssetParameterRampKeyInterpolation::Type
 UHoudiniAssetParameterRamp::DefaultSplineInterpolation = EHoudiniAssetParameterRampKeyInterpolation::MonotoneCubic;
@@ -163,7 +286,7 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	CreateNameWidget(Row, true);
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
-	TSharedPtr<SCurveEditor> CurveEditor;
+	TSharedPtr<SHoudiniAssetParameterRampCurveEditor> CurveEditor;
 
 	FString CurveAxisTextX = TEXT("");
 	FString CurveAxisTextY = TEXT("");
@@ -187,7 +310,9 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		SNew(SBorder)
 		.VAlign(VAlign_Fill)
 		[
-			SAssignNew(CurveEditor, SCurveEditor)
+			SAssignNew(CurveEditor, SHoudiniAssetParameterRampCurveEditor)
+			.ViewMinInput(0.0f)
+			.ViewMaxInput(1.0f)
 			.HideUI(true)
 			.DrawCurve(true)
 			.ViewMinInput(0.0f)
@@ -205,6 +330,12 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			.YAxisName(CurveAxisTextY)
 		]
 	];
+
+	// Set callback for curve editor events.
+	if(CurveEditor.IsValid())
+	{
+		CurveEditor->SetParentRampParameter(this);
+	}
 
 	// If necessary, create the curve object.
 	if(!CurveObject)
@@ -329,9 +460,20 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 		return;
 	}
 
-	MarkPreChanged();
+	if(FSlateApplication::Get().HasAnyMouseCaptor())
+	{
+		// If mouse is still being captured, do nothing.
+		return;
+	}
 
 	FRichCurve& RichCurve = CurveFloat->FloatCurve;
+
+	if(RichCurve.Keys.Num() * 3 != ChildParameters.Num())
+	{
+		return;
+	}
+
+	MarkPreChanged();
 
 	if(RichCurve.GetNumKeys() < GetRampKeyCount())
 	{
@@ -358,16 +500,13 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 
 		if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
 		{
-			HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
-				*ParameterName);
-
 			continue;
 		}
 
 		ChildParamPosition->SetValue(RichCurveKey.Time, 0, false, false);
 		ChildParamValue->SetValue(RichCurveKey.Value, 0, false, false);
 
-		EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation = 
+		EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation =
 			TranslateUnrealRampKeyInterpolation(RichCurveKey.InterpMode);
 
 		ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false, false);
@@ -382,6 +521,13 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 {
 	MarkPreChanged();
 	MarkChanged();
+}
+
+
+void
+UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
+{
+
 }
 
 
