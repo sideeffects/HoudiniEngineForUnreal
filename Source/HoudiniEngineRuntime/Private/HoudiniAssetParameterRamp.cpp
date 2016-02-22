@@ -479,16 +479,12 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 	}
 
 	FRichCurve& RichCurve = CurveFloat->FloatCurve;
-	if(RichCurve.Keys.Num() * 3 != ChildParameters.Num())
-	{
-		return;
-	}
 
-	if(RichCurve.GetNumKeys() < GetRampKeyCount())
+	if(RichCurve.GetNumKeys() < MultiparmValue)
 	{
 		// Keys have been removed.
 	}
-	else if(RichCurve.GetNumKeys() > GetRampKeyCount())
+	else if(RichCurve.GetNumKeys() > MultiparmValue)
 	{
 		// Keys have been added.
 	}
@@ -520,14 +516,22 @@ UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 		UHoudiniAssetParameterRampCurveFloat* CurveObjectFloat =
 			Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject);
 
+		bIsCurveChanged = false;
+
+		if(MultiparmValue * 3 != ChildParameters.Num())
+		{
+			return;
+		}
+
 		FRichCurve& RichCurve = CurveObjectFloat->FloatCurve;
+		TArray<FRichCurveKey> RichCurveKeys = RichCurve.GetCopyOfKeys();
 
 		MarkPreChanged();
 
 		// We need to update ramp key positions.
-		for(int32 KeyIdx = 0, KeyNum = RichCurve.Keys.Num(); KeyIdx < KeyNum; ++KeyIdx)
+		for(int32 KeyIdx = 0, KeyNum = RichCurve.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx)
 		{
-			const FRichCurveKey& RichCurveKey = RichCurve.Keys[KeyIdx];
+			const FRichCurveKey& RichCurveKey = RichCurveKeys[KeyIdx];
 
 			UHoudiniAssetParameterFloat* ChildParamPosition =
 				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 0]);
@@ -553,8 +557,6 @@ UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 		}
 
 		MarkChanged();
-
-		bIsCurveChanged = false;
 	}
 }
 
