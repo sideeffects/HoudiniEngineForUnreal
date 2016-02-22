@@ -55,7 +55,7 @@ public:
 
 	virtual void Serialize(FArchive& Ar) override;
 
-protected:
+public:
 
 	/** Return color for this color parameter. **/
 	FLinearColor GetColor() const;
