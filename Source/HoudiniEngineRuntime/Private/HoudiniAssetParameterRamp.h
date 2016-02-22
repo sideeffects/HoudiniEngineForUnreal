@@ -170,4 +170,7 @@ protected:
 
 	//! Set to true if this ramp is a float ramp. Otherwise is considered a color ramp.
 	bool bIsFloatRamp;
+
+	//! Set to true if the curve has changed through Slate interaciton.
+	bool bIsCurveChanged;
 };
