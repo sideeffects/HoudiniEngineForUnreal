@@ -819,8 +819,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 			bool bReferenced = true;
 
 			{
-				// Check if object is referenced and get its referencers, if it is. Skip undo references.
-				//FHoudiniScopedGlobalTransactionDisable HoudiniScopedGlobalTransactionDisable;
+				// Check if object is referenced and get its referencers, if it is.
 				bReferenced = IsReferenced(ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS, true, &Referencers);
 			}
 
@@ -842,10 +841,14 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(TMap<FHoudiniGeoPartObject
 #if WITH_EDITOR
 
 	// Delete no longer used generated static meshes.
-	if(bDeletePackages && StaticMeshesToDelete.Num() > 0)
+	int32 MeshNum = StaticMeshesToDelete.Num();
+	if(bDeletePackages && MeshNum > 0)
 	{
-		FHoudiniScopedGlobalSilence HoudiniScopedGlobalSilence;
-		ObjectTools::ForceDeleteObjects(StaticMeshesToDelete, false);
+		for(int32 MeshIdx = 0; MeshIdx < MeshNum; ++MeshIdx)
+		{
+			UObject* ObjectToDelete = StaticMeshesToDelete[MeshIdx];
+			ObjectTools::DeleteSingleObject(ObjectToDelete, false);
+		}
 	}
 
 #endif
