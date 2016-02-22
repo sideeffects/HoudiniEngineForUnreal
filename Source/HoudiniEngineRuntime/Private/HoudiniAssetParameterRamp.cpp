@@ -290,10 +290,24 @@ UHoudiniAssetParameterRamp::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 		return false;
 	}
 
-	// Generate curve points from HAPI data.
-	GenerateCurvePoints();
-
 	return true;
+}
+
+
+void
+UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
+{
+	// Generate curve points from HAPI data.
+	if(CurveFloatDuplicatedKeys.Num() > 0)
+	{
+		bIsCurveChanged = true;
+		OnMouseButtonUpOverCurveFloat();
+		CurveFloatDuplicatedKeys.Empty();
+	}
+	else
+	{
+		GenerateCurvePoints();
+	}
 }
 
 
@@ -602,6 +616,7 @@ UHoudiniAssetParameterRamp::Serialize(FArchive& Ar)
 	if(Ar.IsLoading())
 	{
 		bIsCurveChanged = false;
+		CurveFloatDuplicatedKeys.Empty();
 	}
 
 }
