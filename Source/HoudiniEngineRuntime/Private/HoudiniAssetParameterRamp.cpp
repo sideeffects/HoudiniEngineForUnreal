@@ -290,7 +290,16 @@ UHoudiniAssetParameterRamp::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 	}
 
 	// Generate curve points from HAPI data.
-	GenerateCurvePoints();
+	if(CurveFloatDuplicatedKeys.Num() > 0)
+	{
+		bIsCurveChanged = true;
+		OnMouseButtonUpOverCurveFloat();
+		CurveFloatDuplicatedKeys.Empty();
+	}
+	else
+	{
+		GenerateCurvePoints();
+	}
 
 	return true;
 }
@@ -486,10 +495,14 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 	if(RichCurve.GetNumKeys() < MultiparmValue)
 	{
 		// Keys have been removed.
+		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
+		RemoveElement();
 	}
 	else if(RichCurve.GetNumKeys() > MultiparmValue)
 	{
 		// Keys have been added.
+		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
+		AddElement();
 	}
 	else
 	{

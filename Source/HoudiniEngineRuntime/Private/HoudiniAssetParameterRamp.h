@@ -168,6 +168,9 @@ protected:
 	//! Curve that is being edited.
 	UCurveBase* CurveObject;
 
+	//! Duplicated rich curve keys used for setting initial values.
+	TArray<FRichCurveKey> CurveFloatDuplicatedKeys;
+
 	//! Set to true if this ramp is a float ramp. Otherwise is considered a color ramp.
 	bool bIsFloatRamp;
 
