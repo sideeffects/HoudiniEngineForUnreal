@@ -103,6 +103,9 @@ public:
 	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
 
+	/** Notification from component that all child parameters have been created. **/
+	virtual void NotifyChildParametersCreated();
+
 /** UObject methods. **/
 public:
 
@@ -168,7 +171,7 @@ protected:
 	//! Curve that is being edited.
 	UCurveBase* CurveObject;
 
-	//! Duplicated rich curve keys used for setting initial values.
+	//! Duplicated rich curve keys used for setting initial values of float curve. Transient.
 	TArray<FRichCurveKey> CurveFloatDuplicatedKeys;
 
 	//! Set to true if this ramp is a float ramp. Otherwise is considered a color ramp.
