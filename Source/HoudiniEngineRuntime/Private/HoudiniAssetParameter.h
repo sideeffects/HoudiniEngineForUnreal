@@ -70,6 +70,9 @@ public:
 	/** Notifaction from a child parameter about its change. **/
 	virtual void NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter);
 
+	/** Notification from component that all child parameters have been created. **/
+	virtual void NotifyChildParametersCreated();
+
 public:
 
 	/** Return true if this parameter has been changed. **/
@@ -107,6 +110,9 @@ public:
 
 	/** Return true if given parameter is an active child parameter. **/
 	bool IsActiveChildParameter(UHoudiniAssetParameter* ChildParameter) const;
+
+	/** Return true if this parameter contains child parameters. **/
+	bool HasChildParameters() const;
 
 public:
 
