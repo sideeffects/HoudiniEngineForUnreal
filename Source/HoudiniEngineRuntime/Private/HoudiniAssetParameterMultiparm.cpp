@@ -22,7 +22,7 @@
 
 UHoudiniAssetParameterMultiparm::UHoudiniAssetParameterMultiparm(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	Value(0),
+	MultiparmValue(0),
 	LastModificationType(RegularValueChange),
 	LastRemoveAddInstanceIndex(-1)
 {
@@ -78,8 +78,8 @@ UHoudiniAssetParameterMultiparm::CreateParameter(UHoudiniAssetComponent* InHoudi
 	SetValuesIndex(ParmInfo.intValuesIndex);
 
 	// Get the actual value for this property.
-	Value = 0;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(nullptr, InNodeId, &Value, ValuesIndex, 1))
+	MultiparmValue = 0;
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(nullptr, InNodeId, &MultiparmValue, ValuesIndex, 1))
 	{
 		return false;
 	}
@@ -119,23 +119,23 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
-		PropertyCustomizationHelpers::MakeAddButton(
-			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::AddElement),
-			LOCTEXT("AddAnotherMultiparmInstanceToolTip", "Add Another Instance"))
+		PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateUObject(this,
+			&UHoudiniAssetParameterMultiparm::AddElement),
+				LOCTEXT("AddAnotherMultiparmInstanceToolTip", "Add Another Instance"))
 	];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
-		PropertyCustomizationHelpers::MakeRemoveButton(
-			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::RemoveElement),
-			LOCTEXT("RemoveLastMultiparmInstanceToolTip", "Remove Last Instance"))
+		PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateUObject(this,
+			&UHoudiniAssetParameterMultiparm::RemoveElement),
+				LOCTEXT("RemoveLastMultiparmInstanceToolTip", "Remove Last Instance"))
 	];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
-		PropertyCustomizationHelpers::MakeEmptyButton(
-			FSimpleDelegate::CreateUObject(this, &UHoudiniAssetParameterMultiparm::SetValue, 0),
-			LOCTEXT("ClearAllMultiparmInstanesToolTip", "Clear All Instances"))
+		PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateUObject(this,
+			&UHoudiniAssetParameterMultiparm::SetValue, 0),
+				LOCTEXT("ClearAllMultiparmInstanesToolTip", "Clear All Instances"))
 	];
 
 	if(NumericEntryBox.IsValid())
@@ -168,7 +168,7 @@ UHoudiniAssetParameterMultiparm::AddMultiparmInstance(int32 ChildMultiparmInstan
 	FHoudiniApi::InsertMultiparmInstance(FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
 		ChildMultiparmInstanceIndex);
 
-	Value++;
+	MultiparmValue++;
 
 	// Save the Redo modification type (should be the opposite operation to this one).
 	LastModificationType = InstanceRemoved;
@@ -197,7 +197,7 @@ UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmIns
 	FHoudiniApi::RemoveMultiparmInstance(FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
 		ChildMultiparmInstanceIndex);
 
-	Value--;
+	MultiparmValue--;
 
 	// Save the Redo modification type (should be the opposite operation to this one).
 	LastModificationType = InstanceAdded;
@@ -212,8 +212,8 @@ UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance(int32 ChildMultiparmIns
 bool
 UHoudiniAssetParameterMultiparm::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value,
-		ValuesIndex, 1))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId,
+		&MultiparmValue, ValuesIndex, 1))
 	{
 		return false;
 	}
@@ -226,14 +226,14 @@ UHoudiniAssetParameterMultiparm::UploadParameterValue()
 TOptional<int32>
 UHoudiniAssetParameterMultiparm::GetValue() const
 {
-	return TOptional<int32>(Value);
+	return TOptional<int32>(MultiparmValue);
 }
 
 
 void
 UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 {
-	if(Value != InValue)
+	if(MultiparmValue != InValue)
 	{
 		LastModificationType = RegularValueChange;
 		LastRemoveAddInstanceIndex = -1;
@@ -246,7 +246,7 @@ UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 
 		MarkPreChanged();
 
-		Value = InValue;
+		MultiparmValue = InValue;
 
 		// Mark this parameter as changed.
 		MarkChanged();
@@ -274,7 +274,7 @@ UHoudiniAssetParameterMultiparm::AddElement()
 
 	MarkPreChanged();
 
-	Value++;
+	MultiparmValue++;
 
 	MarkChanged();
 }
@@ -293,7 +293,7 @@ UHoudiniAssetParameterMultiparm::RemoveElement()
 
 	MarkPreChanged();
 
-	Value--;
+	MultiparmValue--;
 
 	MarkChanged();
 }
@@ -314,10 +314,10 @@ UHoudiniAssetParameterMultiparm::Serialize(FArchive& Ar)
 
 	if(Ar.IsLoading())
 	{
-		Value = 0;
+		MultiparmValue = 0;
 	}
 
-	Ar << Value;
+	Ar << MultiparmValue;
 }
 
 

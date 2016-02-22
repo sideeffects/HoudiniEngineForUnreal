@@ -91,7 +91,7 @@ public:
 protected:
 
 	/** Value of this property. **/
-	int32 Value;
+	int32 MultiparmValue;
 
 private:
 
