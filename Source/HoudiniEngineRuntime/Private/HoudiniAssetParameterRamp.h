@@ -110,6 +110,7 @@ public:
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 #if WITH_EDITOR
@@ -168,8 +169,9 @@ protected:
 
 protected:
 
-	//! Curve that is being edited.
-	UCurveBase* CurveObject;
+	//! Curves which are being edited.
+	UHoudiniAssetParameterRampCurveFloat* HoudiniAssetParameterRampCurveFloat;
+	UHoudiniAssetParameterRampCurveColor* HoudiniAssetParameterRampCurveColor;
 
 	//! Duplicated rich curve keys used for setting initial values of float curve. Transient.
 	TArray<FRichCurveKey> CurveFloatDuplicatedKeys;

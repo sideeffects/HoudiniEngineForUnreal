@@ -2484,7 +2484,6 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource(TMap<FHoudiniGeoPart
 void
 UHoudiniAssetComponent::PostLoad()
 {
-
 	Super::PostLoad();
 
 	// We loaded a component which has no asset associated with it.
@@ -3285,8 +3284,8 @@ UHoudiniAssetComponent::CreateParameters()
 					// There's a bug in SColorGradientEditor which prevents us from using Color ramps. We will fallback
 					// to regular Multiparm parameter for those for now.
 
-					if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType || HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
-					//if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType)
+					//if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType || HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
+					if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType)
 					{
 						HoudiniAssetParameter = UHoudiniAssetParameterRamp::Create(this, nullptr,
 							AssetInfo.nodeId, ParmInfo);
@@ -4053,6 +4052,19 @@ UHoudiniAssetComponent::PostLoadInitializeParameters()
 			if(FoundParentParameter)
 			{
 				HoudiniAssetParameter->SetParentParameter(*FoundParentParameter);
+			}
+		}
+	}
+
+	// Notify all parameters that have children that loading is complete.
+	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+		if(HoudiniAssetParameter)
+		{
+			if(HoudiniAssetParameter->HasChildParameters())
+			{
+				HoudiniAssetParameter->NotifyChildParametersLoaded();
 			}
 		}
 	}

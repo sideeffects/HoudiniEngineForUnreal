@@ -73,6 +73,9 @@ public:
 	/** Notification from component that all child parameters have been created. **/
 	virtual void NotifyChildParametersCreated();
 
+	/** Notification from component that all child parameters have been loaded. **/
+	virtual void NotifyChildParametersLoaded();
+
 public:
 
 	/** Return true if this parameter has been changed. **/
