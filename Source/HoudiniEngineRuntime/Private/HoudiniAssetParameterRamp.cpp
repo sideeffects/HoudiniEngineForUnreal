@@ -308,12 +308,18 @@ UHoudiniAssetParameterRamp::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 void
 UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
 {
-	// Generate curve points from HAPI data.
-	if(CurveFloatDuplicatedKeys.Num() > 0)
+	if(bIsFloatRamp)
 	{
-		bIsCurveChanged = true;
-		OnMouseButtonUpOverCurveFloat();
-		CurveFloatDuplicatedKeys.Empty();
+		if(CurveFloatDuplicatedKeys.Num() > 0)
+		{
+			bIsCurveChanged = true;
+			OnMouseButtonUpOverCurveFloat();
+			CurveFloatDuplicatedKeys.Empty();
+		}
+		else
+		{
+			GenerateCurvePoints();
+		}
 	}
 	else
 	{
@@ -402,47 +408,24 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		// Set the curve that is being edited.
 		CurveEditor->SetCurveOwner(HoudiniAssetParameterRampCurveFloat, true);
 	}
-
-	// If necessary, create the curve object.
-	/*
-	if(!CurveObject)
+	else
 	{
-		FName CurveAssetName = NAME_None;
-		UPackage* CurveAssetPackage = BakeCreateCurvePackage(CurveAssetName, false);
-		//UObject* CurveAssetPackage = HoudiniAssetComponent;
-		CurveObject = Cast<UCurveBase>(CurveEditor->CreateCurveObject(CurveClass, CurveAssetPackage, CurveAssetName));
-
-		if(CurveObject)
+		if(!HoudiniAssetParameterRampCurveColor)
 		{
-			CurveObject->ClearFlags(RF_Public);
-			//CurveObject->SetFlags(RF_Transactional);
+			HoudiniAssetParameterRampCurveColor = Cast<UHoudiniAssetParameterRampCurveColor>(
+				NewObject<UHoudiniAssetParameterRampCurveColor>(
+					HoudiniAssetComponent, UHoudiniAssetParameterRampCurveColor::StaticClass(), NAME_None,
+						RF_Transactional | RF_Public));
 
-			// Set parent parameter for callback on curve events.
-			if(CurveObject->IsA(UHoudiniAssetParameterRampCurveFloat::StaticClass()))
-			{
-				Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject)->SetParentRampParameter(this);
-			}
-			else if(CurveObject->IsA(UHoudiniAssetParameterRampCurveColor::StaticClass()))
-			{
-				Cast<UHoudiniAssetParameterRampCurveColor>(CurveObject)->SetParentRampParameter(this);
-			}
+			HoudiniAssetParameterRampCurveColor->SetParentRampParameter(this);
 		}
-	}
-	*/
-	/*
-	if(CurveObject)
-	{
-		// Register curve with the asset system.
-		//FAssetRegistryModule::AssetCreated(CurveObject);
-		//CurveAssetPackage->GetOutermost()->MarkPackageDirty();
 
 		// Set curve values.
 		GenerateCurvePoints();
 
 		// Set the curve that is being edited.
-		CurveEditor->SetCurveOwner(CurveObject, true);
+		CurveEditor->SetCurveOwner(HoudiniAssetParameterRampCurveColor, true);
 	}
-	*/
 
 	Row.ValueWidget.Widget = HorizontalBox;
 	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
@@ -451,80 +434,6 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	UHoudiniAssetParameter::CreateWidget(DetailCategoryBuilder);
 }
 
-
-UPackage*
-UHoudiniAssetParameterRamp::BakeCreateCurvePackage(FName& CurveName, bool bBake)
-{
-	UPackage* Package = GetTransientPackage();
-
-	if(!HoudiniAssetComponent)
-	{
-		CurveName = NAME_None;
-		return Package;
-	}
-
-	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-	if(!HoudiniAsset)
-	{
-		CurveName = NAME_None;
-		return Package;
-	}
-
-	FGuid BakeGUID = FGuid::NewGuid();
-	FString CurveNameString = TEXT("");
-
-	while(true)
-	{
-		if(!BakeGUID.IsValid())
-		{
-			BakeGUID = FGuid::NewGuid();
-		}
-
-		// We only want half of generated guid string.
-		FString BakeGUIDString = BakeGUID.ToString().Left(FHoudiniEngineUtils::PackageGUIDItemNameLength);
-
-		// Generate curve name.
-		CurveNameString = HoudiniAsset->GetName() + TEXT("_") + ParameterName;
-
-		// Generate unique package name.
-		FString PackageName = TEXT("");
-
-		if(bBake)
-		{
-			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) + TEXT("/") +
-				CurveNameString;
-		}
-		else
-		{
-			CurveNameString = CurveNameString + TEXT("_") + BakeGUIDString;
-			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) + TEXT("/") +
-				CurveNameString;
-		}
-
-		PackageName = PackageTools::SanitizePackageName(PackageName);
-
-		// See if package exists, if it does, we need to regenerate the name.
-		Package = FindPackage(nullptr, *PackageName);
-
-		if(Package)
-		{
-			if(!bBake)
-			{
-				// Package does exist, there's a collision, we need to generate a new name.
-				BakeGUID.Invalidate();
-			}
-		}
-		else
-		{
-			// Create actual package.
-			Package = CreatePackage(nullptr, *PackageName);
-			break;
-		}
-	}
-
-	CurveName = FName(*CurveNameString);
-	return Package;
-}
 
 #endif
 
@@ -572,48 +481,51 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 void
 UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 {
-	if(bIsCurveChanged && HoudiniAssetParameterRampCurveFloat)
+	if(bIsCurveChanged)
 	{
-		bIsCurveChanged = false;
-
-		if(MultiparmValue * 3 != ChildParameters.Num())
+		if(HoudiniAssetParameterRampCurveFloat)
 		{
-			return;
-		}
+			bIsCurveChanged = false;
 
-		FRichCurve& RichCurve = HoudiniAssetParameterRampCurveFloat->FloatCurve;
-
-		MarkPreChanged();
-
-		// We need to update ramp key positions.
-		for(int32 KeyIdx = 0, KeyNum = RichCurve.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx)
-		{
-			const FRichCurveKey& RichCurveKey = RichCurve.Keys[KeyIdx];
-
-			UHoudiniAssetParameterFloat* ChildParamPosition =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 0]);
-
-			UHoudiniAssetParameterFloat* ChildParamValue =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 1]);
-
-			UHoudiniAssetParameterChoice* ChildParamInterpolation =
-				Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * KeyIdx + 2]);
-
-			if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
+			if(MultiparmValue * 3 != ChildParameters.Num())
 			{
-				continue;
+				return;
 			}
 
-			ChildParamPosition->SetValue(RichCurveKey.Time, 0, false, false);
-			ChildParamValue->SetValue(RichCurveKey.Value, 0, false, false);
+			FRichCurve& RichCurve = HoudiniAssetParameterRampCurveFloat->FloatCurve;
 
-			EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation =
-				TranslateUnrealRampKeyInterpolation(RichCurveKey.InterpMode);
+			MarkPreChanged();
 
-			ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false, false);
+			// We need to update ramp key positions.
+			for(int32 KeyIdx = 0, KeyNum = RichCurve.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx)
+			{
+				const FRichCurveKey& RichCurveKey = RichCurve.Keys[KeyIdx];
+
+				UHoudiniAssetParameterFloat* ChildParamPosition =
+					Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 0]);
+
+				UHoudiniAssetParameterFloat* ChildParamValue =
+					Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 1]);
+
+				UHoudiniAssetParameterChoice* ChildParamInterpolation =
+					Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * KeyIdx + 2]);
+
+				if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
+				{
+					continue;
+				}
+
+				ChildParamPosition->SetValue(RichCurveKey.Time, 0, false, false);
+				ChildParamValue->SetValue(RichCurveKey.Value, 0, false, false);
+
+				EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation =
+					TranslateUnrealRampKeyInterpolation(RichCurveKey.InterpMode);
+
+				ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false, false);
+			}
+
+			MarkChanged();
 		}
-
-		MarkChanged();
 	}
 }
 
@@ -699,16 +611,6 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 	{
 		HoudiniAssetParameterRampCurveFloat->ResetCurve();
 
-		/*
-		if(CurveFloatDuplicatedKeys.Num() > 0)
-		{
-			FRichCurve& RichCurve = CurveObjectFloat->FloatCurve;
-			RichCurve.Keys = CurveFloatDuplicatedKeys;
-			CurveFloatDuplicatedKeys.Empty();
-			return;
-		}
-		*/
-
 		for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
 		{
 			UHoudiniAssetParameterFloat* ChildParamPosition =
@@ -735,9 +637,10 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 				TranslateChoiceKeyInterpolation(ChildParamInterpolation);
 			ERichCurveInterpMode RichCurveInterpMode = TranslateHoudiniRampKeyInterpolation(RampKeyInterpolation);
 
-			FKeyHandle const KeyHandle =
-				HoudiniAssetParameterRampCurveFloat->FloatCurve.AddKey(CurveKeyPosition, CurveKeyValue);
-			HoudiniAssetParameterRampCurveFloat->FloatCurve.SetKeyInterpMode(KeyHandle, RichCurveInterpMode);
+			FRichCurve& RichCurve = HoudiniAssetParameterRampCurveFloat->FloatCurve;
+
+			FKeyHandle const KeyHandle = RichCurve.AddKey(CurveKeyPosition, CurveKeyValue);
+			RichCurve.SetKeyInterpMode(KeyHandle, RichCurveInterpMode);
 		}
 	}
 	else if(HoudiniAssetParameterRampCurveColor)
@@ -762,6 +665,21 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 
 				HoudiniAssetParameterRampCurveColor->ResetCurve();
 				return;
+			}
+
+			float CurveKeyPosition = ChildParamPosition->GetParameterValue(0, 0.0f);
+			FLinearColor CurveKeyValue = ChildParamColor->GetColor();
+			EHoudiniAssetParameterRampKeyInterpolation::Type RampKeyInterpolation =
+				TranslateChoiceKeyInterpolation(ChildParamInterpolation);
+			ERichCurveInterpMode RichCurveInterpMode = TranslateHoudiniRampKeyInterpolation(RampKeyInterpolation);
+
+			for(int CurveIdx = 0; CurveIdx < 4; ++CurveIdx)
+			{
+				FRichCurve& RichCurve = HoudiniAssetParameterRampCurveColor->FloatCurves[CurveIdx];
+
+				FKeyHandle const KeyHandle =
+					RichCurve.AddKey(CurveKeyPosition, CurveKeyValue.Component(CurveIdx));
+				RichCurve.SetKeyInterpMode(KeyHandle, RichCurveInterpMode);
 			}
 		}
 	}

@@ -118,9 +118,6 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
-	/** Create package for curve object. **/
-	UPackage* BakeCreateCurvePackage(FName& CurveName, bool bBake);
-
 #endif
 
 	/** Called when float ramp parameter changes via user interface. **/
