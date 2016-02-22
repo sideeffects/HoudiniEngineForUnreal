@@ -208,7 +208,7 @@ SHoudiniAssetParameterRampCurveEditor::OnMouseButtonDown(const FGeometry& MyGeom
 
 	if(HoudiniAssetParameterRamp)
 	{
-		HoudiniAssetParameterRamp->OnMouseButtonUpOverCurveFloat();
+		HoudiniAssetParameterRamp->OnMouseButtonDownOverCurveFloat();
 	}
 
 	return Reply;
@@ -228,7 +228,8 @@ UHoudiniAssetParameterRamp::DefaultUnknownInterpolation = EHoudiniAssetParameter
 UHoudiniAssetParameterRamp::UHoudiniAssetParameterRamp(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	CurveObject(nullptr),
-	bIsFloatRamp(true)
+	bIsFloatRamp(true),
+	bIsCurveChanged(false)
 {
 
 }
@@ -472,8 +473,30 @@ UHoudiniAssetParameterRamp::BakeCreateCurvePackage(FName& CurveName, bool bBake)
 void
 UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat)
 {
-	MarkPreChanged();
-	MarkChanged();
+	if(!CurveFloat)
+	{
+		return;
+	}
+
+	FRichCurve& RichCurve = CurveFloat->FloatCurve;
+	if(RichCurve.Keys.Num() * 3 != ChildParameters.Num())
+	{
+		return;
+	}
+
+	if(RichCurve.GetNumKeys() < GetRampKeyCount())
+	{
+		// Keys have been removed.
+	}
+	else if(RichCurve.GetNumKeys() > GetRampKeyCount())
+	{
+		// Keys have been added.
+	}
+	else
+	{
+		// We have curve point modification.
+		bIsCurveChanged = true;
+	}
 }
 
 
@@ -490,7 +513,49 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 void
 UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 {
+	UHoudiniAssetParameterRampCurveFloat* CurveObjectFloat =
+		Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject);
+	if(bIsCurveChanged && CurveObjectFloat)
+	{
+		UHoudiniAssetParameterRampCurveFloat* CurveObjectFloat =
+			Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject);
 
+		FRichCurve& RichCurve = CurveObjectFloat->FloatCurve;
+
+		MarkPreChanged();
+
+		// We need to update ramp key positions.
+		for(int32 KeyIdx = 0, KeyNum = RichCurve.Keys.Num(); KeyIdx < KeyNum; ++KeyIdx)
+		{
+			const FRichCurveKey& RichCurveKey = RichCurve.Keys[KeyIdx];
+
+			UHoudiniAssetParameterFloat* ChildParamPosition =
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 0]);
+
+			UHoudiniAssetParameterFloat* ChildParamValue =
+				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 1]);
+
+			UHoudiniAssetParameterChoice* ChildParamInterpolation =
+				Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * KeyIdx + 2]);
+
+			if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
+			{
+				continue;
+			}
+
+			ChildParamPosition->SetValue(RichCurveKey.Time, 0, false, false);
+			ChildParamValue->SetValue(RichCurveKey.Value, 0, false, false);
+
+			EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation =
+				TranslateUnrealRampKeyInterpolation(RichCurveKey.InterpMode);
+
+			ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false, false);
+		}
+
+		MarkChanged();
+
+		bIsCurveChanged = false;
+	}
 }
 
 
@@ -528,6 +593,11 @@ UHoudiniAssetParameterRamp::Serialize(FArchive& Ar)
 
 	// Serialize the curve.
 	Ar << CurveObject;
+
+	if(Ar.IsLoading())
+	{
+		bIsCurveChanged = false;
+	}
 }
 
 
