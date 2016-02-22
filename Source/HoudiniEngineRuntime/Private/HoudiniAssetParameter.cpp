@@ -164,6 +164,13 @@ UHoudiniAssetParameter::NotifyChildParameterWillChange(UHoudiniAssetParameter* H
 }
 
 
+void
+UHoudiniAssetParameter::NotifyChildParametersCreated()
+{
+	// Default implementation does nothing.
+}
+
+
 bool
 UHoudiniAssetParameter::UploadParameterValue()
 {
@@ -506,6 +513,13 @@ int32
 UHoudiniAssetParameter::GetActiveChildParameter() const
 {
 	return ActiveChildParameter;
+}
+
+
+bool
+UHoudiniAssetParameter::HasChildParameters() const
+{
+	return ChildParameters.Num() > 0;
 }
 
 
