@@ -171,6 +171,13 @@ UHoudiniAssetParameter::NotifyChildParametersCreated()
 }
 
 
+void
+UHoudiniAssetParameter::NotifyChildParametersLoaded()
+{
+	// Default implementation does nothing.
+}
+
+
 bool
 UHoudiniAssetParameter::UploadParameterValue()
 {

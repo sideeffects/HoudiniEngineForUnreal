@@ -34,8 +34,10 @@ UHoudiniAssetParameterRampCurveFloat::OnCurveChanged(const TArray<FRichCurveEdit
 {
 	Super::OnCurveChanged(ChangedCurveEditInfos);
 
-	check(HoudiniAssetParameterRamp);
-	HoudiniAssetParameterRamp->OnCurveFloatChanged(this);
+	if(HoudiniAssetParameterRamp)
+	{
+		HoudiniAssetParameterRamp->OnCurveFloatChanged(this);
+	}
 }
 
 
@@ -60,8 +62,10 @@ UHoudiniAssetParameterRampCurveColor::OnCurveChanged(const TArray<FRichCurveEdit
 {
 	Super::OnCurveChanged(ChangedCurveEditInfos);
 
-	check(HoudiniAssetParameterRamp);
-	HoudiniAssetParameterRamp->OnCurveColorChanged(this);
+	if(HoudiniAssetParameterRamp)
+	{
+		HoudiniAssetParameterRamp->OnCurveColorChanged(this);
+	}
 
 	// Unfortunately this will not work as SColorGradientEditor is missing OnCurveChange callback calls.
 	// This is most likely UE4 bug.
@@ -74,8 +78,8 @@ UHoudiniAssetParameterRampCurveColor::SetParentRampParameter(UHoudiniAssetParame
 	HoudiniAssetParameterRamp = InHoudiniAssetParameterRamp;
 }
 
-
 #if WITH_EDITOR
+
 
 /** We need to inherit from curve editor in order to get subscription to mouse events. **/
 class HOUDINIENGINERUNTIME_API SHoudiniAssetParameterRampCurveEditor : public SCurveEditor
@@ -107,7 +111,7 @@ public:
 		, _ShowCurveSelector(true)
 		, _GridColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.3f))
 	{}
-		SLATE_ATTRIBUTE(float, ViewMinInput)
+	SLATE_ATTRIBUTE(float, ViewMinInput)
 		SLATE_ATTRIBUTE(float, ViewMaxInput)
 		SLATE_ATTRIBUTE(float, ViewMinOutput)
 		SLATE_ATTRIBUTE(float, ViewMaxOutput)
@@ -129,10 +133,10 @@ public:
 		SLATE_ARGUMENT(bool, ShowOutputGridNumbers)
 		SLATE_ARGUMENT(bool, ShowCurveSelector)
 		SLATE_ARGUMENT(FLinearColor, GridColor)
-	SLATE_END_ARGS()
+		SLATE_END_ARGS()
 
-	/** Widget construction. **/
-	void Construct(const FArguments& InArgs);
+		/** Widget construction. **/
+		void Construct(const FArguments& InArgs);
 
 protected:
 
@@ -152,6 +156,7 @@ protected:
 	/** Parent ramp parameter. **/
 	UHoudiniAssetParameterRamp* HoudiniAssetParameterRamp;
 };
+
 
 void
 SHoudiniAssetParameterRampCurveEditor::Construct(const FArguments& InArgs)
@@ -175,6 +180,13 @@ SHoudiniAssetParameterRampCurveEditor::Construct(const FArguments& InArgs)
 	);
 
 	HoudiniAssetParameterRamp = nullptr;
+
+	UCurveEditorSettings* CurveEditorSettings = GetSettings();
+	if(CurveEditorSettings)
+	{
+		CurveEditorSettings->SetCurveVisibility(ECurveEditorCurveVisibility::AllCurves);
+		CurveEditorSettings->SetTangentVisibility(ECurveEditorTangentVisibility::NoTangents);
+	}
 }
 
 
@@ -214,8 +226,8 @@ SHoudiniAssetParameterRampCurveEditor::OnMouseButtonDown(const FGeometry& MyGeom
 	return Reply;
 }
 
-
 #endif
+
 
 const EHoudiniAssetParameterRampKeyInterpolation::Type
 UHoudiniAssetParameterRamp::DefaultSplineInterpolation = EHoudiniAssetParameterRampKeyInterpolation::MonotoneCubic;
@@ -227,7 +239,8 @@ UHoudiniAssetParameterRamp::DefaultUnknownInterpolation = EHoudiniAssetParameter
 
 UHoudiniAssetParameterRamp::UHoudiniAssetParameterRamp(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	CurveObject(nullptr),
+	HoudiniAssetParameterRampCurveFloat(nullptr),
+	HoudiniAssetParameterRampCurveColor(nullptr),
 	bIsFloatRamp(true),
 	bIsCurveChanged(false)
 {
@@ -345,6 +358,8 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		.VAlign(VAlign_Fill)
 		[
 			SAssignNew(CurveEditor, SHoudiniAssetParameterRampCurveEditor)
+			.ViewMinInput(0.0f)
+			.ViewMaxInput(1.0f)
 			.HideUI(true)
 			.DrawCurve(true)
 			.ViewMinInput(0.0f)
@@ -369,24 +384,52 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		CurveEditor->SetParentRampParameter(this);
 	}
 
+	if(bIsFloatRamp)
+	{
+		if(!HoudiniAssetParameterRampCurveFloat)
+		{
+			HoudiniAssetParameterRampCurveFloat = Cast<UHoudiniAssetParameterRampCurveFloat>(
+				NewObject<UHoudiniAssetParameterRampCurveFloat>(
+					HoudiniAssetComponent, UHoudiniAssetParameterRampCurveFloat::StaticClass(), NAME_None,
+						RF_Transactional | RF_Public));
+
+			HoudiniAssetParameterRampCurveFloat->SetParentRampParameter(this);
+		}
+
+		// Set curve values.
+		GenerateCurvePoints();
+
+		// Set the curve that is being edited.
+		CurveEditor->SetCurveOwner(HoudiniAssetParameterRampCurveFloat, true);
+	}
+
 	// If necessary, create the curve object.
+	/*
 	if(!CurveObject)
 	{
 		FName CurveAssetName = NAME_None;
 		UPackage* CurveAssetPackage = BakeCreateCurvePackage(CurveAssetName, false);
+		//UObject* CurveAssetPackage = HoudiniAssetComponent;
 		CurveObject = Cast<UCurveBase>(CurveEditor->CreateCurveObject(CurveClass, CurveAssetPackage, CurveAssetName));
 
-		// Set parent parameter for callback on curve events.
-		if(CurveObject && CurveObject->IsA(UHoudiniAssetParameterRampCurveFloat::StaticClass()))
+		if(CurveObject)
 		{
-			Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject)->SetParentRampParameter(this);
-		}
-		else if(CurveObject && CurveObject->IsA(UHoudiniAssetParameterRampCurveColor::StaticClass()))
-		{
-			Cast<UHoudiniAssetParameterRampCurveColor>(CurveObject)->SetParentRampParameter(this);
+			CurveObject->ClearFlags(RF_Public);
+			//CurveObject->SetFlags(RF_Transactional);
+
+			// Set parent parameter for callback on curve events.
+			if(CurveObject->IsA(UHoudiniAssetParameterRampCurveFloat::StaticClass()))
+			{
+				Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject)->SetParentRampParameter(this);
+			}
+			else if(CurveObject->IsA(UHoudiniAssetParameterRampCurveColor::StaticClass()))
+			{
+				Cast<UHoudiniAssetParameterRampCurveColor>(CurveObject)->SetParentRampParameter(this);
+			}
 		}
 	}
-
+	*/
+	/*
 	if(CurveObject)
 	{
 		// Register curve with the asset system.
@@ -399,6 +442,7 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 		// Set the curve that is being edited.
 		CurveEditor->SetCurveOwner(CurveObject, true);
 	}
+	*/
 
 	Row.ValueWidget.Widget = HorizontalBox;
 	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
@@ -497,10 +541,14 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 	if(RichCurve.GetNumKeys() < MultiparmValue)
 	{
 		// Keys have been removed.
+		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
+		RemoveElement();
 	}
 	else if(RichCurve.GetNumKeys() > MultiparmValue)
 	{
 		// Keys have been added.
+		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
+		AddElement();
 	}
 	else
 	{
@@ -520,16 +568,12 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 
 #if WITH_EDITOR
 
+
 void
 UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 {
-	UHoudiniAssetParameterRampCurveFloat* CurveObjectFloat =
-		Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject);
-	if(bIsCurveChanged && CurveObjectFloat)
+	if(bIsCurveChanged && HoudiniAssetParameterRampCurveFloat)
 	{
-		UHoudiniAssetParameterRampCurveFloat* CurveObjectFloat =
-			Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject);
-
 		bIsCurveChanged = false;
 
 		if(MultiparmValue * 3 != ChildParameters.Num())
@@ -537,15 +581,15 @@ UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 			return;
 		}
 
-		FRichCurve& RichCurve = CurveObjectFloat->FloatCurve;
-		TArray<FRichCurveKey> RichCurveKeys = RichCurve.GetCopyOfKeys();
+		FRichCurve& RichCurve = HoudiniAssetParameterRampCurveFloat->FloatCurve;
+		TArray<FRichCurveKey> DuplicatedKeys = RichCurve.GetCopyOfKeys();
 
 		MarkPreChanged();
 
 		// We need to update ramp key positions.
 		for(int32 KeyIdx = 0, KeyNum = RichCurve.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx)
 		{
-			const FRichCurveKey& RichCurveKey = RichCurveKeys[KeyIdx];
+			const FRichCurveKey& RichCurveKey = DuplicatedKeys[KeyIdx];
 
 			UHoudiniAssetParameterFloat* ChildParamPosition =
 				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 0]);
@@ -581,6 +625,7 @@ UHoudiniAssetParameterRamp::OnMouseButtonDownOverCurveFloat()
 
 }
 
+
 #endif
 
 
@@ -590,9 +635,14 @@ UHoudiniAssetParameterRamp::AddReferencedObjects(UObject* InThis, FReferenceColl
 	UHoudiniAssetParameterRamp* HoudiniAssetParameterRamp = Cast<UHoudiniAssetParameterRamp>(InThis);
 	if(HoudiniAssetParameterRamp)
 	{
-		if(HoudiniAssetParameterRamp->CurveObject)
+		if(HoudiniAssetParameterRamp->HoudiniAssetParameterRampCurveFloat)
 		{
-			Collector.AddReferencedObject(HoudiniAssetParameterRamp->CurveObject, InThis);
+			Collector.AddReferencedObject(HoudiniAssetParameterRamp->HoudiniAssetParameterRampCurveFloat, InThis);
+		}
+
+		if(HoudiniAssetParameterRamp->HoudiniAssetParameterRampCurveColor)
+		{
+			Collector.AddReferencedObject(HoudiniAssetParameterRamp->HoudiniAssetParameterRampCurveColor, InThis);
 		}
 	}
 
@@ -607,8 +657,8 @@ UHoudiniAssetParameterRamp::Serialize(FArchive& Ar)
 	// Call base implementation.
 	Super::Serialize(Ar);
 
-	// Serialize the curve.
-	Ar << CurveObject;
+	Ar << HoudiniAssetParameterRampCurveFloat;
+	Ar << HoudiniAssetParameterRampCurveColor;
 
 	if(Ar.IsLoading())
 	{
@@ -619,13 +669,25 @@ UHoudiniAssetParameterRamp::Serialize(FArchive& Ar)
 
 
 void
-UHoudiniAssetParameterRamp::GenerateCurvePoints()
+UHoudiniAssetParameterRamp::PostLoad()
 {
-	if(!CurveObject)
+	Super::PostLoad();
+
+	if(HoudiniAssetParameterRampCurveFloat)
 	{
-		return;
+		HoudiniAssetParameterRampCurveFloat->SetParentRampParameter(this);
 	}
 
+	if(HoudiniAssetParameterRampCurveColor)
+	{
+		HoudiniAssetParameterRampCurveColor->SetParentRampParameter(this);
+	}
+}
+
+
+void
+UHoudiniAssetParameterRamp::GenerateCurvePoints()
+{
 	if(ChildParameters.Num() % 3 != 0)
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : Number of child parameters is not a tuple of 3."),
@@ -634,12 +696,19 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 		return;
 	}
 
-	if(CurveObject->IsA(UHoudiniAssetParameterRampCurveFloat::StaticClass()))
+	if(HoudiniAssetParameterRampCurveFloat)
 	{
-		UHoudiniAssetParameterRampCurveFloat* CurveObjectFloat =
-			Cast<UHoudiniAssetParameterRampCurveFloat>(CurveObject);
+		HoudiniAssetParameterRampCurveFloat->ResetCurve();
 
-		CurveObjectFloat->ResetCurve();
+		/*
+		if(CurveFloatDuplicatedKeys.Num() > 0)
+		{
+			FRichCurve& RichCurve = CurveObjectFloat->FloatCurve;
+			RichCurve.Keys = CurveFloatDuplicatedKeys;
+			CurveFloatDuplicatedKeys.Empty();
+			return;
+		}
+		*/
 
 		for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
 		{
@@ -657,7 +726,7 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 				HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
 					*ParameterName);
 
-				CurveObjectFloat->ResetCurve();
+				HoudiniAssetParameterRampCurveFloat->ResetCurve();
 				return;
 			}
 
@@ -667,16 +736,14 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 				TranslateChoiceKeyInterpolation(ChildParamInterpolation);
 			ERichCurveInterpMode RichCurveInterpMode = TranslateHoudiniRampKeyInterpolation(RampKeyInterpolation);
 
-			FKeyHandle const KeyHandle = CurveObjectFloat->FloatCurve.AddKey(CurveKeyPosition, CurveKeyValue);
-			CurveObjectFloat->FloatCurve.SetKeyInterpMode(KeyHandle, RichCurveInterpMode);
+			FKeyHandle const KeyHandle =
+				HoudiniAssetParameterRampCurveFloat->FloatCurve.AddKey(CurveKeyPosition, CurveKeyValue);
+			HoudiniAssetParameterRampCurveFloat->FloatCurve.SetKeyInterpMode(KeyHandle, RichCurveInterpMode);
 		}
 	}
-	else if(CurveObject->IsA(UHoudiniAssetParameterRampCurveColor::StaticClass()))
+	else if(HoudiniAssetParameterRampCurveColor)
 	{
-		UHoudiniAssetParameterRampCurveColor* CurveObjectColor =
-			Cast<UHoudiniAssetParameterRampCurveColor>(CurveObject);
-
-		CurveObjectColor->ResetCurve();
+		HoudiniAssetParameterRampCurveColor->ResetCurve();
 
 		for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
 		{
@@ -694,7 +761,7 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 				HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
 					*ParameterName);
 
-				CurveObjectColor->ResetCurve();
+				HoudiniAssetParameterRampCurveColor->ResetCurve();
 				return;
 			}
 		}
