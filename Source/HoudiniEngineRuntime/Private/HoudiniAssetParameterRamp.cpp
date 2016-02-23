@@ -111,7 +111,7 @@ public:
 		, _ShowCurveSelector(true)
 		, _GridColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.3f))
 	{}
-	SLATE_ATTRIBUTE(float, ViewMinInput)
+		SLATE_ATTRIBUTE(float, ViewMinInput)
 		SLATE_ATTRIBUTE(float, ViewMaxInput)
 		SLATE_ATTRIBUTE(float, ViewMinOutput)
 		SLATE_ATTRIBUTE(float, ViewMaxOutput)
@@ -133,10 +133,12 @@ public:
 		SLATE_ARGUMENT(bool, ShowOutputGridNumbers)
 		SLATE_ARGUMENT(bool, ShowCurveSelector)
 		SLATE_ARGUMENT(FLinearColor, GridColor)
-		SLATE_END_ARGS()
+	SLATE_END_ARGS()
 
-		/** Widget construction. **/
-		void Construct(const FArguments& InArgs);
+public:
+
+	/** Widget construction. **/
+	void Construct(const FArguments& InArgs);
 
 protected:
 
@@ -451,13 +453,13 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 	{
 		// Keys have been removed.
 		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
-		RemoveElement();
+		RemoveElements(MultiparmValue - RichCurve.GetNumKeys());
 	}
 	else if(RichCurve.GetNumKeys() > MultiparmValue)
 	{
 		// Keys have been added.
 		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
-		AddElement();
+		AddElements(RichCurve.GetNumKeys() - MultiparmValue);
 	}
 	else
 	{
