@@ -223,19 +223,12 @@ FHoudiniEngine::StartupModule()
 			{
 				if(HoudiniRuntimeSettings->bStartAutomaticServer)
 				{
-					FHoudiniApi::StartThriftSocketServer(
-						true,
-						HoudiniRuntimeSettings->ServerPort,
-						HoudiniRuntimeSettings->AutomaticServerTimeout,
-						NULL
-					);
+					FHoudiniApi::StartThriftSocketServer(&ServerOptions, HoudiniRuntimeSettings->ServerPort, nullptr);
 				}
 
-				SessionResult = FHoudiniApi::CreateThriftSocketSession(
-					&this->Session,
-					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost),
-					HoudiniRuntimeSettings->ServerPort
-				);
+				SessionResult = FHoudiniApi::CreateThriftSocketSession(&this->Session,
+					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost), HoudiniRuntimeSettings->ServerPort,
+					ServerOptions.transportType);
 
 				break;
 			}
@@ -245,17 +238,16 @@ FHoudiniEngine::StartupModule()
 				if(HoudiniRuntimeSettings->bStartAutomaticServer)
 				{
 					FHoudiniApi::StartThriftNamedPipeServer(
-						true,
+						&ServerOptions,
 						TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName),
-						HoudiniRuntimeSettings->AutomaticServerTimeout,
-						NULL
+						nullptr
 					);
+					FHoudiniApi::StartThriftNamedPipeServer(&ServerOptions,
+						TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName), nullptr);
 				}
 
-				SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-					&this->Session,
-					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
-				);
+				SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(&this->Session,
+					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName), ServerOptions.transportType);
 
 				break;
 			}
