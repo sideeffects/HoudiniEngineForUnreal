@@ -381,6 +381,7 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 			.ZoomToFitVertical(false)
 			.XAxisName(CurveAxisTextX)
 			.YAxisName(CurveAxisTextY)
+			.ShowCurveSelector(false)
 		]
 	];
 
@@ -451,13 +452,13 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 	{
 		// Keys have been removed.
 		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
-		RemoveElement();
+		RemoveElements(MultiparmValue - RichCurve.GetNumKeys());
 	}
 	else if(RichCurve.GetNumKeys() > MultiparmValue)
 	{
 		// Keys have been added.
 		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
-		AddElement();
+		AddElements(RichCurve.GetNumKeys() - MultiparmValue);
 	}
 	else
 	{
