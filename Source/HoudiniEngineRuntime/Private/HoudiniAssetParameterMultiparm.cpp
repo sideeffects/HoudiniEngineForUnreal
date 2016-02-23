@@ -258,43 +258,71 @@ UHoudiniAssetParameterMultiparm::SetValueCommitted(int32 InValue, ETextCommit::T
 
 }
 
+
 void
 UHoudiniAssetParameterMultiparm::AddElement()
 {
-	LastModificationType = RegularValueChange;
-	LastRemoveAddInstanceIndex = -1;
-
-	// Record undo information.
-	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
-		HoudiniAssetComponent);
-	Modify();
-
-	MarkPreChanged();
-
-	MultiparmValue++;
-
-	MarkChanged();
+	AddElements(1);
 }
+
+
+void
+UHoudiniAssetParameterMultiparm::AddElements(int32 NumElements)
+{
+	if(NumElements > 0)
+	{
+		LastModificationType = RegularValueChange;
+		LastRemoveAddInstanceIndex = -1;
+
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		MultiparmValue += NumElements;
+
+		MarkChanged();
+	}
+}
+
 
 void
 UHoudiniAssetParameterMultiparm::RemoveElement()
 {
-	LastModificationType = RegularValueChange;
-	LastRemoveAddInstanceIndex = -1;
-
-	// Record undo information.
-	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-		LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
-		HoudiniAssetComponent);
-	Modify();
-
-	MarkPreChanged();
-
-	MultiparmValue--;
-
-	MarkChanged();
+	RemoveElements(1);
 }
+
+
+void
+UHoudiniAssetParameterMultiparm::RemoveElements(int32 NumElements)
+{
+	if(NumElements > 0)
+	{
+		if(MultiparmValue - NumElements < 0)
+		{
+			NumElements = MultiparmValue;
+		}
+
+		LastModificationType = RegularValueChange;
+		LastRemoveAddInstanceIndex = -1;
+
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+			HoudiniAssetComponent);
+		Modify();
+
+		MarkPreChanged();
+
+		MultiparmValue -= NumElements;
+
+		MarkChanged();
+	}
+}
+
 
 #endif
 
