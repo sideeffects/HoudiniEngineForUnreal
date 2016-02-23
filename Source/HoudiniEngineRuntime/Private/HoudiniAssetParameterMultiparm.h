@@ -82,9 +82,11 @@ public:
 
 	/** Increment value, used by Slate. **/
 	void AddElement();
+	void AddElements(int32 NumElements);
 
 	/** Decrement value, used by Slate. **/
 	void RemoveElement();
+	void RemoveElements(int32 NumElements);
 
 #endif
 
