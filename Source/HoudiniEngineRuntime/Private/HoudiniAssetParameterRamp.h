@@ -20,6 +20,7 @@
 
 class UCurveBase;
 class UHoudiniAssetParameterRamp;
+class SHoudiniAssetParameterRampCurveEditor;
 
 
 UCLASS(BlueprintType)
@@ -162,6 +163,7 @@ public:
 
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 #if WITH_EDITOR
@@ -217,6 +219,13 @@ protected:
 	static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultUnknownInterpolation;
 
 protected:
+
+#if WITH_EDITOR
+
+	//! Curve editor widget.
+	TSharedPtr<SHoudiniAssetParameterRampCurveEditor> CurveEditor;
+
+#endif
 
 	//! Curves which are being edited.
 	UHoudiniAssetParameterRampCurveFloat* HoudiniAssetParameterRampCurveFloat;

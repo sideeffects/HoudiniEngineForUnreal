@@ -494,9 +494,9 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	
 	// Create the standard parameter name widget.
 	CreateNameWidget(Row, true);
+	CurveEditor.Reset();
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
-	TSharedPtr<SHoudiniAssetParameterRampCurveEditor> CurveEditor;
 
 	FString CurveAxisTextX = TEXT("");
 	FString CurveAxisTextY = TEXT("");
@@ -791,6 +791,8 @@ UHoudiniAssetParameterRamp::Serialize(FArchive& Ar)
 	Ar << HoudiniAssetParameterRampCurveFloat;
 	Ar << HoudiniAssetParameterRampCurveColor;
 
+	Ar << bIsFloatRamp;
+
 	if(Ar.IsLoading())
 	{
 		bIsCurveChanged = false;
@@ -813,6 +815,23 @@ UHoudiniAssetParameterRamp::PostLoad()
 	{
 		HoudiniAssetParameterRampCurveColor->SetParentRampParameter(this);
 	}
+}
+
+
+void
+UHoudiniAssetParameterRamp::BeginDestroy()
+{
+
+#if WITH_EDITOR
+
+	if(CurveEditor.IsValid())
+	{
+		CurveEditor->SetCurveOwner(nullptr);
+	}
+
+#endif
+
+	Super::BeginDestroy();
 }
 
 
