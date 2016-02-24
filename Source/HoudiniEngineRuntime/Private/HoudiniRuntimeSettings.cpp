@@ -38,6 +38,9 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 	bTransformChangeTriggersCooks(false),
 	bDisplaySlateCookingNotifications(true),
 
+	/** Parameter options. **/
+	bTreatRampParametersAsMultiparms(false),
+
 	/** Collision generation. **/
 	CollisionGroupNamePrefix(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),
 	RenderedCollisionGroupNamePrefix(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION)),
