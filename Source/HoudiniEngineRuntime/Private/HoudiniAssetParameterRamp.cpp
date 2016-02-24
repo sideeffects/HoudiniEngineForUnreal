@@ -29,6 +29,9 @@ UHoudiniAssetParameterRampCurveFloat::UHoudiniAssetParameterRampCurveFloat(
 }
 
 
+#if WITH_EDITOR
+
+
 void
 UHoudiniAssetParameterRampCurveFloat::OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos)
 {
@@ -41,6 +44,9 @@ UHoudiniAssetParameterRampCurveFloat::OnCurveChanged(const TArray<FRichCurveEdit
 }
 
 
+#endif
+
+
 void
 UHoudiniAssetParameterRampCurveFloat::SetParentRampParameter(UHoudiniAssetParameterRamp* InHoudiniAssetParameterRamp)
 {
@@ -51,10 +57,14 @@ UHoudiniAssetParameterRampCurveFloat::SetParentRampParameter(UHoudiniAssetParame
 UHoudiniAssetParameterRampCurveColor::UHoudiniAssetParameterRampCurveColor(
 	const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	HoudiniAssetParameterRamp(nullptr)
+	HoudiniAssetParameterRamp(nullptr),
+	ColorEvent(EHoudiniAssetParameterRampCurveColorEvent::None)
 {
 
 }
+
+
+#if WITH_EDITOR
 
 
 void
@@ -72,11 +82,169 @@ UHoudiniAssetParameterRampCurveColor::OnCurveChanged(const TArray<FRichCurveEdit
 }
 
 
+#endif
+
+
+bool
+UHoudiniAssetParameterRampCurveColor::Modify(bool bAlwaysMarkDirty)
+{
+	ColorEvent = GetEditorCurveTransaction();
+	return Super::Modify(bAlwaysMarkDirty);
+}
+
+
+EHoudiniAssetParameterRampCurveColorEvent::Type
+UHoudiniAssetParameterRampCurveColor::GetEditorCurveTransaction() const
+{
+	EHoudiniAssetParameterRampCurveColorEvent::Type TransactionType = EHoudiniAssetParameterRampCurveColorEvent::None;
+
+#if WITH_EDITOR
+
+	if(GEditor)
+	{
+		const FString& TransactionName = GEditor->GetTransactionName().ToString();
+
+		if(TransactionName.Equals(TEXT("Move Gradient Stop")))
+		{
+			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::None;
+		}
+		else if(TransactionName.Equals(TEXT("Add Gradient Stop")))
+		{
+			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::AddStop;
+		}
+		else if(TransactionName.Equals(TEXT("Delete Gradient Stop")))
+		{
+			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::RemoveStop;
+		}
+		else if(TransactionName.Equals(TEXT("Change Gradient Stop Time")))
+		{
+			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::ChangeStopTime;
+		}
+		else if(TransactionName.Equals(TEXT("Change Gradient Stop Color")))
+		{
+			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::ChangeStopColor;
+		}
+		else
+		{
+			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::None;
+		}
+	}
+	else
+	{
+		TransactionType = EHoudiniAssetParameterRampCurveColorEvent::None;
+	}
+
+#endif
+
+	return TransactionType;
+}
+
+
 void
 UHoudiniAssetParameterRampCurveColor::SetParentRampParameter(UHoudiniAssetParameterRamp* InHoudiniAssetParameterRamp)
 {
 	HoudiniAssetParameterRamp = InHoudiniAssetParameterRamp;
 }
+
+
+EHoudiniAssetParameterRampCurveColorEvent::Type
+UHoudiniAssetParameterRampCurveColor::GetColorEvent() const
+{
+	return ColorEvent;
+}
+
+
+void
+UHoudiniAssetParameterRampCurveColor::ResetColorEvent()
+{
+	ColorEvent = EHoudiniAssetParameterRampCurveColorEvent::None;
+}
+
+
+bool
+UHoudiniAssetParameterRampCurveColor::IsTickableInEditor() const
+{
+	return true;
+}
+
+
+bool
+UHoudiniAssetParameterRampCurveColor::IsTickableWhenPaused() const
+{
+	return true;
+}
+
+
+void
+UHoudiniAssetParameterRampCurveColor::Tick(float DeltaTime)
+{
+	if(HoudiniAssetParameterRamp)
+	{
+
+#if WITH_EDITOR
+
+		if(GEditor && !GEditor->IsTransactionActive())
+		{
+			switch(ColorEvent)
+			{
+			case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopTime:
+			case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopColor:
+			{
+				// If color picker is open, we need to wait until it is closed.
+				TSharedPtr<SWindow> ActiveTopLevelWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+				if(ActiveTopLevelWindow.IsValid())
+				{
+					const FString& ActiveTopLevelWindowTitle = ActiveTopLevelWindow->GetTitle().ToString();
+					if(ActiveTopLevelWindowTitle.Equals(TEXT("Color Picker")))
+					{
+						return;
+					}
+				}
+			}
+
+			default:
+			{
+				break;
+			}
+			}
+		}
+
+		// Notify parent ramp parameter that color has changed.
+		HoudiniAssetParameterRamp->OnCurveColorChanged(this);
+
+#endif
+
+	}
+	else
+	{
+		// If we are ticking for whatever reason, stop.
+		ResetColorEvent();
+	}
+}
+
+
+TStatId
+UHoudiniAssetParameterRampCurveColor::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UHoudiniAssetParameterRampCurveColor, STATGROUP_Tickables);
+}
+
+
+bool
+UHoudiniAssetParameterRampCurveColor::IsTickable() const
+{
+#if WITH_EDITOR
+
+	if(GEditor)
+	{
+		return EHoudiniAssetParameterRampCurveColorEvent::None != ColorEvent;
+	}
+
+#endif
+
+	return false;
+}
+
 
 #if WITH_EDITOR
 
@@ -145,9 +313,6 @@ protected:
 	/** Handle mouse up events. **/
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
-	/** Handle mouse down events. **/
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-
 public:
 
 	/** Set parent ramp parameter. **/
@@ -207,26 +372,12 @@ SHoudiniAssetParameterRampCurveEditor::OnMouseButtonUp(const FGeometry& MyGeomet
 
 	if(HoudiniAssetParameterRamp)
 	{
-		HoudiniAssetParameterRamp->OnMouseButtonUpOverCurveFloat();
+		HoudiniAssetParameterRamp->OnCurveEditingFinished();
 	}
 
 	return Reply;
 }
 
-
-FReply
-SHoudiniAssetParameterRampCurveEditor::OnMouseButtonDown(const FGeometry& MyGeometry,
-	const FPointerEvent& MouseEvent)
-{
-	FReply Reply = SCurveEditor::OnMouseButtonDown(MyGeometry, MouseEvent);
-
-	if(HoudiniAssetParameterRamp)
-	{
-		HoudiniAssetParameterRamp->OnMouseButtonDownOverCurveFloat();
-	}
-
-	return Reply;
-}
 
 #endif
 
@@ -244,7 +395,8 @@ UHoudiniAssetParameterRamp::UHoudiniAssetParameterRamp(const FObjectInitializer&
 	HoudiniAssetParameterRampCurveFloat(nullptr),
 	HoudiniAssetParameterRampCurveColor(nullptr),
 	bIsFloatRamp(true),
-	bIsCurveChanged(false)
+	bIsCurveChanged(false),
+	bIsCurveUploadRequired(false)
 {
 
 }
@@ -310,18 +462,11 @@ UHoudiniAssetParameterRamp::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 void
 UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
 {
-	if(bIsFloatRamp)
+	if(bIsCurveUploadRequired)
 	{
-		if(CurveFloatDuplicatedKeys.Num() > 0)
-		{
-			bIsCurveChanged = true;
-			OnMouseButtonUpOverCurveFloat();
-			CurveFloatDuplicatedKeys.Empty();
-		}
-		else
-		{
-			GenerateCurvePoints();
-		}
+		bIsCurveChanged = true;
+		OnCurveEditingFinished();
+		bIsCurveUploadRequired = false;
 	}
 	else
 	{
@@ -452,13 +597,13 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 	if(RichCurve.GetNumKeys() < MultiparmValue)
 	{
 		// Keys have been removed.
-		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
+		bIsCurveUploadRequired = true;
 		RemoveElements(MultiparmValue - RichCurve.GetNumKeys());
 	}
 	else if(RichCurve.GetNumKeys() > MultiparmValue)
 	{
 		// Keys have been added.
-		CurveFloatDuplicatedKeys = RichCurve.GetCopyOfKeys();
+		bIsCurveUploadRequired = true;
 		AddElements(RichCurve.GetNumKeys() - MultiparmValue);
 	}
 	else
@@ -472,50 +617,75 @@ UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveF
 void
 UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveColor* CurveColor)
 {
-	MarkPreChanged();
-	MarkChanged();
+	if(!CurveColor)
+	{
+		return;
+	}
+
+	EHoudiniAssetParameterRampCurveColorEvent::Type ColorEvent = CurveColor->GetColorEvent();
+	switch(ColorEvent)
+	{
+		case EHoudiniAssetParameterRampCurveColorEvent::AddStop:
+		{
+			AddElement();
+			break;
+		}
+
+		case EHoudiniAssetParameterRampCurveColorEvent::RemoveStop:
+		{
+			RemoveElement();
+			break;
+		}
+
+		case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopTime:
+		case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopColor:
+		case EHoudiniAssetParameterRampCurveColorEvent::MoveStop:
+		{
+			// We have curve point modification.
+			bIsCurveChanged = true;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	CurveColor->ResetColorEvent();
 }
 
 
-#if WITH_EDITOR
-
-
 void
-UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
+UHoudiniAssetParameterRamp::OnCurveEditingFinished()
 {
 	if(bIsCurveChanged)
 	{
+		if(MultiparmValue * 3 != ChildParameters.Num())
+		{
+			return;
+		}
+
+		bIsCurveChanged = false;
+
 		if(HoudiniAssetParameterRampCurveFloat)
 		{
-			bIsCurveChanged = false;
-
-			if(MultiparmValue * 3 != ChildParameters.Num())
-			{
-				return;
-			}
-
 			FRichCurve& RichCurve = HoudiniAssetParameterRampCurveFloat->FloatCurve;
 
 			MarkPreChanged();
 
 			// We need to update ramp key positions.
-			for(int32 KeyIdx = 0, KeyNum = RichCurve.Keys.Num(); KeyIdx < KeyNum; ++KeyIdx)
+			for(int32 KeyIdx = 0, KeyNum = RichCurve.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx)
 			{
-				const FRichCurveKey& RichCurveKey = RichCurve.Keys[KeyIdx];
+				UHoudiniAssetParameterFloat* ChildParamPosition = nullptr;
+				UHoudiniAssetParameterFloat* ChildParamValue = nullptr;
+				UHoudiniAssetParameterChoice* ChildParamInterpolation = nullptr;
 
-				UHoudiniAssetParameterFloat* ChildParamPosition =
-					Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 0]);
-
-				UHoudiniAssetParameterFloat* ChildParamValue =
-					Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * KeyIdx + 1]);
-
-				UHoudiniAssetParameterChoice* ChildParamInterpolation =
-					Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * KeyIdx + 2]);
-
-				if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
+				if(!GetRampKeysCurveFloat(KeyIdx, ChildParamPosition, ChildParamValue, ChildParamInterpolation))
 				{
 					continue;
 				}
+
+				const FRichCurveKey& RichCurveKey = RichCurve.Keys[KeyIdx];
 
 				ChildParamPosition->SetValue(RichCurveKey.Time, 0, false, false);
 				ChildParamValue->SetValue(RichCurveKey.Value, 0, false, false);
@@ -528,18 +698,47 @@ UHoudiniAssetParameterRamp::OnMouseButtonUpOverCurveFloat()
 
 			MarkChanged();
 		}
+		else if(HoudiniAssetParameterRampCurveColor)
+		{
+			FRichCurve& RichCurveR = HoudiniAssetParameterRampCurveColor->FloatCurves[0];
+			FRichCurve& RichCurveG = HoudiniAssetParameterRampCurveColor->FloatCurves[1];
+			FRichCurve& RichCurveB = HoudiniAssetParameterRampCurveColor->FloatCurves[2];
+			FRichCurve& RichCurveA = HoudiniAssetParameterRampCurveColor->FloatCurves[3];
+
+			MarkPreChanged();
+
+			// We need to update ramp key positions.
+			for(int32 KeyIdx = 0, KeyNum = RichCurveR.GetNumKeys(); KeyIdx < KeyNum; ++KeyIdx)
+			{
+				UHoudiniAssetParameterFloat* ChildParamPosition = nullptr;
+				UHoudiniAssetParameterColor* ChildParamColor = nullptr;
+				UHoudiniAssetParameterChoice* ChildParamInterpolation = nullptr;
+
+				if(!GetRampKeysCurveColor(KeyIdx, ChildParamPosition, ChildParamColor, ChildParamInterpolation))
+				{
+					continue;
+				}
+
+				const FRichCurveKey& RichCurveKeyR = RichCurveR.Keys[KeyIdx];
+				const FRichCurveKey& RichCurveKeyG = RichCurveG.Keys[KeyIdx];
+				const FRichCurveKey& RichCurveKeyB = RichCurveB.Keys[KeyIdx];
+				//const FRichCurveKey& RichCurveKeyA = RichCurveA.Keys[KeyIdx];
+
+				ChildParamPosition->SetValue(RichCurveKeyR.Time, 0, false, false);
+
+				FLinearColor KeyColor(RichCurveKeyR.Value, RichCurveKeyG.Value, RichCurveKeyB.Value, 1.0f);
+				ChildParamColor->OnPaintColorChanged(KeyColor, false, false);
+
+				EHoudiniAssetParameterRampKeyInterpolation::Type RichCurveKeyInterpolation =
+					TranslateUnrealRampKeyInterpolation(RichCurveKeyR.InterpMode);
+
+				ChildParamInterpolation->SetValueInt((int32) RichCurveKeyInterpolation, false, false);
+			}
+
+			MarkChanged();
+		}
 	}
 }
-
-
-void
-UHoudiniAssetParameterRamp::OnMouseButtonDownOverCurveFloat()
-{
-
-}
-
-
-#endif
 
 
 void
@@ -576,7 +775,7 @@ UHoudiniAssetParameterRamp::Serialize(FArchive& Ar)
 	if(Ar.IsLoading())
 	{
 		bIsCurveChanged = false;
-		CurveFloatDuplicatedKeys.Empty();
+		bIsCurveUploadRequired = false;
 	}
 }
 
@@ -615,21 +814,13 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 
 		for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
 		{
-			UHoudiniAssetParameterFloat* ChildParamPosition =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 0]);
+			UHoudiniAssetParameterFloat* ChildParamPosition = nullptr;
+			UHoudiniAssetParameterFloat* ChildParamValue = nullptr;
+			UHoudiniAssetParameterChoice* ChildParamInterpolation = nullptr;
 
-			UHoudiniAssetParameterFloat* ChildParamValue =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 1]);
-
-			UHoudiniAssetParameterChoice* ChildParamInterpolation =
-				Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * ChildIdx + 2]);
-
-			if(!ChildParamPosition || !ChildParamValue || !ChildParamInterpolation)
+			if(!GetRampKeysCurveFloat(ChildIdx, ChildParamPosition, ChildParamValue, ChildParamInterpolation))
 			{
-				HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
-					*ParameterName);
-
-				HoudiniAssetParameterRampCurveFloat->ResetCurve();
+				HoudiniAssetParameterRampCurveColor->ResetCurve();
 				return;
 			}
 
@@ -651,20 +842,12 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 
 		for(int32 ChildIdx = 0, ChildNum = GetRampKeyCount(); ChildIdx < ChildNum; ++ChildIdx)
 		{
-			UHoudiniAssetParameterFloat* ChildParamPosition =
-				Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * ChildIdx + 0]);
+			UHoudiniAssetParameterFloat* ChildParamPosition = nullptr;
+			UHoudiniAssetParameterColor* ChildParamColor = nullptr;
+			UHoudiniAssetParameterChoice* ChildParamInterpolation = nullptr;
 
-			UHoudiniAssetParameterColor* ChildParamColor =
-				Cast<UHoudiniAssetParameterColor>(ChildParameters[3 * ChildIdx + 1]);
-
-			UHoudiniAssetParameterChoice* ChildParamInterpolation =
-				Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * ChildIdx + 2]);
-
-			if(!ChildParamPosition || !ChildParamColor || !ChildParamInterpolation)
+			if(!GetRampKeysCurveColor(ChildIdx, ChildParamPosition, ChildParamColor, ChildParamInterpolation))
 			{
-				HOUDINI_LOG_MESSAGE(TEXT("Invalid Ramp parameter [%s] : One of child parameters is of invalid type."),
-					*ParameterName);
-
 				HoudiniAssetParameterRampCurveColor->ResetCurve();
 				return;
 			}
@@ -685,6 +868,64 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 			}
 		}
 	}
+}
+
+
+bool
+UHoudiniAssetParameterRamp::GetRampKeysCurveFloat(int32 Idx, UHoudiniAssetParameterFloat*& Position,
+	UHoudiniAssetParameterFloat*& Value, UHoudiniAssetParameterChoice*& Interp) const
+{
+	Position = nullptr;
+	Value = nullptr;
+	Interp = nullptr;
+
+	int32 NumChildren = ChildParameters.Num();
+
+	if(3 * Idx + 0 < NumChildren)
+	{
+		Position = Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * Idx + 0]);
+	}
+
+	if(3 * Idx + 1 < NumChildren)
+	{
+		Value = Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * Idx + 1]);
+	}
+
+	if(3 * Idx + 2 < NumChildren)
+	{
+		Interp = Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * Idx + 2]);
+	}
+
+	return Position != nullptr && Value != nullptr && Interp != nullptr;
+}
+
+
+bool
+UHoudiniAssetParameterRamp::GetRampKeysCurveColor(int32 Idx, UHoudiniAssetParameterFloat*& Position,
+	UHoudiniAssetParameterColor*& Value, UHoudiniAssetParameterChoice*& Interp) const
+{
+	Position = nullptr;
+	Value = nullptr;
+	Interp = nullptr;
+
+	int32 NumChildren = ChildParameters.Num();
+
+	if(3 * Idx + 0 < NumChildren)
+	{
+		Position = Cast<UHoudiniAssetParameterFloat>(ChildParameters[3 * Idx + 0]);
+	}
+
+	if(3 * Idx + 1 < NumChildren)
+	{
+		Value = Cast<UHoudiniAssetParameterColor>(ChildParameters[3 * Idx + 1]);
+	}
+
+	if(3 * Idx + 2 < NumChildren)
+	{
+		Interp = Cast<UHoudiniAssetParameterChoice>(ChildParameters[3 * Idx + 2]);
+	}
+
+	return Position != nullptr && Value != nullptr && Interp != nullptr;
 }
 
 
