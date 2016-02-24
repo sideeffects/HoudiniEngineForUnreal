@@ -3280,14 +3280,7 @@ UHoudiniAssetComponent::CreateParameters()
 
 				case HAPI_PARMTYPE_MULTIPARMLIST:
 				{
-
-#ifdef HAPI_UNREAL_ENABLE_RAMPS
-
-					// There's a bug in SColorGradientEditor which prevents us from using Color ramps. We will fallback
-					// to regular Multiparm parameter for those for now.
-
-					//if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType || HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
-					if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType)
+					if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType || HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
 					{
 						HoudiniAssetParameter = UHoudiniAssetParameterRamp::Create(this, nullptr,
 							AssetInfo.nodeId, ParmInfo);
@@ -3297,13 +3290,6 @@ UHoudiniAssetComponent::CreateParameters()
 						HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
 							AssetInfo.nodeId, ParmInfo);
 					}
-
-#else
-
-					HoudiniAssetParameter = UHoudiniAssetParameterMultiparm::Create(this, nullptr,
-						AssetInfo.nodeId, ParmInfo);
-
-#endif
 
 					break;
 				}
