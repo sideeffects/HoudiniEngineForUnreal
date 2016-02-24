@@ -59,6 +59,9 @@ public:
 	/** Create widget for this parameter inside a given box. **/
 	virtual void CreateWidget(TSharedPtr<SVerticalBox> VerticalBox);
 
+	/** Return true if color picker window is open by this parameter. **/
+	virtual bool IsColorPickerWindowOpen() const;
+
 #endif
 
 	/** Upload parameter value to HAPI. **/
