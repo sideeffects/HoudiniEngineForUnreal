@@ -824,6 +824,7 @@ UHoudiniAssetParameterRamp::BeginDestroy()
 	if(CurveEditor.IsValid())
 	{
 		CurveEditor->SetCurveOwner(nullptr);
+		CurveEditor.Reset();
 	}
 
 #endif
