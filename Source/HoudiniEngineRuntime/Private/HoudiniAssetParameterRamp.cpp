@@ -627,12 +627,14 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 	{
 		case EHoudiniAssetParameterRampCurveColorEvent::AddStop:
 		{
+			bIsCurveUploadRequired = true;
 			AddElement();
 			break;
 		}
 
 		case EHoudiniAssetParameterRampCurveColorEvent::RemoveStop:
 		{
+			bIsCurveUploadRequired = true;
 			RemoveElement();
 			break;
 		}
@@ -643,6 +645,8 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 		{
 			// We have curve point modification.
 			bIsCurveChanged = true;
+			OnCurveEditingFinished();
+			break;
 		}
 
 		default:
