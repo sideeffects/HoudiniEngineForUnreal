@@ -165,6 +165,13 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Cooking)
 	bool bDisplaySlateCookingNotifications;
 
+/** Parameter options. **/
+public:
+
+	// Will force treatment of ramp parameters as multiparms.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category=Parameters)
+	bool bTreatRampParametersAsMultiparms;
+
 /** Collision generation. **/
 public:
 
