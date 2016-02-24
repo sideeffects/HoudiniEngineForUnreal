@@ -106,7 +106,7 @@ UHoudiniAssetParameterRampCurveColor::GetEditorCurveTransaction() const
 
 		if(TransactionName.Equals(TEXT("Move Gradient Stop")))
 		{
-			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::None;
+			TransactionType = EHoudiniAssetParameterRampCurveColorEvent::MoveStop;
 		}
 		else if(TransactionName.Equals(TEXT("Add Gradient Stop")))
 		{
