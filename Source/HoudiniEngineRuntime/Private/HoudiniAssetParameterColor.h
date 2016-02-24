@@ -45,6 +45,9 @@ public:
 	/** Create widget for this parameter and add it to a given category. **/
 	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
+	/** Return true if color picker window is open by this parameter. **/
+	virtual bool IsColorPickerWindowOpen() const;
+
 #endif
 
 	/** Upload parameter value to HAPI. **/
@@ -68,7 +71,10 @@ public:
 #endif
 
 	/** Called when new color is selected. **/
-	void OnPaintColorChanged(FLinearColor InNewColor);
+	void OnPaintColorChanged(FLinearColor InNewColor, bool bTriggerModify = true, bool bRecordUndo = true);
+
+	/** Called when color picker window is closed. **/
+	void OnColorPickerClosed(const TSharedRef<SWindow>& Window);
 
 protected:
 
@@ -81,4 +87,7 @@ protected:
 
 	/** Color for this property. **/
 	FLinearColor Color;
+
+	/** Is set to true if color picker is open. **/
+	bool bIsColorPickerOpen;
 };

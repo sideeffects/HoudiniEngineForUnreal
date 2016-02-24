@@ -35,7 +35,11 @@ public:
 /** FCurveOwnerInterface methods. **/
 public:
 
+#if WITH_EDITOR
+
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+
+#endif
 
 protected:
 
@@ -44,8 +48,23 @@ protected:
 };
 
 
+namespace EHoudiniAssetParameterRampCurveColorEvent
+{
+	enum Type
+	{
+		None = 0,
+		MoveStop,
+		ChangeStopTime,
+		ChangeStopColor,
+		AddStop,
+		RemoveStop
+	};
+}
+
+
 UCLASS(BlueprintType)
-class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveColor : public UCurveLinearColor
+class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveColor : public UCurveLinearColor,
+	public FTickableGameObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -54,15 +73,47 @@ public:
 	/** Set parent ramp parameter. **/
 	void SetParentRampParameter(UHoudiniAssetParameterRamp* InHoudiniAssetParameterRamp);
 
+	/** Return the current type of event. **/
+	EHoudiniAssetParameterRampCurveColorEvent::Type GetColorEvent() const;
+
+	/** Reset the current type of event. **/
+	void ResetColorEvent();
+
 /** FCurveOwnerInterface methods. **/
 public:
 
+#if WITH_EDITOR
+
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+
+#endif
+
+/** UObject methods. **/
+public:
+
+	virtual bool Modify(bool bAlwaysMarkDirty);
+
+/** FTickableGameObject methods. **/
+public:
+
+	virtual bool IsTickableInEditor() const;
+	virtual bool IsTickableWhenPaused() const;
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override;
+
+protected:
+
+	/** Attempt to map current editor transaction type to curve transactions. **/
+	EHoudiniAssetParameterRampCurveColorEvent::Type GetEditorCurveTransaction() const;
 
 protected:
 
 	/** Parent ramp parameter. **/
 	UHoudiniAssetParameterRamp* HoudiniAssetParameterRamp;
+
+	/** Current event. **/
+	EHoudiniAssetParameterRampCurveColorEvent::Type ColorEvent;
 };
 
 
@@ -120,21 +171,14 @@ public:
 
 #endif
 
+	/** Called when curve editing is finished and update should take place. **/
+	void OnCurveEditingFinished();
+
 	/** Called when float ramp parameter changes via user interface. **/
 	void OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat);
 
 	/** Called when color ramp parameter changes via user interface. **/
 	void OnCurveColorChanged(UHoudiniAssetParameterRampCurveColor* CurveColor);
-
-#if WITH_EDITOR
-
-	/** Called when mouse button is released over float curve. **/
-	void OnMouseButtonUpOverCurveFloat();
-
-	/** Called when mouse button is pressed over float curve. **/
-	void OnMouseButtonDownOverCurveFloat();
-
-#endif
 
 protected:
 
@@ -156,6 +200,14 @@ protected:
 	EHoudiniAssetParameterRampKeyInterpolation::Type
 		TranslateUnrealRampKeyInterpolation(ERichCurveInterpMode RichCurveInterpMode) const;
 
+	/** Retrieve ramp key parameters for a given index of a float ramp. **/
+	bool GetRampKeysCurveFloat(int32 Idx, UHoudiniAssetParameterFloat*& Position, UHoudiniAssetParameterFloat*& Value,
+		UHoudiniAssetParameterChoice*& Interp) const;
+
+	/** Retrieve ramp key parameters for a given index of a color ramp. **/
+	bool GetRampKeysCurveColor(int32 Idx, UHoudiniAssetParameterFloat*& Position, UHoudiniAssetParameterColor*& Value,
+		UHoudiniAssetParameterChoice*& Interp) const;
+
 protected:
 
 	//! Default spline interpolation method.
@@ -170,12 +222,12 @@ protected:
 	UHoudiniAssetParameterRampCurveFloat* HoudiniAssetParameterRampCurveFloat;
 	UHoudiniAssetParameterRampCurveColor* HoudiniAssetParameterRampCurveColor;
 
-	//! Duplicated rich curve keys used for setting initial values of float curve. Transient.
-	TArray<FRichCurveKey> CurveFloatDuplicatedKeys;
-
 	//! Set to true if this ramp is a float ramp. Otherwise is considered a color ramp.
 	bool bIsFloatRamp;
 
-	//! Set to true if the curve has changed through Slate interaciton.
+	//! Set to true if the curve has changed through Slate interaction.
 	bool bIsCurveChanged;
+
+	//! Set to true when curve data needs to be re-uploaded to Houdini Engine.
+	bool bIsCurveUploadRequired;
 };

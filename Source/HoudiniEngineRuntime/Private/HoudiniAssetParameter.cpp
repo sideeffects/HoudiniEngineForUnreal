@@ -147,6 +147,23 @@ UHoudiniAssetParameter::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 }
 
 
+bool
+UHoudiniAssetParameter::IsColorPickerWindowOpen() const
+{
+	bool bOpenWindow = false;
+
+	for(int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ++ChildIdx)
+	{
+		UHoudiniAssetParameter* Parameter = ChildParameters[ChildIdx];
+		if(Parameter)
+		{
+			bOpenWindow |= Parameter->IsColorPickerWindowOpen();
+		}
+	}
+
+	return bOpenWindow;
+}
+
 #endif
 
 

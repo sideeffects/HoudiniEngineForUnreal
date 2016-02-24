@@ -71,14 +71,16 @@ public:
 
 #if WITH_EDITOR
 
+	/** Set value of this property through commit action, used by Slate. **/
+	void SetValueCommitted(int32 InValue, ETextCommit::Type CommitType);
+
+#endif
+
 	/** Get value of this property, used by Slate. **/
 	TOptional<int32> GetValue() const;
 
 	/** Set value of this property, used by Slate. **/
 	void SetValue(int32 InValue);
-
-	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(int32 InValue, ETextCommit::Type CommitType);
 
 	/** Increment value, used by Slate. **/
 	void AddElement();
@@ -87,8 +89,6 @@ public:
 	/** Decrement value, used by Slate. **/
 	void RemoveElement();
 	void RemoveElements(int32 NumElements);
-
-#endif
 
 protected:
 

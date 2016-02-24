@@ -219,7 +219,18 @@ UHoudiniAssetParameterMultiparm::UploadParameterValue()
 	return Super::UploadParameterValue();
 }
 
+
 #if WITH_EDITOR
+
+
+void
+UHoudiniAssetParameterMultiparm::SetValueCommitted(int32 InValue, ETextCommit::Type CommitType)
+{
+
+}
+
+#endif
+
 
 TOptional<int32>
 UHoudiniAssetParameterMultiparm::GetValue() const
@@ -236,11 +247,15 @@ UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 		LastModificationType = RegularValueChange;
 		LastRemoveAddInstanceIndex = -1;
 
+#if WITH_EDITOR
+
 		// Record undo information.
 		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
 			HoudiniAssetComponent);
 		Modify();
+
+#endif
 
 		MarkPreChanged();
 
@@ -249,13 +264,6 @@ UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 		// Mark this parameter as changed.
 		MarkChanged();
 	}
-}
-
-
-void
-UHoudiniAssetParameterMultiparm::SetValueCommitted(int32 InValue, ETextCommit::Type CommitType)
-{
-
 }
 
 
@@ -274,11 +282,15 @@ UHoudiniAssetParameterMultiparm::AddElements(int32 NumElements)
 		LastModificationType = RegularValueChange;
 		LastRemoveAddInstanceIndex = -1;
 
+#if WITH_EDITOR
+
 		// Record undo information.
 		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
 			HoudiniAssetComponent);
 		Modify();
+
+#endif
 
 		MarkPreChanged();
 
@@ -309,11 +321,15 @@ UHoudiniAssetParameterMultiparm::RemoveElements(int32 NumElements)
 		LastModificationType = RegularValueChange;
 		LastRemoveAddInstanceIndex = -1;
 
+#if WITH_EDITOR
+
 		// Record undo information.
 		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
 			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
 			HoudiniAssetComponent);
 		Modify();
+
+#endif
 
 		MarkPreChanged();
 
@@ -323,8 +339,6 @@ UHoudiniAssetParameterMultiparm::RemoveElements(int32 NumElements)
 	}
 }
 
-
-#endif
 
 void
 UHoudiniAssetParameterMultiparm::Serialize(FArchive& Ar)

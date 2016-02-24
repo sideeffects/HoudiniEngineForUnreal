@@ -19,9 +19,11 @@
 
 
 UHoudiniAssetParameterColor::UHoudiniAssetParameterColor(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer)
+	Super(ObjectInitializer),
+	Color(FColor::White),
+	bIsColorPickerOpen(false)
 {
-	Color = FColor::White;
+
 }
 
 
@@ -163,6 +165,14 @@ UHoudiniAssetParameterColor::GetColor() const
 
 #if WITH_EDITOR
 
+
+bool
+UHoudiniAssetParameterColor::IsColorPickerWindowOpen() const
+{
+	return bIsColorPickerOpen;
+}
+
+
 FReply
 UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
@@ -177,11 +187,14 @@ UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeom
 	PickerArgs.DisplayGamma = TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(GEngine,
 		&UEngine::GetDisplayGamma));
 	PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(this,
-		&UHoudiniAssetParameterColor::OnPaintColorChanged);
+		&UHoudiniAssetParameterColor::OnPaintColorChanged, true, true);
 	PickerArgs.InitialColorOverride = GetColor();
 	PickerArgs.bOnlyRefreshOnOk = true;
+	PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateUObject(this,
+		&UHoudiniAssetParameterColor::OnColorPickerClosed);
 
 	OpenColorPicker(PickerArgs);
+	bIsColorPickerOpen = true;
 
 	return FReply::Handled();
 }
@@ -190,26 +203,36 @@ UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown(const FGeometry& MyGeom
 
 
 void
-UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor)
+UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor, bool bTriggerModify, bool bRecordUndo)
 {
 	if(Color != InNewColor)
 	{
 
 #if WITH_EDITOR
 
-		// Record undo information.
-		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniAssetParameterColorChange", "Houdini Parameter Color: Changing a value"),
-			HoudiniAssetComponent);
-		Modify();
+		if(bRecordUndo)
+		{
+			// Record undo information.
+			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+				LOCTEXT("HoudiniAssetParameterColorChange", "Houdini Parameter Color: Changing a value"),
+				HoudiniAssetComponent);
+			Modify();
+		}
 
 #endif
 
-		MarkPreChanged();
+		MarkPreChanged(bTriggerModify);
 
 		Color = InNewColor;
 
 		// Mark this parameter as changed.
-		MarkChanged();
+		MarkChanged(bTriggerModify);
 	}
+}
+
+
+void
+UHoudiniAssetParameterColor::OnColorPickerClosed(const TSharedRef<SWindow>& Window)
+{
+	bIsColorPickerOpen = false;
 }
