@@ -79,6 +79,7 @@ public:
 	/** Reset the current type of event. **/
 	void ResetColorEvent();
 
+
 /** FCurveOwnerInterface methods. **/
 public:
 

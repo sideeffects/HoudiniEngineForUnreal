@@ -1,17 +1,17 @@
 /*
-* PROPRIETARY INFORMATION.  This software is proprietary to
-* Side Effects Software Inc., and is not to be reproduced,
-* transmitted, or disclosed in any way without written permission.
-*
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
-*/
+ * PROPRIETARY INFORMATION.  This software is proprietary to
+ * Side Effects Software Inc., and is not to be reproduced,
+ * transmitted, or disclosed in any way without written permission.
+ *
+ * Produced by:
+ *      Mykola Konyk
+ *      Side Effects Software Inc
+ *      123 Front Street West, Suite 1401
+ *      Toronto, Ontario
+ *      Canada   M5J 2M2
+ *      416-504-9876
+ *
+ */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetParameterRamp.h"
@@ -187,25 +187,25 @@ UHoudiniAssetParameterRampCurveColor::Tick(float DeltaTime)
 		{
 			switch(ColorEvent)
 			{
-			case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopTime:
-			case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopColor:
-			{
-				// If color picker is open, we need to wait until it is closed.
-				TSharedPtr<SWindow> ActiveTopLevelWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
-				if(ActiveTopLevelWindow.IsValid())
+				case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopTime:
+				case EHoudiniAssetParameterRampCurveColorEvent::ChangeStopColor:
 				{
-					const FString& ActiveTopLevelWindowTitle = ActiveTopLevelWindow->GetTitle().ToString();
-					if(ActiveTopLevelWindowTitle.Equals(TEXT("Color Picker")))
+					// If color picker is open, we need to wait until it is closed.
+					TSharedPtr<SWindow> ActiveTopLevelWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+					if(ActiveTopLevelWindow.IsValid())
 					{
-						return;
+						const FString& ActiveTopLevelWindowTitle = ActiveTopLevelWindow->GetTitle().ToString();
+						if(ActiveTopLevelWindowTitle.Equals(TEXT("Color Picker")))
+						{
+							return;
+						}
 					}
 				}
-			}
 
-			default:
-			{
-				break;
-			}
+				default:
+				{
+					break;
+				}
 			}
 		}
 
@@ -471,6 +471,16 @@ UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
 	else
 	{
 		GenerateCurvePoints();
+
+#if WITH_EDITOR
+
+		if(HoudiniAssetParameterRampCurveColor)
+		{
+			HoudiniAssetComponent->UpdateEditorProperties(false);
+		}
+
+#endif
+
 	}
 }
 
@@ -481,7 +491,7 @@ void
 UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
-
+	
 	// Create the standard parameter name widget.
 	CreateNameWidget(Row, true);
 
@@ -506,30 +516,31 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 	}
 
 	HorizontalBox->AddSlot().Padding(2, 2, 5, 2)
-		[
-			SNew(SBorder)
-			.VAlign(VAlign_Fill)
+	[
+		SNew(SBorder)
+		.VAlign(VAlign_Fill)
 		[
 			SAssignNew(CurveEditor, SHoudiniAssetParameterRampCurveEditor)
 			.ViewMinInput(0.0f)
-		.ViewMaxInput(1.0f)
-		.HideUI(true)
-		.DrawCurve(true)
-		.ViewMinInput(0.0f)
-		.ViewMaxInput(1.0f)
-		.ViewMinOutput(0.0f)
-		.ViewMaxOutput(1.0f)
-		.TimelineLength(1.0f)
-		.AllowZoomOutput(false)
-		.ShowInputGridNumbers(false)
-		.ShowOutputGridNumbers(false)
-		.ShowZoomButtons(false)
-		.ZoomToFitHorizontal(false)
-		.ZoomToFitVertical(false)
-		.XAxisName(CurveAxisTextX)
-		.YAxisName(CurveAxisTextY)
+			.ViewMaxInput(1.0f)
+			.HideUI(true)
+			.DrawCurve(true)
+			.ViewMinInput(0.0f)
+			.ViewMaxInput(1.0f)
+			.ViewMinOutput(0.0f)
+			.ViewMaxOutput(1.0f)
+			.TimelineLength(1.0f)
+			.AllowZoomOutput(false)
+			.ShowInputGridNumbers(false)
+			.ShowOutputGridNumbers(false)
+			.ShowZoomButtons(false)
+			.ZoomToFitHorizontal(false)
+			.ZoomToFitVertical(false)
+			.XAxisName(CurveAxisTextX)
+			.YAxisName(CurveAxisTextY)
+			.ShowCurveSelector(false)
 		]
-		];
+	];
 
 	// Set callback for curve editor events.
 	if(CurveEditor.IsValid())
@@ -584,6 +595,7 @@ UHoudiniAssetParameterRamp::CreateWidget(IDetailCategoryBuilder& DetailCategoryB
 
 #endif
 
+
 void
 UHoudiniAssetParameterRamp::OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat)
 {
@@ -627,12 +639,14 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 	{
 		case EHoudiniAssetParameterRampCurveColorEvent::AddStop:
 		{
+			bIsCurveUploadRequired = true;
 			AddElement();
 			break;
 		}
 
 		case EHoudiniAssetParameterRampCurveColorEvent::RemoveStop:
 		{
+			bIsCurveUploadRequired = true;
 			RemoveElement();
 			break;
 		}
@@ -643,6 +657,8 @@ UHoudiniAssetParameterRamp::OnCurveColorChanged(UHoudiniAssetParameterRampCurveC
 		{
 			// We have curve point modification.
 			bIsCurveChanged = true;
+			OnCurveEditingFinished();
+			break;
 		}
 
 		default:
@@ -1007,20 +1023,20 @@ UHoudiniAssetParameterRamp::TranslateHoudiniRampKeyInterpolation(
 {
 	switch(KeyInterpolation)
 	{
-	case EHoudiniAssetParameterRampKeyInterpolation::Constant:
-	{
-		return ERichCurveInterpMode::RCIM_Constant;
-	}
+		case EHoudiniAssetParameterRampKeyInterpolation::Constant:
+		{
+			return ERichCurveInterpMode::RCIM_Constant;
+		}
 
-	case EHoudiniAssetParameterRampKeyInterpolation::Linear:
-	{
-		return ERichCurveInterpMode::RCIM_Linear;
-	}
+		case EHoudiniAssetParameterRampKeyInterpolation::Linear:
+		{
+			return ERichCurveInterpMode::RCIM_Linear;
+		}
 
-	default:
-	{
-		break;
-	}
+		default:
+		{
+			break;
+		}
 	}
 
 	return ERichCurveInterpMode::RCIM_Cubic;
@@ -1032,26 +1048,26 @@ UHoudiniAssetParameterRamp::TranslateUnrealRampKeyInterpolation(ERichCurveInterp
 {
 	switch(RichCurveInterpMode)
 	{
-	case ERichCurveInterpMode::RCIM_Constant:
-	{
-		return EHoudiniAssetParameterRampKeyInterpolation::Constant;
-	}
+		case ERichCurveInterpMode::RCIM_Constant:
+		{
+			return EHoudiniAssetParameterRampKeyInterpolation::Constant;
+		}
 
-	case ERichCurveInterpMode::RCIM_Linear:
-	{
-		return EHoudiniAssetParameterRampKeyInterpolation::Linear;
-	}
+		case ERichCurveInterpMode::RCIM_Linear:
+		{
+			return EHoudiniAssetParameterRampKeyInterpolation::Linear;
+		}
 
-	case ERichCurveInterpMode::RCIM_Cubic:
-	{
-		return UHoudiniAssetParameterRamp::DefaultSplineInterpolation;
-	}
+		case ERichCurveInterpMode::RCIM_Cubic:
+		{
+			return UHoudiniAssetParameterRamp::DefaultSplineInterpolation;
+		}
 
-	case ERichCurveInterpMode::RCIM_None:
-	default:
-	{
-		break;
-	}
+		case ERichCurveInterpMode::RCIM_None:
+		default:
+		{
+			break;
+		}
 	}
 
 	return UHoudiniAssetParameterRamp::DefaultUnknownInterpolation;
