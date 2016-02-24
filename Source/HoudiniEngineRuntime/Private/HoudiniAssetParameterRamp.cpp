@@ -471,6 +471,16 @@ UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
 	else
 	{
 		GenerateCurvePoints();
+
+#if WITH_EDITOR
+
+		if(HoudiniAssetParameterRampCurveColor)
+		{
+			HoudiniAssetComponent->UpdateEditorProperties(false);
+		}
+
+#endif
+
 	}
 }
 
