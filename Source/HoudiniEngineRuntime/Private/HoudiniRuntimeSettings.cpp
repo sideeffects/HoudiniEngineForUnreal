@@ -30,13 +30,15 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings(const FObjectInitializer& Objec
 
 	/** Instantiation options. **/
 	bShowMultiAssetDialog(true),
-	
 
 	/** Cooking options. **/
 	bEnableCooking(true),
 	bUploadTransformsToHoudiniEngine(true),
 	bTransformChangeTriggersCooks(false),
 	bDisplaySlateCookingNotifications(true),
+
+	/** Parameter options. **/
+	bTreatRampParametersAsMultiparms(false),
 
 	/** Collision generation. **/
 	CollisionGroupNamePrefix(TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION)),

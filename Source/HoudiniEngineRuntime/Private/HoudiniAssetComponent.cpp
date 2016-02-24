@@ -3136,6 +3136,13 @@ UHoudiniAssetComponent::CreateParameters()
 		return true;
 	}
 
+	bool bTreatRampParametersAsMultiparms = false;
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings)
+	{
+		bTreatRampParametersAsMultiparms = HoudiniRuntimeSettings->bTreatRampParametersAsMultiparms;
+	}
+
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
 	// Map of newly created and reused parameters.
@@ -3280,7 +3287,8 @@ UHoudiniAssetComponent::CreateParameters()
 
 				case HAPI_PARMTYPE_MULTIPARMLIST:
 				{
-					if(HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType || HAPI_RAMPTYPE_COLOR == ParmInfo.rampType)
+					if(!bTreatRampParametersAsMultiparms && (HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType ||
+						HAPI_RAMPTYPE_COLOR == ParmInfo.rampType))
 					{
 						HoudiniAssetParameter = UHoudiniAssetParameterRamp::Create(this, nullptr,
 							AssetInfo.nodeId, ParmInfo);
