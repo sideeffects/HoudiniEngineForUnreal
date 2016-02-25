@@ -89,6 +89,11 @@
 #define HAPI_CACHE_VEX                      "VEX File Cache"
 /// [HAPI_CACHE]
 
+/// Environment variables.
+#define HAPI_ENV_HIP                        "HIP"
+#define HAPI_ENV_JOB                        "JOB"
+#define HAPI_ENV_CLIENT_NAME                "HAPI_CLIENT_NAME"
+
 // Make sure our enums and structs are usable without those keywords, as-is,
 // in C.
 #ifdef __cplusplus
