@@ -118,6 +118,8 @@ public:
 	typedef HAPI_Result (*GetPartInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
 	typedef HAPI_Result (*GetPresetFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length);
 	typedef HAPI_Result (*GetPresetBufLengthFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
+	typedef HAPI_Result (*GetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int * value);
+	typedef HAPI_Result (*GetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value);
 	typedef HAPI_Result (*GetSessionEnvIntFuncPtr)(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
 	typedef HAPI_Result (*GetStatusFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
 	typedef HAPI_Result (*GetStatusStringFuncPtr)(const HAPI_Session * session, HAPI_StatusType status_type, char * string_value, int length);
@@ -179,6 +181,8 @@ public:
 	typedef HAPI_Result (*SetParmStringValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index);
 	typedef HAPI_Result (*SetPartInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_PartInfo * part_info);
 	typedef HAPI_Result (*SetPresetFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length);
+	typedef HAPI_Result (*SetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int value);
+	typedef HAPI_Result (*SetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, const char * value);
 	typedef HAPI_Result (*SetTimeFuncPtr)(const HAPI_Session * session, float time);
 	typedef HAPI_Result (*SetTimelineOptionsFuncPtr)(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	typedef HAPI_Result (*SetTransformAnimCurveFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
@@ -281,6 +285,8 @@ public:
 	static GetPartInfoFuncPtr GetPartInfo;
 	static GetPresetFuncPtr GetPreset;
 	static GetPresetBufLengthFuncPtr GetPresetBufLength;
+	static GetServerEnvIntFuncPtr GetServerEnvInt;
+	static GetServerEnvStringFuncPtr GetServerEnvString;
 	static GetSessionEnvIntFuncPtr GetSessionEnvInt;
 	static GetStatusFuncPtr GetStatus;
 	static GetStatusStringFuncPtr GetStatusString;
@@ -342,6 +348,8 @@ public:
 	static SetParmStringValueFuncPtr SetParmStringValue;
 	static SetPartInfoFuncPtr SetPartInfo;
 	static SetPresetFuncPtr SetPreset;
+	static SetServerEnvIntFuncPtr SetServerEnvInt;
+	static SetServerEnvStringFuncPtr SetServerEnvString;
 	static SetTimeFuncPtr SetTime;
 	static SetTimelineOptionsFuncPtr SetTimelineOptions;
 	static SetTransformAnimCurveFuncPtr SetTransformAnimCurve;
@@ -444,6 +452,8 @@ public:
 	static HAPI_Result GetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
 	static HAPI_Result GetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length);
 	static HAPI_Result GetPresetBufLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
+	static HAPI_Result GetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int * value);
+	static HAPI_Result GetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value);
 	static HAPI_Result GetSessionEnvIntEmptyStub(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value);
 	static HAPI_Result GetStatusEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, int * status);
 	static HAPI_Result GetStatusStringEmptyStub(const HAPI_Session * session, HAPI_StatusType status_type, char * string_value, int length);
@@ -505,6 +515,8 @@ public:
 	static HAPI_Result SetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index);
 	static HAPI_Result SetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_PartInfo * part_info);
 	static HAPI_Result SetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length);
+	static HAPI_Result SetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int value);
+	static HAPI_Result SetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, const char * value);
 	static HAPI_Result SetTimeEmptyStub(const HAPI_Session * session, float time);
 	static HAPI_Result SetTimelineOptionsEmptyStub(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	static HAPI_Result SetTransformAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);

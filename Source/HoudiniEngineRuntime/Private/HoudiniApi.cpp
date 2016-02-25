@@ -288,6 +288,12 @@ FHoudiniApi::GetPreset = &FHoudiniApi::GetPresetEmptyStub;
 FHoudiniApi::GetPresetBufLengthFuncPtr
 FHoudiniApi::GetPresetBufLength = &FHoudiniApi::GetPresetBufLengthEmptyStub;
 
+FHoudiniApi::GetServerEnvIntFuncPtr
+FHoudiniApi::GetServerEnvInt = &FHoudiniApi::GetServerEnvIntEmptyStub;
+
+FHoudiniApi::GetServerEnvStringFuncPtr
+FHoudiniApi::GetServerEnvString = &FHoudiniApi::GetServerEnvStringEmptyStub;
+
 FHoudiniApi::GetSessionEnvIntFuncPtr
 FHoudiniApi::GetSessionEnvInt = &FHoudiniApi::GetSessionEnvIntEmptyStub;
 
@@ -471,6 +477,12 @@ FHoudiniApi::SetPartInfo = &FHoudiniApi::SetPartInfoEmptyStub;
 FHoudiniApi::SetPresetFuncPtr
 FHoudiniApi::SetPreset = &FHoudiniApi::SetPresetEmptyStub;
 
+FHoudiniApi::SetServerEnvIntFuncPtr
+FHoudiniApi::SetServerEnvInt = &FHoudiniApi::SetServerEnvIntEmptyStub;
+
+FHoudiniApi::SetServerEnvStringFuncPtr
+FHoudiniApi::SetServerEnvString = &FHoudiniApi::SetServerEnvStringEmptyStub;
+
 FHoudiniApi::SetTimeFuncPtr
 FHoudiniApi::SetTime = &FHoudiniApi::SetTimeEmptyStub;
 
@@ -594,6 +606,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetPartInfo = (GetPartInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPartInfo"));
 	FHoudiniApi::GetPreset = (GetPresetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPreset"));
 	FHoudiniApi::GetPresetBufLength = (GetPresetBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPresetBufLength"));
+	FHoudiniApi::GetServerEnvInt = (GetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvInt"));
+	FHoudiniApi::GetServerEnvString = (GetServerEnvStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvString"));
 	FHoudiniApi::GetSessionEnvInt = (GetSessionEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSessionEnvInt"));
 	FHoudiniApi::GetStatus = (GetStatusFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatus"));
 	FHoudiniApi::GetStatusString = (GetStatusStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetStatusString"));
@@ -655,6 +669,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetParmStringValue = (SetParmStringValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmStringValue"));
 	FHoudiniApi::SetPartInfo = (SetPartInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetPartInfo"));
 	FHoudiniApi::SetPreset = (SetPresetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetPreset"));
+	FHoudiniApi::SetServerEnvInt = (SetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetServerEnvInt"));
+	FHoudiniApi::SetServerEnvString = (SetServerEnvStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetServerEnvString"));
 	FHoudiniApi::SetTime = (SetTimeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetTime"));
 	FHoudiniApi::SetTimelineOptions = (SetTimelineOptionsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetTimelineOptions"));
 	FHoudiniApi::SetTransformAnimCurve = (SetTransformAnimCurveFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetTransformAnimCurve"));
@@ -760,6 +776,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetPartInfo = &FHoudiniApi::GetPartInfoEmptyStub;
 	FHoudiniApi::GetPreset = &FHoudiniApi::GetPresetEmptyStub;
 	FHoudiniApi::GetPresetBufLength = &FHoudiniApi::GetPresetBufLengthEmptyStub;
+	FHoudiniApi::GetServerEnvInt = &FHoudiniApi::GetServerEnvIntEmptyStub;
+	FHoudiniApi::GetServerEnvString = &FHoudiniApi::GetServerEnvStringEmptyStub;
 	FHoudiniApi::GetSessionEnvInt = &FHoudiniApi::GetSessionEnvIntEmptyStub;
 	FHoudiniApi::GetStatus = &FHoudiniApi::GetStatusEmptyStub;
 	FHoudiniApi::GetStatusString = &FHoudiniApi::GetStatusStringEmptyStub;
@@ -821,6 +839,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetParmStringValue = &FHoudiniApi::SetParmStringValueEmptyStub;
 	FHoudiniApi::SetPartInfo = &FHoudiniApi::SetPartInfoEmptyStub;
 	FHoudiniApi::SetPreset = &FHoudiniApi::SetPresetEmptyStub;
+	FHoudiniApi::SetServerEnvInt = &FHoudiniApi::SetServerEnvIntEmptyStub;
+	FHoudiniApi::SetServerEnvString = &FHoudiniApi::SetServerEnvStringEmptyStub;
 	FHoudiniApi::SetTime = &FHoudiniApi::SetTimeEmptyStub;
 	FHoudiniApi::SetTimelineOptions = &FHoudiniApi::SetTimelineOptionsEmptyStub;
 	FHoudiniApi::SetTransformAnimCurve = &FHoudiniApi::SetTransformAnimCurveEmptyStub;
@@ -1471,6 +1491,20 @@ FHoudiniApi::GetPresetBufLengthEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
+FHoudiniApi::GetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int * value)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetSessionEnvIntEmptyStub(const HAPI_Session * session, HAPI_SessionEnvIntType int_type, int * value)
 {
 	return HAPI_RESULT_FAILURE;
@@ -1892,6 +1926,20 @@ FHoudiniApi::SetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId ass
 
 HAPI_Result
 FHoudiniApi::SetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, const char * buffer, int buffer_length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int value)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, const char * value)
 {
 	return HAPI_RESULT_FAILURE;
 }
