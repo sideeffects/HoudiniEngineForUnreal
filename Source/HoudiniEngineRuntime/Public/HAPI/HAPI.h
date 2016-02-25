@@ -337,6 +337,88 @@ HAPI_DECL HAPI_GetSessionEnvInt( const HAPI_Session * session,
                                  HAPI_SessionEnvIntType int_type,
                                  int * value );
 
+/// @brief  Get environment variable from the server process as an integer.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      variable_name
+///                 Name of the environmnet variable.
+///
+/// @param[out]     value
+///                 The int pointer to return the value in.
+///
+HAPI_DECL HAPI_GetServerEnvInt( const HAPI_Session * session,
+                                const char * variable_name,
+                                int * value );
+
+/// @brief  Get environment variable from the server process as a string.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      variable_name
+///                 Name of the environmnet variable.
+///
+/// @param[out]     value
+///                 The HAPI_StringHandle pointer to return the value in.
+///
+HAPI_DECL HAPI_GetServerEnvString( const HAPI_Session * session,
+                                   const char * variable_name,
+                                   HAPI_StringHandle * value );
+
+/// @brief  Set environment variable for the server process as an integer.
+///
+///         Note that this may affect other sessions on the same server
+///         process. The session parameter is mainly there to identify the
+///         server process, not the specific session.
+///
+///         For in-process sessions, this will affect the current process's
+///         environment.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      variable_name
+///                 Name of the environmnet variable.
+///
+/// @param[in]      value
+///                 The integer value.
+///
+HAPI_DECL HAPI_SetServerEnvInt( const HAPI_Session * session,
+                                const char * variable_name,
+                                int value );
+
+/// @brief  Set environment variable for the server process as a string.
+///
+///         Note that this may affect other sessions on the same server
+///         process. The session parameter is mainly there to identify the
+///         server process, not the specific session.
+///
+///         For in-process sessions, this will affect the current process's
+///         environment.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      variable_name
+///                 Name of the environmnet variable.
+///
+/// @param[in]      value
+///                 The string value.
+///
+HAPI_DECL HAPI_SetServerEnvString( const HAPI_Session * session,
+                                   const char * variable_name,
+                                   const char * value );
+
 /// @brief  Gives back the status code for a specific status type.
 ///
 /// @param[in]      session
