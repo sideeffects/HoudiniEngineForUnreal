@@ -289,7 +289,7 @@ FHoudiniEngine::StartupModule()
 			if(HAPI_RESULT_SUCCESS == Result)
 			{
 				HOUDINI_LOG_MESSAGE(TEXT("Successfully initialized the Houdini Engine API module."));
-				FHoudiniApi::SetServerEnvString(SessionPtr, "HAPI_CLIENT_NAME", "unreal");
+				FHoudiniApi::SetServerEnvString(SessionPtr, HAPI_ENV_CLIENT_NAME, "unreal");
 			}
 			else
 			{
