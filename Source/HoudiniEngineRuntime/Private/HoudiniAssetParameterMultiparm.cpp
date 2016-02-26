@@ -118,14 +118,14 @@ UHoudiniAssetParameterMultiparm::CreateWidget(IDetailCategoryBuilder& DetailCate
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
 		PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateUObject(this,
-			&UHoudiniAssetParameterMultiparm::AddElement),
+			&UHoudiniAssetParameterMultiparm::AddElement, true, true),
 				LOCTEXT("AddAnotherMultiparmInstanceToolTip", "Add Another Instance"))
 	];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 	[
 		PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateUObject(this,
-			&UHoudiniAssetParameterMultiparm::RemoveElement),
+			&UHoudiniAssetParameterMultiparm::RemoveElement, true, true),
 				LOCTEXT("RemoveLastMultiparmInstanceToolTip", "Remove Last Instance"))
 	];
 
@@ -268,14 +268,14 @@ UHoudiniAssetParameterMultiparm::SetValue(int32 InValue)
 
 
 void
-UHoudiniAssetParameterMultiparm::AddElement()
+UHoudiniAssetParameterMultiparm::AddElement(bool bTriggerModify, bool bRecordUndo)
 {
-	AddElements(1);
+	AddElements(1, bTriggerModify, bRecordUndo);
 }
 
 
 void
-UHoudiniAssetParameterMultiparm::AddElements(int32 NumElements)
+UHoudiniAssetParameterMultiparm::AddElements(int32 NumElements, bool bTriggerModify, bool bRecordUndo)
 {
 	if(NumElements > 0)
 	{
@@ -285,31 +285,34 @@ UHoudiniAssetParameterMultiparm::AddElements(int32 NumElements)
 #if WITH_EDITOR
 
 		// Record undo information.
-		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
-			HoudiniAssetComponent);
-		Modify();
+		if(bRecordUndo)
+		{
+			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+				LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+				HoudiniAssetComponent);
+			Modify();
+		}
 
 #endif
 
-		MarkPreChanged();
+		MarkPreChanged(bTriggerModify);
 
 		MultiparmValue += NumElements;
 
-		MarkChanged();
+		MarkChanged(bTriggerModify);
 	}
 }
 
 
 void
-UHoudiniAssetParameterMultiparm::RemoveElement()
+UHoudiniAssetParameterMultiparm::RemoveElement(bool bTriggerModify, bool bRecordUndo)
 {
-	RemoveElements(1);
+	RemoveElements(1, bTriggerModify, bRecordUndo);
 }
 
 
 void
-UHoudiniAssetParameterMultiparm::RemoveElements(int32 NumElements)
+UHoudiniAssetParameterMultiparm::RemoveElements(int32 NumElements, bool bTriggerModify, bool bRecordUndo)
 {
 	if(NumElements > 0)
 	{
@@ -324,18 +327,21 @@ UHoudiniAssetParameterMultiparm::RemoveElements(int32 NumElements)
 #if WITH_EDITOR
 
 		// Record undo information.
-		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
-			HoudiniAssetComponent);
-		Modify();
+		if(bRecordUndo)
+		{
+			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+				LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+				HoudiniAssetComponent);
+			Modify();
+		}
 
 #endif
 
-		MarkPreChanged();
+		MarkPreChanged(bTriggerModify);
 
 		MultiparmValue -= NumElements;
 
-		MarkChanged();
+		MarkChanged(bTriggerModify);
 	}
 }
 
