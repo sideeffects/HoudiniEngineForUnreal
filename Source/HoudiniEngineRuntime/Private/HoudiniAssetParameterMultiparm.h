@@ -83,12 +83,12 @@ public:
 	void SetValue(int32 InValue);
 
 	/** Increment value, used by Slate. **/
-	void AddElement();
-	void AddElements(int32 NumElements);
+	void AddElement(bool bTriggerModify = true, bool bRecordUndo = true);
+	void AddElements(int32 NumElements, bool bTriggerModify = true, bool bRecordUndo = true);
 
 	/** Decrement value, used by Slate. **/
-	void RemoveElement();
-	void RemoveElements(int32 NumElements);
+	void RemoveElement(bool bTriggerModify = true, bool bRecordUndo = true);
+	void RemoveElements(int32 NumElements, bool bTriggerModify = true, bool bRecordUndo = true);
 
 protected:
 
