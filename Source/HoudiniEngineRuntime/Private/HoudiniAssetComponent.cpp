@@ -2358,8 +2358,11 @@ UHoudiniAssetComponent::OnComponentCreated()
 	// This event will only be fired for native Actor and native Component.
 	Super::OnComponentCreated();
 
-	// Create Houdini logo static mesh and component for it.
-	CreateStaticMeshHoudiniLogoResource(StaticMeshes);
+	// Create Houdini logo static mesh and component for it (if there are no other meshes).
+	if(!StaticMeshes.Num())
+	{
+		CreateStaticMeshHoudiniLogoResource(StaticMeshes);
+	}
 
 #if WITH_EDITOR
 
