@@ -144,13 +144,72 @@ FHoudiniEngineUtils::GetCookResult()
 bool
 FHoudiniEngineUtils::IsInitialized()
 {
-	return (FHoudiniApi::IsHAPIInitialized() && HAPI_RESULT_SUCCESS == FHoudiniApi::IsInitialized( FHoudiniEngine::Get().GetSession() ));
+	return (FHoudiniApi::IsHAPIInitialized() &&
+		HAPI_RESULT_SUCCESS == FHoudiniApi::IsInitialized(FHoudiniEngine::Get().GetSession()));
 }
 
 
 bool
-FHoudiniEngineUtils::ComputeAssetPresetBufferLength(
-	HAPI_AssetId AssetId, int32& OutBufferLength)
+FHoudiniEngineUtils::GetLicenseType(FString& LicenseType)
+{
+	LicenseType = TEXT("");
+	HAPI_License LicenseTypeValue = HAPI_LICENSE_NONE;
+
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::GetSessionEnvInt(FHoudiniEngine::Get().GetSession(), HAPI_SESSIONENVINT_LICENSE,
+			(int32*) &LicenseTypeValue), false);
+
+	switch(LicenseTypeValue)
+	{
+		case HAPI_LICENSE_NONE:
+		{
+			LicenseType = TEXT("No License Acquired");
+			break;
+		}
+
+		case HAPI_LICENSE_HOUDINI_ENGINE:
+		{
+			LicenseType = TEXT("Houdini Engine");
+			break;
+		}
+
+		case HAPI_LICENSE_HOUDINI:
+		{
+			LicenseType = TEXT("Houdini");
+			break;
+		}
+
+		case HAPI_LICENSE_HOUDINI_FX:
+		{
+			LicenseType = TEXT("Houdini FX");
+			break;
+		}
+
+		case HAPI_LICENSE_HOUDINI_ENGINE_INDIE:
+		{
+			LicenseType = TEXT("Houdini Engine Indie");
+			break;
+		}
+
+		case HAPI_LICENSE_HOUDINI_INDIE:
+		{
+			LicenseType = TEXT("Houdini Indie");
+			break;
+		}
+
+		case HAPI_LICENSE_MAX:
+		default:
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniEngineUtils::ComputeAssetPresetBufferLength(HAPI_AssetId AssetId, int32& OutBufferLength)
 {
 	HAPI_AssetInfo AssetInfo;
 	OutBufferLength = 0;
@@ -168,8 +227,7 @@ FHoudiniEngineUtils::ComputeAssetPresetBufferLength(
 
 
 bool
-FHoudiniEngineUtils::SetAssetPreset(
-	HAPI_AssetId AssetId, const TArray<char>& PresetBuffer)
+FHoudiniEngineUtils::SetAssetPreset(HAPI_AssetId AssetId, const TArray<char>& PresetBuffer)
 {
 	if(PresetBuffer.Num() > 0)
 	{
@@ -179,7 +237,8 @@ FHoudiniEngineUtils::SetAssetPreset(
 			FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPreset(
-			FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, HAPI_PRESETTYPE_BINARY, NULL, &PresetBuffer[0], PresetBuffer.Num()), false);
+			FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, HAPI_PRESETTYPE_BINARY, NULL, &PresetBuffer[0],
+				PresetBuffer.Num()), false);
 
 		return true;
 	}
@@ -189,8 +248,7 @@ FHoudiniEngineUtils::SetAssetPreset(
 
 
 bool
-FHoudiniEngineUtils::GetAssetPreset(
-	HAPI_AssetId AssetId, TArray<char>& PresetBuffer)
+FHoudiniEngineUtils::GetAssetPreset(HAPI_AssetId AssetId, TArray<char>& PresetBuffer)
 {
 	PresetBuffer.Empty();
 
