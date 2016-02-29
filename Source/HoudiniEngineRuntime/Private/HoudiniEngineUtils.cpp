@@ -1585,6 +1585,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 	TArray<FVector> PositionUVs;
 	PositionUVs.SetNumUninitialized(VertexCount);
 
+	// Array which holds lightmap color value.
+	TArray<FLinearColor> LightmapVertexValues;
+	LightmapVertexValues.SetNumUninitialized(VertexCount);
+
 	// Array which stores weightmap uvs.
 	//TArray<FVector2D> PositionWeightmapUVs;
 	//PositionWeightmapUVs.SetNumUninitialized(VertexCount);
@@ -1604,6 +1608,35 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		if(bExportOnlySelected && !SelectedComponents.Contains(LandscapeComponent))
 		{
 			continue;
+		}
+
+		TArray<uint8> LightmapMipData;
+		int32 LightmapMipSizeX = 0;
+		int32 LightmapMipSizeY = 0;
+
+		// See if we need to export lighting information.
+		if(bExportLighting && LandscapeComponent->LightMap.IsValid())
+		{
+			FLightMap2D* LightMap2D = LandscapeComponent->LightMap->GetLightMap2D();
+			if(LightMap2D)
+			{
+				if(LightMap2D->IsValid(0))
+				{
+					UTexture2D* TextureLightmap = LightMap2D->GetTexture(0);
+					if(TextureLightmap)
+					{
+						if(TextureLightmap->Source.GetMipData(LightmapMipData, 0))
+						{
+							LightmapMipSizeX = TextureLightmap->Source.GetSizeX();
+							LightmapMipSizeY = TextureLightmap->Source.GetSizeY();
+						}
+						else
+						{
+							LightmapMipData.Empty();
+						}
+					}
+				}
+			}
 		}
 
 		// Construct landscape component data interface to access raw data.
@@ -1650,6 +1683,25 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 
 				// Keep track of max offset.
 				IntPointMax = IntPointMax.ComponentMax(IntPoint);
+			}
+
+			if(bExportLighting)
+			{
+				FLinearColor VertexLightmapColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+				if(LightmapMipData.Num() > 0)
+				{
+					FVector2D UVCoord(VertX, VertY);
+					UVCoord /= ComponentSizeQuads;
+
+					FColor LightmapColorRaw =
+						PickVertexColorFromTextureMip(LightmapMipData.GetData(), UVCoord, LightmapMipSizeX,
+							LightmapMipSizeY);
+
+					VertexLightmapColor = LightmapColorRaw.ReinterpretAsLinear();
+				}
+
+				LightmapVertexValues[AllPositionsIdx] = VertexLightmapColor;
 			}
 
 			// Get Weightmap UV data.
@@ -1839,6 +1891,26 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
 			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoPointUV,
 			(const float*) PositionUVs.GetData(), 0, AttributeInfoPointUV.count), false);
+	}
+
+	// Create point attribute info containing lightmap information.
+	if(bExportLighting)
+	{
+		HAPI_AttributeInfo AttributeInfoPointLightmapColor;
+		FMemory::Memzero<HAPI_AttributeInfo>(AttributeInfoPointLightmapColor);
+		AttributeInfoPointLightmapColor.count = VertexCount;
+		AttributeInfoPointLightmapColor.tupleSize = 4;
+		AttributeInfoPointLightmapColor.exists = true;
+		AttributeInfoPointLightmapColor.owner = HAPI_ATTROWNER_POINT;
+		AttributeInfoPointLightmapColor.storage = HAPI_STORAGETYPE_FLOAT;
+		AttributeInfoPointLightmapColor.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+			0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, &AttributeInfoPointLightmapColor), false);
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, &AttributeInfoPointLightmapColor,
+			(const float*) LightmapVertexValues.GetData(), 0, AttributeInfoPointLightmapColor.count), false);
 	}
 
 	// Create point attribute info containing weightmap UVs.
