@@ -48,4 +48,7 @@ protected:
 
 	/** Used to create libHAPI dynamic library path entry. **/
 	void CreateHAPILibraryPathEntry(const FString& LibHAPIPath, IDetailCategoryBuilder& DetailCategoryBuilder);
+
+	/** Used to create libHAPI license information entry. **/
+	void CreateHAPILicenseEntry(const FString& LibHAPILicense, IDetailCategoryBuilder& DetailCategoryBuilder);
 };
