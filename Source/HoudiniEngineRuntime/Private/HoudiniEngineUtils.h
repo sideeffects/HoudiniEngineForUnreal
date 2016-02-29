@@ -55,6 +55,9 @@ public:
 	/** Return true if module has been properly initialized. **/
 	static bool IsInitialized();
 
+	/** Return type of license used. **/
+	static bool GetLicenseType(FString& LicenseType);
+
 	/** Return necessary buffer size to store preset information for a given asset. **/
 	static bool ComputeAssetPresetBufferLength(HAPI_AssetId AssetId, int32& OutBufferLength);
 

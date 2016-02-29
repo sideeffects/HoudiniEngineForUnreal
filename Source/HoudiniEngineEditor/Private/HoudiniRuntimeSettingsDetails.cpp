@@ -120,6 +120,15 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 		}
 
 		// Add licensing info.
+		{
+			FString HAPILicenseType = TEXT("");
+			if(!FHoudiniEngineUtils::GetLicenseType(HAPILicenseType))
+			{
+				HAPILicenseType = TEXT("Unknown");
+			}
+
+			CreateHAPILicenseEntry(HAPILicenseType, InformationCategoryBuilder);
+		}
 	}
 
 	DetailBuilder.EditCategory("HoudiniLocation", FText::GetEmpty(), ECategoryPriority::Important);
@@ -260,6 +269,28 @@ FHoudiniRuntimeSettingsDetails::CreateHAPILibraryPathEntry(const FString& LibHAP
 	TSharedRef<STextBlock> TextBlock = SNew(STextBlock)
 									   .Text(FText::FromString(LibHAPIPath))
 									   .Font(IDetailLayoutBuilder::GetDetailFont());
+
+	TextBlock->SetEnabled(false);
+	Row.ValueWidget.Widget = TextBlock;
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_SETTINGS_ROW_VALUE_WIDGET_WIDTH);
+}
+
+
+void
+FHoudiniRuntimeSettingsDetails::CreateHAPILicenseEntry(const FString& LibHAPILicense,
+	IDetailCategoryBuilder& DetailCategoryBuilder)
+{
+	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
+
+	FString LibHAPILicenseTypeText = TEXT("Acquired License Type");
+
+	Row.NameWidget.Widget = SNew(STextBlock)
+		.Text(FText::FromString(LibHAPILicenseTypeText))
+		.Font(IDetailLayoutBuilder::GetDetailFont());
+
+	TSharedRef<STextBlock> TextBlock = SNew(STextBlock)
+		.Text(FText::FromString(LibHAPILicense))
+		.Font(IDetailLayoutBuilder::GetDetailFont());
 
 	TextBlock->SetEnabled(false);
 	Row.ValueWidget.Widget = TextBlock;
