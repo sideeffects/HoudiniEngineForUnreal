@@ -187,6 +187,9 @@ public:
 	/** Used by Blueprint baking; create temporary actor and necessary components to bake a blueprint. **/
 	AActor* CloneComponentsAndCreateActor();
 
+	/** Return true if cooking is enabled for this component. **/
+	bool IsCookingEnabled() const;
+
 #endif
 
 	/** Used to differentiate native components from dynamic ones. **/

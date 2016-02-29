@@ -2878,6 +2878,13 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 }
 
 
+bool
+UHoudiniAssetComponent::IsCookingEnabled() const
+{
+	return bEnableCooking;
+}
+
+
 void
 UHoudiniAssetComponent::PreEditUndo()
 {
