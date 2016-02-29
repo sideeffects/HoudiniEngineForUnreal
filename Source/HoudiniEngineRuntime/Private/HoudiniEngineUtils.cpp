@@ -1692,7 +1692,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 				if(LightmapMipData.Num() > 0)
 				{
 					FVector2D UVCoord(VertX, VertY);
-					UVCoord /= ComponentSizeQuads;
+					UVCoord /= (ComponentSizeQuads + 1);
 
 					FColor LightmapColorRaw =
 						PickVertexColorFromTextureMip(LightmapMipData.GetData(), UVCoord, LightmapMipSizeX,
