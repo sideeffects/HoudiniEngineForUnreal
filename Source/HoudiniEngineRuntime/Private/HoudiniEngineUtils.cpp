@@ -1127,7 +1127,7 @@ FHoudiniEngineUtils::PickVertexColorFromTextureMip(const uint8* MipBytes, FVecto
 
 	FColor ResultColor(0, 0, 0, 255);
 
-	if((UVCoord.X >= 0.0f) && (UVCoord.X <= 1.0f) && (UVCoord.Y >= 0.0f) && (UVCoord.Y <= 1.0f))
+	if((UVCoord.X >= 0.0f) && (UVCoord.X < 1.0f) && (UVCoord.Y >= 0.0f) && (UVCoord.Y < 1.0f))
 	{
 		const int32 X = MipWidth * UVCoord.X;
 		const int32 Y = MipHeight * UVCoord.Y;
@@ -1693,7 +1693,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
 				if(LightmapMipData.Num() > 0)
 				{
 					FVector2D UVCoord(VertX, VertY);
-					UVCoord /= ComponentSizeQuads;
+					UVCoord /= (ComponentSizeQuads + 1);
 
 					FColor LightmapColorRaw =
 						PickVertexColorFromTextureMip(LightmapMipData.GetData(), UVCoord, LightmapMipSizeX,
