@@ -3030,10 +3030,34 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 	float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
 	EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
 
+	// Attribute marshalling names.
+	std::string MarshallingAttributeNameLightmapResolution = HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION;
+	std::string MarshallingAttributeNameMaterial = HAPI_UNREAL_ATTRIB_MATERIAL;
+	std::string MarshallingAttributeNameMaterialFallback = HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK;
+	std::string MarshallingAttributeNameFaceSmoothingMask = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
+
 	if(HoudiniRuntimeSettings)
 	{
 		GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
 		ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+
+		if(!HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution,
+				MarshallingAttributeNameLightmapResolution);
+		}
+
+		if(!HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial,
+				MarshallingAttributeNameMaterial);
+		}
+
+		if(!HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		{
+			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask,
+				MarshallingAttributeNameFaceSmoothingMask);
+		}
 	}
 
 	// Get platform manager LOD specific information.
@@ -3331,6 +3355,28 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 							{
 								HoudiniGeoPartObject.bInstancerMaterialAvailable = true;
 								HoudiniGeoPartObject.InstancerMaterialName = InstancerMaterialShopName;
+							}
+						}
+
+						// See if we have instancer attribute material present.
+						{
+							HAPI_AttributeInfo AttribInstancerAttribMaterials;
+							FMemory::Memset<HAPI_AttributeInfo>(AttribInstancerAttribMaterials, 0);
+
+							TArray<FString> InstancerAttribMaterials;
+
+							FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id,
+								PartInfo.id, MarshallingAttributeNameMaterial.c_str(), AttribInstancerAttribMaterials,
+								InstancerAttribMaterials);
+
+							if(AttribInstancerAttribMaterials.exists && InstancerAttribMaterials.Num() > 0)
+							{
+								const FString& InstancerAttribMaterialName = InstancerAttribMaterials[0];
+								if(!InstancerAttribMaterialName.IsEmpty())
+								{
+									HoudiniGeoPartObject.bInstancerAttributeMaterialAvailable = true;
+									HoudiniGeoPartObject.InstancerAttributeMaterialName = InstancerAttribMaterialName;
+								}
 							}
 						}
 
@@ -3638,8 +3684,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 					if(bRebuildStaticMesh)
 					{
 						// Retrieve position data.
-						if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions))
+						if(!FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id,
+							PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions))
 						{
 							// Error retrieving positions.
 							bGeoError = true;
@@ -3657,66 +3703,43 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 							break;
 						}
 
-						// Get name of attribute used for marshalling lightmap resolution.
-						{
-							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION;
-							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution.IsEmpty())
-							{
-								FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeLightmapResolution,
-									MarshallingAttributeName);
-							}
-
-							FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, 
-								MarshallingAttributeName.c_str(), AttribLightmapResolution, LightMapResolutions);
-						}
+						// Get lightmap resolution (if present).
+						FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id,
+							PartInfo.id, MarshallingAttributeNameLightmapResolution.c_str(),
+							AttribLightmapResolution, LightMapResolutions);
 
 						// Get name of attribute used for marshalling materials.
 						{
-							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
-							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
-							{
-								FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeMaterial,
-									MarshallingAttributeName);
-							}
-
-							FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-								MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
+							FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id,
+								PartInfo.id, MarshallingAttributeNameMaterial.c_str(), AttribFaceMaterials,
+								FaceMaterials);
 
 							// If material attribute was not found, check fallback compatibility attribute.
 							if(!AttribFaceMaterials.exists)
 							{
 								FaceMaterials.Empty();
-								MarshallingAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK;
 								FHoudiniEngineUtils::HapiGetAttributeDataAsString(AssetId, ObjectInfo.id, GeoInfo.id,
-									PartInfo.id, MarshallingAttributeName.c_str(), AttribFaceMaterials, FaceMaterials);
+									PartInfo.id, MarshallingAttributeNameMaterialFallback.c_str(), AttribFaceMaterials,
+									FaceMaterials);
 							}
 						}
 
 						// Retrieve color data.
-						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							HAPI_UNREAL_ATTRIB_COLOR, AttribInfoColors, Colors);
+						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id,
+							PartInfo.id, HAPI_UNREAL_ATTRIB_COLOR, AttribInfoColors, Colors);
 
 						// See if we need to transfer color point attributes to vertex attributes.
-						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList, AttribInfoColors, Colors);
+						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(SplitGroupVertexList,
+							AttribInfoColors, Colors);
 
 						// Retrieve normal data.
-						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
-							HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals);
+						FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(AssetId, ObjectInfo.id, GeoInfo.id,
+							PartInfo.id, HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals);
 
 						// Retrieve face smoothing data.
-						{
-							std::string MarshallingAttributeName = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
-							if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
-							{
-								FHoudiniEngineUtils::ConvertUnrealString(
-									HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask,
-									MarshallingAttributeName);
-							}
-
-							FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-								AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, MarshallingAttributeName.c_str(),
-								AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
-						}
+						FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(AssetId, ObjectInfo.id, GeoInfo.id,
+							PartInfo.id, MarshallingAttributeNameFaceSmoothingMask.c_str(),
+							AttribInfoFaceSmoothingMasks, FaceSmoothingMasks);
 
 						// See if we need to transfer normal point attributes to vertex attributes.
 						FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
