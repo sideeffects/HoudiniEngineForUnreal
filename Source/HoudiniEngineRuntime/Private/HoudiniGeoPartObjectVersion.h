@@ -22,6 +22,9 @@ enum EHoudiniGeoPartObjectVersion
 	// Serialization of instancer material, if it is available.
 	VER_HOUDINI_ENGINE_GEOPARTOBJECT_INSTANCER_MATERIAL_NAME,
 
+	// Serialization of attribute instancer material, if it is available.
+	VER_HOUDINI_ENGINE_GEOPARTOBJECT_INSTANCER_ATTRIBUTE_MATERIAL_NAME,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_HOUDINI_ENGINE_GEOPARTOBJECT_AUTOMATIC_VERSION_PLUS_ONE,
