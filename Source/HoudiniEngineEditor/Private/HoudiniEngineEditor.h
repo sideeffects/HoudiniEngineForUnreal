@@ -83,6 +83,12 @@ public:
 	/** Helper delegate used to determine if HIP file save can be executed. **/
 	bool CanSaveHIPFile() const;
 
+	/** Menu action called to report a bug. **/
+	void ReportBug();
+
+	/** Helper delegate used to determine if report a bug can be executed. **/
+	bool CanReportBug() const;
+
 protected:
 
 	/** Register AssetType action. **/

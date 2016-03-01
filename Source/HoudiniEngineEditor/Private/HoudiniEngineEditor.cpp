@@ -292,12 +292,17 @@ FHoudiniEngineEditor::AddHoudiniMenuExtension(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.BeginSection("Houdini", LOCTEXT("HoudiniLabel", "Houdini Engine"));
 
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("HoudiniMenuEntryTitle", "Save .hip file"),
-			LOCTEXT("HoudiniMenuEntryToolTip", "Saves a .hip file of the current Houdini scene."),
+		MenuBuilder.AddMenuEntry(LOCTEXT("HoudiniMenuEntryTitleSaveHip", "Save Houdini scene (HIP)"),
+			LOCTEXT("HoudiniMenuEntryToolTipSaveHip", "Saves a .hip file of the current Houdini scene."),
 			FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
 			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::SaveHIPFile),
-				FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanSaveHIPFile)));
+			FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanSaveHIPFile)));
+
+		MenuBuilder.AddMenuEntry(LOCTEXT("HoudiniMenuEntryTitleReportBug", "Report a plugin bug"),
+			LOCTEXT("HoudiniMenuEntryToolTipReportBug", "Report a bug for Houdini Engine plugin."),
+			FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+			FUIAction(FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::ReportBug),
+			FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanReportBug)));
 
 	MenuBuilder.EndSection();
 }
@@ -345,6 +350,20 @@ FHoudiniEngineEditor::SaveHIPFile()
 			FHoudiniApi::SaveHIPFile(FHoudiniEngine::Get().GetSession(), HIPPathConverted.c_str(), false);
 		}
 	}
+}
+
+
+void
+FHoudiniEngineEditor::ReportBug()
+{
+	FPlatformProcess::LaunchURL(HAPI_UNREAL_BUG_REPORT_URL, nullptr, nullptr);
+}
+
+
+bool
+FHoudiniEngineEditor::CanReportBug() const
+{
+	return FHoudiniEngine::IsInitialized();
 }
 
 
