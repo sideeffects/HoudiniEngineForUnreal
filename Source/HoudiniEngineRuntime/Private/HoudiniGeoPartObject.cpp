@@ -72,6 +72,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	PartName(TEXT("Empty")),
 	SplitName(TEXT("")),
 	InstancerMaterialName(TEXT("")),
+	InstancerAttributeMaterialName(TEXT("")),
 	AssetId(-1),
 	ObjectId(-1),
 	GeoId(-1),
@@ -92,6 +93,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject() :
 	bIsSphere(false),
 	bInstancerMaterialAvailable(false),
 	bIsVolume(false),
+	bInstancerAttributeMaterialAvailable(false),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
@@ -125,6 +127,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsSphere(false),
 	bInstancerMaterialAvailable(false),
 	bIsVolume(false),
+	bInstancerAttributeMaterialAvailable(false),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
@@ -159,6 +162,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, cons
 	bIsSphere(false),
 	bInstancerMaterialAvailable(false),
 	bIsVolume(false),
+	bInstancerAttributeMaterialAvailable(false),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 
@@ -191,6 +195,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FHoudiniGeoPartObject& GeoPar
 	bIsSphere(GeoPartObject.bIsSphere),
 	bInstancerMaterialAvailable(GeoPartObject.bInstancerMaterialAvailable),
 	bIsVolume(GeoPartObject.bIsVolume),
+	bInstancerAttributeMaterialAvailable(GeoPartObject.bInstancerAttributeMaterialAvailable),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {
 	if(bCopyLoaded)
@@ -311,6 +316,12 @@ FHoudiniGeoPartObject::Serialize(FArchive& Ar)
 	if(HoudiniGeoPartObjectVersion >= VER_HOUDINI_ENGINE_GEOPARTOBJECT_INSTANCER_MATERIAL_NAME)
 	{
 		Ar << InstancerMaterialName;
+	}
+
+	// Serialize instancer attribute material.
+	if(HoudiniGeoPartObjectVersion >= VER_HOUDINI_ENGINE_GEOPARTOBJECT_INSTANCER_ATTRIBUTE_MATERIAL_NAME)
+	{
+		Ar << InstancerAttributeMaterialName;
 	}
 
 	Ar << AssetId;
