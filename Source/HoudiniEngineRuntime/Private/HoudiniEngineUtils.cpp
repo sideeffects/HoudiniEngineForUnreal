@@ -3052,7 +3052,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				MarshallingAttributeNameMaterial);
 		}
 
-		if(!HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty())
+		if(!HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask.IsEmpty())
 		{
 			FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeFaceSmoothingMask,
 				MarshallingAttributeNameFaceSmoothingMask);
