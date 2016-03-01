@@ -116,6 +116,9 @@ public:
 	/** Name of the instancer material, if available. **/
 	FString InstancerMaterialName;
 
+	/** Name of attribute material, if available. **/
+	FString InstancerAttributeMaterialName;
+
 	/** Id of corresponding HAPI Asset. **/
 	HAPI_AssetId AssetId;
 
@@ -180,6 +183,9 @@ public:
 
 			/** Is set to true when referenced object is a volume. **/
 			uint32 bIsVolume : 1;
+
+			/** Is set to true when instancer attribute material is available. **/
+			uint32 bInstancerAttributeMaterialAvailable : 1;
 		};
 
 		uint32 HoudiniGeoPartObjectFlagsPacked;
