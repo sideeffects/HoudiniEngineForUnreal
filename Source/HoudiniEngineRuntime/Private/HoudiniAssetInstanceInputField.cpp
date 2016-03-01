@@ -227,10 +227,24 @@ UHoudiniAssetInstanceInputField::CreateInstancedComponent(int32 VariationIdx)
 
 	// Check if instancer material is available.
 	const FHoudiniGeoPartObject& InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
-	if(StaticMesh && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable)
+	if(StaticMesh)
 	{
-		UMaterial* InstancerMaterial =
-			HoudiniAssetComponent->GetAssignmentMaterial(InstancerHoudiniGeoPartObject.InstancerMaterialName);
+		UMaterial* InstancerMaterial = nullptr;
+
+		// We check attribute material first.
+		if(InstancerHoudiniGeoPartObject.bInstancerAttributeMaterialAvailable)
+		{
+			InstancerMaterial = HoudiniAssetComponent->GetAssignmentMaterial(
+				InstancerHoudiniGeoPartObject.InstancerAttributeMaterialName);
+		}
+
+		// If attribute material was not found, we check for presence of shop instancer material.
+		if(!InstancerMaterial && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable)
+		{
+			InstancerMaterial =
+				HoudiniAssetComponent->GetAssignmentMaterial(InstancerHoudiniGeoPartObject.InstancerMaterialName);
+		}
+
 		if(InstancerMaterial)
 		{
 			InstancedStaticMeshComponent->OverrideMaterials.Empty();
