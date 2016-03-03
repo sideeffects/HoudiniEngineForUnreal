@@ -299,6 +299,10 @@ public:
 		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
 
+	static bool CreateMaterialComponentOpacityMask(UHoudiniAssetComponent* HoudiniAssetComponent,
+		UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+		const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY);
+
 #endif
 
 	/** HAPI : Retrieve instance transforms for a specified geo object. **/
