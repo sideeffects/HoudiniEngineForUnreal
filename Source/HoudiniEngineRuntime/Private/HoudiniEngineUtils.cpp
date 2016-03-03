@@ -5017,9 +5017,9 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	UMaterialExpression* MaterialExpression = Material->BaseColor.Expression;
 
 	// Locate sampling expression.
-	UMaterialExpressionTextureSample* ExpressionTextureSample =
-		Cast<UMaterialExpressionTextureSample>(FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
-			UMaterialExpressionTextureSample::StaticClass()));
+	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureSample =
+		Cast<UMaterialExpressionTextureSampleParameter2D>(FHoudiniEngineUtils::MaterialLocateExpression(
+			MaterialExpression, UMaterialExpressionTextureSampleParameter2D::StaticClass()));
 
 	// If texture sampling expression does exist, attempt to look up corresponding texture.
 	UTexture2D* TextureDiffuse = nullptr;
@@ -5029,16 +5029,16 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 	}
 
 	// Locate uniform color expression.
-	UMaterialExpressionConstant4Vector* ExpressionConstant4Vector =
-		Cast<UMaterialExpressionConstant4Vector>(FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
-			UMaterialExpressionConstant4Vector::StaticClass()));
+	UMaterialExpressionVectorParameter* ExpressionConstant4Vector =
+		Cast<UMaterialExpressionVectorParameter>(FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
+			UMaterialExpressionVectorParameter::StaticClass()));
 
 	// If uniform color expression does not exist, create it.
 	if(!ExpressionConstant4Vector)
 	{
-		ExpressionConstant4Vector = NewObject<UMaterialExpressionConstant4Vector>(Material,
-			UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
-		ExpressionConstant4Vector->Constant = FLinearColor::White;
+		ExpressionConstant4Vector = NewObject<UMaterialExpressionVectorParameter>(Material,
+			UMaterialExpressionVectorParameter::StaticClass(), NAME_None, RF_Transactional);
+		ExpressionConstant4Vector->DefaultValue = FLinearColor::White;
 	}
 
 	// Add expression.
@@ -5145,8 +5145,8 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 
 		// Get image planes of diffuse map.
 		TArray<FString> DiffuseImagePlanes;
-		bool bFoundImagePlanes = FHoudiniEngineUtils::HapiGetImagePlanes(NodeParams[ParmDiffuseTextureIdx].id, MaterialInfo,
-			DiffuseImagePlanes);
+		bool bFoundImagePlanes = FHoudiniEngineUtils::HapiGetImagePlanes(NodeParams[ParmDiffuseTextureIdx].id,
+			MaterialInfo, DiffuseImagePlanes);
 
 		HAPI_ImagePacking ImagePacking = HAPI_IMAGE_PACKING_UNKNOWN;
 		const char* PlaneType = "";
@@ -5173,8 +5173,8 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 		}
 
 		// Retrieve color plane.
-		if(bFoundImagePlanes && FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmDiffuseTextureIdx].id, MaterialInfo,
-			ImageBuffer, PlaneType, HAPI_IMAGE_DATA_INT8, ImagePacking, false))
+		if(bFoundImagePlanes && FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmDiffuseTextureIdx].id,
+			MaterialInfo, ImageBuffer, PlaneType, HAPI_IMAGE_DATA_INT8, ImagePacking, false))
 		{
 			UPackage* TextureDiffusePackage = nullptr;
 			if(TextureDiffuse)
@@ -5217,12 +5217,13 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 				// Create diffuse sampling expression, if needed.
 				if(!ExpressionTextureSample)
 				{
-					ExpressionTextureSample = NewObject<UMaterialExpressionTextureSample>(Material,
-						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+					ExpressionTextureSample = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
 				}
 
 				// Record generating parameter.
 				ExpressionTextureSample->Desc = GeneratingParameterNameDiffuseTexture;
+				ExpressionTextureSample->ParameterName = *GeneratingParameterNameDiffuseTexture;
 				ExpressionTextureSample->Texture = TextureDiffuse;
 				ExpressionTextureSample->SamplerType = SAMPLERTYPE_Color;
 
@@ -5288,7 +5289,8 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 
 			// Record generating parameter.
 			ExpressionConstant4Vector->Desc = GeneratingParameterNameUniformColor;
-			ExpressionConstant4Vector->Constant = Color;
+			ExpressionConstant4Vector->ParameterName = *GeneratingParameterNameUniformColor;
+			ExpressionConstant4Vector->DefaultValue = Color;
 		}
 	}
 
@@ -5487,8 +5489,8 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameNormalIdx].id, MaterialInfo, ImageBuffer,
 			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
-			UMaterialExpressionTextureSample* ExpressionNormal =
-				Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
+			UMaterialExpressionTextureSampleParameter2D* ExpressionNormal =
+				Cast<UMaterialExpressionTextureSampleParameter2D>(Material->Normal.Expression);
 
 			UTexture2D* TextureNormal = nullptr;
 			if(ExpressionNormal)
@@ -5546,12 +5548,13 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 				// Create normal sampling expression, if needed.
 				if(!ExpressionNormal)
 				{
-					ExpressionNormal = NewObject<UMaterialExpressionTextureSample>(Material,
-						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+					ExpressionNormal = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
 				}
 
 				// Record generating parameter.
 				ExpressionNormal->Desc = GeneratingParameterName;
+				ExpressionNormal->ParameterName = *GeneratingParameterName;
 
 				ExpressionNormal->Texture = TextureNormal;
 				ExpressionNormal->SamplerType = SAMPLERTYPE_Normal;
@@ -5605,8 +5608,8 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 			if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameBaseIdx].id, MaterialInfo, ImageBuffer,
 				HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 			{
-				UMaterialExpressionTextureSample* ExpressionNormal =
-					Cast<UMaterialExpressionTextureSample>(Material->Normal.Expression);
+				UMaterialExpressionTextureSampleParameter2D* ExpressionNormal =
+					Cast<UMaterialExpressionTextureSampleParameter2D>(Material->Normal.Expression);
 
 				UTexture2D* TextureNormal = nullptr;
 				if(ExpressionNormal)
@@ -5664,12 +5667,13 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 					// Create normal sampling expression, if needed.
 					if(!ExpressionNormal)
 					{
-						ExpressionNormal = NewObject<UMaterialExpressionTextureSample>(Material,
-							UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+						ExpressionNormal = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material,
+							UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
 					}
 
 					// Record generating parameter.
 					ExpressionNormal->Desc = GeneratingParameterName;
+					ExpressionNormal->ParameterName = *GeneratingParameterName;
 
 					ExpressionNormal->Texture = TextureNormal;
 					ExpressionNormal->SamplerType = SAMPLERTYPE_Normal;
@@ -5752,8 +5756,8 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameSpecularIdx].id, MaterialInfo, ImageBuffer,
 			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
-			UMaterialExpressionTextureSample* ExpressionSpecular =
-				Cast<UMaterialExpressionTextureSample>(Material->Specular.Expression);
+			UMaterialExpressionTextureSampleParameter2D* ExpressionSpecular =
+				Cast<UMaterialExpressionTextureSampleParameter2D>(Material->Specular.Expression);
 
 			UTexture2D* TextureSpecular = nullptr;
 			if(ExpressionSpecular)
@@ -5811,12 +5815,13 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 				// Create specular sampling expression, if needed.
 				if(!ExpressionSpecular)
 				{
-					ExpressionSpecular = NewObject<UMaterialExpressionTextureSample>(Material,
-						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+					ExpressionSpecular = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
 				}
 
 				// Record generating parameter.
 				ExpressionSpecular->Desc = GeneratingParameterName;
+				ExpressionSpecular->ParameterName = *GeneratingParameterName;
 
 				ExpressionSpecular->Texture = TextureSpecular;
 				ExpressionSpecular->SamplerType = SAMPLERTYPE_LinearGrayscale;
@@ -5869,8 +5874,8 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 				Color.A = 1.0f;
 			}
 
-			UMaterialExpressionConstant4Vector* ExpressionSpecularColor =
-				Cast<UMaterialExpressionConstant4Vector>(Material->Specular.Expression);
+			UMaterialExpressionVectorParameter* ExpressionSpecularColor =
+				Cast<UMaterialExpressionVectorParameter>(Material->Specular.Expression);
 
 			// Create color const expression and add it to material, if we don't have one.
 			if(!ExpressionSpecularColor)
@@ -5882,14 +5887,15 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(UHoudiniAssetComponent* Hou
 					Material->Specular.Expression = nullptr;
 				}
 
-				ExpressionSpecularColor = NewObject<UMaterialExpressionConstant4Vector>(Material,
-					UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional);
+				ExpressionSpecularColor = NewObject<UMaterialExpressionVectorParameter>(Material,
+					UMaterialExpressionVectorParameter::StaticClass(), NAME_None, RF_Transactional);
 			}
 
 			// Record generating parameter.
 			ExpressionSpecularColor->Desc = GeneratingParameterName;
+			ExpressionSpecularColor->ParameterName = *GeneratingParameterName;
 
-			ExpressionSpecularColor->Constant = Color;
+			ExpressionSpecularColor->DefaultValue = Color;
 
 			// Offset node placement.
 			ExpressionSpecularColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
@@ -5954,8 +5960,8 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* Ho
 		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameRoughnessIdx].id, MaterialInfo, ImageBuffer,
 			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
-			UMaterialExpressionTextureSample* ExpressionRoughness =
-				Cast<UMaterialExpressionTextureSample>(Material->Roughness.Expression);
+			UMaterialExpressionTextureSampleParameter2D* ExpressionRoughness =
+				Cast<UMaterialExpressionTextureSampleParameter2D>(Material->Roughness.Expression);
 
 			UTexture2D* TextureRoughness = nullptr;
 			if(ExpressionRoughness)
@@ -6013,12 +6019,13 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* Ho
 				// Create roughness sampling expression, if needed.
 				if(!ExpressionRoughness)
 				{
-					ExpressionRoughness = NewObject<UMaterialExpressionTextureSample>(Material,
-						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+					ExpressionRoughness = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
 				}
 
 				// Record generating parameter.
 				ExpressionRoughness->Desc = GeneratingParameterName;
+				ExpressionRoughness->ParameterName = *GeneratingParameterName;
 
 				ExpressionRoughness->Texture = TextureRoughness;
 				ExpressionRoughness->SamplerType = SAMPLERTYPE_LinearGrayscale;
@@ -6066,8 +6073,11 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* Ho
 			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &RoughnessValue,
 				ParmInfo.floatValuesIndex, 1))
 		{
-			UMaterialExpressionConstant* ExpressionRoughnessValue =
-				Cast<UMaterialExpressionConstant>(Material->Roughness.Expression);
+			UMaterialExpressionScalarParameter* ExpressionRoughnessValue =
+				Cast<UMaterialExpressionScalarParameter>(Material->Roughness.Expression);
+
+			// Clamp retrieved value.
+			RoughnessValue = FMath::Clamp<float>(RoughnessValue, 0.0f, 1.0f);
 
 			// Create color const expression and add it to material, if we don't have one.
 			if(!ExpressionRoughnessValue)
@@ -6079,14 +6089,17 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(UHoudiniAssetComponent* Ho
 					Material->Roughness.Expression = nullptr;
 				}
 
-				ExpressionRoughnessValue = NewObject<UMaterialExpressionConstant>(Material,
-					UMaterialExpressionConstant::StaticClass(), NAME_None, RF_Transactional);
+				ExpressionRoughnessValue = NewObject<UMaterialExpressionScalarParameter>(Material,
+					UMaterialExpressionScalarParameter::StaticClass(), NAME_None, RF_Transactional);
 			}
 
 			// Record generating parameter.
 			ExpressionRoughnessValue->Desc = GeneratingParameterName;
+			ExpressionRoughnessValue->ParameterName = *GeneratingParameterName;
 
-			ExpressionRoughnessValue->R = RoughnessValue;
+			ExpressionRoughnessValue->DefaultValue = RoughnessValue;
+			ExpressionRoughnessValue->SliderMin = 0.0f;
+			ExpressionRoughnessValue->SliderMax = 1.0f;
 
 			// Offset node placement.
 			ExpressionRoughnessValue->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
@@ -6141,8 +6154,8 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 		if(FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmNameMetallicIdx].id, MaterialInfo, ImageBuffer,
 			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true))
 		{
-			UMaterialExpressionTextureSample* ExpressionMetallic =
-				Cast<UMaterialExpressionTextureSample>(Material->Metallic.Expression);
+			UMaterialExpressionTextureSampleParameter2D* ExpressionMetallic =
+				Cast<UMaterialExpressionTextureSampleParameter2D>(Material->Metallic.Expression);
 
 			UTexture2D* TextureMetallic = nullptr;
 			if(ExpressionMetallic)
@@ -6200,12 +6213,13 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 				// Create metallic sampling expression, if needed.
 				if(!ExpressionMetallic)
 				{
-					ExpressionMetallic = NewObject<UMaterialExpressionTextureSample>(Material,
-						UMaterialExpressionTextureSample::StaticClass(), NAME_None, RF_Transactional);
+					ExpressionMetallic = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
 				}
 
 				// Record generating parameter.
 				ExpressionMetallic->Desc = GeneratingParameterName;
+				ExpressionMetallic->ParameterName = *GeneratingParameterName;
 
 				ExpressionMetallic->Texture = TextureMetallic;
 				ExpressionMetallic->SamplerType = SAMPLERTYPE_LinearGrayscale;
@@ -6243,8 +6257,11 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 			FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*) &MetallicValue,
 				ParmInfo.floatValuesIndex, 1))
 		{
-			UMaterialExpressionConstant* ExpressionMetallicValue =
-				Cast<UMaterialExpressionConstant>(Material->Metallic.Expression);
+			UMaterialExpressionScalarParameter* ExpressionMetallicValue =
+				Cast<UMaterialExpressionScalarParameter>(Material->Metallic.Expression);
+
+			// Clamp retrieved value.
+			MetallicValue = FMath::Clamp<float>(MetallicValue, 0.0f, 1.0f);
 
 			// Create color const expression and add it to material, if we don't have one.
 			if(!ExpressionMetallicValue)
@@ -6256,14 +6273,17 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(UHoudiniAssetComponent* Hou
 					Material->Metallic.Expression = nullptr;
 				}
 
-				ExpressionMetallicValue = NewObject<UMaterialExpressionConstant>(Material,
-					UMaterialExpressionConstant::StaticClass(), NAME_None, RF_Transactional);
+				ExpressionMetallicValue = NewObject<UMaterialExpressionScalarParameter>(Material,
+					UMaterialExpressionScalarParameter::StaticClass(), NAME_None, RF_Transactional);
 			}
 
 			// Record generating parameter.
 			ExpressionMetallicValue->Desc = GeneratingParameterName;
+			ExpressionMetallicValue->ParameterName = *GeneratingParameterName;
 
-			ExpressionMetallicValue->R = MetallicValue;
+			ExpressionMetallicValue->DefaultValue = MetallicValue;
+			ExpressionMetallicValue->SliderMin = 0.0f;
+			ExpressionMetallicValue->SliderMax = 1.0f;
 
 			// Offset node placement.
 			ExpressionMetallicValue->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
