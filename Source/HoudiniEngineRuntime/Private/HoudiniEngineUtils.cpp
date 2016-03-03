@@ -4939,6 +4939,10 @@ FHoudiniEngineUtils::HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetCom
 			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacity(HoudiniAssetComponent,
 				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
 
+			// Extract opacity mask plane.
+			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(HoudiniAssetComponent,
+				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
+
 			// Extract normal plane.
 			bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentNormal(HoudiniAssetComponent,
 				Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY);
@@ -5088,15 +5092,15 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 
 	if(-1 != ParmNumDiffuseTex)
 	{
-	const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNumDiffuseTex];
-	int DiffuseTexCountValue = 0;
+		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmNumDiffuseTex];
+		int DiffuseTexCountValue = 0;
 
-	if(HAPI_RESULT_SUCCESS ==
-	FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (int*) &DiffuseTexCountValue,
-	ParmInfo.intValuesIndex, ParmInfo.size))
-	{
-	DiffuseTexCount = DiffuseTexCountValue;
-	}
+		if(HAPI_RESULT_SUCCESS ==
+			FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id, (int*) &DiffuseTexCountValue,
+				ParmInfo.intValuesIndex, ParmInfo.size))
+		{
+			DiffuseTexCount = DiffuseTexCountValue;
+		}
 	}
 	*/
 
@@ -5230,35 +5234,6 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 				// Add expression.
 				Material->Expressions.Add(ExpressionTextureSample);
 
-				// Offset node placement.
-				//ExpressionTextureSample->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
-				//ExpressionTextureSample->MaterialExpressionEditorY = MaterialNodeY;
-				//MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
-
-				/*
-				// Check if material is transparent. If it is, we need to hook up alpha.
-				if(FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo))
-				{
-				// This material contains transparency.
-				Material->BlendMode = BLEND_Masked;
-
-				TArray<FExpressionOutput> Outputs = ExpressionDiffuse->GetOutputs();
-				FExpressionOutput* Output = Outputs.GetData();
-
-				Material->OpacityMask.Expression = ExpressionDiffuse;
-				Material->OpacityMask.Mask = Output->Mask;
-				Material->OpacityMask.MaskR = 0;
-				Material->OpacityMask.MaskG = 0;
-				Material->OpacityMask.MaskB = 0;
-				Material->OpacityMask.MaskA = 1;
-				}
-				else
-				{
-				// Material is opaque.
-				Material->BlendMode = BLEND_Opaque;
-				}
-				*/
-
 				// Propagate and trigger diffuse texture updates.
 				if(bCreatedNewTextureDiffuse)
 				{
@@ -5375,6 +5350,170 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 
 
 bool
+FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(UHoudiniAssetComponent* HoudiniAssetComponent,
+	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
+	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
+{
+	bool bExpressionCreated = false;
+	HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+	// Name of generating Houdini parameters.
+	FString GeneratingParameterNameTexture = TEXT("");
+
+	UMaterialExpression* MaterialExpression = Material->OpacityMask.Expression;
+
+	// Opacity expressions.
+	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureOpacitySample = nullptr;
+	UTexture2D* TextureOpacity = nullptr;
+
+	// Opacity texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = true;
+
+	// See if opacity texture is available.
+	int32 ParmOpacityTextureIdx =
+		FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_MAP_OPACITY_1, NodeParamNames);
+
+	if(ParmOpacityTextureIdx >= 0)
+	{
+		GeneratingParameterNameTexture = TEXT(HAPI_UNREAL_PARAM_MAP_OPACITY_1);
+	}
+
+	// If we have opacity texture parameter.
+	if(ParmOpacityTextureIdx >= 0)
+	{
+		TArray<char> ImageBuffer;
+
+		// Get image planes of opacity map.
+		TArray<FString> OpacityImagePlanes;
+		bool bFoundImagePlanes = FHoudiniEngineUtils::HapiGetImagePlanes(NodeParams[ParmOpacityTextureIdx].id,
+			MaterialInfo, OpacityImagePlanes);
+
+		HAPI_ImagePacking ImagePacking = HAPI_IMAGE_PACKING_UNKNOWN;
+		const char* PlaneType = "";
+
+		if(bFoundImagePlanes && OpacityImagePlanes.Contains(TEXT(HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA)))
+		{
+			ImagePacking = HAPI_IMAGE_PACKING_RGBA;
+			PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA;
+			CreateTexture2DParameters.bUseAlpha = true;
+		}
+		else
+		{
+			bFoundImagePlanes = false;
+		}
+
+		if(bFoundImagePlanes && FHoudiniEngineUtils::HapiExtractImage(NodeParams[ParmOpacityTextureIdx].id,
+			MaterialInfo, ImageBuffer, PlaneType, HAPI_IMAGE_DATA_INT8, ImagePacking, false))
+		{
+			// Locate sampling expression.
+			ExpressionTextureOpacitySample = Cast<UMaterialExpressionTextureSampleParameter2D>(
+				FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
+					UMaterialExpressionTextureSampleParameter2D::StaticClass()));
+
+			// Locate opacity texture, if valid.
+			if(ExpressionTextureOpacitySample)
+			{
+				TextureOpacity = Cast<UTexture2D>(ExpressionTextureOpacitySample->Texture);
+			}
+
+			UPackage* TextureOpacityPackage = nullptr;
+			if(TextureOpacity)
+			{
+				TextureOpacityPackage = Cast<UPackage>(TextureOpacity->GetOuter());
+			}
+
+			HAPI_ImageInfo ImageInfo;
+			Result = FHoudiniApi::GetImageInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.assetId,
+				MaterialInfo.id, &ImageInfo);
+
+			if(HAPI_RESULT_SUCCESS == Result && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
+			{
+				// Create texture.
+				FString TextureOpacityName;
+				bool bCreatedNewTextureOpacity = false;
+
+				// Create opacity texture package, if this is a new opacity texture.
+				if(!TextureOpacityPackage)
+				{
+					TextureOpacityPackage =
+						FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(HoudiniAssetComponent,
+							MaterialInfo, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK,
+							TextureOpacityName);
+				}
+
+				// Create opacity texture, if we need to create one.
+				if(!TextureOpacity)
+				{
+					bCreatedNewTextureOpacity = true;
+				}
+
+				// Reuse existing opacity texture, or create new one.
+				TextureOpacity =
+					FHoudiniEngineUtils::CreateUnrealTexture(TextureOpacity, ImageInfo,
+						TextureOpacityPackage, TextureOpacityName, ImageBuffer,
+						HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK, CreateTexture2DParameters,
+						TEXTUREGROUP_World);
+
+				// Create opacity sampling expression, if needed.
+				if(!ExpressionTextureOpacitySample)
+				{
+					ExpressionTextureOpacitySample = NewObject<UMaterialExpressionTextureSampleParameter2D>(Material,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
+				}
+
+				// Record generating parameter.
+				ExpressionTextureOpacitySample->Desc = GeneratingParameterNameTexture;
+				ExpressionTextureOpacitySample->ParameterName = *GeneratingParameterNameTexture;
+				ExpressionTextureOpacitySample->Texture = TextureOpacity;
+				ExpressionTextureOpacitySample->SamplerType = SAMPLERTYPE_Grayscale;
+
+				// Offset node placement.
+				ExpressionTextureOpacitySample->MaterialExpressionEditorX =
+					FHoudiniEngineUtils::MaterialExpressionNodeX;
+				ExpressionTextureOpacitySample->MaterialExpressionEditorY = MaterialNodeY;
+				MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+				// Add expression.
+				Material->Expressions.Add(ExpressionTextureOpacitySample);
+
+				// We need to set material type to masked.
+				TArray<FExpressionOutput> ExpressionOutputs = ExpressionTextureOpacitySample->GetOutputs();
+				FExpressionOutput* ExpressionOutput = ExpressionOutputs.GetData();
+
+				Material->OpacityMask.Expression = ExpressionTextureOpacitySample;
+				Material->BlendMode = BLEND_Masked;
+
+				Material->OpacityMask.Mask = ExpressionOutput->Mask;
+				Material->OpacityMask.MaskR = 1;
+				Material->OpacityMask.MaskG = 0;
+				Material->OpacityMask.MaskB = 0;
+				Material->OpacityMask.MaskA = 0;
+
+				// Propagate and trigger opacity texture updates.
+				if(bCreatedNewTextureOpacity)
+				{
+					FAssetRegistryModule::AssetCreated(TextureOpacity);
+				}
+
+				TextureOpacity->PreEditChange(nullptr);
+				TextureOpacity->PostEditChange();
+				TextureOpacity->MarkPackageDirty();
+
+				bExpressionCreated = true;
+			}
+		}
+	}
+
+	return bExpressionCreated;
+}
+
+
+bool
 FHoudiniEngineUtils::CreateMaterialComponentOpacity(UHoudiniAssetComponent* HoudiniAssetComponent,
 	UMaterial* Material, const HAPI_MaterialInfo& MaterialInfo, const HAPI_NodeInfo& NodeInfo,
 	const TArray<HAPI_ParmInfo>& NodeParams, const TArray<std::string>& NodeParamNames, int32& MaterialNodeY)
@@ -5382,9 +5521,53 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(UHoudiniAssetComponent* Houd
 	bool bExpressionCreated = false;
 	HAPI_Result Result = HAPI_RESULT_SUCCESS;
 	float OpacityValue = 1.0f;
+	bool bNeedsTranslucency = false;
 
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
+	// Name of generating Houdini parameters.
+	FString GeneratingParameterNameScalar = TEXT("");
+	FString GeneratingParameterNameTexture = TEXT("");
+
+	UMaterialExpression* MaterialExpression = Material->Opacity.Expression;
+
+	// Opacity expressions.
+	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureOpacitySample = nullptr;
+	UMaterialExpressionScalarParameter* ExpressionScalarOpacity = nullptr;
+	UTexture2D* TextureOpacity = nullptr;
+
+	// Opacity texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = true;
+
+	// If opacity sampling expression was not created, check if diffuse contains an alpha plane.
+	if(!ExpressionTextureOpacitySample)
+	{
+		UMaterialExpression* MaterialExpressionDiffuse = Material->BaseColor.Expression;
+		if(MaterialExpressionDiffuse)
+		{
+			// Locate diffuse sampling expression.
+			UMaterialExpressionTextureSampleParameter2D* ExpressionTextureDiffuseSample =
+				Cast<UMaterialExpressionTextureSampleParameter2D>(
+					FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpressionDiffuse,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass()));
+
+			// See if there's an alpha plane in this expression's texture.
+			if(ExpressionTextureDiffuseSample)
+			{
+				UTexture2D* DiffuseTexture = Cast<UTexture2D>(ExpressionTextureDiffuseSample->Texture);
+				if(DiffuseTexture && !DiffuseTexture->CompressionNoAlpha)
+				{
+					ExpressionTextureOpacitySample = ExpressionTextureDiffuseSample;
+
+					// Check if material is transparent. If it is, we need to hook up alpha.
+					bNeedsTranslucency = FHoudiniEngineUtils::HapiIsMaterialTransparent(MaterialInfo);
+				}
+			}
+		}
+	}
 
 	// Retrieve opacity uniform parameter.
 	int32 ParmOpacityValueIdx =
@@ -5392,6 +5575,8 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(UHoudiniAssetComponent* Houd
 
 	if(ParmOpacityValueIdx >= 0)
 	{
+		GeneratingParameterNameScalar = TEXT(HAPI_UNREAL_PARAM_ALPHA);
+
 		const HAPI_ParmInfo& ParmInfo = NodeParams[ParmOpacityValueIdx];
 		if(ParmInfo.size > 0 && ParmInfo.floatValuesIndex >= 0)
 		{
@@ -5399,9 +5584,99 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(UHoudiniAssetComponent* Houd
 			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id,
 				(float*) &OpacityValue, ParmInfo.floatValuesIndex, 1))
 			{
+				if(!ExpressionScalarOpacity)
+				{
+					ExpressionScalarOpacity = NewObject<UMaterialExpressionScalarParameter>(Material,
+						UMaterialExpressionScalarParameter::StaticClass(), NAME_None, RF_Transactional);
+				}
+
+				// Clamp retrieved value.
+				OpacityValueRetrieved = FMath::Clamp<float>(OpacityValueRetrieved, 0.0f, 1.0f);
 				OpacityValue = OpacityValueRetrieved;
+
+				// Set expression fields.
+				ExpressionScalarOpacity->DefaultValue = OpacityValue;
+				ExpressionScalarOpacity->SliderMin = 0.0f;
+				ExpressionScalarOpacity->SliderMax = 1.0f;
+				ExpressionScalarOpacity->Desc = GeneratingParameterNameScalar;
+				ExpressionScalarOpacity->ParameterName = *GeneratingParameterNameScalar;
+
+				// Add expression.
+				Material->Expressions.Add(ExpressionScalarOpacity);
+
+				// If alpha is less than 1, we need translucency.
+				bNeedsTranslucency |= (OpacityValue != 1.0f);
 			}
 		}
+	}
+
+	if(bNeedsTranslucency)
+	{
+		Material->BlendMode = BLEND_Translucent;
+	}
+
+	if(ExpressionScalarOpacity && ExpressionTextureOpacitySample)
+	{
+		// We have both alpha and alpha uniform, attempt to locate multiply expression.
+		UMaterialExpressionMultiply* ExpressionMultiply =
+			Cast<UMaterialExpressionMultiply>(
+				FHoudiniEngineUtils::MaterialLocateExpression(MaterialExpression,
+					UMaterialExpressionMultiply::StaticClass()));
+
+		if(!ExpressionMultiply)
+		{
+			ExpressionMultiply = NewObject<UMaterialExpressionMultiply>(Material,
+				UMaterialExpressionMultiply::StaticClass(), NAME_None, RF_Transactional);
+		}
+
+		Material->Expressions.Add(ExpressionMultiply);
+
+		TArray<FExpressionOutput> ExpressionOutputs = ExpressionTextureOpacitySample->GetOutputs();
+		FExpressionOutput* ExpressionOutput = ExpressionOutputs.GetData();
+
+		ExpressionMultiply->A.Expression = ExpressionTextureOpacitySample;
+		ExpressionMultiply->B.Expression = ExpressionScalarOpacity;
+
+		Material->Opacity.Expression = ExpressionMultiply;
+		Material->Opacity.Mask = ExpressionOutput->Mask;
+		Material->Opacity.MaskR = 0;
+		Material->Opacity.MaskG = 0;
+		Material->Opacity.MaskB = 0;
+		Material->Opacity.MaskA = 1;
+
+		ExpressionMultiply->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+		ExpressionMultiply->MaterialExpressionEditorY = MaterialNodeY;
+
+		ExpressionScalarOpacity->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX 
+			- FHoudiniEngineUtils::MaterialExpressionNodeStepX;
+		ExpressionScalarOpacity->MaterialExpressionEditorY = MaterialNodeY;
+		MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+		bExpressionCreated = true;
+	}
+	else if(ExpressionScalarOpacity)
+	{
+		Material->Opacity.Expression = ExpressionScalarOpacity;
+
+		ExpressionScalarOpacity->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+		ExpressionScalarOpacity->MaterialExpressionEditorY = MaterialNodeY;
+		MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+		bExpressionCreated = true;
+	}
+	else if(ExpressionTextureOpacitySample)
+	{
+		TArray<FExpressionOutput> ExpressionOutputs = ExpressionTextureOpacitySample->GetOutputs();
+		FExpressionOutput* ExpressionOutput = ExpressionOutputs.GetData();
+
+		Material->Opacity.Expression = ExpressionTextureOpacitySample;
+		Material->Opacity.Mask = ExpressionOutput->Mask;
+		Material->Opacity.MaskR = 0;
+		Material->Opacity.MaskG = 0;
+		Material->Opacity.MaskB = 0;
+		Material->Opacity.MaskA = 1;
+
+		bExpressionCreated = true;
 	}
 
 	return bExpressionCreated;
