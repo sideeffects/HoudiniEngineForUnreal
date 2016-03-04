@@ -52,6 +52,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	bChanged(false),
 	bSliderDragged(false),
 	bIsChildOfMultiparm(false),
+	bIsSubstanceParameter(false),
 	HoudiniAssetParameterVersion(VER_HOUDINI_ENGINE_PARAM_BASE)
 {
 	ParameterName = TEXT("");
@@ -89,6 +90,9 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
 	{
 		return false;
 	}
+
+	// If it is a Substance parameter, mark it as such.
+	bIsSubstanceParameter = ParameterName.StartsWith(HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX);
 
 	// Set ids.
 	SetNodeParmIds(InNodeId, ParmInfo.id);
@@ -544,6 +548,13 @@ bool
 UHoudiniAssetParameter::HasChildParameters() const
 {
 	return ChildParameters.Num() > 0;
+}
+
+
+bool
+UHoudiniAssetParameter::IsSubstanceParameter() const
+{
+	return bIsSubstanceParameter;
 }
 
 
