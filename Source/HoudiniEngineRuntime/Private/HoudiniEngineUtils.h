@@ -441,6 +441,10 @@ protected:
 
 #endif
 
+	/** Retrieve Substance RTTI classes we are interested in. **/
+	static bool RetrieveSubstanceRTTIClasses(UClass*& InstanceFactoryClass, UClass*& GraphInstanceClass,
+		UClass*& UtilityClass);
+
 public:
 
 	/** How many GUID symbols are used for package component name generation. **/
