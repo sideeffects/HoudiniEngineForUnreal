@@ -1328,6 +1328,42 @@ FHoudiniEngineUtils::LoadSubstanceInstanceFactory(UClass* InstanceFactoryClass, 
 
 
 bool
+FHoudiniEngineUtils::RetrieveSubstanceRTTIClasses(UClass*& InstanceFactoryClass, UClass*& GraphInstanceClass,
+	UClass*& UtilityClass)
+{
+	InstanceFactoryClass = nullptr;
+	GraphInstanceClass = nullptr;
+	UtilityClass = nullptr;
+
+	UClass* SubstanceInstaceFactoryClass = FindObject<UClass>(ANY_PACKAGE,
+		HAPI_UNREAL_SUBSTANCE_CLASS_INSTANCE_FACTORY);
+	if(!SubstanceInstaceFactoryClass)
+	{
+		return false;
+	}
+
+	UClass* SubstanceGraphInstanceClass =
+		FindObject<UClass>(ANY_PACKAGE, HAPI_UNREAL_SUBSTANCE_CLASS_GRAPH_INSTANCE);
+	if(!SubstanceGraphInstanceClass)
+	{
+		return false;
+	}
+
+	UClass* SubstanceUtilityClass = FindObject<UClass>(ANY_PACKAGE, HAPI_UNREAL_SUBSTANCE_CLASS_UTILITY);
+	if(!SubstanceUtilityClass)
+	{
+		return false;
+	}
+
+	InstanceFactoryClass = SubstanceInstaceFactoryClass;
+	GraphInstanceClass = SubstanceGraphInstanceClass;
+	UtilityClass = SubstanceUtilityClass;
+
+	return true;
+}
+
+
+bool
 FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue,
 	float& OutValue)
 {
