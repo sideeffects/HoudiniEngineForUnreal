@@ -1294,6 +1294,36 @@ FHoudiniEngineUtils::ResetRawMesh(FRawMesh& RawMesh)
 	}
 }
 
+
+UObject*
+FHoudiniEngineUtils::LoadSubstanceInstanceFactory(UClass* InstanceFactoryClass, const FString& SubstanceMaterialName)
+{
+	UObject* SubstanceInstanceFactory = nullptr;
+	TArray<FAssetData> SubstanceInstaceFactories;
+
+	FAssetRegistryModule& AssetRegistryModule
+		= FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().GetAssetsByClass(InstanceFactoryClass->GetFName(), SubstanceInstaceFactories);
+
+	for(int32 FactoryIdx = 0, FactoryNum = SubstanceInstaceFactories.Num(); FactoryIdx < FactoryNum; ++FactoryIdx)
+	{
+		const FAssetData& AssetData = SubstanceInstaceFactories[FactoryIdx];
+		const FString& AssetName = AssetData.AssetName.ToString();
+		if(AssetName.Equals(SubstanceMaterialName))
+		{
+			const FString& AssetObjectPath = AssetData.ObjectPath.ToString();
+			SubstanceInstanceFactory = StaticLoadObject(InstanceFactoryClass, nullptr, *AssetObjectPath, nullptr,
+				LOAD_None, nullptr);
+			if(SubstanceInstanceFactory)
+			{
+				break;
+			}
+		}
+	}
+
+	return SubstanceInstanceFactory;
+}
+
 #endif
 
 
@@ -4896,8 +4926,14 @@ FHoudiniEngineUtils::GetSubstanceMaterialName(const HAPI_MaterialInfo& MaterialI
 			return false;
 		}
 
-		// Get parameter value.
-		FHoudiniEngineUtils::GetHoudiniString(SubstanceFilenameStringHandle, SubstanceMaterialName);
+		// Get file parameter value.
+		if(!FHoudiniEngineUtils::GetHoudiniString(SubstanceFilenameStringHandle, SubstanceMaterialName))
+		{
+			return false;
+		}
+
+		// Any additional processing?
+
 		return true;
 	}
 
