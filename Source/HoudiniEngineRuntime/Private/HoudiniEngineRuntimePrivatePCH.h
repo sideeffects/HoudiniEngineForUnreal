@@ -412,6 +412,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Default material name. **/
 #define HAPI_UNREAL_DEFAULT_MATERIAL_NAME					TEXT("default_material")
 
+/** Prefix used to identify substance parameters. **/
+#define HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX					TEXT("_substanceInput")
+
 #define HAPI_UNREAL_ENABLE_LOADER
 
 /** Names of HAPI libraries on different platforms. **/
