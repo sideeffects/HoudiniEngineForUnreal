@@ -120,6 +120,9 @@ public:
 	/** Return true if this parameter contains child parameters. **/
 	bool HasChildParameters() const;
 
+	/** Return true if this is Substance parameter. **/
+	bool IsSubstanceParameter() const;
+
 public:
 
 	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
@@ -263,6 +266,9 @@ protected:
 
 			/** Is set to true if the parameter is a multiparm child parameter. **/
 			uint32 bIsChildOfMultiparm : 1;
+
+			/** Is set to true if this parameter is a Substance parameter. **/
+			uint32 bIsSubstanceParameter : 1;
 		};
 
 		uint32 HoudiniAssetParameterFlagsPacked;
