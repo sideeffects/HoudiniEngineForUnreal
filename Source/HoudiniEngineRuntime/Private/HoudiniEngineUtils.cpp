@@ -879,9 +879,8 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HAPI_AssetId AssetId, HAPI_Obje
 	// Allocate sufficient buffer for data.
 	Data.SetNumUninitialized(AttributeInfo.count * AttributeInfo.tupleSize);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, PartId, Name, &AttributeInfo, -1, &Data[0], 0,
-			AttributeInfo.count), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId,
+		GeoId, PartId, Name, &AttributeInfo, &Data[0], 0, AttributeInfo.count), false);
 
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
@@ -935,7 +934,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(HAPI_AssetId AssetId, HAPI_Ob
 	Data.SetNumUninitialized(AttributeInfo.count * AttributeInfo.tupleSize);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeIntData(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId,
-		GeoId, PartId, Name, &AttributeInfo, -1, &Data[0], 0, AttributeInfo.count), false);
+		GeoId, PartId, Name, &AttributeInfo, &Data[0], 0, AttributeInfo.count), false);
 
 	// Store the retrieved attribute information.
 	ResultAttributeInfo = AttributeInfo;
