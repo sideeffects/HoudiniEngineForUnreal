@@ -243,13 +243,18 @@ public:
 		const FString& DefaultValue, FString& Value);
 
 	/** HAPI : Retrieve parameter name. **/
-	static void HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName);
+	static bool HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName);
+
+	/** HAPI : Retrieve parameter label. **/
+	static bool HapiRetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& ParameterLabel);
 
 	/** HAPI : Retrieve names of all parameters. **/
+	static void HapiRetrieveParameterNames(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<FString>& Names);
 	static void HapiRetrieveParameterNames(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<std::string>& Names);
 
 	/** HAPI : Look for parameter by name and return its index. Return -1 if not found. **/
 	static int32 HapiFindParameterByName(const std::string& ParmName, const TArray<std::string>& Names);
+	static int32 HapiFindParameterByName(const FString& ParmName, const TArray<FString>& Names);
 
 	/** HAPI : Retrieve a list of image planes. **/
 	static bool HapiGetImagePlanes(HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo,
@@ -267,6 +272,9 @@ public:
 	static void HapiCreateMaterials(UHoudiniAssetComponent* HoudiniAssetComponent, const HAPI_AssetInfo& AssetInfo,
 		const TSet<HAPI_MaterialId>& UniqueMaterialIds, const TSet<HAPI_MaterialId>& UniqueInstancerMaterialIds,
 		TMap<FString, UMaterial*>& Materials);
+
+	/** HAPI: Check if material is a Substance material. If it is, return its name by reference. **/
+	static bool GetSubstanceMaterialName(const HAPI_MaterialInfo& MaterialInfo, FString& SubstanceMaterialName);
 
 #if WITH_EDITOR
 
