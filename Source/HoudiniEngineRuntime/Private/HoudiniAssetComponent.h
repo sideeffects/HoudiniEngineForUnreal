@@ -442,6 +442,9 @@ private:
 	/** Return true if given object is referenced locally only, by objects generated and owned by this component. **/
 	bool IsObjectReferencedLocally(UStaticMesh* StaticMesh, FReferencerInformationList& Referencers) const;
 
+	/** Collect all Substance parameters. **/
+	void CollectSubstanceParameters(TMap<FString, UHoudiniAssetParameter*>& SubstanceParameters) const;
+
 public:
 
 	/** Add to the list of dependent downstream assets that have this asset as an asset input. **/
