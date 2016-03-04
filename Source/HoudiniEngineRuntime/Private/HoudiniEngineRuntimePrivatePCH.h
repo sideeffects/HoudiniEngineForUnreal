@@ -414,7 +414,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX					TEXT("_substanceInput")
 #define HAPI_UNREAL_PARAM_SUBSTANCE_LABEL					TEXT("Substance")
 #define HAPI_UNREAL_PARAM_SUBSTANCE_FILENAME				TEXT("filename")
+
+/** Names for Substance classes which we are retrieving through RTTI. **/
 #define HAPI_UNREAL_SUBSTANCE_CLASS_INSTANCE_FACTORY		TEXT("SubstanceInstanceFactory")
+#define HAPI_UNREAL_SUBSTANCE_CLASS_GRAPH_INSTANCE			TEXT("SubstanceGraphInstance")
+#define HAPI_UNREAL_SUBSTANCE_CLASS_UTILITY					TEXT("SubstanceUtility")
 
 #define HAPI_UNREAL_ENABLE_LOADER
 
