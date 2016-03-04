@@ -436,6 +436,9 @@ protected:
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
 
+	/** Used to locate and load (if found) Substance instance factory object. **/
+	static UObject* LoadSubstanceInstanceFactory(UClass* InstanceFactoryClass, const FString& SubstanceMaterialName);
+
 #endif
 
 public:
