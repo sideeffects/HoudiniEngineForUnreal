@@ -876,6 +876,22 @@ UHoudiniAssetComponent::IsObjectReferencedLocally(UStaticMesh* StaticMesh,
 
 
 void
+UHoudiniAssetComponent::CollectSubstanceParameters(TMap<FString, UHoudiniAssetParameter*>& SubstanceParameters) const
+{
+	SubstanceParameters.Empty();
+
+	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TConstIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+		if(HoudiniAssetParameter && HoudiniAssetParameter->IsSubstanceParameter())
+		{
+			SubstanceParameters.Add(HoudiniAssetParameter->GetParameterName(), HoudiniAssetParameter);
+		}
+	}
+}
+
+
+void
 UHoudiniAssetComponent::GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticMeshes)
 {
 	UsedStaticMeshes.Empty();
