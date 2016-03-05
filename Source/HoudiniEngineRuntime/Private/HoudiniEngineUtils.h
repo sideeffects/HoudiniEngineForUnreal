@@ -439,6 +439,9 @@ protected:
 	/** Used to locate and load (if found) Substance instance factory object. **/
 	static UObject* LoadSubstanceInstanceFactory(UClass* InstanceFactoryClass, const FString& SubstanceMaterialName);
 
+	/** Used to locate and load (if found) Substance graph instance object. **/
+	static UObject* LoadSubstanceGraphInstance(UClass* GraphInstanceClass, UObject* InstanceFactory);
+
 #endif
 
 	/** Retrieve Substance RTTI classes we are interested in. **/

@@ -1324,6 +1324,47 @@ FHoudiniEngineUtils::LoadSubstanceInstanceFactory(UClass* InstanceFactoryClass, 
 }
 
 
+UObject*
+FHoudiniEngineUtils::LoadSubstanceGraphInstance(UClass* GraphInstanceClass, UObject* InstanceFactory)
+{
+	UObject* MatchedSubstanceGraphInstance = nullptr;
+	TArray<FAssetData> SubstanceGraphInstances;
+
+	// Get Substance instance factory pointer property.
+	UObjectProperty* FactoryParentProperty =
+		Cast<UObjectProperty>(GraphInstanceClass->FindPropertyByName(HAPI_UNREAL_SUBSTANCE_PROPERTY_FACTORY_PARENT));
+	if(!FactoryParentProperty)
+	{
+		return nullptr;
+	}
+
+	FAssetRegistryModule& AssetRegistryModule
+		= FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().GetAssetsByClass(GraphInstanceClass->GetFName(), SubstanceGraphInstances);
+
+	for(int32 GraphInstanceIdx = 0, GraphInstanceNum = SubstanceGraphInstances.Num();
+		GraphInstanceIdx < GraphInstanceNum; ++GraphInstanceIdx)
+	{
+		const FAssetData& AssetData = SubstanceGraphInstances[GraphInstanceIdx];
+		const FString& AssetObjectPath = AssetData.ObjectPath.ToString();
+		UObject* GraphInstanceObject = StaticLoadObject(GraphInstanceClass, nullptr, *AssetObjectPath, nullptr,
+			LOAD_None, nullptr);
+		if(GraphInstanceObject)
+		{
+			void* FactoryParentPropertyValue = FactoryParentProperty->ContainerPtrToValuePtr<void>(GraphInstanceObject);
+			UObject* InstanceFactoryObject = FactoryParentProperty->GetObjectPropertyValue(FactoryParentPropertyValue);
+			if(InstanceFactory == InstanceFactoryObject)
+			{
+				MatchedSubstanceGraphInstance = GraphInstanceObject;
+				break;
+			}
+		}
+	}
+
+	return MatchedSubstanceGraphInstance;
+}
+
+
 #endif
 
 
