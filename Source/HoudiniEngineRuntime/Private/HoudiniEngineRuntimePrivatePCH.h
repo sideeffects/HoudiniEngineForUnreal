@@ -422,6 +422,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_SUBSTANCE_CLASS_GRAPH_INSTANCE			TEXT("SubstanceGraphInstance")
 #define HAPI_UNREAL_SUBSTANCE_CLASS_UTILITY					TEXT("SubstanceUtility")
 
+/** Names of Substance class properties we are using. **/
+#define HAPI_UNREAL_SUBSTANCE_PROPERTY_FACTORY_PARENT		TEXT("Parent")
+
 #define HAPI_UNREAL_ENABLE_LOADER
 
 /** Names of HAPI libraries on different platforms. **/
