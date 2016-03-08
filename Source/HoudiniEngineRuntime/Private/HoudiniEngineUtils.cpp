@@ -3265,7 +3265,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 		UniqueInstancerMaterialIds, Materials);
 
 	// Cache all materials inside the component.
-	HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments = Materials;
+	if(HoudiniAssetComponent->HoudiniAssetComponentMaterials)
+	{
+		HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments = Materials;
+	}
 
 	// If we have no package, we will use transient package.
 	if(!Package)
