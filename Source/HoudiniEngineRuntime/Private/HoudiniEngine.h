@@ -38,6 +38,7 @@ public:
 
 	virtual UStaticMesh* GetHoudiniLogoStaticMesh() const override;
 	virtual UMaterial* GetHoudiniDefaultMaterial() const override;
+	virtual UHoudiniAsset* GetHoudiniBgeoAsset() const override;
 
 #if WITH_EDITOR
 
@@ -80,6 +81,9 @@ private:
 
 	/** Material used as default material. **/
 	UMaterial* HoudiniDefaultMaterial;
+
+	/** Houdini digital asset used for loading the bgeo files. **/
+	UHoudiniAsset* HoudiniBgeoAsset;
 
 #if WITH_EDITOR
 

@@ -20,6 +20,7 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniAsset.h"
 
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName(TEXT("HoudiniEngineApp"));
@@ -32,9 +33,11 @@ DEFINE_LOG_CATEGORY(LogHoudiniEngine);
 FHoudiniEngine*
 FHoudiniEngine::HoudiniEngineInstance = nullptr;
 
+
 FHoudiniEngine::FHoudiniEngine() :
 	HoudiniLogoStaticMesh(nullptr),
 	HoudiniDefaultMaterial(nullptr),
+	HoudiniBgeoAsset(nullptr),
 	HoudiniEngineSchedulerThread(nullptr),
 	HoudiniEngineScheduler(nullptr)
 {
@@ -64,6 +67,13 @@ UMaterial*
 FHoudiniEngine::GetHoudiniDefaultMaterial() const
 {
 	return HoudiniDefaultMaterial;
+}
+
+
+UHoudiniAsset*
+FHoudiniEngine::GetHoudiniBgeoAsset() const
+{
+	return HoudiniBgeoAsset;
 }
 
 
@@ -158,12 +168,26 @@ FHoudiniEngine::StartupModule()
 	// Create static mesh Houdini logo.
 	HoudiniLogoStaticMesh =
 		LoadObject<UStaticMesh>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_LOGO, nullptr, LOAD_None, nullptr);
-	HoudiniLogoStaticMesh->AddToRoot();
+	if(HoudiniLogoStaticMesh)
+	{
+		HoudiniLogoStaticMesh->AddToRoot();
+	}
 
 	// Create default material.
 	HoudiniDefaultMaterial =
 		LoadObject<UMaterial>(nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL, nullptr, LOAD_None, nullptr);
-	HoudiniDefaultMaterial->AddToRoot();
+	if(HoudiniDefaultMaterial)
+	{
+		HoudiniDefaultMaterial->AddToRoot();
+	}
+
+	// Create Houdini digital asset which is used for loading the bgeo files.
+	HoudiniBgeoAsset = LoadObject<UHoudiniAsset>(nullptr, HAPI_UNREAL_RESOURCE_BGEO_IMPORT, nullptr, LOAD_None,
+		nullptr);
+	if(HoudiniBgeoAsset)
+	{
+		HoudiniBgeoAsset->AddToRoot();
+	}
 
 #if WITH_EDITOR
 
@@ -301,9 +325,9 @@ FHoudiniEngine::StartupModule()
 			bHAPIVersionMismatch = true;
 
 			HOUDINI_LOG_MESSAGE(TEXT("Starting up the Houdini Engine API module failed: build and running versions do not match."));
-			HOUDINI_LOG_MESSAGE(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"), HAPI_VERSION_HOUDINI_ENGINE_MAJOR,
-								HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API, RunningEngineMajor,
-								RunningEngineMinor, RunningEngineApi);
+			HOUDINI_LOG_MESSAGE(TEXT("Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d"),
+				HAPI_VERSION_HOUDINI_ENGINE_MAJOR, HAPI_VERSION_HOUDINI_ENGINE_MINOR, HAPI_VERSION_HOUDINI_ENGINE_API,
+				RunningEngineMajor, RunningEngineMinor, RunningEngineApi);
 		}
 	}
 

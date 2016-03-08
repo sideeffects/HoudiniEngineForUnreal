@@ -19,6 +19,7 @@
 class UMaterial;
 class UStaticMesh;
 class ISlateStyle;
+class UHoudiniAsset;
 struct FHoudiniEngineNotificationInfo;
 struct FHoudiniEngineTask;
 struct FHoudiniEngineTaskInfo;
@@ -41,6 +42,9 @@ public:
 
 	/** Return default material. **/
 	virtual UMaterial* GetHoudiniDefaultMaterial() const = 0;
+
+	/** Return Houdini digital asset used for bgeo file loading. **/
+	virtual UHoudiniAsset* GetHoudiniBgeoAsset() const = 0;
 
 	/** Return true if HAPI version mismatch is detected (between defined and running versions). **/
 	virtual bool CheckHapiVersionMismatch() const = 0;
