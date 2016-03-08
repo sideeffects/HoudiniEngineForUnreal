@@ -413,6 +413,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Default material name. **/
 #define HAPI_UNREAL_DEFAULT_MATERIAL_NAME					TEXT("default_material")
 
+/** Threshold alpha. **/
+#define HAPI_UNREAL_ALPHA_THRESHOLD							0.95f
+
 /** Defines used for Substance processing. **/
 #define HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX					TEXT("_substanceInput")
 #define HAPI_UNREAL_PARAM_SUBSTANCE_LABEL					TEXT("Substance")
