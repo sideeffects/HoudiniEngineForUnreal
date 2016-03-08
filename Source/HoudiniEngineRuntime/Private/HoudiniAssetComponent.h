@@ -190,6 +190,12 @@ public:
 	/** Return true if cooking is enabled for this component. **/
 	bool IsCookingEnabled() const;
 
+	/** Start asset instantiation task. **/
+	void StartTaskAssetInstantiation(bool bLoadedComponent = false, bool bStartTicking = false);
+
+	/** Start manual asset cooking task. **/
+	void StartTaskAssetCookingManual();
+
 #endif
 
 	/** Used to differentiate native components from dynamic ones. **/
@@ -349,12 +355,6 @@ private:
 
 	/** Assign actor label based on asset instance name. **/
 	void AssignUniqueActorLabel();
-
-	/** Start asset instantiation task. **/
-	void StartTaskAssetInstantiation(bool bLoadedComponent = false, bool bStartTicking = false);
-
-	/** Start manual asset cooking task. **/
-	void StartTaskAssetCookingManual();
 
 	/** Reset all Houdini related information, the asset, cooking trackers, generated geometry, related state, etc. **/
 	void ResetHoudiniResources();
