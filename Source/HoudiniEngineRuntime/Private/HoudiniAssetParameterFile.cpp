@@ -19,6 +19,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineString.h"
 
 
 UHoudiniAssetParameterFile::UHoudiniAssetParameterFile(const FObjectInitializer& ObjectInitializer) :
@@ -99,8 +100,8 @@ UHoudiniAssetParameterFile::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 	// Get the actual value for this property.
 	TArray<HAPI_StringHandle> StringHandles;
 	StringHandles.SetNum(TupleSize);
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(
-		FHoudiniEngine::Get().GetSession(), InNodeId, false, &StringHandles[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(), InNodeId, false,
+		&StringHandles[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -110,18 +111,23 @@ UHoudiniAssetParameterFile::CreateParameter(UHoudiniAssetComponent* InHoudiniAss
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
 		FString ValueString = TEXT("");
-		FHoudiniEngineUtils::GetHoudiniString(StringHandles[Idx], ValueString);
+		FHoudiniEngineString HoudiniEngineString(StringHandles[Idx]);
+		HoudiniEngineString.ToFString(ValueString);
 
 		// Detect and update relative paths.
 		Values[Idx] = UpdateCheckRelativePath(ValueString);
 	}
 
 	// Retrieve filters for this file.
-	if(ParmInfo.typeInfoSH > 0 && FHoudiniEngineUtils::GetHoudiniString(ParmInfo.typeInfoSH, Filters))
+	if(ParmInfo.typeInfoSH > 0)
 	{
-		if(!Filters.IsEmpty())
+		FHoudiniEngineString HoudiniEngineString(ParmInfo.typeInfoSH);
+		if(HoudiniEngineString.ToFString(Filters))
 		{
-			ParameterLabel = FString::Printf(TEXT("%s (%s)"), *ParameterLabel, *Filters);
+			if(!Filters.IsEmpty())
+			{
+				ParameterLabel = FString::Printf(TEXT("%s (%s)"), *ParameterLabel, *Filters);
+			}
 		}
 	}
 
