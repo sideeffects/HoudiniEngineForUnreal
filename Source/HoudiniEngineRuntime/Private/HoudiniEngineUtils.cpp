@@ -1522,9 +1522,9 @@ bool
 FHoudiniEngineUtils::HapiIsMaterialTransparent(const HAPI_MaterialInfo& MaterialInfo)
 {
 	float Alpha;
-	FHoudiniEngineUtils::HapiGetParameterDataAsFloat(MaterialInfo.nodeId, "ogl_alpha", 1.0f, Alpha);
+	FHoudiniEngineUtils::HapiGetParameterDataAsFloat(MaterialInfo.nodeId, HAPI_UNREAL_PARAM_ALPHA, 1.0f, Alpha);
 
-	return Alpha < 0.95f;
+	return Alpha < HAPI_UNREAL_ALPHA_THRESHOLD;
 }
 
 
