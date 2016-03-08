@@ -263,10 +263,6 @@ bool
 UHoudiniAssetComponent::bDisplayEngineHapiVersionMismatch = true;
 
 
-const uint32
-UHoudiniAssetComponent::PersistenceFormatVersion = 1u;
-
-
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	HoudiniAsset(nullptr),
@@ -301,7 +297,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer& ObjectI
 	bWaitingForUpstreamAssetsToInstantiate(false),
 	bParametersChanged(false),
 	bComponentTransformHasChanged(false),
-	bLoadedComponentRequiresInstantiation(false)
+	bLoadedComponentRequiresInstantiation(false),
+	HoudiniAssetComponentVersion(VER_HOUDINI_ENGINE_COMPONENT_BASE)
 {
 	UObject* Object = ObjectInitializer.GetObj();
 	UObject* ObjectOuter = Object->GetOuter();
@@ -2627,8 +2624,8 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 
 	// Serialize format version.
-	uint32 FormatVersion = UHoudiniAssetComponent::PersistenceFormatVersion;
-	Ar << FormatVersion;
+	HoudiniAssetComponentVersion = VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION;
+	Ar << HoudiniAssetComponentVersion;
 
 	// Serialize component state.
 	SerializeEnumeration<EHoudiniAssetComponentState::Enum>(Ar, ComponentState);
@@ -2712,6 +2709,29 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 	// Serialize parameters.
 	Ar << Parameters;
+
+	// Serialize parameters name map.
+	if(HoudiniAssetComponentVersion >= VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP)
+	{
+		Ar << ParameterByName;
+	}
+	else
+	{
+		if(Ar.IsLoading())
+		{
+			ParameterByName.Empty();
+
+			// Otherwise if we are loading an older serialization format, we can reconstruct parameters name map.
+			for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
+			{
+				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+				if(HoudiniAssetParameter)
+				{
+					ParameterByName.Add(HoudiniAssetParameter->GetParameterName(), HoudiniAssetParameter);
+				}
+			}
+		}
+	}
 
 	// Serialize inputs.
 	SerializeInputs(Ar);
@@ -3182,6 +3202,7 @@ UHoudiniAssetComponent::CreateParameters()
 
 	// Map of newly created and reused parameters.
 	TMap<HAPI_ParmId, UHoudiniAssetParameter*> NewParameters;
+	TMap<FString, UHoudiniAssetParameter*> NewParameterByName;
 
 	HAPI_AssetInfo AssetInfo;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo),
@@ -3416,7 +3437,8 @@ UHoudiniAssetComponent::CreateParameters()
 			}
 		}
 
-		// Another pass to notify parameters that all children parameters have been assigned.
+		// Another pass to notify parameters that all children parameters have been assigned and to populate name look
+		// up map for faster querying.
 		for(int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
 		{
 			// Retrieve param info at this index.
@@ -3433,13 +3455,19 @@ UHoudiniAssetComponent::CreateParameters()
 				{
 					HoudiniAssetParameter->NotifyChildParametersCreated();
 				}
+
+				// Add this parameter to parameter name look up map.
+				NewParameterByName.Add(HoudiniAssetParameter->GetParameterName(), HoudiniAssetParameter);
 			}
 		}
 	}
 
 	// Remove all unused parameters.
 	ClearParameters();
+
+	// Update parameters.
 	Parameters = NewParameters;
+	ParameterByName = NewParameterByName;
 
 	return true;
 }
@@ -3756,6 +3784,7 @@ void
 UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent)
 {
 	TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters = DuplicatedHoudiniComponent->Parameters;
+	TMap<FString, UHoudiniAssetParameter*>& InParametersByName = DuplicatedHoudiniComponent->ParameterByName;
 
 	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 	{
@@ -3772,7 +3801,10 @@ UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHo
 			DuplicatedHoudiniAssetParameter->ClearFlags(RF_Standalone);
 
 			DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent(DuplicatedHoudiniComponent);
+
 			InParameters.Add(HoudiniAssetParameterKey, DuplicatedHoudiniAssetParameter);
+			InParametersByName.Add(DuplicatedHoudiniAssetParameter->GetParameterName(),
+				DuplicatedHoudiniAssetParameter);
 		}
 	}
 }
