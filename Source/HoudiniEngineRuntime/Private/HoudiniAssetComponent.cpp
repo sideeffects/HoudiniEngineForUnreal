@@ -43,6 +43,7 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponentMaterials.h"
+#include "HoudiniAssetComponentVersion.h"
 
 
 #if WITH_EDITOR
