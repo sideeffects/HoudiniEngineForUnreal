@@ -202,6 +202,9 @@ public:
 	/** Set id of a Houdini asset. **/
 	void SetAssetId(HAPI_AssetId InAssetId);
 
+	/** Return true if asset id is valid. **/
+	bool HasValidAssetId() const;
+
 	/** Return current referenced Houdini asset. **/
 	UHoudiniAsset* GetHoudiniAsset() const;
 
