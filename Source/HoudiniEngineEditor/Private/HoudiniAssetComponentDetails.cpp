@@ -412,30 +412,6 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets(IDetailCategor
 		.Text(LOCTEXT("BakeHoudiniActor", "Bake All"))
 		.ToolTipText( LOCTEXT("BakeHoudiniActorToolTip", "Bake all generated static meshes"))
 	];
-	/*
-	HorizontalButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding(2.0f, 0.0f)
-	.VAlign(VAlign_Center)
-	.HAlign(HAlign_Center)
-	[
-		SAssignNew(ButtonRecook, SButton)
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.OnClicked(this, &FHoudiniAssetComponentDetails::OnRecookAsset)
-		.Text(LOCTEXT("RecookHoudiniActor", "Recook"))
-		.ToolTipText( LOCTEXT("RecookHoudiniActorToolTip", "Recook Houdini asset"))
-	];
-	if(HoudiniAssetComponents.Num() > 0)
-	{
-		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
-		ButtonRecook->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateUObject(HoudiniAssetComponent, &UHoudiniAssetComponent::IsNotCookingOrInstantiating)));
-	}
-	else
-	{
-		ButtonRecook->SetEnabled(false);
-	}
-	*/
 }
 
 
