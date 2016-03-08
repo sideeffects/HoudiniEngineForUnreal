@@ -147,7 +147,7 @@ UHoudiniAssetParameterInt::CreateWidget(IDetailCategoryBuilder& DetailCategoryBu
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
-	
+
 	// Create the standard parameter name widget.
 	CreateNameWidget(Row, true);
 
@@ -208,6 +208,61 @@ UHoudiniAssetParameterInt::UploadParameterValue()
 	}
 
 	return Super::UploadParameterValue();
+}
+
+
+bool
+UHoudiniAssetParameterInt::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	int32 VariantType = Variant.GetType();
+	int32 VariantValue = 0;
+
+	if(Idx >= 0 && Idx < Values.Num())
+	{
+		return false;
+	}
+
+	switch(VariantType)
+	{
+		case EVariantTypes::Int8:
+		case EVariantTypes::Int16:
+		case EVariantTypes::Int32:
+		case EVariantTypes::Int64:
+		case EVariantTypes::UInt8:
+		case EVariantTypes::UInt16:
+		case EVariantTypes::UInt32:
+		case EVariantTypes::UInt64:
+		{
+			VariantValue = Variant.GetValue<int32>();
+			break;
+		}
+
+		default:
+		{
+			return false;
+		}
+	}
+
+#if WITH_EDITOR
+
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value"),
+			HoudiniAssetComponent);
+
+	Modify();
+
+	if(!bRecordUndo)
+	{
+		Transaction.Cancel();
+	}
+
+#endif
+
+	MarkPreChanged(bTriggerModify);
+	Values[Idx] = VariantValue;
+	MarkChanged(bTriggerModify);
+
+	return true;
 }
 
 
@@ -304,4 +359,3 @@ UHoudiniAssetParameterInt::Serialize(FArchive& Ar)
 	Ar << ValueUIMin;
 	Ar << ValueUIMax;
 }
-

@@ -93,8 +93,8 @@ UHoudiniAssetParameterColor::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 
 	// Get the actual value for this property.
 	Color = FLinearColor::White;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(
-		FHoudiniEngine::Get().GetSession(), InNodeId, (float*)&Color.R, ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), InNodeId,
+		(float*)&Color.R, ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -118,7 +118,7 @@ UHoudiniAssetParameterColor::CreateWidget(IDetailCategoryBuilder& DetailCategory
 	Super::CreateWidget(DetailCategoryBuilder);
 
 	FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
-	
+
 	// Create the standard parameter name widget.
 	CreateNameWidget(Row, true);
 
@@ -155,6 +155,49 @@ UHoudiniAssetParameterColor::UploadParameterValue()
 	}
 
 	return Super::UploadParameterValue();
+}
+
+
+bool
+UHoudiniAssetParameterColor::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	int32 VariantType = Variant.GetType();
+	FLinearColor VariantLinearColor = FLinearColor::White;
+
+	if(EVariantTypes::Color == VariantType)
+	{
+		FColor VariantColor = Variant.GetValue<FColor>();
+		VariantLinearColor = VariantColor.ReinterpretAsLinear();
+	}
+	else if(EVariantTypes::LinearColor == VariantType)
+	{
+		VariantLinearColor = Variant.GetValue<FLinearColor>();
+	}
+	else
+	{
+		return false;
+	}
+
+#if WITH_EDITOR
+
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterColorChange", "Houdini Parameter Color: Changing a value"),
+		HoudiniAssetComponent);
+
+	Modify();
+
+	if(!bRecordUndo)
+	{
+		Transaction.Cancel();
+	}
+
+#endif
+
+	MarkPreChanged(bTriggerModify);
+	Color = VariantLinearColor;
+	MarkChanged(bTriggerModify);
+
+	return true;
 }
 
 
@@ -237,4 +280,3 @@ UHoudiniAssetParameterColor::OnColorPickerClosed(const TSharedRef<SWindow>& Wind
 {
 	bIsColorPickerOpen = false;
 }
-

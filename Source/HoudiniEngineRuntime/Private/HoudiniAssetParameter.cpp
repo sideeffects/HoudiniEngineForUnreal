@@ -213,6 +213,14 @@ UHoudiniAssetParameter::UploadParameterValue()
 
 
 bool
+UHoudiniAssetParameter::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	// Default implementation does nothing.
+	return false;
+}
+
+
+bool
 UHoudiniAssetParameter::HasChanged() const
 {
 	return bChanged;

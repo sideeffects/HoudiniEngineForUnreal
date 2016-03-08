@@ -53,6 +53,10 @@ public:
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue() override;
 
+	/** Set parameter value. **/
+	virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
+		bool bRecordUndo = true) override;
+
 /** UObject methods. **/
 public:
 

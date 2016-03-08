@@ -58,6 +58,7 @@
 
 /** Other Unreal headers. **/
 #include "CoreUObject.h"
+#include "Misc/Variant.h"
 #include "ModuleManager.h"
 #include "EngineModule.h"
 #include "Engine/TextureDefines.h"
@@ -269,6 +270,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_PARAM_PIVOT							"p"
 #define HAPI_UNREAL_PARAM_UNIFORMSCALE					"scale"
 
+#define HAPI_UNREAL_PARAM_FILE							"file"
+
 /** Handle types. **/
 #define HAPI_UNREAL_HANDLE_TRANSFORM					"xform"
 
@@ -446,6 +449,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 /** Unreal HAPI Resources. **/
 #define HAPI_UNREAL_RESOURCE_HOUDINI_LOGO			TEXT("/HoudiniEngine/houdini_logo.houdini_logo")
 #define HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL		TEXT("/HoudiniEngine/houdini_default_material.houdini_default_material")
+#define HAPI_UNREAL_RESOURCE_BGEO_IMPORT			TEXT("/HoudiniEngine/houdini_bgeo_import.houdini_bgeo_import")
 
 /** Helper function to serialize enumerations. **/
 template <typename TEnum>
@@ -499,5 +503,3 @@ struct FHoudiniScopedGlobalTransactionDisable
 #endif
 	}
 };
-
-
