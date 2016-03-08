@@ -17,6 +17,8 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineString.h"
+
 
 HAPI_RSTOrder
 UHoudiniHandleComponent::GetHapiRSTOrder(const TSharedPtr<FString>& StrPtr)
@@ -94,8 +96,9 @@ UHoudiniHandleComponent::Construct(
 	
 	for ( const auto& BindingInfo : BindingInfos )
 	{
-		FString HandleParmName;
-		FHoudiniEngineUtils::GetHoudiniString(BindingInfo.handleParmNameSH, HandleParmName);
+		FString HandleParmName = TEXT("");
+		FHoudiniEngineString HoudiniEngineString(BindingInfo.handleParmNameSH);
+		HoudiniEngineString.ToFString(HandleParmName);
 
 		const HAPI_AssetId AssetParmId = BindingInfo.assetParmId;
 
