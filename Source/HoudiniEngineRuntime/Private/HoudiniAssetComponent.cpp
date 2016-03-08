@@ -497,15 +497,11 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 
 	HoudiniAsset = InHoudiniAsset;
 
-	// Create material tracking.
+	// Reset material tracking.
 	if(HoudiniAssetComponentMaterials)
 	{
-		HoudiniAssetComponentMaterials->ConditionalBeginDestroy();
+		HoudiniAssetComponentMaterials->ResetMaterialInfo();
 	}
-
-	HoudiniAssetComponentMaterials =
-		NewObject<UHoudiniAssetComponentMaterials>(this, UHoudiniAssetComponentMaterials::StaticClass(),
-			NAME_None, RF_Transactional);
 
 	if(!bIsNativeComponent)
 	{
@@ -2379,10 +2375,15 @@ UHoudiniAssetComponent::OnComponentCreated()
 	// This event will only be fired for native Actor and native Component.
 	Super::OnComponentCreated();
 
-	// Create Houdini logo static mesh and component for it (if there are no other meshes).
-	if(!StaticMeshes.Num())
+	// Create Houdini logo static mesh and component for it.
+	CreateStaticMeshHoudiniLogoResource(StaticMeshes);
+
+	// Create replacement material object.
+	if(!HoudiniAssetComponentMaterials)
 	{
-		CreateStaticMeshHoudiniLogoResource(StaticMeshes);
+		HoudiniAssetComponentMaterials =
+			NewObject<UHoudiniAssetComponentMaterials>(this, UHoudiniAssetComponentMaterials::StaticClass(),
+				NAME_None, RF_Transactional);
 	}
 
 #if WITH_EDITOR
