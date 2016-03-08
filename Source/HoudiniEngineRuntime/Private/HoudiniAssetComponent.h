@@ -486,9 +486,6 @@ private:
 	/** This flag is used when Hapi version mismatch is detected (between defined and running versions. **/
 	static bool bDisplayEngineHapiVersionMismatch;
 
-	/** Current version of the plugin. **/
-	static const uint32 PersistenceFormatVersion;
-
 public:
 
 	/** Houdini Asset associated with this component. **/
@@ -499,8 +496,11 @@ protected:
 	/** Previous asset, if it has been changed through transaction. **/
 	UHoudiniAsset* PreviousTransactionHoudiniAsset;
 
-	/** Parameters for this component's asset, indexed by parameter name. **/
+	/** Parameters for this component's asset, indexed by parameter id. **/
 	TMap<HAPI_ParmId, UHoudiniAssetParameter*> Parameters;
+
+	/** Parameters for this component's asset, indexed by name for fast look up. **/
+	TMap<FString, UHoudiniAssetParameter*> ParameterByName;
 
 	/** Inputs for this component's asset. **/
 	TArray<UHoudiniAssetInput*> Inputs;
@@ -660,4 +660,7 @@ protected:
 
 		uint32 HoudiniAssetComponentTransientFlagsPacked;
 	};
+
+	/** Temporary variable holding component serialization version. **/
+	uint32 HoudiniAssetComponentVersion;
 };
