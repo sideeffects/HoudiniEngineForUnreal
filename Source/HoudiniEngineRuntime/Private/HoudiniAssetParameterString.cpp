@@ -19,7 +19,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
-#include "HoudiniEngineString.h"
 
 
 UHoudiniAssetParameterString::UHoudiniAssetParameterString(const FObjectInitializer& ObjectInitializer) :
@@ -90,8 +89,7 @@ UHoudiniAssetParameterString::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	for(int32 Idx = 0; Idx < TupleSize; ++Idx)
 	{
 		FString ValueString = TEXT("");
-		FHoudiniEngineString HoudiniEngineString(StringHandles[Idx]);
-		HoudiniEngineString.ToFString(ValueString);
+		FHoudiniEngineUtils::GetHoudiniString(StringHandles[Idx], ValueString);
 		Values[Idx] = ValueString;
 	}
 
