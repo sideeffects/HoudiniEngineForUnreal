@@ -78,7 +78,7 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 		if(-1 == AssetId)
 		{
 			// If component is not instantiating or cooking, we can set time and force cook.
-			if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+			if(!HoudiniAssetComponent->IsInstantiatingOrCooking())
 			{
 				FHoudiniEngineUtils::SetCurrentTime(0.0f);
 				HoudiniAssetComponent->StartTaskAssetCookingManual();

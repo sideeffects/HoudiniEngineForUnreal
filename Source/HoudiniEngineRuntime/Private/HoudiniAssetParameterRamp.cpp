@@ -15,6 +15,9 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetParameterRamp.h"
+#include "HoudiniAssetParameterColor.h"
+#include "HoudiniAssetParameterChoice.h"
+#include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
 #include "Curves/CurveBase.h"

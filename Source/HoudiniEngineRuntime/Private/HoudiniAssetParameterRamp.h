@@ -20,6 +20,9 @@
 
 class UCurveBase;
 class UHoudiniAssetParameterRamp;
+class UHoudiniAssetParameterFloat;
+class UHoudiniAssetParameterColor;
+class UHoudiniAssetParameterChoice;
 class SHoudiniAssetParameterRampCurveEditor;
 
 
