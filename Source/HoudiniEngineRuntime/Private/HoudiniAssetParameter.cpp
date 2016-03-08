@@ -21,6 +21,7 @@
 #include "HoudiniAssetParameterMultiparm.h"
 #include "HoudiniApi.h"
 #include "HoudiniAssetParameterVersion.h"
+#include "HoudiniEngineString.h"
 
 
 uint32
@@ -390,85 +391,30 @@ UHoudiniAssetParameter::IsVisible(const HAPI_ParmInfo& ParmInfo) const
 bool
 UHoudiniAssetParameter::SetNameAndLabel(const HAPI_ParmInfo& ParmInfo)
 {
-	// If we cannot retrieve name, there's nothing to do.
-	if(!UHoudiniAssetParameter::RetrieveParameterName(ParmInfo, ParameterName))
-	{
-		return false;
-	}
+	FHoudiniEngineString HoudiniEngineStringName(ParmInfo.nameSH);
+	FHoudiniEngineString HoudiniEngineStringLabel(ParmInfo.labelSH);
 
-	// If there's no label, use name for label.
-	if(!UHoudiniAssetParameter::RetrieveParameterLabel(ParmInfo, ParameterLabel))
-	{
-		ParameterLabel = ParameterName;
-	}
+	bool bresult = true;
 
-	return true;
+	bresult |= HoudiniEngineStringName.ToFString(ParameterName);
+	bresult |= HoudiniEngineStringLabel.ToFString(ParameterLabel);
+
+	return bresult;
 }
 
 
 bool
 UHoudiniAssetParameter::SetNameAndLabel(HAPI_StringHandle StringHandle)
 {
-	if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, ParameterName))
-	{
-		ParameterLabel = ParameterName;
-		return true;
-	}
+	FHoudiniEngineString HoudiniEngineString(StringHandle);
 
-	return false;
+	bool bresult = true;
+
+	bresult |= HoudiniEngineString.ToFString(ParameterName);
+	bresult |= HoudiniEngineString.ToFString(ParameterLabel);
+
+	return bresult;
 }
-
-
-bool
-UHoudiniAssetParameter::RetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& RetrievedName)
-{
-	return RetrieveParameterString(ParmInfo.nameSH, RetrievedName);
-}
-
-
-bool
-UHoudiniAssetParameter::RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel)
-{
-	return RetrieveParameterString(ParmInfo.labelSH, RetrievedLabel);
-}
-
-
-bool
-UHoudiniAssetParameter::RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedString)
-{
-	// Retrieve length of this parameter's name.
-	int32 ParmNameLength = 0;
-	HAPI_Result Result = HAPI_RESULT_SUCCESS;
-
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetStringBufLength(FHoudiniEngine::Get().GetSession(), StringHandle,
-		&ParmNameLength))
-	{
-		// We have encountered an error retrieving length of this parameter's name.
-		return false;
-	}
-
-	// If length of name of this parameter is zero, we cannot continue either.
-	if(!ParmNameLength)
-	{
-		return false;
-	}
-
-	// Retrieve name for this parameter.
-	TArray<char> NameBuffer;
-	NameBuffer.SetNumZeroed(ParmNameLength);
-
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetString(FHoudiniEngine::Get().GetSession(), StringHandle, &NameBuffer[0],
-		ParmNameLength))
-	{
-		// We have encountered an error retrieving the name of this parameter.
-		return false;
-	}
-
-	// Convert HAPI string to Unreal string.
-	RetrievedString = UTF8_TO_TCHAR(&NameBuffer[0]);
-	return true;
-}
-
 
 void
 UHoudiniAssetParameter::MarkPreChanged(bool bMarkAndTriggerUpdate)
