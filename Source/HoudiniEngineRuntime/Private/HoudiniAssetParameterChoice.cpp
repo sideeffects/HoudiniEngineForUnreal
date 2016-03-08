@@ -85,8 +85,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		// Assign internal Hapi values index.
 		SetValuesIndex(ParmInfo.intValuesIndex);
 
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(
-			FHoudiniEngine::Get().GetSession(), NodeId, &CurrentValue, ValuesIndex, TupleSize))
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &CurrentValue,
+			ValuesIndex, TupleSize))
 		{
 			return false;
 		}
@@ -100,8 +100,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		SetValuesIndex(ParmInfo.stringValuesIndex);
 
 		HAPI_StringHandle StringHandle;
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(
-			FHoudiniEngine::Get().GetSession(), NodeId, false, &StringHandle, ValuesIndex, TupleSize))
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(), NodeId, false,
+			&StringHandle, ValuesIndex, TupleSize))
 		{
 			return false;
 		}
@@ -116,8 +116,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 	// Get choice descriptors.
 	TArray<HAPI_ParmChoiceInfo> ParmChoices;
 	ParmChoices.SetNumZeroed(ParmInfo.choiceCount);
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmChoiceLists(
-		FHoudiniEngine::Get().GetSession(), NodeId, &ParmChoices[0], ParmInfo.choiceIndex, ParmInfo.choiceCount))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmChoiceLists(FHoudiniEngine::Get().GetSession(), NodeId, &ParmChoices[0],
+		ParmInfo.choiceIndex, ParmInfo.choiceCount))
 	{
 		return false;
 	}
@@ -308,17 +308,107 @@ UHoudiniAssetParameterChoice::UploadParameterValue()
 		// Get corresponding value.
 		FString* ChoiceValue = StringChoiceValues[CurrentValue].Get();
 		std::string String = TCHAR_TO_UTF8(*(*ChoiceValue));
-		FHoudiniApi::SetParmStringValue(
-			FHoudiniEngine::Get().GetSession(), NodeId, String.c_str(), ParmId, 0 );
+		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId, String.c_str(), ParmId, 0);
 	}
 	else
 	{
 		// This is an int choice list.
-		FHoudiniApi::SetParmIntValues(
-			FHoudiniEngine::Get().GetSession(), NodeId, &CurrentValue, ValuesIndex, TupleSize );
+		FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &CurrentValue, ValuesIndex, TupleSize);
 	}
 
 	return Super::UploadParameterValue();
+}
+
+
+bool
+UHoudiniAssetParameterChoice::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	int32 VariantType = Variant.GetType();
+	int32 VariantValue = 0;
+
+	switch(VariantType)
+	{
+		case EVariantTypes::String:
+		{
+			if(bStringChoiceList)
+			{
+				bool bLabelFound = false;
+				const FString& VariantStringValue = Variant.GetValue<FString>();
+
+				// We need to match selection based on label.
+				int32 LabelIdx = 0;
+				for(; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
+				{
+					FString* ChoiceLabel = StringChoiceLabels[LabelIdx].Get();
+
+					if(ChoiceLabel->Equals(VariantStringValue))
+					{
+						VariantValue = LabelIdx;
+						bLabelFound = true;
+						break;
+					}
+				}
+
+				if(!bLabelFound)
+				{
+					return false;
+				}
+			}
+			else
+			{
+				return false;
+			}
+
+			break;
+		}
+
+		case EVariantTypes::Int8:
+		case EVariantTypes::Int16:
+		case EVariantTypes::Int32:
+		case EVariantTypes::Int64:
+		case EVariantTypes::UInt8:
+		case EVariantTypes::UInt16:
+		case EVariantTypes::UInt32:
+		case EVariantTypes::UInt64:
+		{
+			if(CurrentValue >= 0 && CurrentValue < StringChoiceValues.Num())
+			{
+				VariantValue = Variant.GetValue<int32>();
+			}
+			else
+			{
+				return false;
+			}
+
+			break;
+		}
+
+		default:
+		{
+			return false;
+		}
+	}
+
+#if WITH_EDITOR
+
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value"),
+			HoudiniAssetComponent);
+
+	Modify();
+
+	if(!bRecordUndo)
+	{
+		Transaction.Cancel();
+	}
+
+#endif
+
+	MarkPreChanged(bTriggerModify);
+	CurrentValue = VariantValue;
+	MarkChanged(bTriggerModify);
+
+	return false;
 }
 
 

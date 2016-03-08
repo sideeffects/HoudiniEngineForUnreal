@@ -50,6 +50,10 @@ public:
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue() override;
 
+	/** Set parameter value. **/
+	virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
+		bool bRecordUndo = true) override;
+
 /** UObject methods. **/
 public:
 
@@ -62,6 +66,14 @@ protected:
 	void HandleFilePathPickerPathPicked(const FString& PickedPath, int32 Idx);
 
 #endif
+
+public:
+
+	/** Return value of this property with optional fallback. **/
+	const FString& GetParameterValue(int32 Idx, const FString& DefaultValue) const;
+
+	/** Set value of this file property. **/
+	void SetParameterValue(const FString& InValue, int32 Idx, bool bTriggerModify = true, bool bRecordUndo = true);
 
 protected:
 
