@@ -38,6 +38,11 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
+public:
+
+	/** Reset the object. **/
+	void ResetMaterialInfo();
+
 protected:
 
 	/** Material assignments. **/
