@@ -271,6 +271,15 @@ public:
 	/** Remove material replacement. **/
 	void RemoveReplacementMaterial(const FHoudiniGeoPartObject& HoudiniGeoPartObject, const FString& MaterialName);
 
+	/** Collect all Substance parameters. **/
+	void CollectSubstanceParameters(TMap<FString, UHoudiniAssetParameter*>& SubstanceParameters) const;
+
+	/** Collect all parameters of a given type. **/
+	void CollectAllParametersOfType(UClass* ParameterClass, TMap<FString, UHoudiniAssetParameter*>& ClassParameters) const;
+
+	/** Locate parameter by name. **/
+	UHoudiniAssetParameter* FindParameter(const FString& ParameterName) const;
+
 /** UObject methods. **/
 public:
 
@@ -442,9 +451,6 @@ private:
 
 	/** Return true if given object is referenced locally only, by objects generated and owned by this component. **/
 	bool IsObjectReferencedLocally(UStaticMesh* StaticMesh, FReferencerInformationList& Referencers) const;
-
-	/** Collect all Substance parameters. **/
-	void CollectSubstanceParameters(TMap<FString, UHoudiniAssetParameter*>& SubstanceParameters) const;
 
 public:
 
