@@ -24,7 +24,6 @@
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniApi.h"
 #include "HoudiniAssetLogWidget.h"
-#include "HoudiniEngineString.h"
 
 
 uint32
@@ -997,9 +996,8 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp(UHoudiniAssetComponent* HoudiniA
 		{
 			if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
 			{
-				FString HelpLogString = TEXT("");
-				FHoudiniEngineString HoudiniEngineString(AssetInfo.helpTextSH);
-				if(HoudiniEngineString.ToFString(HelpLogString))
+				FString HelpLogString;
+				if(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.helpTextSH, HelpLogString))
 				{
 					TSharedPtr<SWindow> ParentWindow;
 
