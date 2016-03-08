@@ -469,6 +469,13 @@ UHoudiniAssetComponent::SetAssetId(HAPI_AssetId InAssetId)
 }
 
 
+bool
+UHoudiniAssetComponent::HasValidAssetId() const
+{
+	return FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId);
+}
+
+
 UHoudiniAsset*
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {
