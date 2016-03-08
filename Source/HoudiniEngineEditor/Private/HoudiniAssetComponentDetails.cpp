@@ -923,7 +923,7 @@ FHoudiniAssetComponentDetails::OnBakeBlueprint()
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
 
 		// If component is not cooking or instancing, we can bake blueprint.
-		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+		if(!HoudiniAssetComponent->IsInstantiatingOrCooking())
 		{
 			FHoudiniEngineUtils::BakeBlueprint(HoudiniAssetComponent);
 		}
@@ -941,7 +941,7 @@ FHoudiniAssetComponentDetails::OnBakeBlueprintReplace()
 		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetComponents[0];
 
 		// If component is not cooking or instancing, we can bake blueprint.
-		if(HoudiniAssetComponent->IsNotCookingOrInstantiating())
+		if(!HoudiniAssetComponent->IsInstantiatingOrCooking())
 		{
 			FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint(HoudiniAssetComponent);
 		}

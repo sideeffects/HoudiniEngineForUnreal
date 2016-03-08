@@ -922,9 +922,9 @@ UHoudiniAssetComponent::CheckGlobalSettingScaleFactors() const
 #if WITH_EDITOR
 
 bool
-UHoudiniAssetComponent::IsNotCookingOrInstantiating() const
+UHoudiniAssetComponent::IsInstantiatingOrCooking() const
 {
-	return !HapiGUID.IsValid();
+	return HapiGUID.IsValid();
 }
 
 
@@ -1399,7 +1399,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 		}
 	}
 
-	if(IsNotCookingOrInstantiating())
+	if(!IsInstantiatingOrCooking())
 	{
 		if(HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged)
 		{
@@ -1660,7 +1660,7 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool 
 void
 UHoudiniAssetComponent::StartTaskAssetCookingManual()
 {
-	if(IsNotCookingOrInstantiating())
+	if(!IsInstantiatingOrCooking())
 	{
 		if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
 		{
@@ -1683,7 +1683,7 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
 void
 UHoudiniAssetComponent::StartTaskAssetResetManual()
 {
-	if(IsNotCookingOrInstantiating())
+	if(!IsInstantiatingOrCooking())
 	{
 		if(FHoudiniEngineUtils::IsValidAssetId(GetAssetId()))
 		{
@@ -1713,7 +1713,7 @@ UHoudiniAssetComponent::StartTaskAssetResetManual()
 void
 UHoudiniAssetComponent::StartTaskAssetRebuildManual()
 {
-	if(IsNotCookingOrInstantiating())
+	if(!IsInstantiatingOrCooking())
 	{
 		bool bInstantiate = false;
 
@@ -1779,7 +1779,7 @@ UHoudiniAssetComponent::StartTaskAssetDeletion()
 void
 UHoudiniAssetComponent::StartTaskAssetCooking(bool bStartTicking)
 {
-	if(IsNotCookingOrInstantiating())
+	if(!IsInstantiatingOrCooking())
 	{
 		// Generate GUID for our new task.
 		HapiGUID = FGuid::NewGuid();

@@ -38,7 +38,6 @@ FHoudiniEngine::FHoudiniEngine() :
 	HoudiniLogoStaticMesh(nullptr),
 	HoudiniDefaultMaterial(nullptr),
 	HoudiniBgeoAsset(nullptr),
-	HoudiniBgeoAsset(nullptr),
 	HoudiniEngineSchedulerThread(nullptr),
 	HoudiniEngineScheduler(nullptr)
 {
