@@ -75,8 +75,8 @@ UHoudiniAssetParameterToggle::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 
 	// Get the actual value for this property.
 	Values.SetNumZeroed(TupleSize);
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(
-		FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), InNodeId,
+		&Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
@@ -177,13 +177,74 @@ UHoudiniAssetParameterToggle::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
 bool
 UHoudiniAssetParameterToggle::UploadParameterValue()
 {
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(
-		FHoudiniEngine::Get().GetSession(), NodeId, &Values[0], ValuesIndex, TupleSize))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId,
+		&Values[0], ValuesIndex, TupleSize))
 	{
 		return false;
 	}
 
 	return Super::UploadParameterValue();
+}
+
+
+bool
+UHoudiniAssetParameterToggle::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	int32 VariantType = Variant.GetType();
+	int32 VariantValue = 0;
+
+	if(Idx >= 0 && Idx < Values.Num())
+	{
+		return false;
+	}
+
+	switch(VariantType)
+	{
+		case EVariantTypes::Int8:
+		case EVariantTypes::Int16:
+		case EVariantTypes::Int32:
+		case EVariantTypes::Int64:
+		case EVariantTypes::UInt8:
+		case EVariantTypes::UInt16:
+		case EVariantTypes::UInt32:
+		case EVariantTypes::UInt64:
+		{
+			VariantValue = Variant.GetValue<int32>();
+			break;
+		}
+
+		case EVariantTypes::Bool:
+		{
+			VariantValue = (int32) Variant.GetValue<bool>();
+			break;
+		}
+
+		default:
+		{
+			return false;
+		}
+	}
+
+#if WITH_EDITOR
+
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterToggleChange", "Houdini Parameter Toggle: Changing a value"),
+			HoudiniAssetComponent);
+
+	Modify();
+
+	if(!bRecordUndo)
+	{
+		Transaction.Cancel();
+	}
+
+#endif
+
+	MarkPreChanged();
+	Values[Idx] = VariantValue;
+	MarkChanged();
+
+	return true;
 }
 
 

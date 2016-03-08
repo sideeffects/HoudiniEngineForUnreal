@@ -18,6 +18,7 @@
 
 
 class FArchive;
+class FVariant;
 class FReferenceCollector;
 class IDetailCategoryBuilder;
 class UHoudiniAssetComponent;
@@ -66,6 +67,10 @@ public:
 
 	/** Upload parameter value to HAPI. **/
 	virtual bool UploadParameterValue();
+
+	/** Set parameter value. **/
+	virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
+		bool bRecordUndo = true);
 
 	/** Notification from a child parameter about upcoming change. **/
 	virtual void NotifyChildParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter);

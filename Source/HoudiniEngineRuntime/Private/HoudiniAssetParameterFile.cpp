@@ -209,6 +209,47 @@ UHoudiniAssetParameterFile::UploadParameterValue()
 }
 
 
+bool
+UHoudiniAssetParameterFile::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify,
+	bool bRecordUndo)
+{
+	int32 VariantType = Variant.GetType();
+	if(EVariantTypes::String == VariantType)
+	{
+		if(Idx >= 0 && Idx < Values.Num())
+		{
+			FString VariantStringValue = Variant.GetValue<FString>();
+
+#if WITH_EDITOR
+
+			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+				LOCTEXT("HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value"),
+					HoudiniAssetComponent);
+
+			if(!bRecordUndo)
+			{
+				Transaction.Cancel();
+			}
+
+			Modify();
+
+#endif
+
+			// Detect and fix relative paths.
+			VariantStringValue = UpdateCheckRelativePath(VariantStringValue);
+
+			MarkPreChanged(bTriggerModify);
+			Values[Idx] = VariantStringValue;
+			MarkChanged(bTriggerModify);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 #if WITH_EDITOR
 
 void
@@ -269,4 +310,49 @@ UHoudiniAssetParameterFile::ComputeFiletypeFilter(const FString& FilterList) con
 	}
 
 	return FileTypeFilter;
+}
+
+
+const FString&
+UHoudiniAssetParameterFile::GetParameterValue(int32 Idx, const FString& DefaultValue) const
+{
+	if(Idx < Values.Num())
+	{
+		return Values[Idx];
+	}
+
+	return DefaultValue;
+}
+
+
+void
+UHoudiniAssetParameterFile::SetParameterValue(const FString& InValue, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	if(Idx >= Values.Num())
+	{
+		return;
+	}
+
+	if(Values[Idx] != InValue)
+	{
+
+#if WITH_EDITOR
+
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value"),
+				HoudiniAssetComponent);
+
+		Modify();
+
+		if(!bRecordUndo)
+		{
+			Transaction.Cancel();
+		}
+
+#endif
+
+		MarkPreChanged(bTriggerModify);
+		Values[Idx] = InValue;
+		MarkChanged(bTriggerModify);
+	}
 }

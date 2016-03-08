@@ -164,6 +164,46 @@ UHoudiniAssetParameterString::UploadParameterValue()
 }
 
 
+bool
+UHoudiniAssetParameterString::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	int32 VariantType = Variant.GetType();
+
+	if(Idx >= 0 && Idx < Values.Num())
+	{
+		return false;
+	}
+
+	if(EVariantTypes::String == VariantType)
+	{
+		const FString& VariantStringValue = Variant.GetValue<FString>();
+
+#if WITH_EDITOR
+
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value"),
+				HoudiniAssetComponent);
+
+		Modify();
+
+		if(!bRecordUndo)
+		{
+			Transaction.Cancel();
+		}
+
+#endif
+
+		MarkPreChanged();
+		Values[Idx] = VariantStringValue;
+		MarkChanged();
+
+		return true;
+	}
+
+	return false;
+}
+
+
 #if WITH_EDITOR
 
 void

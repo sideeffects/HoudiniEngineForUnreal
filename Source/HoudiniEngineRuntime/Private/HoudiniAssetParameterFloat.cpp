@@ -169,7 +169,7 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 		if(!ParameterName.IsEmpty())
 		{
 			if(ParameterName.Equals(ParameterNameTranslate)
-				|| ParameterName.Equals(ParameterNameScale) 
+				|| ParameterName.Equals(ParameterNameScale)
 				|| ParameterName.Equals(ParameterNamePivot))
 			{
 				ValueUIMin = -1.0f;
@@ -255,6 +255,53 @@ UHoudiniAssetParameterFloat::UploadParameterValue()
 	}
 
 	return Super::UploadParameterValue();
+}
+
+
+bool
+UHoudiniAssetParameterFloat::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	int32 VariantType = Variant.GetType();
+	float VariantValue = 0.0f;
+
+	if(Idx >= 0 && Idx < Values.Num())
+	{
+		return false;
+	}
+
+	if(EVariantTypes::Float == VariantType)
+	{
+		VariantValue = Variant.GetValue<float>();
+	}
+	else if(EVariantTypes::Double == VariantType)
+	{
+		VariantValue = (float) Variant.GetValue<double>();
+	}
+	else
+	{
+		return false;
+	}
+
+#if WITH_EDITOR
+
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
+			HoudiniAssetComponent);
+
+	Modify();
+
+	if(!bRecordUndo)
+	{
+		Transaction.Cancel();
+	}
+
+#endif
+
+	MarkPreChanged(bTriggerModify);
+	Values[Idx] = VariantValue;
+	MarkChanged(bTriggerModify);
+
+	return true;
 }
 
 

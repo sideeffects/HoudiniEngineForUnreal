@@ -80,13 +80,24 @@ bool
 UHoudiniAssetParameterButton::UploadParameterValue()
 {
 	int32 PressValue = 1;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(
-		FHoudiniEngine::Get().GetSession(), NodeId, &PressValue, ValuesIndex, 1))
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId,
+		&PressValue, ValuesIndex, 1))
 	{
 		return false;
 	}
 
 	return Super::UploadParameterValue();
+}
+
+
+bool
+UHoudiniAssetParameterButton::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+{
+	// We don't care about variant values for button. Just trigger the click.
+	MarkPreChanged(bTriggerModify);
+	MarkChanged(bTriggerModify);
+
+	return true;
 }
 
 
