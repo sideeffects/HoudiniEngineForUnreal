@@ -17,6 +17,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineString.h"
 
 
 const uint32
@@ -122,8 +123,8 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask& Task)
 	std::string AssetNameString;
 	double LastUpdateTime;
 
-	// If we have assets, instantiate first one.
-	if(FHoudiniEngineUtils::GetHoudiniString(Task.AssetHapiName, AssetNameString))
+	FHoudiniEngineString HoudiniEngineString(Task.AssetHapiName);
+	if(HoudiniEngineString.ToStdString(AssetNameString))
 	{
 		// Translate asset name into Unreal string.
 		FString AssetName = ANSI_TO_TCHAR(AssetNameString.c_str());

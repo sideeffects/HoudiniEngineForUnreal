@@ -73,12 +73,6 @@ public:
 	/** Destroy asset, returns the status. **/
 	static bool DestroyHoudiniAsset(HAPI_AssetId AssetId);
 
-	/** Return specified string. **/
-	static bool GetHoudiniString(int32 Name, FString& NameString);
-
-	/** HAPI : Get string name for a given handle. **/
-	static bool GetHoudiniString(int32 Name, std::string& NameString);
-
 	/** HAPI : Get unique material SHOP name. **/
 	static bool GetUniqueMaterialShopName(HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString& Name);
 
@@ -241,12 +235,6 @@ public:
 	/** HAPI : Get parameter data as string. **/
 	static bool HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName,
 		const FString& DefaultValue, FString& Value);
-
-	/** HAPI : Retrieve parameter name. **/
-	static bool HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName);
-
-	/** HAPI : Retrieve parameter label. **/
-	static bool HapiRetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& ParameterLabel);
 
 	/** HAPI : Retrieve names of all parameters. **/
 	static void HapiRetrieveParameterNames(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<FString>& Names);
