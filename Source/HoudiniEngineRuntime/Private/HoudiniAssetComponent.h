@@ -157,7 +157,7 @@ public:
 #if WITH_EDITOR
 
 	/** Return true if this component has no cooking or instantiation in progress. **/
-	bool IsNotCookingOrInstantiating() const;
+	bool IsInstantiatingOrCooking() const;
 
 	/** Return true if this component's asset has been instantiated, but not cooked. **/
 	bool HasBeenInstantiatedButNotCooked() const;
