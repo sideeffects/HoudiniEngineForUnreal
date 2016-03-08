@@ -136,11 +136,6 @@ public:
 	/** Helper function to retrieve label name from a given param info structure. Returns false if does not exist. **/
 	static bool RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel);
 
-private:
-
-	/** Helper function to retrieve HAPI string and convert it to Unreal one. **/
-	static bool RetrieveParameterString(HAPI_StringHandle StringHandle, FString& RetrievedName);
-
 /** UObject methods. **/
 public:
 
