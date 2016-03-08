@@ -19,7 +19,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
-#include "HoudiniEngineString.h"
 
 
 UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat(const FObjectInitializer& ObjectInitializer) :
@@ -161,9 +160,8 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
 	{
 		// If we are using defaults, we can detect some most common parameter names and alter defaults.
 
-		FString ParameterName = TEXT("");
-		FHoudiniEngineString HoudiniEngineString(ParmInfo.nameSH);
-		HoudiniEngineString.ToFString(ParameterName);
+		FString ParameterName;
+		FHoudiniEngineUtils::HapiRetrieveParameterName(ParmInfo, ParameterName);
 
 		static const FString ParameterNameTranslate(TEXT(HAPI_UNREAL_PARAM_TRANSLATE));
 		static const FString ParameterNameRotate(TEXT(HAPI_UNREAL_PARAM_ROTATE));
