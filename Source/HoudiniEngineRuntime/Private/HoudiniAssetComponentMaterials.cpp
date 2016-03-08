@@ -71,3 +71,11 @@ UHoudiniAssetComponentMaterials::AddReferencedObjects(UObject* InThis, FReferenc
 	// Call base implementation.
 	Super::AddReferencedObjects(InThis, Collector);
 }
+
+
+void
+UHoudiniAssetComponentMaterials::ResetMaterialInfo()
+{
+	Assignments.Empty();
+	Replacements.Empty();
+}
