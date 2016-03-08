@@ -891,6 +891,38 @@ UHoudiniAssetComponent::CollectSubstanceParameters(TMap<FString, UHoudiniAssetPa
 
 
 void
+UHoudiniAssetComponent::CollectAllParametersOfType(UClass* ParameterClass,
+	TMap<FString, UHoudiniAssetParameter*>& ClassParameters) const
+{
+	ClassParameters.Empty();
+
+	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TConstIterator IterParams(Parameters); IterParams; ++IterParams)
+	{
+		UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
+		if(HoudiniAssetParameter && HoudiniAssetParameter->IsA(ParameterClass))
+		{
+			ClassParameters.Add(HoudiniAssetParameter->GetParameterName(), HoudiniAssetParameter);
+		}
+	}
+}
+
+
+UHoudiniAssetParameter*
+UHoudiniAssetComponent::FindParameter(const FString& ParameterName) const
+{
+	UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = ParameterByName.Find(ParameterName);
+	UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
+
+	if(FoundHoudiniAssetParameter)
+	{
+		HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+	}
+
+	return HoudiniAssetParameter;
+}
+
+
+void
 UHoudiniAssetComponent::GetAllUsedStaticMeshes(TArray<UStaticMesh*>& UsedStaticMeshes)
 {
 	UsedStaticMeshes.Empty();
@@ -3917,6 +3949,7 @@ UHoudiniAssetComponent::ClearParameters()
 	}
 
 	Parameters.Empty();
+	ParameterByName.Empty();
 }
 
 
