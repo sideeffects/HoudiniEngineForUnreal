@@ -405,18 +405,16 @@ private:
 	void CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>& Instancers);
 
 	/** Duplicate all parameters. Used during copying. **/
-	void DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
-		TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters);
+	void DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent);
 
 	/** Duplicate all handles. Used during copying. **/
 	void DuplicateHandles(UHoudiniAssetComponent* DuplicatedHoudiniComponent);
 
 	/** Duplicate inputs. Used during copying. **/
-	void DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent, TArray<UHoudiniAssetInput*>& InInputs);
+	void DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent);
 
 	/** Duplicate instance inputs. Used during copying. **/
-	void DuplicateInstanceInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
-		TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>& InInstanceInputs);
+	void DuplicateInstanceInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent);
 
 #endif
 

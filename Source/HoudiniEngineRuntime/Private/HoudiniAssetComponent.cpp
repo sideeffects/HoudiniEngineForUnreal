@@ -2068,19 +2068,19 @@ UHoudiniAssetComponent::OnAssetPostImport(UFactory* Factory, UObject* Object)
 		// Copy parameters.
 		{
 			ClearParameters();
-			CopiedHoudiniComponent->DuplicateParameters(this, Parameters);
+			CopiedHoudiniComponent->DuplicateParameters(this);
 		}
 
 		// Copy inputs.
 		{
 			ClearInputs();
-			CopiedHoudiniComponent->DuplicateInputs(this, Inputs);
+			CopiedHoudiniComponent->DuplicateInputs(this);
 		}
 
 		// Copy instance inputs.
 		{
 			ClearInstanceInputs();
-			CopiedHoudiniComponent->DuplicateInstanceInputs(this, InstanceInputs);
+			CopiedHoudiniComponent->DuplicateInstanceInputs(this);
 		}
 
 		// We need to reconstruct geometry from copied actor.
@@ -3765,9 +3765,10 @@ UHoudiniAssetComponent::CreateInstanceInputs(const TArray<FHoudiniGeoPartObject>
 
 
 void
-UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
-	TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters)
+UHoudiniAssetComponent::DuplicateParameters(UHoudiniAssetComponent* DuplicatedHoudiniComponent)
 {
+	TMap<HAPI_ParmId, UHoudiniAssetParameter*>& InParameters = DuplicatedHoudiniComponent->Parameters;
+
 	for(TMap<HAPI_ParmId, UHoudiniAssetParameter*>::TIterator IterParams(Parameters); IterParams; ++IterParams)
 	{
 		HAPI_ParmId HoudiniAssetParameterKey = IterParams.Key();
@@ -3809,9 +3810,10 @@ UHoudiniAssetComponent::DuplicateHandles(UHoudiniAssetComponent* SrcAssetCompone
 
 
 void
-UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
-	TArray<UHoudiniAssetInput*>& InInputs)
+UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent)
 {
+	TArray<UHoudiniAssetInput*>& InInputs = DuplicatedHoudiniComponent->Inputs;
+
 	for(int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx)
 	{
 		// Retrieve input at this index.
@@ -3830,9 +3832,10 @@ UHoudiniAssetComponent::DuplicateInputs(UHoudiniAssetComponent* DuplicatedHoudin
 
 
 void
-UHoudiniAssetComponent::DuplicateInstanceInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent,
-	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>& InInstanceInputs)
+UHoudiniAssetComponent::DuplicateInstanceInputs(UHoudiniAssetComponent* DuplicatedHoudiniComponent)
 {
+	TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>& InInstanceInputs = DuplicatedHoudiniComponent->InstanceInputs;
+
 	for(TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput*>::TIterator
 		IterInstanceInputs(InstanceInputs); IterInstanceInputs; ++IterInstanceInputs)
 	{
