@@ -3980,7 +3980,6 @@ UHoudiniAssetComponent::ClearInputs()
 		UHoudiniAssetInput* HoudiniAssetInput = *IterInputs;
 
 		// Destroy connected Houdini asset.
-		//HoudiniAssetInput->DestroyHoudiniAssets();
 		HoudiniAssetInput->ConditionalBeginDestroy();
 	}
 
@@ -3992,8 +3991,7 @@ void
 UHoudiniAssetComponent::ClearDownstreamAssets()
 {
 	for(TMap<UHoudiniAssetComponent*, TSet<int32>>::TIterator IterAssets(DownstreamAssetConnections);
-		IterAssets;
-		++IterAssets)
+		IterAssets; ++IterAssets)
 	{
 		UHoudiniAssetComponent* DownstreamAsset = IterAssets.Key();
 		TSet<int32>& LocalInputIndicies = IterAssets.Value();

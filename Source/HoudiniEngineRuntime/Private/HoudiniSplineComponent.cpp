@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniSplineComponent.h"
+#include "HoudiniAssetInput.h"
 #include "HoudiniApi.h"
 
 

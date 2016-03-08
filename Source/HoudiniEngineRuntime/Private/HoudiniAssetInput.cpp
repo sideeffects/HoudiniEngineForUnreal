@@ -21,6 +21,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
 #include "HoudiniAssetParameterVersion.h"
+#include "HoudiniEngineString.h"
 
 
 UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :
@@ -1570,16 +1571,17 @@ UHoudiniAssetInput::UpdateInputCurve()
 			}
 
 			FString ParameterName;
-			if(!UHoudiniAssetParameter::RetrieveParameterName(ParmInfo, ParameterName))
+			FHoudiniEngineString HoudiniEngineString(ParmInfo.nameSH);
+			if(!HoudiniEngineString.ToFString(ParameterName))
 			{
 				// We had trouble retrieving name of this parameter, skip it.
 				continue;
 			}
 
 			// See if it's one of parameters we are interested in.
-			if(!ParameterName.Equals(TEXT("method")) &&
-			   !ParameterName.Equals(TEXT("type")) &&
-			   !ParameterName.Equals(TEXT("close")))
+			if(!ParameterName.Equals(TEXT(HAPI_UNREAL_PARAM_CURVE_METHOD)) &&
+				!ParameterName.Equals(TEXT(HAPI_UNREAL_PARAM_CURVE_TYPE)) &&
+				!ParameterName.Equals(TEXT(HAPI_UNREAL_PARAM_CURVE_CLOSED)))
 			{
 				// Not parameter we are interested in.
 				continue;
