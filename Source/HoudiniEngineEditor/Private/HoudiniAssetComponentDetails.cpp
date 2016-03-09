@@ -99,7 +99,6 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				.Font(LargeDetailsFont)
 				.Justification(ETextJustify::Center)
 				.ColorAndOpacity(LabelColor)
-				//.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
 			];
 
 			DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
