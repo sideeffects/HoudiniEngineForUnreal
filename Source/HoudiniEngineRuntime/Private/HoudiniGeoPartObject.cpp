@@ -373,27 +373,6 @@ FHoudiniGeoPartObject::CompareNames(const FHoudiniGeoPartObject& HoudiniGeoPartO
 }
 
 
-HAPI_NodeId
-FHoudiniGeoPartObject::GetNodeId() const
-{
-	return GetNodeId(AssetId);
-}
-
-
-HAPI_NodeId
-FHoudiniGeoPartObject::GetNodeId(HAPI_AssetId InAssetId) const
-{
-	HAPI_NodeId NodeId = -1;
-
-	if(IsValid())
-	{
-		FHoudiniEngineUtils::HapiGetNodeId(InAssetId, ObjectId, GeoId, NodeId);
-	}
-
-	return NodeId;
-}
-
-
 bool
 FHoudiniGeoPartObject::HasParameters() const
 {
@@ -404,14 +383,14 @@ FHoudiniGeoPartObject::HasParameters() const
 bool
 FHoudiniGeoPartObject::HasParameters(HAPI_AssetId InAssetId) const
 {
-	HAPI_NodeId NodeId = GetNodeId(InAssetId);
+	HAPI_NodeId NodeId = HapiGeoGetNodeId(InAssetId);
 	if(-1 == NodeId)
 	{
 		return false;
 	}
 
 	HAPI_NodeInfo NodeInfo;
-	FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
+	FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo);
 
 	return (NodeInfo.parmCount > 0);
 }
