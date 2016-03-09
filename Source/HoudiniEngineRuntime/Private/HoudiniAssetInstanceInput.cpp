@@ -125,8 +125,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 {
 	// Retrieve instance transforms (for each point).
 	TArray<FTransform> AllTransforms;
-	FHoudiniEngineUtils::HapiGetInstanceTransforms(HoudiniAssetComponent->GetAssetId(), HoudiniGeoPartObject.ObjectId,
-		HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, AllTransforms);
+	HoudiniGeoPartObject.HapiGetInstanceTransforms(HoudiniAssetComponent->GetAssetId(), AllTransforms);
 
 	// List of new fields. Reused input fields will also be placed here.
 	TArray<UHoudiniAssetInstanceInputField*> NewInstanceInputFields;
