@@ -289,6 +289,14 @@ FHoudiniGeoPartObject::GetObjectId() const
 }
 
 
+HAPI_GeoId
+FHoudiniGeoPartObject::GetGeoId() const
+{
+	return GeoId;
+}
+
+
+
 bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
@@ -457,12 +465,12 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(const char* AttributeName, HA
 
 
 HAPI_ObjectId
-FHoudiniGeoPartObject::HapiGetObjectToInstanceId() const
+FHoudiniGeoPartObject::HapiObjectGetToInstanceId() const
 {
 	HAPI_ObjectId ObjectToInstance = -1;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		ObjectToInstance = ObjectInfo.objectToInstanceId;
 	}
@@ -472,14 +480,14 @@ FHoudiniGeoPartObject::HapiGetObjectToInstanceId() const
 
 
 bool
-FHoudiniGeoPartObject::HapiGetObjectInfo(HAPI_ObjectInfo& ObjectInfo) const
+FHoudiniGeoPartObject::HapiObjectGetInfo(HAPI_ObjectInfo& ObjectInfo) const
 {
-	return HapiGetObjectInfo(AssetId, ObjectInfo);
+	return HapiObjectGetInfo(AssetId, ObjectInfo);
 }
 
 
 bool
-FHoudiniGeoPartObject::HapiGetObjectInfo(HAPI_AssetId OtherAssetId, HAPI_ObjectInfo& ObjectInfo) const
+FHoudiniGeoPartObject::HapiObjectGetInfo(HAPI_AssetId OtherAssetId, HAPI_ObjectInfo& ObjectInfo) const
 {
 	FMemory::Memset<HAPI_ObjectInfo>(ObjectInfo, 0);
 
@@ -494,12 +502,12 @@ FHoudiniGeoPartObject::HapiGetObjectInfo(HAPI_AssetId OtherAssetId, HAPI_ObjectI
 
 
 FHoudiniEngineString
-FHoudiniGeoPartObject::HapiGetObjectName() const
+FHoudiniGeoPartObject::HapiObjectGetName() const
 {
 	HAPI_StringHandle StringHandle = -1;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		StringHandle = ObjectInfo.nameSH;
 	}
@@ -509,12 +517,12 @@ FHoudiniGeoPartObject::HapiGetObjectName() const
 
 
 FHoudiniEngineString
-FHoudiniGeoPartObject::HapiGetObjectInstancePath() const
+FHoudiniGeoPartObject::HapiObjectGetInstancePath() const
 {
 	HAPI_StringHandle StringHandle = -1;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		StringHandle = ObjectInfo.objectInstancePathSH;
 	}
@@ -524,12 +532,12 @@ FHoudiniGeoPartObject::HapiGetObjectInstancePath() const
 
 
 bool
-FHoudiniGeoPartObject::HapiIsObjectVisible() const
+FHoudiniGeoPartObject::HapiObjectIsVisible() const
 {
 	bool bIsObjectVisible = false;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		bIsObjectVisible = ObjectInfo.isVisible;
 	}
@@ -539,12 +547,12 @@ FHoudiniGeoPartObject::HapiIsObjectVisible() const
 
 
 bool
-FHoudiniGeoPartObject::HapiIsObjectInstancer() const
+FHoudiniGeoPartObject::HapiObjectIsInstancer() const
 {
 	bool bIsObjectInstancer = false;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		bIsObjectInstancer = ObjectInfo.isInstancer;
 	}
@@ -554,12 +562,12 @@ FHoudiniGeoPartObject::HapiIsObjectInstancer() const
 
 
 bool
-FHoudiniGeoPartObject::HapiHasObjectTransformChanged() const
+FHoudiniGeoPartObject::HapiObjectHasTransformChanged() const
 {
 	bool bObjectTransformHasChanged = false;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		bObjectTransformHasChanged = ObjectInfo.hasTransformChanged;
 	}
@@ -569,12 +577,12 @@ FHoudiniGeoPartObject::HapiHasObjectTransformChanged() const
 
 
 bool
-FHoudiniGeoPartObject::HapiHaveObjectGeosChanged() const
+FHoudiniGeoPartObject::HapiObjectHaveGeosChanged() const
 {
 	bool bGeosChanged = false;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		bGeosChanged = ObjectInfo.haveGeosChanged;
 	}
@@ -584,12 +592,12 @@ FHoudiniGeoPartObject::HapiHaveObjectGeosChanged() const
 
 
 int32
-FHoudiniGeoPartObject::HapiGetObjectGeoCount() const
+FHoudiniGeoPartObject::HapiObjectGetGeoCount() const
 {
 	int32 GeoCount = 0;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		GeoCount = ObjectInfo.geoCount;
 	}
@@ -599,12 +607,12 @@ FHoudiniGeoPartObject::HapiGetObjectGeoCount() const
 
 
 HAPI_NodeId
-FHoudiniGeoPartObject::HapiGetObjectNodeId() const
+FHoudiniGeoPartObject::HapiObjectGetNodeId() const
 {
 	int32 GeoCount = 0;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(ObjectInfo))
+	if(HapiObjectGetInfo(ObjectInfo))
 	{
 		GeoCount = ObjectInfo.geoCount;
 	}
@@ -614,16 +622,15 @@ FHoudiniGeoPartObject::HapiGetObjectNodeId() const
 
 
 HAPI_NodeId
-FHoudiniGeoPartObject::HapiGetObjectNodeId(HAPI_AssetId OtherAssetId) const
+FHoudiniGeoPartObject::HapiObjectGetNodeId(HAPI_AssetId OtherAssetId) const
 {
 	HAPI_NodeId NodeId = -1;
 	HAPI_ObjectInfo ObjectInfo;
 
-	if(HapiGetObjectInfo(OtherAssetId, ObjectInfo))
+	if(HapiObjectGetInfo(OtherAssetId, ObjectInfo))
 	{
 		NodeId = ObjectInfo.nodeId;
 	}
 
 	return NodeId;
 }
-

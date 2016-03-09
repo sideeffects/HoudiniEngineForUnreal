@@ -97,45 +97,88 @@ public:
 	/** Return object id. **/
 	HAPI_ObjectId GetObjectId() const;
 
-/** HAPI: Object related getters. **/
-public:
+	/** Return geo id. **/
+	HAPI_GeoId GetGeoId() const;
 
-	/** HAPI: Retrieve corresponding object info structure. **/
-	bool HapiGetObjectInfo(HAPI_ObjectInfo& ObjectInfo) const;
-	bool HapiGetObjectInfo(HAPI_AssetId OtherAssetId, HAPI_ObjectInfo& ObjectInfo) const;
+/** HAPI: Other helpers. **/
+public:
 
 	/** HAPI: Return true if given attribute exists. **/
 	bool HapiCheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 
+/** HAPI: Object related getters. **/
+public:
+
+	/** HAPI: Retrieve corresponding object info structure. **/
+	bool HapiObjectGetInfo(HAPI_ObjectInfo& ObjectInfo) const;
+	bool HapiObjectGetInfo(HAPI_AssetId OtherAssetId, HAPI_ObjectInfo& ObjectInfo) const;
+
 	/** HAPI: If this is an instancer, return id of instanced object. Return -1 if no such object is found. **/
-	HAPI_ObjectId HapiGetObjectToInstanceId() const;
+	HAPI_ObjectId HapiObjectGetToInstanceId() const;
 
 	/** HAPI: Return object name. **/
-	FHoudiniEngineString HapiGetObjectName() const;
+	FHoudiniEngineString HapiObjectGetName() const;
 
 	/** HAPI: Return object instance path. **/
-	FHoudiniEngineString HapiGetObjectInstancePath() const;
+	FHoudiniEngineString HapiObjectGetInstancePath() const;
 
 	/** HAPI: Return true if object is visible. **/
-	bool HapiIsObjectVisible() const;
+	bool HapiObjectIsVisible() const;
 
 	/** HAPI: Return true if object is an instancer. **/
-	bool HapiIsObjectInstancer() const;
+	bool HapiObjectIsInstancer() const;
 
 	/** HAPI: Return true if object transform has changed. **/
-	bool HapiHasObjectTransformChanged() const;
+	bool HapiObjectHasTransformChanged() const;
 
 	/** HAPI: Return true if any of the underlying geos have changed. **/
-	bool HapiHaveObjectGeosChanged() const;
+	bool HapiObjectHaveGeosChanged() const;
 
 	/** HAPI: Get number of geos. **/
-	int32 HapiGetObjectGeoCount() const;
+	int32 HapiObjectGetGeoCount() const;
 
-	/** HAPI: Get associated Node id. **/
-	HAPI_NodeId HapiGetObjectNodeId() const;
-	HAPI_NodeId HapiGetObjectNodeId(HAPI_AssetId OtherAssetId) const;
+	/** HAPI: Get associated node id. This corresponds to id of an obj node. **/
+	HAPI_NodeId HapiObjectGetNodeId() const;
+	HAPI_NodeId HapiObjectGetNodeId(HAPI_AssetId OtherAssetId) const;
+
+/** HAPI: Geo related getters. **/
+public:
+
+	/** HAPI: Return geo type. **/
+	HAPI_GeoType HapiGeoGetType() const;
+
+	/** HAPI: Return name of this geo. **/
+	FHoudiniEngineString HapiGeoGetName() const;
+
+	/** HAPI: Return geo node id. This corresponds to id of a sop node. **/
+	HAPI_NodeId HapiGeoGetNodeId() const;
+	HAPI_NodeId HapiGeoGetNodeId(HAPI_AssetId OtherAssetId) const;
+
+	/** HAPI: Return true if this geo is editable. **/
+	bool HapiGeoIsEditable() const;
+
+	/** HAPI: Return true if this geo is templated. **/
+	bool HapiGeoIsTemplated() const;
+
+	/** HAPI: Return true if this is a display sop geo. **/
+	bool HapiGeoIsDisplayGeo() const;
+
+	/** HAPI: Return true if geo has changed. **/
+	bool HapiGeoHasChanged() const;
+
+	/** HAPI: Return true if material on this geo has changed. **/
+	bool HapiGeoHasMaterialChanged() const;
+
+	/** HAPI: Return number of point groups. **/
+	int32 HapiGeoGetPointGroupCount() const;
+
+	/** HAPI: Return number of primitive groups. **/
+	int32 HapiGeoGetPrimitiveGroupCount() const;
+
+	/** HAPI: Return number of parts within this geo. **/
+	int32 HapiGeoGetPartCount() const;
 
 public:
 

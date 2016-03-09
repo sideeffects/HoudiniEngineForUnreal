@@ -49,7 +49,7 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 		MarshallingAttributeInstanceOverride);
 
 	// Get object to be instanced.
-	HAPI_ObjectId ObjectToInstance = InHoudiniGeoPartObject.HapiGetObjectToInstanceId();
+	HAPI_ObjectId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
 	// If this is an attribute instancer, see if attribute exists.
 	bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(HAPI_UNREAL_ATTRIB_INSTANCE,
