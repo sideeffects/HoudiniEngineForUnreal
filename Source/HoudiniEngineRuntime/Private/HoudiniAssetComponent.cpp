@@ -3117,7 +3117,7 @@ UHoudiniAssetComponent::CreateCurves(const TArray<FHoudiniGeoPartObject>& FoundC
 		const FHoudiniGeoPartObject& HoudiniGeoPartObject = *Iter;
 
 		// Retrieve node id from geo part.
-		HAPI_NodeId NodeId = HoudiniGeoPartObject.GetNodeId(AssetId);
+		HAPI_NodeId NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(AssetId);
 		if(-1 == NodeId)
 		{
 			// Invalid node id.
