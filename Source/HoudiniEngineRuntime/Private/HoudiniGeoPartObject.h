@@ -146,6 +146,10 @@ public:
 /** HAPI: Geo related getters. **/
 public:
 
+	/** HAPI: Retrieve corresponding geo info structure. **/
+	bool HapiGeoGetInfo(HAPI_GeoInfo& GeoInfo) const;
+	bool HapiGeoGetInfo(HAPI_AssetId OtherAssetId, HAPI_GeoInfo& GeoInfo) const;
+
 	/** HAPI: Return geo type. **/
 	HAPI_GeoType HapiGeoGetType() const;
 
