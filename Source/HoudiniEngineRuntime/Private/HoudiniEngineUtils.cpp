@@ -208,6 +208,21 @@ FHoudiniEngineUtils::GetLicenseType(FString& LicenseType)
 
 
 bool
+FHoudiniEngineUtils::IsLicenseHoudiniEngineIndie()
+{
+	HAPI_License LicenseTypeValue = HAPI_LICENSE_NONE;
+
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetSessionEnvInt(FHoudiniEngine::Get().GetSession(),
+		HAPI_SESSIONENVINT_LICENSE, (int32*) &LicenseTypeValue))
+	{
+		return HAPI_LICENSE_HOUDINI_ENGINE_INDIE == LicenseTypeValue;
+	}
+
+	return false;
+}
+
+
+bool
 FHoudiniEngineUtils::ComputeAssetPresetBufferLength(HAPI_AssetId AssetId, int32& OutBufferLength)
 {
 	HAPI_AssetInfo AssetInfo;

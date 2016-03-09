@@ -92,6 +92,7 @@ UHoudiniAssetParameterLabel::CreateWidget(IDetailCategoryBuilder& DetailCategory
 		.ToolTipText(ParameterLabelText)
 		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
+		.Justification(ETextJustify::Center)
 	];
 
 	if(TextBlock.IsValid())

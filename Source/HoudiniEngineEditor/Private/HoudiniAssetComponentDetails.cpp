@@ -79,6 +79,41 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	{
 		IDetailCategoryBuilder& DetailCategoryBuilder =
 			DetailBuilder.EditCategory("HoudiniParameters", FText::GetEmpty(), ECategoryPriority::Important);
+
+		// If we are running Houdini Engine Indie license, we need to display special label.
+		if(FHoudiniEngineUtils::IsLicenseHoudiniEngineIndie())
+		{
+			FText ParameterLabelText =
+				FText::FromString(TEXT("Houdini Engine Indie - For Limited Commercial Use Only"));
+
+			FSlateFontInfo LargeDetailsFont = IDetailLayoutBuilder::GetDetailFontBold();
+			LargeDetailsFont.Size += 2;
+
+			FSlateColor LabelColor = FLinearColor(1.0f, 1.0f, 0.0f, 1.0f);
+
+			DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+			[
+				SNew(STextBlock)
+				.Text(ParameterLabelText)
+				.ToolTipText(ParameterLabelText)
+				.Font(LargeDetailsFont)
+				.Justification(ETextJustify::Center)
+				.ColorAndOpacity(LabelColor)
+				//.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
+			];
+
+			DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.Padding(0, 0, 5, 0)
+				[
+					SNew(SSeparator)
+					.Thickness(2.0f)
+				]
+			];
+		}
+
 		for(TArray<UHoudiniAssetComponent*>::TIterator
 			IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
 		{
@@ -89,7 +124,8 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
 
 				// We want to create root parameters here; they will recursively create child parameters.
-				if(HoudiniAssetParameter && !HoudiniAssetParameter->IsChildParameter() && !HoudiniAssetParameter->IsPendingKill())
+				if(HoudiniAssetParameter && !HoudiniAssetParameter->IsChildParameter() &&
+					!HoudiniAssetParameter->IsPendingKill())
 				{
 					HoudiniAssetParameter->CreateWidget(DetailCategoryBuilder);
 				}
