@@ -415,3 +415,35 @@ FHoudiniGeoPartObject::SetCustomName(const FString& CustomName)
 	PartName = CustomName;
 	bHasCustomName = true;
 }
+
+
+bool
+FHoudiniGeoPartObject::CheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const
+{
+	std::string AttributeNameRaw = "";
+	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
+
+	return CheckAttributeExistance(AttributeNameRaw, AttributeOwner);
+}
+
+
+bool
+FHoudiniGeoPartObject::CheckAttributeExistance(const std::string& AttributeName,
+	HAPI_AttributeOwner AttributeOwner) const
+{
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, AttributeName.c_str(),
+		AttributeOwner);
+}
+
+
+bool
+FHoudiniGeoPartObject::CheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const
+{
+	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId) || !IsValid())
+	{
+		return false;
+	}
+
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, AttributeName,
+		AttributeOwner);
+}
