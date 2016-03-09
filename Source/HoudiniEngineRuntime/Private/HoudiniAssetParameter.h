@@ -154,6 +154,9 @@ protected:
 	/** Set name and label to be same value from string handle. **/
 	bool SetNameAndLabel(HAPI_StringHandle StringHandle);
 
+	/** Set name and label. **/
+	bool SetNameAndLabel(const FString& Name);
+
 	/** Check if parameter is visible. **/
 	bool IsVisible(const HAPI_ParmInfo& ParmInfo) const;
 
