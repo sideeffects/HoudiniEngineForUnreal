@@ -1003,7 +1003,7 @@ FHoudiniGeoPartObject::HapiPartGetInfo(HAPI_AssetId OtherAssetId, HAPI_PartInfo&
 {
 	FMemory::Memset<HAPI_PartInfo>(PartInfo, 0);
 
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), OtherAssetId, ObjectId,
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), OtherAssetId, ObjectId,
 		GeoId, PartId, &PartInfo))
 	{
 		return true;
