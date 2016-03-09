@@ -95,11 +95,10 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				[
 					SNew(STextBlock)
 					.Text(ParameterLabelText)
-				.ToolTipText(ParameterLabelText)
-				.Font(LargeDetailsFont)
-				.Justification(ETextJustify::Center)
-				.ColorAndOpacity(LabelColor)
-				//.WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
+					.ToolTipText(ParameterLabelText)
+					.Font(LargeDetailsFont)
+					.Justification(ETextJustify::Center)
+					.ColorAndOpacity(LabelColor)
 				];
 
 			DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
