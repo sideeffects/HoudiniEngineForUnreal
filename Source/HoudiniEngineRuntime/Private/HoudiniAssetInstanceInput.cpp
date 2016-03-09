@@ -19,6 +19,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineString.h"
 
 
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput(const FObjectInitializer& ObjectInitializer) :
@@ -46,23 +47,20 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 	UHoudiniRuntimeSettings::GetSettingsValue(TEXT("MarshallingAttributeInstanceOverride"),
 		MarshallingAttributeInstanceOverride);
 
-	HAPI_ObjectInfo ObjectInfo;
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(),
-		InHoudiniAssetComponent->GetAssetId(), &ObjectInfo, InHoudiniGeoPartObject.ObjectId, 1))
-	{
-		return HoudiniAssetInstanceInput;
-	}
+	// Get object to be instanced.
+	HAPI_ObjectId ObjectToInstance = InHoudiniGeoPartObject.HapiGetObjectToInstanceId();
 
 	// If this is an attribute instancer, see if attribute exists.
-	bool bAttributeCheck = InHoudiniGeoPartObject.CheckAttributeExistance(HAPI_UNREAL_ATTRIB_INSTANCE,
+	bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(HAPI_UNREAL_ATTRIB_INSTANCE,
 		HAPI_ATTROWNER_POINT);
 
 	// Check if this is an attribute override instancer.
 	bool bAttributeOverrideCheck =
-		InHoudiniGeoPartObject.CheckAttributeExistance(MarshallingAttributeInstanceOverride, HAPI_ATTROWNER_DETAIL);
+		InHoudiniGeoPartObject.HapiCheckAttributeExistance(MarshallingAttributeInstanceOverride,
+			HAPI_ATTROWNER_DETAIL);
 
 	// This is invalid combination, no object to instance and input is not an attribute instancer.
-	if(!bAttributeCheck && -1 == ObjectInfo.objectToInstanceId)
+	if(!bAttributeCheck && -1 == ObjectToInstance)
 	{
 		return HoudiniAssetInstanceInput;
 	}
@@ -71,9 +69,9 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 		UHoudiniAssetInstanceInput::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
 	HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
-	HoudiniAssetInstanceInput->SetNameAndLabel(ObjectInfo.nameSH);
 	HoudiniAssetInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
-	HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectInfo.objectToInstanceId;
+	HoudiniAssetInstanceInput->SetNameAndLabel(InHoudiniGeoPartObject.ObjectName);
+	HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectToInstance;
 
 	// Check if this instancer is an attribute instancer and if it is, mark it as such.
 	HoudiniAssetInstanceInput->bIsAttributeInstancer = bAttributeCheck;

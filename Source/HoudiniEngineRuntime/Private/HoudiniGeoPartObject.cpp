@@ -17,6 +17,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
 #include "HoudiniGeoPartObjectVersion.h"
+#include "HoudiniEngineString.h"
 
 
 uint32
@@ -417,17 +418,17 @@ FHoudiniGeoPartObject::SetCustomName(const FString& CustomName)
 
 
 bool
-FHoudiniGeoPartObject::CheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const
+FHoudiniGeoPartObject::HapiCheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const
 {
 	std::string AttributeNameRaw = "";
 	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
 
-	return CheckAttributeExistance(AttributeNameRaw, AttributeOwner);
+	return HapiCheckAttributeExistance(AttributeNameRaw, AttributeOwner);
 }
 
 
 bool
-FHoudiniGeoPartObject::CheckAttributeExistance(const std::string& AttributeName,
+FHoudiniGeoPartObject::HapiCheckAttributeExistance(const std::string& AttributeName,
 	HAPI_AttributeOwner AttributeOwner) const
 {
 	return FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, AttributeName.c_str(),
@@ -436,7 +437,7 @@ FHoudiniGeoPartObject::CheckAttributeExistance(const std::string& AttributeName,
 
 
 bool
-FHoudiniGeoPartObject::CheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const
+FHoudiniGeoPartObject::HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const
 {
 	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId) || !IsValid())
 	{
@@ -445,4 +446,64 @@ FHoudiniGeoPartObject::CheckAttributeExistance(const char* AttributeName, HAPI_A
 
 	return FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, AttributeName,
 		AttributeOwner);
+}
+
+
+HAPI_ObjectId
+FHoudiniGeoPartObject::HapiGetObjectToInstanceId() const
+{
+	HAPI_ObjectId ObjectToInstance = -1;
+	HAPI_ObjectInfo ObjectInfo;
+
+	if(HapiGetObjectInfo(ObjectInfo))
+	{
+		ObjectToInstance = ObjectInfo.objectToInstanceId;
+	}
+
+	return ObjectToInstance;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetObjectInfo(HAPI_ObjectInfo& ObjectInfo) const
+{
+	FMemory::Memset<HAPI_ObjectInfo>(ObjectInfo, 0);
+
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(),
+		AssetId, &ObjectInfo, ObjectId, 1))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+FHoudiniEngineString
+FHoudiniGeoPartObject::HapiGetObjectName() const
+{
+	HAPI_StringHandle StringHandle = -1;
+	HAPI_ObjectInfo ObjectInfo;
+
+	if(HapiGetObjectInfo(ObjectInfo))
+	{
+		StringHandle = ObjectInfo.nameSH;
+	}
+
+	return FHoudiniEngineString(StringHandle);
+}
+
+
+FHoudiniEngineString
+FHoudiniGeoPartObject::HapiGetObjectInstancePath() const
+{
+	HAPI_StringHandle StringHandle = -1;
+	HAPI_ObjectInfo ObjectInfo;
+
+	if(HapiGetObjectInfo(ObjectInfo))
+	{
+		StringHandle = ObjectInfo.objectInstancePathSH;
+	}
+
+	return FHoudiniEngineString(StringHandle);
 }
