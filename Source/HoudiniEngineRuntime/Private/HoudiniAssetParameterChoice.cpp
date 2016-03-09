@@ -19,6 +19,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineString.h"
 
 
 UHoudiniAssetParameterChoice::UHoudiniAssetParameterChoice(const FObjectInitializer& ObjectInitializer) :
@@ -107,7 +108,8 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		}
 
 		// Get the actual string value.
-		if(!FHoudiniEngineUtils::GetHoudiniString(StringHandle, StringValue))
+		FHoudiniEngineString HoudiniEngineString(StringHandle);
+		if(!HoudiniEngineString.ToFString(StringValue))
 		{
 			return false;
 		}
@@ -132,19 +134,25 @@ UHoudiniAssetParameterChoice::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 		FString* ChoiceValue = new FString();
 		FString* ChoiceLabel = new FString();
 
-		if(!FHoudiniEngineUtils::GetHoudiniString(ParmChoices[ChoiceIdx].valueSH, *ChoiceValue))
 		{
-			return false;
+			FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].valueSH);
+			if(!HoudiniEngineString.ToFString(*ChoiceValue))
+			{
+				return false;
+			}
+
+			StringChoiceValues.Add(TSharedPtr<FString>(ChoiceValue));
 		}
 
-		StringChoiceValues.Add(TSharedPtr<FString>(ChoiceValue));
-
-		if(!FHoudiniEngineUtils::GetHoudiniString(ParmChoices[ChoiceIdx].labelSH, *ChoiceLabel))
 		{
-			*ChoiceLabel = *ChoiceValue;
-		}
+			FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].labelSH);
+			if(!HoudiniEngineString.ToFString(*ChoiceLabel))
+			{
+				return false;
+			}
 
-		StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+			StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+		}
 
 		// If this is a string choice list, we need to match name with corresponding selection label.
 		if(bStringChoiceList && !bMatchedSelectionLabel && ChoiceValue->Equals(StringValue))
