@@ -18,6 +18,9 @@
 
 class FArchive;
 struct FTransform;
+struct HAPI_ObjectInfo;
+class FHoudiniEngineString;
+
 
 struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 {
@@ -91,10 +94,23 @@ public:
 
 public:
 
+	/** HAPI: Retrieve corresponding object info structure. **/
+	bool HapiGetObjectInfo(HAPI_ObjectInfo& ObjectInfo) const;
+
 	/** Return true if given attribute exists. **/
-	bool CheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
-	bool CheckAttributeExistance(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
-	bool CheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+	bool HapiCheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+	bool HapiCheckAttributeExistance(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+	bool HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+
+	/** If this is an instancer, return id of the object to be instanced. Return -1 if no such object is found. **/
+	HAPI_ObjectId HapiGetObjectToInstanceId() const;
+
+	/** HAPI: Return object name. **/
+	FHoudiniEngineString HapiGetObjectName() const;
+
+	/** HAPI: Return object instance path. **/
+	FHoudiniEngineString HapiGetObjectInstancePath() const;
+
 
 public:
 

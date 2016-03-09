@@ -416,6 +416,17 @@ UHoudiniAssetParameter::SetNameAndLabel(HAPI_StringHandle StringHandle)
 	return bresult;
 }
 
+
+bool
+UHoudiniAssetParameter::SetNameAndLabel(const FString& Name)
+{
+	ParameterName = Name;
+	ParameterLabel = Name;
+
+	return true;
+}
+
+
 void
 UHoudiniAssetParameter::MarkPreChanged(bool bMarkAndTriggerUpdate)
 {
