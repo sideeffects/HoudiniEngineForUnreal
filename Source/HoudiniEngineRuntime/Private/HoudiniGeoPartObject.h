@@ -112,7 +112,7 @@ public:
 	bool HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 
 	/** HAPI: Get instance transformations. **/
-	bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, TArray<FTransform>& AllTransforms);
+	bool HapiGetInstanceTransforms(HAPI_AssetId OtherAssetId, TArray<FTransform>& AllTransforms);
 	bool HapiGetInstanceTransforms(TArray<FTransform>& AllTransforms);
 
 /** HAPI: Object related getters. **/
@@ -124,27 +124,35 @@ public:
 
 	/** HAPI: If this is an instancer, return id of instanced object. Return -1 if no such object is found. **/
 	HAPI_ObjectId HapiObjectGetToInstanceId() const;
+	HAPI_ObjectId HapiObjectGetToInstanceId(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return object name. **/
 	FHoudiniEngineString HapiObjectGetName() const;
+	FHoudiniEngineString HapiObjectGetName(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return object instance path. **/
 	FHoudiniEngineString HapiObjectGetInstancePath() const;
+	FHoudiniEngineString HapiObjectGetInstancePath(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if object is visible. **/
 	bool HapiObjectIsVisible() const;
+	bool HapiObjectIsVisible(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if object is an instancer. **/
 	bool HapiObjectIsInstancer() const;
+	bool HapiObjectIsInstancer(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if object transform has changed. **/
 	bool HapiObjectHasTransformChanged() const;
+	bool HapiObjectHasTransformChanged(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if any of the underlying geos have changed. **/
 	bool HapiObjectHaveGeosChanged() const;
+	bool HapiObjectHaveGeosChanged(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Get number of geos. **/
 	int32 HapiObjectGetGeoCount() const;
+	int32 HapiObjectGetGeoCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Get associated node id. This corresponds to id of an obj node. **/
 	HAPI_NodeId HapiObjectGetNodeId() const;
@@ -159,9 +167,11 @@ public:
 
 	/** HAPI: Return geo type. **/
 	HAPI_GeoType HapiGeoGetType() const;
+	HAPI_GeoType HapiGeoGetType(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return name of this geo. **/
 	FHoudiniEngineString HapiGeoGetName() const;
+	FHoudiniEngineString HapiGeoGetName(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return geo node id. This corresponds to id of a sop node. **/
 	HAPI_NodeId HapiGeoGetNodeId() const;
@@ -169,27 +179,35 @@ public:
 
 	/** HAPI: Return true if this geo is editable. **/
 	bool HapiGeoIsEditable() const;
+	bool HapiGeoIsEditable(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if this geo is templated. **/
 	bool HapiGeoIsTemplated() const;
+	bool HapiGeoIsTemplated(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if this is a display sop geo. **/
 	bool HapiGeoIsDisplayGeo() const;
+	bool HapiGeoIsDisplayGeo(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if geo has changed. **/
 	bool HapiGeoHasChanged() const;
+	bool HapiGeoHasChanged(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if material on this geo has changed. **/
 	bool HapiGeoHasMaterialChanged() const;
+	bool HapiGeoHasMaterialChanged(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return number of point groups. **/
 	int32 HapiGeoGetPointGroupCount() const;
+	int32 HapiGeoGetPointGroupCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return number of primitive groups. **/
 	int32 HapiGeoGetPrimitiveGroupCount() const;
+	int32 HapiGeoGetPrimitiveGroupCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return number of parts within this geo. **/
 	int32 HapiGeoGetPartCount() const;
+	int32 HapiGeoGetPartCount(HAPI_AssetId OtherAssetId) const;
 
 /** HAPI: Part related getters. **/
 public:
@@ -200,39 +218,51 @@ public:
 
 	/** HAPI: Get name of this part. **/
 	FHoudiniEngineString HapiPartGetName() const;
+	FHoudiniEngineString HapiPartGetName(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return part type. **/
 	HAPI_PartType HapiPartGetType() const;
+	HAPI_PartType HapiPartGetType(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return face count. **/
 	int32 HapiPartGetFaceCount() const;
+	int32 HapiPartGetFaceCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return vertex count. **/
 	int32 HapiPartGetVertexCount() const;
+	int32 HapiPartGetVertexCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return point count. **/
 	int32 HapiPartGetPointCount() const;
+	int32 HapiPartGetPointCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Return true if this part is used by an instancer. **/
 	bool HapiPartIsInstanced() const;
+	bool HapiPartIsInstanced(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Number of parts this instancer part is instancing. **/
 	int32 HapiPartGetInstancedPartCount() const;
+	int32 HapiPartGetInstancedPartCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Number of instances that this instancer part is instancing. **/
 	int32 HapiPartGetInstanceCount() const;
+	int32 HapiPartGetInstanceCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Get number of point attributes. **/
 	int32 HapiPartGetPointAttributeCount() const;
+	int32 HapiPartGetPointAttributeCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Get number of vertex attributes. **/
 	int32 HapiPartGetVertexAttributeCount() const;
+	int32 HapiPartGetVertexAttributeCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Get number of primitive attributes. **/
 	int32 HapiPartGetPrimitiveAttributeCount() const;
+	int32 HapiPartGetPrimitiveAttributeCount(HAPI_AssetId OtherAssetId) const;
 
 	/** HAPI: Get number of detail attributes. **/
 	int32 HapiPartGetDetailAttributeCount() const;
+	int32 HapiPartGetDetailAttributeCount(HAPI_AssetId OtherAssetId) const;
 
 public:
 
