@@ -99,6 +99,9 @@ public:
 	/** Return geo id. **/
 	HAPI_GeoId GetGeoId() const;
 
+	/** Return part id. **/
+	HAPI_PartId GetPartId() const;
+
 /** HAPI: Other helpers. **/
 public:
 
@@ -106,6 +109,10 @@ public:
 	bool HapiCheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+
+	/** HAPI: Get instance transformations. **/
+	bool HapiGetInstanceTransforms(HAPI_AssetId AssetId, TArray<FTransform>& AllTransforms);
+	bool HapiGetInstanceTransforms(TArray<FTransform>& AllTransforms);
 
 /** HAPI: Object related getters. **/
 public:
@@ -182,6 +189,49 @@ public:
 
 	/** HAPI: Return number of parts within this geo. **/
 	int32 HapiGeoGetPartCount() const;
+
+/** HAPI: Part related getters. **/
+public:
+
+	/** HAPI: Retrieve corresponding part info structure. **/
+	bool HapiPartGetInfo(HAPI_PartInfo& PartInfo) const;
+	bool HapiPartGetInfo(HAPI_AssetId OtherAssetId, HAPI_PartInfo& PartInfo) const;
+
+	/** HAPI: Get name of this part. **/
+	FHoudiniEngineString HapiPartGetName() const;
+
+	/** HAPI: Return part type. **/
+	HAPI_PartType HapiPartGetType() const;
+
+	/** HAPI: Return face count. **/
+	int32 HapiPartGetFaceCount() const;
+
+	/** HAPI: Return vertex count. **/
+	int32 HapiPartGetVertexCount() const;
+
+	/** HAPI: Return point count. **/
+	int32 HapiPartGetPointCount() const;
+
+	/** HAPI: Return true if this part is used by an instancer. **/
+	bool HapiPartIsInstanced() const;
+
+	/** HAPI: Number of parts this instancer part is instancing. **/
+	int32 HapiPartGetInstancedPartCount() const;
+
+	/** HAPI: Number of instances that this instancer part is instancing. **/
+	int32 HapiPartGetInstanceCount() const;
+
+	/** HAPI: Get number of point attributes. **/
+	int32 HapiPartGetPointAttributeCount() const;
+
+	/** HAPI: Get number of vertex attributes. **/
+	int32 HapiPartGetVertexAttributeCount() const;
+
+	/** HAPI: Get number of primitive attributes. **/
+	int32 HapiPartGetPrimitiveAttributeCount() const;
+
+	/** HAPI: Get number of detail attributes. **/
+	int32 HapiPartGetDetailAttributeCount() const;
 
 public:
 
