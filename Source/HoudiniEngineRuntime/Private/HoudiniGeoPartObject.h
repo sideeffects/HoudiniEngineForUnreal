@@ -185,10 +185,6 @@ public:
 
 public:
 
-	/** Get node id for this geo part object. **/
-	HAPI_NodeId GetNodeId() const;
-	HAPI_NodeId GetNodeId(HAPI_AssetId InAssetId) const;
-
 	/** Return true if this geo part has parameters. **/
 	bool HasParameters() const;
 	bool HasParameters(HAPI_AssetId InAssetId) const;
