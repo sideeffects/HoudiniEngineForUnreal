@@ -22,6 +22,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAssetComponentMaterials.h"
 #include "HoudiniAsset.h"
+#include "HoudiniEngineString.h"
 
 
 const FString kResultStringSuccess(TEXT("Success"));
@@ -302,70 +303,42 @@ FHoudiniEngineUtils::ConvertUnrealString(const FString& UnrealString, std::strin
 
 
 bool
-FHoudiniEngineUtils::GetHoudiniString(int32 Name, FString& NameString)
-{
-	std::string NamePlain;
-
-	if(FHoudiniEngineUtils::GetHoudiniString(Name, NamePlain))
-	{
-		NameString = UTF8_TO_TCHAR(NamePlain.c_str());
-		return true;
-	}
-
-	return false;
-}
-
-
-bool
-FHoudiniEngineUtils::GetHoudiniString(int32 Name, std::string& NameString)
-{
-	if(Name < 0)
-	{
-		return false;
-	}
-
-	// For now we will load first asset only.
-	int32 NameLength = 0;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStringBufLength(FHoudiniEngine::Get().GetSession(), Name, &NameLength), false);
-
-	if(NameLength)
-	{
-		std::vector<char> NameBuffer(NameLength, '\0');
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetString(FHoudiniEngine::Get().GetSession(), Name, &NameBuffer[0], NameLength), false);
-
-		// Create and return string.
-		NameString = std::string(NameBuffer.begin(), NameBuffer.end());
-	}
-
-	return true;
-}
-
-
-bool
 FHoudiniEngineUtils::GetUniqueMaterialShopName(HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString& Name)
 {
 	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo),
+		false);
 
 	HAPI_MaterialInfo MaterialInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetId, MaterialId, &MaterialInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetId, MaterialId,
+		&MaterialInfo), false);
 
 	HAPI_NodeInfo AssetNodeInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId,
+		&AssetNodeInfo), false);
 
 	HAPI_NodeInfo MaterialNodeInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &MaterialNodeInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId,
+		&MaterialNodeInfo), false);
 
-	FString AssetNodeName;
-	if(!FHoudiniEngineUtils::GetHoudiniString(AssetNodeInfo.internalNodePathSH, AssetNodeName))
+	FString AssetNodeName = TEXT("");
+	FString MaterialNodeName = TEXT("");
+
 	{
-		return false;
+		
+		FHoudiniEngineString HoudiniEngineString(AssetNodeInfo.internalNodePathSH);
+		if(!HoudiniEngineString.ToFString(AssetNodeName))
+		{
+			return false;
+		}
 	}
 
-	FString MaterialNodeName;
-	if(!FHoudiniEngineUtils::GetHoudiniString(MaterialNodeInfo.internalNodePathSH, MaterialNodeName))
 	{
-		return false;
+		FHoudiniEngineString HoudiniEngineString(MaterialNodeInfo.internalNodePathSH);
+		if(!HoudiniEngineString.ToFString(MaterialNodeName))
+		{
+			return false;
+		}
 	}
 
 	if(AssetNodeName.Len() > 0 && MaterialNodeName.Len() > 0)
@@ -579,9 +552,14 @@ bool
 FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_AssetId AssetId, FString& NameString)
 {
 	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
 
-	return(FHoudiniEngineUtils::GetHoudiniString(AssetInfo.nameSH, NameString));
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
+	{
+		FHoudiniEngineString HoudiniEngineString(AssetInfo.nameSH);
+		return HoudiniEngineString.ToFString(NameString);
+	}
+
+	return false;
 }
 
 
@@ -636,25 +614,26 @@ FHoudiniEngineUtils::HapiGetElementCountByGroupType(HAPI_GroupType GroupType, HA
 
 
 bool
-FHoudiniEngineUtils::HapiGetGroupNames(
-	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_GroupType GroupType,
-	TArray<FString>& GroupNames)
+FHoudiniEngineUtils::HapiGetGroupNames(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+	HAPI_GroupType GroupType, TArray<FString>& GroupNames)
 {
 	HAPI_GeoInfo GeoInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, &GeoInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId,
+		GeoId, &GeoInfo), false);
 
 	int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType(GroupType, GeoInfo);
 
 	if(GroupCount > 0)
 	{
 		std::vector<int32> GroupNameHandles(GroupCount, 0);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, GroupType, 
-			&GroupNameHandles[0], GroupCount), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupNames(FHoudiniEngine::Get().GetSession(), AssetId,
+			ObjectId, GeoId, GroupType, &GroupNameHandles[0], GroupCount), false);
 
 		for(int32 NameIdx = 0; NameIdx < GroupCount; ++NameIdx)
 		{
-			FString GroupName;
-			FHoudiniEngineUtils::GetHoudiniString(GroupNameHandles[NameIdx], GroupName);
+			FString GroupName = TEXT("");
+			FHoudiniEngineString HoudiniEngineString(GroupNameHandles[NameIdx]);
+			HoudiniEngineString.ToFString(GroupName);
 			GroupNames.Add(GroupName);
 		}
 	}
@@ -709,33 +688,6 @@ FHoudiniEngineUtils::HapiCheckGroupMembership(HAPI_AssetId AssetId, HAPI_ObjectI
 	return false;
 }
 
-
-bool
-FHoudiniEngineUtils::HapiRetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& ParameterName)
-{
-	HAPI_StringHandle ParmNameHandle = ParmInfo.nameSH;
-	if(ParmNameHandle >= 0 && FHoudiniEngineUtils::GetHoudiniString(ParmNameHandle, ParameterName))
-	{
-		return true;
-	}
-
-	ParameterName = TEXT("");
-	return false;
-}
-
-
-bool
-FHoudiniEngineUtils::HapiRetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& ParameterLabel)
-{
-	HAPI_StringHandle ParmLabelHandle = ParmInfo.labelSH;
-	if(ParmLabelHandle >= 0 && FHoudiniEngineUtils::GetHoudiniString(ParmLabelHandle, ParameterLabel))
-	{
-		return true;
-	}
-
-	ParameterLabel = TEXT("");
-	return false;
-}
 
 void
 FHoudiniEngineUtils::HapiRetrieveParameterNames(const TArray<HAPI_ParmInfo>& ParmInfos, 
@@ -956,9 +908,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 
 
 bool
-FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-	HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId, const char* Name,
-	HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data, int32 TupleSize)
+FHoudiniEngineUtils::HapiGetAttributeDataAsString(HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+	HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& Data,
+	int32 TupleSize)
 {
 	ResultAttributeInfo.exists = false;
 
@@ -995,8 +947,9 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
 
 	for(int32 Idx = 0; Idx < StringHandles.Num(); ++Idx)
 	{
-		FString HapiString;
-		FHoudiniEngineUtils::GetHoudiniString(StringHandles[Idx], HapiString);
+		FString HapiString = TEXT("");
+		FHoudiniEngineString HoudiniEngineString(StringHandles[Idx]);
+		HoudiniEngineString.ToFString(HapiString);
 		Data.Add(HapiString);
 	}
 
@@ -1094,7 +1047,8 @@ FHoudiniEngineUtils::HapiGetImagePlanes(HAPI_ParmId NodeParmId, const HAPI_Mater
 	for(int32 IdxPlane = 0, IdxPlaneMax = ImagePlaneStringHandles.Num(); IdxPlane < IdxPlaneMax; ++IdxPlane)
 	{
 		FString ValueString = TEXT("");
-		FHoudiniEngineUtils::GetHoudiniString(ImagePlaneStringHandles[IdxPlane], ValueString);
+		FHoudiniEngineString FHoudiniEngineString(ImagePlaneStringHandles[IdxPlane]);
+		FHoudiniEngineString.ToFString(ValueString);
 		ImagePlanes.Add(ValueString);
 	}
 
@@ -1427,7 +1381,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(HAPI_NodeId NodeId, const std::
 	if(-1 != ParmNameIdx)
 	{
 		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value, ParmInfo.floatValuesIndex, 1))
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value,
+			ParmInfo.floatValuesIndex, 1))
 		{
 			bComputed = true;
 		}
@@ -1462,7 +1417,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
 	if(-1 != ParmNameIdx)
 	{
 		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value, ParmInfo.intValuesIndex, 1))
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value,
+			ParmInfo.intValuesIndex, 1))
 		{
 			bComputed = true;
 		}
@@ -1474,8 +1430,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
 
 
 bool
-FHoudiniEngineUtils::HapiGetParameterDataAsString(
-	HAPI_NodeId NodeId, const std::string ParmName, const FString& DefaultValue, FString& OutValue)
+FHoudiniEngineUtils::HapiGetParameterDataAsString(HAPI_NodeId NodeId, const std::string ParmName,
+	const FString& DefaultValue, FString& OutValue)
 {
 	FString Value;
 	bool bComputed = false;
@@ -1498,10 +1454,15 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
 	{
 		HAPI_ParmInfo& ParmInfo = NodeParams[ParmNameIdx];
 		HAPI_StringHandle StringHandle;
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(), NodeId, false, &StringHandle,
-			ParmInfo.stringValuesIndex, 1) && FHoudiniEngineUtils::GetHoudiniString(StringHandle, Value))
+
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(), NodeId, false,
+			&StringHandle, ParmInfo.stringValuesIndex, 1))
 		{
-			bComputed = true;
+			FHoudiniEngineString HoudiniEngineString(StringHandle);
+			if(HoudiniEngineString.ToFString(Value))
+			{
+				bComputed = true;
+			}
 		}
 	}
 
@@ -3288,7 +3249,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 
 		// Retrieve object name.
 		FString ObjectName = TEXT("");
-		FHoudiniEngineUtils::GetHoudiniString(ObjectInfo.nameSH, ObjectName);
+		FHoudiniEngineString HoudiniEngineString(ObjectInfo.nameSH);
+		HoudiniEngineString.ToFString(ObjectName);
 
 		// Get transformation for this object.
 		const HAPI_Transform& ObjectTransform = ObjectTransforms[ObjectIdx];
@@ -3382,7 +3344,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(UHoudiniAssetComponent* 
 				}
 
 				// Retrieve part name.
-				FHoudiniEngineUtils::GetHoudiniString(PartInfo.nameSH, PartName);
+				FHoudiniEngineString HoudiniEngineStringPartName(PartInfo.nameSH);
+				HoudiniEngineStringPartName.ToFString(PartName);
 
 				// Get name of attribute used for marshalling generated mesh name.
 				HAPI_AttributeInfo AttribGeneratedMeshName;
@@ -4972,9 +4935,13 @@ FHoudiniEngineUtils::GetSubstanceMaterialName(const HAPI_MaterialInfo& MaterialI
 		}
 
 		FString ParameterLabel = TEXT("");
-		if(!FHoudiniEngineUtils::HapiRetrieveParameterLabel(ParmInfos[0], ParameterLabel))
+
 		{
-			return false;
+			FHoudiniEngineString HoudiniEngineString(ParmInfos[0].labelSH);
+			if(!HoudiniEngineString.ToFString(ParameterLabel))
+			{
+				return false;
+			}
 		}
 
 		// Check if we are dealing with Substance SHOP.
@@ -5006,9 +4973,12 @@ FHoudiniEngineUtils::GetSubstanceMaterialName(const HAPI_MaterialInfo& MaterialI
 		}
 
 		// Get file parameter value.
-		if(!FHoudiniEngineUtils::GetHoudiniString(SubstanceFilenameStringHandle, SubstanceMaterialName))
 		{
-			return false;
+			FHoudiniEngineString HoudiniEngineString(SubstanceFilenameStringHandle);
+			if(!HoudiniEngineString.ToFString(SubstanceMaterialName))
+			{
+				return false;
+			}
 		}
 
 		// Any additional processing?
@@ -5960,7 +5930,8 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(UHoudiniAssetComponent* Houdi
 				{
 					// Get the actual string value.
 					FString NormalTypeString = TEXT("");
-					if(FHoudiniEngineUtils::GetHoudiniString(StringHandle, NormalTypeString))
+					FHoudiniEngineString HoudiniEngineString(StringHandle);
+					if(HoudiniEngineString.ToFString(NormalTypeString))
 					{
 						NormalType = NormalTypeString;
 					}
