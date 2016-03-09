@@ -58,6 +58,9 @@ public:
 	/** Return type of license used. **/
 	static bool GetLicenseType(FString& LicenseType);
 
+	/** Return true if we are running Houdini Engine Indie license. **/
+	static bool IsLicenseHoudiniEngineIndie();
+
 	/** Return necessary buffer size to store preset information for a given asset. **/
 	static bool ComputeAssetPresetBufferLength(HAPI_AssetId AssetId, int32& OutBufferLength);
 
