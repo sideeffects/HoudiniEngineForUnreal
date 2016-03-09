@@ -93,8 +93,15 @@ public:
 
 public:
 
+	/** Return object id. **/
+	HAPI_ObjectId GetObjectId() const;
+
+/** HAPI: Object related getters. **/
+public:
+
 	/** HAPI: Retrieve corresponding object info structure. **/
 	bool HapiGetObjectInfo(HAPI_ObjectInfo& ObjectInfo) const;
+	bool HapiGetObjectInfo(HAPI_AssetId OtherAssetId, HAPI_ObjectInfo& ObjectInfo) const;
 
 	/** HAPI: Return true if given attribute exists. **/
 	bool HapiCheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
@@ -109,6 +116,25 @@ public:
 
 	/** HAPI: Return object instance path. **/
 	FHoudiniEngineString HapiGetObjectInstancePath() const;
+
+	/** HAPI: Return true if object is visible. **/
+	bool HapiIsObjectVisible() const;
+
+	/** HAPI: Return true if object is an instancer. **/
+	bool HapiIsObjectInstancer() const;
+
+	/** HAPI: Return true if object transform has changed. **/
+	bool HapiHasObjectTransformChanged() const;
+
+	/** HAPI: Return true if any of the underlying geos have changed. **/
+	bool HapiHaveObjectGeosChanged() const;
+
+	/** HAPI: Get number of geos. **/
+	int32 HapiGetObjectGeoCount() const;
+
+	/** HAPI: Get associated Node id. **/
+	HAPI_NodeId HapiGetObjectNodeId() const;
+	HAPI_NodeId HapiGetObjectNodeId(HAPI_AssetId OtherAssetId) const;
 
 public:
 
