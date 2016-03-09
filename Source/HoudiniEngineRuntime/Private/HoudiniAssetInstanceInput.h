@@ -104,6 +104,9 @@ public:
 	/** not mutually exclusive.																		**/
 	bool IsObjectInstancer() const;
 
+	/** Return true if this is an attribute instancer with overrides. **/
+	bool IsAttributeInstancerOverride() const;
+
 #if WITH_EDITOR
 
 	/** Clone all used instance static mesh components and and attach them to provided actor. **/
@@ -238,6 +241,9 @@ protected:
 		{
 			/** Set to true if this is an attribute instancer. **/
 			uint32 bIsAttributeInstancer : 1;
+
+			/** Set to true if this attribute instancer uses overrides. **/
+			uint32 bAttributeInstancerOverride : 1;
 		};
 
 		uint32 HoudiniAssetInstanceInputFlagsPacked;

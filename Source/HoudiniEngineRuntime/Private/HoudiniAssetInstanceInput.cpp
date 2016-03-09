@@ -26,7 +26,8 @@
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	ObjectToInstanceId(-1),
-	bIsAttributeInstancer(false)
+	bIsAttributeInstancer(false),
+	bAttributeInstancerOverride(false)
 {
 	TupleSize = 0;
 }
@@ -61,7 +62,7 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 			HAPI_ATTROWNER_DETAIL);
 
 	// This is invalid combination, no object to instance and input is not an attribute instancer.
-	if(!bAttributeCheck && -1 == ObjectToInstance)
+	if(!bAttributeCheck && !bAttributeOverrideCheck && -1 == ObjectToInstance)
 	{
 		return HoudiniAssetInstanceInput;
 	}
@@ -76,6 +77,9 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 
 	// Check if this instancer is an attribute instancer and if it is, mark it as such.
 	HoudiniAssetInstanceInput->bIsAttributeInstancer = bAttributeCheck;
+
+	// Check if this instancer is an attribute override instancer.
+	HoudiniAssetInstanceInput->bAttributeInstancerOverride = bAttributeOverrideCheck;
 
 	return HoudiniAssetInstanceInput;
 }
@@ -110,6 +114,7 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 	HoudiniAssetInstanceInput->HoudiniGeoPartObject = InstanceInput->HoudiniGeoPartObject;
 	HoudiniAssetInstanceInput->ObjectToInstanceId = InstanceInput->ObjectToInstanceId;
 	HoudiniAssetInstanceInput->bIsAttributeInstancer = InstanceInput->bIsAttributeInstancer;
+	HoudiniAssetInstanceInput->bAttributeInstancerOverride = InstanceInput->bAttributeInstancerOverride;
 
 	return HoudiniAssetInstanceInput;
 }
@@ -732,6 +737,13 @@ bool
 UHoudiniAssetInstanceInput::IsObjectInstancer() const
 {
 	return (-1 != ObjectToInstanceId);
+}
+
+
+bool
+UHoudiniAssetInstanceInput::IsAttributeInstancerOverride() const
+{
+	return bAttributeInstancerOverride;
 }
 
 
