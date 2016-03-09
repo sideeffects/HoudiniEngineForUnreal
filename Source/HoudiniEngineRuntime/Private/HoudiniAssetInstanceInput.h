@@ -119,11 +119,6 @@ protected:
 
 protected:
 
-	/** Checks existance of special instance attribute for this instancer. **/
-	static bool CheckInstanceAttribute(HAPI_AssetId AssetId, const FHoudiniGeoPartObject& GeoPartObject);
-
-protected:
-
 	/** Locate field which matches given criteria. Return null if not found. **/
 	UHoudiniAssetInstanceInputField* LocateInputField(const FHoudiniGeoPartObject& GeoPartObject,
 		const FString& InstancePathName);

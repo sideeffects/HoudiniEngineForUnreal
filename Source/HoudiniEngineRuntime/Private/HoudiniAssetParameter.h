@@ -128,14 +128,6 @@ public:
 	/** Return true if this is Substance parameter. **/
 	bool IsSubstanceParameter() const;
 
-public:
-
-	/** Helper function to retrieve parameter name from a given param info structure. Returns false if does not exist. **/
-	static bool RetrieveParameterName(const HAPI_ParmInfo& ParmInfo, FString& RetrievedName);
-
-	/** Helper function to retrieve label name from a given param info structure. Returns false if does not exist. **/
-	static bool RetrieveParameterLabel(const HAPI_ParmInfo& ParmInfo, FString& RetrievedLabel);
-
 /** UObject methods. **/
 public:
 
