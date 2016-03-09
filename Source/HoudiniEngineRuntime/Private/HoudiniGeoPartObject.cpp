@@ -297,6 +297,13 @@ FHoudiniGeoPartObject::GetGeoId() const
 }
 
 
+HAPI_PartId
+FHoudiniGeoPartObject::GetPartId() const
+{
+	return PartId;
+}
+
+
 bool
 FHoudiniGeoPartObject::operator==(const FHoudiniGeoPartObject& GeoPartObject) const
 {
@@ -440,6 +447,20 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(const char* AttributeName, HA
 
 	return FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, AttributeName,
 		AttributeOwner);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetInstanceTransforms(HAPI_AssetId AssetId, TArray<FTransform>& AllTransforms)
+{
+	return false;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetInstanceTransforms(TArray<FTransform>& AllTransforms)
+{
+	return HapiGetInstanceTransforms(AssetId, AllTransforms);
 }
 
 
@@ -814,5 +835,207 @@ FHoudiniGeoPartObject::HapiGeoGetPartCount() const
 	}
 
 	return PartCount;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiPartGetInfo(HAPI_PartInfo& PartInfo) const
+{
+	return HapiPartGetInfo(AssetId, PartInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiPartGetInfo(HAPI_AssetId OtherAssetId, HAPI_PartInfo& PartInfo) const
+{
+	FMemory::Memset<HAPI_PartInfo>(PartInfo, 0);
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), OtherAssetId, ObjectId,
+		GeoId, PartId, &PartInfo))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+FHoudiniEngineString
+FHoudiniGeoPartObject::HapiPartGetName() const
+{
+	HAPI_StringHandle StringHandle = -1;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		StringHandle = PartInfo.nameSH;
+	}
+
+	return FHoudiniEngineString(StringHandle);
+}
+
+
+HAPI_PartType
+FHoudiniGeoPartObject::HapiPartGetType() const
+{
+	HAPI_PartType PartType = HAPI_PARTTYPE_INVALID;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		PartType = PartInfo.type;
+	}
+
+	return PartType;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetFaceCount() const
+{
+	int32 FaceCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		FaceCount = PartInfo.faceCount;
+	}
+
+	return FaceCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetVertexCount() const
+{
+	int32 VertexCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		VertexCount = PartInfo.vertexCount;
+	}
+
+	return VertexCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetPointCount() const
+{
+	int32 PointCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		PointCount = PartInfo.pointCount;
+	}
+
+	return PointCount;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiPartIsInstanced() const
+{
+	bool bPartIsInstanced = false;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		bPartIsInstanced = PartInfo.isInstanced;
+	}
+
+	return bPartIsInstanced;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetInstancedPartCount() const
+{
+	int32 InstancedPartCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		InstancedPartCount = PartInfo.instancedPartCount;
+	}
+
+	return InstancedPartCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetInstanceCount() const
+{
+	int32 InstanceCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		InstanceCount = PartInfo.instanceCount;
+	}
+
+	return InstanceCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetPointAttributeCount() const
+{
+	int32 PointAttributeCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		PointAttributeCount = PartInfo.attributeCounts[HAPI_ATTROWNER_POINT];
+	}
+
+	return PointAttributeCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetVertexAttributeCount() const
+{
+	int32 VertexAttributeCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		VertexAttributeCount = PartInfo.attributeCounts[HAPI_ATTROWNER_VERTEX];
+	}
+
+	return VertexAttributeCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetPrimitiveAttributeCount() const
+{
+	int32 PrimitiveAttributeCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		PrimitiveAttributeCount = PartInfo.attributeCounts[HAPI_ATTROWNER_PRIM];
+	}
+
+	return PrimitiveAttributeCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiPartGetDetailAttributeCount() const
+{
+	int32 DetailAttributeCount = 0;
+	HAPI_PartInfo PartInfo;
+
+	if(HapiPartGetInfo(PartInfo))
+	{
+		DetailAttributeCount = PartInfo.attributeCounts[HAPI_ATTROWNER_DETAIL];
+	}
+
+	return DetailAttributeCount;
 }
 
