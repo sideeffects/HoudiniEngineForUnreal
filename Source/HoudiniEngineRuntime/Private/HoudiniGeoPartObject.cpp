@@ -636,3 +636,205 @@ FHoudiniGeoPartObject::HapiObjectGetNodeId(HAPI_AssetId OtherAssetId) const
 	return NodeId;
 }
 
+
+bool
+FHoudiniGeoPartObject::HapiGeoGetInfo(HAPI_GeoInfo& GeoInfo) const
+{
+	return HapiGeoGetInfo(AssetId, GeoInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGeoGetInfo(HAPI_AssetId OtherAssetId, HAPI_GeoInfo& GeoInfo) const
+{
+	FMemory::Memset<HAPI_GeoInfo>(GeoInfo, 0);
+
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), OtherAssetId, ObjectId,
+		GeoId, &GeoInfo))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+HAPI_GeoType
+FHoudiniGeoPartObject::HapiGeoGetType() const
+{
+	HAPI_GeoType GeoType = HAPI_GEOTYPE_INVALID;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		GeoType = GeoInfo.type;
+	}
+
+	return GeoType;
+}
+
+
+FHoudiniEngineString
+FHoudiniGeoPartObject::HapiGeoGetName() const
+{
+	HAPI_StringHandle StringHandle = -1;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		StringHandle = GeoInfo.nameSH;
+	}
+
+	return FHoudiniEngineString(StringHandle);
+}
+
+
+HAPI_NodeId
+FHoudiniGeoPartObject::HapiGeoGetNodeId() const
+{
+	HAPI_NodeId NodeId = -1;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		NodeId = GeoInfo.nodeId;
+	}
+
+	return NodeId;
+}
+
+
+HAPI_NodeId
+FHoudiniGeoPartObject::HapiGeoGetNodeId(HAPI_AssetId OtherAssetId) const
+{
+	HAPI_NodeId NodeId = -1;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(OtherAssetId, GeoInfo))
+	{
+		NodeId = GeoInfo.nodeId;
+	}
+
+	return NodeId;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGeoIsEditable() const
+{
+	bool bIsEditable = false;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		bIsEditable = GeoInfo.isEditable;
+	}
+
+	return bIsEditable;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGeoIsTemplated() const
+{
+	bool bIsTemplated = false;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		bIsTemplated = GeoInfo.isTemplated;
+	}
+
+	return bIsTemplated;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGeoIsDisplayGeo() const
+{
+	bool bIsDisplayGeo = false;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		bIsDisplayGeo = GeoInfo.isDisplayGeo;
+	}
+
+	return bIsDisplayGeo;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGeoHasChanged() const
+{
+	bool bGeoChanged = false;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		bGeoChanged = GeoInfo.hasGeoChanged;
+	}
+
+	return bGeoChanged;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGeoHasMaterialChanged() const
+{
+	bool bHasMaterialChanged = false;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		bHasMaterialChanged = GeoInfo.hasMaterialChanged;
+	}
+
+	return bHasMaterialChanged;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiGeoGetPointGroupCount() const
+{
+	int32 PointGroupCount = 0;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		PointGroupCount = GeoInfo.pointGroupCount;
+	}
+
+	return PointGroupCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiGeoGetPrimitiveGroupCount() const
+{
+	int32 PrimitiveGroupCount = 0;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		PrimitiveGroupCount = GeoInfo.primitiveGroupCount;
+	}
+
+	return PrimitiveGroupCount;
+}
+
+
+int32
+FHoudiniGeoPartObject::HapiGeoGetPartCount() const
+{
+	int32 PartCount = 0;
+	HAPI_GeoInfo GeoInfo;
+
+	if(HapiGeoGetInfo(GeoInfo))
+	{
+		PartCount = GeoInfo.partCount;
+	}
+
+	return PartCount;
+}
+

@@ -100,7 +100,7 @@ public:
 	/** Return geo id. **/
 	HAPI_GeoId GetGeoId() const;
 
-	/** HAPI: Other helpers. **/
+/** HAPI: Other helpers. **/
 public:
 
 	/** HAPI: Return true if given attribute exists. **/
@@ -108,7 +108,7 @@ public:
 	bool HapiCheckAttributeExistance(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 
-	/** HAPI: Object related getters. **/
+/** HAPI: Object related getters. **/
 public:
 
 	/** HAPI: Retrieve corresponding object info structure. **/
@@ -143,8 +143,12 @@ public:
 	HAPI_NodeId HapiObjectGetNodeId() const;
 	HAPI_NodeId HapiObjectGetNodeId(HAPI_AssetId OtherAssetId) const;
 
-	/** HAPI: Geo related getters. **/
+/** HAPI: Geo related getters. **/
 public:
+
+	/** HAPI: Retrieve corresponding geo info structure. **/
+	bool HapiGeoGetInfo(HAPI_GeoInfo& GeoInfo) const;
+	bool HapiGeoGetInfo(HAPI_AssetId OtherAssetId, HAPI_GeoInfo& GeoInfo) const;
 
 	/** HAPI: Return geo type. **/
 	HAPI_GeoType HapiGeoGetType() const;
