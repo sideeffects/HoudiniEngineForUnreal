@@ -42,6 +42,14 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 {
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = nullptr;
 
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
+	if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeInstanceOverride.IsEmpty())
+	{
+		FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeInstanceOverride,
+			MarshallingAttributeInstanceOverride);
+	}
+
 	HAPI_ObjectInfo ObjectInfo;
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(),
 		InHoudiniAssetComponent->GetAssetId(), &ObjectInfo, InHoudiniGeoPartObject.ObjectId, 1))
@@ -50,8 +58,12 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 	}
 
 	// If this is an attribute instancer, see if attribute exists.
-	bool bAttributeCheck = UHoudiniAssetInstanceInput::CheckInstanceAttribute(InHoudiniAssetComponent->GetAssetId(),
-		InHoudiniGeoPartObject);
+	bool bAttributeCheck = InHoudiniGeoPartObject.CheckAttributeExistance(HAPI_UNREAL_ATTRIB_INSTANCE,
+		HAPI_ATTROWNER_POINT);
+
+	// Check if this is an attribute override instancer.
+	bool bAttributeOverrideCheck =
+		InHoudiniGeoPartObject.CheckAttributeExistance(MarshallingAttributeInstanceOverride, HAPI_ATTROWNER_DETAIL);
 
 	// This is invalid combination, no object to instance and input is not an attribute instancer.
 	if(!bAttributeCheck && -1 == ObjectInfo.objectToInstanceId)
@@ -826,19 +838,6 @@ UHoudiniAssetInstanceInput::GetPathInstaceTransforms(const FString& ObjectInstan
 			OutTransforms.Add(Transforms[Idx]);
 		}
 	}
-}
-
-
-bool
-UHoudiniAssetInstanceInput::CheckInstanceAttribute(HAPI_AssetId InAssetId, const FHoudiniGeoPartObject& GeoPartObject)
-{
-	if(-1 == InAssetId || -1 == GeoPartObject.ObjectId || -1 == GeoPartObject.GeoId || -1 == GeoPartObject.PartId)
-	{
-		return false;
-	}
-
-	return FHoudiniEngineUtils::HapiCheckAttributeExists(InAssetId, GeoPartObject.ObjectId, 
-		GeoPartObject.GeoId, GeoPartObject.PartId, HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT);
 }
 
 

@@ -91,6 +91,13 @@ public:
 
 public:
 
+	/** Return true if given attribute exists. **/
+	bool CheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+	bool CheckAttributeExistance(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+	bool CheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+
+public:
+
 	/** Get node id for this geo part object. **/
 	HAPI_NodeId GetNodeId() const;
 	HAPI_NodeId GetNodeId(HAPI_AssetId InAssetId) const;
