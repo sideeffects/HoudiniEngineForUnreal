@@ -42,13 +42,9 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 {
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = nullptr;
 
-	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
-	if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeInstanceOverride.IsEmpty())
-	{
-		FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeInstanceOverride,
-			MarshallingAttributeInstanceOverride);
-	}
+	UHoudiniRuntimeSettings::GetSettingsValue(TEXT("MarshallingAttributeInstanceOverride"),
+		MarshallingAttributeInstanceOverride);
 
 	HAPI_ObjectInfo ObjectInfo;
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(),
