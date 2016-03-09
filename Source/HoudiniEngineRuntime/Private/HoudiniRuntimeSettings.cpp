@@ -94,7 +94,7 @@ UHoudiniRuntimeSettings::~UHoudiniRuntimeSettings()
 
 
 UProperty*
-UHoudiniRuntimeSettings::LocateProperty(const FString& PropertyName)
+UHoudiniRuntimeSettings::LocateProperty(const FString& PropertyName) const
 {
 	for(TFieldIterator<UProperty> PropIt(GetClass()); PropIt; ++PropIt)
 	{
@@ -385,3 +385,42 @@ UHoudiniRuntimeSettings::UpdateSessionUi()
 }
 
 #endif
+
+
+bool
+UHoudiniRuntimeSettings::GetSettingsValue(const FString& PropertyName, std::string& PropertyValue)
+{
+	FString PropertyString = TEXT("");
+	if(UHoudiniRuntimeSettings::GetSettingsValue(PropertyName, PropertyString))
+	{
+		FHoudiniEngineUtils::ConvertUnrealString(PropertyString, PropertyValue);
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+UHoudiniRuntimeSettings::GetSettingsValue(const FString& PropertyName, FString& PropertyValue)
+{
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if(HoudiniRuntimeSettings)
+	{
+		UStrProperty* Property = Cast<UStrProperty>(HoudiniRuntimeSettings->LocateProperty(PropertyName));
+		if(Property)
+		{
+			const void* ValueRaw = Property->ContainerPtrToValuePtr<void>(HoudiniRuntimeSettings);
+			FString RetrievedPropertyValue = Property->GetPropertyValue(ValueRaw);
+
+			if(!RetrievedPropertyValue.IsEmpty())
+			{
+				PropertyValue = RetrievedPropertyValue;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+

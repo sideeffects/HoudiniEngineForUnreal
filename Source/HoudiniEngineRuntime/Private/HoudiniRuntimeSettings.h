@@ -97,7 +97,7 @@ public:
 protected:
 
 	/** Locate property of this class by name. **/
-	UProperty* LocateProperty(const FString& PropertyName);
+	UProperty* LocateProperty(const FString& PropertyName) const;
 
 	/** Make specified property read only. **/
 	void SetPropertyReadOnly(const FString& PropertyName, bool bReadOnly = true);
@@ -117,6 +117,12 @@ public:
 	void SetMeshBuildSettings(FMeshBuildSettings& MeshBuildSettings, FRawMesh& RawMesh) const;
 
 #endif
+
+public:
+
+	/** Retrieve a string settings value. **/
+	static bool GetSettingsValue(const FString& PropertyName, std::string& PropertyValue);
+	static bool GetSettingsValue(const FString& PropertyName, FString& PropertyValue);
 
 /** Session options. **/
 public:

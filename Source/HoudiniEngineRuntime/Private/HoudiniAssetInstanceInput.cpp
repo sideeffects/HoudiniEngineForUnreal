@@ -43,13 +43,9 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 {
 	UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = nullptr;
 
-	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
-	if(HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeInstanceOverride.IsEmpty())
-	{
-		FHoudiniEngineUtils::ConvertUnrealString(HoudiniRuntimeSettings->MarshallingAttributeInstanceOverride,
-			MarshallingAttributeInstanceOverride);
-	}
+	UHoudiniRuntimeSettings::GetSettingsValue(TEXT("MarshallingAttributeInstanceOverride"),
+		MarshallingAttributeInstanceOverride);
 
 	// Get name of this input. For the time being we only support geometry inputs.
 	HAPI_ObjectInfo ObjectInfo;
