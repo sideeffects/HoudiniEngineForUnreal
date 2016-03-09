@@ -194,8 +194,15 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			}
 		}
 	}
+	else if(bAttributeInstancerOverride)
+	{
+		// This is an attribute override. Unreal mesh is specified through an attribute and we use points.
+		return false;
+	}
 	else
 	{
+		// This is a standard object type instancer.
+
 		// Locate all geo objects requiring instancing (can be multiple if geo / part / object split took place).
 		TArray<FHoudiniGeoPartObject> ObjectsToInstance;
 		HoudiniAssetComponent->LocateStaticMeshes(ObjectToInstanceId, ObjectsToInstance);
