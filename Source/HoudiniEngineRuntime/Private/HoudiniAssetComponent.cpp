@@ -44,6 +44,7 @@
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponentMaterials.h"
 #include "HoudiniAssetComponentVersion.h"
+#include "HoudiniEngineString.h"
 
 
 #if WITH_EDITOR
@@ -167,7 +168,8 @@ SAssetSelectionWidget::Construct(const FArguments& InArgs)
 		FString AssetNameString;
 		int32 AssetName = AvailableAssetNames[AssetNameIdx];
 
-		if(FHoudiniEngineUtils::GetHoudiniString(AssetName, AssetNameString))
+		FHoudiniEngineString HoudiniEngineString(AssetName);
+		if(HoudiniEngineString.ToFString(AssetNameString))
 		{
 			bIsValidWidget = true;
 			FText AssetNameStringText = FText::FromString(AssetNameString);
@@ -3649,17 +3651,30 @@ UHoudiniAssetComponent::CreateHandles()
 				continue;
 			}
 
-			FString TypeName;
-			if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.typeNameSH, TypeName)
-				|| TypeName != TEXT(HAPI_UNREAL_HANDLE_TRANSFORM))
+			FString TypeName = TEXT("");
+
 			{
-				continue;
+				FHoudiniEngineString HoudiniEngineString(HandleInfo.typeNameSH);
+				if(!HoudiniEngineString.ToFString(TypeName))
+				{
+					continue;
+				}
+
+				if(!TypeName.Equals(TEXT(HAPI_UNREAL_HANDLE_TRANSFORM)))
+				{
+					continue;
+				}
 			}
 
-			FString HandleName;
-			if(!FHoudiniEngineUtils::GetHoudiniString(HandleInfo.nameSH, HandleName))
+
+			FString HandleName = TEXT("");
+
 			{
-				continue;
+				FHoudiniEngineString HoudiniEngineString(HandleInfo.nameSH);
+				if(!HoudiniEngineString.ToFString(HandleName))
+				{
+					continue;
+				}
 			}
 
 			UHoudiniHandleComponent* HandleComponent = nullptr;
