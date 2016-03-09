@@ -450,9 +450,36 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(const char* AttributeName, HA
 
 
 bool
-FHoudiniGeoPartObject::HapiGetInstanceTransforms(HAPI_AssetId AssetId, TArray<FTransform>& AllTransforms)
+FHoudiniGeoPartObject::HapiGetInstanceTransforms(HAPI_AssetId OtherAssetId, TArray<FTransform>& AllTransforms)
 {
-	return false;
+	AllTransforms.Empty();
+	int32 PointCount = HapiPartGetPointCount(OtherAssetId);
+
+	if(PointCount > 0)
+	{
+		TArray<HAPI_Transform> InstanceTransforms;
+		InstanceTransforms.SetNumZeroed(PointCount);
+
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetInstanceTransforms(FHoudiniEngine::Get().GetSession(), OtherAssetId,
+			ObjectId, GeoId, HAPI_SRT, &InstanceTransforms[0], 0, PointCount))
+		{
+			for(int32 PointIdx = 0; PointIdx < PointCount; ++PointIdx)
+			{
+				FTransform TransformMatrix;
+
+				const HAPI_Transform& HapiInstanceTransform = InstanceTransforms[PointIdx];
+				FHoudiniEngineUtils::TranslateHapiTransform(HapiInstanceTransform, TransformMatrix);
+
+				AllTransforms.Add(TransformMatrix);
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 
