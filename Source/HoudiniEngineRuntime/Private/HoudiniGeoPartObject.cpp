@@ -419,12 +419,29 @@ FHoudiniGeoPartObject::SetCustomName(const FString& CustomName)
 
 
 bool
-FHoudiniGeoPartObject::HapiCheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const
+FHoudiniGeoPartObject::HapiCheckAttributeExistance(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+	HAPI_AttributeOwner AttributeOwner) const
 {
 	std::string AttributeNameRaw = "";
 	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
 
-	return HapiCheckAttributeExistance(AttributeNameRaw, AttributeOwner);
+	return HapiCheckAttributeExistance(OtherAssetId, AttributeNameRaw, AttributeOwner);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiCheckAttributeExistance(const FString& AttributeName,
+	HAPI_AttributeOwner AttributeOwner) const
+{
+	return HapiCheckAttributeExistance(AssetId, AttributeName, AttributeOwner);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiCheckAttributeExistance(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+	HAPI_AttributeOwner AttributeOwner) const
+{
+	return HapiCheckAttributeExistance(AttributeName.c_str(), AttributeOwner);
 }
 
 
@@ -432,21 +449,30 @@ bool
 FHoudiniGeoPartObject::HapiCheckAttributeExistance(const std::string& AttributeName,
 	HAPI_AttributeOwner AttributeOwner) const
 {
-	return FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, AttributeName.c_str(),
-		AttributeOwner);
+	return HapiCheckAttributeExistance(AssetId, AttributeName, AttributeOwner);
+}
+
+bool
+FHoudiniGeoPartObject::HapiCheckAttributeExistance(HAPI_AssetId OtherAssetId, const char* AttributeName,
+	HAPI_AttributeOwner AttributeOwner) const
+{
+	HAPI_AttributeInfo AttributeInfo;
+	FMemory::Memset<HAPI_AttributeInfo>(AttributeInfo, 0);
+
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), OtherAssetId,
+		ObjectId, GeoId, PartId, AttributeName, AttributeOwner, &AttributeInfo))
+	{
+		return AttributeInfo.exists;
+	}
+
+	return false;
 }
 
 
 bool
 FHoudiniGeoPartObject::HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const
 {
-	if(!FHoudiniEngineUtils::IsValidAssetId(AssetId) || !IsValid())
-	{
-		return false;
-	}
-
-	return FHoudiniEngineUtils::HapiCheckAttributeExists(AssetId, ObjectId, GeoId, PartId, AttributeName,
-		AttributeOwner);
+	return HapiCheckAttributeExistance(AssetId, AttributeName, AttributeOwner);
 }
 
 
@@ -1275,4 +1301,63 @@ int32
 FHoudiniGeoPartObject::HapiPartGetDetailAttributeCount() const
 {
 	return HapiPartGetDetailAttributeCount(AssetId);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const char* AttributeName,
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo)
+{
+	FMemory::Memset<HAPI_AttributeInfo>(AttributeInfo, 0);
+
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), OtherAssetId, ObjectId,
+		GeoId, PartId, AttributeName, AttributeOwner, &AttributeInfo))
+	{
+		return AttributeInfo.exists;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(const char* AttributeName, HAPI_AttributeOwner AttributeOwner,
+	HAPI_AttributeInfo& AttributeInfo)
+{
+	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo)
+{
+	return HapiGetAttributeInfo(OtherAssetId, AttributeName.c_str(), AttributeOwner, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner,
+	HAPI_AttributeInfo& AttributeInfo)
+{
+	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo)
+{
+	std::string AttributeNameRaw = "";
+	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
+
+	return HapiGetAttributeInfo(OtherAssetId, AttributeNameRaw, AttributeOwner, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner,
+	HAPI_AttributeInfo& AttributeInfo)
+{
+	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
 }
