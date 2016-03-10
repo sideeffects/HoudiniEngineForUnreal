@@ -61,7 +61,7 @@ FHoudiniGeoPartObjectSortPredicate::operator()(const FHoudiniGeoPartObject& A, c
 			return A.GeoId < B.GeoId;
 		}
 	}
-	
+
 	return A.ObjectId < B.ObjectId;
 }
 
@@ -1360,5 +1360,3 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(const FString& AttributeName, HAPI_A
 {
 	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
 }
-
->>>>>>> .merge-right.r248074
