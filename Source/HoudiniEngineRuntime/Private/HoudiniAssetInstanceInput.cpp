@@ -122,9 +122,16 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 bool
 UHoudiniAssetInstanceInput::CreateInstanceInput()
 {
+	if(!HoudiniAssetComponent)
+	{
+		return false;
+	}
+
+	HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+
 	// Retrieve instance transforms (for each point).
 	TArray<FTransform> AllTransforms;
-	HoudiniGeoPartObject.HapiGetInstanceTransforms(HoudiniAssetComponent->GetAssetId(), AllTransforms);
+	HoudiniGeoPartObject.HapiGetInstanceTransforms(AssetId, AllTransforms);
 
 	// List of new fields. Reused input fields will also be placed here.
 	TArray<UHoudiniAssetInstanceInputField*> NewInstanceInputFields;
@@ -134,9 +141,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		HAPI_AttributeInfo ResultAttributeInfo;
 		TArray<FString> PointInstanceValues;
 
-		if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(HoudiniAssetComponent->GetAssetId(),
-			HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId,
-			HAPI_UNREAL_ATTRIB_INSTANCE, ResultAttributeInfo, PointInstanceValues))
+		if(!HoudiniGeoPartObject.HapiGetAttributeDataAsString(AssetId, HAPI_UNREAL_ATTRIB_INSTANCE,
+			HAPI_ATTROWNER_POINT, ResultAttributeInfo, PointInstanceValues))
 		{
 			// This should not happen - attribute exists, but there was an error retrieving it.
 			return false;
