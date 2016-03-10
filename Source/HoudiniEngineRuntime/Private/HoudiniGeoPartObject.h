@@ -105,14 +105,34 @@ public:
 /** HAPI: Other helpers. **/
 public:
 
-	/** HAPI: Return true if given attribute exists. **/
+	/** HAPI: Return true if given attribute exists on a given owner. **/
+	bool HapiCheckAttributeExistance(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+		HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+	bool HapiCheckAttributeExistance(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+		HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner) const;
+	bool HapiCheckAttributeExistance(HAPI_AssetId OtherAssetId, const char* AttributeName,
+		HAPI_AttributeOwner AttributeOwner) const;
 	bool HapiCheckAttributeExistance(const char* AttributeName, HAPI_AttributeOwner AttributeOwner) const;
 
 	/** HAPI: Get instance transformations. **/
 	bool HapiGetInstanceTransforms(HAPI_AssetId OtherAssetId, TArray<FTransform>& AllTransforms);
 	bool HapiGetInstanceTransforms(TArray<FTransform>& AllTransforms);
+
+	/** HAPI: Get Attribute info on a specified owner. **/
+	bool HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const char* AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo);
+	bool HapiGetAttributeInfo(const char* AttributeName, HAPI_AttributeOwner AttributeOwner,
+		HAPI_AttributeInfo& AttributeInfo);
+	bool HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo);
+	bool HapiGetAttributeInfo(const std::string& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo);
+	bool HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo);
+	bool HapiGetAttributeInfo(const FString& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo);
 
 /** HAPI: Object related getters. **/
 public:
