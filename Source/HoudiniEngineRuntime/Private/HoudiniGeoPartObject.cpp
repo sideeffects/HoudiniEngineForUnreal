@@ -1389,7 +1389,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(HAPI_AssetId OtherAssetId, co
 	AttributeData.SetNumUninitialized(ResultAttributeInfo.count * ResultAttributeInfo.tupleSize);
 
 	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), OtherAssetId,
-		ObjectId, GeoId, PartId, AttributeName, &ResultAttributeInfo, -1, &AttributeData[0], 0,
+		ObjectId, GeoId, PartId, AttributeName, &ResultAttributeInfo, &AttributeData[0], 0,
 		ResultAttributeInfo.count))
 	{
 		return true;
@@ -1545,7 +1545,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(HAPI_AssetId OtherAssetId, cons
 	AttributeData.SetNumUninitialized(ResultAttributeInfo.count * ResultAttributeInfo.tupleSize);
 
 	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeIntData(FHoudiniEngine::Get().GetSession(), OtherAssetId,
-		ObjectId, GeoId, PartId, AttributeName, &ResultAttributeInfo, -1, &AttributeData[0], 0,
+		ObjectId, GeoId, PartId, AttributeName, &ResultAttributeInfo, &AttributeData[0], 0,
 		ResultAttributeInfo.count))
 	{
 		return true;
