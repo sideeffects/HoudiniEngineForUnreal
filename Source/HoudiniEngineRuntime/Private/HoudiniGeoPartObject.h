@@ -177,6 +177,68 @@ public:
 	bool HapiGetAttributeDataAsFloat(const FString& AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
 		TArray<float>& AttributeData, int32 TupleSize = 0) const;
 
+	/** HAPI: Get attribute int data on a specified owner. **/
+	bool HapiGetAttributeDataAsInt(HAPI_AssetId OtherAssetId, const char* AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(const char* AttributeName, HAPI_AttributeOwner AttributeOwner,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData,
+		int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData,
+		int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+
+	/** HAPI: Get attribute int data on any owner. **/
+	bool HapiGetAttributeDataAsInt(HAPI_AssetId OtherAssetId, const char* AttributeName,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(const char* AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(const std::string& AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsInt(const FString& AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<int32>& AttributeData, int32 TupleSize = 0) const;
+
+	/** HAPI: Get attribute string data on a specified owner. **/
+	bool HapiGetAttributeDataAsString(HAPI_AssetId OtherAssetId, const char* AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(const char* AttributeName, HAPI_AttributeOwner AttributeOwner,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData,
+		int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+		HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData,
+		int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+
+	/** HAPI: Get attribute string data on any owner. **/
+	bool HapiGetAttributeDataAsString(HAPI_AssetId OtherAssetId, const char* AttributeName,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(const char* AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(const std::string& AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+	bool HapiGetAttributeDataAsString(const FString& AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
+		TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+
 /** HAPI: Object related getters. **/
 public:
 
