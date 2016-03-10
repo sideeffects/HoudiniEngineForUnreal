@@ -476,7 +476,7 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(const char* AttributeName, HA
 
 
 bool
-FHoudiniGeoPartObject::HapiGetInstanceTransforms(HAPI_AssetId OtherAssetId, TArray<FTransform>& AllTransforms)
+FHoudiniGeoPartObject::HapiGetInstanceTransforms(HAPI_AssetId OtherAssetId, TArray<FTransform>& AllTransforms) const
 {
 	AllTransforms.Empty();
 	int32 PointCount = HapiPartGetPointCount(OtherAssetId);
@@ -510,7 +510,7 @@ FHoudiniGeoPartObject::HapiGetInstanceTransforms(HAPI_AssetId OtherAssetId, TArr
 
 
 bool
-FHoudiniGeoPartObject::HapiGetInstanceTransforms(TArray<FTransform>& AllTransforms)
+FHoudiniGeoPartObject::HapiGetInstanceTransforms(TArray<FTransform>& AllTransforms) const
 {
 	return HapiGetInstanceTransforms(AssetId, AllTransforms);
 }
@@ -1305,7 +1305,7 @@ FHoudiniGeoPartObject::HapiPartGetDetailAttributeCount() const
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const char* AttributeName,
-	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo)
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo) const
 {
 	FMemory::Memset<HAPI_AttributeInfo>(AttributeInfo, 0);
 
@@ -1321,7 +1321,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const cha
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(const char* AttributeName, HAPI_AttributeOwner AttributeOwner,
-	HAPI_AttributeInfo& AttributeInfo)
+	HAPI_AttributeInfo& AttributeInfo) const
 {
 	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
 }
@@ -1329,7 +1329,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(const char* AttributeName, HAPI_Attr
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
-	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo)
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo) const
 {
 	return HapiGetAttributeInfo(OtherAssetId, AttributeName.c_str(), AttributeOwner, AttributeInfo);
 }
@@ -1337,7 +1337,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const std
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(const std::string& AttributeName, HAPI_AttributeOwner AttributeOwner,
-	HAPI_AttributeInfo& AttributeInfo)
+	HAPI_AttributeInfo& AttributeInfo) const
 {
 	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
 }
@@ -1345,7 +1345,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(const std::string& AttributeName, HA
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const FString& AttributeName,
-	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo)
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& AttributeInfo) const
 {
 	std::string AttributeNameRaw = "";
 	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
@@ -1356,7 +1356,163 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const FSt
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner,
-	HAPI_AttributeInfo& AttributeInfo)
+	HAPI_AttributeInfo& AttributeInfo) const
 {
 	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(HAPI_AssetId OtherAssetId, const char* AttributeName,
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData,
+	int32 TupleSize) const
+{
+	AttributeData.SetNumUninitialized(0);
+
+	if(!HapiGetAttributeInfo(OtherAssetId, AttributeName, AttributeOwner, ResultAttributeInfo))
+	{
+		ResultAttributeInfo.exists = false;
+		return false;
+	}
+
+	if(!ResultAttributeInfo.exists)
+	{
+		return false;
+	}
+
+	if(TupleSize > 0)
+	{
+		ResultAttributeInfo.tupleSize = TupleSize;
+	}
+
+	AttributeData.SetNumUninitialized(ResultAttributeInfo.count * ResultAttributeInfo.tupleSize);
+
+	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), OtherAssetId,
+		ObjectId, GeoId, PartId, AttributeName, &ResultAttributeInfo, -1, &AttributeData[0], 0,
+		ResultAttributeInfo.count))
+	{
+		return true;
+	}
+
+	ResultAttributeInfo.exists = false;
+	return false;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(const char* AttributeName, HAPI_AttributeOwner AttributeOwner,
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData, int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(AssetId, AttributeName, AttributeOwner, ResultAttributeInfo, AttributeData,
+		TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData,
+	int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(OtherAssetId, AttributeName.c_str(), AttributeOwner, ResultAttributeInfo,
+		AttributeData, TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(const std::string& AttributeName,
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData,
+	int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(AssetId, AttributeName, AttributeOwner, ResultAttributeInfo, AttributeData,
+		TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+	HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData,
+	int32 TupleSize) const
+{
+	std::string AttributeNameRaw = "";
+	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
+
+	return HapiGetAttributeDataAsFloat(OtherAssetId, AttributeNameRaw, AttributeOwner, ResultAttributeInfo,
+		AttributeData, TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(const FString& AttributeName, HAPI_AttributeOwner AttributeOwner,
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData, int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(AssetId, AttributeName, AttributeOwner, ResultAttributeInfo, AttributeData,
+		TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(HAPI_AssetId OtherAssetId, const char* AttributeName,
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData, int32 TupleSize) const
+{
+	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	{
+		if(!HapiGetAttributeDataAsFloat(OtherAssetId, AttributeName, (HAPI_AttributeOwner) AttrIdx,
+			ResultAttributeInfo, AttributeData, TupleSize))
+		{
+			ResultAttributeInfo.exists = false;
+			return false;
+		}
+
+		if(ResultAttributeInfo.exists)
+		{
+			break;
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(const char* AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
+	TArray<float>& AttributeData, int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(AssetId, AttributeName, ResultAttributeInfo, AttributeData, TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData, int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(OtherAssetId, AttributeName.c_str(), ResultAttributeInfo, AttributeData,
+		TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(const std::string& AttributeName,
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData, int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(AssetId, AttributeName, ResultAttributeInfo, AttributeData, TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData, int32 TupleSize) const
+{
+	std::string AttributeNameRaw = "";
+	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
+
+	return HapiGetAttributeDataAsFloat(OtherAssetId, AttributeNameRaw, ResultAttributeInfo,
+		AttributeData, TupleSize);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(const FString& AttributeName,
+	HAPI_AttributeInfo& ResultAttributeInfo, TArray<float>& AttributeData, int32 TupleSize) const
+{
+	return HapiGetAttributeDataAsFloat(AssetId, AttributeName, ResultAttributeInfo, AttributeData, TupleSize);
 }
