@@ -1313,7 +1313,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const cha
 	if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), OtherAssetId, ObjectId,
 		GeoId, PartId, AttributeName, AttributeOwner, &AttributeInfo))
 	{
-		return AttributeInfo.exists;
+		return true;
 	}
 
 	return false;
@@ -1360,6 +1360,69 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(const FString& AttributeName, HAPI_A
 	HAPI_AttributeInfo& AttributeInfo) const
 {
 	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeOwner, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const char* AttributeName,
+	HAPI_AttributeInfo& AttributeInfo) const
+{
+	for(int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	{
+		if(!HapiGetAttributeInfo(OtherAssetId, AttributeName, (HAPI_AttributeOwner) AttrIdx,
+			AttributeInfo))
+		{
+			AttributeInfo.exists = false;
+			return false;
+		}
+
+		if(AttributeInfo.exists)
+		{
+			break;
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(const char* AttributeName, HAPI_AttributeInfo& AttributeInfo) const
+{
+	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const std::string& AttributeName,
+	HAPI_AttributeInfo& AttributeInfo) const
+{
+	return HapiGetAttributeInfo(OtherAssetId, AttributeName.c_str(), AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(const std::string& AttributeName, HAPI_AttributeInfo& AttributeInfo) const
+{
+	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(HAPI_AssetId OtherAssetId, const FString& AttributeName,
+	HAPI_AttributeInfo& AttributeInfo) const
+{
+	std::string AttributeNameRaw = "";
+	FHoudiniEngineUtils::ConvertUnrealString(AttributeName, AttributeNameRaw);
+
+	return HapiGetAttributeInfo(OtherAssetId, AttributeNameRaw, AttributeInfo);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeInfo(const FString& AttributeName, HAPI_AttributeInfo& AttributeInfo) const
+{
+	return HapiGetAttributeInfo(AssetId, AttributeName, AttributeInfo);
 }
 
 
