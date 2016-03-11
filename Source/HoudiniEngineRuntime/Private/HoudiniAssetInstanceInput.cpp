@@ -56,10 +56,14 @@ UHoudiniAssetInstanceInput::Create(UHoudiniAssetComponent* InHoudiniAssetCompone
 	bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(HAPI_UNREAL_ATTRIB_INSTANCE,
 		HAPI_ATTROWNER_POINT);
 
-	// Check if this is an attribute override instancer.
+	// Check if this is an attribute override instancer (on detail or point).
 	bool bAttributeOverrideCheck =
 		InHoudiniGeoPartObject.HapiCheckAttributeExistance(MarshallingAttributeInstanceOverride,
 			HAPI_ATTROWNER_DETAIL);
+
+	bAttributeOverrideCheck |=
+		InHoudiniGeoPartObject.HapiCheckAttributeExistance(MarshallingAttributeInstanceOverride,
+			HAPI_ATTROWNER_POINT);
 
 	// This is invalid combination, no object to instance and input is not an attribute instancer.
 	if(!bAttributeCheck && !bAttributeOverrideCheck && -1 == ObjectToInstance)
@@ -261,7 +265,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 		{
 			TArray<FString> PointInstanceValues;
 
-			if(!HoudiniGeoPartObject.HapiGetAttributeDataAsString(AssetId, HAPI_UNREAL_ATTRIB_INSTANCE,
+			if(!HoudiniGeoPartObject.HapiGetAttributeDataAsString(AssetId, MarshallingAttributeInstanceOverride,
 				HAPI_ATTROWNER_POINT, ResultAttributeInfo, PointInstanceValues))
 			{
 				// This should not happen - attribute exists, but there was an error retrieving it.
@@ -278,7 +282,43 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 			// Get unique names.
 			TSet<FString> UniquePointInstanceValues(PointInstanceValues);
 
+			// If instance attribute exists on points, we need to get all unique values.
+			TMap<FString, UStaticMesh*> ObjectsToInstance;
 
+			for(TSet<FString>::TIterator IterString(UniquePointInstanceValues); IterString; ++IterString)
+			{
+				const FString& UniqueName = *IterString;
+
+				if(!ObjectsToInstance.Contains(UniqueName))
+				{
+					UStaticMesh* AttributeStaticMesh =
+						Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *UniqueName,
+							nullptr, LOAD_NoWarn, nullptr));
+					ObjectsToInstance.Add(UniqueName, AttributeStaticMesh);
+				}
+			}
+
+			if(0 == ObjectsToInstance.Num())
+			{
+				// We have no objects to instance.
+				return false;
+			}
+
+			for(TMap<FString, UStaticMesh*>::TIterator IterInstanceObjects(ObjectsToInstance);
+				IterInstanceObjects; ++IterInstanceObjects)
+			{
+				const FString& InstancePath = IterInstanceObjects.Key();
+				UStaticMesh* AttributeStaticMesh = IterInstanceObjects.Value();
+
+				if(AttributeStaticMesh)
+				{
+					TArray<FTransform> ObjectTransforms;
+					GetPathInstaceTransforms(InstancePath, PointInstanceValues, AllTransforms, ObjectTransforms);
+
+					CreateInstanceInputField(AttributeStaticMesh, ObjectTransforms, InstanceInputFields,
+						NewInstanceInputFields);
+				}
+			}
 		}
 		else
 		{
