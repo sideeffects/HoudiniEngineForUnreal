@@ -203,7 +203,88 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 	else if(bAttributeInstancerOverride)
 	{
 		// This is an attribute override. Unreal mesh is specified through an attribute and we use points.
-		return false;
+
+		std::string MarshallingAttributeInstanceOverride = HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE;
+		UHoudiniRuntimeSettings::GetSettingsValue(TEXT("MarshallingAttributeInstanceOverride"),
+			MarshallingAttributeInstanceOverride);
+
+		HAPI_AttributeInfo ResultAttributeInfo;
+		if(!HoudiniGeoPartObject.HapiGetAttributeInfo(AssetId, MarshallingAttributeInstanceOverride,
+			ResultAttributeInfo))
+		{
+			// We had an error while retrieving the attribute info.
+			return false;
+		}
+
+		if(!ResultAttributeInfo.exists)
+		{
+			// Attribute does not exist.
+			return false;
+		}
+
+		if(HAPI_ATTROWNER_DETAIL == ResultAttributeInfo.owner)
+		{
+			// Attribute is on detail, this means it gets applied to all points.
+
+			TArray<FString> DetailInstanceValues;
+
+			if(!HoudiniGeoPartObject.HapiGetAttributeDataAsString(AssetId, MarshallingAttributeInstanceOverride,
+				HAPI_ATTROWNER_DETAIL, ResultAttributeInfo, DetailInstanceValues))
+			{
+				// This should not happen - attribute exists, but there was an error retrieving it.
+				return false;
+			}
+
+			if(0 == DetailInstanceValues.Num())
+			{
+				// No values specified.
+				return false;
+			}
+
+			// Attempt to load specified mesh.
+			const FString& StaticMeshName = DetailInstanceValues[0];
+			UStaticMesh* AttributeStaticMesh =
+				Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *StaticMeshName, nullptr,
+					LOAD_NoWarn, nullptr));
+
+			if(AttributeStaticMesh)
+			{
+				CreateInstanceInputField(AttributeStaticMesh, AllTransforms, InstanceInputFields,
+					NewInstanceInputFields);
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else if(HAPI_ATTROWNER_POINT == ResultAttributeInfo.owner)
+		{
+			TArray<FString> PointInstanceValues;
+
+			if(!HoudiniGeoPartObject.HapiGetAttributeDataAsString(AssetId, HAPI_UNREAL_ATTRIB_INSTANCE,
+				HAPI_ATTROWNER_POINT, ResultAttributeInfo, PointInstanceValues))
+			{
+				// This should not happen - attribute exists, but there was an error retrieving it.
+				return false;
+			}
+
+			// Attribute is on points, number of points must match number of transforms.
+			if(PointInstanceValues.Num() != AllTransforms.Num())
+			{
+				// This should not happen, we have mismatch between number of instance values and transforms.
+				return false;
+			}
+
+			// Get unique names.
+			TSet<FString> UniquePointInstanceValues(PointInstanceValues);
+
+
+		}
+		else
+		{
+			// We don't support this attribute on other owners.
+			return false;
+		}
 	}
 	else
 	{
@@ -251,6 +332,24 @@ UHoudiniAssetInstanceInput::LocateInputField(const FHoudiniGeoPartObject& GeoPar
 	}
 
 	return FoundHoudiniAssetInstanceInputField;
+}
+
+
+void
+UHoudiniAssetInstanceInput::LocateInputFieldsWithOriginalStaticMesh(TArray<UHoudiniAssetInstanceInputField*>& Fields,
+	UStaticMesh* OriginalStaticMesh)
+{
+	Fields.Empty();
+
+	UHoudiniAssetInstanceInputField* FoundHoudiniAssetInstanceInputField = nullptr;
+	for(int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx)
+	{
+		UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = InstanceInputFields[FieldIdx];
+		if(HoudiniAssetInstanceInputField && HoudiniAssetInstanceInputField->OriginalStaticMesh == OriginalStaticMesh)
+		{
+			Fields.Add(HoudiniAssetInstanceInputField);
+		}
+	}
 }
 
 
@@ -325,6 +424,56 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(const FHoudiniGeoPartObject
 	NewInstanceInputFields.Add(HoudiniAssetInstanceInputField);
 }
 
+
+void
+UHoudiniAssetInstanceInput::CreateInstanceInputField(UStaticMesh* StaticMesh,
+	const TArray<FTransform>& ObjectTransforms, const TArray<UHoudiniAssetInstanceInputField*>& OldInstanceInputFields,
+	TArray<UHoudiniAssetInstanceInputField*>& NewInstanceInputFields)
+{
+	// Locate all fields which have this static mesh set as original mesh.
+	TArray<UHoudiniAssetInstanceInputField*> CandidateFields;
+	LocateInputFieldsWithOriginalStaticMesh(CandidateFields, StaticMesh);
+
+	UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField = nullptr;
+
+	if(CandidateFields.Num() > 0)
+	{
+		HoudiniAssetInstanceInputField = CandidateFields[0];
+		InstanceInputFields.RemoveSingleSwap(HoudiniAssetInstanceInputField, false);
+
+		TArray<int> MatchingIndices;
+
+		HoudiniAssetInstanceInputField->FindStaticMeshIndices(HoudiniAssetInstanceInputField->OriginalStaticMesh,
+			MatchingIndices);
+
+		for(int Idx = 0; Idx < MatchingIndices.Num(); Idx++)
+		{
+			int ReplacementIndex = MatchingIndices[Idx];
+			HoudiniAssetInstanceInputField->ReplaceInstanceVariation(StaticMesh, ReplacementIndex);
+		}
+
+		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+	}
+	else
+	{
+		FHoudiniGeoPartObject HoudiniGeoPartObject;
+		HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(HoudiniAssetComponent, this,
+			HoudiniGeoPartObject, TEXT(""));
+
+		// Assign original and static mesh.
+		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+		HoudiniAssetInstanceInputField->AddInstanceVariation(StaticMesh, 0);
+	}
+
+	// Update component transformation.
+	HoudiniAssetInstanceInputField->UpdateRelativeTransform();
+
+	// Set transforms for this input.
+	HoudiniAssetInstanceInputField->SetInstanceTransforms(ObjectTransforms);
+
+	// Add field to list of fields.
+	NewInstanceInputFields.Add(HoudiniAssetInstanceInputField);
+}
 
 
 void
