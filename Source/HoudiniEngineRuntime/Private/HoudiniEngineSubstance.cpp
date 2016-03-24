@@ -16,6 +16,8 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineSubstance.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniMaterialObject.h"
+#include "HoudiniParameterObject.h"
 
 
 bool
@@ -23,78 +25,31 @@ FHoudiniEngineSubstance::GetSubstanceMaterialName(const HAPI_MaterialInfo& Mater
 	FString& SubstanceMaterialName)
 {
 	SubstanceMaterialName = TEXT("");
-
-	HAPI_NodeInfo NodeInfo;
-	FMemory::Memset<HAPI_NodeInfo>(NodeInfo, 0);
-	if(HAPI_RESULT_SUCCESS !=
-		FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &NodeInfo))
+	FHoudiniMaterialObject HoudiniMaterialObject(MaterialInfo);
+	
+	if(!HoudiniMaterialObject.IsSubstance())
 	{
 		return false;
 	}
 
-	if(NodeInfo.parmCount > 0)
+	FHoudiniParameterObject HoudiniParameterObject;
+	if(!HoudiniMaterialObject.HapiLocateParameterByName(HAPI_UNREAL_PARAM_SUBSTANCE_FILENAME, HoudiniParameterObject))
 	{
-		TArray<HAPI_ParmInfo> ParmInfos;
-		ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeInfo.id,
-			&ParmInfos[0], 0, NodeInfo.parmCount))
-		{
-			return false;
-		}
-
-		FString ParameterLabel = TEXT("");
-
-		{
-			FHoudiniEngineString HoudiniEngineString(ParmInfos[0].labelSH);
-			if(!HoudiniEngineString.ToFString(ParameterLabel))
-			{
-				return false;
-			}
-		}
-
-		// Check if we are dealing with Substance SHOP.
-		if(!ParameterLabel.Equals(HAPI_UNREAL_PARAM_SUBSTANCE_LABEL))
-		{
-			return false;
-		}
-
-		// We need to locate Substance filename.
-		TArray<FString> ParameterNames;
-		FHoudiniEngineUtils::HapiRetrieveParameterNames(ParmInfos, ParameterNames);
-		int32 SubstaceFileNameParmIdx =
-			FHoudiniEngineUtils::HapiFindParameterByName(HAPI_UNREAL_PARAM_SUBSTANCE_FILENAME, ParameterNames);
-
-		if(-1 == SubstaceFileNameParmIdx)
-		{
-			return false;
-		}
-
-		// Get corresponding parameter.
-		const HAPI_ParmInfo& ParmSubstanceFileName = ParmInfos[SubstaceFileNameParmIdx];
-
-		// We have located Substance filename parameter, we need to extract its value.
-		HAPI_StringHandle SubstanceFilenameStringHandle;
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(), NodeInfo.id,
-			true, &SubstanceFilenameStringHandle, ParmSubstanceFileName.stringValuesIndex, 1))
-		{
-			return false;
-		}
-
-		// Get file parameter value.
-		{
-			FHoudiniEngineString HoudiniEngineString(SubstanceFilenameStringHandle);
-			if(!HoudiniEngineString.ToFString(SubstanceMaterialName))
-			{
-				return false;
-			}
-		}
-
-		// Any additional processing?
-
-		return true;
+		return false;
 	}
 
-	return false;
+	FHoudiniEngineString HoudiniEngineString;
+	if(!HoudiniParameterObject.HapiGetValue(HoudiniEngineString))
+	{
+		return false;
+	}
+
+	if(!HoudiniEngineString.ToFString(SubstanceMaterialName))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 
