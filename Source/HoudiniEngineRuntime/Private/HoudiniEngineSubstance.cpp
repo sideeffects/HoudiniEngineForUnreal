@@ -38,6 +38,11 @@ FHoudiniEngineSubstance::GetSubstanceMaterialName(const HAPI_MaterialInfo& Mater
 		return false;
 	}
 
+	if(!HoudiniParameterObject.HapiCheckParmCategoryPath())
+	{
+		return false;
+	}
+
 	FHoudiniEngineString HoudiniEngineString;
 	if(!HoudiniParameterObject.HapiGetValue(HoudiniEngineString))
 	{

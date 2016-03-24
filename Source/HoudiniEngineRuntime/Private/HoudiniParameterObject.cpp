@@ -159,6 +159,97 @@ FHoudiniParameterObject::HapiGetParmType() const
 
 
 bool
+FHoudiniParameterObject::HapiCheckParmType(HAPI_ParmType ParmType) const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.type == ParmType;
+}
+
+
+bool
+FHoudiniParameterObject::HapiCheckParmCategoryInteger() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.type >= HAPI_PARMTYPE_INT_START && ParmInfo.type <= HAPI_PARMTYPE_INT_END;
+}
+
+
+bool
+FHoudiniParameterObject::HapiCheckParmCategoryFloat() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.type >= HAPI_PARMTYPE_FLOAT_START && ParmInfo.type <= HAPI_PARMTYPE_FLOAT_END;
+}
+
+
+bool
+FHoudiniParameterObject::HapiCheckParmCategoryString() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.type >= HAPI_PARMTYPE_STRING_START && ParmInfo.type <= HAPI_PARMTYPE_STRING_END;
+}
+
+
+bool
+FHoudiniParameterObject::HapiCheckParmCategoryPath() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.type >= HAPI_PARMTYPE_PATH_START && ParmInfo.type <= HAPI_PARMTYPE_PATH_END;
+}
+
+
+bool
+FHoudiniParameterObject::HapiCheckParmCategoryContainer() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.type >= HAPI_PARMTYPE_CONTAINER_START && ParmInfo.type <= HAPI_PARMTYPE_CONTAINER_END;
+}
+
+
+bool
+FHoudiniParameterObject::HapiCheckParmCategoryNonValue() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.type >= HAPI_PARMTYPE_NONVALUE_START && ParmInfo.type <= HAPI_PARMTYPE_NONVALUE_END;
+}
+
+
+bool
 FHoudiniParameterObject::HapiIsArray() const
 {
 	HAPI_ParmInfo ParmInfo;
