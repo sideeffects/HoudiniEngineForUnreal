@@ -278,19 +278,21 @@ UHoudiniAssetParameterInt::SetValue(int32 InValue, int32 Idx, bool bTriggerModif
 {
 	if(Values[Idx] != InValue)
 	{
-		if(!bSliderDragged && bRecordUndo)
-		{
 
 #if WITH_EDITOR
 
-			// If this is not a slider change (user typed in values manually), record undo information.
-			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-				LOCTEXT("HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value"),
-				HoudiniAssetComponent);
-			Modify();
-#endif
+	// If this is not a slider change (user typed in values manually), record undo information.
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value"),
+		HoudiniAssetComponent);
+	Modify();
 
-		}
+	if(bSliderDragged || !bRecordUndo)
+	{
+		Transaction.Cancel();
+	}
+
+#endif
 
 		MarkPreChanged(bTriggerModify);
 
