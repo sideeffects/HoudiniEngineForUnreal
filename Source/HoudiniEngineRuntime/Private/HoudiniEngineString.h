@@ -28,6 +28,7 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineString
 {
 	public:
 
+		FHoudiniEngineString();
 		FHoudiniEngineString(int32 InStringId);
 		FHoudiniEngineString(const FHoudiniEngineString& Other);
 
