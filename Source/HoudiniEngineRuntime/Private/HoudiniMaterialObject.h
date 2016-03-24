@@ -29,12 +29,15 @@ public:
 
 	FHoudiniMaterialObject();
 	FHoudiniMaterialObject(const HAPI_MaterialInfo& MaterialInfo);
-	FHoudiniMaterialObject(HAPI_AssetId InAssetId, HAPI_NodeId InNodeId);
+	FHoudiniMaterialObject(HAPI_AssetId InAssetId, HAPI_NodeId InNodeId, HAPI_MaterialId InMaterialId);
 
 public:
 
-	/** HAPI: Retrieve corresponding node info structure. **/
+	/** Retrieve corresponding node info structure. **/
 	bool HapiGetNodeInfo(HAPI_NodeInfo& NodeInfo) const;
+
+	/** Retrieve corresponding material info structure. **/
+	bool HapiGetMaterialInfo(HAPI_MaterialInfo& MaterialInfo) const;
 
 	/** Return parameter objects associated with this material. **/
 	bool HapiGetParameterObjects(TArray<FHoudiniParameterObject>& ParameterObjects) const;
@@ -44,6 +47,19 @@ public:
 
 	/** Locate parameter object with a specified label. **/
 	bool HapiLocateParameterByLabel(const FString& Label, FHoudiniParameterObject& ResultHoudiniParameterObject) const;
+
+public:
+
+	/** Return true if material exists. **/
+	bool HapiCheckMaterialExists() const;
+
+	/** Return true if material has been marked as modified. **/
+	bool HapiCheckMaterialChanged() const;
+
+public:
+
+	/** Return material SHOP name. **/
+	bool HapiGetMaterialShopName(FString& ShopName) const;
 
 public:
 
@@ -57,4 +73,7 @@ protected:
 
 	/** Node Id associated with this material. **/
 	HAPI_NodeId NodeId;
+
+	/** Material Id associated with this material. **/
+	HAPI_MaterialId MaterialId;
 };
