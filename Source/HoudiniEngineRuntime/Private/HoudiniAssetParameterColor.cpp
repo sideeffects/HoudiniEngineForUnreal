@@ -255,13 +255,15 @@ UHoudiniAssetParameterColor::OnPaintColorChanged(FLinearColor InNewColor, bool b
 
 #if WITH_EDITOR
 
-		if(bRecordUndo)
+		// Record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterColorChange", "Houdini Parameter Color: Changing a value"),
+			HoudiniAssetComponent);
+		Modify();
+
+		if(!bRecordUndo)
 		{
-			// Record undo information.
-			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-				LOCTEXT("HoudiniAssetParameterColorChange", "Houdini Parameter Color: Changing a value"),
-				HoudiniAssetComponent);
-			Modify();
+			Transaction.Cancel();
 		}
 
 #endif
