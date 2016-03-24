@@ -290,12 +290,14 @@ UHoudiniAssetParameterChoice::SetValueInt(int32 Value, bool bTriggerModify, bool
 {
 #if WITH_EDITOR
 
-	if(bRecordUndo)
+	FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+		LOCTEXT("HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value"),
+		HoudiniAssetComponent);
+	Modify();
+
+	if(!bRecordUndo)
 	{
-		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value"),
-			HoudiniAssetComponent);
-		Modify();
+		Transaction.Cancel();
 	}
 
 #endif

@@ -321,20 +321,21 @@ UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx, bool bTriggerMod
 {
 	if(Values[Idx] != InValue)
 	{
-		if(!bSliderDragged && bRecordUndo)
-		{
 
 #if WITH_EDITOR
 
-			// If this is not a slider change (user typed in values manually), record undo information.
-			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-				LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
-				HoudiniAssetComponent);
-			Modify();
+		// If this is not a slider change (user typed in values manually), record undo information.
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
+			HoudiniAssetComponent);
+		Modify();
+
+		if(bSliderDragged || !bRecordUndo)
+		{
+			Transaction.Cancel();
+		}
 
 #endif
-
-		}
 
 		MarkPreChanged(bTriggerModify);
 

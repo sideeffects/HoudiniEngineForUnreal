@@ -286,12 +286,14 @@ UHoudiniAssetParameterMultiparm::AddElements(int32 NumElements, bool bTriggerMod
 #if WITH_EDITOR
 
 		// Record undo information.
-		if(bRecordUndo)
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+			HoudiniAssetComponent);
+		Modify();
+
+		if(!bRecordUndo)
 		{
-			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-				LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
-				HoudiniAssetComponent);
-			Modify();
+			Transaction.Cancel();
 		}
 
 #endif
@@ -328,12 +330,14 @@ UHoudiniAssetParameterMultiparm::RemoveElements(int32 NumElements, bool bTrigger
 #if WITH_EDITOR
 
 		// Record undo information.
-		if(bRecordUndo)
+		FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
+			HoudiniAssetComponent);
+		Modify();
+
+		if(!bRecordUndo)
 		{
-			FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-				LOCTEXT("HoudiniAssetParameterMultiparmChange", "Houdini Parameter Multiparm: Changing a value"),
-				HoudiniAssetComponent);
-			Modify();
+			Transaction.Cancel();
 		}
 
 #endif
