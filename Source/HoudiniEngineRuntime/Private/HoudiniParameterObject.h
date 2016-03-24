@@ -56,6 +56,27 @@ public:
 	/** Return type of this parameter. **/
 	HAPI_ParmType HapiGetParmType() const;
 
+	/** Return true if this parameter is of a given type. **/
+	bool HapiCheckParmType(HAPI_ParmType ParmType) const;
+
+	/** Return true if this parameter falls into integer param category. **/
+	bool HapiCheckParmCategoryInteger() const;
+
+	/** Return true if this parameter falls into float param category. **/
+	bool HapiCheckParmCategoryFloat() const;
+
+	/** Return true if this parameter falls into string param category. **/
+	bool HapiCheckParmCategoryString() const;
+
+	/** Return true if this parameter falls into path param category. **/
+	bool HapiCheckParmCategoryPath() const;
+
+	/** Return true if this parameter falls into container param category. **/
+	bool HapiCheckParmCategoryContainer() const;
+
+	/** Return true if this parameter falls into non-value param category. **/
+	bool HapiCheckParmCategoryNonValue() const;
+
 public:
 
 	/** Return true if this is an array parameter. **/
