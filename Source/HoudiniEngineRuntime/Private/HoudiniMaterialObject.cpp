@@ -22,7 +22,8 @@
 
 FHoudiniMaterialObject::FHoudiniMaterialObject() :
 	AssetId(-1),
-	NodeId(-1)
+	NodeId(-1),
+	MaterialId(-1)
 {
 
 }
@@ -30,31 +31,47 @@ FHoudiniMaterialObject::FHoudiniMaterialObject() :
 
 FHoudiniMaterialObject::FHoudiniMaterialObject(const HAPI_MaterialInfo& MaterialInfo) :
 	AssetId(MaterialInfo.assetId),
-	NodeId(MaterialInfo.nodeId)
+	NodeId(MaterialInfo.nodeId),
+	MaterialId(MaterialInfo.id)
 {
 
 }
 
 
-FHoudiniMaterialObject::FHoudiniMaterialObject(HAPI_AssetId InAssetId, HAPI_NodeId InNodeId) :
+FHoudiniMaterialObject::FHoudiniMaterialObject(HAPI_AssetId InAssetId, HAPI_NodeId InNodeId,
+	HAPI_MaterialId InMaterialId) :
 	AssetId(InAssetId),
-	NodeId(InNodeId)
+	NodeId(InNodeId),
+	MaterialId(InMaterialId)
 {
 
 }
-
 
 bool
 FHoudiniMaterialObject::HapiGetNodeInfo(HAPI_NodeInfo& NodeInfo) const
 {
+	FMemory::Memset<HAPI_NodeInfo>(NodeInfo, 0);
+
 	if(-1 == NodeId)
 	{
 		return false;
 	}
 
-	FMemory::Memset<HAPI_NodeInfo>(NodeInfo, 0);
-
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniMaterialObject::HapiGetMaterialInfo(HAPI_MaterialInfo& MaterialInfo) const
+{
+	FMemory::Memset<HAPI_MaterialInfo>(MaterialInfo, 0);
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), AssetId, MaterialId,
+		&MaterialInfo))
 	{
 		return false;
 	}
@@ -155,4 +172,85 @@ FHoudiniMaterialObject::IsSubstance() const
 	}
 
 	return true;
+}
+
+
+bool
+FHoudiniMaterialObject::HapiGetMaterialShopName(FString& ShopName) const
+{
+	HAPI_AssetInfo AssetInfo;
+	FMemory::Memset<HAPI_AssetInfo>(AssetInfo, 0);
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
+	{
+		return false;
+	}
+
+	HAPI_NodeInfo AssetNodeInfo;
+	FMemory::Memset<HAPI_NodeInfo>(AssetNodeInfo, 0);
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId,
+		&AssetNodeInfo))
+	{
+		return false;
+	}
+
+	HAPI_NodeInfo MaterialNodeInfo;
+	if(!HapiGetNodeInfo(MaterialNodeInfo))
+	{
+		return false;
+	}
+
+	FString AssetNodeName = TEXT("");
+	FString MaterialNodeName = TEXT("");
+
+	{
+		FHoudiniEngineString HoudiniEngineString(AssetNodeInfo.internalNodePathSH);
+		if(!HoudiniEngineString.ToFString(AssetNodeName))
+		{
+			return false;
+		}
+	}
+
+	{
+		FHoudiniEngineString HoudiniEngineString(MaterialNodeInfo.internalNodePathSH);
+		if(!HoudiniEngineString.ToFString(MaterialNodeName))
+		{
+			return false;
+		}
+	}
+
+	if(AssetNodeName.Len() > 0 && MaterialNodeName.Len() > 0)
+	{
+		// Remove AssetNodeName part from MaterialNodeName. Extra position is for separator.
+		ShopName = MaterialNodeName.Mid(AssetNodeName.Len() + 1);
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniMaterialObject::HapiCheckMaterialExists() const
+{
+	HAPI_MaterialInfo MaterialInfo;
+	if(!HapiGetMaterialInfo(MaterialInfo))
+	{
+		return false;
+	}
+
+	return MaterialInfo.exists;
+}
+
+
+bool
+FHoudiniMaterialObject::HapiCheckMaterialChanged() const
+{
+	HAPI_MaterialInfo MaterialInfo;
+	if(!HapiGetMaterialInfo(MaterialInfo))
+	{
+		return false;
+	}
+
+	return MaterialInfo.hasChanged;
 }
