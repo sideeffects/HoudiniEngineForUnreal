@@ -264,9 +264,6 @@ public:
 		const TSet<HAPI_MaterialId>& UniqueMaterialIds, const TSet<HAPI_MaterialId>& UniqueInstancerMaterialIds,
 		TMap<FString, UMaterial*>& Materials);
 
-	/** HAPI: Check if material is a Substance material. If it is, return its name by reference. **/
-	static bool GetSubstanceMaterialName(const HAPI_MaterialInfo& MaterialInfo, FString& SubstanceMaterialName);
-
 #if WITH_EDITOR
 
 	/** Create various material components. **/
@@ -427,17 +424,7 @@ protected:
 	/** Reset streams used by the given RawMesh. **/
 	static void ResetRawMesh(FRawMesh& RawMesh);
 
-	/** Used to locate and load (if found) Substance instance factory object. **/
-	static UObject* LoadSubstanceInstanceFactory(UClass* InstanceFactoryClass, const FString& SubstanceMaterialName);
-
-	/** Used to locate and load (if found) Substance graph instance object. **/
-	static UObject* LoadSubstanceGraphInstance(UClass* GraphInstanceClass, UObject* InstanceFactory);
-
 #endif
-
-	/** Retrieve Substance RTTI classes we are interested in. **/
-	static bool RetrieveSubstanceRTTIClasses(UClass*& InstanceFactoryClass, UClass*& GraphInstanceClass,
-		UClass*& UtilityClass);
 
 public:
 
