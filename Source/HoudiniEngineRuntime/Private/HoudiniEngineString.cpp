@@ -22,6 +22,13 @@
 #include <vector>
 
 
+FHoudiniEngineString::FHoudiniEngineString() :
+	StringId(-1)
+{
+
+}
+
+
 FHoudiniEngineString::FHoudiniEngineString(int32 InStringId) :
 	StringId(InStringId)
 {
