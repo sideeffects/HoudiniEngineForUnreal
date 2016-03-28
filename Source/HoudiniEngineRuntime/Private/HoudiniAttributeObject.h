@@ -71,7 +71,7 @@ protected:
 	/** HAPI: Retrieve attribute info structure. **/
 	bool HapiGetAttributeInfo(HAPI_AttributeInfo& AttributeInfo) const;
 
-public:
+protected:
 
 	/** Raw data for this attribute. **/
 	TArray<uint8> Value;
@@ -82,7 +82,7 @@ public:
 	/** Size of each entry. **/
 	int32 ValueSize;
 
-public:
+protected:
 
 	/** Name of the attribute. **/
 	FString AttributeName;
@@ -98,4 +98,9 @@ public:
 	HAPI_ObjectId ObjectId;
 	HAPI_GeoId GeoId;
 	HAPI_PartId PartId;
+
+protected:
+
+	/** Temporary variable holding serialization version. **/
+	uint32 HoudiniAttributeObjectVersion;
 };

@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniMaterialObject.h"
+#include "HoudiniMaterialObjectVersion.h"
 #include "HoudiniParameterObject.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
@@ -282,25 +283,25 @@ UPackage*
 FHoudiniMaterialObject::CreateMaterialPackage(UHoudiniAssetComponent* HoudiniAssetComponent, FString& MaterialName,
 	bool bBake)
 {
-	UPackage* Package = nullptr;
+	UPackage* PackageNew = nullptr;
 
 #if WITH_EDITOR
 
 	if(!HoudiniAssetComponent)
 	{
-		return Package;
+		return nullptr;
 	}
 
 	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 	if(!HoudiniAsset)
 	{
-		return Package;
+		return nullptr;
 	}
 
 	HAPI_MaterialInfo MaterialInfo;
 	if(!HapiGetMaterialInfo(MaterialInfo))
 	{
-		return Package;
+		return nullptr;
 	}
 
 	FString MaterialDescriptor = TEXT("");
@@ -373,12 +374,12 @@ FHoudiniMaterialObject::CreateMaterialPackage(UHoudiniAssetComponent* HoudiniAss
 		else
 		{
 			// Create actual package.
-			Package = CreatePackage(OuterPackage, *PackageName);
+			PackageNew = CreatePackage(OuterPackage, *PackageName);
 			break;
 		}
 	}
 
 #endif
 
-	return Package;
+	return PackageNew;
 }
