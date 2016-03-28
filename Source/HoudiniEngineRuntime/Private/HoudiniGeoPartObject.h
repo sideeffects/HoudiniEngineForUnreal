@@ -20,6 +20,8 @@ class FArchive;
 struct FTransform;
 struct HAPI_ObjectInfo;
 class FHoudiniEngineString;
+struct FHoudiniAttributeObject;
+
 
 struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 {
@@ -101,6 +103,23 @@ public:
 
 	/** Return part id. **/
 	HAPI_PartId GetPartId() const;
+
+public:
+
+	/** Return attribute objects associated with this geo part object. **/
+	bool HapiGetAttributeObjects(HAPI_AttributeOwner AttributeOwner,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjects) const;
+	bool HapiGetAttributeObjects(HAPI_AssetId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjects) const;
+	bool HapiGetAllAttributeObjects(TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPoint,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjectsVertex,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPrimitive,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjectsDetail) const;
+	bool HapiGetAllAttributeObjects(HAPI_AssetId OtherAssetId,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPoint,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjectsVertex,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPrimitive,
+		TMap<FString, FHoudiniAttributeObject>& AttributeObjectsDetail) const;
 
 /** HAPI: Other helpers. **/
 public:
@@ -237,6 +256,25 @@ public:
 		HAPI_AttributeInfo& ResultAttributeInfo, TArray<FString>& AttributeData, int32 TupleSize = 0) const;
 	bool HapiGetAttributeDataAsString(const FString& AttributeName, HAPI_AttributeInfo& ResultAttributeInfo,
 		TArray<FString>& AttributeData, int32 TupleSize = 0) const;
+
+	/** HAPI: Get names of all attributes on all owners. **/
+	bool HapiGetAllAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const;
+	bool HapiGetAllAttributeNames(TArray<FString>& AttributeNames) const;
+
+	/** HAPI: Get names of all attributes on a given owner. **/
+	bool HapiGetAttributeNames(HAPI_AssetId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
+		TArray<FString>& AttributeNames) const;
+	bool HapiGetAttributeNames(HAPI_AttributeOwner AttributeOwner, TArray<FString>& AttributeNames) const;
+
+	/** HAPI: Get attribute names on point, vertex, detail or primitive. **/
+	bool HapiGetPointAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const;
+	bool HapiGetPointAttributeNames(TArray<FString>& AttributeNames) const;
+	bool HapiGetVertexAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const;
+	bool HapiGetVertexAttributeNames(TArray<FString>& AttributeNames) const;
+	bool HapiGetPrimitiveAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const;
+	bool HapiGetPrimitiveAttributeNames(TArray<FString>& AttributeNames) const;
+	bool HapiGetDetailAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const;
+	bool HapiGetDetailAttributeNames(TArray<FString>& AttributeNames) const;
 
 /** HAPI: Object related getters. **/
 public:
