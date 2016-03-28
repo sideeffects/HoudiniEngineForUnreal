@@ -1900,3 +1900,62 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(const FString& AttributeName
 {
 	return HapiGetAttributeDataAsString(AssetId, AttributeName, ResultAttributeInfo, AttributeData, TupleSize);
 }
+
+
+bool
+FHoudiniGeoPartObject::HapiObjectGetUniqueInstancerMaterialId(HAPI_MaterialId& MaterialId) const
+{
+	return HapiObjectGetUniqueInstancerMaterialId(AssetId, MaterialId);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiObjectGetUniqueInstancerMaterialId(HAPI_AssetId OtherAssetId,
+	HAPI_MaterialId& MaterialId) const
+{
+	MaterialId = -1;
+
+	if(HapiObjectIsInstancer(OtherAssetId))
+	{
+		HAPI_Bool bSingleFaceMaterial = false;
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
+			OtherAssetId, ObjectId, GeoId, PartId, &bSingleFaceMaterial, &MaterialId, 0, 1))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds(TSet<HAPI_MaterialId>& MaterialIds) const
+{
+	return HapiPartGetUniqueMaterialIds(AssetId, MaterialIds);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds(HAPI_AssetId OtherAssetId,
+	TSet<HAPI_MaterialId>& MaterialIds) const
+{
+	MaterialIds.Empty();
+
+	int32 FaceCount = HapiPartGetFaceCount(OtherAssetId);
+	if(FaceCount > 0)
+	{
+		TArray<HAPI_MaterialId> FaceMaterialIds;
+		FaceMaterialIds.SetNumUninitialized(FaceCount);
+
+		HAPI_Bool bSingleFaceMaterial = false;
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
+			OtherAssetId, ObjectId, GeoId, PartId, &bSingleFaceMaterial, &FaceMaterialIds[0], 0, FaceCount))
+		{
+			MaterialIds.Append(FaceMaterialIds);
+			return true;
+		}
+	}
+
+	return false;
+}

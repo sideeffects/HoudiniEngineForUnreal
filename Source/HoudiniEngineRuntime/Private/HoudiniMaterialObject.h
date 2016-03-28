@@ -17,9 +17,11 @@
 
 
 class FString;
+class UPackage;
 struct HAPI_NodeInfo;
 struct HAPI_ParmInfo;
 struct HAPI_MaterialInfo;
+class UHoudiniAssetComponent;
 struct FHoudiniParameterObject;
 
 
@@ -61,10 +63,19 @@ public:
 	/** Return material SHOP name. **/
 	bool HapiGetMaterialShopName(FString& ShopName) const;
 
+	/** Return true if material is transparent. **/
+	bool HapiIsMaterialTransparent() const;
+
 public:
 
 	/** Return true if this is a Substance material. **/
 	bool IsSubstance() const;
+
+public:
+
+	/** Create a package for this material. **/
+	UPackage* CreateMaterialPackage(UHoudiniAssetComponent* HoudiniAssetComponent, FString& MaterialName,
+		bool bBake = false);
 
 protected:
 
