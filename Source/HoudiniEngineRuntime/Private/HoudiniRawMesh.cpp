@@ -19,7 +19,23 @@
 #include "HoudiniGeoPartObject.h"
 
 
+FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
+	HAPI_PartId InPartId) :
+	AssetId(InAssetId),
+	ObjectId(InObjectId),
+	GeoId(InGeoId),
+	PartId(InPartId),
+	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
+{
+
+}
+
+
 FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) :
+	AssetId(HoudiniGeoPartObject.AssetId),
+	ObjectId(HoudiniGeoPartObject.ObjectId),
+	GeoId(HoudiniGeoPartObject.GeoId),
+	PartId(HoudiniGeoPartObject.PartId),
 	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
 {
 
@@ -27,6 +43,10 @@ FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObje
 
 
 FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject& HoudiniGeoPartObject) :
+	AssetId(OtherAssetId),
+	ObjectId(HoudiniGeoPartObject.ObjectId),
+	GeoId(HoudiniGeoPartObject.GeoId),
+	PartId(HoudiniGeoPartObject.PartId),
 	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
 {
 
@@ -34,6 +54,10 @@ FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId OtherAssetId, FHoudiniGeoPartObjec
 
 
 FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniRawMesh& HoudiniRawMesh) :
+	AssetId(HoudiniRawMesh.AssetId),
+	ObjectId(HoudiniRawMesh.ObjectId),
+	GeoId(HoudiniRawMesh.GeoId),
+	PartId(HoudiniRawMesh.PartId),
 	HoudiniRawMeshVersion(HoudiniRawMesh.HoudiniRawMeshVersion)
 {
 
@@ -47,10 +71,41 @@ FHoudiniRawMesh::BuildRawMesh(FRawMesh& RawMesh, bool bFullRebuild) const
 }
 
 
-void
+bool
 FHoudiniRawMesh::Serialize(FArchive& Ar)
 {
 	HoudiniRawMeshVersion = VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION;
 	Ar << HoudiniRawMeshVersion;
+
+	Ar << AttributesPoint;
+	Ar << AttributesVertex;
+	Ar << AttributesPrimitive;
+	Ar << AttributesDetail;
+
+	Ar << Vertices;
+
+	return true;
+}
+
+
+uint32
+FHoudiniRawMesh::GetTypeHash() const
+{
+	return 0;
+}
+
+
+FArchive&
+operator<<(FArchive& Ar, FHoudiniRawMesh& HoudiniRawMesh)
+{
+	HoudiniRawMesh.Serialize(Ar);
+	return Ar;
+}
+
+
+uint32
+GetTypeHash(const FHoudiniRawMesh& HoudiniRawMesh)
+{
+	return HoudiniRawMesh.GetTypeHash();
 }
 

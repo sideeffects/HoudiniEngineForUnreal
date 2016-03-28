@@ -22,6 +22,7 @@ class FString;
 class FArchive;
 struct HAPI_AttributeInfo;
 struct FHoudiniGeoPartObject;
+struct FHoudiniAttributeObject;
 
 
 struct HOUDINIENGINERUNTIME_API FHoudiniAttributeObject
@@ -70,7 +71,10 @@ public:
 public:
 
 	/** Serialization. **/
-	void Serialize(FArchive& Ar);
+	bool Serialize(FArchive& Ar);
+
+	/** Return hash value for this object, used when using this object as a key inside hashing containers. **/
+	uint32 GetTypeHash() const;
 
 protected:
 
@@ -110,3 +114,10 @@ protected:
 	/** Temporary variable holding serialization version. **/
 	uint32 HoudiniAttributeObjectVersion;
 };
+
+
+/** Function used by hashing containers to create a unique hash for this type of object. **/
+HOUDINIENGINERUNTIME_API uint32 GetTypeHash(const FHoudiniAttributeObject& HoudiniAttributeObject);
+
+/** Serialization function. **/
+HOUDINIENGINERUNTIME_API FArchive& operator<<(FArchive& Ar, FHoudiniAttributeObject& HoudiniAttributeObject);
