@@ -282,6 +282,10 @@ public:
 	HAPI_NodeId HapiObjectGetNodeId() const;
 	HAPI_NodeId HapiObjectGetNodeId(HAPI_AssetId OtherAssetId) const;
 
+	/** HAPI: Return unique material id associated with an instancer. **/
+	bool HapiObjectGetUniqueInstancerMaterialId(HAPI_MaterialId& MaterialId) const;
+	bool HapiObjectGetUniqueInstancerMaterialId(HAPI_AssetId OtherAssetId, HAPI_MaterialId& MaterialId) const;
+
 /** HAPI: Geo related getters. **/
 public:
 
@@ -387,6 +391,10 @@ public:
 	/** HAPI: Get number of detail attributes. **/
 	int32 HapiPartGetDetailAttributeCount() const;
 	int32 HapiPartGetDetailAttributeCount(HAPI_AssetId OtherAssetId) const;
+
+	/** HAPI: Return unique material ids associated with this part. **/
+	bool HapiPartGetUniqueMaterialIds(TSet<HAPI_MaterialId>& MaterialIds) const;
+	bool HapiPartGetUniqueMaterialIds(HAPI_AssetId OtherAssetId, TSet<HAPI_MaterialId>& MaterialIds) const;
 
 public:
 

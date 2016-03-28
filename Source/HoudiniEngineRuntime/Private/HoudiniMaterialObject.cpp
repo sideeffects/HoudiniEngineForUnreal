@@ -18,6 +18,8 @@
 #include "HoudiniParameterObject.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniAsset.h"
+#include "HoudiniAssetComponent.h"
 
 
 FHoudiniMaterialObject::FHoudiniMaterialObject() :
@@ -254,4 +256,129 @@ FHoudiniMaterialObject::HapiCheckMaterialChanged() const
 	}
 
 	return MaterialInfo.hasChanged;
+}
+
+
+bool
+FHoudiniMaterialObject::HapiIsMaterialTransparent() const
+{
+	FHoudiniParameterObject ResultHoudiniParameterObject;
+	if(!HapiLocateParameterByName(TEXT(HAPI_UNREAL_PARAM_ALPHA), ResultHoudiniParameterObject))
+	{
+		return false;
+	}
+
+	float Alpha = 1.0f;
+	if(!ResultHoudiniParameterObject.HapiGetValue(Alpha))
+	{
+		return false;
+	}
+
+	return Alpha < HAPI_UNREAL_ALPHA_THRESHOLD;
+}
+
+
+UPackage*
+FHoudiniMaterialObject::CreateMaterialPackage(UHoudiniAssetComponent* HoudiniAssetComponent, FString& MaterialName,
+	bool bBake)
+{
+	UPackage* Package = nullptr;
+
+#if WITH_EDITOR
+
+	if(!HoudiniAssetComponent)
+	{
+		return Package;
+	}
+
+	UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+	if(!HoudiniAsset)
+	{
+		return Package;
+	}
+
+	HAPI_MaterialInfo MaterialInfo;
+	if(!HapiGetMaterialInfo(MaterialInfo))
+	{
+		return Package;
+	}
+
+	FString MaterialDescriptor = TEXT("");
+	if(bBake)
+	{
+		MaterialDescriptor = HoudiniAsset->GetName() + TEXT("_material_") + FString::FromInt(MaterialInfo.id)
+			+ TEXT("_");
+	}
+	else
+	{
+		MaterialDescriptor = HoudiniAsset->GetName() + TEXT("_") + FString::FromInt(MaterialInfo.id) + TEXT("_");
+	}
+
+	FGuid BakeGUID = FGuid::NewGuid();
+	const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
+	FString PackageName;
+
+	// We only want half of generated guid string.
+	FString ComponentGUIDString = ComponentGUID.ToString().Left(12);
+
+	while(true)
+	{
+		if(!BakeGUID.IsValid())
+		{
+			BakeGUID = FGuid::NewGuid();
+		}
+
+		// We only want half of generated guid string.
+		FString BakeGUIDString = BakeGUID.ToString().Left(12);
+
+		// Generate material name.
+		MaterialName = MaterialDescriptor + BakeGUIDString;
+
+		if(bBake)
+		{
+			// Generate unique package name.
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) + TEXT("/")
+				+ MaterialName;
+		}
+		else
+		{
+			// Generate unique package name.
+			PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOuter()->GetName()) + TEXT("/") +
+				HoudiniAsset->GetName() + TEXT("_") + ComponentGUIDString + TEXT("/") + MaterialName;
+		}
+
+		// Sanitize package name.
+		PackageName = PackageTools::SanitizePackageName(PackageName);
+
+		UObject* OuterPackage = nullptr;
+
+		if(!bBake)
+		{
+			// If we are not baking, then use outermost package, since objects within our package need to be visible
+			// to external operations, such as copy paste.
+			OuterPackage = HoudiniAssetComponent->GetOutermost();
+		}
+
+		// See if package exists, if it does, we need to regenerate the name.
+		UPackage* Package = FindPackage(OuterPackage, *PackageName);
+
+		if(Package)
+		{
+			if(!bBake)
+			{
+				// Package does exist, there's a collision, we need to generate a new name.
+				BakeGUID.Invalidate();
+			}
+		}
+		else
+		{
+			// Create actual package.
+			Package = CreatePackage(OuterPackage, *PackageName);
+			break;
+		}
+	}
+
+#endif
+
+	return Package;
 }
