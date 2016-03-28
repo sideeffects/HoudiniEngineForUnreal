@@ -15,37 +15,38 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniParameterObject.h"
+#include "HoudiniParameterObjectVersion.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
 
 
 FHoudiniParameterObject::FHoudiniParameterObject() :
-	NodeId(-1),
-	ParmId(-1)
+	ParmId(-1),
+	NodeId(-1)
 {
 
 }
 
 
 FHoudiniParameterObject::FHoudiniParameterObject(HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) :
-	NodeId(InNodeId),
-	ParmId(ParmInfo.id)
+	ParmId(ParmInfo.id),
+	NodeId(InNodeId)
 {
 
 }
 
 
 FHoudiniParameterObject::FHoudiniParameterObject(HAPI_NodeId InNodeId, HAPI_ParmId InParmId) :
-	NodeId(InNodeId),
-	ParmId(InParmId)
+	ParmId(InParmId),
+	NodeId(InNodeId)
 {
 
 }
 
 
 FHoudiniParameterObject::FHoudiniParameterObject(const FHoudiniParameterObject& HoudiniParameterObject) :
-	NodeId(HoudiniParameterObject.NodeId),
-	ParmId(HoudiniParameterObject.ParmId)
+	ParmId(HoudiniParameterObject.ParmId),
+	NodeId(HoudiniParameterObject.NodeId)
 {
 
 }

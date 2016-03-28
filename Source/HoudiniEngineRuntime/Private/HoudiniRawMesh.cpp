@@ -15,30 +15,41 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRawMesh.h"
+#include "HoudiniRawMeshVersion.h"
 #include "HoudiniGeoPartObject.h"
 
 
-FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) :
+	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
 {
 
 }
 
 
-FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniRawMesh& HoudiniRawMesh)
+FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject& HoudiniGeoPartObject) :
+	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
+{
+
+}
+
+
+FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniRawMesh& HoudiniRawMesh) :
+	HoudiniRawMeshVersion(HoudiniRawMesh.HoudiniRawMeshVersion)
 {
 
 }
 
 
 bool
-FHoudiniRawMesh::CreateRawMesh(FRawMesh& RawMesh) const
+FHoudiniRawMesh::BuildRawMesh(FRawMesh& RawMesh, bool bFullRebuild) const
 {
 	return false;
 }
 
 
-bool
-FHoudiniRawMesh::RebuildRawMesh(FRawMesh& RawMesh) const
+void
+FHoudiniRawMesh::Serialize(FArchive& Ar)
 {
-	return false;
+	HoudiniRawMeshVersion = VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION;
+	Ar << HoudiniRawMeshVersion;
 }

@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAttributeObject.h"
+#include "HoudiniAttributeObjectVersion.h"
 #include "HoudiniGeoPartObject.h"
 
 
@@ -72,10 +73,10 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(HAPI_AssetId InAssetId, HAPI_Ob
 	AttributeName(FString(InAttributeName)),
 	AttributeOwner(AttributeInfo.owner),
 	StorageType(AttributeInfo.storage),
-	AssetId(AssetId),
-	ObjectId(ObjectId),
-	GeoId(GeoId),
-	PartId(PartId)
+	AssetId(InAssetId),
+	ObjectId(InObjectId),
+	GeoId(InGeoId),
+	PartId(InPartId)
 {
 
 }
@@ -88,10 +89,10 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(HAPI_AssetId InAssetId, HAPI_Ob
 	AttributeName(InAttributeName),
 	AttributeOwner(AttributeInfo.owner),
 	StorageType(AttributeInfo.storage),
-	AssetId(AssetId),
-	ObjectId(ObjectId),
-	GeoId(GeoId),
-	PartId(PartId)
+	AssetId(InAssetId),
+	ObjectId(InObjectId),
+	GeoId(InGeoId),
+	PartId(InPartId)
 {
 
 }
