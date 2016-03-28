@@ -26,7 +26,8 @@
 FHoudiniMaterialObject::FHoudiniMaterialObject() :
 	AssetId(-1),
 	NodeId(-1),
-	MaterialId(-1)
+	MaterialId(-1),
+	HoudiniMaterialObjectVersion(VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE)
 {
 
 }
@@ -35,7 +36,8 @@ FHoudiniMaterialObject::FHoudiniMaterialObject() :
 FHoudiniMaterialObject::FHoudiniMaterialObject(const HAPI_MaterialInfo& MaterialInfo) :
 	AssetId(MaterialInfo.assetId),
 	NodeId(MaterialInfo.nodeId),
-	MaterialId(MaterialInfo.id)
+	MaterialId(MaterialInfo.id),
+	HoudiniMaterialObjectVersion(VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE)
 {
 
 }
@@ -45,10 +47,22 @@ FHoudiniMaterialObject::FHoudiniMaterialObject(HAPI_AssetId InAssetId, HAPI_Node
 	HAPI_MaterialId InMaterialId) :
 	AssetId(InAssetId),
 	NodeId(InNodeId),
-	MaterialId(InMaterialId)
+	MaterialId(InMaterialId),
+	HoudiniMaterialObjectVersion(VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE)
 {
 
 }
+
+
+FHoudiniMaterialObject::FHoudiniMaterialObject(const FHoudiniMaterialObject& HoudiniMaterialObject) :
+	AssetId(HoudiniMaterialObject.AssetId),
+	NodeId(HoudiniMaterialObject.NodeId),
+	MaterialId(HoudiniMaterialObject.MaterialId),
+	HoudiniMaterialObjectVersion(HoudiniMaterialObject.HoudiniMaterialObjectVersion)
+{
+
+}
+
 
 bool
 FHoudiniMaterialObject::HapiGetNodeInfo(HAPI_NodeInfo& NodeInfo) const
