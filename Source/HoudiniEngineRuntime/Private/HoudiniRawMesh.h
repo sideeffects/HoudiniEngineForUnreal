@@ -18,6 +18,7 @@
 #include "HoudiniAttributeObject.h"
 
 
+class FArchive;
 struct FRawMesh;
 struct FHoudiniGeoPartObject;
 
@@ -27,23 +28,27 @@ struct HOUDINIENGINERUNTIME_API FHoudiniRawMesh
 public:
 
 	FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
+	FHoudiniRawMesh(HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject& HoudiniGeoPartObject);
 	FHoudiniRawMesh(const FHoudiniRawMesh& HoudiniRawMesh);
 
 public:
 
 	/** Create an Unreal raw mesh from this Houdini raw mesh. **/
-	bool CreateRawMesh(FRawMesh& RawMesh) const;
+	bool BuildRawMesh(FRawMesh& RawMesh, bool bFullRebuild = true) const;
 
-	/** Rebuild existing Unreal raw mesh. **/
-	bool RebuildRawMesh(FRawMesh& RawMesh) const;
+	/** Serialization. **/
+	void Serialize(FArchive& Ar);
 
-public:
+protected:
 
 	/** Maps of Houdini attributes. **/
 	TMap<FString, FHoudiniAttributeObject> AttributesPoint;
 	TMap<FString, FHoudiniAttributeObject> AttributesVertex;
 	TMap<FString, FHoudiniAttributeObject> AttributesPrimitive;
 	TMap<FString, FHoudiniAttributeObject> AttributesDetail;
+
+	/** Houdini vertices. **/
+	TArray<int32> Vertices;
 
 protected:
 
@@ -53,4 +58,9 @@ protected:
 	HAPI_GeoId GeoId;
 	HAPI_PartId PartId;
 	int32 SplitId;
+
+protected:
+
+	/** Temporary variable holding serialization version. **/
+	uint32 HoudiniRawMeshVersion;
 };
