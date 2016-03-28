@@ -20,6 +20,7 @@
 
 class FArchive;
 struct FRawMesh;
+struct FHoudiniRawMesh;
 struct FHoudiniGeoPartObject;
 
 
@@ -27,6 +28,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniRawMesh
 {
 public:
 
+	FHoudiniRawMesh(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
 	FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 	FHoudiniRawMesh(HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject& HoudiniGeoPartObject);
 	FHoudiniRawMesh(const FHoudiniRawMesh& HoudiniRawMesh);
@@ -37,7 +39,10 @@ public:
 	bool BuildRawMesh(FRawMesh& RawMesh, bool bFullRebuild = true) const;
 
 	/** Serialization. **/
-	void Serialize(FArchive& Ar);
+	bool Serialize(FArchive& Ar);
+
+	/** Return hash value for this object, used when using this object as a key inside hashing containers. **/
+	uint32 GetTypeHash() const;
 
 protected:
 
@@ -64,3 +69,10 @@ protected:
 	/** Temporary variable holding serialization version. **/
 	uint32 HoudiniRawMeshVersion;
 };
+
+
+/** Function used by hashing containers to create a unique hash for this type of object. **/
+HOUDINIENGINERUNTIME_API uint32 GetTypeHash(const FHoudiniRawMesh& HoudiniRawMesh);
+
+/** Serialization function. **/
+HOUDINIENGINERUNTIME_API FArchive& operator<<(FArchive& Ar, FHoudiniRawMesh& HoudiniRawMesh);

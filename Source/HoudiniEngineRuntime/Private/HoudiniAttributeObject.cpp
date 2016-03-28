@@ -348,9 +348,40 @@ FHoudiniAttributeObject::HapiGetTupleSize() const
 }
 
 
-void
+bool
 FHoudiniAttributeObject::Serialize(FArchive& Ar)
 {
 	HoudiniAttributeObjectVersion = VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_AUTOMATIC_VERSION;
 	Ar << HoudiniAttributeObjectVersion;
+
+	Ar << Value;
+	Ar << ValueCount;
+	Ar << ValueSize;
+
+	Ar << AttributeName;
+
+	return true;
+}
+
+
+uint32
+FHoudiniAttributeObject::GetTypeHash() const
+{
+	// We hash attribute name.
+	return FCrc::Strihash_DEPRECATED(*AttributeName);
+}
+
+
+FArchive&
+operator<<(FArchive& Ar, FHoudiniAttributeObject& HoudiniAttributeObject)
+{
+	HoudiniAttributeObject.Serialize(Ar);
+	return Ar;
+}
+
+
+uint32
+GetTypeHash(const FHoudiniAttributeObject& HoudiniAttributeObject)
+{
+	return HoudiniAttributeObject.GetTypeHash();
 }
