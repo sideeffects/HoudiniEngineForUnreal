@@ -32,6 +32,7 @@ public:
 	FHoudiniMaterialObject();
 	FHoudiniMaterialObject(const HAPI_MaterialInfo& MaterialInfo);
 	FHoudiniMaterialObject(HAPI_AssetId InAssetId, HAPI_NodeId InNodeId, HAPI_MaterialId InMaterialId);
+	FHoudiniMaterialObject(const FHoudiniMaterialObject& HoudiniMaterialObject);
 
 public:
 
@@ -87,4 +88,9 @@ protected:
 
 	/** Material Id associated with this material. **/
 	HAPI_MaterialId MaterialId;
+
+protected:
+
+	/** Temporary variable holding serialization version. **/
+	uint32 HoudiniMaterialObjectVersion;
 };
