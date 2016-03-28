@@ -19,6 +19,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniGeoPartObjectVersion.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniAttributeObject.h"
 
 
 uint32
@@ -1918,7 +1919,7 @@ FHoudiniGeoPartObject::HapiObjectGetUniqueInstancerMaterialId(HAPI_AssetId Other
 	if(HapiObjectIsInstancer(OtherAssetId))
 	{
 		HAPI_Bool bSingleFaceMaterial = false;
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
 			OtherAssetId, ObjectId, GeoId, PartId, &bSingleFaceMaterial, &MaterialId, 0, 1))
 		{
 			return true;
@@ -1949,7 +1950,7 @@ FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds(HAPI_AssetId OtherAssetId,
 		FaceMaterialIds.SetNumUninitialized(FaceCount);
 
 		HAPI_Bool bSingleFaceMaterial = false;
-		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetMaterialIdsOnFaces(FHoudiniEngine::Get().GetSession(),
 			OtherAssetId, ObjectId, GeoId, PartId, &bSingleFaceMaterial, &FaceMaterialIds[0], 0, FaceCount))
 		{
 			MaterialIds.Append(FaceMaterialIds);
@@ -1958,4 +1959,228 @@ FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds(HAPI_AssetId OtherAssetId,
 	}
 
 	return false;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAllAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const
+{
+	AttributeNames.Empty();
+
+	for(int32 AttrIdx = HAPI_ATTROWNER_VERTEX; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	{
+		TArray<FString> AttributeValues;
+		if(HapiGetAttributeNames(OtherAssetId, (HAPI_AttributeOwner) AttrIdx, AttributeValues))
+		{
+			if(AttributeValues.Num() > 0)
+			{
+				AttributeNames.Append(AttributeValues);
+			}
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAllAttributeNames(TArray<FString>& AttributeNames) const
+{
+	return HapiGetAllAttributeNames(AssetId, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeNames(HAPI_AssetId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
+	TArray<FString>& AttributeNames) const
+{
+	AttributeNames.Empty();
+	int32 AttributeCount = 0;
+
+	switch(AttributeOwner)
+	{
+		case HAPI_ATTROWNER_POINT:
+		{
+			AttributeCount = HapiPartGetPointAttributeCount(OtherAssetId);
+			break;
+		}
+
+		case HAPI_ATTROWNER_VERTEX:
+		{
+			AttributeCount = HapiPartGetVertexAttributeCount(OtherAssetId);
+			break;
+		}
+
+		case HAPI_ATTROWNER_PRIM:
+		{
+			AttributeCount = HapiPartGetPrimitiveAttributeCount(OtherAssetId);
+			break;
+		}
+
+		case HAPI_ATTROWNER_DETAIL:
+		{
+			AttributeCount = HapiPartGetDetailAttributeCount(OtherAssetId);
+			break;
+		}
+
+		default:
+		{
+			return false;
+		}
+	}
+
+	if(AttributeCount > 0)
+	{
+		TArray<HAPI_StringHandle> AttributeNameHandles;
+		AttributeNameHandles.SetNumUninitialized(AttributeCount);
+
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeNames(FHoudiniEngine::Get().GetSession(), OtherAssetId,
+			ObjectId, GeoId, PartId, AttributeOwner, &AttributeNameHandles[0], AttributeCount))
+		{
+			return false;
+		}
+
+		for(int32 Idx = 0, Num = AttributeNameHandles.Num(); Idx < Num; ++Idx)
+		{
+			FString HapiString = TEXT("");
+			FHoudiniEngineString HoudiniEngineString(AttributeNameHandles[Idx]);
+			if(HoudiniEngineString.ToFString(HapiString))
+			{
+				AttributeNames.Add(HapiString);
+			}
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeNames(HAPI_AttributeOwner AttributeOwner,
+	TArray<FString>& AttributeNames) const
+{
+	return HapiGetAttributeNames(AssetId, AttributeOwner, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetPointAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const
+{
+	return HapiGetAttributeNames(OtherAssetId, HAPI_ATTROWNER_POINT, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetPointAttributeNames(TArray<FString>& AttributeNames) const
+{
+	return HapiGetPointAttributeNames(AssetId, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetVertexAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const
+{
+	return HapiGetAttributeNames(OtherAssetId, HAPI_ATTROWNER_VERTEX, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetVertexAttributeNames(TArray<FString>& AttributeNames) const
+{
+	return HapiGetVertexAttributeNames(AssetId, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetPrimitiveAttributeNames(HAPI_AssetId OtherAssetId,
+	TArray<FString>& AttributeNames) const
+{
+	return HapiGetAttributeNames(OtherAssetId, HAPI_ATTROWNER_PRIM, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetPrimitiveAttributeNames(TArray<FString>& AttributeNames) const
+{
+	return HapiGetPrimitiveAttributeNames(AssetId, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetDetailAttributeNames(HAPI_AssetId OtherAssetId, TArray<FString>& AttributeNames) const
+{
+	return HapiGetAttributeNames(OtherAssetId, HAPI_ATTROWNER_DETAIL, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetDetailAttributeNames(TArray<FString>& AttributeNames) const
+{
+	return HapiGetDetailAttributeNames(AssetId, AttributeNames);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeObjects(HAPI_AttributeOwner AttributeOwner,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjects) const
+{
+	return HapiGetAttributeObjects(AssetId, AttributeOwner, AttributeObjects);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAttributeObjects(HAPI_AssetId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjects) const
+{
+	AttributeObjects.Empty();
+
+	TArray<FString> AttributeValues;
+	if(HapiGetAttributeNames(OtherAssetId, AttributeOwner, AttributeValues))
+	{
+		for(int32 AttributeNameIdx = 0, AttributeNameCount = AttributeValues.Num();
+			AttributeNameIdx < AttributeNameCount; ++AttributeNameIdx)
+		{
+			const FString& AttributeName = AttributeValues[AttributeNameIdx];
+			HAPI_AttributeInfo AttributeInfo;
+
+			if(HapiGetAttributeInfo(OtherAssetId, AttributeName, AttributeOwner, AttributeInfo))
+			{
+				AttributeObjects.Add(AttributeName, FHoudiniAttributeObject(OtherAssetId, ObjectId, GeoId, PartId,
+					AttributeName, AttributeInfo));
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAllAttributeObjects(TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPoint,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjectsVertex,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPrimitive,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjectsDetail) const
+{
+	return HapiGetAllAttributeObjects(AssetId, AttributeObjectsPoint, AttributeObjectsVertex,
+		AttributeObjectsPrimitive, AttributeObjectsDetail);
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetAllAttributeObjects(HAPI_AssetId OtherAssetId,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPoint,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjectsVertex,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjectsPrimitive,
+	TMap<FString, FHoudiniAttributeObject>& AttributeObjectsDetail) const
+{
+	bool bResult = false;
+
+	bResult |= HapiGetAttributeObjects(OtherAssetId, HAPI_ATTROWNER_POINT, AttributeObjectsPoint);
+	bResult |= HapiGetAttributeObjects(OtherAssetId, HAPI_ATTROWNER_VERTEX, AttributeObjectsVertex);
+	bResult |= HapiGetAttributeObjects(OtherAssetId, HAPI_ATTROWNER_PRIM, AttributeObjectsPrimitive);
+	bResult |= HapiGetAttributeObjects(OtherAssetId, HAPI_ATTROWNER_DETAIL, AttributeObjectsDetail);
+
+	return bResult;
 }
