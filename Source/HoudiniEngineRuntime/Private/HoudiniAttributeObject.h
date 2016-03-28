@@ -19,6 +19,7 @@
 
 
 class FString;
+class FArchive;
 struct HAPI_AttributeInfo;
 struct FHoudiniGeoPartObject;
 
@@ -65,6 +66,11 @@ public:
 
 	/** Update attribute value(s). **/
 	bool HapiRefetch();
+
+public:
+
+	/** Serialization. **/
+	void Serialize(FArchive& Ar);
 
 protected:
 

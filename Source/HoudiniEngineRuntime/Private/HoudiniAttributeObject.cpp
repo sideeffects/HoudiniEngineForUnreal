@@ -28,7 +28,8 @@ FHoudiniAttributeObject::FHoudiniAttributeObject() :
 	AssetId(-1),
 	ObjectId(-1),
 	GeoId(-1),
-	PartId(-1)
+	PartId(-1),
+	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
 }
@@ -44,7 +45,8 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(const FHoudiniGeoPartObject& Ho
 	AssetId(HoudiniGeoPartObject.AssetId),
 	ObjectId(HoudiniGeoPartObject.ObjectId),
 	GeoId(HoudiniGeoPartObject.GeoId),
-	PartId(HoudiniGeoPartObject.PartId)
+	PartId(HoudiniGeoPartObject.PartId),
+	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
 }
@@ -60,7 +62,8 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(const FHoudiniGeoPartObject& Ho
 	AssetId(HoudiniGeoPartObject.AssetId),
 	ObjectId(HoudiniGeoPartObject.ObjectId),
 	GeoId(HoudiniGeoPartObject.GeoId),
-	PartId(HoudiniGeoPartObject.PartId)
+	PartId(HoudiniGeoPartObject.PartId),
+	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
 }
@@ -76,7 +79,8 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(HAPI_AssetId InAssetId, HAPI_Ob
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
-	PartId(InPartId)
+	PartId(InPartId),
+	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
 }
@@ -92,7 +96,8 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(HAPI_AssetId InAssetId, HAPI_Ob
 	AssetId(InAssetId),
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
-	PartId(InPartId)
+	PartId(InPartId),
+	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
 }
@@ -108,7 +113,8 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(const FHoudiniAttributeObject& 
 	AssetId(HoudiniAttributeObject.AssetId),
 	ObjectId(HoudiniAttributeObject.ObjectId),
 	GeoId(HoudiniAttributeObject.GeoId),
-	PartId(HoudiniAttributeObject.PartId)
+	PartId(HoudiniAttributeObject.PartId),
+	HoudiniAttributeObjectVersion(HoudiniAttributeObject.HoudiniAttributeObjectVersion)
 {
 
 }
@@ -339,4 +345,12 @@ FHoudiniAttributeObject::HapiGetTupleSize() const
 	}
 
 	return AttributeInfo.tupleSize;
+}
+
+
+void
+FHoudiniAttributeObject::Serialize(FArchive& Ar)
+{
+	HoudiniAttributeObjectVersion = VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_AUTOMATIC_VERSION;
+	Ar << HoudiniAttributeObjectVersion;
 }
