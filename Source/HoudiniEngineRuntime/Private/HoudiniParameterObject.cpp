@@ -22,7 +22,8 @@
 
 FHoudiniParameterObject::FHoudiniParameterObject() :
 	ParmId(-1),
-	NodeId(-1)
+	NodeId(-1),
+	HoudiniParameterObjectVersion(VER_HOUDINI_ENGINE_PARAMETEROBJECT_BASE)
 {
 
 }
@@ -30,7 +31,8 @@ FHoudiniParameterObject::FHoudiniParameterObject() :
 
 FHoudiniParameterObject::FHoudiniParameterObject(HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) :
 	ParmId(ParmInfo.id),
-	NodeId(InNodeId)
+	NodeId(InNodeId),
+	HoudiniParameterObjectVersion(VER_HOUDINI_ENGINE_PARAMETEROBJECT_BASE)
 {
 
 }
@@ -38,7 +40,8 @@ FHoudiniParameterObject::FHoudiniParameterObject(HAPI_NodeId InNodeId, const HAP
 
 FHoudiniParameterObject::FHoudiniParameterObject(HAPI_NodeId InNodeId, HAPI_ParmId InParmId) :
 	ParmId(InParmId),
-	NodeId(InNodeId)
+	NodeId(InNodeId),
+	HoudiniParameterObjectVersion(VER_HOUDINI_ENGINE_PARAMETEROBJECT_BASE)
 {
 
 }
@@ -46,7 +49,8 @@ FHoudiniParameterObject::FHoudiniParameterObject(HAPI_NodeId InNodeId, HAPI_Parm
 
 FHoudiniParameterObject::FHoudiniParameterObject(const FHoudiniParameterObject& HoudiniParameterObject) :
 	ParmId(HoudiniParameterObject.ParmId),
-	NodeId(HoudiniParameterObject.NodeId)
+	NodeId(HoudiniParameterObject.NodeId),
+	HoudiniParameterObjectVersion(HoudiniParameterObject.HoudiniParameterObjectVersion)
 {
 
 }

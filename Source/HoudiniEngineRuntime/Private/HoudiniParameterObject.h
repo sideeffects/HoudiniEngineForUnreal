@@ -101,4 +101,9 @@ protected:
 
 	/** Node Id associated with this parameter. **/
 	HAPI_NodeId NodeId;
+
+protected:
+
+	/** Temporary variable holding serialization version. **/
+	uint32 HoudiniParameterObjectVersion;
 };
