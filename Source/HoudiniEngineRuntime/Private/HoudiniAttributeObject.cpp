@@ -247,7 +247,7 @@ FHoudiniAttributeObject::HapiRefetch()
 		case HAPI_STORAGETYPE_INT:
 		{
 			if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeIntData(FHoudiniEngine::Get().GetSession(), AssetId,
-				ObjectId, GeoId, PartId, AttributeNameRaw.c_str(), &ResultAttributeInfo, -1, (int*) &Value[0], 0,
+				ObjectId, GeoId, PartId, AttributeNameRaw.c_str(), &ResultAttributeInfo, (int*) &Value[0], 0,
 				ValueCount))
 			{
 				bResult = false;
@@ -259,7 +259,7 @@ FHoudiniAttributeObject::HapiRefetch()
 		case HAPI_STORAGETYPE_FLOAT:
 		{
 			if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), AssetId,
-				ObjectId, GeoId, PartId, AttributeNameRaw.c_str(), &ResultAttributeInfo, -1, (float*) &Value[0], 0,
+				ObjectId, GeoId, PartId, AttributeNameRaw.c_str(), &ResultAttributeInfo, (float*) &Value[0], 0,
 				ValueCount))
 			{
 				bResult = false;
