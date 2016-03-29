@@ -296,7 +296,66 @@ FHoudiniRawMesh::HapiGetVertexPositions(TArray<FVector>& VertexPositions, float 
 bool
 FHoudiniRawMesh::HapiGetVertexColors(TArray<FColor>& VertexColors) const
 {
-	return false;
+	VertexColors.Empty();
+
+	FHoudiniAttributeObject HoudiniAttributeObject;
+
+	// Colors can be on any attribute.
+	if(!LocateAttribute(TEXT(HAPI_UNREAL_ATTRIB_COLOR), HoudiniAttributeObject))
+	{
+		return false;
+	}
+
+	TArray<float> ColorValues;
+	int32 TupleSize = 0;
+
+	if(!HoudiniAttributeObject.HapiGetValuesAsVertex(Vertices, ColorValues, TupleSize))
+	{
+		return false;
+	}
+
+	if(!ColorValues.Num())
+	{
+		return false;
+	}
+
+	if(3 == TupleSize || 4 == TupleSize)
+	{
+		int32 ColorCount = ColorValues.Num() / TupleSize;
+		VertexColors.SetNumUninitialized(ColorCount);
+
+		for(int32 Idx = 0; Idx < ColorCount; ++Idx)
+		{
+			FLinearColor WedgeColor;
+
+			WedgeColor.R =
+				FMath::Clamp(ColorValues[Idx * TupleSize + 0], 0.0f, 1.0f);
+			WedgeColor.G =
+				FMath::Clamp(ColorValues[Idx * TupleSize + 1], 0.0f, 1.0f);
+			WedgeColor.B =
+				FMath::Clamp(ColorValues[Idx * TupleSize + 2], 0.0f, 1.0f);
+
+			if(4 == TupleSize)
+			{
+				// We have alpha.
+				WedgeColor.A = FMath::Clamp(ColorValues[Idx * TupleSize + 3], 0.0f, 1.0f);
+			}
+			else
+			{
+				WedgeColor.A = 1.0f;
+			}
+
+			// Convert linear color to fixed color.
+			VertexColors[Idx] = WedgeColor.ToFColor(false);
+		}
+	}
+	else
+	{
+		// Color is always size 3 or 4 in Houdini.
+		return false;
+	}
+
+	return true;
 }
 
 
