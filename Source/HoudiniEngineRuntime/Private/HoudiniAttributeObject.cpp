@@ -214,6 +214,290 @@ FHoudiniAttributeObject::HapiGetValues(TArray<FString>& Values, int32& TupleSize
 
 
 bool
+FHoudiniAttributeObject::HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<int32>& Values,
+	int32& TupleSize) const
+{
+	Values.Empty();
+	TupleSize = ValueSize;
+
+	if(!Vertices.Num())
+	{
+		return false;
+	}
+
+	if(HAPI_ATTROWNER_VERTEX == AttributeOwner)
+	{
+		// Data is on vertices already, we can do direct transfer.
+		return HapiGetValues(Values, TupleSize);
+	}
+	else
+	{
+		TArray<int32> UnprocessedValues;
+		if(!HapiGetValues(UnprocessedValues, TupleSize))
+		{
+			return false;
+		}
+
+		Values.SetNumUninitialized(Vertices.Num() * TupleSize);
+
+		for(int32 IdxWedge = 0, NumWedges = Vertices.Num(); IdxWedge < NumWedges; ++IdxWedge)
+		{
+			int32 VertexId = Vertices[IdxWedge];
+			int32 PrimIdx = IdxWedge / 3;
+			int32 EntryValue = 0;
+
+			for(int32 IdxTuple = 0; IdxTuple < TupleSize; ++IdxTuple)
+			{
+				switch(AttributeOwner)
+				{
+					case HAPI_ATTROWNER_POINT:
+					{
+						EntryValue = UnprocessedValues[VertexId * TupleSize + IdxTuple];
+						break;
+					}
+
+					case HAPI_ATTROWNER_PRIM:
+					{
+						EntryValue = UnprocessedValues[PrimIdx * TupleSize + IdxTuple];
+						break;
+					}
+
+					case HAPI_ATTROWNER_DETAIL:
+					{
+						EntryValue = UnprocessedValues[IdxTuple];
+						break;
+					}
+
+					default:
+					{
+						Values.Empty();
+						return false;
+					}
+				}
+
+				Values[IdxWedge * TupleSize + IdxTuple] = EntryValue;
+			}
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniAttributeObject::HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<float>& Values,
+	int32& TupleSize) const
+{
+	Values.Empty();
+	TupleSize = ValueSize;
+
+	if(!Vertices.Num())
+	{
+		return false;
+	}
+
+	if(HAPI_ATTROWNER_VERTEX == AttributeOwner)
+	{
+		// Data is on vertices already, we can do direct transfer.
+		return HapiGetValues(Values, TupleSize);
+	}
+	else
+	{
+		TArray<float> UnprocessedValues;
+		if(!HapiGetValues(UnprocessedValues, TupleSize))
+		{
+			return false;
+		}
+
+		Values.SetNumUninitialized(Vertices.Num() * TupleSize);
+
+		for(int32 IdxWedge = 0, NumWedges = Vertices.Num(); IdxWedge < NumWedges; ++IdxWedge)
+		{
+			int32 VertexId = Vertices[IdxWedge];
+			int32 PrimIdx = IdxWedge / 3;
+			float EntryValue = 1.0f;
+
+			for(int32 IdxTuple = 0; IdxTuple < TupleSize; ++IdxTuple)
+			{
+				switch(AttributeOwner)
+				{
+				case HAPI_ATTROWNER_POINT:
+				{
+					EntryValue = UnprocessedValues[VertexId * TupleSize + IdxTuple];
+					break;
+				}
+
+				case HAPI_ATTROWNER_PRIM:
+				{
+					EntryValue = UnprocessedValues[PrimIdx * TupleSize + IdxTuple];
+					break;
+				}
+
+				case HAPI_ATTROWNER_DETAIL:
+				{
+					EntryValue = UnprocessedValues[IdxTuple];
+					break;
+				}
+
+				default:
+				{
+					Values.Empty();
+					return false;
+				}
+				}
+
+				Values[IdxWedge * TupleSize + IdxTuple] = EntryValue;
+			}
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniAttributeObject::HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<FHoudiniEngineString>& Values,
+	int32& TupleSize) const
+{
+	Values.Empty();
+	TupleSize = ValueSize;
+
+	if(!Vertices.Num())
+	{
+		return false;
+	}
+
+	if(HAPI_ATTROWNER_VERTEX == AttributeOwner)
+	{
+		// Data is on vertices already, we can do direct transfer.
+		return HapiGetValues(Values, TupleSize);
+	}
+	else
+	{
+		TArray<FHoudiniEngineString> UnprocessedValues;
+		if(!HapiGetValues(UnprocessedValues, TupleSize))
+		{
+			return false;
+		}
+
+		Values.SetNumUninitialized(Vertices.Num() * TupleSize);
+
+		for(int32 IdxWedge = 0, NumWedges = Vertices.Num(); IdxWedge < NumWedges; ++IdxWedge)
+		{
+			int32 VertexId = Vertices[IdxWedge];
+			int32 PrimIdx = IdxWedge / 3;
+			FHoudiniEngineString EntryValue;
+
+			for(int32 IdxTuple = 0; IdxTuple < TupleSize; ++IdxTuple)
+			{
+				switch(AttributeOwner)
+				{
+					case HAPI_ATTROWNER_POINT:
+					{
+						EntryValue = UnprocessedValues[VertexId * TupleSize + IdxTuple];
+						break;
+					}
+
+					case HAPI_ATTROWNER_PRIM:
+					{
+						EntryValue = UnprocessedValues[PrimIdx * TupleSize + IdxTuple];
+						break;
+					}
+
+					case HAPI_ATTROWNER_DETAIL:
+					{
+						EntryValue = UnprocessedValues[IdxTuple];
+						break;
+					}
+
+					default:
+					{
+						Values.Empty();
+						return false;
+					}
+				}
+
+				Values[IdxWedge * TupleSize + IdxTuple] = EntryValue;
+			}
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniAttributeObject::HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<FString>& Values,
+	int32& TupleSize) const
+{
+	Values.Empty();
+	TupleSize = ValueSize;
+
+	if(!Vertices.Num())
+	{
+		return false;
+	}
+
+	if(HAPI_ATTROWNER_VERTEX == AttributeOwner)
+	{
+		// Data is on vertices already, we can do direct transfer.
+		return HapiGetValues(Values, TupleSize);
+	}
+	else
+	{
+		TArray<FString> UnprocessedValues;
+		if(!HapiGetValues(UnprocessedValues, TupleSize))
+		{
+			return false;
+		}
+
+		Values.SetNumUninitialized(Vertices.Num() * TupleSize);
+
+		for(int32 IdxWedge = 0, NumWedges = Vertices.Num(); IdxWedge < NumWedges; ++IdxWedge)
+		{
+			int32 VertexId = Vertices[IdxWedge];
+			int32 PrimIdx = IdxWedge / 3;
+			FString EntryValue = TEXT("");
+
+			for(int32 IdxTuple = 0; IdxTuple < TupleSize; ++IdxTuple)
+			{
+				switch(AttributeOwner)
+				{
+					case HAPI_ATTROWNER_POINT:
+					{
+						EntryValue = UnprocessedValues[VertexId * TupleSize + IdxTuple];
+						break;
+					}
+
+					case HAPI_ATTROWNER_PRIM:
+					{
+						EntryValue = UnprocessedValues[PrimIdx * TupleSize + IdxTuple];
+						break;
+					}
+
+					case HAPI_ATTROWNER_DETAIL:
+					{
+						EntryValue = UnprocessedValues[IdxTuple];
+						break;
+					}
+
+					default:
+					{
+						Values.Empty();
+						return false;
+					}
+				}
+
+				Values[IdxWedge * TupleSize + IdxTuple] = EntryValue;
+			}
+		}
+	}
+
+	return true;
+}
+
+
+bool
 FHoudiniAttributeObject::HapiIsArray() const
 {
 	HAPI_AttributeInfo AttributeInfo;
