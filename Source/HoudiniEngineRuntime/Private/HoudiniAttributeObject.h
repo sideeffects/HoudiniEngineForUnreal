@@ -111,6 +111,9 @@ protected:
 
 protected:
 
+	/** Flags used by attribute object. **/
+	uint32 HoudiniAttributeObjectFlagsPacked;
+
 	/** Temporary variable holding serialization version. **/
 	uint32 HoudiniAttributeObjectVersion;
 };

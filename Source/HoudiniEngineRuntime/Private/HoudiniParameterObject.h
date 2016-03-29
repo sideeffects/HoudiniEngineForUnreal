@@ -104,6 +104,9 @@ protected:
 
 protected:
 
+	/** Flags used by parameter object. **/
+	uint32 HoudiniParameterObjectFlagsPacked;
+
 	/** Temporary variable holding serialization version. **/
 	uint32 HoudiniParameterObjectVersion;
 };

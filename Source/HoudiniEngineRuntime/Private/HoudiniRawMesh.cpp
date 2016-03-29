@@ -25,6 +25,7 @@ FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectI
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
+	HoudiniRawMeshFlagsPacked(0u),
 	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
 {
 
@@ -36,6 +37,7 @@ FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObje
 	ObjectId(HoudiniGeoPartObject.ObjectId),
 	GeoId(HoudiniGeoPartObject.GeoId),
 	PartId(HoudiniGeoPartObject.PartId),
+	HoudiniRawMeshFlagsPacked(0u),
 	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
 {
 
@@ -47,6 +49,7 @@ FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId OtherAssetId, FHoudiniGeoPartObjec
 	ObjectId(HoudiniGeoPartObject.ObjectId),
 	GeoId(HoudiniGeoPartObject.GeoId),
 	PartId(HoudiniGeoPartObject.PartId),
+	HoudiniRawMeshFlagsPacked(0u),
 	HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
 {
 
@@ -58,6 +61,7 @@ FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniRawMesh& HoudiniRawMesh) :
 	ObjectId(HoudiniRawMesh.ObjectId),
 	GeoId(HoudiniRawMesh.GeoId),
 	PartId(HoudiniRawMesh.PartId),
+	HoudiniRawMeshFlagsPacked(0u),
 	HoudiniRawMeshVersion(HoudiniRawMesh.HoudiniRawMeshVersion)
 {
 
@@ -77,6 +81,8 @@ FHoudiniRawMesh::Serialize(FArchive& Ar)
 	HoudiniRawMeshVersion = VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION;
 	Ar << HoudiniRawMeshVersion;
 
+	Ar << HoudiniRawMeshFlagsPacked;
+
 	Ar << AttributesPoint;
 	Ar << AttributesVertex;
 	Ar << AttributesPrimitive;
@@ -91,7 +97,8 @@ FHoudiniRawMesh::Serialize(FArchive& Ar)
 uint32
 FHoudiniRawMesh::GetTypeHash() const
 {
-	return 0;
+	int32 HashBuffer[4] = { ObjectId, GeoId, PartId, SplitId };
+	return FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
 }
 
 
@@ -107,5 +114,39 @@ uint32
 GetTypeHash(const FHoudiniRawMesh& HoudiniRawMesh)
 {
 	return HoudiniRawMesh.GetTypeHash();
+}
+
+
+void
+FHoudiniRawMesh::ResetAttributesAndVertices()
+{
+	AttributesPoint.Empty();
+	AttributesVertex.Empty();
+	AttributesPrimitive.Empty();
+	AttributesDetail.Empty();
+
+	Vertices.Empty();
+}
+
+
+bool
+FHoudiniRawMesh::HapiRefetch()
+{
+	FHoudiniGeoPartObject HoudiniGeoPartObject(AssetId, ObjectId, GeoId, PartId);
+
+	if(!HoudiniGeoPartObject.HapiGetVertices(AssetId, Vertices))
+	{
+		ResetAttributesAndVertices();
+		return false;
+	}
+
+	if(!HoudiniGeoPartObject.HapiGetAllAttributeObjects(AttributesPoint, AttributesVertex, AttributesPrimitive,
+		AttributesDetail))
+	{
+		ResetAttributesAndVertices();
+		return false;
+	}
+
+	return true;
 }
 

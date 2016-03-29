@@ -91,6 +91,9 @@ protected:
 
 protected:
 
+	/** Flags used by material object. **/
+	uint32 HoudiniMaterialObjectFlagsPacked;
+
 	/** Temporary variable holding serialization version. **/
 	uint32 HoudiniMaterialObjectVersion;
 };
