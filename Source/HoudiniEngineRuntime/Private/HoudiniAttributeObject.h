@@ -54,6 +54,19 @@ public:
 
 public:
 
+	/** Return attribute data as an integer array transfered to vertex values. **/
+	bool HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<int32>& Values, int32& TupleSize) const;
+
+	/** Return attribute data as a float array transfered to vertex values. **/
+	bool HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<float>& Values, int32& TupleSize) const;
+
+	/** Return attribute data as a string array transfered to vertex values. **/
+	bool HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<FHoudiniEngineString>& Values,
+		int32& TupleSize) const;
+	bool HapiGetValuesAsVertex(const TArray<int32>& Vertices, TArray<FString>& Values, int32& TupleSize) const;
+
+public:
+
 	/** Return true if this attribute is an array. **/
 	bool HapiIsArray() const;
 
