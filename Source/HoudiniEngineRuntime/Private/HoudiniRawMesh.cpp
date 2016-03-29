@@ -270,7 +270,7 @@ FHoudiniRawMesh::HapiGetVertexPositions(TArray<FVector>& VertexPositions, float 
 		VertexPositions.SetNumUninitialized(PositionEntries);
 
 		// We can do direct memory transfer.
-		FMemory::Memcpy(VertexPositions.GetData(), PositionValues.GetData(), PositionValues.Num() * sizeof(float));
+		FMemory::Memcpy(VertexPositions.GetData(), PositionValues.GetData(), VertexPositions.Num() * sizeof(FVector));
 	}
 	else
 	{
@@ -362,7 +362,53 @@ FHoudiniRawMesh::HapiGetVertexColors(TArray<FColor>& VertexColors) const
 bool
 FHoudiniRawMesh::HapiGetVertexNormals(TArray<FVector>& VertexNormals, bool bSwapYZAxis) const
 {
-	return false;
+	VertexNormals.Empty();
+
+	FHoudiniAttributeObject HoudiniAttributeObject;
+
+	// Colors can be on any attribute.
+	if(!LocateAttribute(TEXT(HAPI_UNREAL_ATTRIB_NORMAL), HoudiniAttributeObject))
+	{
+		return false;
+	}
+
+	TArray<float> NormalValues;
+	int32 TupleSize = 0;
+
+	if(!HoudiniAttributeObject.HapiGetValuesAsVertex(Vertices, NormalValues, TupleSize))
+	{
+		return false;
+	}
+
+	if(!NormalValues.Num())
+	{
+		return false;
+	}
+
+	if(3 == TupleSize)
+	{
+		int32 NormalCount = NormalValues.Num() / 3;
+		VertexNormals.SetNumUninitialized(NormalCount);
+
+		// We can do direct memory transfer.
+		FMemory::Memcpy(VertexNormals.GetData(), NormalValues.GetData(), VertexNormals.Num() * sizeof(FVector));
+
+		if(bSwapYZAxis)
+		{
+			for(int32 Idx = 0; Idx < NormalCount; ++Idx)
+			{
+				FVector& NormalVector = VertexNormals[Idx];
+				Swap(NormalVector.Y, NormalVector.Z);
+			}
+		}
+	}
+	else
+	{
+		// Normal is always size 3 in Houdini.
+		return false;
+	}
+
+	return true;
 }
 
 
