@@ -29,6 +29,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject() :
 	ObjectId(-1),
 	GeoId(-1),
 	PartId(-1),
+	HoudiniAttributeObjectFlagsPacked(0u),
 	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
@@ -46,6 +47,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(const FHoudiniGeoPartObject& Ho
 	ObjectId(HoudiniGeoPartObject.ObjectId),
 	GeoId(HoudiniGeoPartObject.GeoId),
 	PartId(HoudiniGeoPartObject.PartId),
+	HoudiniAttributeObjectFlagsPacked(0u),
 	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
@@ -63,6 +65,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(const FHoudiniGeoPartObject& Ho
 	ObjectId(HoudiniGeoPartObject.ObjectId),
 	GeoId(HoudiniGeoPartObject.GeoId),
 	PartId(HoudiniGeoPartObject.PartId),
+	HoudiniAttributeObjectFlagsPacked(0u),
 	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
@@ -80,6 +83,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(HAPI_AssetId InAssetId, HAPI_Ob
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
+	HoudiniAttributeObjectFlagsPacked(0u),
 	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
@@ -97,6 +101,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(HAPI_AssetId InAssetId, HAPI_Ob
 	ObjectId(InObjectId),
 	GeoId(InGeoId),
 	PartId(InPartId),
+	HoudiniAttributeObjectFlagsPacked(0u),
 	HoudiniAttributeObjectVersion(VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE)
 {
 
@@ -114,6 +119,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(const FHoudiniAttributeObject& 
 	ObjectId(HoudiniAttributeObject.ObjectId),
 	GeoId(HoudiniAttributeObject.GeoId),
 	PartId(HoudiniAttributeObject.PartId),
+	HoudiniAttributeObjectFlagsPacked(0u),
 	HoudiniAttributeObjectVersion(HoudiniAttributeObject.HoudiniAttributeObjectVersion)
 {
 
@@ -353,6 +359,8 @@ FHoudiniAttributeObject::Serialize(FArchive& Ar)
 {
 	HoudiniAttributeObjectVersion = VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_AUTOMATIC_VERSION;
 	Ar << HoudiniAttributeObjectVersion;
+
+	Ar << HoudiniAttributeObjectFlagsPacked;
 
 	Ar << Value;
 	Ar << ValueCount;

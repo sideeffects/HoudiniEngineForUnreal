@@ -27,6 +27,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject() :
 	AssetId(-1),
 	NodeId(-1),
 	MaterialId(-1),
+	HoudiniMaterialObjectFlagsPacked(0u),
 	HoudiniMaterialObjectVersion(VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE)
 {
 
@@ -37,6 +38,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject(const HAPI_MaterialInfo& Material
 	AssetId(MaterialInfo.assetId),
 	NodeId(MaterialInfo.nodeId),
 	MaterialId(MaterialInfo.id),
+	HoudiniMaterialObjectFlagsPacked(0u),
 	HoudiniMaterialObjectVersion(VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE)
 {
 
@@ -48,6 +50,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject(HAPI_AssetId InAssetId, HAPI_Node
 	AssetId(InAssetId),
 	NodeId(InNodeId),
 	MaterialId(InMaterialId),
+	HoudiniMaterialObjectFlagsPacked(0u),
 	HoudiniMaterialObjectVersion(VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE)
 {
 
@@ -58,6 +61,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject(const FHoudiniMaterialObject& Hou
 	AssetId(HoudiniMaterialObject.AssetId),
 	NodeId(HoudiniMaterialObject.NodeId),
 	MaterialId(HoudiniMaterialObject.MaterialId),
+	HoudiniMaterialObjectFlagsPacked(0u),
 	HoudiniMaterialObjectVersion(HoudiniMaterialObject.HoudiniMaterialObjectVersion)
 {
 
