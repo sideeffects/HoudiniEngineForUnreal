@@ -2184,3 +2184,33 @@ FHoudiniGeoPartObject::HapiGetAllAttributeObjects(HAPI_AssetId OtherAssetId,
 
 	return bResult;
 }
+
+
+bool
+FHoudiniGeoPartObject::HapiGetVertices(HAPI_AssetId OtherAssetId, TArray<int32>& Vertices) const
+{
+	Vertices.Empty();
+
+	int32 VertexCount = HapiPartGetVertexCount(OtherAssetId);
+	if(!VertexCount)
+	{
+		return false;
+	}
+
+	Vertices.SetNumUninitialized(VertexCount);
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetVertexList(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId,
+		PartId, &Vertices[0], 0, VertexCount))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniGeoPartObject::HapiGetVertices(TArray<int32>& Vertices) const
+{
+	return HapiGetVertices(AssetId, Vertices);
+}
