@@ -435,6 +435,12 @@ public:
 
 public:
 
+	/** Return list of vertices associated with this geo part object. **/
+	bool HapiGetVertices(HAPI_AssetId OtherAssetId, TArray<int32>& Vertices) const;
+	bool HapiGetVertices(TArray<int32>& Vertices) const;
+
+public:
+
 	/** Return true if this geo part has parameters. **/
 	bool HasParameters() const;
 	bool HasParameters(HAPI_AssetId InAssetId) const;

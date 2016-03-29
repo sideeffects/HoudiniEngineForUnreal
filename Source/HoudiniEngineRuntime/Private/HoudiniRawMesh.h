@@ -44,6 +44,16 @@ public:
 	/** Return hash value for this object, used when using this object as a key inside hashing containers. **/
 	uint32 GetTypeHash() const;
 
+public:
+
+	/** Refetch data from Houdini Engine. **/
+	bool HapiRefetch();
+
+protected:
+
+	/** Reset attribute maps and index buffer. **/
+	void ResetAttributesAndVertices();
+
 protected:
 
 	/** Maps of Houdini attributes. **/
@@ -65,6 +75,9 @@ protected:
 	int32 SplitId;
 
 protected:
+
+	/** Flags used by raw mesh. **/
+	uint32 HoudiniRawMeshFlagsPacked;
 
 	/** Temporary variable holding serialization version. **/
 	uint32 HoudiniRawMeshVersion;
