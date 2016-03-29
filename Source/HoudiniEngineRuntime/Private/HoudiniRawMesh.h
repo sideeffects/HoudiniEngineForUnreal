@@ -54,6 +54,30 @@ protected:
 	/** Reset attribute maps and index buffer. **/
 	void ResetAttributesAndVertices();
 
+	/** Locate first attribute by name. Order of look up is point, vertex, primitive, detail. **/
+	bool LocateAttribute(const FString& AttributeName, FHoudiniAttributeObject& HoudiniAttributeObject) const;
+
+	/** Locate attribute by name on a specific owner. **/
+	bool LocateAttributePoint(const FString& AttributeName, FHoudiniAttributeObject& HoudiniAttributeObject) const;
+	bool LocateAttributeVertex(const FString& AttributeName, FHoudiniAttributeObject& HoudiniAttributeObject) const;
+	bool LocateAttributePrimitive(const FString& AttributeName, FHoudiniAttributeObject& HoudiniAttributeObject) const;
+	bool LocateAttributeDetail(const FString& AttributeName, FHoudiniAttributeObject& HoudiniAttributeObject) const;
+
+protected:
+
+	/** Retrieve positions buffer per vertex. **/
+	bool HapiGetVertexPositions(TArray<FVector>& VertexPositions, float GeometryScale = 100.0f,
+		bool bSwapYZAxis = true) const;
+
+	/** Retrieve colors per vertex. **/
+	bool HapiGetVertexColors(TArray<FColor>& VertexColors) const;
+
+	/** Retrieve normals per vertex. **/
+	bool HapiGetVertexNormals(TArray<FVector>& VertexNormals, bool bSwapYZAxis = true) const;
+
+	/** Retrieve uvs per vertex. **/
+	bool HapiGetVertexUVs(TArray<TArray<FVector2D> >& VertexUVs, bool bPatchUVAxis = true) const;
+
 protected:
 
 	/** Maps of Houdini attributes. **/
