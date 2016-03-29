@@ -130,6 +130,93 @@ FHoudiniRawMesh::ResetAttributesAndVertices()
 
 
 bool
+FHoudiniRawMesh::LocateAttribute(const FString& AttributeName, FHoudiniAttributeObject& HoudiniAttributeObject) const
+{
+	if(LocateAttributePoint(AttributeName, HoudiniAttributeObject))
+	{
+		return true;
+	}
+
+	if(LocateAttributeVertex(AttributeName, HoudiniAttributeObject))
+	{
+		return true;
+	}
+
+	if(LocateAttributePrimitive(AttributeName, HoudiniAttributeObject))
+	{
+		return true;
+	}
+
+	if(LocateAttributeDetail(AttributeName, HoudiniAttributeObject))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniRawMesh::LocateAttributePoint(const FString& AttributeName,
+	FHoudiniAttributeObject& HoudiniAttributeObject) const
+{
+	const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesPoint.Find(AttributeName);
+	if(FoundHoudiniAttributeObject)
+	{
+		HoudiniAttributeObject = *FoundHoudiniAttributeObject;
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniRawMesh::LocateAttributeVertex(const FString& AttributeName,
+	FHoudiniAttributeObject& HoudiniAttributeObject) const
+{
+	const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesVertex.Find(AttributeName);
+	if(FoundHoudiniAttributeObject)
+	{
+		HoudiniAttributeObject = *FoundHoudiniAttributeObject;
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniRawMesh::LocateAttributePrimitive(const FString& AttributeName,
+	FHoudiniAttributeObject& HoudiniAttributeObject) const
+{
+	const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesPrimitive.Find(AttributeName);
+	if(FoundHoudiniAttributeObject)
+	{
+		HoudiniAttributeObject = *FoundHoudiniAttributeObject;
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniRawMesh::LocateAttributeDetail(const FString& AttributeName,
+	FHoudiniAttributeObject& HoudiniAttributeObject) const
+{
+	const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesDetail.Find(AttributeName);
+	if(FoundHoudiniAttributeObject)
+	{
+		HoudiniAttributeObject = *FoundHoudiniAttributeObject;
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
 FHoudiniRawMesh::HapiRefetch()
 {
 	FHoudiniGeoPartObject HoudiniGeoPartObject(AssetId, ObjectId, GeoId, PartId);
@@ -148,4 +235,80 @@ FHoudiniRawMesh::HapiRefetch()
 	}
 
 	return true;
+}
+
+
+bool
+FHoudiniRawMesh::HapiGetVertexPositions(TArray<FVector>& VertexPositions, float GeometryScale, bool bSwapYZAxis) const
+{
+	VertexPositions.Empty();
+
+	FHoudiniAttributeObject HoudiniAttributeObject;
+
+	// Position attribute is always on a point.
+	if(!LocateAttributePoint(TEXT(HAPI_UNREAL_ATTRIB_POSITION), HoudiniAttributeObject))
+	{
+		return false;
+	}
+
+	// We now need to fetch attribute data.
+	TArray<float> PositionValues;
+	int32 TupleSize = 0;
+	if(!HoudiniAttributeObject.HapiGetValues(PositionValues, TupleSize))
+	{
+		return false;
+	}
+
+	if(!PositionValues.Num())
+	{
+		return false;
+	}
+
+	if(3 == TupleSize)
+	{
+		int PositionEntries = PositionValues.Num() / 3;
+		VertexPositions.SetNumUninitialized(PositionEntries);
+
+		// We can do direct memory transfer.
+		FMemory::Memcpy(VertexPositions.GetData(), PositionValues.GetData(), PositionValues.Num() * sizeof(float));
+	}
+	else
+	{
+		// Position attribute is always size 3 in Houdini. Otherwise, a lot of things would break.
+		return false;
+	}
+
+	for(int32 Idx = 0, Num = VertexPositions.Num(); Idx < Num; ++Idx)
+	{
+		FVector& VertexPosition = VertexPositions[Idx];
+		VertexPosition *= GeometryScale;
+
+		if(bSwapYZAxis)
+		{
+			Swap(VertexPosition.Y, VertexPosition.Z);
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniRawMesh::HapiGetVertexColors(TArray<FColor>& VertexColors) const
+{
+	return false;
+}
+
+
+bool
+FHoudiniRawMesh::HapiGetVertexNormals(TArray<FVector>& VertexNormals, bool bSwapYZAxis) const
+{
+	return false;
+}
+
+
+bool
+FHoudiniRawMesh::HapiGetVertexUVs(TArray<TArray<FVector2D> >& VertexUVs, bool bPatchUVAxis) const
+{
+	return false;
 }
