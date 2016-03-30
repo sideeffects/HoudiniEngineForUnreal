@@ -20,9 +20,10 @@
 
 
 class UHoudiniAsset;
+class UHoudiniAssetInput;
+class FHoudiniEngineString;
 class UHoudiniAssetParameter;
 struct FHoudiniGeoPartObject;
-class FHoudiniEngineString;
 
 
 UCLASS(EditInlineNew, config=Engine)
@@ -109,6 +110,9 @@ protected:
 
 protected:
 
+	/** Retrieve node id of this asset. **/
+	HAPI_NodeId HapiGetNodeId() const;
+
 	/** Retrieve asset info structure. **/
 	bool HapiGetAssetInfo(HAPI_AssetInfo& AssetInfo) const;
 
@@ -123,6 +127,12 @@ protected:
 
 	/** Retrieve part info structure. **/
 	bool HapiGetPartInfo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, int32 PartIdx, HAPI_PartInfo& PartInfo) const;
+
+	/** Get asset preset. **/
+	bool HapiGetAssetPreset(TArray<char>& PresetBuffer) const;
+
+	/** Set asset preset. **/
+	bool HapiSetAssetPreset(const TArray<char>& PresetBuffer) const;
 
 protected:
 
@@ -143,8 +153,14 @@ protected:
 
 protected:
 
+	/** Inputs of this asset. **/
+	//TArray<UHoudiniAssetInput*> Inputs;
+
 	/** Parameters of this asset. **/
 	TMap<FString, UHoudiniAssetParameter*> Parameters;
+
+	/** Buffer to hold default preset. **/
+	TArray<char> DefaultPresetBuffer;
 
 protected:
 

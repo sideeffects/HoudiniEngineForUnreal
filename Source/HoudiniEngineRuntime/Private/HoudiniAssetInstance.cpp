@@ -18,6 +18,8 @@
 #include "HoudiniAssetInstanceVersion.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniAssetParameter.h"
+#include "HoudiniAssetInput.h"
 
 
 UHoudiniAssetInstance::UHoudiniAssetInstance(const FObjectInitializer& ObjectInitializer) :
@@ -102,6 +104,17 @@ UHoudiniAssetInstance::Serialize(FArchive& Ar)
 	Ar << HoudiniAssetInstanceVersion;
 
 	Ar << HoudiniAssetInstanceFlagsPacked;
+
+	Ar << HoudiniAsset;
+	Ar << DefaultPresetBuffer;
+
+	HAPI_AssetId AssetIdTemp = AssetId;
+	Ar << AssetIdTemp;
+
+	if(Ar.IsLoading())
+	{
+		AssetId = AssetIdTemp;
+	}
 }
 
 
@@ -507,6 +520,20 @@ UHoudiniAssetInstance::GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& GeoPartO
 }
 
 
+HAPI_NodeId
+UHoudiniAssetInstance::HapiGetNodeId() const
+{
+	HAPI_AssetInfo AssetInfo;
+
+	if(!HapiGetAssetInfo(AssetInfo))
+	{
+		return -1;
+	}
+
+	return AssetInfo.nodeId;
+}
+
+
 bool
 UHoudiniAssetInstance::HapiGetAssetInfo(HAPI_AssetInfo& AssetInfo) const
 {
@@ -658,10 +685,64 @@ UHoudiniAssetInstance::HapiGetPartInfo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 }
 
 
+bool
+UHoudiniAssetInstance::HapiGetAssetPreset(TArray<char>& PresetBuffer) const
+{
+	PresetBuffer.Empty();
+
+	HAPI_NodeId NodeId = HapiGetNodeId();
+	if(NodeId < 0)
+	{
+		return false;
+	}
+
+	int32 BufferLength = 0;
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPresetBufLength(FHoudiniEngine::Get().GetSession(), NodeId,
+		HAPI_PRESETTYPE_BINARY, nullptr, &BufferLength))
+	{
+		return false;
+	}
+
+	PresetBuffer.SetNumZeroed(BufferLength);
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPreset(FHoudiniEngine::Get().GetSession(), NodeId, &PresetBuffer[0],
+		BufferLength))
+	{
+		PresetBuffer.Empty();
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiSetAssetPreset(const TArray<char>& PresetBuffer) const
+{
+	if(!PresetBuffer.Num())
+	{
+		return false;
+	}
+
+	HAPI_NodeId NodeId = HapiGetNodeId();
+	if(NodeId < 0)
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetPreset(FHoudiniEngine::Get().GetSession(), NodeId,
+		HAPI_PRESETTYPE_BINARY, nullptr, &PresetBuffer[0], PresetBuffer.Num()))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
 void
 UHoudiniAssetInstance::PostInstantiateAsset()
 {
-
+	HapiGetAssetPreset(DefaultPresetBuffer);
 }
 
 
