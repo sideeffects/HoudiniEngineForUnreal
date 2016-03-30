@@ -413,7 +413,79 @@ FHoudiniRawMesh::HapiGetVertexNormals(TArray<FVector>& VertexNormals, bool bSwap
 
 
 bool
-FHoudiniRawMesh::HapiGetVertexUVs(TArray<TArray<FVector2D> >& VertexUVs, bool bPatchUVAxis) const
+FHoudiniRawMesh::HapiGetVertexUVs(TMap<int32, TArray<FVector2D> >& VertexUVs, bool bPatchUVAxis) const
 {
-	return false;
+	VertexUVs.Empty();
+
+	bool bFoundUVs = false;
+	FHoudiniAttributeObject HoudiniAttributeObject;
+
+	for(int32 UVChannelIdx = 0; UVChannelIdx < 16; ++UVChannelIdx)
+	{
+		FString UVAttributeName = TEXT(HAPI_UNREAL_ATTRIB_UV);
+
+		if(UVChannelIdx > 0)
+		{
+			UVAttributeName = FString::Printf(TEXT("%s%d"), *UVAttributeName, (UVChannelIdx + 1));
+		}
+
+		// Colors can be on any attribute.
+		if(!LocateAttribute(UVAttributeName, HoudiniAttributeObject))
+		{
+			continue;
+		}
+
+		TArray<float> UVValues;
+		int32 TupleSize = 0;
+
+		if(!HoudiniAttributeObject.HapiGetValuesAsVertex(Vertices, UVValues, TupleSize))
+		{
+			return false;
+		}
+
+		if(!UVValues.Num() || !TupleSize)
+		{
+			return false;
+		}
+
+		int32 UVCount = UVValues.Num() / TupleSize;
+		TArray<FVector2D> UVs;
+		UVs.SetNumUninitialized(UVCount);
+
+		if(2 == TupleSize)
+		{
+			// We can do direct memory transfer.
+			FMemory::Memcpy(UVs.GetData(), UVValues.GetData(), UVs.Num() * sizeof(FVector2D));
+
+			bFoundUVs = true;
+		}
+		else if(3 == TupleSize)
+		{
+			for(int32 Idx = 0; Idx < UVCount; ++Idx)
+			{
+				// Ignore 3rd coordinate.
+				FVector2D UVPoint(UVValues[Idx * TupleSize + 0], UVValues[Idx * TupleSize + 1]);
+				UVs[Idx] = UVPoint;
+			}
+
+			bFoundUVs = true;
+		}
+		else
+		{
+			continue;
+		}
+
+		if(bPatchUVAxis)
+		{
+			for(int32 Idx = 0; Idx < UVCount; ++Idx)
+			{
+				FVector2D& WedgeUV = UVs[Idx];
+				WedgeUV.Y = 1.0f - WedgeUV.Y;
+			}
+		}
+
+		VertexUVs.Add(UVChannelIdx, UVs);
+	}
+
+	return bFoundUVs;
 }
