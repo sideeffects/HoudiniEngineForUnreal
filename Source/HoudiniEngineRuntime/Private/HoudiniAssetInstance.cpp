@@ -18,8 +18,6 @@
 #include "HoudiniAssetInstanceVersion.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
-#include "HoudiniAssetParameter.h"
-#include "HoudiniAssetInput.h"
 
 
 UHoudiniAssetInstance::UHoudiniAssetInstance(const FObjectInitializer& ObjectInitializer) :
@@ -448,9 +446,9 @@ UHoudiniAssetInstance::HasAssetFinishedAsyncCooking(bool* bCookedWithErrors) con
 
 
 bool
-UHoudiniAssetInstance::GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& GeoPartObjects) const
+UHoudiniAssetInstance::GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& InGeoPartObjects) const
 {
-	GeoPartObjects.Empty();
+	InGeoPartObjects.Empty();
 
 	if(!IsValidAssetInstance())
 	{
@@ -510,7 +508,7 @@ UHoudiniAssetInstance::GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& GeoPartO
 				FHoudiniEngineString HoudiniEngineStringPartName(PartInfo.nameSH);
 				HoudiniEngineStringPartName.ToFString(PartName);
 
-				GeoPartObjects.Add(FHoudiniGeoPartObject(ObjectTransform, ObjectName, PartName, AssetId, ObjectInfo.id,
+				InGeoPartObjects.Add(FHoudiniGeoPartObject(ObjectTransform, ObjectName, PartName, AssetId, ObjectInfo.id,
 					GeoInfo.id, PartInfo.id));
 			}
 		}
