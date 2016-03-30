@@ -64,7 +64,7 @@ UHoudiniAssetInstance::GetHoudiniAsset() const
 
 
 bool
-UHoudiniAssetInstance::HasValidAssetId() const
+UHoudiniAssetInstance::IsValidAssetInstance() const
 {
 	return FHoudiniEngineUtils::IsValidAssetId(AssetId);
 }
@@ -176,13 +176,16 @@ UHoudiniAssetInstance::Instantiate(const FHoudiniEngineString& AssetNameToInstan
 	double TimingStart = FPlatformTime::Seconds();
 
 	// We instantiate without cooking.
+	HAPI_AssetId AssetIdNew = -1;
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::InstantiateAsset(FHoudiniEngine::Get().GetSession(), &AssetNameString[0],
-		false, &AssetId))
+		false, &AssetIdNew))
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Error instantiating the asset, %s failed InstantiateAsset API call."), *AssetNameUnreal);
+		HOUDINI_LOG_MESSAGE(TEXT("Error instantiating the asset, %s failed InstantiateAsset API call."),
+			*AssetNameUnreal);
 		return false;
 	}
 
+	AssetId = AssetIdNew;
 	bool bResultSuccess = false;
 
 	while(true)
@@ -191,7 +194,8 @@ UHoudiniAssetInstance::Instantiate(const FHoudiniEngineString& AssetNameToInstan
 		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetStatus(FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_STATE,
 			&Status))
 		{
-			HOUDINI_LOG_MESSAGE(TEXT("Error instantiating the asset, %s failed GetStatus API call."), *AssetNameUnreal);
+			HOUDINI_LOG_MESSAGE(TEXT("Error instantiating the asset, %s failed GetStatus API call."),
+				*AssetNameUnreal);
 			return false;
 		}
 
@@ -243,8 +247,8 @@ UHoudiniAssetInstance::Instantiate(const FHoudiniEngineString& AssetNameToInstan
 bool
 UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
 {
-	HOUDINI_LOG_MESSAGE(TEXT("HAPI Synchronous Cooking of %s Started. HoudiniAsset = 0x%x, "), *InstantiatedAssetName,
-		HoudiniAsset);
+	HOUDINI_LOG_MESSAGE(TEXT("HAPI Synchronous Cooking of %s Started. HoudiniAsset = 0x%x, "),
+		*InstantiatedAssetName, HoudiniAsset);
 
 	if(bCookedWithErrors)
 	{
@@ -253,19 +257,22 @@ UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
 
 	if(!HoudiniAsset)
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, asset is null!"), *InstantiatedAssetName);
+		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, asset is null!"),
+			*InstantiatedAssetName);
 		return false;
 	}
 
 	if(!FHoudiniEngineUtils::IsInitialized())
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, HAPI is not initialized!"), *InstantiatedAssetName);
+		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, HAPI is not initialized!"),
+			*InstantiatedAssetName);
 		return false;
 	}
 
-	if(!HasValidAssetId())
+	if(!IsValidAssetInstance())
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, asset has not been instantiated!"), *InstantiatedAssetName);
+		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, asset has not been instantiated!"),
+			*InstantiatedAssetName);
 		return false;
 	}
 
@@ -273,7 +280,8 @@ UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
 
 	if(HAPI_RESULT_SUCCESS != FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr))
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, failed CookAsset API call."), *InstantiatedAssetName);
+		HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, failed CookAsset API call."),
+			*InstantiatedAssetName);
 		return false;
 	}
 
@@ -285,7 +293,8 @@ UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
 		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetStatus(FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_STATE,
 			&Status))
 		{
-			HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, failed GetStatus API call."), *InstantiatedAssetName);
+			HOUDINI_LOG_MESSAGE(TEXT("Error cooking the %s asset, failed GetStatus API call."),
+				*InstantiatedAssetName);
 			return false;
 		}
 
@@ -323,6 +332,8 @@ UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
 		FPlatformProcess::Sleep(0.0f);
 	}
 
+	AssetCookCount++;
+
 	if(bResultSuccess)
 	{
 		double AssetOperationTiming = FPlatformTime::Seconds() - TimingStart;
@@ -359,7 +370,7 @@ UHoudiniAssetInstance::CookAsync()
 int32
 UHoudiniAssetInstance::IsBeingAsyncInstantiatedOrCooked() const
 {
-	return bIsBeingAsyncInstantiatedOrCooked;
+	return 1 == bIsBeingAsyncInstantiatedOrCooked;
 }
 
 
@@ -382,6 +393,222 @@ UHoudiniAssetInstance::IsFinishedAsyncCooking(bool* bCookedWithErrors) const
 bool
 UHoudiniAssetInstance::GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& GeoPartObjects) const
 {
-	check(0);
-	return false;
+	GeoPartObjects.Empty();
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	TArray<HAPI_ObjectInfo> ObjectInfos;
+	if(!HapiGetObjectInfos(ObjectInfos))
+	{
+		return false;
+	}
+
+	TArray<FTransform> ObjectTransforms;
+	if(!HapiGetObjectTransforms(ObjectTransforms))
+	{
+		return false;
+	}
+
+	check(ObjectInfos.Num() == ObjectTransforms.Num());
+
+	if(!ObjectInfos.Num())
+	{
+		return true;
+	}
+
+	for(int32 ObjectIdx = 0, ObjectNum = ObjectInfos.Num(); ObjectIdx < ObjectNum; ++ObjectIdx)
+	{
+		const HAPI_ObjectInfo& ObjectInfo = ObjectInfos[ObjectIdx];
+		const FTransform& ObjectTransform = ObjectTransforms[ObjectIdx];
+
+		FString ObjectName = TEXT("");
+		FHoudiniEngineString HoudiniEngineStringObjectName(ObjectInfo.nameSH);
+		HoudiniEngineStringObjectName.ToFString(ObjectName);
+
+		for(int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx)
+		{
+			HAPI_GeoInfo GeoInfo;
+			if(!HapiGetGeoInfo(ObjectInfo.id, GeoIdx, GeoInfo))
+			{
+				continue;
+			}
+
+			if(!GeoInfo.isDisplayGeo)
+			{
+				continue;
+			}
+
+			for(int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx)
+			{
+				HAPI_PartInfo PartInfo;
+				if(!HapiGetPartInfo(ObjectInfo.id, GeoInfo.id, PartIdx, PartInfo))
+				{
+					continue;
+				}
+
+				FString PartName = TEXT("");
+				FHoudiniEngineString HoudiniEngineStringPartName(PartInfo.nameSH);
+				HoudiniEngineStringPartName.ToFString(PartName);
+
+				GeoPartObjects.Add(FHoudiniGeoPartObject(ObjectTransform, ObjectName, PartName, AssetId, ObjectInfo.id,
+					GeoInfo.id, PartInfo.id));
+			}
+		}
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetAssetInfo(HAPI_AssetInfo& AssetInfo) const
+{
+	FMemory::Memset<HAPI_AssetInfo>(AssetInfo, 0);
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetObjectInfos(TArray<HAPI_ObjectInfo>& ObjectInfos) const
+{
+	ObjectInfos.Empty();
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	HAPI_AssetInfo AssetInfo;
+	if(!HapiGetAssetInfo(AssetInfo))
+	{
+		return false;
+	}
+
+	if(AssetInfo.objectCount > 0)
+	{
+		ObjectInfos.SetNumUninitialized(AssetInfo.objectCount);
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjects(FHoudiniEngine::Get().GetSession(), AssetId, &ObjectInfos[0],
+			0, AssetInfo.objectCount))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetObjectTransforms(TArray<FTransform>& ObjectTransforms) const
+{
+	ObjectTransforms.Empty();
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	HAPI_AssetInfo AssetInfo;
+	if(!HapiGetAssetInfo(AssetInfo))
+	{
+		return false;
+	}
+
+	if(AssetInfo.objectCount > 0)
+	{
+		TArray<HAPI_Transform> HapiObjectTransforms;
+		HapiObjectTransforms.SetNumUninitialized(AssetInfo.objectCount);
+		ObjectTransforms.SetNumUninitialized(AssetInfo.objectCount);
+
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetObjectTransforms(FHoudiniEngine::Get().GetSession(), AssetId,
+			HAPI_SRT, &HapiObjectTransforms[0], 0, AssetInfo.objectCount))
+		{
+			return false;
+		}
+
+		for(int32 Idx = 0; Idx < AssetInfo.objectCount; ++Idx)
+		{
+			FHoudiniEngineUtils::TranslateHapiTransform(HapiObjectTransforms[Idx], ObjectTransforms[Idx]);
+		}
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetAssetTransform(FTransform& Transform) const
+{
+	Transform.SetIdentity();
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	HAPI_TransformEuler AssetEulerTransform;
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetTransform(FHoudiniEngine::Get().GetSession(), AssetId,
+		HAPI_SRT, HAPI_XYZ, &AssetEulerTransform))
+	{
+		return false;
+	}
+
+	// Convert HAPI Euler transform to Unreal one.
+	FHoudiniEngineUtils::TranslateHapiTransform(AssetEulerTransform, Transform);
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetGeoInfo(HAPI_ObjectId ObjectId, int32 GeoIdx, HAPI_GeoInfo& GeoInfo) const
+{
+	FMemory::Memset<HAPI_GeoInfo>(GeoInfo, 0);
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoIdx,
+		&GeoInfo))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetPartInfo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, int32 PartIdx,
+	HAPI_PartInfo& PartInfo) const
+{
+	FMemory::Memset<HAPI_PartInfo>(PartInfo, 0);
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId,
+		PartIdx, &PartInfo))
+	{
+		return false;
+	}
+
+	return true;
 }
