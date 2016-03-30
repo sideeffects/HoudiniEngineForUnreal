@@ -53,28 +53,34 @@ public:
 public:
 
 	/** Instantiate the asset synchronously. **/
-	bool Instantiate(const FHoudiniEngineString& AssetNameToInstantiate, bool* bInstantiatedWithErrors = nullptr);
-	bool Instantiate(bool* bInstantiatedWithErrors = nullptr);
+	bool InstantiateAsset(const FHoudiniEngineString& AssetNameToInstantiate, bool* bInstantiatedWithErrors = nullptr);
+	bool InstantiateAsset(bool* bInstantiatedWithErrors = nullptr);
 
 	/** Cook asset synchronously. **/
-	bool Cook(bool* bCookedWithErrors = nullptr);
+	bool CookAsset(bool* bCookedWithErrors = nullptr);
+
+	/** Delete asset synchronously. **/
+	bool DeleteAsset();
 
 public:
 
 	/** Instantiate the asset asynchronously, through the scheduler. **/
-	bool InstantiateAsync();
+	bool InstantiateAssetAsync();
 
 	/** Cook the asset asynchronously, through the scheduler. **/
-	bool CookAsync();
+	bool CookAssetAsync();
 
 	/** Return true if asset is being asynchronously instantiated or cooked. **/
-	int32 IsBeingAsyncInstantiatedOrCooked() const;
+	bool IsAssetBeingAsyncInstantiatedOrCooked() const;
 
 	/** Check if the asset has finished asynchronous instantiation. **/
-	bool IsFinishedAsyncInstantiation(bool* bInstantiatedWithErrors = nullptr) const;
+	bool HasAssetFinishedAsyncInstantiation(bool* bInstantiatedWithErrors = nullptr) const;
 
 	/** Check if the asset has finished asynchronous cooking. **/
-	bool IsFinishedAsyncCooking(bool* bCookedWithErrors = nullptr) const;
+	bool HasAssetFinishedAsyncCooking(bool* bCookedWithErrors = nullptr) const;
+
+	/** Delete asset asynchronously. **/
+	bool DeleteAssetAsync();
 
 public:
 
@@ -88,8 +94,16 @@ public:
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
-	//virtual void FinishDestroy() override;
+	virtual void FinishDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
+protected:
+
+	/** Called after successful instantiation. **/
+	void PostInstantiateAsset();
+
+	/** Called after successful cook. **/
+	void PostCookAsset();
 
 protected:
 
@@ -123,7 +137,7 @@ protected:
 	volatile int32 AssetCookCount;
 
 	/** Is set to true while asset is being asynchronously instantiated or cooked. **/
-	volatile int32 bIsBeingAsyncInstantiatedOrCooked;
+	volatile int32 bIsAssetBeingAsyncInstantiatedOrCooked;
 
 protected:
 
