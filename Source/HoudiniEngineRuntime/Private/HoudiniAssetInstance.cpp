@@ -143,6 +143,12 @@ UHoudiniAssetInstance::InstantiateAsset(const FHoudiniEngineString& AssetNameToI
 		return false;
 	}
 
+	if(IsValidAssetInstance())
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Error instantiating asset, asset is already instantiated!"));
+		return false;
+	}
+
 	FHoudiniEngineString AssetName(AssetNameToInstantiate);
 
 	HAPI_AssetLibraryId AssetLibraryId = -1;
@@ -194,6 +200,7 @@ UHoudiniAssetInstance::InstantiateAsset(const FHoudiniEngineString& AssetNameToI
 	}
 
 	AssetId = AssetIdNew;
+	AssetCookCount = 0;
 	bool bResultSuccess = false;
 
 	while(true)
