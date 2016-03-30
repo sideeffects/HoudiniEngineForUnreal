@@ -26,7 +26,7 @@ UHoudiniAssetInstance::UHoudiniAssetInstance(const FObjectInitializer& ObjectIni
 	InstantiatedAssetName(TEXT("")),
 	AssetId(-1),
 	AssetCookCount(0),
-	bIsBeingAsyncInstantiatedOrCooked(false),
+	bIsAssetBeingAsyncInstantiatedOrCooked(false),
 	HoudiniAssetInstanceFlagsPacked(0u),
 	HoudiniAssetInstanceVersion(VER_HOUDINI_ENGINE_ASSETINSTANCE_BASE)
 {
@@ -105,15 +105,24 @@ UHoudiniAssetInstance::Serialize(FArchive& Ar)
 }
 
 
-bool
-UHoudiniAssetInstance::Instantiate(bool* bInstantiatedWithErrors)
+void
+UHoudiniAssetInstance::FinishDestroy()
 {
-	return Instantiate(FHoudiniEngineString(), bInstantiatedWithErrors);
+	Super::FinishDestroy();
+	DeleteAsset();
+}
+
+
+
+bool
+UHoudiniAssetInstance::InstantiateAsset(bool* bInstantiatedWithErrors)
+{
+	return InstantiateAsset(FHoudiniEngineString(), bInstantiatedWithErrors);
 }
 
 
 bool
-UHoudiniAssetInstance::Instantiate(const FHoudiniEngineString& AssetNameToInstantiate,
+UHoudiniAssetInstance::InstantiateAsset(const FHoudiniEngineString& AssetNameToInstantiate,
 	bool* bInstantiatedWithErrors)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("HAPI Synchronous Instantiation Started. HoudiniAsset = 0x%x, "), HoudiniAsset);
@@ -238,6 +247,8 @@ UHoudiniAssetInstance::Instantiate(const FHoudiniEngineString& AssetNameToInstan
 			AssetOperationTiming);
 
 		InstantiatedAssetName = AssetNameUnreal;
+
+		PostInstantiateAsset();
 	}
 
 	return bResultSuccess;
@@ -245,7 +256,7 @@ UHoudiniAssetInstance::Instantiate(const FHoudiniEngineString& AssetNameToInstan
 
 
 bool
-UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
+UHoudiniAssetInstance::CookAsset(bool* bCookedWithErrors)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("HAPI Synchronous Cooking of %s Started. HoudiniAsset = 0x%x, "),
 		*InstantiatedAssetName, HoudiniAsset);
@@ -339,6 +350,8 @@ UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
 		double AssetOperationTiming = FPlatformTime::Seconds() - TimingStart;
 		HOUDINI_LOG_MESSAGE(TEXT("Cooking of asset %s took %f seconds."), *InstantiatedAssetName,
 			AssetOperationTiming);
+
+		PostCookAsset();
 	}
 
 	return bResultSuccess;
@@ -346,36 +359,45 @@ UHoudiniAssetInstance::Cook(bool* bCookedWithErrors)
 
 
 bool
-UHoudiniAssetInstance::InstantiateAsync()
+UHoudiniAssetInstance::DeleteAsset()
+{
+	HOUDINI_LOG_MESSAGE(TEXT("HAPI Synchronous Deletion of %s Started. HoudiniAsset = 0x%x, "),
+		*InstantiatedAssetName, HoudiniAsset);
+
+	if(FHoudiniEngineUtils::IsInitialized() && IsValidAssetInstance())
+	{
+		FHoudiniEngineUtils::DestroyHoudiniAsset(AssetId);
+	}
+
+	AssetId = -1;
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::InstantiateAssetAsync()
 {
 	check(0);
 
-	FPlatformAtomics::InterlockedExchange(&bIsBeingAsyncInstantiatedOrCooked, 1);
+	FPlatformAtomics::InterlockedExchange(&bIsAssetBeingAsyncInstantiatedOrCooked, 1);
 
 	return false;
 }
 
 
 bool
-UHoudiniAssetInstance::CookAsync()
+UHoudiniAssetInstance::CookAssetAsync()
 {
 	check(0);
 
-	FPlatformAtomics::InterlockedExchange(&bIsBeingAsyncInstantiatedOrCooked, 1);
+	FPlatformAtomics::InterlockedExchange(&bIsAssetBeingAsyncInstantiatedOrCooked, 1);
 
 	return false;
 }
 
 
 bool
-UHoudiniAssetInstance::IsBeingAsyncInstantiatedOrCooked() const
-{
-	return 1 == bIsBeingAsyncInstantiatedOrCooked;
-}
-
-
-bool
-UHoudiniAssetInstance::IsFinishedAsyncInstantiation(bool* bInstantiatedWithErrors) const
+UHoudiniAssetInstance::DeleteAssetAsync()
 {
 	check(0);
 	return false;
@@ -383,7 +405,22 @@ UHoudiniAssetInstance::IsFinishedAsyncInstantiation(bool* bInstantiatedWithError
 
 
 bool
-UHoudiniAssetInstance::IsFinishedAsyncCooking(bool* bCookedWithErrors) const
+UHoudiniAssetInstance::IsAssetBeingAsyncInstantiatedOrCooked() const
+{
+	return 1 == bIsAssetBeingAsyncInstantiatedOrCooked;
+}
+
+
+bool
+UHoudiniAssetInstance::HasAssetFinishedAsyncInstantiation(bool* bInstantiatedWithErrors) const
+{
+	check(0);
+	return false;
+}
+
+
+bool
+UHoudiniAssetInstance::HasAssetFinishedAsyncCooking(bool* bCookedWithErrors) const
 {
 	check(0);
 	return false;
@@ -611,4 +648,18 @@ UHoudiniAssetInstance::HapiGetPartInfo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 	}
 
 	return true;
+}
+
+
+void
+UHoudiniAssetInstance::PostInstantiateAsset()
+{
+
+}
+
+
+void
+UHoudiniAssetInstance::PostCookAsset()
+{
+
 }
