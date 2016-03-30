@@ -36,7 +36,7 @@ UHoudiniAsset::UHoudiniAsset(const FObjectInitializer& ObjectInitializer) :
 
 
 void
-UHoudiniAsset::CreateAsset(const uint8*& BufferStart, const uint8* BufferEnd, const FString& InFileName)
+UHoudiniAsset::CreateAsset(const uint8* BufferStart, const uint8* BufferEnd, const FString& InFileName)
 {
 	AssetFileName = InFileName;
 
