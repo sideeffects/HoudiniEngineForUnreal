@@ -58,7 +58,7 @@ public:
 	{}
 
 	SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
-		SLATE_ARGUMENT(TArray<int32>, AvailableAssetNames)
+		SLATE_ARGUMENT(TArray<HAPI_StringHandle>, AvailableAssetNames)
 		SLATE_END_ARGS()
 
 public:
@@ -96,7 +96,7 @@ protected:
 	TSharedPtr<SWindow> WidgetWindow;
 
 	/** List of available Houdini Engine asset names. **/
-	TArray<int32> AvailableAssetNames;
+	TArray<HAPI_StringHandle> AvailableAssetNames;
 
 	/** Selected asset name. **/
 	int32 SelectedAssetName;
@@ -166,7 +166,7 @@ SAssetSelectionWidget::Construct(const FArguments& InArgs)
 	for(int32 AssetNameIdx = 0, AssetNameNum = AvailableAssetNames.Num(); AssetNameIdx < AssetNameNum; ++AssetNameIdx)
 	{
 		FString AssetNameString = TEXT("");
-		int32 AssetName = AvailableAssetNames[AssetNameIdx];
+		HAPI_StringHandle AssetName = AvailableAssetNames[AssetNameIdx];
 
 		FHoudiniEngineString HoudiniEngineString(AssetName);
 		if(HoudiniEngineString.ToFString(AssetNameString))
@@ -1617,11 +1617,11 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation(bool bLoadedComponent, bool 
 	{
 		// Check if asset has multiple Houdini assets inside.
 		HAPI_AssetLibraryId AssetLibraryId = -1;
-		TArray<int32> AssetNames;
+		TArray<HAPI_StringHandle> AssetNames;
 
 		if(FHoudiniEngineUtils::GetAssetNames(HoudiniAsset, AssetLibraryId, AssetNames))
 		{
-			int32 PickedAssetName = AssetNames[0];
+			HAPI_StringHandle PickedAssetName = AssetNames[0];
 			bool bShowMultiAssetDialog = false;
 
 			const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();

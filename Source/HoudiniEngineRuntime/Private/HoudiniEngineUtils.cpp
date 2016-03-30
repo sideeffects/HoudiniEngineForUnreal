@@ -7471,7 +7471,7 @@ FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(UInstancedStati
 
 bool
 FHoudiniEngineUtils::GetAssetNames(UHoudiniAsset* HoudiniAsset, HAPI_AssetLibraryId& OutAssetLibraryId,
-	TArray<int32>& OutAssetNames)
+	TArray<HAPI_StringHandle>& OutAssetNames)
 {
 	OutAssetLibraryId = -1;
 	OutAssetNames.Empty();
@@ -7482,7 +7482,7 @@ FHoudiniEngineUtils::GetAssetNames(UHoudiniAsset* HoudiniAsset, HAPI_AssetLibrar
 		HAPI_Result Result = HAPI_RESULT_SUCCESS;
 		HAPI_AssetLibraryId AssetLibraryId = -1;
 		int32 AssetCount = 0;
-		TArray<int32> AssetNames;
+		TArray<HAPI_StringHandle> AssetNames;
 
 		if(!AssetFileName.IsEmpty() && FPaths::FileExists(AssetFileName))
 		{
