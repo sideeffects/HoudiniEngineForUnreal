@@ -18,6 +18,8 @@
 
 class FArchive;
 struct FTransform;
+struct HAPI_GeoInfo;
+struct HAPI_PartInfo;
 struct HAPI_ObjectInfo;
 class FHoudiniEngineString;
 struct FHoudiniAttributeObject;
@@ -31,6 +33,9 @@ public:
 	/** Constructors. **/
 	FHoudiniGeoPartObject();
 	FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
+
+	FHoudiniGeoPartObject(const FTransform& InTransform, HAPI_AssetId InAssetId, const HAPI_ObjectInfo& ObjectInfo,
+		const HAPI_GeoInfo& GeoInfo, const HAPI_PartInfo& PartInfo);
 
 	FHoudiniGeoPartObject(const FTransform& InTransform, const FString& InObjectName, const FString& InPartName,
 		HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId);
