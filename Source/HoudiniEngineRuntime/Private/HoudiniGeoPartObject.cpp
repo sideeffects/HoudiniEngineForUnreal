@@ -116,7 +116,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	SplitId(0),
 	bIsVisible(true),
 	bIsInstancer(false),
-	bIsCurve(),
+	bIsCurve(false),
 	bIsEditable(false),
 	bHasGeoChanged(false),
 	bIsCollidable(false),
@@ -129,6 +129,40 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(HAPI_AssetId InAssetId, HAPI_Object
 	bIsSphere(false),
 	bInstancerMaterialAvailable(false),
 	bIsVolume(false),
+	bInstancerAttributeMaterialAvailable(false),
+	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
+{
+
+}
+
+
+FHoudiniGeoPartObject::FHoudiniGeoPartObject(const FTransform& InTransform, HAPI_AssetId InAssetId,
+	const HAPI_ObjectInfo& ObjectInfo, const HAPI_GeoInfo& GeoInfo, const HAPI_PartInfo& PartInfo) :
+	TransformMatrix(InTransform),
+	ObjectName(TEXT("Empty")),
+	PartName(TEXT("Empty")),
+	SplitName(TEXT("")),
+	InstancerMaterialName(TEXT("")),
+	AssetId(InAssetId),
+	ObjectId(ObjectInfo.id),
+	GeoId(GeoInfo.id),
+	PartId(PartInfo.id),
+	SplitId(0),
+	bIsVisible(ObjectInfo.isVisible),
+	bIsInstancer(ObjectInfo.isInstancer),
+	bIsCurve(PartInfo.type == HAPI_PARTTYPE_CURVE),
+	bIsEditable(GeoInfo.isEditable),
+	bHasGeoChanged(GeoInfo.hasGeoChanged),
+	bIsCollidable(false),
+	bIsRenderCollidable(false),
+	bIsLoaded(false),
+	bPlaceHolderFlags(0),
+	bIsTransacting(false),
+	bHasCustomName(false),
+	bIsBox(PartInfo.type == HAPI_PARTTYPE_BOX),
+	bIsSphere(PartInfo.type == HAPI_PARTTYPE_SPHERE),
+	bInstancerMaterialAvailable(false),
+	bIsVolume(PartInfo.type == HAPI_PARTTYPE_VOLUME),
 	bInstancerAttributeMaterialAvailable(false),
 	HoudiniGeoPartObjectVersion(VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE)
 {

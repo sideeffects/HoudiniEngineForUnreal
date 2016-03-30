@@ -45,7 +45,7 @@ public:
 	UHoudiniAsset* GetHoudiniAsset() const;
 
 	/** Return true if asset id is valid. **/
-	bool HasValidAssetId() const;
+	bool IsValidAssetInstance() const;
 
 	/** Return number of times this asset has been cooked. **/
 	int32 GetAssetCookCount() const;
@@ -68,7 +68,7 @@ public:
 	bool CookAsync();
 
 	/** Return true if asset is being asynchronously instantiated or cooked. **/
-	int32 IsBeingAsyncInstantiatedOrCooked() const;
+	bool IsBeingAsyncInstantiatedOrCooked() const;
 
 	/** Check if the asset has finished asynchronous instantiation. **/
 	bool IsFinishedAsyncInstantiation(bool* bInstantiatedWithErrors = nullptr) const;
@@ -81,12 +81,34 @@ public:
 	/** Retrieve list of geo part objects. **/
 	bool GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& GeoPartObjects) const;
 
+public:
+
+	/** Retrieve asset transform. **/
+	bool HapiGetAssetTransform(FTransform& Transform) const;
+
 	/** UObject methods. **/
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
 	//virtual void FinishDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
+protected:
+
+	/** Retrieve asset info structure. **/
+	bool HapiGetAssetInfo(HAPI_AssetInfo& AssetInfo) const;
+
+	/** Retrieve all object info structures. **/
+	bool HapiGetObjectInfos(TArray<HAPI_ObjectInfo>& ObjectInfos) const;
+
+	/** Retrieve all object transforms. **/
+	bool HapiGetObjectTransforms(TArray<FTransform>& ObjectTransforms) const;
+
+	/** Retrieve geo info structure. **/
+	bool HapiGetGeoInfo(HAPI_ObjectId ObjectId, int32 GeoIdx, HAPI_GeoInfo& GeoInfo) const;
+
+	/** Retrieve part info structure. **/
+	bool HapiGetPartInfo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, int32 PartIdx, HAPI_PartInfo& PartInfo) const;
 
 protected:
 
@@ -97,10 +119,10 @@ protected:
 	FString InstantiatedAssetName;
 
 	/** Id of instantiated asset. **/
-	HAPI_AssetId AssetId;
+	volatile HAPI_AssetId AssetId;
 
 	/** Number of times this asset has been cooked. **/
-	int32 AssetCookCount;
+	volatile int32 AssetCookCount;
 
 	/** Is set to true while asset is being asynchronously instantiated or cooked. **/
 	volatile int32 bIsBeingAsyncInstantiatedOrCooked;
