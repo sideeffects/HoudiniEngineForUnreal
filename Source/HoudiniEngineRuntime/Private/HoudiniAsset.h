@@ -39,7 +39,7 @@ public:
 public:
 
 	/** Initialize this asset from given buffer / file. **/
-	void CreateAsset(const uint8*& BufferStart, const uint8* BufferEnd, const FString& InFileName);
+	void CreateAsset(const uint8* BufferStart, const uint8* BufferEnd, const FString& InFileName);
 
 	/** Return buffer containing the raw Houdini OTL data. **/
 	const uint8* GetAssetBytes() const;

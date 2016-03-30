@@ -93,7 +93,7 @@ public:
 	/** Retrieve asset transform. **/
 	bool HapiGetAssetTransform(FTransform& Transform) const;
 
-	/** UObject methods. **/
+/** UObject methods. **/
 public:
 
 	virtual void Serialize(FArchive& Ar) override;
