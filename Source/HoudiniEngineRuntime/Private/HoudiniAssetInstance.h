@@ -16,14 +16,14 @@
 */
 
 #pragma once
+
+#include "HoudiniGeoPartObject.h"
+#include "HoudiniParameterObject.h"
 #include "HoudiniAssetInstance.generated.h"
 
 
 class UHoudiniAsset;
-class UHoudiniAssetInput;
 class FHoudiniEngineString;
-class UHoudiniAssetParameter;
-struct FHoudiniGeoPartObject;
 
 
 UCLASS(EditInlineNew, config=Engine)
@@ -85,9 +85,6 @@ public:
 
 public:
 
-	/** Retrieve list of geo part objects. **/
-	bool GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& GeoPartObjects) const;
-
 	/** Retrieve asset transform. **/
 	bool HapiGetAssetTransform(FTransform& Transform) const;
 
@@ -134,6 +131,11 @@ protected:
 
 protected:
 
+	/** Retrieve list of geo part objects. **/
+	bool GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& InGeoPartObjects) const;
+
+protected:
+
 	/** Corresponding Houdini asset. **/
 	UHoudiniAsset* HoudiniAsset;
 
@@ -151,14 +153,14 @@ protected:
 
 protected:
 
-	/** Inputs of this asset. **/
-	//TArray<UHoudiniAssetInput*> Inputs;
-
-	/** Parameters of this asset. **/
-	TMap<FString, UHoudiniAssetParameter*> Parameters;
-
 	/** Buffer to hold default preset. **/
 	TArray<char> DefaultPresetBuffer;
+
+	/** Array of all detected geo part objects. **/
+	TArray<FHoudiniGeoPartObject> GeoPartObjects;
+
+	/** Array of all detected parameter objects. **/
+	TArray<FHoudiniParameterObject> ParameterObjects;
 
 protected:
 
