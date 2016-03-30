@@ -76,7 +76,7 @@ protected:
 	bool HapiGetVertexNormals(TArray<FVector>& VertexNormals, bool bSwapYZAxis = true) const;
 
 	/** Retrieve uvs per vertex. **/
-	bool HapiGetVertexUVs(TArray<TArray<FVector2D> >& VertexUVs, bool bPatchUVAxis = true) const;
+	bool HapiGetVertexUVs(TMap<int32, TArray<FVector2D> >& VertexUVs, bool bPatchUVAxis = true) const;
 
 protected:
 
