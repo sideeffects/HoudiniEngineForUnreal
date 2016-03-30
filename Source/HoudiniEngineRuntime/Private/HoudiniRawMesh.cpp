@@ -420,6 +420,7 @@ FHoudiniRawMesh::HapiGetVertexUVs(TMap<int32, TArray<FVector2D> >& VertexUVs, bo
 	bool bFoundUVs = false;
 	FHoudiniAttributeObject HoudiniAttributeObject;
 
+	// Layer SOP supports up to 16 channels.
 	for(int32 UVChannelIdx = 0; UVChannelIdx < 16; ++UVChannelIdx)
 	{
 		FString UVAttributeName = TEXT(HAPI_UNREAL_ATTRIB_UV);
@@ -440,12 +441,12 @@ FHoudiniRawMesh::HapiGetVertexUVs(TMap<int32, TArray<FVector2D> >& VertexUVs, bo
 
 		if(!HoudiniAttributeObject.HapiGetValuesAsVertex(Vertices, UVValues, TupleSize))
 		{
-			return false;
+			continue;
 		}
 
 		if(!UVValues.Num() || !TupleSize)
 		{
-			return false;
+			continue;
 		}
 
 		int32 UVCount = UVValues.Num() / TupleSize;
