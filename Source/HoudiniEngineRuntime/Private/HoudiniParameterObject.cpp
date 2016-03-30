@@ -274,6 +274,8 @@ FHoudiniParameterObject::HapiIsArray() const
 bool
 FHoudiniParameterObject::HapiGetValue(int32& Value) const
 {
+	Value = 0;
+
 	HAPI_ParmInfo ParmInfo;
 	if(!HapiGetParmInfo(ParmInfo))
 	{
@@ -293,6 +295,8 @@ FHoudiniParameterObject::HapiGetValue(int32& Value) const
 bool
 FHoudiniParameterObject::HapiGetValue(float& Value) const
 {
+	Value = 0.0f;
+
 	HAPI_ParmInfo ParmInfo;
 	if(!HapiGetParmInfo(ParmInfo))
 	{
@@ -327,6 +331,26 @@ FHoudiniParameterObject::HapiGetValue(FHoudiniEngineString& Value) const
 	}
 
 	Value = FHoudiniEngineString(StringHandle);
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiGetValue(FString& Value) const
+{
+	Value = TEXT("");
+
+	FHoudiniEngineString HoudiniEngineString;
+	if(!HapiGetValue(HoudiniEngineString))
+	{
+		return false;
+	}
+
+	if(!HoudiniEngineString.ToFString(Value))
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -409,6 +433,181 @@ FHoudiniParameterObject::HapiGetValues(TArray<FHoudiniEngineString>& Values) con
 		for(int32 Idx = 0, Num = StringHandles.Num(); Idx < Num; ++Idx)
 		{
 			Values.Add(FHoudiniEngineString(StringHandles[Idx]));
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiGetValues(TArray<FString>& Values) const
+{
+	Values.Empty();
+
+	TArray<FHoudiniEngineString> StringValues;
+	if(!HapiGetValues(StringValues))
+	{
+		return false;
+	}
+
+	for(int32 Idx = 0, Num = StringValues.Num(); Idx < Num; ++Idx)
+	{
+		const FHoudiniEngineString& HoudiniEngineString = StringValues[Idx];
+		FString UnrealString = TEXT("");
+		HoudiniEngineString.ToFString(UnrealString);
+		Values.Add(UnrealString);
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValue(int32 Value) const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value,
+		ParmInfo.intValuesIndex, 1))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValue(float Value) const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeId, &Value,
+		ParmInfo.floatValuesIndex, 1))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValue(const FHoudiniEngineString& Value) const
+{
+	if(Value.HasValidId())
+	{
+		FString UnrealString = TEXT("");
+		if(Value.ToFString(UnrealString))
+		{
+			return HapiSetValue(UnrealString);
+		}
+	}
+
+	return false;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValue(const FString& Value) const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	std::string StringValue = TCHAR_TO_UTF8(*Value);
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId,
+		StringValue.c_str(), ParmInfo.id, 0))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValues(const TArray<int32>& Values) const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	if(!Values.Num())
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValues(FHoudiniEngine::Get().GetSession(), NodeId, &Values[0],
+		ParmInfo.intValuesIndex, Values.Num()))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValues(const TArray<float>& Values) const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	if(!Values.Num())
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeId, &Values[0],
+		ParmInfo.floatValuesIndex, Values.Num()))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValues(const TArray<FHoudiniEngineString>& Values) const
+{
+	for(int32 Idx = 0; Idx < Values.Num(); ++Idx)
+	{
+		if(!HapiSetValue(Values[Idx]))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiSetValues(const TArray<FString>& Values) const
+{
+	for(int32 Idx = 0; Idx < Values.Num(); ++Idx)
+	{
+		if(!HapiSetValue(Values[Idx]))
+		{
+			return false;
 		}
 	}
 

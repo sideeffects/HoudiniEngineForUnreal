@@ -88,11 +88,27 @@ public:
 	bool HapiGetValue(int32& Value) const;
 	bool HapiGetValue(float& Value) const;
 	bool HapiGetValue(FHoudiniEngineString& Value) const;
+	bool HapiGetValue(FString& Value) const;
 
 	/** Return multiple values (for tuples). **/
 	bool HapiGetValues(TArray<int32>& Values) const;
 	bool HapiGetValues(TArray<float>& Values) const;
 	bool HapiGetValues(TArray<FHoudiniEngineString>& Values) const;
+	bool HapiGetValues(TArray<FString>& Values) const;
+
+public:
+
+	/** Set a single value. **/
+	bool HapiSetValue(int32 Value) const;
+	bool HapiSetValue(float Value) const;
+	bool HapiSetValue(const FHoudiniEngineString& Value) const;
+	bool HapiSetValue(const FString& Value) const;
+
+	/** Set multiple values (for tuples). **/
+	bool HapiSetValues(const TArray<int32>& Values) const;
+	bool HapiSetValues(const TArray<float>& Values) const;
+	bool HapiSetValues(const TArray<FHoudiniEngineString>& Values) const;
+	bool HapiSetValues(const TArray<FString>& Values) const;
 
 protected:
 
