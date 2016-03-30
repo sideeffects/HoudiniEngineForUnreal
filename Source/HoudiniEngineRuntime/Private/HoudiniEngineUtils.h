@@ -143,7 +143,7 @@ public:
 
 	/** Retrieves list of asset names contained within the HDA. **/
 	static bool GetAssetNames(UHoudiniAsset* HoudiniAsset, HAPI_AssetLibraryId& AssetLibraryId,
-		TArray<int32>& AssetNames);
+		TArray<HAPI_StringHandle>& AssetNames);
 
 public:
 
