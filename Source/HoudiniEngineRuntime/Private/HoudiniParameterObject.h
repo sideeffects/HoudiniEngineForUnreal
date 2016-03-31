@@ -33,6 +33,11 @@ public:
 
 public:
 
+	/** Corresponding parameter class. **/
+	UClass* GetHoudiniAssetParameterClass() const;
+
+public:
+
 	/** Return corresponding node info structure. **/
 	bool HapiGetNodeInfo(HAPI_NodeInfo& NodeInfo) const;
 
@@ -45,11 +50,32 @@ public:
 	/** Return label of this parameter **/
 	bool HapiGetLabel(FString& Label) const;
 
+	/** Return help associated with this parameter. **/
+	bool HapiGetHelp(FString& Help) const;
+
 	/** Return true if name of this parameter equals to the specified name. **/
 	bool HapiIsNameEqual(const FString& Name) const;
 
 	/** Return true if label of this parameter equals to the specified name. **/
 	bool HapiIsLabelEqual(const FString& Label) const;
+
+	/** Return child index within immediate parent. **/
+	int32 HapiGetChildIndex() const;
+
+	/** Return size. **/
+	int32 HapiGetSize() const;
+
+	/** Return multiparm instance index. **/
+	int32 HapiGetMultiparmInstanceIndex() const;
+
+	/** Return parent parm id. **/
+	HAPI_ParmId HapiGetParentParmId() const;
+
+	/** Get choice count of this parameter. **/
+	int32 HapiGetChoiceCount() const;
+
+	/** Return true if this parameter is a child of multiparm. **/
+	bool HapiIsChildOfMultiParm() const;
 
 public:
 
@@ -85,6 +111,39 @@ public:
 	/** Return true if this is a Substance parameter. **/
 	bool HapiIsSubstance() const;
 
+	/** Return true if parameter is visible. **/
+	bool HapiIsVisible() const;
+
+	/** Return true if this parameter is enabled. **/
+	bool HapiIsEnabled() const;
+
+	/** Return true if this is a spare parameter. **/
+	bool HapiIsSpare() const;
+
+	/** Return true if this parameter has min. **/
+	bool HapiHasMin() const;
+
+	/** Return true if this parameter has max. **/
+	bool HapiHasMax() const;
+
+	/** Return true if this parameter has UI min. **/
+	bool HapiHasUiMin() const;
+
+	/** Return true if this parameter has UI max. **/
+	bool HapiHasUiMax() const;
+
+	/** Return min value set on this parameter. **/
+	float HapiGetMin() const;
+
+	/** Return max value set on this parameter. **/
+	float HapiGetMax() const;
+
+	/** Return UI min value set on this parameter. **/
+	float HapiGetUiMin() const;
+
+	/** Return UI max value set on this parameter. **/
+	float HapiGetUiMax() const;
+
 public:
 
 	/** Return a single value. **/
@@ -113,6 +172,25 @@ public:
 	bool HapiSetValues(const TArray<FHoudiniEngineString>& Values) const;
 	bool HapiSetValues(const TArray<FString>& Values) const;
 
+public:
+
+	/** Return corresponding parm id. **/
+	HAPI_ParmId GetParmId() const;
+
+	/** Return corresponding node id. **/
+	HAPI_NodeId GetNodeId() const;
+
+public:
+
+	/** Serialization. **/
+	void Serialize(FArchive& Ar);
+
+	/** Return hash value for this object, used when using this object as a key inside hashing containers. **/
+	uint32 GetTypeHash() const;
+
+	/** Comparison operator, used by hashing containers. **/
+	bool operator==(const FHoudiniParameterObject& HoudiniParameterObject) const;
+
 protected:
 
 	/** Parm Id associated with this parameter. **/
@@ -128,4 +206,17 @@ protected:
 
 	/** Temporary variable holding serialization version. **/
 	uint32 HoudiniParameterObjectVersion;
+};
+
+
+/** Serialization function. **/
+HOUDINIENGINERUNTIME_API FArchive& operator<<(FArchive& Ar, FHoudiniParameterObject& HoudiniParameterObject);
+
+/** Function used by hashing containers to create a unique hash for this type of object. **/
+HOUDINIENGINERUNTIME_API uint32 GetTypeHash(const FHoudiniParameterObject& HoudiniParameterObject);
+
+/** Functor used to sort these objects. **/
+struct HOUDINIENGINERUNTIME_API FHoudiniParameterObjectSortPredicate
+{
+	bool operator()(const FHoudiniParameterObject& A, const FHoudiniParameterObject& B) const;
 };

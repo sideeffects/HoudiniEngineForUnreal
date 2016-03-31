@@ -26,6 +26,7 @@
 struct FTransform;
 class UHoudiniAsset;
 class FHoudiniEngineString;
+class UHoudiniAssetParameter2;
 
 
 UCLASS(EditInlineNew, config=Engine)
@@ -152,6 +153,16 @@ protected:
 	/** Retrieve the list of input objects. **/
 	bool GetInputObjects(TArray<FHoudiniInputObject>& InInputObjects) const;
 
+public:
+
+	/** Create or re-create parameters after instantiation or cooking. **/
+	bool CreateParameters();
+
+protected:
+
+	/** Free the given unused parameters. **/
+	bool ReleaseParameters(TMap<FString, UHoudiniAssetParameter2*>& UnusedParameters);
+
 protected:
 
 	/** Corresponding Houdini asset. **/
@@ -179,14 +190,17 @@ protected:
 	/** Buffer to hold default preset. **/
 	TArray<char> DefaultPresetBuffer;
 
+	/** Map of all parameters on this asset. **/
+	TMap<FString, UHoudiniAssetParameter2*> Parameters;
+
 	/** Array of all detected geo part objects. **/
-	TArray<FHoudiniGeoPartObject> GeoPartObjects;
+	//TArray<FHoudiniGeoPartObject> GeoPartObjects;
 
 	/** Map of all detected parameter objects. **/
-	TMap<FString, FHoudiniParameterObject> ParameterObjects;
+	//TMap<FString, FHoudiniParameterObject> ParameterObjects;
 
 	/** Array of all detected inputs. **/
-	TArray<FHoudiniInputObject> InputObjects;
+	//TArray<FHoudiniInputObject> InputObjects;
 
 protected:
 

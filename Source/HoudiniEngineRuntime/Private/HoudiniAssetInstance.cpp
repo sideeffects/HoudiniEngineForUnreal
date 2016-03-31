@@ -18,6 +18,7 @@
 #include "HoudiniAssetInstanceVersion.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniAssetParameter2.h"
 
 
 UHoudiniAssetInstance::UHoudiniAssetInstance(const FObjectInitializer& ObjectInitializer) :
@@ -95,6 +96,13 @@ UHoudiniAssetInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector
 		{
 			Collector.AddReferencedObject(HoudiniAssetInstance->HoudiniAsset, InThis);
 		}
+
+		for(TMap<FString, UHoudiniAssetParameter2*>::TIterator
+			IterParams(HoudiniAssetInstance->Parameters); IterParams; ++IterParams)
+		{
+			UHoudiniAssetParameter2* HoudiniAssetParameter = IterParams.Value();
+			Collector.AddReferencedObject(HoudiniAssetParameter, InThis);
+		}
 	}
 
 	Super::AddReferencedObjects(InThis, Collector);
@@ -115,6 +123,7 @@ UHoudiniAssetInstance::Serialize(FArchive& Ar)
 	Ar << DefaultPresetBuffer;
 	Ar << Transform;
 
+	/*
 	HAPI_AssetId AssetIdTemp = AssetId;
 	Ar << AssetIdTemp;
 
@@ -122,6 +131,9 @@ UHoudiniAssetInstance::Serialize(FArchive& Ar)
 	{
 		AssetId = AssetIdTemp;
 	}
+	*/
+
+	Ar << Parameters;
 }
 
 
@@ -856,13 +868,93 @@ UHoudiniAssetInstance::HapiSetDefaultPreset() const
 
 
 bool
+UHoudiniAssetInstance::CreateParameters()
+{
+	TMap<FString, UHoudiniAssetParameter2*> NewParameters;
+
+	TMap<FString, FHoudiniParameterObject> ParameterObjects;
+	if(!GetParameterObjects(ParameterObjects))
+	{
+		ReleaseParameters(Parameters);
+		return false;
+	}
+
+	for(TMap<FString, FHoudiniParameterObject>::TIterator
+		IterParamObjects(ParameterObjects); IterParamObjects; ++IterParamObjects)
+	{
+		const FString& ParameterName = IterParamObjects.Key();
+		const FHoudiniParameterObject& HoudiniParameterObject = IterParamObjects.Value();
+
+		UHoudiniAssetParameter2* const* FoundHoudiniAssetParameter = Parameters.Find(ParameterName);
+		UHoudiniAssetParameter2* HoudiniAssetParameter = nullptr;
+
+		UClass* ParameterClass = HoudiniParameterObject.GetHoudiniAssetParameterClass();
+		if(!ParameterClass)
+		{
+			// This parameter class is not supported.
+			continue;
+		}
+
+		if(FoundHoudiniAssetParameter)
+		{
+			HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+
+			if(HoudiniAssetParameter->GetClass() != ParameterClass)
+			{
+				// Parameter class has changed, we need to recreate the parameter. We can't reuse it.
+				HoudiniAssetParameter = nullptr;
+			}
+			else
+			{
+				// We are able to reuse the parameter.
+				Parameters.Remove(ParameterName);
+			}
+		}
+
+		if(!HoudiniAssetParameter)
+		{
+			// Parameter needs to be created.
+			HoudiniAssetParameter = Cast<UHoudiniAssetParameter2>(StaticConstructObject_Internal(ParameterClass,
+				this, FName(*ParameterName), RF_Public | RF_Transactional));
+		}
+
+		if(HoudiniAssetParameter)
+		{
+			if(HoudiniAssetParameter->CreateParameter(this, HoudiniParameterObject))
+			{
+				// Parameter has been created successfully, we add it to new parameter map.
+				NewParameters.Add(ParameterName, HoudiniAssetParameter);
+			}
+			else
+			{
+				HoudiniAssetParameter->ConditionalBeginDestroy();
+				HoudiniAssetParameter = nullptr;
+			}
+		}
+	}
+
+	ReleaseParameters(Parameters);
+	Parameters = NewParameters;
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::ReleaseParameters(TMap<FString, UHoudiniAssetParameter2*>& UnusedParameters)
+{
+	UnusedParameters.Empty();
+	return true;
+}
+
+
+bool
 UHoudiniAssetInstance::PostInstantiateAsset()
 {
 	HapiGetAssetPreset(DefaultPresetBuffer);
-
 	HapiGetAssetTransform(Transform);
-	GetParameterObjects(ParameterObjects);
-	GetInputObjects(InputObjects);
+
+	CreateParameters();
 
 	return true;
 }
@@ -872,9 +964,8 @@ bool
 UHoudiniAssetInstance::PostCookAsset()
 {
 	HapiGetAssetTransform(Transform);
-	GetParameterObjects(ParameterObjects);
-	GetGeoPartObjects(GeoPartObjects);
-	GetInputObjects(InputObjects);
+
+	CreateParameters();
 
 	return true;
 }

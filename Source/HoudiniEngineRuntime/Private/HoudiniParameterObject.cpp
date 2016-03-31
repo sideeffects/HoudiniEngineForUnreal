@@ -20,6 +20,34 @@
 #include "HoudiniEngineString.h"
 
 
+FArchive&
+operator<<(FArchive& Ar, FHoudiniParameterObject& HoudiniParameterObject)
+{
+	HoudiniParameterObject.Serialize(Ar);
+	return Ar;
+}
+
+
+uint32
+GetTypeHash(const FHoudiniParameterObject& HoudiniParameterObject)
+{
+	return HoudiniParameterObject.GetTypeHash();
+}
+
+
+bool
+FHoudiniParameterObjectSortPredicate::operator()(const FHoudiniParameterObject& A,
+	const FHoudiniParameterObject& B) const
+{
+	if(A.GetNodeId() == B.GetNodeId())
+	{
+		return A.GetParmId() < B.GetParmId();
+	}
+
+	return A.GetNodeId() < B.GetNodeId();
+}
+
+
 FHoudiniParameterObject::FHoudiniParameterObject() :
 	ParmId(-1),
 	NodeId(-1),
@@ -60,6 +88,13 @@ FHoudiniParameterObject::FHoudiniParameterObject(const FHoudiniParameterObject& 
 }
 
 
+UClass*
+FHoudiniParameterObject::GetHoudiniAssetParameterClass() const
+{
+	return nullptr;
+}
+
+
 bool
 FHoudiniParameterObject::HapiGetNodeInfo(HAPI_NodeInfo& NodeInfo) const
 {
@@ -97,13 +132,14 @@ FHoudiniParameterObject::HapiGetParmInfo(HAPI_ParmInfo& ParmInfo) const
 bool
 FHoudiniParameterObject::HapiGetName(FString& Name) const
 {
+	Name = TEXT("");
+
 	HAPI_ParmInfo ParmInfo;
 	if(!HapiGetParmInfo(ParmInfo))
 	{
 		return false;
 	}
 
-	Name = TEXT("");
 	FHoudiniEngineString HoudiniEngineString(ParmInfo.nameSH);
 	HoudiniEngineString.ToFString(Name);
 
@@ -114,13 +150,14 @@ FHoudiniParameterObject::HapiGetName(FString& Name) const
 bool
 FHoudiniParameterObject::HapiGetLabel(FString& Label) const
 {
+	Label = TEXT("");
+
 	HAPI_ParmInfo ParmInfo;
 	if(!HapiGetParmInfo(ParmInfo))
 	{
 		return false;
 	}
 
-	Label = TEXT("");
 	FHoudiniEngineString HoudiniEngineString(ParmInfo.labelSH);
 	HoudiniEngineString.ToFString(Label);
 
@@ -281,6 +318,45 @@ FHoudiniParameterObject::HapiIsSubstance() const
 	}
 
 	return ParameterName.StartsWith(HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX);
+}
+
+
+bool
+FHoudiniParameterObject::HapiIsVisible() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return !ParmInfo.invisible;
+}
+
+
+bool
+FHoudiniParameterObject::HapiIsEnabled() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return !ParmInfo.disabled;
+}
+
+
+bool
+FHoudiniParameterObject::HapiIsSpare() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.spare;
 }
 
 
@@ -625,4 +701,246 @@ FHoudiniParameterObject::HapiSetValues(const TArray<FString>& Values) const
 	}
 
 	return true;
+}
+
+
+HAPI_ParmId
+FHoudiniParameterObject::GetParmId() const
+{
+	return ParmId;
+}
+
+
+HAPI_NodeId
+FHoudiniParameterObject::GetNodeId() const
+{
+	return NodeId;
+}
+
+
+int32
+FHoudiniParameterObject::HapiGetChildIndex() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return 0;
+	}
+
+	return ParmInfo.childIndex;
+}
+
+
+int32
+FHoudiniParameterObject::HapiGetSize() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return 1;
+	}
+
+	return ParmInfo.size;
+}
+
+
+int32
+FHoudiniParameterObject::HapiGetMultiparmInstanceIndex() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return 0;
+	}
+
+	return ParmInfo.instanceNum;
+}
+
+
+HAPI_ParmId
+FHoudiniParameterObject::HapiGetParentParmId() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return -1;
+	}
+
+	return ParmInfo.parentId;
+}
+
+
+int32
+FHoudiniParameterObject::HapiGetChoiceCount() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return 0;
+	}
+
+	return ParmInfo.choiceCount;
+}
+
+
+bool
+FHoudiniParameterObject::HapiGetHelp(FString& Help) const
+{
+	Help = TEXT("");
+
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	FHoudiniEngineString HoudiniEngineString(ParmInfo.helpSH);
+	HoudiniEngineString.ToFString(Help);
+
+	return true;
+}
+
+
+bool
+FHoudiniParameterObject::HapiIsChildOfMultiParm() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.isChildOfMultiParm;
+}
+
+
+void
+FHoudiniParameterObject::Serialize(FArchive& Ar)
+{
+	HoudiniParameterObjectVersion = VER_HOUDINI_ENGINE_PARAMETEROBJECT_AUTOMATIC_VERSION;
+	Ar << HoudiniParameterObjectVersion;
+
+	Ar << HoudiniParameterObjectFlagsPacked;
+
+	Ar << NodeId;
+	Ar << ParmId;
+}
+
+
+uint32
+FHoudiniParameterObject::GetTypeHash() const
+{
+	int32 HashBuffer[2] = { NodeId, ParmId };
+	return FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
+}
+
+
+bool
+FHoudiniParameterObject::operator==(const FHoudiniParameterObject& HoudiniParameterObject) const
+{
+	return NodeId == HoudiniParameterObject.NodeId && ParmId == HoudiniParameterObject.ParmId;
+}
+
+
+bool
+FHoudiniParameterObject::HapiHasMin() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.hasMin;
+}
+
+
+bool
+FHoudiniParameterObject::HapiHasMax() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.hasMax;
+}
+
+
+bool
+FHoudiniParameterObject::HapiHasUiMin() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.hasUIMin;
+}
+
+
+bool
+FHoudiniParameterObject::HapiHasUiMax() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return false;
+	}
+
+	return ParmInfo.hasUIMax;
+}
+
+
+float
+FHoudiniParameterObject::HapiGetMin() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return HAPI_UNREAL_PARAM_FLOAT_UI_MIN;
+	}
+
+	return ParmInfo.min;
+}
+
+
+float
+FHoudiniParameterObject::HapiGetMax() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return HAPI_UNREAL_PARAM_FLOAT_UI_MAX;
+	}
+
+	return ParmInfo.max;
+}
+
+
+float
+FHoudiniParameterObject::HapiGetUiMin() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return HAPI_UNREAL_PARAM_FLOAT_UI_MIN;
+	}
+
+	return ParmInfo.UIMin;
+}
+
+
+float
+FHoudiniParameterObject::HapiGetUiMax() const
+{
+	HAPI_ParmInfo ParmInfo;
+	if(!HapiGetParmInfo(ParmInfo))
+	{
+		return HAPI_UNREAL_PARAM_FLOAT_UI_MAX;
+	}
+
+	return ParmInfo.UIMax;
 }
