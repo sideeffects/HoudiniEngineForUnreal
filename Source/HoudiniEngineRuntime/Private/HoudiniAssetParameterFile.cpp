@@ -19,6 +19,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 
 
