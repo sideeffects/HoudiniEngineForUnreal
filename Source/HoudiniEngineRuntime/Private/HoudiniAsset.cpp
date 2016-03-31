@@ -15,6 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetInstance.h"
 
 
 const uint32
@@ -179,7 +180,6 @@ UHoudiniAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 }
 
 
-
 bool
 UHoudiniAsset::IsAssetLimitedCommercial() const
 {
@@ -187,10 +187,16 @@ UHoudiniAsset::IsAssetLimitedCommercial() const
 }
 
 
-
 bool
 UHoudiniAsset::IsAssetNonCommercial() const
 {
 	return bAssetNonCommercial;
+}
+
+
+UHoudiniAssetInstance*
+UHoudiniAsset::CreateHoudiniAssetInstance(UObject* Outer)
+{
+	return UHoudiniAssetInstance::CreateAssetInstance(Outer, this);
 }
 

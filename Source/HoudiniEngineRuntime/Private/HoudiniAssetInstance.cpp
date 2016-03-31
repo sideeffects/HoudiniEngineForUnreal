@@ -113,6 +113,7 @@ UHoudiniAssetInstance::Serialize(FArchive& Ar)
 
 	Ar << HoudiniAsset;
 	Ar << DefaultPresetBuffer;
+	Ar << Transform;
 
 	HAPI_AssetId AssetIdTemp = AssetId;
 	Ar << AssetIdTemp;
@@ -558,7 +559,24 @@ bool
 UHoudiniAssetInstance::GetInputObjects(TArray<FHoudiniInputObject>& InInputObjects) const
 {
 	InInputObjects.Empty();
-	return false;
+
+	HAPI_AssetInfo AssetInfo;
+	if(!HapiGetAssetInfo(AssetInfo))
+	{
+		return false;
+	}
+
+	if(AssetInfo.geoInputCount > 0)
+	{
+		InInputObjects.SetNumUninitialized(AssetInfo.geoInputCount);
+		for(int32 InputIdx = 0; InputIdx < AssetInfo.geoInputCount; ++InputIdx)
+		{
+			InInputObjects[InputIdx] = FHoudiniInputObject(InputIdx);
+		}
+	}
+
+	return true;
+
 }
 
 
@@ -837,15 +855,26 @@ UHoudiniAssetInstance::HapiSetDefaultPreset() const
 }
 
 
-void
+bool
 UHoudiniAssetInstance::PostInstantiateAsset()
 {
 	HapiGetAssetPreset(DefaultPresetBuffer);
+
+	HapiGetAssetTransform(Transform);
+	GetParameterObjects(ParameterObjects);
+	GetInputObjects(InputObjects);
+
+	return true;
 }
 
 
-void
+bool
 UHoudiniAssetInstance::PostCookAsset()
 {
 	HapiGetAssetTransform(Transform);
+	GetParameterObjects(ParameterObjects);
+	GetGeoPartObjects(GeoPartObjects);
+	GetInputObjects(InputObjects);
+
+	return true;
 }

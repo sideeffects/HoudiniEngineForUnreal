@@ -14,12 +14,14 @@
  */
 
 #pragma once
+#include "HoudiniParameterObject.h"
 #include "HoudiniAssetParameter.generated.h"
 
 
 class FArchive;
 class FVariant;
 class FReferenceCollector;
+class UHoudiniAssetInstance;
 class IDetailCategoryBuilder;
 class UHoudiniAssetComponent;
 
@@ -36,6 +38,10 @@ public:
 
 public:
 
+	/** Create this parameter from parameter info and asset instance. **/
+	virtual bool CreateParameter(UHoudiniAssetInstance* HoudiniAssetInstance,
+		const FHoudiniParameterObject& HoudiniParameterObject);
+
 	/** Create this parameter from HAPI information. **/
 	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
 		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
@@ -51,6 +57,9 @@ public:
 
 	/** Return parent parameter for this parameter, if there's one. **/
 	UHoudiniAssetParameter* GetParentParameter() const;
+
+	/** Return asset instance associated with this parameter, if there's one. **/
+	UHoudiniAssetInstance* GetAssetInstance() const;
 
 #if WITH_EDITOR
 
@@ -208,6 +217,9 @@ protected:
 
 	/** Owner component. **/
 	UHoudiniAssetComponent* HoudiniAssetComponent;
+
+	/** Associated asset instance. **/
+	UHoudiniAssetInstance* HoudiniAssetInstance;
 
 	/** Parent parameter. **/
 	UHoudiniAssetParameter* ParentParameter;

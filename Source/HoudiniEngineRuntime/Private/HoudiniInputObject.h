@@ -20,4 +20,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniInputObject
 {
 public:
 
+	FHoudiniInputObject(int32 InInputIndex);
+	FHoudiniInputObject(const FHoudiniInputObject& HoudiniInputObject);
+
+protected:
+
+	/** Index of this input. **/
+	int32 InputIndex;
+
+protected:
+
+	/** Flags used by input object. **/
+	uint32 HoudiniInputObjectFlagsPacked;
+
+	/** Temporary variable holding serialization version. **/
+	uint32 HoudiniInputObjectVersion;
 };
