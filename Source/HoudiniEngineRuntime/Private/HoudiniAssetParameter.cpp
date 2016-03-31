@@ -20,6 +20,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAssetParameterMultiparm.h"
 #include "HoudiniApi.h"
+#include "HoudiniAssetInstance.h"
 #include "HoudiniAssetParameterVersion.h"
 #include "HoudiniEngineString.h"
 
@@ -42,6 +43,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 	DetailCategoryBuilder(nullptr),
 #endif
 	HoudiniAssetComponent(nullptr),
+	HoudiniAssetInstance(nullptr),
 	ParentParameter(nullptr),
 	NodeId(-1),
 	ParmId(-1),
@@ -67,6 +69,14 @@ UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectI
 UHoudiniAssetParameter::~UHoudiniAssetParameter()
 {
 
+}
+
+
+bool
+UHoudiniAssetParameter::CreateParameter(UHoudiniAssetInstance* HoudiniAssetInstance,
+	const FHoudiniParameterObject& HoudiniParameterObject)
+{
+	return true;
 }
 
 
@@ -345,6 +355,11 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
 	Ar << ValuesIndex;
 	Ar << MultiparmInstanceIndex;
 
+	if(HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_ASSET_INSTANCE_MEMBER)
+	{
+		Ar << HoudiniAssetInstance;
+	}
+
 	if(Ar.IsTransacting())
 	{
 		Ar << HoudiniAssetComponent;
@@ -550,6 +565,13 @@ UHoudiniAssetParameter*
 UHoudiniAssetParameter::GetParentParameter() const
 {
 	return ParentParameter;
+}
+
+
+UHoudiniAssetInstance*
+UHoudiniAssetParameter::GetAssetInstance() const
+{
+	return HoudiniAssetInstance;
 }
 
 
