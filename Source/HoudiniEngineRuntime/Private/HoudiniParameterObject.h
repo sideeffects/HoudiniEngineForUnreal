@@ -82,6 +82,9 @@ public:
 	/** Return true if this is an array parameter. **/
 	bool HapiIsArray() const;
 
+	/** Return true if this is a Substance parameter. **/
+	bool HapiIsSubstance() const;
+
 public:
 
 	/** Return a single value. **/

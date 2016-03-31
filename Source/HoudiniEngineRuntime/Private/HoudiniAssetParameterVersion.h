@@ -22,6 +22,9 @@ enum EHoudiniAssetParameterVersion
 	// Landscape serialization in asset inputs.
 	VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT,
 
+	// Asset instance member.
+	VER_HOUDINI_ENGINE_PARAM_ASSET_INSTANCE_MEMBER,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION_PLUS_ONE,

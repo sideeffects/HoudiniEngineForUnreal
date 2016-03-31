@@ -272,6 +272,19 @@ FHoudiniParameterObject::HapiIsArray() const
 
 
 bool
+FHoudiniParameterObject::HapiIsSubstance() const
+{
+	FString ParameterName = TEXT("");
+	if(!HapiGetName(ParameterName))
+	{
+		return false;
+	}
+
+	return ParameterName.StartsWith(HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX);
+}
+
+
+bool
 FHoudiniParameterObject::HapiGetValue(int32& Value) const
 {
 	Value = 0;

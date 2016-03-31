@@ -98,10 +98,10 @@ public:
 protected:
 
 	/** Called after successful instantiation. **/
-	void PostInstantiateAsset();
+	bool PostInstantiateAsset();
 
 	/** Called after successful cook. **/
-	void PostCookAsset();
+	bool PostCookAsset();
 
 protected:
 
@@ -159,6 +159,8 @@ protected:
 
 	/** Name of the instantiated asset. **/
 	FString InstantiatedAssetName;
+
+protected:
 
 	/** Id of instantiated asset. **/
 	volatile HAPI_AssetId AssetId;
