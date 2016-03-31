@@ -27,6 +27,7 @@ UHoudiniAssetInstance::UHoudiniAssetInstance(const FObjectInitializer& ObjectIni
 	AssetId(-1),
 	AssetCookCount(0),
 	bIsAssetBeingAsyncInstantiatedOrCooked(false),
+	Transform(FTransform::Identity),
 	HoudiniAssetInstanceFlagsPacked(0u),
 	HoudiniAssetInstanceVersion(VER_HOUDINI_ENGINE_ASSETINSTANCE_BASE)
 {
@@ -74,6 +75,13 @@ int32
 UHoudiniAssetInstance::GetAssetCookCount() const
 {
 	return AssetCookCount;
+}
+
+
+const FTransform&
+UHoudiniAssetInstance::GetAssetTransform() const
+{
+	return Transform;
 }
 
 
@@ -518,6 +526,43 @@ UHoudiniAssetInstance::GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& InGeoPar
 }
 
 
+bool
+UHoudiniAssetInstance::GetParameterObjects(TMap<FString, FHoudiniParameterObject>& InParameterObjects) const
+{
+	TArray<HAPI_ParmInfo> ParmInfos;
+	if(!HapiGetParmInfos(ParmInfos))
+	{
+		return false;
+	}
+
+	HAPI_NodeId NodeId = HapiGetNodeId();
+	if(NodeId < 0)
+	{
+		return false;
+	}
+
+	for(int32 ParmIdx = 0, ParmNum = ParmInfos.Num(); ParmIdx < ParmNum; ++ParmIdx)
+	{
+		FString ParameterName = TEXT("");
+		FHoudiniParameterObject HoudiniParameterObject(NodeId, ParmInfos[ParmIdx]);
+		if(HoudiniParameterObject.HapiGetName(ParameterName))
+		{
+			InParameterObjects.Add(ParameterName, HoudiniParameterObject);
+		}
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::GetInputObjects(TArray<FHoudiniInputObject>& InInputObjects) const
+{
+	InInputObjects.Empty();
+	return false;
+}
+
+
 HAPI_NodeId
 UHoudiniAssetInstance::HapiGetNodeId() const
 {
@@ -529,6 +574,26 @@ UHoudiniAssetInstance::HapiGetNodeId() const
 	}
 
 	return AssetInfo.nodeId;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetNodeInfo(HAPI_NodeInfo& NodeInfo) const
+{
+	FMemory::Memset<HAPI_NodeInfo>(NodeInfo, 0);
+
+	HAPI_NodeId NodeId = HapiGetNodeId();
+	if(NodeId < 0)
+	{
+		return false;
+	}
+
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -620,9 +685,9 @@ UHoudiniAssetInstance::HapiGetObjectTransforms(TArray<FTransform>& ObjectTransfo
 
 
 bool
-UHoudiniAssetInstance::HapiGetAssetTransform(FTransform& Transform) const
+UHoudiniAssetInstance::HapiGetAssetTransform(FTransform& InTransform) const
 {
-	Transform.SetIdentity();
+	InTransform.SetIdentity();
 
 	if(!IsValidAssetInstance())
 	{
@@ -637,7 +702,7 @@ UHoudiniAssetInstance::HapiGetAssetTransform(FTransform& Transform) const
 	}
 
 	// Convert HAPI Euler transform to Unreal one.
-	FHoudiniEngineUtils::TranslateHapiTransform(AssetEulerTransform, Transform);
+	FHoudiniEngineUtils::TranslateHapiTransform(AssetEulerTransform, InTransform);
 	return true;
 }
 
@@ -677,6 +742,35 @@ UHoudiniAssetInstance::HapiGetPartInfo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
 		PartIdx, &PartInfo))
 	{
 		return false;
+	}
+
+	return true;
+}
+
+
+bool
+UHoudiniAssetInstance::HapiGetParmInfos(TArray<HAPI_ParmInfo>& ParmInfos) const
+{
+	ParmInfos.Empty();
+
+	if(!IsValidAssetInstance())
+	{
+		return false;
+	}
+
+	HAPI_NodeInfo NodeInfo;
+	if(!HapiGetNodeInfo(NodeInfo))
+	{
+		return false;
+	}
+
+	if(NodeInfo.parmCount > 0)
+	{
+		if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeInfo.id,
+			&ParmInfos[0], 0, NodeInfo.parmCount))
+		{
+			return false;
+		}
 	}
 
 	return true;
@@ -737,6 +831,13 @@ UHoudiniAssetInstance::HapiSetAssetPreset(const TArray<char>& PresetBuffer) cons
 }
 
 
+bool
+UHoudiniAssetInstance::HapiSetDefaultPreset() const
+{
+	return HapiSetAssetPreset(DefaultPresetBuffer);
+}
+
+
 void
 UHoudiniAssetInstance::PostInstantiateAsset()
 {
@@ -747,5 +848,5 @@ UHoudiniAssetInstance::PostInstantiateAsset()
 void
 UHoudiniAssetInstance::PostCookAsset()
 {
-
+	HapiGetAssetTransform(Transform);
 }
