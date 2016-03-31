@@ -19,9 +19,11 @@
 
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniParameterObject.h"
+#include "HoudiniInputObject.h"
 #include "HoudiniAssetInstance.generated.h"
 
 
+struct FTransform;
 class UHoudiniAsset;
 class FHoudiniEngineString;
 
@@ -50,6 +52,9 @@ public:
 
 	/** Return number of times this asset has been cooked. **/
 	int32 GetAssetCookCount() const;
+
+	/** Return the asset transform. **/
+	const FTransform& GetAssetTransform() const;
 
 public:
 
@@ -83,11 +88,6 @@ public:
 	/** Delete asset asynchronously. **/
 	bool DeleteAssetAsync();
 
-public:
-
-	/** Retrieve asset transform. **/
-	bool HapiGetAssetTransform(FTransform& Transform) const;
-
 /** UObject methods. **/
 public:
 
@@ -105,8 +105,14 @@ protected:
 
 protected:
 
+	/** Retrieve asset transform. **/
+	bool HapiGetAssetTransform(FTransform& InTransform) const;
+
 	/** Retrieve node id of this asset. **/
 	HAPI_NodeId HapiGetNodeId() const;
+
+	/** Retrieve node info structure for this asset. **/
+	bool HapiGetNodeInfo(HAPI_NodeInfo& NodeInfo) const;
 
 	/** Retrieve asset info structure. **/
 	bool HapiGetAssetInfo(HAPI_AssetInfo& AssetInfo) const;
@@ -123,16 +129,28 @@ protected:
 	/** Retrieve part info structure. **/
 	bool HapiGetPartInfo(HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, int32 PartIdx, HAPI_PartInfo& PartInfo) const;
 
+	/** Retrieve all parameter info structures. **/
+	bool HapiGetParmInfos(TArray<HAPI_ParmInfo>& ParmInfos) const;
+
 	/** Get asset preset. **/
 	bool HapiGetAssetPreset(TArray<char>& PresetBuffer) const;
 
 	/** Set asset preset. **/
 	bool HapiSetAssetPreset(const TArray<char>& PresetBuffer) const;
 
+	/** Reset to default preset. **/
+	bool HapiSetDefaultPreset() const;
+
 protected:
 
-	/** Retrieve list of geo part objects. **/
+	/** Retrieve the list of geo part objects. **/
 	bool GetGeoPartObjects(TArray<FHoudiniGeoPartObject>& InGeoPartObjects) const;
+
+	/** Retrieve the map of parameter objects. **/
+	bool GetParameterObjects(TMap<FString, FHoudiniParameterObject>& InParameterObjects) const;
+
+	/** Retrieve the list of input objects. **/
+	bool GetInputObjects(TArray<FHoudiniInputObject>& InInputObjects) const;
 
 protected:
 
@@ -153,14 +171,20 @@ protected:
 
 protected:
 
+	/** Transform of the asset. **/
+	FTransform Transform;
+
 	/** Buffer to hold default preset. **/
 	TArray<char> DefaultPresetBuffer;
 
 	/** Array of all detected geo part objects. **/
 	TArray<FHoudiniGeoPartObject> GeoPartObjects;
 
-	/** Array of all detected parameter objects. **/
-	TArray<FHoudiniParameterObject> ParameterObjects;
+	/** Map of all detected parameter objects. **/
+	TMap<FString, FHoudiniParameterObject> ParameterObjects;
+
+	/** Array of all detected inputs. **/
+	TArray<FHoudiniInputObject> InputObjects;
 
 protected:
 
