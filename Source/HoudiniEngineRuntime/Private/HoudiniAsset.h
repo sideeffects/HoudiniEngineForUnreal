@@ -21,6 +21,7 @@
 
 class UThumbnailInfo;
 class UAssetImportData;
+class UHoudiniAssetInstance;
 class UHoudiniAssetComponent;
 
 
@@ -58,6 +59,11 @@ public:
 
 	/** Return true if this asset is a non commercial asset. **/
 	bool IsAssetNonCommercial() const;
+
+public:
+
+	/** Create an asset instance. **/
+	UHoudiniAssetInstance* CreateHoudiniAssetInstance(UObject* Outer);
 
 public:
 
