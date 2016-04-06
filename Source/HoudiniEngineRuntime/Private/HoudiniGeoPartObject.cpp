@@ -527,12 +527,12 @@ FHoudiniGeoPartObject::HapiGetInstanceTransforms(HAPI_AssetId OtherAssetId, TArr
 		{
 			for(int32 PointIdx = 0; PointIdx < PointCount; ++PointIdx)
 			{
-				FTransform TransformMatrix;
+				FTransform TempTransformMatrix;
 
 				const HAPI_Transform& HapiInstanceTransform = InstanceTransforms[PointIdx];
-				FHoudiniEngineUtils::TranslateHapiTransform(HapiInstanceTransform, TransformMatrix);
+				FHoudiniEngineUtils::TranslateHapiTransform(HapiInstanceTransform, TempTransformMatrix);
 
-				AllTransforms.Add(TransformMatrix);
+				AllTransforms.Add(TempTransformMatrix);
 			}
 		}
 		else
