@@ -496,9 +496,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(UStaticMesh* StaticMesh,
 	}
 	else
 	{
-		FHoudiniGeoPartObject HoudiniGeoPartObject;
+		FHoudiniGeoPartObject TempHoudiniGeoPartObject;
 		HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(HoudiniAssetComponent, this,
-			HoudiniGeoPartObject, TEXT(""));
+			TempHoudiniGeoPartObject, TEXT(""));
 
 		// Assign original and static mesh.
 		HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
