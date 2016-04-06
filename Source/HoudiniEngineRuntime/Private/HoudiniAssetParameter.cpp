@@ -73,7 +73,7 @@ UHoudiniAssetParameter::~UHoudiniAssetParameter()
 
 
 bool
-UHoudiniAssetParameter::CreateParameter(UHoudiniAssetInstance* HoudiniAssetInstance,
+UHoudiniAssetParameter::CreateParameter(UHoudiniAssetInstance* InHoudiniAssetInstance,
 	const FHoudiniParameterObject& HoudiniParameterObject)
 {
 	return true;

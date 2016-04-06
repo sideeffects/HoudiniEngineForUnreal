@@ -39,7 +39,7 @@ public:
 public:
 
 	/** Create this parameter from parameter info and asset instance. **/
-	virtual bool CreateParameter(UHoudiniAssetInstance* HoudiniAssetInstance,
+	virtual bool CreateParameter(UHoudiniAssetInstance* InHoudiniAssetInstance,
 		const FHoudiniParameterObject& HoudiniParameterObject);
 
 	/** Create this parameter from HAPI information. **/
