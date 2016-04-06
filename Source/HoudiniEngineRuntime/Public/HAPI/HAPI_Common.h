@@ -117,15 +117,19 @@
     typedef char HAPI_Bool;
 #endif // __cplusplus
 
-#ifdef _WIN32
+// 64-bit Integers
+typedef long long HAPI_Int64;
+HAPI_STATIC_ASSERT( sizeof( HAPI_Int64 ) == 8, unsupported_size_of_long );
+
+// The process id has to be uint on Windows and int on any other platform.
+#if ( defined _WIN32 || defined WIN32 )
     typedef unsigned int HAPI_ProcessId;
 #else
     typedef int HAPI_ProcessId;
 #endif
 
-/// Has to be 64-bit. Should be on all reasonable platforms...but we make sure.
-typedef long long HAPI_SessionId;
-HAPI_STATIC_ASSERT( sizeof( HAPI_SessionId ) == 8, unsupported_size_of_long );
+/// Has to be 64-bit.
+typedef HAPI_Int64 HAPI_SessionId;
 
 /// Use this with HAPI_GetString() to get the value.
 /// See @ref HAPI_Fundamentals_Strings.
@@ -466,7 +470,9 @@ enum HAPI_StorageType
 {
     HAPI_STORAGETYPE_INVALID = -1,
     HAPI_STORAGETYPE_INT,
+    HAPI_STORAGETYPE_INT64,
     HAPI_STORAGETYPE_FLOAT,
+    HAPI_STORAGETYPE_FLOAT64,
     HAPI_STORAGETYPE_STRING,
     HAPI_STORAGETYPE_MAX
 };
