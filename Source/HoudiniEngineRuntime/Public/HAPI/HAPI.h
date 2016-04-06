@@ -2652,6 +2652,65 @@ HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
                                     int * data_array,
                                     int start, int length );
 
+/// @brief  Get attribute 64-bit integer data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      asset_id
+///                 The asset id.
+///
+/// @param[in]      object_id
+///                 The object id.
+///
+/// @param[in]      geo_id
+///                 The geometry id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An 64-bit integer array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///
+HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
+                                      HAPI_AssetId asset_id,
+                                      HAPI_ObjectId object_id,
+                                      HAPI_GeoId geo_id,
+                                      HAPI_PartId part_id,
+                                      const char * name,
+                                      HAPI_AttributeInfo * attr_info,
+                                      int stride,
+                                      HAPI_Int64 * data_array,
+                                      int start, int length );
+
 /// @brief  Get attribute float data.
 ///
 /// @param[in]      session
@@ -2700,6 +2759,65 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
                                       HAPI_AttributeInfo * attr_info,
                                       float * data_array,
                                       int start, int length );
+
+/// @brief  Get 64-bit attribute float data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      asset_id
+///                 The asset id.
+///
+/// @param[in]      object_id
+///                 The object id.
+///
+/// @param[in]      geo_id
+///                 The geometry id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An 64-bit float array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///
+HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
+                                        HAPI_AssetId asset_id,
+                                        HAPI_ObjectId object_id,
+                                        HAPI_GeoId geo_id,
+                                        HAPI_PartId part_id,
+                                        const char * name,
+                                        HAPI_AttributeInfo * attr_info,
+                                        int stride,
+                                        double * data_array,
+                                        int start, int length );
 
 /// @brief  Get attribute string data. Note that the string handles
 ///         returned are only valid until the next time this function
@@ -3128,6 +3246,51 @@ HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
                                     const int * data_array,
                                     int start, int length );
 
+/// @brief  Set 64-bit attribute integer data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      asset_id
+///                 The asset id.
+///
+/// @param[in]      object_id
+///                 The object id.
+///
+/// @param[in]      geo_id
+///                 The geometry id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      data_array
+///                 An 64-bit integer array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///
+HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
+                                      HAPI_AssetId asset_id,
+                                      HAPI_ObjectId object_id,
+                                      HAPI_GeoId geo_id,
+                                      const char * name,
+                                      const HAPI_AttributeInfo * attr_info,
+                                      const HAPI_Int64 * data_array,
+                                      int start, int length );
+
 /// @brief  Set attribute float data.
 ///
 /// @param[in]      session
@@ -3172,6 +3335,51 @@ HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
                                       const HAPI_AttributeInfo * attr_info,
                                       const float * data_array,
                                       int start, int length );
+
+/// @brief  Set 64-bit attribute float data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      asset_id
+///                 The asset id.
+///
+/// @param[in]      object_id
+///                 The object id.
+///
+/// @param[in]      geo_id
+///                 The geometry id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      data_array
+///                 An 64-bit float array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///
+HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
+                                        HAPI_AssetId asset_id,
+                                        HAPI_ObjectId object_id,
+                                        HAPI_GeoId geo_id,
+                                        const char * name,
+                                        const HAPI_AttributeInfo * attr_info,
+                                        const double * data_array,
+                                        int start, int length );
 
 /// @brief  Set attribute string data.
 ///
