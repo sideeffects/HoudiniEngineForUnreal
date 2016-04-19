@@ -237,8 +237,6 @@ FHoudiniEngine::StartupModule()
 		HAPI_ThriftServerOptions ServerOptions;
 		FMemory::Memzero<HAPI_ThriftServerOptions>(ServerOptions);
 		ServerOptions.autoClose = true;
-		ServerOptions.serverType = HAPI_THRIFT_SERVER_SIMPLE;
-		ServerOptions.transportType = HAPI_THRIFT_TRANSPORT_BUFFERED;
 		ServerOptions.timeoutMs = HoudiniRuntimeSettings->AutomaticServerTimeout;
 
 		switch(HoudiniRuntimeSettings->SessionType.GetValue())
@@ -257,8 +255,8 @@ FHoudiniEngine::StartupModule()
 				}
 
 				SessionResult = FHoudiniApi::CreateThriftSocketSession(&this->Session,
-					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost), HoudiniRuntimeSettings->ServerPort,
-					ServerOptions.transportType);
+					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerHost), HoudiniRuntimeSettings->ServerPort
+				);
 
 				break;
 			}
@@ -272,7 +270,8 @@ FHoudiniEngine::StartupModule()
 				}
 
 				SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(&this->Session,
-					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName), ServerOptions.transportType);
+					TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ServerPipeName)
+				);
 
 				break;
 			}
