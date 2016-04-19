@@ -71,15 +71,10 @@ HAPI_DECL HAPI_StartThriftSocketServer(
 /// @param[in]      port
 ///                 The server port to connect to.
 ///
-/// @param[in]      transport_type
-///                 The Thrift transport type, has to match server start
-///                 options.
-///
 HAPI_DECL HAPI_CreateThriftSocketSession(
                                     HAPI_Session * session,
                                     const char * host_name,
-                                    int port,
-                                    HAPI_ThriftTransportType transport_type );
+                                    int port );
 
 /// @brief  Starts a Thrift RPC server process on the local host serving
 ///         clients on a Windows named pipe or a Unix domain socket and
@@ -111,14 +106,9 @@ HAPI_DECL HAPI_StartThriftNamedPipeServer(
 /// @param[in]      pipe_name
 ///                 The name of the pipe or socket.
 ///
-/// @param[in]      transport_type
-///                 The Thrift transport type, has to match server start
-///                 options.
-///
 HAPI_DECL HAPI_CreateThriftNamedPipeSession(
                                     HAPI_Session * session,
-                                    const char * pipe_name,
-                                    HAPI_ThriftTransportType transport_type );
+                                    const char * pipe_name );
 
 /// @brief  Binds a new implementation DLL to one of the custom session
 ///         slots.

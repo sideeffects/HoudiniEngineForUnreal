@@ -658,47 +658,6 @@ enum HAPI_SessionEnvIntType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_SessionEnvIntType )
 
-/// The type of a Thrift server.
-enum HAPI_ThriftServerType
-{
-    /// A simple server that supports a single client connection. If a client
-    /// is connected to the server and another client tries to connect,
-    /// then the second client will block until the first connection is closed.
-    /// Search for apache::thrift::server::TSimpleServer
-    HAPI_THRIFT_SERVER_SIMPLE,
-
-    /// A threaded server that supports multiple concurrent client connections.
-    /// Search for apache::thrift::server::TThreadedServer
-    HAPI_THRIFT_SERVER_THREADED,
-
-    /// A non-blocking server that supports multiple concurrent client
-    /// connections.
-    /// Search for apache::thrift::server::TNonblockingServer
-    /// Requires ::HAPI_THRIFT_TRANSPORT_FRAMED when creating a session.
-    HAPI_THRIFT_SERVER_NONBLOCKING,
-
-    HAPI_THRIFT_SERVER_MAX
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_ThriftServerType )
-
-/// High-level Thrift transport type wrapping the underlying pipe or socket
-/// transport.
-enum HAPI_ThriftTransportType
-{
-    /// Buffers the underlying socket or pipe I/O for performance.
-    /// Search for apache::thrift::transport::TBufferedTransport
-    HAPI_THRIFT_TRANSPORT_BUFFERED,
-
-    /// Frames every RPC message so that multiple messages don't intermingle
-    /// on the wire. Required for connecting to non-blocking servers (see
-    /// ::HAPI_THRIFT_SERVER_NONBLOCKING).
-    /// Search for apache::thrift::transport::TFramedTransport
-    HAPI_THRIFT_TRANSPORT_FRAMED,
-
-    HAPI_THRIFT_TRANSPORT_MAX
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_ThriftTransportType )
-
 /// [HAPI_CacheProperty]
 enum HAPI_CacheProperty
 {
@@ -779,12 +738,6 @@ struct HAPI_API HAPI_ThriftServerOptions
 {
     /// Close the server automatically when all clients disconnect from it.
     HAPI_Bool autoClose;
-
-    /// The type of the server.
-    HAPI_ThriftServerType serverType;
-
-    /// The type of the transport.
-    HAPI_ThriftTransportType transportType;
 
     /// Timeout in milliseconds for waiting on the server to
     /// signal that it's ready to serve. If the server fails
