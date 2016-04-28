@@ -234,6 +234,9 @@ FHoudiniApi::GetInstancedPartIds = &FHoudiniApi::GetInstancedPartIdsEmptyStub;
 FHoudiniApi::GetInstancerPartTransformsFuncPtr
 FHoudiniApi::GetInstancerPartTransforms = &FHoudiniApi::GetInstancerPartTransformsEmptyStub;
 
+FHoudiniApi::GetManagerNodeIdFuncPtr
+FHoudiniApi::GetManagerNodeId = &FHoudiniApi::GetManagerNodeIdEmptyStub;
+
 FHoudiniApi::GetMaterialIdsOnFacesFuncPtr
 FHoudiniApi::GetMaterialIdsOnFaces = &FHoudiniApi::GetMaterialIdsOnFacesEmptyStub;
 
@@ -612,6 +615,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetInstanceTransforms = (GetInstanceTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstanceTransforms"));
 	FHoudiniApi::GetInstancedPartIds = (GetInstancedPartIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedPartIds"));
 	FHoudiniApi::GetInstancerPartTransforms = (GetInstancerPartTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancerPartTransforms"));
+	FHoudiniApi::GetManagerNodeId = (GetManagerNodeIdFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetManagerNodeId"));
 	FHoudiniApi::GetMaterialIdsOnFaces = (GetMaterialIdsOnFacesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialIdsOnFaces"));
 	FHoudiniApi::GetMaterialInfo = (GetMaterialInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialInfo"));
 	FHoudiniApi::GetMaterialOnGroup = (GetMaterialOnGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroup"));
@@ -790,6 +794,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetInstanceTransforms = &FHoudiniApi::GetInstanceTransformsEmptyStub;
 	FHoudiniApi::GetInstancedPartIds = &FHoudiniApi::GetInstancedPartIdsEmptyStub;
 	FHoudiniApi::GetInstancerPartTransforms = &FHoudiniApi::GetInstancerPartTransformsEmptyStub;
+	FHoudiniApi::GetManagerNodeId = &FHoudiniApi::GetManagerNodeIdEmptyStub;
 	FHoudiniApi::GetMaterialIdsOnFaces = &FHoudiniApi::GetMaterialIdsOnFacesEmptyStub;
 	FHoudiniApi::GetMaterialInfo = &FHoudiniApi::GetMaterialInfoEmptyStub;
 	FHoudiniApi::GetMaterialOnGroup = &FHoudiniApi::GetMaterialOnGroupEmptyStub;
@@ -1399,6 +1404,13 @@ FHoudiniApi::GetInstancedPartIdsEmptyStub(const HAPI_Session * session, HAPI_Ass
 
 HAPI_Result
 FHoudiniApi::GetInstancerPartTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetManagerNodeIdEmptyStub(const HAPI_Session * session, HAPI_NodeType node_type, HAPI_NodeId * node_id)
 {
 	return HAPI_RESULT_FAILURE;
 }

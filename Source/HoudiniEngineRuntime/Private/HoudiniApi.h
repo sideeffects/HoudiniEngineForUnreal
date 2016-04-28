@@ -100,6 +100,7 @@ public:
 	typedef HAPI_Result (*GetInstanceTransformsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
 	typedef HAPI_Result (*GetInstancerPartTransformsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
+	typedef HAPI_Result (*GetManagerNodeIdFuncPtr)(const HAPI_Session * session, HAPI_NodeType node_type, HAPI_NodeId * node_id);
 	typedef HAPI_Result (*GetMaterialIdsOnFacesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids_array, int start, int length);
 	typedef HAPI_Result (*GetMaterialInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info);
 	typedef HAPI_Result (*GetMaterialOnGroupFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info);
@@ -275,6 +276,7 @@ public:
 	static GetInstanceTransformsFuncPtr GetInstanceTransforms;
 	static GetInstancedPartIdsFuncPtr GetInstancedPartIds;
 	static GetInstancerPartTransformsFuncPtr GetInstancerPartTransforms;
+	static GetManagerNodeIdFuncPtr GetManagerNodeId;
 	static GetMaterialIdsOnFacesFuncPtr GetMaterialIdsOnFaces;
 	static GetMaterialInfoFuncPtr GetMaterialInfo;
 	static GetMaterialOnGroupFuncPtr GetMaterialOnGroup;
@@ -450,6 +452,7 @@ public:
 	static HAPI_Result GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	static HAPI_Result GetInstancedPartIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
 	static HAPI_Result GetInstancerPartTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
+	static HAPI_Result GetManagerNodeIdEmptyStub(const HAPI_Session * session, HAPI_NodeType node_type, HAPI_NodeId * node_id);
 	static HAPI_Result GetMaterialIdsOnFacesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids_array, int start, int length);
 	static HAPI_Result GetMaterialInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info);
 	static HAPI_Result GetMaterialOnGroupEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info);
