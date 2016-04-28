@@ -1417,6 +1417,23 @@ HAPI_DECL HAPI_GetNodeInfo( const HAPI_Session * session,
                             HAPI_NodeId node_id,
                             HAPI_NodeInfo * node_info );
 
+/// @brief  Get the root node of a particular network type (ie. OBJ).
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_type
+///                 The node network type.
+///
+/// @param[out]     node_id
+///                 The node id of the root node network.
+///
+HAPI_DECL HAPI_GetManagerNodeId( const HAPI_Session * session,
+                                 HAPI_NodeType node_type,
+                                 HAPI_NodeId * node_id );
+
 /// @brief  Get the node ids of the editable node networks exposed by the
 ///         asset author.
 ///
