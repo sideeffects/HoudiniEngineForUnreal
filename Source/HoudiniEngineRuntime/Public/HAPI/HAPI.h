@@ -1493,16 +1493,32 @@ HAPI_DECL HAPI_GetNodeNetworkChildren( const HAPI_Session * session,
 ///                 Pass NULL to just use the default in-process session.
 ///
 /// @param[in]      parent_node_id
-///                 The parent node network's node id.
+///                 The parent node network's node id or -1 if the parent
+///                 network is the manager (top-level) node. In that case,
+///                 the manager must be identified by the table name in the
+///                 operator_name.
 ///
 /// @param[in]      operator_name
-///                 The name of the node operator type. This should
-///                 include only the namespace, name, and version,
-///                 For example, if you have an Object type asset, in 
-///                 the "hapi" namespace, of version 2.0, named "foo",
-///                 the operator_name here will be: "hapi::foo::2.0".
-///                 Normally, if you don't have a namespace or version,
-///                 just pass "foo".
+///                 The name of the node operator type.
+///
+///                 If you passed parent_node_id == -1, then the operator_name
+///                 has to include the table name (ie. Object/ or Sop/).
+///                 This is the common case for when creating asset nodes
+///                 from a loaded asset library. In that case, just pass 
+///                 whatever ::HAPI_GetAvailableAssets() returns.
+///
+///                 If you have a parent_node_id then you should
+///                 include only the namespace, name, and version.
+///
+///                 For example, lets say you have an Object type asset, in 
+///                 the "hapi" namespace, of version 2.0, named "foo". If
+///                 you pass parent_node_id == -1, then set the operator_name
+///                 as "Object/hapi::foo::2.0". Otherwise, if you have a valid
+///                 parent_node_id, then just pass operator_name as
+///                 "hapi::foo::2.0".
+///
+/// @param[in]      node_label
+///                 (Optional) The label of the newly created node.
 ///
 /// @param[out]     new_node_id
 ///                 The returned node id of the just-created node.
@@ -1510,6 +1526,7 @@ HAPI_DECL HAPI_GetNodeNetworkChildren( const HAPI_Session * session,
 HAPI_DECL HAPI_CreateNode( const HAPI_Session * session,
                            HAPI_NodeId parent_node_id,
                            const char * operator_name,
+                           const char * node_label,
                            HAPI_NodeId * new_node_id );
 
 /// @brief  Delete a node from a node network. Only nodes with their
