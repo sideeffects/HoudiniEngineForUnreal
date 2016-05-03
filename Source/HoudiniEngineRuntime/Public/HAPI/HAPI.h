@@ -1520,6 +1520,9 @@ HAPI_DECL HAPI_GetNodeNetworkChildren( const HAPI_Session * session,
 /// @param[in]      node_label
 ///                 (Optional) The label of the newly created node.
 ///
+/// @param[in]      cook_on_creation
+///                 Set whether the node should cook once created or not.
+///
 /// @param[out]     new_node_id
 ///                 The returned node id of the just-created node.
 ///
@@ -1527,6 +1530,7 @@ HAPI_DECL HAPI_CreateNode( const HAPI_Session * session,
                            HAPI_NodeId parent_node_id,
                            const char * operator_name,
                            const char * node_label,
+                           HAPI_Bool cook_on_creation,
                            HAPI_NodeId * new_node_id );
 
 /// @brief  Delete a node from a node network. Only nodes with their
