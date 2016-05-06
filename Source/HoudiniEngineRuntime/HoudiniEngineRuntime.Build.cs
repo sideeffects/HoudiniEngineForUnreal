@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 16.0.236
+    Houdini Version: 16.0.239
     Houdini Engine Version: 3.0.3
     Unreal Version: 4.11.1
 
@@ -31,7 +31,7 @@ public class HoudiniEngineRuntime : ModuleRules
 	{
 		bool bIsRelease = true;
 		string HFSPath = "";
-		string HoudiniVersion = "16.0.236";
+		string HoudiniVersion = "16.0.239";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&

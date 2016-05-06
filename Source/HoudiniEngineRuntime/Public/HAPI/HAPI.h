@@ -1487,6 +1487,24 @@ HAPI_DECL HAPI_GetNodeNetworkChildren( const HAPI_Session * session,
 ///         will have their ::HAPI_NodeInfo::createdPostAssetLoad set
 ///         to true.
 ///
+///         @note In threaded mode, this is an _async call_!
+///
+///         @note This is also when we actually check for valid licenses.
+///
+///         This API will invoke the cooking thread if threading is
+///         enabled. This means it will return immediately with a call
+///         result of ::HAPI_RESULT_SUCCESS, even if fed garbage. Use
+///         the status and cooking count APIs under DIAGNOSTICS to get
+///         a sense of the progress. All other API calls will block
+///         until the creation (and, optionally, the first cook)
+///         of the node has finished.
+///
+///         Also note that the cook result won't be of type
+///         ::HAPI_STATUS_CALL_RESULT like all calls (including this one).
+///         Whenever the threading cook is done it will fill the
+///         @a cook result which is queried using
+///         ::HAPI_STATUS_COOK_RESULT.
+///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
@@ -1532,6 +1550,40 @@ HAPI_DECL HAPI_CreateNode( const HAPI_Session * session,
                            const char * node_label,
                            HAPI_Bool cook_on_creation,
                            HAPI_NodeId * new_node_id );
+
+/// @brief  Initiate a cook on this node. Note that this may trigger
+///         cooks on other nodes if they are connected.
+///
+///         @note In threaded mode, this is an _async call_!
+///
+///         This API will invoke the cooking thread if threading is
+///         enabled. This means it will return immediately. Use
+///         the status and cooking count APIs under DIAGNOSTICS to get
+///         a sense of the progress. All other API calls will block
+///         until the cook operation has finished.
+///
+///         Also note that the cook result won't be of type
+///         ::HAPI_STATUS_CALL_RESULT like all calls (including this one).
+///         Whenever the threading cook is done it will fill the
+///         @a cook result which is queried using
+///         ::HAPI_STATUS_COOK_RESULT.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      cook_options
+///                 The cook options. Pass in NULL to use the global
+///                 cook options that you specified when calling
+///                 ::HAPI_Initialize().
+///
+HAPI_DECL HAPI_CookNode( const HAPI_Session * session,
+                         HAPI_NodeId node_id,
+                         const HAPI_CookOptions * cook_options );
 
 /// @brief  Delete a node from a node network. Only nodes with their
 ///         ::HAPI_NodeInfo::createdPostAssetLoad set to true can be
