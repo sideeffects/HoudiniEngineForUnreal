@@ -46,6 +46,7 @@ public:
 	typedef HAPI_Result (*ConvertTransformEulerToMatrixFuncPtr)(const HAPI_Session * session, const HAPI_TransformEuler * transform, float * matrix);
 	typedef HAPI_Result (*ConvertTransformQuatToMatrixFuncPtr)(const HAPI_Session * session, const HAPI_Transform * transform, float * matrix);
 	typedef HAPI_Result (*CookAssetFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_CookOptions * cook_options);
+	typedef HAPI_Result (*CookNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_CookOptions * cook_options);
 	typedef HAPI_Result (*CreateCurveFuncPtr)(const HAPI_Session * session, HAPI_AssetId * asset_id);
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	typedef HAPI_Result (*CreateInProcessSessionFuncPtr)(HAPI_Session * session);
@@ -222,6 +223,7 @@ public:
 	static ConvertTransformEulerToMatrixFuncPtr ConvertTransformEulerToMatrix;
 	static ConvertTransformQuatToMatrixFuncPtr ConvertTransformQuatToMatrix;
 	static CookAssetFuncPtr CookAsset;
+	static CookNodeFuncPtr CookNode;
 	static CreateCurveFuncPtr CreateCurve;
 	static CreateCustomSessionFuncPtr CreateCustomSession;
 	static CreateInProcessSessionFuncPtr CreateInProcessSession;
@@ -398,6 +400,7 @@ public:
 	static HAPI_Result ConvertTransformEulerToMatrixEmptyStub(const HAPI_Session * session, const HAPI_TransformEuler * transform, float * matrix);
 	static HAPI_Result ConvertTransformQuatToMatrixEmptyStub(const HAPI_Session * session, const HAPI_Transform * transform, float * matrix);
 	static HAPI_Result CookAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_CookOptions * cook_options);
+	static HAPI_Result CookNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_CookOptions * cook_options);
 	static HAPI_Result CreateCurveEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_id);
 	static HAPI_Result CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	static HAPI_Result CreateInProcessSessionEmptyStub(HAPI_Session * session);

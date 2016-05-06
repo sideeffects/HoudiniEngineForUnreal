@@ -72,6 +72,9 @@ FHoudiniApi::ConvertTransformQuatToMatrix = &FHoudiniApi::ConvertTransformQuatTo
 FHoudiniApi::CookAssetFuncPtr
 FHoudiniApi::CookAsset = &FHoudiniApi::CookAssetEmptyStub;
 
+FHoudiniApi::CookNodeFuncPtr
+FHoudiniApi::CookNode = &FHoudiniApi::CookNodeEmptyStub;
+
 FHoudiniApi::CreateCurveFuncPtr
 FHoudiniApi::CreateCurve = &FHoudiniApi::CreateCurveEmptyStub;
 
@@ -561,6 +564,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::ConvertTransformEulerToMatrix = (ConvertTransformEulerToMatrixFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConvertTransformEulerToMatrix"));
 	FHoudiniApi::ConvertTransformQuatToMatrix = (ConvertTransformQuatToMatrixFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConvertTransformQuatToMatrix"));
 	FHoudiniApi::CookAsset = (CookAssetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookAsset"));
+	FHoudiniApi::CookNode = (CookNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookNode"));
 	FHoudiniApi::CreateCurve = (CreateCurveFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCurve"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
 	FHoudiniApi::CreateInProcessSession = (CreateInProcessSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInProcessSession"));
@@ -740,6 +744,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::ConvertTransformEulerToMatrix = &FHoudiniApi::ConvertTransformEulerToMatrixEmptyStub;
 	FHoudiniApi::ConvertTransformQuatToMatrix = &FHoudiniApi::ConvertTransformQuatToMatrixEmptyStub;
 	FHoudiniApi::CookAsset = &FHoudiniApi::CookAssetEmptyStub;
+	FHoudiniApi::CookNode = &FHoudiniApi::CookNodeEmptyStub;
 	FHoudiniApi::CreateCurve = &FHoudiniApi::CreateCurveEmptyStub;
 	FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 	FHoudiniApi::CreateInProcessSession = &FHoudiniApi::CreateInProcessSessionEmptyStub;
@@ -1026,6 +1031,13 @@ FHoudiniApi::ConvertTransformQuatToMatrixEmptyStub(const HAPI_Session * session,
 
 HAPI_Result
 FHoudiniApi::CookAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_CookOptions * cook_options)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CookNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_CookOptions * cook_options)
 {
 	return HAPI_RESULT_FAILURE;
 }
