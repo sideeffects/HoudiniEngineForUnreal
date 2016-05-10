@@ -1434,6 +1434,63 @@ HAPI_DECL HAPI_GetManagerNodeId( const HAPI_Session * session,
                                  HAPI_NodeType node_type,
                                  HAPI_NodeId * node_id );
 
+/// @brief  Compose a list of child nodes based on given filters.
+///
+///         This function will only compose the list of child nodes. It will
+///         not return this list. After your call to this function, call
+///         HAPI_GetComposedChildNodeList() to get the list of child node ids.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The node id of the parent node.
+///
+/// @param[int]     node_type_filter
+///                 The node type by which to filter the children.
+///
+/// @param[int]     node_flags_filter
+///                 The node flags by which to filter the children.
+///
+/// @param[int]     recursive
+///                 Whether or not to compose the list recursively.
+///
+/// @param[out]     count
+///                 The number of child nodes composed. Use this as the
+///                 argument to ::HAPI_GetComposedChildNodeList().
+///
+HAPI_DECL HAPI_ComposeChildNodeList( const HAPI_Session * session,
+                                     HAPI_NodeId parent_node_id,
+                                     HAPI_NodeType node_type_filter,
+                                     HAPI_NodeFlagsBits node_flags_filter,
+                                     HAPI_Bool recursive,
+                                     int * count );
+
+/// @brief  Get the composed list of child node ids from the previous call
+///         to HAPI_ComposeChildNodeList().
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The node id of the parent node.
+///
+/// @param[out]     child_node_ids_array
+///                 The array of ::HAPI_NodeId for the child nodes.
+///
+/// @param[in]      count
+///                 The number of children in the composed list. MUST match
+///                 the count returned by HAPI_ComposeChildNodeList().
+///
+HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
+                                         HAPI_NodeId parent_node_id,
+                                         HAPI_NodeId * child_node_ids_array,
+                                         int count );
+
 /// @brief  Get the node ids of the editable node networks exposed by the
 ///         asset author.
 ///

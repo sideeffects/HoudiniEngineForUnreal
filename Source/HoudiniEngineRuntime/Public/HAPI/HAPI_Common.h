@@ -389,6 +389,19 @@ enum HAPI_NodeType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeType )
 
+enum HAPI_NodeFlags
+{
+    HAPI_NODEFLAGS_DISPLAY      = 1 << 0,
+    HAPI_NODEFLAGS_RENDER       = 1 << 1,
+    HAPI_NODEFLAGS_TEMPLATED    = 1 << 2,
+    HAPI_NODEFLAGS_LOCKED       = 1 << 3,
+    HAPI_NODEFLAGS_EDITABLE     = 1 << 4,
+    HAPI_NODEFLAGS_BYPASS       = 1 << 5,
+    HAPI_NODEFLAGS_NETWORK      = 1 << 6
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
+typedef int HAPI_NodeFlagsBits;
+
 enum HAPI_AssetType
 {
     HAPI_ASSETTYPE_INVALID = -1,
