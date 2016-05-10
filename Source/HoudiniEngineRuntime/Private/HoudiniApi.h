@@ -36,6 +36,7 @@ public:
 	typedef HAPI_Result (*CleanupFuncPtr)(const HAPI_Session * session);
 	typedef HAPI_Result (*CloseSessionFuncPtr)(const HAPI_Session * session);
 	typedef HAPI_Result (*CommitGeoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
+	typedef HAPI_Result (*ComposeChildNodeListFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeType node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
 	typedef HAPI_Result (*ComposeNodeCookResultFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	typedef HAPI_Result (*ConnectAssetGeometryFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_ObjectId object_id_from, HAPI_AssetId asset_id_to, int input_idx);
 	typedef HAPI_Result (*ConnectAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_AssetId asset_id_to, int input_idx);
@@ -76,6 +77,7 @@ public:
 	typedef HAPI_Result (*GetAvailableAssetsFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count);
 	typedef HAPI_Result (*GetBoxInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info);
 	typedef HAPI_Result (*GetCachePropertyFuncPtr)(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int * property_value);
+	typedef HAPI_Result (*GetComposedChildNodeListFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * child_node_ids_array, int count);
 	typedef HAPI_Result (*GetComposedNodeCookResultFuncPtr)(const HAPI_Session * session, char * string_value, int length);
 	typedef HAPI_Result (*GetCookingCurrentCountFuncPtr)(const HAPI_Session * session, int * count);
 	typedef HAPI_Result (*GetCookingTotalCountFuncPtr)(const HAPI_Session * session, int * count);
@@ -213,6 +215,7 @@ public:
 	static CleanupFuncPtr Cleanup;
 	static CloseSessionFuncPtr CloseSession;
 	static CommitGeoFuncPtr CommitGeo;
+	static ComposeChildNodeListFuncPtr ComposeChildNodeList;
 	static ComposeNodeCookResultFuncPtr ComposeNodeCookResult;
 	static ConnectAssetGeometryFuncPtr ConnectAssetGeometry;
 	static ConnectAssetTransformFuncPtr ConnectAssetTransform;
@@ -253,6 +256,7 @@ public:
 	static GetAvailableAssetsFuncPtr GetAvailableAssets;
 	static GetBoxInfoFuncPtr GetBoxInfo;
 	static GetCachePropertyFuncPtr GetCacheProperty;
+	static GetComposedChildNodeListFuncPtr GetComposedChildNodeList;
 	static GetComposedNodeCookResultFuncPtr GetComposedNodeCookResult;
 	static GetCookingCurrentCountFuncPtr GetCookingCurrentCount;
 	static GetCookingTotalCountFuncPtr GetCookingTotalCount;
@@ -390,6 +394,7 @@ public:
 	static HAPI_Result CleanupEmptyStub(const HAPI_Session * session);
 	static HAPI_Result CloseSessionEmptyStub(const HAPI_Session * session);
 	static HAPI_Result CommitGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
+	static HAPI_Result ComposeChildNodeListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeType node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
 	static HAPI_Result ComposeNodeCookResultEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_StatusVerbosity verbosity, int * buffer_length);
 	static HAPI_Result ConnectAssetGeometryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_ObjectId object_id_from, HAPI_AssetId asset_id_to, int input_idx);
 	static HAPI_Result ConnectAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id_from, HAPI_AssetId asset_id_to, int input_idx);
@@ -430,6 +435,7 @@ public:
 	static HAPI_Result GetAvailableAssetsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, HAPI_StringHandle * asset_names_array, int asset_count);
 	static HAPI_Result GetBoxInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId geo_node_id, HAPI_PartId part_id, HAPI_BoxInfo * box_info);
 	static HAPI_Result GetCachePropertyEmptyStub(const HAPI_Session * session, const char * cache_name, HAPI_CacheProperty cache_property, int * property_value);
+	static HAPI_Result GetComposedChildNodeListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * child_node_ids_array, int count);
 	static HAPI_Result GetComposedNodeCookResultEmptyStub(const HAPI_Session * session, char * string_value, int length);
 	static HAPI_Result GetCookingCurrentCountEmptyStub(const HAPI_Session * session, int * count);
 	static HAPI_Result GetCookingTotalCountEmptyStub(const HAPI_Session * session, int * count);
