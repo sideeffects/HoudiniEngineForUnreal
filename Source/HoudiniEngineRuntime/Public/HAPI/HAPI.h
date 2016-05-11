@@ -2419,6 +2419,23 @@ HAPI_DECL HAPI_SetPreset( const HAPI_Session * session,
 
 // OBJECTS ------------------------------------------------------------------
 
+/// @brief  Get the object info on an OBJ node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     object_info
+///                 The output ::HAPI_ObjectInfo.
+///
+HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
+                              HAPI_NodeId node_id,
+                              HAPI_ObjectInfo * object_info );
+
 /// @brief  Fill an array of ::HAPI_ObjectInfo structs with information
 ///         on each visible object in the scene that has a SOP network
 ///         (is not a sub-network).
