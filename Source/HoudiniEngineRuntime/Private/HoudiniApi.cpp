@@ -189,9 +189,6 @@ FHoudiniApi::GetCurveKnots = &FHoudiniApi::GetCurveKnotsEmptyStub;
 FHoudiniApi::GetCurveOrdersFuncPtr
 FHoudiniApi::GetCurveOrders = &FHoudiniApi::GetCurveOrdersEmptyStub;
 
-FHoudiniApi::GetEditableNodeNetworksFuncPtr
-FHoudiniApi::GetEditableNodeNetworks = &FHoudiniApi::GetEditableNodeNetworksEmptyStub;
-
 FHoudiniApi::GetEnvIntFuncPtr
 FHoudiniApi::GetEnvInt = &FHoudiniApi::GetEnvIntEmptyStub;
 
@@ -266,9 +263,6 @@ FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 
 FHoudiniApi::GetNodeInfoFuncPtr
 FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
-
-FHoudiniApi::GetNodeNetworkChildrenFuncPtr
-FHoudiniApi::GetNodeNetworkChildren = &FHoudiniApi::GetNodeNetworkChildrenEmptyStub;
 
 FHoudiniApi::GetObjectTransformsFuncPtr
 FHoudiniApi::GetObjectTransforms = &FHoudiniApi::GetObjectTransformsEmptyStub;
@@ -609,7 +603,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetCurveInfo = (GetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveInfo"));
 	FHoudiniApi::GetCurveKnots = (GetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveKnots"));
 	FHoudiniApi::GetCurveOrders = (GetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveOrders"));
-	FHoudiniApi::GetEditableNodeNetworks = (GetEditableNodeNetworksFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEditableNodeNetworks"));
 	FHoudiniApi::GetEnvInt = (GetEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEnvInt"));
 	FHoudiniApi::GetFaceCounts = (GetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCounts"));
 	FHoudiniApi::GetFirstVolumeTile = (GetFirstVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTile"));
@@ -635,7 +628,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNewAssetIds = (GetNewAssetIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNewAssetIds"));
 	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
-	FHoudiniApi::GetNodeNetworkChildren = (GetNodeNetworkChildrenFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeNetworkChildren"));
 	FHoudiniApi::GetObjectTransforms = (GetObjectTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransforms"));
 	FHoudiniApi::GetObjects = (GetObjectsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjects"));
 	FHoudiniApi::GetParameters = (GetParametersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParameters"));
@@ -791,7 +783,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetCurveInfo = &FHoudiniApi::GetCurveInfoEmptyStub;
 	FHoudiniApi::GetCurveKnots = &FHoudiniApi::GetCurveKnotsEmptyStub;
 	FHoudiniApi::GetCurveOrders = &FHoudiniApi::GetCurveOrdersEmptyStub;
-	FHoudiniApi::GetEditableNodeNetworks = &FHoudiniApi::GetEditableNodeNetworksEmptyStub;
 	FHoudiniApi::GetEnvInt = &FHoudiniApi::GetEnvIntEmptyStub;
 	FHoudiniApi::GetFaceCounts = &FHoudiniApi::GetFaceCountsEmptyStub;
 	FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
@@ -817,7 +808,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNewAssetIds = &FHoudiniApi::GetNewAssetIdsEmptyStub;
 	FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 	FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
-	FHoudiniApi::GetNodeNetworkChildren = &FHoudiniApi::GetNodeNetworkChildrenEmptyStub;
 	FHoudiniApi::GetObjectTransforms = &FHoudiniApi::GetObjectTransformsEmptyStub;
 	FHoudiniApi::GetObjects = &FHoudiniApi::GetObjectsEmptyStub;
 	FHoudiniApi::GetParameters = &FHoudiniApi::GetParametersEmptyStub;
@@ -1320,13 +1310,6 @@ FHoudiniApi::GetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId 
 
 
 HAPI_Result
-FHoudiniApi::GetEditableNodeNetworksEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
 FHoudiniApi::GetEnvIntEmptyStub(HAPI_EnvIntType int_type, int * value)
 {
 	return HAPI_RESULT_FAILURE;
@@ -1496,13 +1479,6 @@ FHoudiniApi::GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_Asset
 
 HAPI_Result
 FHoudiniApi::GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::GetNodeNetworkChildrenEmptyStub(const HAPI_Session * session, HAPI_NodeId network_node_id, HAPI_NodeId * child_node_ids_array, int count)
 {
 	return HAPI_RESULT_FAILURE;
 }

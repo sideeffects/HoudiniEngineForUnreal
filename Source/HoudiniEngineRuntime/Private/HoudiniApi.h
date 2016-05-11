@@ -85,7 +85,6 @@ public:
 	typedef HAPI_Result (*GetCurveInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info);
 	typedef HAPI_Result (*GetCurveKnotsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float * knots_array, int start, int length);
 	typedef HAPI_Result (*GetCurveOrdersFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length);
-	typedef HAPI_Result (*GetEditableNodeNetworksFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count);
 	typedef HAPI_Result (*GetEnvIntFuncPtr)(HAPI_EnvIntType int_type, int * value);
 	typedef HAPI_Result (*GetFaceCountsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts_array, int start, int length);
 	typedef HAPI_Result (*GetFirstVolumeTileFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
@@ -111,7 +110,6 @@ public:
 	typedef HAPI_Result (*GetNewAssetIdsFuncPtr)(const HAPI_Session * session, HAPI_AssetId * asset_ids_array, int new_asset_count);
 	typedef HAPI_Result (*GetNextVolumeTileFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	typedef HAPI_Result (*GetNodeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
-	typedef HAPI_Result (*GetNodeNetworkChildrenFuncPtr)(const HAPI_Session * session, HAPI_NodeId network_node_id, HAPI_NodeId * child_node_ids_array, int count);
 	typedef HAPI_Result (*GetObjectTransformsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	typedef HAPI_Result (*GetObjectsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos_array, int start, int length);
 	typedef HAPI_Result (*GetParametersFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
@@ -264,7 +262,6 @@ public:
 	static GetCurveInfoFuncPtr GetCurveInfo;
 	static GetCurveKnotsFuncPtr GetCurveKnots;
 	static GetCurveOrdersFuncPtr GetCurveOrders;
-	static GetEditableNodeNetworksFuncPtr GetEditableNodeNetworks;
 	static GetEnvIntFuncPtr GetEnvInt;
 	static GetFaceCountsFuncPtr GetFaceCounts;
 	static GetFirstVolumeTileFuncPtr GetFirstVolumeTile;
@@ -290,7 +287,6 @@ public:
 	static GetNewAssetIdsFuncPtr GetNewAssetIds;
 	static GetNextVolumeTileFuncPtr GetNextVolumeTile;
 	static GetNodeInfoFuncPtr GetNodeInfo;
-	static GetNodeNetworkChildrenFuncPtr GetNodeNetworkChildren;
 	static GetObjectTransformsFuncPtr GetObjectTransforms;
 	static GetObjectsFuncPtr GetObjects;
 	static GetParametersFuncPtr GetParameters;
@@ -443,7 +439,6 @@ public:
 	static HAPI_Result GetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info);
 	static HAPI_Result GetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float * knots_array, int start, int length);
 	static HAPI_Result GetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length);
-	static HAPI_Result GetEditableNodeNetworksEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_NodeId * node_networks_array, int count);
 	static HAPI_Result GetEnvIntEmptyStub(HAPI_EnvIntType int_type, int * value);
 	static HAPI_Result GetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts_array, int start, int length);
 	static HAPI_Result GetFirstVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
@@ -469,7 +464,6 @@ public:
 	static HAPI_Result GetNewAssetIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_ids_array, int new_asset_count);
 	static HAPI_Result GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	static HAPI_Result GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
-	static HAPI_Result GetNodeNetworkChildrenEmptyStub(const HAPI_Session * session, HAPI_NodeId network_node_id, HAPI_NodeId * child_node_ids_array, int count);
 	static HAPI_Result GetObjectTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	static HAPI_Result GetObjectsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos_array, int start, int length);
 	static HAPI_Result GetParametersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
