@@ -264,6 +264,9 @@ FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 FHoudiniApi::GetNodeInfoFuncPtr
 FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
 
+FHoudiniApi::GetObjectInfoFuncPtr
+FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
+
 FHoudiniApi::GetObjectTransformsFuncPtr
 FHoudiniApi::GetObjectTransforms = &FHoudiniApi::GetObjectTransformsEmptyStub;
 
@@ -628,6 +631,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNewAssetIds = (GetNewAssetIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNewAssetIds"));
 	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
+	FHoudiniApi::GetObjectInfo = (GetObjectInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectInfo"));
 	FHoudiniApi::GetObjectTransforms = (GetObjectTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransforms"));
 	FHoudiniApi::GetObjects = (GetObjectsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjects"));
 	FHoudiniApi::GetParameters = (GetParametersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParameters"));
@@ -808,6 +812,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNewAssetIds = &FHoudiniApi::GetNewAssetIdsEmptyStub;
 	FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 	FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
+	FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
 	FHoudiniApi::GetObjectTransforms = &FHoudiniApi::GetObjectTransformsEmptyStub;
 	FHoudiniApi::GetObjects = &FHoudiniApi::GetObjectsEmptyStub;
 	FHoudiniApi::GetParameters = &FHoudiniApi::GetParametersEmptyStub;
@@ -1479,6 +1484,13 @@ FHoudiniApi::GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_Asset
 
 HAPI_Result
 FHoudiniApi::GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetObjectInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ObjectInfo * object_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
