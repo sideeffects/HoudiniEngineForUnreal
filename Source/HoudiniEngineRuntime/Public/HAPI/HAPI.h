@@ -1491,55 +1491,6 @@ HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
                                          HAPI_NodeId * child_node_ids_array,
                                          int count );
 
-/// @brief  Get the node ids of the editable node networks exposed by the
-///         asset author.
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///
-/// @param[in]      asset_id
-///                 The asset id.
-///
-/// @param[out]     node_networks_array
-///                 The list of node networks' node ids. Should be an
-///                 array exactly the size of:
-///                 ::HAPI_AssetInfo::editableNodeNetworkCount.
-///
-/// @param[in]      count
-///                 Should be exactly
-///                 ::HAPI_AssetInfo::editableNodeNetworkCount.
-///
-HAPI_DECL HAPI_GetEditableNodeNetworks( const HAPI_Session * session,
-                                        HAPI_AssetId asset_id,
-                                        HAPI_NodeId * node_networks_array,
-                                        int count );
-
-/// @brief  Get the node ids of the children nodes of the specified
-///         parent node network.
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///
-/// @param[in]      network_node_id
-///                 The parent node network's node id.
-///
-/// @param[out]     child_node_ids_array
-///                 The list of child nodes' node ids. Should be an
-///                 array exactly the size of:
-///                 ::HAPI_NodeInfo::childNodeCount.
-///
-/// @param[in]      count
-///                 Should be exactly ::HAPI_NodeInfo::childNodeCount.
-///
-HAPI_DECL HAPI_GetNodeNetworkChildren( const HAPI_Session * session,
-                                       HAPI_NodeId network_node_id,
-                                       HAPI_NodeId * child_node_ids_array,
-                                       int count );
-
 /// @brief  Create a node inside a node network. Nodes created this way
 ///         will have their ::HAPI_NodeInfo::createdPostAssetLoad set
 ///         to true.

@@ -831,7 +831,6 @@ struct HAPI_API HAPI_AssetInfo
 
     int objectCount; ///< See @ref HAPI_ObjectsGeosParts_Objects.
     int handleCount; ///< See @ref HAPI_Handles.
-    int editableNodeNetworkCount; ///< @ref HAPI_Nodes_EditableNodeNetworks.
 
     /// Transform inputs exposed by the asset. For OBJ assets this is the
     /// number of transform inputs on the OBJ node. For SOP assets, this is
