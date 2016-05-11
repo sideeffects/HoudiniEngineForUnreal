@@ -1463,7 +1463,7 @@ HAPI_DECL HAPI_GetManagerNodeId( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_ComposeChildNodeList( const HAPI_Session * session,
                                      HAPI_NodeId parent_node_id,
-                                     HAPI_NodeType node_type_filter,
+                                     HAPI_NodeTypeBits node_type_filter,
                                      HAPI_NodeFlagsBits node_flags_filter,
                                      HAPI_Bool recursive,
                                      int * count );

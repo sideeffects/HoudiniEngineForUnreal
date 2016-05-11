@@ -375,24 +375,29 @@ HAPI_C_ENUM_TYPEDEF( HAPI_PresetType )
 
 enum HAPI_NodeType
 {
-    HAPI_NODETYPE_INVALID = -1,
-    HAPI_NODETYPE_OBJ = 0,
-    HAPI_NODETYPE_SOP,
-    HAPI_NODETYPE_POP,
-    HAPI_NODETYPE_CHOP,
-    HAPI_NODETYPE_ROP,
-    HAPI_NODETYPE_SHOP,
-    HAPI_NODETYPE_COP,
-    HAPI_NODETYPE_VOP,
-    HAPI_NODETYPE_DOP,
-    HAPI_NODETYPE_MAX
+    HAPI_NODETYPE_INVALID   = -1,
+    HAPI_NODETYPE_ALL       = 0,
+    HAPI_NODETYPE_OBJ       = 1 << 0,
+    HAPI_NODETYPE_SOP       = 1 << 1,
+    HAPI_NODETYPE_POP       = 1 << 2,
+    HAPI_NODETYPE_CHOP      = 1 << 3,
+    HAPI_NODETYPE_ROP       = 1 << 4,
+    HAPI_NODETYPE_SHOP      = 1 << 5,
+    HAPI_NODETYPE_COP       = 1 << 6,
+    HAPI_NODETYPE_VOP       = 1 << 7,
+    HAPI_NODETYPE_DOP       = 1 << 8
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeType )
+typedef int HAPI_NodeTypeBits;
 
+/// Flags used to filter compositions of node lists. Flags marked
+/// 'Recursive Flag' will exclude children whos parent does not
+/// satisfy the flag, even if the children themselves satisfy the flag.
 enum HAPI_NodeFlags
 {
-    HAPI_NODEFLAGS_DISPLAY      = 1 << 0,
-    HAPI_NODEFLAGS_RENDER       = 1 << 1,
+    HAPI_NODEFLAGS_ALL          = 0,
+    HAPI_NODEFLAGS_DISPLAY      = 1 << 0, ///< Recursive Flag
+    HAPI_NODEFLAGS_RENDER       = 1 << 1, ///< Recursive Flag
     HAPI_NODEFLAGS_TEMPLATED    = 1 << 2,
     HAPI_NODEFLAGS_LOCKED       = 1 << 3,
     HAPI_NODEFLAGS_EDITABLE     = 1 << 4,
