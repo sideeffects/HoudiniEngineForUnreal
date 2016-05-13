@@ -48,6 +48,9 @@ FHoudiniApi::ComposeChildNodeList = &FHoudiniApi::ComposeChildNodeListEmptyStub;
 FHoudiniApi::ComposeNodeCookResultFuncPtr
 FHoudiniApi::ComposeNodeCookResult = &FHoudiniApi::ComposeNodeCookResultEmptyStub;
 
+FHoudiniApi::ComposeObjectListFuncPtr
+FHoudiniApi::ComposeObjectList = &FHoudiniApi::ComposeObjectListEmptyStub;
+
 FHoudiniApi::ConnectAssetGeometryFuncPtr
 FHoudiniApi::ConnectAssetGeometry = &FHoudiniApi::ConnectAssetGeometryEmptyStub;
 
@@ -170,6 +173,9 @@ FHoudiniApi::GetComposedChildNodeList = &FHoudiniApi::GetComposedChildNodeListEm
 
 FHoudiniApi::GetComposedNodeCookResultFuncPtr
 FHoudiniApi::GetComposedNodeCookResult = &FHoudiniApi::GetComposedNodeCookResultEmptyStub;
+
+FHoudiniApi::GetComposedObjectListFuncPtr
+FHoudiniApi::GetComposedObjectList = &FHoudiniApi::GetComposedObjectListEmptyStub;
 
 FHoudiniApi::GetCookingCurrentCountFuncPtr
 FHoudiniApi::GetCookingCurrentCount = &FHoudiniApi::GetCookingCurrentCountEmptyStub;
@@ -559,6 +565,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CommitGeo = (CommitGeoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CommitGeo"));
 	FHoudiniApi::ComposeChildNodeList = (ComposeChildNodeListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeChildNodeList"));
 	FHoudiniApi::ComposeNodeCookResult = (ComposeNodeCookResultFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeNodeCookResult"));
+	FHoudiniApi::ComposeObjectList = (ComposeObjectListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeObjectList"));
 	FHoudiniApi::ConnectAssetGeometry = (ConnectAssetGeometryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConnectAssetGeometry"));
 	FHoudiniApi::ConnectAssetTransform = (ConnectAssetTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConnectAssetTransform"));
 	FHoudiniApi::ConnectNodeInput = (ConnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ConnectNodeInput"));
@@ -600,6 +607,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetCacheProperty = (GetCachePropertyFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCacheProperty"));
 	FHoudiniApi::GetComposedChildNodeList = (GetComposedChildNodeListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetComposedChildNodeList"));
 	FHoudiniApi::GetComposedNodeCookResult = (GetComposedNodeCookResultFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetComposedNodeCookResult"));
+	FHoudiniApi::GetComposedObjectList = (GetComposedObjectListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetComposedObjectList"));
 	FHoudiniApi::GetCookingCurrentCount = (GetCookingCurrentCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingCurrentCount"));
 	FHoudiniApi::GetCookingTotalCount = (GetCookingTotalCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingTotalCount"));
 	FHoudiniApi::GetCurveCounts = (GetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveCounts"));
@@ -740,6 +748,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CommitGeo = &FHoudiniApi::CommitGeoEmptyStub;
 	FHoudiniApi::ComposeChildNodeList = &FHoudiniApi::ComposeChildNodeListEmptyStub;
 	FHoudiniApi::ComposeNodeCookResult = &FHoudiniApi::ComposeNodeCookResultEmptyStub;
+	FHoudiniApi::ComposeObjectList = &FHoudiniApi::ComposeObjectListEmptyStub;
 	FHoudiniApi::ConnectAssetGeometry = &FHoudiniApi::ConnectAssetGeometryEmptyStub;
 	FHoudiniApi::ConnectAssetTransform = &FHoudiniApi::ConnectAssetTransformEmptyStub;
 	FHoudiniApi::ConnectNodeInput = &FHoudiniApi::ConnectNodeInputEmptyStub;
@@ -781,6 +790,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetCacheProperty = &FHoudiniApi::GetCachePropertyEmptyStub;
 	FHoudiniApi::GetComposedChildNodeList = &FHoudiniApi::GetComposedChildNodeListEmptyStub;
 	FHoudiniApi::GetComposedNodeCookResult = &FHoudiniApi::GetComposedNodeCookResultEmptyStub;
+	FHoudiniApi::GetComposedObjectList = &FHoudiniApi::GetComposedObjectListEmptyStub;
 	FHoudiniApi::GetCookingCurrentCount = &FHoudiniApi::GetCookingCurrentCountEmptyStub;
 	FHoudiniApi::GetCookingTotalCount = &FHoudiniApi::GetCookingTotalCountEmptyStub;
 	FHoudiniApi::GetCurveCounts = &FHoudiniApi::GetCurveCountsEmptyStub;
@@ -980,6 +990,13 @@ FHoudiniApi::ComposeChildNodeListEmptyStub(const HAPI_Session * session, HAPI_No
 
 HAPI_Result
 FHoudiniApi::ComposeNodeCookResultEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_StatusVerbosity verbosity, int * buffer_length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::ComposeObjectListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, int * object_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1267,6 +1284,13 @@ FHoudiniApi::GetComposedChildNodeListEmptyStub(const HAPI_Session * session, HAP
 
 HAPI_Result
 FHoudiniApi::GetComposedNodeCookResultEmptyStub(const HAPI_Session * session, char * string_value, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetComposedObjectListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_ObjectInfo * object_infos_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
