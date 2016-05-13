@@ -375,8 +375,8 @@ HAPI_C_ENUM_TYPEDEF( HAPI_PresetType )
 
 enum HAPI_NodeType
 {
-    HAPI_NODETYPE_INVALID   = -1,
-    HAPI_NODETYPE_ALL       = 0,
+    HAPI_NODETYPE_ANY       = -1,
+    HAPI_NODETYPE_NONE      = 0,
     HAPI_NODETYPE_OBJ       = 1 << 0,
     HAPI_NODETYPE_SOP       = 1 << 1,
     HAPI_NODETYPE_POP       = 1 << 2,
@@ -395,14 +395,21 @@ typedef int HAPI_NodeTypeBits;
 /// satisfy the flag, even if the children themselves satisfy the flag.
 enum HAPI_NodeFlags
 {
-    HAPI_NODEFLAGS_ALL          = 0,
+    HAPI_NODEFLAGS_ANY          = -1,
+    HAPI_NODEFLAGS_NONE         = 0,
     HAPI_NODEFLAGS_DISPLAY      = 1 << 0, ///< Recursive Flag
     HAPI_NODEFLAGS_RENDER       = 1 << 1, ///< Recursive Flag
     HAPI_NODEFLAGS_TEMPLATED    = 1 << 2,
     HAPI_NODEFLAGS_LOCKED       = 1 << 3,
     HAPI_NODEFLAGS_EDITABLE     = 1 << 4,
     HAPI_NODEFLAGS_BYPASS       = 1 << 5,
-    HAPI_NODEFLAGS_NETWORK      = 1 << 6
+    HAPI_NODEFLAGS_NETWORK      = 1 << 6,
+
+    /// OBJ Node Specific Flags
+    HAPI_NODEFLAGS_OBJ_GEOMETRY = 1 << 7,
+    HAPI_NODEFLAGS_OBJ_CAMERA   = 1 << 8,
+    HAPI_NODEFLAGS_OBJ_LIGHT    = 1 << 9,
+    HAPI_NODEFLAGS_OBJ_SUBNET   = 1 << 10
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
 typedef int HAPI_NodeFlagsBits;

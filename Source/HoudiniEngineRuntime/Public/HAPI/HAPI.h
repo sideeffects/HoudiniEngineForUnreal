@@ -2436,6 +2436,65 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
                               HAPI_NodeId node_id,
                               HAPI_ObjectInfo * object_info );
 
+/// @brief  Compose a list of child object nodes given a parent node id.
+///
+///         Use the @c object_count returned by this function to get the
+///         ::HAPI_ObjectInfo structs for each child object.
+///
+///         Note, this is equivalent to:
+///         @code
+///         ::HAPI_ComposeChildNodeList(
+///             session, parent_node_id,
+///             ::HAPI_NODETYPE_OBJ,
+///             ::HAPI_NODEFLAGS_OBJ_GEOMETRY,
+///             true, &object_count );
+///         @endcode
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The parent node id.
+///
+/// @param[out]     object_count
+///                 The number of object nodes currently under the parent.
+///
+HAPI_DECL HAPI_ComposeObjectList( const HAPI_Session * session,
+                                  HAPI_NodeId parent_node_id,
+                                  int * object_count );
+
+/// @brief  Fill an array of ::HAPI_ObjectInfo structs.
+///
+///         This is best used with ::HAPI_ComposeObjectList() with.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The parent node id.
+///
+/// @param[out]     object_infos_array
+///                 Array of ::HAPI_ObjectInfo at least the size of
+///                 @c length.
+///
+/// @param[in]      start
+///                 At least @c 0 and at most @c object_count returned by
+///                 ::HAPI_ComposeObjectList().
+///
+/// @param[in]      length
+///                 Given @c object_count returned by
+///                 ::HAPI_ComposeObjectList(), @c length should be at least
+///                 @c 0 and at most <tt>object_count - start</tt>.
+///
+HAPI_DECL HAPI_GetComposedObjectList( const HAPI_Session * session,
+                                      HAPI_NodeId parent_node_id,
+                                      HAPI_ObjectInfo * object_infos_array,
+                                      int start, int length );
+
 /// @brief  Fill an array of ::HAPI_ObjectInfo structs with information
 ///         on each visible object in the scene that has a SOP network
 ///         (is not a sub-network).
