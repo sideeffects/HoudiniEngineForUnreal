@@ -2687,6 +2687,27 @@ HAPI_DECL HAPI_GetGeoInfo( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     part_info
+///                 ::HAPI_PartInfo return value.
+///
+HAPI_DECL HAPI_GetPartInfoOnNode( const HAPI_Session * session,
+                                  HAPI_NodeId node_id,
+                                  HAPI_PartId part_id,
+                                  HAPI_PartInfo * part_info );
+
+/// @brief  Get a particular part info struct.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
 /// @param[in]      asset_id
 ///                 The asset id.
 ///
