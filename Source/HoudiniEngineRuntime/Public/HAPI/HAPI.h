@@ -2439,14 +2439,15 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
 /// @brief  Compose a list of child object nodes given a parent node id.
 ///
 ///         Use the @c object_count returned by this function to get the
-///         ::HAPI_ObjectInfo structs for each child object.
+///         ::HAPI_ObjectInfo structs for each child object using
+///         ::HAPI_GetComposedObjectList().
 ///
 ///         Note, this is equivalent to:
 ///         @code
-///         ::HAPI_ComposeChildNodeList(
+///         HAPI_ComposeChildNodeList(
 ///             session, parent_node_id,
-///             ::HAPI_NODETYPE_OBJ,
-///             ::HAPI_NODEFLAGS_OBJ_GEOMETRY,
+///             HAPI_NODETYPE_OBJ,
+///             HAPI_NODEFLAGS_OBJ_GEOMETRY,
 ///             true, &object_count );
 ///         @endcode
 ///
@@ -2460,6 +2461,8 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
 ///
 /// @param[out]     object_count
 ///                 The number of object nodes currently under the parent.
+///                 Use this count with a call to
+///                 ::HAPI_GetComposedObjectList() to get the object infos.
 ///
 HAPI_DECL HAPI_ComposeObjectList( const HAPI_Session * session,
                                   HAPI_NodeId parent_node_id,
@@ -2631,6 +2634,23 @@ HAPI_DECL HAPI_SetObjectTransform( const HAPI_Session * session,
                                    const HAPI_TransformEuler * transform );
 
 // GEOMETRY GETTERS ---------------------------------------------------------
+
+/// @brief  Get the geometry info struct (::HAPI_GeoInfo) on a SOP node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     geo_info
+///                 ::HAPI_GeoInfo return value.
+///
+HAPI_DECL HAPI_GetGeoInfoOnNode( const HAPI_Session * session,
+                                 HAPI_NodeId node_id,
+                                 HAPI_GeoInfo * geo_info );
 
 /// @brief  Get the main geometry info struct (::HAPI_GeoInfo). Note that
 ///         this function will reset all the geo_infos'
