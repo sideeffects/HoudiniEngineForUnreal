@@ -2436,6 +2436,28 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
                               HAPI_NodeId node_id,
                               HAPI_ObjectInfo * object_info );
 
+/// @brief  Get the tranform of an OBJ node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The object node id.
+///
+/// @param[in]      rst_order
+///                 The order of application of translation, rotation and
+///                 scale.
+///
+/// @param[out]     transform
+///                 The output ::HAPI_Transform transform.
+///
+HAPI_DECL HAPI_GetObjectTransform( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_RSTOrder rst_order,
+                                   HAPI_Transform * transform );
+
 /// @brief  Compose a list of child object nodes given a parent node id.
 ///
 ///         Use the @c object_count returned by this function to get the
@@ -2497,6 +2519,48 @@ HAPI_DECL HAPI_GetComposedObjectList( const HAPI_Session * session,
                                       HAPI_NodeId parent_node_id,
                                       HAPI_ObjectInfo * object_infos_array,
                                       int start, int length );
+
+/// @brief  Fill an array of ::HAPI_Transform structs.
+///
+///         This is best used with ::HAPI_ComposeObjectList() with.
+///
+///         Note that these transforms will be relative to the
+///         @c parent_node_id originally given to ::HAPI_ComposeObjectList()
+///         and expected to be the same with this call. If @parent_node_id
+///         is not an OBJ node, the transforms will be given as they are on
+///         the object node itself.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      parent_node_id
+///                 The parent node id. The object transforms will be
+///                 relative to this node unless this node is not an OBJ.
+///
+/// @param[in]      rst_order
+///                 The order of application of translation, rotation and
+///                 scale.
+///
+/// @param[out]     transforms_array
+///                 Array of ::HAPI_Transform at least the size of
+///                 length.
+///
+/// @param[in]      start
+///                 At least @c 0 and at most @c object_count returned by
+///                 ::HAPI_ComposeObjectList().
+///
+/// @param[in]      length
+///                 Given @c object_count returned by
+///                 ::HAPI_ComposeObjectList(), @c length should be at least
+///                 @c 0 and at most <tt>object_count - start</tt>.
+///
+HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
+                                            HAPI_NodeId parent_node_id,
+                                            HAPI_RSTOrder rst_order,
+                                            HAPI_Transform * transform_array,
+                                            int start, int length );
 
 /// @brief  Fill an array of ::HAPI_ObjectInfo structs with information
 ///         on each visible object in the scene that has a SOP network
@@ -2606,6 +2670,25 @@ HAPI_DECL HAPI_GetInstanceTransforms( const HAPI_Session * session,
                                       HAPI_RSTOrder rst_order,
                                       HAPI_Transform * transforms_array,
                                       int start, int length );
+
+/// @brief  Set the transform of an individual object. Note that the object
+///         nodes have to either be editable or have their transform
+///         parameters exposed at the asset level. This won't work otherwise.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The object node id.
+///
+/// @param[in]      transform
+///                 A ::HAPI_TransformEuler that stores the transform.
+///
+HAPI_DECL HAPI_SetObjectTransformOnNode( const HAPI_Session * session,
+                                         HAPI_NodeId node_id,
+                                         const HAPI_TransformEuler * trans );
 
 /// @brief  Set the transform of an individual object. This is mostly used
 ///         with marshaled geometry objects. Trying to modify the
