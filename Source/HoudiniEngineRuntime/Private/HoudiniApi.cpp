@@ -318,6 +318,9 @@ FHoudiniApi::GetParmStringValues = &FHoudiniApi::GetParmStringValuesEmptyStub;
 FHoudiniApi::GetPartInfoFuncPtr
 FHoudiniApi::GetPartInfo = &FHoudiniApi::GetPartInfoEmptyStub;
 
+FHoudiniApi::GetPartInfoOnNodeFuncPtr
+FHoudiniApi::GetPartInfoOnNode = &FHoudiniApi::GetPartInfoOnNodeEmptyStub;
+
 FHoudiniApi::GetPresetFuncPtr
 FHoudiniApi::GetPreset = &FHoudiniApi::GetPresetEmptyStub;
 
@@ -658,6 +661,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetParmStringValue = (GetParmStringValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValue"));
 	FHoudiniApi::GetParmStringValues = (GetParmStringValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValues"));
 	FHoudiniApi::GetPartInfo = (GetPartInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPartInfo"));
+	FHoudiniApi::GetPartInfoOnNode = (GetPartInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPartInfoOnNode"));
 	FHoudiniApi::GetPreset = (GetPresetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPreset"));
 	FHoudiniApi::GetPresetBufLength = (GetPresetBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPresetBufLength"));
 	FHoudiniApi::GetServerEnvInt = (GetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvInt"));
@@ -842,6 +846,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetParmStringValue = &FHoudiniApi::GetParmStringValueEmptyStub;
 	FHoudiniApi::GetParmStringValues = &FHoudiniApi::GetParmStringValuesEmptyStub;
 	FHoudiniApi::GetPartInfo = &FHoudiniApi::GetPartInfoEmptyStub;
+	FHoudiniApi::GetPartInfoOnNode = &FHoudiniApi::GetPartInfoOnNodeEmptyStub;
 	FHoudiniApi::GetPreset = &FHoudiniApi::GetPresetEmptyStub;
 	FHoudiniApi::GetPresetBufLength = &FHoudiniApi::GetPresetBufLengthEmptyStub;
 	FHoudiniApi::GetServerEnvInt = &FHoudiniApi::GetServerEnvIntEmptyStub;
@@ -1625,6 +1630,13 @@ FHoudiniApi::GetParmStringValuesEmptyStub(const HAPI_Session * session, HAPI_Nod
 
 HAPI_Result
 FHoudiniApi::GetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetPartInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartInfo * part_info)
 {
 	return HAPI_RESULT_FAILURE;
 }

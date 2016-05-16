@@ -128,6 +128,7 @@ public:
 	typedef HAPI_Result (*GetParmStringValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool evaluate, HAPI_StringHandle * value);
 	typedef HAPI_Result (*GetParmStringValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values_array, int start, int length);
 	typedef HAPI_Result (*GetPartInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
+	typedef HAPI_Result (*GetPartInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
 	typedef HAPI_Result (*GetPresetFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length);
 	typedef HAPI_Result (*GetPresetBufLengthFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
 	typedef HAPI_Result (*GetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int * value);
@@ -309,6 +310,7 @@ public:
 	static GetParmStringValueFuncPtr GetParmStringValue;
 	static GetParmStringValuesFuncPtr GetParmStringValues;
 	static GetPartInfoFuncPtr GetPartInfo;
+	static GetPartInfoOnNodeFuncPtr GetPartInfoOnNode;
 	static GetPresetFuncPtr GetPreset;
 	static GetPresetBufLengthFuncPtr GetPresetBufLength;
 	static GetServerEnvIntFuncPtr GetServerEnvInt;
@@ -490,6 +492,7 @@ public:
 	static HAPI_Result GetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool evaluate, HAPI_StringHandle * value);
 	static HAPI_Result GetParmStringValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values_array, int start, int length);
 	static HAPI_Result GetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
+	static HAPI_Result GetPartInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
 	static HAPI_Result GetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length);
 	static HAPI_Result GetPresetBufLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
 	static HAPI_Result GetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int * value);
