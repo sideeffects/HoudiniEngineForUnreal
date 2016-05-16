@@ -207,6 +207,9 @@ FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
 FHoudiniApi::GetGeoInfoFuncPtr
 FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
 
+FHoudiniApi::GetGeoInfoOnNodeFuncPtr
+FHoudiniApi::GetGeoInfoOnNode = &FHoudiniApi::GetGeoInfoOnNodeEmptyStub;
+
 FHoudiniApi::GetGeoSizeFuncPtr
 FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
 
@@ -618,6 +621,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetFaceCounts = (GetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCounts"));
 	FHoudiniApi::GetFirstVolumeTile = (GetFirstVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTile"));
 	FHoudiniApi::GetGeoInfo = (GetGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfo"));
+	FHoudiniApi::GetGeoInfoOnNode = (GetGeoInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfoOnNode"));
 	FHoudiniApi::GetGeoSize = (GetGeoSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSize"));
 	FHoudiniApi::GetGroupMembership = (GetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembership"));
 	FHoudiniApi::GetGroupNames = (GetGroupNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNames"));
@@ -801,6 +805,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetFaceCounts = &FHoudiniApi::GetFaceCountsEmptyStub;
 	FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
 	FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
+	FHoudiniApi::GetGeoInfoOnNode = &FHoudiniApi::GetGeoInfoOnNodeEmptyStub;
 	FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
 	FHoudiniApi::GetGroupMembership = &FHoudiniApi::GetGroupMembershipEmptyStub;
 	FHoudiniApi::GetGroupNames = &FHoudiniApi::GetGroupNamesEmptyStub;
@@ -1361,6 +1366,13 @@ FHoudiniApi::GetFirstVolumeTileEmptyStub(const HAPI_Session * session, HAPI_Asse
 
 HAPI_Result
 FHoudiniApi::GetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetGeoInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GeoInfo * geo_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
