@@ -2784,6 +2784,539 @@ HAPI_DECL HAPI_GetPartInfoOnNode( const HAPI_Session * session,
                                   HAPI_PartId part_id,
                                   HAPI_PartInfo * part_info );
 
+/// @brief  Get the array of faces where the nth integer in the array is
+///         the number of vertices the nth face has.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     face_counts_array
+///                 An integer array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_PartInfo::faceCount - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_PartInfo::faceCount - @p start.
+///
+HAPI_DECL HAPI_GetFaceCountsOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    int * face_counts_array,
+                                    int start, int length );
+
+/// @brief  Get array containing the vertex-point associations where the
+///         ith element in the array is the point index the ith vertex
+///         associates with.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     vertex_list_array
+///                 An integer array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_PartInfo::vertexCount - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_PartInfo::vertexCount - @p start.
+///
+HAPI_DECL HAPI_GetVertexListOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    int * vertex_list_array,
+                                    int start, int length );
+
+/// @brief  Get the main geometry info struct (::HAPI_GeoInfo).
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      owner
+///                 Attribute owner.
+///
+/// @param[out]     attr_info
+///                 ::HAPI_AttributeInfo to be filled. Check
+///                 ::HAPI_AttributeInfo::exists to see if this attribute
+///                 exists.
+///
+HAPI_DECL HAPI_GetAttributeInfoOnNode( const HAPI_Session * session,
+                                       HAPI_NodeId node_id,
+                                       HAPI_PartId part_id,
+                                       const char * name,
+                                       HAPI_AttributeOwner owner,
+                                       HAPI_AttributeInfo * attr_info );
+
+/// @brief  Get list of attribute names by attribute owner. Note that the
+///         name string handles are only valid until the next time this
+///         function is called.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      owner
+///                 The ::HAPI_AttributeOwner enum value specifying the
+///                 owner of the attribute.
+///
+/// @param[out]     attribute_names_array
+///                 Array of ints (string handles) to house the
+///                 attribute names. Should be exactly the size of the
+///                 appropriate attribute owner type count
+///                 in ::HAPI_PartInfo.
+///
+/// @param[in]      count
+///                 Sanity check count. Must be equal to the appropriate
+///                 attribute owner type count in ::HAPI_PartInfo.
+///
+HAPI_DECL HAPI_GetAttributeNamesOnNode(
+                                    const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    HAPI_AttributeOwner owner,
+                                    HAPI_StringHandle * attribute_names_array,
+                                    int count );
+
+/// @brief  Get attribute integer data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An integer array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///
+HAPI_DECL HAPI_GetAttributeIntDataOnNode( const HAPI_Session * session,
+                                          HAPI_NodeId node_id,
+                                          HAPI_PartId part_id,
+                                          const char * name,
+                                          HAPI_AttributeInfo * attr_info,
+                                          int stride,
+                                          int * data_array,
+                                          int start, int length );
+
+/// @brief  Get attribute 64-bit integer data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An 64-bit integer array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///
+HAPI_DECL HAPI_GetAttributeInt64DataOnNode( const HAPI_Session * session,
+                                            HAPI_NodeId node_id,
+                                            HAPI_PartId part_id,
+                                            const char * name,
+                                            HAPI_AttributeInfo * attr_info,
+                                            int stride,
+                                            HAPI_Int64 * data_array,
+                                            int start, int length );
+
+/// @brief  Get attribute float data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An float array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///
+HAPI_DECL HAPI_GetAttributeFloatDataOnNode( const HAPI_Session * session,
+                                            HAPI_NodeId node_id,
+                                            HAPI_PartId part_id,
+                                            const char * name,
+                                            HAPI_AttributeInfo * attr_info,
+                                            int stride,
+                                            float * data_array,
+                                            int start, int length );
+
+/// @brief  Get 64-bit attribute float data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[in]      stride
+///                 Specifies how many items to skip over for each element.
+///                 With a stride of -1, the stride will be set to
+///                 @c attr_info->tuple_size. Otherwise, the stride will be
+///                 set to the maximum of @c attr_info->tuple_size and
+///                 @c stride.
+///
+/// @param[out]     data_array
+///                 An 64-bit float array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///
+HAPI_DECL HAPI_GetAttributeFloat64DataOnNode( const HAPI_Session * session,
+                                              HAPI_NodeId node_id,
+                                              HAPI_PartId part_id,
+                                              const char * name,
+                                              HAPI_AttributeInfo * attr_info,
+                                              int stride,
+                                              double * data_array,
+                                              int start, int length );
+
+/// @brief  Get attribute string data. Note that the string handles
+///         returned are only valid until the next time this function
+///         is called.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_array
+///                 A ::HAPI_StringHandle array at least the
+///                 size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///                 Note, if 0 is passed for length, the function will just
+///                 do nothing and return ::HAPI_RESULT_SUCCESS.
+///
+HAPI_DECL HAPI_GetAttributeStringDataOnNode( const HAPI_Session * session,
+                                             HAPI_NodeId node_id,
+                                             HAPI_PartId part_id,
+                                             const char * name,
+                                             HAPI_AttributeInfo * attr_info,
+                                             HAPI_StringHandle * data_array,
+                                             int start, int length );
+
+/// @brief  Get group names for an entire geo. Please note that this
+///         function is NOT per-part, but it is per-geo. The companion
+///         function ::HAPI_GetGroupMembership() IS per-part. Also keep
+///         in mind that the name string handles are only
+///         valid until the next time this function is called.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      group_type
+///                 The group type.
+///
+/// @param[out]     group_names_array
+///                 The array of names to be filled. Should be the size
+///                 given by ::HAPI_GeoInfo_GetGroupCountByType() with
+///                 @p group_type and the ::HAPI_GeoInfo of @p geo_id.
+///                 @note These string handles are only valid until the
+///                 next call to ::HAPI_GetGroupNames().
+///
+/// @param[in]      group_count
+///                 Sanity check. Should be less than or equal to the size
+///                 of @p group_names.
+///
+HAPI_DECL HAPI_GetGroupNamesOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_GroupType group_type,
+                                    HAPI_StringHandle * group_names_array,
+                                    int group_count );
+
+/// @brief  Get group membership.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      group_type
+///                 The group type.
+///
+/// @param[in]      group_name
+///                 The group name.
+///
+/// @param[out]     membership_array_all_equal
+///                 (optional) Quick way to determine if all items are in
+///                 the given group or all items our not in the group.
+///                 You can just pass NULL here if not interested.
+///
+/// @param[out]     membership_array
+///                 Array of ints that represent the membership of this
+///                 group. Should be the size given by
+///                 ::HAPI_PartInfo_GetElementCountByGroupType() with
+///                 @p group_type and the ::HAPI_PartInfo of @p part_id.
+///
+/// @param[in]      start
+///                 Start offset into the membership array. Must be
+///                 less than ::HAPI_PartInfo_GetElementCountByGroupType().
+///
+/// @param[in]      length
+///                 Should be less than or equal to the size
+///                 of @p membership.
+///
+HAPI_DECL HAPI_GetGroupMembershipOnNode(
+                                    const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    HAPI_GroupType group_type,
+                                    const char * group_name,
+                                    HAPI_Bool * membership_array_all_equal,
+                                    int * membership_array,
+                                    int start, int length );
+
+/// @brief  Get the part ids that this instancer part is instancing.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The instancer part id.
+///
+/// @param[out]     instanced_parts_array
+///                 Array of ::HAPI_PartId's to instance.
+///
+/// @param[in]      start
+///                 Should be less than @p part_id's 
+///                 ::HAPI_PartInfo::instancedPartCount but more than or
+///                 equal to 0.
+///
+/// @param[in]      length
+///                 Should be less than @p part_id's 
+///                 ::HAPI_PartInfo::instancedPartCount - @p start.
+///
+HAPI_DECL HAPI_GetInstancedPartIdsOnNode( const HAPI_Session * session,
+                                          HAPI_NodeId node_id,
+                                          HAPI_PartId part_id, 
+                                          HAPI_PartId * instanced_parts_array,
+                                          int start, int length );
+
+/// @brief  Get the instancer part's list of transforms on which to
+///         instance the instanced parts you got from 
+///         ::HAPI_GetInstancedPartIds().
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The instancer part id.
+///
+/// @param[in]      rst_order
+///                 The order of application of translation, rotation and
+///                 scale.
+///
+/// @param[out]     transforms_array
+///                 Array of ::HAPI_PartId's to instance.
+///
+/// @param[in]      start
+///                 Should be less than @p part_id's 
+///                 ::HAPI_PartInfo::instanceCount but more than or
+///                 equal to 0.
+///
+/// @param[in]      length
+///                 Should be less than @p part_id's 
+///                 ::HAPI_PartInfo::instanceCount - @p start.
+///
+HAPI_DECL HAPI_GetInstancerPartTransformsOnNode(
+                                           const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           HAPI_PartId part_id,
+                                           HAPI_RSTOrder rst_order,
+                                           HAPI_Transform * transforms_array,
+                                           int start, int length );
+
 /// @brief  Get a particular part info struct.
 ///
 /// @param[in]      session
