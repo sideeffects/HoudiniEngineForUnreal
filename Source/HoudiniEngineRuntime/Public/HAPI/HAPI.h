@@ -1448,13 +1448,13 @@ HAPI_DECL HAPI_GetManagerNodeId( const HAPI_Session * session,
 /// @param[in]      parent_node_id
 ///                 The node id of the parent node.
 ///
-/// @param[int]     node_type_filter
+/// @param[in]      node_type_filter
 ///                 The node type by which to filter the children.
 ///
-/// @param[int]     node_flags_filter
+/// @param[in]      node_flags_filter
 ///                 The node flags by which to filter the children.
 ///
-/// @param[int]     recursive
+/// @param[in]      recursive
 ///                 Whether or not to compose the list recursively.
 ///
 /// @param[out]     count
@@ -1558,6 +1558,36 @@ HAPI_DECL HAPI_CreateNode( const HAPI_Session * session,
                            const char * node_label,
                            HAPI_Bool cook_on_creation,
                            HAPI_NodeId * new_node_id );
+
+/// @brief  Creates a simple geometry SOP node that can accept geometry input.
+///         This will create a dummy OBJ node with a Null SOP inside that
+///         you can set the geometry of using the geometry SET APIs.
+///         You can then connect this node to any other node as a geometry
+///         input.
+///
+///         Note that when saving the Houdini scene using
+///         ::HAPI_SaveHIPFile() the nodes created with this
+///         method will be green and will start with the name "input".
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[out]     node_id
+///                 Newly created node's id. Use ::HAPI_GetNodeInfo()
+///                 to get more information about the node.
+///
+/// @param[in]      name
+///                 Give this input node a name for easy debugging.
+///                 The node's parent OBJ node and the Null SOP node will both
+///                 get this given name with "input_" prepended.
+///                 You can also pass NULL in which case the name will
+///                 be "input#" where # is some number.
+///
+HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
+                                HAPI_NodeId * node_id,
+                                const char * name );
 
 /// @brief  Initiate a cook on this node. Note that this may trigger
 ///         cooks on other nodes if they are connected.
@@ -2526,7 +2556,7 @@ HAPI_DECL HAPI_GetComposedObjectList( const HAPI_Session * session,
 ///
 ///         Note that these transforms will be relative to the
 ///         @c parent_node_id originally given to ::HAPI_ComposeObjectList()
-///         and expected to be the same with this call. If @parent_node_id
+///         and expected to be the same with this call. If @c parent_node_id
 ///         is not an OBJ node, the transforms will be given as they are on
 ///         the object node itself.
 ///
@@ -2543,7 +2573,7 @@ HAPI_DECL HAPI_GetComposedObjectList( const HAPI_Session * session,
 ///                 The order of application of translation, rotation and
 ///                 scale.
 ///
-/// @param[out]     transforms_array
+/// @param[out]     transform_array
 ///                 Array of ::HAPI_Transform at least the size of
 ///                 length.
 ///
@@ -2683,7 +2713,7 @@ HAPI_DECL HAPI_GetInstanceTransforms( const HAPI_Session * session,
 /// @param[in]      node_id
 ///                 The object node id.
 ///
-/// @param[in]      transform
+/// @param[in]      trans
 ///                 A ::HAPI_TransformEuler that stores the transform.
 ///
 HAPI_DECL HAPI_SetObjectTransformOnNode( const HAPI_Session * session,
@@ -2945,7 +2975,8 @@ HAPI_DECL HAPI_GetAttributeNamesOnNode(
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An integer array at least the size of length.
+///                 An integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -2996,7 +3027,8 @@ HAPI_DECL HAPI_GetAttributeIntDataOnNode( const HAPI_Session * session,
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An 64-bit integer array at least the size of length.
+///                 An 64-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3047,7 +3079,8 @@ HAPI_DECL HAPI_GetAttributeInt64DataOnNode( const HAPI_Session * session,
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An float array at least the size of length.
+///                 An float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3098,7 +3131,8 @@ HAPI_DECL HAPI_GetAttributeFloatDataOnNode( const HAPI_Session * session,
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An 64-bit float array at least the size of length.
+///                 An 64-bit float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3144,8 +3178,8 @@ HAPI_DECL HAPI_GetAttributeFloat64DataOnNode( const HAPI_Session * session,
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[out]     data_array
-///                 A ::HAPI_StringHandle array at least the
-///                 size of length.
+///                 An ::HAPI_StringHandle array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3542,7 +3576,8 @@ HAPI_DECL HAPI_GetAttributeNames( const HAPI_Session * session,
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An integer array at least the size of length.
+///                 An integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3601,7 +3636,8 @@ HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An 64-bit integer array at least the size of length.
+///                 An 64-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3660,7 +3696,8 @@ HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An float array at least the size of length.
+///                 An float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3719,7 +3756,8 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
 ///                 @c stride.
 ///
 /// @param[out]     data_array
-///                 An 64-bit float array at least the size of length.
+///                 An 64-bit float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -3773,8 +3811,8 @@ HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
 /// @param[out]     data_array
-///                 A ::HAPI_StringHandle array at least the
-///                 size of length.
+///                 An ::HAPI_StringHandle array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -4157,8 +4195,9 @@ HAPI_DECL HAPI_AddAttribute( const HAPI_Session * session,
 ///                 data type. Generally should be the same struct
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
-/// @param[in]      data_array
-///                 An integer array at least the size of length.
+/// @param[out]     data_array
+///                 An integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -4202,8 +4241,9 @@ HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
 ///                 data type. Generally should be the same struct
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
-/// @param[in]      data_array
-///                 An 64-bit integer array at least the size of length.
+/// @param[out]     data_array
+///                 An 64-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -4247,8 +4287,9 @@ HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
 ///                 data type. Generally should be the same struct
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
-/// @param[in]      data_array
-///                 An float array at least the size of length.
+/// @param[out]     data_array
+///                 An float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -4292,8 +4333,9 @@ HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
 ///                 data type. Generally should be the same struct
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
-/// @param[in]      data_array
-///                 An 64-bit float array at least the size of length.
+/// @param[out]     data_array
+///                 An 64-bit float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
@@ -4337,8 +4379,9 @@ HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
 ///                 data type. Generally should be the same struct
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
-/// @param[in]      data_array
-///                 A strings array at least the size of length.
+/// @param[out]     data_array
+///                 An ::HAPI_StringHandle array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
