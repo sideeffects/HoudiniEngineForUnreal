@@ -93,6 +93,9 @@ FHoudiniApi::CreateInProcessSession = &FHoudiniApi::CreateInProcessSessionEmptyS
 FHoudiniApi::CreateInputAssetFuncPtr
 FHoudiniApi::CreateInputAsset = &FHoudiniApi::CreateInputAssetEmptyStub;
 
+FHoudiniApi::CreateInputNodeFuncPtr
+FHoudiniApi::CreateInputNode = &FHoudiniApi::CreateInputNodeEmptyStub;
+
 FHoudiniApi::CreateNodeFuncPtr
 FHoudiniApi::CreateNode = &FHoudiniApi::CreateNodeEmptyStub;
 
@@ -634,6 +637,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
 	FHoudiniApi::CreateInProcessSession = (CreateInProcessSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInProcessSession"));
 	FHoudiniApi::CreateInputAsset = (CreateInputAssetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInputAsset"));
+	FHoudiniApi::CreateInputNode = (CreateInputNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateInputNode"));
 	FHoudiniApi::CreateNode = (CreateNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateNode"));
 	FHoudiniApi::CreateThriftNamedPipeSession = (CreateThriftNamedPipeSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftNamedPipeSession"));
 	FHoudiniApi::CreateThriftSocketSession = (CreateThriftSocketSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftSocketSession"));
@@ -835,6 +839,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 	FHoudiniApi::CreateInProcessSession = &FHoudiniApi::CreateInProcessSessionEmptyStub;
 	FHoudiniApi::CreateInputAsset = &FHoudiniApi::CreateInputAssetEmptyStub;
+	FHoudiniApi::CreateInputNode = &FHoudiniApi::CreateInputNodeEmptyStub;
 	FHoudiniApi::CreateNode = &FHoudiniApi::CreateNodeEmptyStub;
 	FHoudiniApi::CreateThriftNamedPipeSession = &FHoudiniApi::CreateThriftNamedPipeSessionEmptyStub;
 	FHoudiniApi::CreateThriftSocketSession = &FHoudiniApi::CreateThriftSocketSessionEmptyStub;
@@ -1185,6 +1190,13 @@ FHoudiniApi::CreateInProcessSessionEmptyStub(HAPI_Session * session)
 
 HAPI_Result
 FHoudiniApi::CreateInputAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_id, const char * name)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::CreateInputNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId * node_id, const char * name)
 {
 	return HAPI_RESULT_FAILURE;
 }
