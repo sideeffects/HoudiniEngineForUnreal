@@ -4023,6 +4023,426 @@ HAPI_DECL HAPI_GetInstancerPartTransforms( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      part_info
+///                 ::HAPI_PartInfo value that describes the input
+///                 geometry.
+///
+HAPI_DECL HAPI_SetPartInfoOnNode( const HAPI_Session * session,
+                                  HAPI_NodeId node_id,
+                                  HAPI_PartId part_id,
+                                  const HAPI_PartInfo * part_info );
+
+/// @brief  Set the array of faces where the nth integer in the array is
+///         the number of vertices the nth face has.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      face_counts_array
+///                 An integer array at least the size of @p length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_PartInfo::faceCount - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_PartInfo::faceCount - @p start.
+///
+HAPI_DECL HAPI_SetFaceCountsOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    const int * face_counts_array,
+                                    int start, int length );
+
+/// @brief  Set array containing the vertex-point associations where the
+///         ith element in the array is the point index the ith vertex
+///         associates with.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      vertex_list_array
+///                 An integer array at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_PartInfo::vertexCount - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_PartInfo::vertexCount - @p start.
+///
+HAPI_DECL HAPI_SetVertexListOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    const int * vertex_list_array,
+                                    int start, int length );
+
+/// @brief  Add an attribute.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo stores attribute properties.
+///
+HAPI_DECL HAPI_AddAttributeOnNode( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_PartId part_id,
+                                   const char * name,
+                                   const HAPI_AttributeInfo * attr_info );
+
+/// @brief  Set attribute integer data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_array
+///                 An integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///
+HAPI_DECL HAPI_SetAttributeIntDataOnNode( const HAPI_Session * session,
+                                          HAPI_NodeId node_id,
+                                          HAPI_PartId part_id,
+                                          const char * name,
+                                          const HAPI_AttributeInfo * attr_info,
+                                          const int * data_array,
+                                          int start, int length );
+
+/// @brief  Set 64-bit attribute integer data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_array
+///                 An 64-bit integer array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///
+HAPI_DECL HAPI_SetAttributeInt64DataOnNode(
+                                        const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_PartId part_id,
+                                        const char * name,
+                                        const HAPI_AttributeInfo * attr_info,
+                                        const HAPI_Int64 * data_array,
+                                        int start, int length );
+
+/// @brief  Set attribute float data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_array
+///                 An float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///
+HAPI_DECL HAPI_SetAttributeFloatDataOnNode(
+                                        const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_PartId part_id,
+                                        const char * name,
+                                        const HAPI_AttributeInfo * attr_info,
+                                        const float * data_array,
+                                        int start, int length );
+
+/// @brief  Set 64-bit attribute float data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_array
+///                 An 64-bit float array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///
+HAPI_DECL HAPI_SetAttributeFloat64DataOnNode(
+                                        const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_PartId part_id,
+                                        const char * name,
+                                        const HAPI_AttributeInfo * attr_info,
+                                        const double * data_array,
+                                        int start, int length );
+
+/// @brief  Set attribute string data.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      name
+///                 Attribute name.
+///
+/// @param[in]      attr_info
+///                 ::HAPI_AttributeInfo used as input for what tuple size.
+///                 you want. Also contains some sanity checks like
+///                 data type. Generally should be the same struct
+///                 returned by ::HAPI_GetAttributeInfo().
+///
+/// @param[out]     data_array
+///                 An ::HAPI_StringHandle array at least the size of
+///                 <tt>length * ::HAPI_AttributeInfo::tupleSize</tt>.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AttributeInfo::count - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_AttributeInfo::count - @p start.
+///
+HAPI_DECL HAPI_SetAttributeStringDataOnNode(
+                                       const HAPI_Session * session,
+                                       HAPI_NodeId node_id,
+                                       HAPI_PartId part_id,
+                                       const char * name,
+                                       const HAPI_AttributeInfo *attr_info,
+                                       const char ** data_array,
+                                       int start, int length );
+
+/// @brief  Add a group to the input geo with the given type and name.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      group_type
+///                 The group type.
+///
+/// @param[in]      group_name
+///                 Name of new group to be added.
+///
+HAPI_DECL HAPI_AddGroupOnNode( const HAPI_Session * session,
+                               HAPI_NodeId node_id,
+                               HAPI_PartId part_id,
+                               HAPI_GroupType group_type,
+                               const char * group_name );
+
+/// @brief  Set group membership.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+/// @param[in]      part_id
+///                 Currently not used. Just pass 0.
+///
+/// @param[in]      group_type
+///                 The group type.
+///
+/// @param[in]      group_name
+///                 The group name.
+///
+/// @param[in]      membership_array
+///                 Array of ints that represent the membership of this
+///                 group. Should be the size given by
+///                 ::HAPI_PartInfo_GetElementCountByGroupType() with
+///                 @p group_type and the ::HAPI_PartInfo of @p part_id.
+///
+/// @param[in]      start
+///                 Start offset into the membership array. Must be
+///                 less than ::HAPI_PartInfo_GetElementCountByGroupType().
+///
+/// @param[in]      length
+///                 Should be less than or equal to the size
+///                 of @p membership.
+///
+HAPI_DECL HAPI_SetGroupMembershipOnNode( const HAPI_Session * session,
+                                         HAPI_NodeId node_id,
+                                         HAPI_PartId part_id,
+                                         HAPI_GroupType group_type,
+                                         const char * group_name,
+                                         const int * membership_array,
+                                         int start, int length );
+
+/// @brief  Commit the current input geometry to the cook engine. Nodes
+///         that use this geometry node will re-cook using the input
+///         geometry given through the geometry setter API calls.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+HAPI_DECL HAPI_CommitGeoOnNode( const HAPI_Session * session,
+                                HAPI_NodeId node_id );
+
+/// @brief  Remove all changes that have been committed to this
+///         geometry.  Only applies to geometry nodes that are
+///         exposed edit nodes.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The SOP node id.
+///
+HAPI_DECL HAPI_RevertGeoOnNode( const HAPI_Session * session,
+                                HAPI_NodeId node_id );
+
+/// @brief  Set the main part info struct (::HAPI_PartInfo).
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
 /// @param[in]      asset_id
 ///                 The asset id.
 ///
