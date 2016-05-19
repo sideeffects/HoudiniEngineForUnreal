@@ -201,7 +201,6 @@ public:
 	typedef HAPI_Result (*SetCurveKnotsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const float * knots_array, int start, int length);
 	typedef HAPI_Result (*SetCurveOrdersFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * orders_array, int start, int length);
 	typedef HAPI_Result (*SetFaceCountsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * face_counts_array, int start, int length);
-	typedef HAPI_Result (*SetGeoInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info);
 	typedef HAPI_Result (*SetGroupMembershipFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	typedef HAPI_Result (*SetImageInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const HAPI_ImageInfo * image_info);
 	typedef HAPI_Result (*SetObjectTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, const HAPI_TransformEuler * transform);
@@ -400,7 +399,6 @@ public:
 	static SetCurveKnotsFuncPtr SetCurveKnots;
 	static SetCurveOrdersFuncPtr SetCurveOrders;
 	static SetFaceCountsFuncPtr SetFaceCounts;
-	static SetGeoInfoFuncPtr SetGeoInfo;
 	static SetGroupMembershipFuncPtr SetGroupMembership;
 	static SetImageInfoFuncPtr SetImageInfo;
 	static SetObjectTransformFuncPtr SetObjectTransform;
@@ -599,7 +597,6 @@ public:
 	static HAPI_Result SetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const float * knots_array, int start, int length);
 	static HAPI_Result SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * orders_array, int start, int length);
 	static HAPI_Result SetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * face_counts_array, int start, int length);
-	static HAPI_Result SetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info);
 	static HAPI_Result SetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	static HAPI_Result SetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const HAPI_ImageInfo * image_info);
 	static HAPI_Result SetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, const HAPI_TransformEuler * transform);

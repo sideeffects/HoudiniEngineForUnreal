@@ -537,9 +537,6 @@ FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
 FHoudiniApi::SetFaceCountsFuncPtr
 FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
 
-FHoudiniApi::SetGeoInfoFuncPtr
-FHoudiniApi::SetGeoInfo = &FHoudiniApi::SetGeoInfoEmptyStub;
-
 FHoudiniApi::SetGroupMembershipFuncPtr
 FHoudiniApi::SetGroupMembership = &FHoudiniApi::SetGroupMembershipEmptyStub;
 
@@ -785,7 +782,6 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetCurveKnots = (SetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnots"));
 	FHoudiniApi::SetCurveOrders = (SetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrders"));
 	FHoudiniApi::SetFaceCounts = (SetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetFaceCounts"));
-	FHoudiniApi::SetGeoInfo = (SetGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGeoInfo"));
 	FHoudiniApi::SetGroupMembership = (SetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGroupMembership"));
 	FHoudiniApi::SetImageInfo = (SetImageInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetImageInfo"));
 	FHoudiniApi::SetObjectTransform = (SetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetObjectTransform"));
@@ -987,7 +983,6 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
 	FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
 	FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
-	FHoudiniApi::SetGeoInfo = &FHoudiniApi::SetGeoInfoEmptyStub;
 	FHoudiniApi::SetGroupMembership = &FHoudiniApi::SetGroupMembershipEmptyStub;
 	FHoudiniApi::SetImageInfo = &FHoudiniApi::SetImageInfoEmptyStub;
 	FHoudiniApi::SetObjectTransform = &FHoudiniApi::SetObjectTransformEmptyStub;
@@ -2226,13 +2221,6 @@ FHoudiniApi::SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId 
 
 HAPI_Result
 FHoudiniApi::SetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const int * face_counts_array, int start, int length)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::SetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
