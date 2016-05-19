@@ -71,10 +71,9 @@ HAPI_DECL HAPI_StartThriftSocketServer(
 /// @param[in]      port
 ///                 The server port to connect to.
 ///
-HAPI_DECL HAPI_CreateThriftSocketSession(
-                                    HAPI_Session * session,
-                                    const char * host_name,
-                                    int port );
+HAPI_DECL HAPI_CreateThriftSocketSession( HAPI_Session * session,
+                                          const char * host_name,
+                                          int port );
 
 /// @brief  Starts a Thrift RPC server process on the local host serving
 ///         clients on a Windows named pipe or a Unix domain socket and
@@ -106,9 +105,8 @@ HAPI_DECL HAPI_StartThriftNamedPipeServer(
 /// @param[in]      pipe_name
 ///                 The name of the pipe or socket.
 ///
-HAPI_DECL HAPI_CreateThriftNamedPipeSession(
-                                    HAPI_Session * session,
-                                    const char * pipe_name );
+HAPI_DECL HAPI_CreateThriftNamedPipeSession( HAPI_Session * session,
+                                             const char * pipe_name );
 
 /// @brief  Binds a new implementation DLL to one of the custom session
 ///         slots.
@@ -4017,32 +4015,6 @@ HAPI_DECL HAPI_GetInstancerPartTransforms( const HAPI_Session * session,
                                            int start, int length );
 
 // GEOMETRY SETTERS ---------------------------------------------------------
-
-/// @brief  Set the main geometry info struct (::HAPI_GeoInfo).
-///         TODO: This function does nothing at the moment. (Placeholder)
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///
-/// @param[in]      asset_id
-///                 The asset id.
-///
-/// @param[in]      object_id
-///                 The object id.
-///
-/// @param[in]      geo_id
-///                 The geometry id.
-///
-/// @param[in]      geo_info
-///                 ::HAPI_GeoInfo value.
-///
-HAPI_DECL HAPI_SetGeoInfo( const HAPI_Session * session,
-                           HAPI_AssetId asset_id,
-                           HAPI_ObjectId object_id,
-                           HAPI_GeoId geo_id,
-                           HAPI_GeoInfo * geo_info );
 
 /// @brief  Set the main part info struct (::HAPI_PartInfo).
 ///
