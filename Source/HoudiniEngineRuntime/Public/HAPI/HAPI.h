@@ -2492,7 +2492,7 @@ HAPI_DECL HAPI_GetObjectTransform( const HAPI_Session * session,
 ///         ::HAPI_ObjectInfo structs for each child object using
 ///         ::HAPI_GetComposedObjectList().
 ///
-///         Note, this is equivalent to:
+///         Note, if not using the @c categories arg, this is equivalent to:
 ///         @code
 ///         HAPI_ComposeChildNodeList(
 ///             session, parent_node_id,
@@ -2509,6 +2509,16 @@ HAPI_DECL HAPI_GetObjectTransform( const HAPI_Session * session,
 /// @param[in]      parent_node_id
 ///                 The parent node id.
 ///
+/// @param[in]      categories
+///                 (Optional) Lets you filter object nodes by their render
+///                 categories. This is a standard OBJ parameter, usually
+///                 under the Render > Shading tab. If an OBJ node does not
+///                 have this parameter, one can always add it as a spare.
+///
+///                 The value of this string argument should be NULL if not
+///                 used or a space-separated list of category names.
+///                 Multiple category names will be treated as an AND op.
+///
 /// @param[out]     object_count
 ///                 The number of object nodes currently under the parent.
 ///                 Use this count with a call to
@@ -2516,6 +2526,7 @@ HAPI_DECL HAPI_GetObjectTransform( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_ComposeObjectList( const HAPI_Session * session,
                                   HAPI_NodeId parent_node_id,
+                                  const char * categories,
                                   int * object_count );
 
 /// @brief  Fill an array of ::HAPI_ObjectInfo structs.
