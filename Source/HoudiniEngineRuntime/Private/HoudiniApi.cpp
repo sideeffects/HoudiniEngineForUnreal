@@ -1172,7 +1172,7 @@ FHoudiniApi::ComposeNodeCookResultEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::ComposeObjectListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, int * object_count)
+FHoudiniApi::ComposeObjectListEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * categories, int * object_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
