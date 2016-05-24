@@ -71,9 +71,7 @@ HAPI_DECL_RETURN( HAPI_Bool )
 HAPI_DECL_RETURN( HAPI_Bool )
     HAPI_ParmInfo_IsPath( const HAPI_ParmInfo * in );
 HAPI_DECL_RETURN( HAPI_Bool )
-    HAPI_ParmInfo_IsFilePath( const HAPI_ParmInfo * in );
-HAPI_DECL_RETURN( HAPI_Bool )
-    HAPI_ParmInfo_IsNodePath( const HAPI_ParmInfo * in );
+    HAPI_ParmInfo_IsNode( const HAPI_ParmInfo * in );
 /// @}
 
 /// Parameter has no underlying No data type. Examples of this are UI items
