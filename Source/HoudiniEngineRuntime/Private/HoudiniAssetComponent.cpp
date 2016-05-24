@@ -3414,13 +3414,7 @@ UHoudiniAssetComponent::CreateParameters()
 					break;
 				}
 
-				case HAPI_PARMTYPE_PATH_NODE:
-				{
-					HoudiniAssetParameter = UHoudiniAssetParameterString::Create(this, nullptr, AssetInfo.nodeId,
-						ParmInfo);
-					break;
-				}
-
+				case HAPI_PARMTYPE_NODE:
 				default:
 				{
 					// Just ignore unsupported types for now.
