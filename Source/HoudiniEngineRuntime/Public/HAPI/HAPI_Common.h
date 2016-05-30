@@ -336,7 +336,7 @@ enum HAPI_ParmType
     HAPI_PARMTYPE_FLOAT_END         = HAPI_PARMTYPE_COLOR,
 
     HAPI_PARMTYPE_STRING_START      = HAPI_PARMTYPE_STRING,
-    HAPI_PARMTYPE_STRING_END        = HAPI_PARMTYPE_PATH_FILE_IMAGE,
+    HAPI_PARMTYPE_STRING_END        = HAPI_PARMTYPE_NODE,
 
     HAPI_PARMTYPE_PATH_START        = HAPI_PARMTYPE_PATH_FILE,
     HAPI_PARMTYPE_PATH_END          = HAPI_PARMTYPE_PATH_FILE_IMAGE,
@@ -997,10 +997,6 @@ struct HAPI_API HAPI_ParmInfo
     ///       in the Operator Type Properties using the File Pattern
     ///       parameter property.
     ///       For example, for filtering by PNG and JPG only: "*.png *.jpg"
-    ///     - Node path parameters will indicate what type of nodes they
-    ///       expect in an all-caps "NETWORKTYPE/NODETYPE" pattern. This
-    ///       is set in the Operator Type Properties using the Op Filter
-    ///       parameter property.
     HAPI_StringHandle typeInfoSH;
 
     /// For the majority of parameter types permission will not be applicable.
@@ -1097,6 +1093,17 @@ struct HAPI_API HAPI_ParmInfo
     int stringValuesIndex;
     int choiceIndex;
     /// @}
+
+    /// If this is a ::HAPI_PARMTYPE_NODE, this tells you what node types
+    /// this parameter accepts.
+    HAPI_NodeType inputNodeType;
+
+    /// The node input parameter could have another subtype filter specified,
+    /// like "Object: Geometry Only". In this case, this value will specify
+    /// that extra filter. If the filter demands a node that HAPI does not
+    /// support, both this and ::HAPI_ParmInfo::inputNodeType will be set to
+    /// NONE as such a node is not settable through HAPI.
+    HAPI_NodeFlags inputNodeFlag;
 
     /// See @ref HAPI_Parameters_MultiParms.
     /// @{

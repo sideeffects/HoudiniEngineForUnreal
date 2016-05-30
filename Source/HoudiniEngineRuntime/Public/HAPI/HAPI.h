@@ -1996,6 +1996,30 @@ HAPI_DECL HAPI_GetParmStringValues( const HAPI_Session * session,
                                     HAPI_StringHandle * values_array,
                                     int start, int length );
 
+/// @brief  Get a single node id parm value of an Op Path parameter. This is
+///         how you see which node is connected as an input for the current
+///         node (via parameter).
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_name
+///                 The name of the parameter.
+///
+/// @param[out]     value
+///                 The node id of the node being pointed to by the parm.
+///                 If there is no node found, -1 will be returned.
+///
+HAPI_DECL HAPI_GetParmNodeValue( const HAPI_Session * session,
+                                 HAPI_NodeId node_id,
+                                 const char * parm_name,
+                                 HAPI_NodeId * value );
+
 /// @brief  Fill an array of ::HAPI_ParmChoiceInfo structs with parameter
 ///         choice list information from the asset instance node.
 ///
