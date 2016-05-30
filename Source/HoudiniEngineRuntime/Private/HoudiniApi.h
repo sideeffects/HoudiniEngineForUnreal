@@ -143,6 +143,7 @@ public:
 	typedef HAPI_Result (*GetParmInfoFromNameFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmInfo * parm_info);
 	typedef HAPI_Result (*GetParmIntValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int * value);
 	typedef HAPI_Result (*GetParmIntValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int * values_array, int start, int length);
+	typedef HAPI_Result (*GetParmNodeValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_NodeId * value);
 	typedef HAPI_Result (*GetParmStringValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool evaluate, HAPI_StringHandle * value);
 	typedef HAPI_Result (*GetParmStringValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values_array, int start, int length);
 	typedef HAPI_Result (*GetPartInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);
@@ -354,6 +355,7 @@ public:
 	static GetParmInfoFromNameFuncPtr GetParmInfoFromName;
 	static GetParmIntValueFuncPtr GetParmIntValue;
 	static GetParmIntValuesFuncPtr GetParmIntValues;
+	static GetParmNodeValueFuncPtr GetParmNodeValue;
 	static GetParmStringValueFuncPtr GetParmStringValue;
 	static GetParmStringValuesFuncPtr GetParmStringValues;
 	static GetPartInfoFuncPtr GetPartInfo;
@@ -565,6 +567,7 @@ public:
 	static HAPI_Result GetParmInfoFromNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmInfo * parm_info);
 	static HAPI_Result GetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int * value);
 	static HAPI_Result GetParmIntValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * values_array, int start, int length);
+	static HAPI_Result GetParmNodeValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_NodeId * value);
 	static HAPI_Result GetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, HAPI_Bool evaluate, HAPI_StringHandle * value);
 	static HAPI_Result GetParmStringValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_Bool evaluate, HAPI_StringHandle * values_array, int start, int length);
 	static HAPI_Result GetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartInfo * part_info);

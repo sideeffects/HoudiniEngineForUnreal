@@ -363,6 +363,9 @@ FHoudiniApi::GetParmIntValue = &FHoudiniApi::GetParmIntValueEmptyStub;
 FHoudiniApi::GetParmIntValuesFuncPtr
 FHoudiniApi::GetParmIntValues = &FHoudiniApi::GetParmIntValuesEmptyStub;
 
+FHoudiniApi::GetParmNodeValueFuncPtr
+FHoudiniApi::GetParmNodeValue = &FHoudiniApi::GetParmNodeValueEmptyStub;
+
 FHoudiniApi::GetParmStringValueFuncPtr
 FHoudiniApi::GetParmStringValue = &FHoudiniApi::GetParmStringValueEmptyStub;
 
@@ -763,6 +766,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetParmInfoFromName = (GetParmInfoFromNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmInfoFromName"));
 	FHoudiniApi::GetParmIntValue = (GetParmIntValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmIntValue"));
 	FHoudiniApi::GetParmIntValues = (GetParmIntValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmIntValues"));
+	FHoudiniApi::GetParmNodeValue = (GetParmNodeValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmNodeValue"));
 	FHoudiniApi::GetParmStringValue = (GetParmStringValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValue"));
 	FHoudiniApi::GetParmStringValues = (GetParmStringValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValues"));
 	FHoudiniApi::GetPartInfo = (GetPartInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPartInfo"));
@@ -977,6 +981,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetParmInfoFromName = &FHoudiniApi::GetParmInfoFromNameEmptyStub;
 	FHoudiniApi::GetParmIntValue = &FHoudiniApi::GetParmIntValueEmptyStub;
 	FHoudiniApi::GetParmIntValues = &FHoudiniApi::GetParmIntValuesEmptyStub;
+	FHoudiniApi::GetParmNodeValue = &FHoudiniApi::GetParmNodeValueEmptyStub;
 	FHoudiniApi::GetParmStringValue = &FHoudiniApi::GetParmStringValueEmptyStub;
 	FHoudiniApi::GetParmStringValues = &FHoudiniApi::GetParmStringValuesEmptyStub;
 	FHoudiniApi::GetPartInfo = &FHoudiniApi::GetPartInfoEmptyStub;
@@ -1880,6 +1885,13 @@ FHoudiniApi::GetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId 
 
 HAPI_Result
 FHoudiniApi::GetParmIntValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * values_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetParmNodeValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_NodeId * value)
 {
 	return HAPI_RESULT_FAILURE;
 }
