@@ -221,6 +221,7 @@ public:
 	typedef HAPI_Result (*SetParmFloatValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const float * values_array, int start, int length);
 	typedef HAPI_Result (*SetParmIntValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int value);
 	typedef HAPI_Result (*SetParmIntValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const int * values_array, int start, int length);
+	typedef HAPI_Result (*SetParmNodeValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_NodeId value);
 	typedef HAPI_Result (*SetParmStringValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index);
 	typedef HAPI_Result (*SetPartInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_PartInfo * part_info);
 	typedef HAPI_Result (*SetPartInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_PartInfo * part_info);
@@ -433,6 +434,7 @@ public:
 	static SetParmFloatValuesFuncPtr SetParmFloatValues;
 	static SetParmIntValueFuncPtr SetParmIntValue;
 	static SetParmIntValuesFuncPtr SetParmIntValues;
+	static SetParmNodeValueFuncPtr SetParmNodeValue;
 	static SetParmStringValueFuncPtr SetParmStringValue;
 	static SetPartInfoFuncPtr SetPartInfo;
 	static SetPartInfoOnNodeFuncPtr SetPartInfoOnNode;
@@ -645,6 +647,7 @@ public:
 	static HAPI_Result SetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const float * values_array, int start, int length);
 	static HAPI_Result SetParmIntValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, int value);
 	static HAPI_Result SetParmIntValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const int * values_array, int start, int length);
+	static HAPI_Result SetParmNodeValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_NodeId value);
 	static HAPI_Result SetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * value, HAPI_ParmId parm_id, int index);
 	static HAPI_Result SetPartInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_PartInfo * part_info);
 	static HAPI_Result SetPartInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_PartInfo * part_info);
