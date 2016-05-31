@@ -2275,6 +2275,32 @@ HAPI_DECL HAPI_SetParmStringValue( const HAPI_Session * session,
                                    const char * value,
                                    HAPI_ParmId parm_id, int index );
 
+/// @brief  Set a node id parm value of an Op Path parameter. For example,
+///         This is how you connect the geometry output of an asset to the
+///         geometry input of another asset - whether the input is a parameter
+///         or a node input (the top of the node). Node inputs get converted
+///         top parameters in HAPI.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_name
+///                 The name of the parameter.
+///
+/// @param[in]      value
+///                 The node id of the node being connected. Pass -1 to
+///                 disconnect.
+///
+HAPI_DECL HAPI_SetParmNodeValue( const HAPI_Session * session,
+                                 HAPI_NodeId node_id,
+                                 const char * parm_name,
+                                 HAPI_NodeId value );
+
 /// @brief Insert an instance of a multiparm before instance_position.
 ///
 /// @param[in]      session
