@@ -2326,9 +2326,9 @@ UHoudiniAssetComponent::CalcBounds(const FTransform& LocalToWorld) const
 
 
 void
-UHoudiniAssetComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
+UHoudiniAssetComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
-	Super::OnUpdateTransform(bSkipPhysicsMove, Teleport);
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
 
 #if WITH_EDITOR
 
