@@ -222,14 +222,26 @@ FHoudiniApi::GetCookingTotalCount = &FHoudiniApi::GetCookingTotalCountEmptyStub;
 FHoudiniApi::GetCurveCountsFuncPtr
 FHoudiniApi::GetCurveCounts = &FHoudiniApi::GetCurveCountsEmptyStub;
 
+FHoudiniApi::GetCurveCountsOnNodeFuncPtr
+FHoudiniApi::GetCurveCountsOnNode = &FHoudiniApi::GetCurveCountsOnNodeEmptyStub;
+
 FHoudiniApi::GetCurveInfoFuncPtr
 FHoudiniApi::GetCurveInfo = &FHoudiniApi::GetCurveInfoEmptyStub;
+
+FHoudiniApi::GetCurveInfoOnNodeFuncPtr
+FHoudiniApi::GetCurveInfoOnNode = &FHoudiniApi::GetCurveInfoOnNodeEmptyStub;
 
 FHoudiniApi::GetCurveKnotsFuncPtr
 FHoudiniApi::GetCurveKnots = &FHoudiniApi::GetCurveKnotsEmptyStub;
 
+FHoudiniApi::GetCurveKnotsOnNodeFuncPtr
+FHoudiniApi::GetCurveKnotsOnNode = &FHoudiniApi::GetCurveKnotsOnNodeEmptyStub;
+
 FHoudiniApi::GetCurveOrdersFuncPtr
 FHoudiniApi::GetCurveOrders = &FHoudiniApi::GetCurveOrdersEmptyStub;
+
+FHoudiniApi::GetCurveOrdersOnNodeFuncPtr
+FHoudiniApi::GetCurveOrdersOnNode = &FHoudiniApi::GetCurveOrdersOnNodeEmptyStub;
 
 FHoudiniApi::GetEnvIntFuncPtr
 FHoudiniApi::GetEnvInt = &FHoudiniApi::GetEnvIntEmptyStub;
@@ -576,14 +588,26 @@ FHoudiniApi::SetCacheProperty = &FHoudiniApi::SetCachePropertyEmptyStub;
 FHoudiniApi::SetCurveCountsFuncPtr
 FHoudiniApi::SetCurveCounts = &FHoudiniApi::SetCurveCountsEmptyStub;
 
+FHoudiniApi::SetCurveCountsOnNodeFuncPtr
+FHoudiniApi::SetCurveCountsOnNode = &FHoudiniApi::SetCurveCountsOnNodeEmptyStub;
+
 FHoudiniApi::SetCurveInfoFuncPtr
 FHoudiniApi::SetCurveInfo = &FHoudiniApi::SetCurveInfoEmptyStub;
+
+FHoudiniApi::SetCurveInfoOnNodeFuncPtr
+FHoudiniApi::SetCurveInfoOnNode = &FHoudiniApi::SetCurveInfoOnNodeEmptyStub;
 
 FHoudiniApi::SetCurveKnotsFuncPtr
 FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
 
+FHoudiniApi::SetCurveKnotsOnNodeFuncPtr
+FHoudiniApi::SetCurveKnotsOnNode = &FHoudiniApi::SetCurveKnotsOnNodeEmptyStub;
+
 FHoudiniApi::SetCurveOrdersFuncPtr
 FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
+
+FHoudiniApi::SetCurveOrdersOnNodeFuncPtr
+FHoudiniApi::SetCurveOrdersOnNode = &FHoudiniApi::SetCurveOrdersOnNodeEmptyStub;
 
 FHoudiniApi::SetFaceCountsFuncPtr
 FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
@@ -752,9 +776,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetCookingCurrentCount = (GetCookingCurrentCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingCurrentCount"));
 	FHoudiniApi::GetCookingTotalCount = (GetCookingTotalCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingTotalCount"));
 	FHoudiniApi::GetCurveCounts = (GetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveCounts"));
+	FHoudiniApi::GetCurveCountsOnNode = (GetCurveCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveCountsOnNode"));
 	FHoudiniApi::GetCurveInfo = (GetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveInfo"));
+	FHoudiniApi::GetCurveInfoOnNode = (GetCurveInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveInfoOnNode"));
 	FHoudiniApi::GetCurveKnots = (GetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveKnots"));
+	FHoudiniApi::GetCurveKnotsOnNode = (GetCurveKnotsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveKnotsOnNode"));
 	FHoudiniApi::GetCurveOrders = (GetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveOrders"));
+	FHoudiniApi::GetCurveOrdersOnNode = (GetCurveOrdersOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveOrdersOnNode"));
 	FHoudiniApi::GetEnvInt = (GetEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEnvInt"));
 	FHoudiniApi::GetFaceCounts = (GetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCounts"));
 	FHoudiniApi::GetFaceCountsOnNode = (GetFaceCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCountsOnNode"));
@@ -870,9 +898,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetAttributeStringDataOnNode = (SetAttributeStringDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeStringDataOnNode"));
 	FHoudiniApi::SetCacheProperty = (SetCachePropertyFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCacheProperty"));
 	FHoudiniApi::SetCurveCounts = (SetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveCounts"));
+	FHoudiniApi::SetCurveCountsOnNode = (SetCurveCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveCountsOnNode"));
 	FHoudiniApi::SetCurveInfo = (SetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveInfo"));
+	FHoudiniApi::SetCurveInfoOnNode = (SetCurveInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveInfoOnNode"));
 	FHoudiniApi::SetCurveKnots = (SetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnots"));
+	FHoudiniApi::SetCurveKnotsOnNode = (SetCurveKnotsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnotsOnNode"));
 	FHoudiniApi::SetCurveOrders = (SetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrders"));
+	FHoudiniApi::SetCurveOrdersOnNode = (SetCurveOrdersOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrdersOnNode"));
 	FHoudiniApi::SetFaceCounts = (SetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetFaceCounts"));
 	FHoudiniApi::SetFaceCountsOnNode = (SetFaceCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetFaceCountsOnNode"));
 	FHoudiniApi::SetGroupMembership = (SetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGroupMembership"));
@@ -978,9 +1010,13 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetCookingCurrentCount = &FHoudiniApi::GetCookingCurrentCountEmptyStub;
 	FHoudiniApi::GetCookingTotalCount = &FHoudiniApi::GetCookingTotalCountEmptyStub;
 	FHoudiniApi::GetCurveCounts = &FHoudiniApi::GetCurveCountsEmptyStub;
+	FHoudiniApi::GetCurveCountsOnNode = &FHoudiniApi::GetCurveCountsOnNodeEmptyStub;
 	FHoudiniApi::GetCurveInfo = &FHoudiniApi::GetCurveInfoEmptyStub;
+	FHoudiniApi::GetCurveInfoOnNode = &FHoudiniApi::GetCurveInfoOnNodeEmptyStub;
 	FHoudiniApi::GetCurveKnots = &FHoudiniApi::GetCurveKnotsEmptyStub;
+	FHoudiniApi::GetCurveKnotsOnNode = &FHoudiniApi::GetCurveKnotsOnNodeEmptyStub;
 	FHoudiniApi::GetCurveOrders = &FHoudiniApi::GetCurveOrdersEmptyStub;
+	FHoudiniApi::GetCurveOrdersOnNode = &FHoudiniApi::GetCurveOrdersOnNodeEmptyStub;
 	FHoudiniApi::GetEnvInt = &FHoudiniApi::GetEnvIntEmptyStub;
 	FHoudiniApi::GetFaceCounts = &FHoudiniApi::GetFaceCountsEmptyStub;
 	FHoudiniApi::GetFaceCountsOnNode = &FHoudiniApi::GetFaceCountsOnNodeEmptyStub;
@@ -1096,9 +1132,13 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetAttributeStringDataOnNode = &FHoudiniApi::SetAttributeStringDataOnNodeEmptyStub;
 	FHoudiniApi::SetCacheProperty = &FHoudiniApi::SetCachePropertyEmptyStub;
 	FHoudiniApi::SetCurveCounts = &FHoudiniApi::SetCurveCountsEmptyStub;
+	FHoudiniApi::SetCurveCountsOnNode = &FHoudiniApi::SetCurveCountsOnNodeEmptyStub;
 	FHoudiniApi::SetCurveInfo = &FHoudiniApi::SetCurveInfoEmptyStub;
+	FHoudiniApi::SetCurveInfoOnNode = &FHoudiniApi::SetCurveInfoOnNodeEmptyStub;
 	FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
+	FHoudiniApi::SetCurveKnotsOnNode = &FHoudiniApi::SetCurveKnotsOnNodeEmptyStub;
 	FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
+	FHoudiniApi::SetCurveOrdersOnNode = &FHoudiniApi::SetCurveOrdersOnNodeEmptyStub;
 	FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
 	FHoudiniApi::SetFaceCountsOnNode = &FHoudiniApi::SetFaceCountsOnNodeEmptyStub;
 	FHoudiniApi::SetGroupMembership = &FHoudiniApi::SetGroupMembershipEmptyStub;
@@ -1617,7 +1657,21 @@ FHoudiniApi::GetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId 
 
 
 HAPI_Result
+FHoudiniApi::GetCurveCountsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * counts_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_CurveInfo * info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetCurveInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_CurveInfo * info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1631,7 +1685,21 @@ FHoudiniApi::GetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId a
 
 
 HAPI_Result
+FHoudiniApi::GetCurveKnotsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * knots_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetCurveOrdersOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * orders_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2443,7 +2511,21 @@ FHoudiniApi::SetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId 
 
 
 HAPI_Result
+FHoudiniApi::SetCurveCountsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * counts_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::SetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const HAPI_CurveInfo * info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetCurveInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_CurveInfo * info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2457,7 +2539,21 @@ FHoudiniApi::SetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_AssetId a
 
 
 HAPI_Result
+FHoudiniApi::SetCurveKnotsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const float * knots_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const int * orders_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetCurveOrdersOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * orders_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
