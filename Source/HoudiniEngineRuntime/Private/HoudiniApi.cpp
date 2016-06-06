@@ -267,6 +267,9 @@ FHoudiniApi::GetGeoInfoOnNode = &FHoudiniApi::GetGeoInfoOnNodeEmptyStub;
 FHoudiniApi::GetGeoSizeFuncPtr
 FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
 
+FHoudiniApi::GetGeoSizeOnNodeFuncPtr
+FHoudiniApi::GetGeoSizeOnNode = &FHoudiniApi::GetGeoSizeOnNodeEmptyStub;
+
 FHoudiniApi::GetGroupMembershipFuncPtr
 FHoudiniApi::GetGroupMembership = &FHoudiniApi::GetGroupMembershipEmptyStub;
 
@@ -507,8 +510,14 @@ FHoudiniApi::LoadAssetLibraryFromMemory = &FHoudiniApi::LoadAssetLibraryFromMemo
 FHoudiniApi::LoadGeoFromFileFuncPtr
 FHoudiniApi::LoadGeoFromFile = &FHoudiniApi::LoadGeoFromFileEmptyStub;
 
+FHoudiniApi::LoadGeoFromFileOnNodeFuncPtr
+FHoudiniApi::LoadGeoFromFileOnNode = &FHoudiniApi::LoadGeoFromFileOnNodeEmptyStub;
+
 FHoudiniApi::LoadGeoFromMemoryFuncPtr
 FHoudiniApi::LoadGeoFromMemory = &FHoudiniApi::LoadGeoFromMemoryEmptyStub;
+
+FHoudiniApi::LoadGeoFromMemoryOnNodeFuncPtr
+FHoudiniApi::LoadGeoFromMemoryOnNode = &FHoudiniApi::LoadGeoFromMemoryOnNodeEmptyStub;
 
 FHoudiniApi::LoadHIPFileFuncPtr
 FHoudiniApi::LoadHIPFile = &FHoudiniApi::LoadHIPFileEmptyStub;
@@ -540,8 +549,14 @@ FHoudiniApi::RevertGeoOnNode = &FHoudiniApi::RevertGeoOnNodeEmptyStub;
 FHoudiniApi::SaveGeoToFileFuncPtr
 FHoudiniApi::SaveGeoToFile = &FHoudiniApi::SaveGeoToFileEmptyStub;
 
+FHoudiniApi::SaveGeoToFileOnNodeFuncPtr
+FHoudiniApi::SaveGeoToFileOnNode = &FHoudiniApi::SaveGeoToFileOnNodeEmptyStub;
+
 FHoudiniApi::SaveGeoToMemoryFuncPtr
 FHoudiniApi::SaveGeoToMemory = &FHoudiniApi::SaveGeoToMemoryEmptyStub;
+
+FHoudiniApi::SaveGeoToMemoryOnNodeFuncPtr
+FHoudiniApi::SaveGeoToMemoryOnNode = &FHoudiniApi::SaveGeoToMemoryOnNodeEmptyStub;
 
 FHoudiniApi::SaveHIPFileFuncPtr
 FHoudiniApi::SaveHIPFile = &FHoudiniApi::SaveHIPFileEmptyStub;
@@ -791,6 +806,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetGeoInfo = (GetGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfo"));
 	FHoudiniApi::GetGeoInfoOnNode = (GetGeoInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfoOnNode"));
 	FHoudiniApi::GetGeoSize = (GetGeoSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSize"));
+	FHoudiniApi::GetGeoSizeOnNode = (GetGeoSizeOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSizeOnNode"));
 	FHoudiniApi::GetGroupMembership = (GetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembership"));
 	FHoudiniApi::GetGroupMembershipOnNode = (GetGroupMembershipOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembershipOnNode"));
 	FHoudiniApi::GetGroupNames = (GetGroupNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNames"));
@@ -871,7 +887,9 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::LoadAssetLibraryFromFile = (LoadAssetLibraryFromFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadAssetLibraryFromFile"));
 	FHoudiniApi::LoadAssetLibraryFromMemory = (LoadAssetLibraryFromMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadAssetLibraryFromMemory"));
 	FHoudiniApi::LoadGeoFromFile = (LoadGeoFromFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromFile"));
+	FHoudiniApi::LoadGeoFromFileOnNode = (LoadGeoFromFileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromFileOnNode"));
 	FHoudiniApi::LoadGeoFromMemory = (LoadGeoFromMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromMemory"));
+	FHoudiniApi::LoadGeoFromMemoryOnNode = (LoadGeoFromMemoryOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromMemoryOnNode"));
 	FHoudiniApi::LoadHIPFile = (LoadHIPFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadHIPFile"));
 	FHoudiniApi::PythonThreadInterpreterLock = (PythonThreadInterpreterLockFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_PythonThreadInterpreterLock"));
 	FHoudiniApi::QueryNodeInput = (QueryNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeInput"));
@@ -882,7 +900,9 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::RevertGeo = (RevertGeoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RevertGeo"));
 	FHoudiniApi::RevertGeoOnNode = (RevertGeoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RevertGeoOnNode"));
 	FHoudiniApi::SaveGeoToFile = (SaveGeoToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToFile"));
+	FHoudiniApi::SaveGeoToFileOnNode = (SaveGeoToFileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToFileOnNode"));
 	FHoudiniApi::SaveGeoToMemory = (SaveGeoToMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToMemory"));
+	FHoudiniApi::SaveGeoToMemoryOnNode = (SaveGeoToMemoryOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToMemoryOnNode"));
 	FHoudiniApi::SaveHIPFile = (SaveHIPFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveHIPFile"));
 	FHoudiniApi::SetAnimCurve = (SetAnimCurveFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAnimCurve"));
 	FHoudiniApi::SetAssetTransform = (SetAssetTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAssetTransform"));
@@ -1025,6 +1045,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
 	FHoudiniApi::GetGeoInfoOnNode = &FHoudiniApi::GetGeoInfoOnNodeEmptyStub;
 	FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
+	FHoudiniApi::GetGeoSizeOnNode = &FHoudiniApi::GetGeoSizeOnNodeEmptyStub;
 	FHoudiniApi::GetGroupMembership = &FHoudiniApi::GetGroupMembershipEmptyStub;
 	FHoudiniApi::GetGroupMembershipOnNode = &FHoudiniApi::GetGroupMembershipOnNodeEmptyStub;
 	FHoudiniApi::GetGroupNames = &FHoudiniApi::GetGroupNamesEmptyStub;
@@ -1105,7 +1126,9 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::LoadAssetLibraryFromFile = &FHoudiniApi::LoadAssetLibraryFromFileEmptyStub;
 	FHoudiniApi::LoadAssetLibraryFromMemory = &FHoudiniApi::LoadAssetLibraryFromMemoryEmptyStub;
 	FHoudiniApi::LoadGeoFromFile = &FHoudiniApi::LoadGeoFromFileEmptyStub;
+	FHoudiniApi::LoadGeoFromFileOnNode = &FHoudiniApi::LoadGeoFromFileOnNodeEmptyStub;
 	FHoudiniApi::LoadGeoFromMemory = &FHoudiniApi::LoadGeoFromMemoryEmptyStub;
+	FHoudiniApi::LoadGeoFromMemoryOnNode = &FHoudiniApi::LoadGeoFromMemoryOnNodeEmptyStub;
 	FHoudiniApi::LoadHIPFile = &FHoudiniApi::LoadHIPFileEmptyStub;
 	FHoudiniApi::PythonThreadInterpreterLock = &FHoudiniApi::PythonThreadInterpreterLockEmptyStub;
 	FHoudiniApi::QueryNodeInput = &FHoudiniApi::QueryNodeInputEmptyStub;
@@ -1116,7 +1139,9 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::RevertGeo = &FHoudiniApi::RevertGeoEmptyStub;
 	FHoudiniApi::RevertGeoOnNode = &FHoudiniApi::RevertGeoOnNodeEmptyStub;
 	FHoudiniApi::SaveGeoToFile = &FHoudiniApi::SaveGeoToFileEmptyStub;
+	FHoudiniApi::SaveGeoToFileOnNode = &FHoudiniApi::SaveGeoToFileOnNodeEmptyStub;
 	FHoudiniApi::SaveGeoToMemory = &FHoudiniApi::SaveGeoToMemoryEmptyStub;
+	FHoudiniApi::SaveGeoToMemoryOnNode = &FHoudiniApi::SaveGeoToMemoryOnNodeEmptyStub;
 	FHoudiniApi::SaveHIPFile = &FHoudiniApi::SaveHIPFileEmptyStub;
 	FHoudiniApi::SetAnimCurve = &FHoudiniApi::SetAnimCurveEmptyStub;
 	FHoudiniApi::SetAssetTransform = &FHoudiniApi::SetAssetTransformEmptyStub;
@@ -1762,6 +1787,13 @@ FHoudiniApi::GetGeoSizeEmptyStub(const HAPI_Session * session, HAPI_AssetId asse
 
 
 HAPI_Result
+FHoudiniApi::GetGeoSizeOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, int * size)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2322,7 +2354,21 @@ FHoudiniApi::LoadGeoFromFileEmptyStub(const HAPI_Session * session, HAPI_AssetId
 
 
 HAPI_Result
+FHoudiniApi::LoadGeoFromFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::LoadGeoFromMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, const char * buffer, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::LoadGeoFromMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2399,7 +2445,21 @@ FHoudiniApi::SaveGeoToFileEmptyStub(const HAPI_Session * session, HAPI_AssetId a
 
 
 HAPI_Result
+FHoudiniApi::SaveGeoToFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::SaveGeoToMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, char * buffer, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SaveGeoToMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }

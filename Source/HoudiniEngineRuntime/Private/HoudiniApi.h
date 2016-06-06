@@ -111,6 +111,7 @@ public:
 	typedef HAPI_Result (*GetGeoInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info);
 	typedef HAPI_Result (*GetGeoInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GeoInfo * geo_info);
 	typedef HAPI_Result (*GetGeoSizeFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, int * size);
+	typedef HAPI_Result (*GetGeoSizeOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, int * size);
 	typedef HAPI_Result (*GetGroupMembershipFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	typedef HAPI_Result (*GetGroupMembershipOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	typedef HAPI_Result (*GetGroupNamesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
@@ -191,7 +192,9 @@ public:
 	typedef HAPI_Result (*LoadAssetLibraryFromFileFuncPtr)(const HAPI_Session * session, const char * file_path, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId* library_id);
 	typedef HAPI_Result (*LoadAssetLibraryFromMemoryFuncPtr)(const HAPI_Session * session, const char * library_buffer, int library_buffer_length, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id);
 	typedef HAPI_Result (*LoadGeoFromFileFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name);
+	typedef HAPI_Result (*LoadGeoFromFileOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	typedef HAPI_Result (*LoadGeoFromMemoryFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, const char * buffer, int length);
+	typedef HAPI_Result (*LoadGeoFromMemoryOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length);
 	typedef HAPI_Result (*LoadHIPFileFuncPtr)(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load);
 	typedef HAPI_Result (*PythonThreadInterpreterLockFuncPtr)(const HAPI_Session * session, HAPI_Bool locked);
 	typedef HAPI_Result (*QueryNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
@@ -202,7 +205,9 @@ public:
 	typedef HAPI_Result (*RevertGeoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
 	typedef HAPI_Result (*RevertGeoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*SaveGeoToFileFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name);
+	typedef HAPI_Result (*SaveGeoToFileOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	typedef HAPI_Result (*SaveGeoToMemoryFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, char * buffer, int length);
+	typedef HAPI_Result (*SaveGeoToMemoryOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length);
 	typedef HAPI_Result (*SaveHIPFileFuncPtr)(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes);
 	typedef HAPI_Result (*SetAnimCurveFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	typedef HAPI_Result (*SetAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_TransformEuler * transform);
@@ -342,6 +347,7 @@ public:
 	static GetGeoInfoFuncPtr GetGeoInfo;
 	static GetGeoInfoOnNodeFuncPtr GetGeoInfoOnNode;
 	static GetGeoSizeFuncPtr GetGeoSize;
+	static GetGeoSizeOnNodeFuncPtr GetGeoSizeOnNode;
 	static GetGroupMembershipFuncPtr GetGroupMembership;
 	static GetGroupMembershipOnNodeFuncPtr GetGroupMembershipOnNode;
 	static GetGroupNamesFuncPtr GetGroupNames;
@@ -422,7 +428,9 @@ public:
 	static LoadAssetLibraryFromFileFuncPtr LoadAssetLibraryFromFile;
 	static LoadAssetLibraryFromMemoryFuncPtr LoadAssetLibraryFromMemory;
 	static LoadGeoFromFileFuncPtr LoadGeoFromFile;
+	static LoadGeoFromFileOnNodeFuncPtr LoadGeoFromFileOnNode;
 	static LoadGeoFromMemoryFuncPtr LoadGeoFromMemory;
+	static LoadGeoFromMemoryOnNodeFuncPtr LoadGeoFromMemoryOnNode;
 	static LoadHIPFileFuncPtr LoadHIPFile;
 	static PythonThreadInterpreterLockFuncPtr PythonThreadInterpreterLock;
 	static QueryNodeInputFuncPtr QueryNodeInput;
@@ -433,7 +441,9 @@ public:
 	static RevertGeoFuncPtr RevertGeo;
 	static RevertGeoOnNodeFuncPtr RevertGeoOnNode;
 	static SaveGeoToFileFuncPtr SaveGeoToFile;
+	static SaveGeoToFileOnNodeFuncPtr SaveGeoToFileOnNode;
 	static SaveGeoToMemoryFuncPtr SaveGeoToMemory;
+	static SaveGeoToMemoryOnNodeFuncPtr SaveGeoToMemoryOnNode;
 	static SaveHIPFileFuncPtr SaveHIPFile;
 	static SetAnimCurveFuncPtr SetAnimCurve;
 	static SetAssetTransformFuncPtr SetAssetTransform;
@@ -573,6 +583,7 @@ public:
 	static HAPI_Result GetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info);
 	static HAPI_Result GetGeoInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GeoInfo * geo_info);
 	static HAPI_Result GetGeoSizeEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, int * size);
+	static HAPI_Result GetGeoSizeOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, int * size);
 	static HAPI_Result GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	static HAPI_Result GetGroupMembershipOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length);
 	static HAPI_Result GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
@@ -653,7 +664,9 @@ public:
 	static HAPI_Result LoadAssetLibraryFromFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId* library_id);
 	static HAPI_Result LoadAssetLibraryFromMemoryEmptyStub(const HAPI_Session * session, const char * library_buffer, int library_buffer_length, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id);
 	static HAPI_Result LoadGeoFromFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name);
+	static HAPI_Result LoadGeoFromFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	static HAPI_Result LoadGeoFromMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * format, const char * buffer, int length);
+	static HAPI_Result LoadGeoFromMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length);
 	static HAPI_Result LoadHIPFileEmptyStub(const HAPI_Session * session, const char * file_name, HAPI_Bool cook_on_load);
 	static HAPI_Result PythonThreadInterpreterLockEmptyStub(const HAPI_Session * session, HAPI_Bool locked);
 	static HAPI_Result QueryNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_to_query, int input_index, HAPI_NodeId * connected_node_id);
@@ -664,7 +677,9 @@ public:
 	static HAPI_Result RevertGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
 	static HAPI_Result RevertGeoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result SaveGeoToFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * file_name);
+	static HAPI_Result SaveGeoToFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name);
 	static HAPI_Result SaveGeoToMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, char * buffer, int length);
+	static HAPI_Result SaveGeoToMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length);
 	static HAPI_Result SaveHIPFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool lock_nodes);
 	static HAPI_Result SetAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int parm_index, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	static HAPI_Result SetAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, const HAPI_TransformEuler * transform);
