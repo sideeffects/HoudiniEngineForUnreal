@@ -5653,6 +5653,309 @@ HAPI_DECL HAPI_ResetSimulation( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     volume_info
+///                 The meta-data associated with the volume on the
+///                 part specified by the previous parameters.
+///
+HAPI_DECL HAPI_GetVolumeInfoOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    HAPI_VolumeInfo * volume_info );
+
+/// @brief  Iterate through a volume based on 8x8x8 sections of the volume
+///         Start iterating through the value of the volume at part_id.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     tile
+///                 The tile info referring to the first tile in the
+///                 volume at part_id.
+///
+HAPI_DECL HAPI_GetFirstVolumeTileOnNode( const HAPI_Session * session,
+                                         HAPI_NodeId node_id,
+                                         HAPI_PartId part_id,
+                                         HAPI_VolumeTileInfo * tile );
+
+/// @brief  Iterate through a volume based on 8x8x8 sections of the volume
+///         Continue iterating through the value of the volume at part_id.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     tile
+///                 The tile info referring to the next tile in the
+///                 set of tiles associated with the volume at this part.
+///
+HAPI_DECL HAPI_GetNextVolumeTileOnNode( const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_PartId part_id,
+                                        HAPI_VolumeTileInfo * tile );
+
+/// @brief  Retrieve floating point values of the voxel at a specific
+///         index. Note that you must call ::HAPI_GetVolumeInfo() prior
+///         to this call.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      x_index
+///                 The x index/coordinate of the voxel.
+///
+/// @param[in]      y_index
+///                 The y index/coordinate of the voxel.
+///
+/// @param[in]      z_index
+///                 The z index/coordinate of the voxel.
+///
+/// @param[out]     values_array
+///                 The values of the voxel.
+///
+/// @param[in]      value_count
+///                 Should be equal to the volume's
+///                 ::HAPI_VolumeInfo::tupleSize.
+///
+HAPI_DECL HAPI_GetVolumeVoxelFloatDataOnNode( const HAPI_Session * session,
+                                              HAPI_NodeId node_id,
+                                              HAPI_PartId part_id,
+                                              int x_index,
+                                              int y_index,
+                                              int z_index,
+                                              float * values_array,
+                                              int value_count );
+
+/// @brief  Retrieve floating point values of the voxels pointed to
+///         by a tile. Note that a tile may extend beyond the limits
+///         of the volume so not all values in the given buffer will
+///         be written to. Voxels outside the volume will be initialized
+///         to the given fill value.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      fill_value
+///                 Value that will be used to fill the @p values_array.
+///                 This is useful so that you can see what values
+///                 have actually been written to.
+///
+/// @param[in]      tile
+///                 The tile to retrieve.
+///
+/// @param[out]     values_array
+///                 The values of the tile.
+///
+/// @param[in]      length
+///                 The length should be ( 8 ^ 3 ) * tupleSize.
+///
+HAPI_DECL HAPI_GetVolumeTileFloatDataOnNode( const HAPI_Session * session,
+                                             HAPI_NodeId node_id,
+                                             HAPI_PartId part_id,
+                                             float fill_value,
+                                             const HAPI_VolumeTileInfo * tile,
+                                             float * values_array,
+                                             int length );
+
+/// @brief  Retrieve integer point values of the voxel at a specific
+///         index. Note that you must call ::HAPI_GetVolumeInfo() prior
+///         to this call.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      x_index
+///                 The x index/coordinate of the voxel.
+///
+/// @param[in]      y_index
+///                 The y index/coordinate of the voxel.
+///
+/// @param[in]      z_index
+///                 The z index/coordinate of the voxel.
+///
+/// @param[out]     values_array
+///                 The values of the voxel.
+///
+/// @param[in]      value_count
+///                 Should be equal to the volume's
+///                 ::HAPI_VolumeInfo::tupleSize.
+///
+HAPI_DECL HAPI_GetVolumeVoxelIntDataOnNode( const HAPI_Session * session,
+                                            HAPI_NodeId node_id,
+                                            HAPI_PartId part_id,
+                                            int x_index,
+                                            int y_index,
+                                            int z_index,
+                                            int * values_array,
+                                            int value_count );
+
+/// @brief  Retrieve integer point values of the voxels pointed to
+///         by a tile. Note that a tile may extend beyond the limits
+///         of the volume so not all values in the given buffer will
+///         be written to. Voxels outside the volume will be initialized
+///         to the given fill value.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      fill_value
+///                 Value that will be used to fill the @p values_array.
+///                 This is useful so that you can see what values
+///                 have actually been written to.
+///
+/// @param[in]      tile
+///                 The tile to retrieve.
+///
+/// @param[out]     values_array
+///                 The values of the tile.
+///
+/// @param[in]      length
+///                 The length should be ( 8 ^ 3 ) * tupleSize.
+///
+HAPI_DECL HAPI_GetVolumeTileIntDataOnNode( const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           HAPI_PartId part_id,
+                                           int fill_value,
+                                           const HAPI_VolumeTileInfo * tile,
+                                           int * values_array,
+                                           int length );
+
+/// @brief  Set the volume info of a geo on a geo input.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      volume_info
+///                 All volume information that can be specified per
+///                 volume. This includes the position, orientation, scale,
+///                 data format, tuple size, and taper. The tile size is
+///                 always 8x8x8.
+///
+HAPI_DECL HAPI_SetVolumeInfoOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    const HAPI_VolumeInfo * volume_info );
+
+/// @brief  Set the values of a float tile: this is an 8x8x8 subsection of
+///         the volume.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      tile
+///                 The tile that the volume will be input into.
+///
+/// @param[in]      values_array
+///                 The values of the individual voxel tiles in the
+///                 volume. The length of this array should
+///                 be ( 8 ^ 3 ) * tupleSize.
+///
+/// @param[in]      length
+///                 The length should be ( 8 ^ 3 ) * tupleSize.
+///
+HAPI_DECL HAPI_SetVolumeTileFloatDataOnNode( const HAPI_Session * session,
+                                             HAPI_NodeId node_id,
+                                             const HAPI_VolumeTileInfo * tile,
+                                             const float * values_array,
+                                             int length );
+
+/// @brief  Set the values of an int tile: this is an 8x8x8 subsection of
+///         the volume.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      tile
+///                 The tile that the volume will be input into.
+///
+/// @param[in]      values_array
+///                 The values of the individual voxel tiles in the
+///                 volume. The length of this array should
+///                 be ( 8 ^ 3 ) * tupleSize.
+///
+/// @param[in]      length
+///                 The length should be ( 8 ^ 3 ) * tupleSize.
+///
+HAPI_DECL HAPI_SetVolumeTileIntDataOnNode( const HAPI_Session * session,
+                                           HAPI_NodeId node_id,
+                                           const HAPI_VolumeTileInfo * tile,
+                                           const int * values_array,
+                                           int length );
+
+/// @brief  Retrieve any meta-data about the volume primitive, including
+///         its transform, location, scale, taper, resolution.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
 /// @param[in]      asset_id
 ///                 The asset id.
 ///
