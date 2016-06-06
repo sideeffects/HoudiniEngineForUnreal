@@ -6995,6 +6995,123 @@ HAPI_DECL HAPI_SetCacheProperty( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      file_name
+///                 The name of the file to be saved.  The extension
+///                 of the file determines its type.
+///
+HAPI_DECL HAPI_SaveGeoToFileOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    const char * file_name );
+
+/// @brief  Loads a geometry file and put its contents onto a SOP
+///         node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      file_name
+///                 The name of the file to be loaded
+///
+HAPI_DECL HAPI_LoadGeoFromFileOnNode( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      const char * file_name );
+
+/// @brief  Cache the current state of the geo to memory, given the
+///         format, and return the size. Use this size with your call
+///         to ::HAPI_SaveGeoToMemory() to copy the cached geo to your
+///         buffer. It is guaranteed that the size will not change between
+///         your call to ::HAPI_GetGeoSize() and ::HAPI_SaveGeoToMemory().
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      format
+///                 The file format, ie. "obj", "bgeo" etc.
+///
+/// @param[out]     size
+///                 The size of the buffer required to hold the output.
+///
+HAPI_DECL HAPI_GetGeoSizeOnNode( const HAPI_Session * session,
+                                 HAPI_NodeId node_id,
+                                 const char * format,
+                                 int * size );
+
+/// @brief  Saves the cached geometry to your buffer in memory,
+///         whose format and required size is identified by the call to
+///         ::HAPI_GetGeoSize(). The call to ::HAPI_GetGeoSize() is
+///         required as ::HAPI_GetGeoSize() does the actual saving work.
+///
+///         Also note that this call to ::HAPI_SaveGeoToMemory will delete
+///         the internal geo buffer that was cached in the previous call
+///         to ::HAPI_GetGeoSize(). This means that you will need to call
+///         ::HAPI_GetGeoSize() again before you can call this function.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     buffer
+///                 The buffer we will write into.
+///
+/// @param[in]      length
+///                 The size of the buffer passed in.
+///
+HAPI_DECL HAPI_SaveGeoToMemoryOnNode( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      char * buffer,
+                                      int length );
+
+/// @brief  Loads a geometry from memory and put its
+///         contents onto a SOP node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      format
+///                 The file format, ie. "obj", "bgeo" etc.
+///
+/// @param[in]      buffer
+///                 The buffer we will read the geometry from.
+///
+/// @param[in]      length
+///                 The size of the buffer passed in.
+///
+HAPI_DECL HAPI_LoadGeoFromMemoryOnNode( const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        const char * format,
+                                        const char * buffer,
+                                        int length );
+
+/// @brief  Saves a geometry to file.  The type of file to save is
+///         to be determined by the extension ie. .bgeo, .obj
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
 /// @param[in]      asset_id
 ///                 The asset id.
 ///
