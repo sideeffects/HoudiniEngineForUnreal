@@ -243,6 +243,9 @@ FHoudiniApi::GetFaceCountsOnNode = &FHoudiniApi::GetFaceCountsOnNodeEmptyStub;
 FHoudiniApi::GetFirstVolumeTileFuncPtr
 FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
 
+FHoudiniApi::GetFirstVolumeTileOnNodeFuncPtr
+FHoudiniApi::GetFirstVolumeTileOnNode = &FHoudiniApi::GetFirstVolumeTileOnNodeEmptyStub;
+
 FHoudiniApi::GetGeoInfoFuncPtr
 FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
 
@@ -320,6 +323,9 @@ FHoudiniApi::GetNewAssetIds = &FHoudiniApi::GetNewAssetIdsEmptyStub;
 
 FHoudiniApi::GetNextVolumeTileFuncPtr
 FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
+
+FHoudiniApi::GetNextVolumeTileOnNodeFuncPtr
+FHoudiniApi::GetNextVolumeTileOnNode = &FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub;
 
 FHoudiniApi::GetNodeInfoFuncPtr
 FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
@@ -432,17 +438,32 @@ FHoudiniApi::GetVertexListOnNode = &FHoudiniApi::GetVertexListOnNodeEmptyStub;
 FHoudiniApi::GetVolumeInfoFuncPtr
 FHoudiniApi::GetVolumeInfo = &FHoudiniApi::GetVolumeInfoEmptyStub;
 
+FHoudiniApi::GetVolumeInfoOnNodeFuncPtr
+FHoudiniApi::GetVolumeInfoOnNode = &FHoudiniApi::GetVolumeInfoOnNodeEmptyStub;
+
 FHoudiniApi::GetVolumeTileFloatDataFuncPtr
 FHoudiniApi::GetVolumeTileFloatData = &FHoudiniApi::GetVolumeTileFloatDataEmptyStub;
+
+FHoudiniApi::GetVolumeTileFloatDataOnNodeFuncPtr
+FHoudiniApi::GetVolumeTileFloatDataOnNode = &FHoudiniApi::GetVolumeTileFloatDataOnNodeEmptyStub;
 
 FHoudiniApi::GetVolumeTileIntDataFuncPtr
 FHoudiniApi::GetVolumeTileIntData = &FHoudiniApi::GetVolumeTileIntDataEmptyStub;
 
+FHoudiniApi::GetVolumeTileIntDataOnNodeFuncPtr
+FHoudiniApi::GetVolumeTileIntDataOnNode = &FHoudiniApi::GetVolumeTileIntDataOnNodeEmptyStub;
+
 FHoudiniApi::GetVolumeVoxelFloatDataFuncPtr
 FHoudiniApi::GetVolumeVoxelFloatData = &FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub;
 
+FHoudiniApi::GetVolumeVoxelFloatDataOnNodeFuncPtr
+FHoudiniApi::GetVolumeVoxelFloatDataOnNode = &FHoudiniApi::GetVolumeVoxelFloatDataOnNodeEmptyStub;
+
 FHoudiniApi::GetVolumeVoxelIntDataFuncPtr
 FHoudiniApi::GetVolumeVoxelIntData = &FHoudiniApi::GetVolumeVoxelIntDataEmptyStub;
+
+FHoudiniApi::GetVolumeVoxelIntDataOnNodeFuncPtr
+FHoudiniApi::GetVolumeVoxelIntDataOnNode = &FHoudiniApi::GetVolumeVoxelIntDataOnNodeEmptyStub;
 
 FHoudiniApi::InitializeFuncPtr
 FHoudiniApi::Initialize = &FHoudiniApi::InitializeEmptyStub;
@@ -636,11 +657,20 @@ FHoudiniApi::SetVertexListOnNode = &FHoudiniApi::SetVertexListOnNodeEmptyStub;
 FHoudiniApi::SetVolumeInfoFuncPtr
 FHoudiniApi::SetVolumeInfo = &FHoudiniApi::SetVolumeInfoEmptyStub;
 
+FHoudiniApi::SetVolumeInfoOnNodeFuncPtr
+FHoudiniApi::SetVolumeInfoOnNode = &FHoudiniApi::SetVolumeInfoOnNodeEmptyStub;
+
 FHoudiniApi::SetVolumeTileFloatDataFuncPtr
 FHoudiniApi::SetVolumeTileFloatData = &FHoudiniApi::SetVolumeTileFloatDataEmptyStub;
 
+FHoudiniApi::SetVolumeTileFloatDataOnNodeFuncPtr
+FHoudiniApi::SetVolumeTileFloatDataOnNode = &FHoudiniApi::SetVolumeTileFloatDataOnNodeEmptyStub;
+
 FHoudiniApi::SetVolumeTileIntDataFuncPtr
 FHoudiniApi::SetVolumeTileIntData = &FHoudiniApi::SetVolumeTileIntDataEmptyStub;
+
+FHoudiniApi::SetVolumeTileIntDataOnNodeFuncPtr
+FHoudiniApi::SetVolumeTileIntDataOnNode = &FHoudiniApi::SetVolumeTileIntDataOnNodeEmptyStub;
 
 FHoudiniApi::StartThriftNamedPipeServerFuncPtr
 FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServerEmptyStub;
@@ -729,6 +759,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetFaceCounts = (GetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCounts"));
 	FHoudiniApi::GetFaceCountsOnNode = (GetFaceCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCountsOnNode"));
 	FHoudiniApi::GetFirstVolumeTile = (GetFirstVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTile"));
+	FHoudiniApi::GetFirstVolumeTileOnNode = (GetFirstVolumeTileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTileOnNode"));
 	FHoudiniApi::GetGeoInfo = (GetGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfo"));
 	FHoudiniApi::GetGeoInfoOnNode = (GetGeoInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfoOnNode"));
 	FHoudiniApi::GetGeoSize = (GetGeoSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSize"));
@@ -755,6 +786,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetMaterialOnPart = (GetMaterialOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPart"));
 	FHoudiniApi::GetNewAssetIds = (GetNewAssetIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNewAssetIds"));
 	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
+	FHoudiniApi::GetNextVolumeTileOnNode = (GetNextVolumeTileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTileOnNode"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
 	FHoudiniApi::GetObjectInfo = (GetObjectInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectInfo"));
 	FHoudiniApi::GetObjectTransform = (GetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransform"));
@@ -792,10 +824,15 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetVertexList = (GetVertexListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVertexList"));
 	FHoudiniApi::GetVertexListOnNode = (GetVertexListOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVertexListOnNode"));
 	FHoudiniApi::GetVolumeInfo = (GetVolumeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeInfo"));
+	FHoudiniApi::GetVolumeInfoOnNode = (GetVolumeInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeInfoOnNode"));
 	FHoudiniApi::GetVolumeTileFloatData = (GetVolumeTileFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileFloatData"));
+	FHoudiniApi::GetVolumeTileFloatDataOnNode = (GetVolumeTileFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileFloatDataOnNode"));
 	FHoudiniApi::GetVolumeTileIntData = (GetVolumeTileIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileIntData"));
+	FHoudiniApi::GetVolumeTileIntDataOnNode = (GetVolumeTileIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileIntDataOnNode"));
 	FHoudiniApi::GetVolumeVoxelFloatData = (GetVolumeVoxelFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelFloatData"));
+	FHoudiniApi::GetVolumeVoxelFloatDataOnNode = (GetVolumeVoxelFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelFloatDataOnNode"));
 	FHoudiniApi::GetVolumeVoxelIntData = (GetVolumeVoxelIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelIntData"));
+	FHoudiniApi::GetVolumeVoxelIntDataOnNode = (GetVolumeVoxelIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelIntDataOnNode"));
 	FHoudiniApi::Initialize = (InitializeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Initialize"));
 	FHoudiniApi::InsertMultiparmInstance = (InsertMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_InsertMultiparmInstance"));
 	FHoudiniApi::InstantiateAsset = (InstantiateAssetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_InstantiateAsset"));
@@ -860,8 +897,11 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::SetVertexList = (SetVertexListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVertexList"));
 	FHoudiniApi::SetVertexListOnNode = (SetVertexListOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVertexListOnNode"));
 	FHoudiniApi::SetVolumeInfo = (SetVolumeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeInfo"));
+	FHoudiniApi::SetVolumeInfoOnNode = (SetVolumeInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeInfoOnNode"));
 	FHoudiniApi::SetVolumeTileFloatData = (SetVolumeTileFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileFloatData"));
+	FHoudiniApi::SetVolumeTileFloatDataOnNode = (SetVolumeTileFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileFloatDataOnNode"));
 	FHoudiniApi::SetVolumeTileIntData = (SetVolumeTileIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileIntData"));
+	FHoudiniApi::SetVolumeTileIntDataOnNode = (SetVolumeTileIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileIntDataOnNode"));
 	FHoudiniApi::StartThriftNamedPipeServer = (StartThriftNamedPipeServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftNamedPipeServer"));
 	FHoudiniApi::StartThriftSocketServer = (StartThriftSocketServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftSocketServer"));
 }
@@ -945,6 +985,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetFaceCounts = &FHoudiniApi::GetFaceCountsEmptyStub;
 	FHoudiniApi::GetFaceCountsOnNode = &FHoudiniApi::GetFaceCountsOnNodeEmptyStub;
 	FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
+	FHoudiniApi::GetFirstVolumeTileOnNode = &FHoudiniApi::GetFirstVolumeTileOnNodeEmptyStub;
 	FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
 	FHoudiniApi::GetGeoInfoOnNode = &FHoudiniApi::GetGeoInfoOnNodeEmptyStub;
 	FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
@@ -971,6 +1012,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetMaterialOnPart = &FHoudiniApi::GetMaterialOnPartEmptyStub;
 	FHoudiniApi::GetNewAssetIds = &FHoudiniApi::GetNewAssetIdsEmptyStub;
 	FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
+	FHoudiniApi::GetNextVolumeTileOnNode = &FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub;
 	FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
 	FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
 	FHoudiniApi::GetObjectTransform = &FHoudiniApi::GetObjectTransformEmptyStub;
@@ -1008,10 +1050,15 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetVertexList = &FHoudiniApi::GetVertexListEmptyStub;
 	FHoudiniApi::GetVertexListOnNode = &FHoudiniApi::GetVertexListOnNodeEmptyStub;
 	FHoudiniApi::GetVolumeInfo = &FHoudiniApi::GetVolumeInfoEmptyStub;
+	FHoudiniApi::GetVolumeInfoOnNode = &FHoudiniApi::GetVolumeInfoOnNodeEmptyStub;
 	FHoudiniApi::GetVolumeTileFloatData = &FHoudiniApi::GetVolumeTileFloatDataEmptyStub;
+	FHoudiniApi::GetVolumeTileFloatDataOnNode = &FHoudiniApi::GetVolumeTileFloatDataOnNodeEmptyStub;
 	FHoudiniApi::GetVolumeTileIntData = &FHoudiniApi::GetVolumeTileIntDataEmptyStub;
+	FHoudiniApi::GetVolumeTileIntDataOnNode = &FHoudiniApi::GetVolumeTileIntDataOnNodeEmptyStub;
 	FHoudiniApi::GetVolumeVoxelFloatData = &FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub;
+	FHoudiniApi::GetVolumeVoxelFloatDataOnNode = &FHoudiniApi::GetVolumeVoxelFloatDataOnNodeEmptyStub;
 	FHoudiniApi::GetVolumeVoxelIntData = &FHoudiniApi::GetVolumeVoxelIntDataEmptyStub;
+	FHoudiniApi::GetVolumeVoxelIntDataOnNode = &FHoudiniApi::GetVolumeVoxelIntDataOnNodeEmptyStub;
 	FHoudiniApi::Initialize = &FHoudiniApi::InitializeEmptyStub;
 	FHoudiniApi::InsertMultiparmInstance = &FHoudiniApi::InsertMultiparmInstanceEmptyStub;
 	FHoudiniApi::InstantiateAsset = &FHoudiniApi::InstantiateAssetEmptyStub;
@@ -1076,8 +1123,11 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::SetVertexList = &FHoudiniApi::SetVertexListEmptyStub;
 	FHoudiniApi::SetVertexListOnNode = &FHoudiniApi::SetVertexListOnNodeEmptyStub;
 	FHoudiniApi::SetVolumeInfo = &FHoudiniApi::SetVolumeInfoEmptyStub;
+	FHoudiniApi::SetVolumeInfoOnNode = &FHoudiniApi::SetVolumeInfoOnNodeEmptyStub;
 	FHoudiniApi::SetVolumeTileFloatData = &FHoudiniApi::SetVolumeTileFloatDataEmptyStub;
+	FHoudiniApi::SetVolumeTileFloatDataOnNode = &FHoudiniApi::SetVolumeTileFloatDataOnNodeEmptyStub;
 	FHoudiniApi::SetVolumeTileIntData = &FHoudiniApi::SetVolumeTileIntDataEmptyStub;
+	FHoudiniApi::SetVolumeTileIntDataOnNode = &FHoudiniApi::SetVolumeTileIntDataOnNodeEmptyStub;
 	FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServerEmptyStub;
 	FHoudiniApi::StartThriftSocketServer = &FHoudiniApi::StartThriftSocketServerEmptyStub;
 }
@@ -1616,6 +1666,13 @@ FHoudiniApi::GetFirstVolumeTileEmptyStub(const HAPI_Session * session, HAPI_Asse
 
 
 HAPI_Result
+FHoudiniApi::GetFirstVolumeTileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GeoInfo * geo_info)
 {
 	return HAPI_RESULT_FAILURE;
@@ -1792,6 +1849,13 @@ FHoudiniApi::GetNewAssetIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId 
 
 HAPI_Result
 FHoudiniApi::GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2057,7 +2121,21 @@ FHoudiniApi::GetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId a
 
 
 HAPI_Result
+FHoudiniApi::GetVolumeInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeInfo * volume_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetVolumeTileFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2071,6 +2149,13 @@ FHoudiniApi::GetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_As
 
 
 HAPI_Result
+FHoudiniApi::GetVolumeTileIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int fill_value, const HAPI_VolumeTileInfo * tile, int * values_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2078,7 +2163,21 @@ FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub(const HAPI_Session * session, HAPI
 
 
 HAPI_Result
+FHoudiniApi::GetVolumeVoxelFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetVolumeVoxelIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetVolumeVoxelIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2533,6 +2632,13 @@ FHoudiniApi::SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId a
 
 
 HAPI_Result
+FHoudiniApi::SetVolumeInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeInfo * volume_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2540,7 +2646,21 @@ FHoudiniApi::SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_
 
 
 HAPI_Result
+FHoudiniApi::SetVolumeTileFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::SetVolumeTileIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
