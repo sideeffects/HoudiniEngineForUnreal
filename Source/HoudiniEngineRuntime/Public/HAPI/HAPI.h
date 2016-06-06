@@ -6341,6 +6341,238 @@ HAPI_DECL HAPI_SetVolumeTileIntData( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     info
+///                 The curve info represents the meta-data about
+///                 the curves, including the type, order,
+///                 and periodicity.
+///
+HAPI_DECL HAPI_GetCurveInfoOnNode( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_PartId part_id,
+                                   HAPI_CurveInfo * info );
+
+/// @brief  Retrieve the number of vertices for each curve in the part.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     counts_array
+///                 The number of cvs each curve contains
+///
+/// @param[in]      start
+///                 The index of the first curve.
+///
+/// @param[in]      length
+///                 The number of curves' counts to retrieve.
+///
+HAPI_DECL HAPI_GetCurveCountsOnNode( const HAPI_Session * session,
+                                     HAPI_NodeId node_id,
+                                     HAPI_PartId part_id,
+                                     int * counts_array,
+                                     int start, int length );
+
+/// @brief  Retrieve the orders for each curve in the part if the
+///         curve has varying order.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     orders_array
+///                 The order of each curve will be returned in this
+///                 array.
+///
+/// @param[in]      start
+///                 The index of the first curve.
+///
+/// @param[in]      length
+///                 The number of curves' orders to retrieve.
+///
+HAPI_DECL HAPI_GetCurveOrdersOnNode( const HAPI_Session * session,
+                                     HAPI_NodeId node_id,
+                                     HAPI_PartId part_id,
+                                     int * orders_array,
+                                     int start, int length );
+
+/// @brief  Retrieve the knots of the curves in this part.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     knots_array
+///                 The knots of each curve will be returned in this
+///                 array.
+///
+/// @param[in]      start
+///                 The index of the first curve.
+///
+/// @param[in]      length
+///                 The number of curves' knots to retrieve. The
+///                 length of all the knots on a single curve is
+///                 the order of that curve plus the number of
+///                 vertices (see ::HAPI_GetCurveOrders(),
+///                 and ::HAPI_GetCurveCounts()).
+///
+HAPI_DECL HAPI_GetCurveKnotsOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    float * knots_array,
+                                    int start, int length );
+
+/// @brief  Set meta-data for the curve mesh, including the
+///         curve type, order, and periodicity.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      info
+///                 The curve info represents the meta-data about
+///                 the curves, including the type, order,
+///                 and periodicity.
+///
+HAPI_DECL HAPI_SetCurveInfoOnNode( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_PartId part_id,
+                                   const HAPI_CurveInfo * info );
+
+/// @brief  Set the number of vertices for each curve in the part.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      counts_array
+///                 The number of cvs each curve contains.
+///
+/// @param[in]      start
+///                 The index of the first curve.
+///
+/// @param[in]      length
+///                 The number of curves' counts to set.
+///
+HAPI_DECL HAPI_SetCurveCountsOnNode( const HAPI_Session * session,
+                                     HAPI_NodeId node_id,
+                                     HAPI_PartId part_id,
+                                     const int * counts_array,
+                                     int start, int length );
+
+/// @brief  Set the orders for each curve in the part if the
+///         curve has varying order.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      orders_array
+///                 The orders of each curve.
+///
+/// @param[in]      start
+///                 The index of the first curve.
+///
+/// @param[in]      length
+///                 The number of curves' orders to retrieve.
+///
+HAPI_DECL HAPI_SetCurveOrdersOnNode( const HAPI_Session * session,
+                                     HAPI_NodeId node_id,
+                                     HAPI_PartId part_id,
+                                     const int * orders_array,
+                                     int start, int length );
+
+/// @brief  Set the knots of the curves in this part.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 Currently unused. Input asset geos are assumed
+///                 to have only one part.
+///
+/// @param[in]      knots_array
+///                 The knots of each curve.
+///
+/// @param[in]      start
+///                 The index of the first curve.
+///
+/// @param[in]      length
+///                 The number of curves' knots to set. The
+///                 length of all the knots on a single curve is
+///                 the order of that curve plus the number of
+///                 vertices (see ::HAPI_SetCurveOrders(),
+///                 and ::HAPI_SetCurveCounts()).
+///
+HAPI_DECL HAPI_SetCurveKnotsOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    const float * knots_array,
+                                    int start, int length );
+
+/// @brief  Retrieve any meta-data about the curves, including the
+///         curve's type, order, and periodicity.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
 /// @param[in]      asset_id
 ///                 The asset id.
 ///
