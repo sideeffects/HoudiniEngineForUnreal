@@ -901,6 +901,20 @@ struct HAPI_API HAPI_CookOptions
     /// Decide whether to recursively cook all templated geos or not.
     HAPI_Bool cookTemplatedGeos;
 
+    /// Decide whether to split points by vertex attributes. This takes
+    /// all vertex attributes and tries to copy them to their respective
+    /// points. If two vertices have any difference in their attribute values,
+    /// the corresponding point is split into two points. This is repeated
+    /// until all the vertex attributes have been copied to the points.
+    ///
+    /// With this option enabled, you can reduce the total number of vertices
+    /// on a game engine side as sharing of attributes (like UVs) is optimized.
+    /// To make full use of this feature, you have to think of Houdini points
+    /// as game engine vertices (sharable). With this option OFF (or before
+    /// this feature existed) you had to map Houdini vertices to game engine
+    /// vertices, to make sure all attribute values are accounted for.
+    HAPI_Bool splitPointsByVertexAttributes;
+
     /// Choose how you want the cook to handle packed primitives.
     /// The default is: ::HAPI_PACKEDPRIM_INSTANCING_MODE_DISABLED
     HAPI_PackedPrimInstancingMode packedPrimInstancingMode;

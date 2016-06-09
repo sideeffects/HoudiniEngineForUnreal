@@ -2020,6 +2020,33 @@ HAPI_DECL HAPI_GetParmNodeValue( const HAPI_Session * session,
                                  const char * parm_name,
                                  HAPI_NodeId * value );
 
+/// @brief  Extract a file specified by path on a parameter. This will copy
+///         the file to the destination directory from wherever it might be,
+///         inlcuding inside the asset definition or online.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_name
+///                 The name of the parameter.
+///
+/// @param[in]      destination_directory
+///                 The destination directory to copy the file to.
+///
+/// @param[in]      destination_file_name
+///                 The destination file name.
+///
+HAPI_DECL HAPI_GetParmFile( const HAPI_Session * session,
+                            HAPI_NodeId node_id,
+                            const char * parm_name,
+                            const char * destination_directory,
+                            const char * destination_file_name );
+
 /// @brief  Fill an array of ::HAPI_ParmChoiceInfo structs with parameter
 ///         choice list information from the asset instance node.
 ///
