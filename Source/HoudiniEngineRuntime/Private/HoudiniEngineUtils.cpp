@@ -6927,9 +6927,13 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 	if(HoudiniRuntimeSettings && HoudiniRuntimeSettings->bUseCustomHoudiniLocation)
 	{
 		// Create full path to libHAPI binary.
-		const FString& CustomHoudiniLocationPath = HoudiniRuntimeSettings->CustomHoudiniLocation.Path;
+		FString CustomHoudiniLocationPath = HoudiniRuntimeSettings->CustomHoudiniLocation.Path;
 		if(!CustomHoudiniLocationPath.IsEmpty())
 		{
+                        // Convert path to absolute if it is relative.
+                        if ( FPaths::IsRelative( CustomHoudiniLocationPath ) )
+                            CustomHoudiniLocationPath = FPaths::ConvertRelativePathToFull( CustomHoudiniLocationPath );
+
 			FString LibHAPICustomPath = FString::Printf(TEXT("%s/%s"), *CustomHoudiniLocationPath,
 				*LibHAPIName);
 
