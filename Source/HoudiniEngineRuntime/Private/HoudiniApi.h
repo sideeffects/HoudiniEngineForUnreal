@@ -143,6 +143,7 @@ public:
 	typedef HAPI_Result (*GetObjectsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos_array, int start, int length);
 	typedef HAPI_Result (*GetParametersFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	typedef HAPI_Result (*GetParmChoiceListsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length);
+	typedef HAPI_Result (*GetParmFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, const char * destination_directory, const char * destination_file_name);
 	typedef HAPI_Result (*GetParmFloatValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float * value);
 	typedef HAPI_Result (*GetParmFloatValuesFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, float * values_array, int start, int length);
 	typedef HAPI_Result (*GetParmIdFromNameFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmId * parm_id);
@@ -379,6 +380,7 @@ public:
 	static GetObjectsFuncPtr GetObjects;
 	static GetParametersFuncPtr GetParameters;
 	static GetParmChoiceListsFuncPtr GetParmChoiceLists;
+	static GetParmFileFuncPtr GetParmFile;
 	static GetParmFloatValueFuncPtr GetParmFloatValue;
 	static GetParmFloatValuesFuncPtr GetParmFloatValues;
 	static GetParmIdFromNameFuncPtr GetParmIdFromName;
@@ -615,6 +617,7 @@ public:
 	static HAPI_Result GetObjectsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectInfo * object_infos_array, int start, int length);
 	static HAPI_Result GetParametersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmInfo * parm_infos_array, int start, int length);
 	static HAPI_Result GetParmChoiceListsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length);
+	static HAPI_Result GetParmFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, const char * destination_directory, const char * destination_file_name);
 	static HAPI_Result GetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float * value);
 	static HAPI_Result GetParmFloatValuesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, float * values_array, int start, int length);
 	static HAPI_Result GetParmIdFromNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, HAPI_ParmId * parm_id);

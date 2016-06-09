@@ -363,6 +363,9 @@ FHoudiniApi::GetParameters = &FHoudiniApi::GetParametersEmptyStub;
 FHoudiniApi::GetParmChoiceListsFuncPtr
 FHoudiniApi::GetParmChoiceLists = &FHoudiniApi::GetParmChoiceListsEmptyStub;
 
+FHoudiniApi::GetParmFileFuncPtr
+FHoudiniApi::GetParmFile = &FHoudiniApi::GetParmFileEmptyStub;
+
 FHoudiniApi::GetParmFloatValueFuncPtr
 FHoudiniApi::GetParmFloatValue = &FHoudiniApi::GetParmFloatValueEmptyStub;
 
@@ -838,6 +841,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetObjects = (GetObjectsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjects"));
 	FHoudiniApi::GetParameters = (GetParametersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParameters"));
 	FHoudiniApi::GetParmChoiceLists = (GetParmChoiceListsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmChoiceLists"));
+	FHoudiniApi::GetParmFile = (GetParmFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmFile"));
 	FHoudiniApi::GetParmFloatValue = (GetParmFloatValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmFloatValue"));
 	FHoudiniApi::GetParmFloatValues = (GetParmFloatValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmFloatValues"));
 	FHoudiniApi::GetParmIdFromName = (GetParmIdFromNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmIdFromName"));
@@ -1077,6 +1081,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetObjects = &FHoudiniApi::GetObjectsEmptyStub;
 	FHoudiniApi::GetParameters = &FHoudiniApi::GetParametersEmptyStub;
 	FHoudiniApi::GetParmChoiceLists = &FHoudiniApi::GetParmChoiceListsEmptyStub;
+	FHoudiniApi::GetParmFile = &FHoudiniApi::GetParmFileEmptyStub;
 	FHoudiniApi::GetParmFloatValue = &FHoudiniApi::GetParmFloatValueEmptyStub;
 	FHoudiniApi::GetParmFloatValues = &FHoudiniApi::GetParmFloatValuesEmptyStub;
 	FHoudiniApi::GetParmIdFromName = &FHoudiniApi::GetParmIdFromNameEmptyStub;
@@ -2005,6 +2010,13 @@ FHoudiniApi::GetParametersEmptyStub(const HAPI_Session * session, HAPI_NodeId no
 
 HAPI_Result
 FHoudiniApi::GetParmChoiceListsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmChoiceInfo *parm_choices_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetParmFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, const char * destination_directory, const char * destination_file_name)
 {
 	return HAPI_RESULT_FAILURE;
 }
