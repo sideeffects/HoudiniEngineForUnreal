@@ -20,41 +20,41 @@
 
 namespace EHoudiniEngineTaskState
 {
-	enum Type
-	{
-		None,
+    enum Type
+    {
+        None,
 
-		Processing,
-		FinishedInstantiation,
-		FinishedInstantiationWithErrors,
-		FinishedCooking,
-		FinishedCookingWithErrors,
-		Aborted
-	};
+        Processing,
+        FinishedInstantiation,
+        FinishedInstantiationWithErrors,
+        FinishedCooking,
+        FinishedCookingWithErrors,
+        Aborted
+    };
 }
 
 struct FHoudiniEngineTaskInfo
 {
-	/** Constructors. **/
-	FHoudiniEngineTaskInfo();
-	FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetId InAssetId, EHoudiniEngineTaskType::Type InTaskType,
-		EHoudiniEngineTaskState::Type InTaskState);
+    /** Constructors. **/
+    FHoudiniEngineTaskInfo();
+    FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetId InAssetId, EHoudiniEngineTaskType::Type InTaskType,
+        EHoudiniEngineTaskState::Type InTaskState);
 
-	/** Current HAPI result. **/
-	HAPI_Result Result;
+    /** Current HAPI result. **/
+    HAPI_Result Result;
 
-	/** Current Asset Id. **/
-	HAPI_AssetId AssetId;
+    /** Current Asset Id. **/
+    HAPI_AssetId AssetId;
 
-	/** Type of task. **/
-	EHoudiniEngineTaskType::Type TaskType;
+    /** Type of task. **/
+    EHoudiniEngineTaskType::Type TaskType;
 
-	/** Current status. **/
-	EHoudiniEngineTaskState::Type TaskState;
+    /** Current status. **/
+    EHoudiniEngineTaskState::Type TaskState;
 
-	/** String used for status / progress bar. **/
-	FText StatusText;
+    /** String used for status / progress bar. **/
+    FText StatusText;
 
-	/** Is set to true if corresponding task was issued for loaded component. **/
-	bool bLoadedComponent;
+    /** Is set to true if corresponding task was issued for loaded component. **/
+    bool bLoadedComponent;
 };

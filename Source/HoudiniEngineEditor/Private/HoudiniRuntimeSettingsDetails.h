@@ -20,35 +20,35 @@ class FHoudiniRuntimeSettingsDetails : public IDetailCustomization
 {
 public:
 
-	/** Constructor. **/
-	FHoudiniRuntimeSettingsDetails();
+    /** Constructor. **/
+    FHoudiniRuntimeSettingsDetails();
 
-	/** Destructor. **/
-	virtual ~FHoudiniRuntimeSettingsDetails();
+    /** Destructor. **/
+    virtual ~FHoudiniRuntimeSettingsDetails();
 
 /** IDetailCustomization methods. **/
 public:
 
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
+    virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
 public:
 
-	/** Create an instance of this detail layout class. **/
-	static TSharedRef<IDetailCustomization> MakeInstance();
+    /** Create an instance of this detail layout class. **/
+    static TSharedRef<IDetailCustomization> MakeInstance();
 
 protected:
 
-	/** Used to create Houdini version entry. **/
-	void CreateHoudiniEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
-		int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, int32 VersionPatch);
+    /** Used to create Houdini version entry. **/
+    void CreateHoudiniEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
+        int32 VersionMajor, int32 VersionMinor, int32 VersionBuild, int32 VersionPatch);
 
-	/** Used to create Houdini Engine version entry. **/
-	void CreateHoudiniEngineEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
-		int32 VersionMajor, int32 VersionMinor, int32 VersionApi);
+    /** Used to create Houdini Engine version entry. **/
+    void CreateHoudiniEngineEntry(const FText& EntryName, IDetailCategoryBuilder& DetailCategoryBuilder,
+        int32 VersionMajor, int32 VersionMinor, int32 VersionApi);
 
-	/** Used to create libHAPI dynamic library path entry. **/
-	void CreateHAPILibraryPathEntry(const FString& LibHAPIPath, IDetailCategoryBuilder& DetailCategoryBuilder);
+    /** Used to create libHAPI dynamic library path entry. **/
+    void CreateHAPILibraryPathEntry(const FString& LibHAPIPath, IDetailCategoryBuilder& DetailCategoryBuilder);
 
-	/** Used to create libHAPI license information entry. **/
-	void CreateHAPILicenseEntry(const FString& LibHAPILicense, IDetailCategoryBuilder& DetailCategoryBuilder);
+    /** Used to create libHAPI license information entry. **/
+    void CreateHAPILicenseEntry(const FString& LibHAPILicense, IDetailCategoryBuilder& DetailCategoryBuilder);
 };

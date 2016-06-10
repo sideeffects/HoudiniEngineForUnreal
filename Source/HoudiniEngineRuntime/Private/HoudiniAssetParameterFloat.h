@@ -21,78 +21,78 @@
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFloat : public UHoudiniAssetParameter
 {
-	GENERATED_UCLASS_BODY()
+    GENERATED_UCLASS_BODY()
 
 public:
 
-	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterFloat();
+    /** Destructor. **/
+    virtual ~UHoudiniAssetParameterFloat();
 
 public:
 
-	/** Create instance of this class. **/
-	static UHoudiniAssetParameterFloat* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+    /** Create instance of this class. **/
+    static UHoudiniAssetParameterFloat* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
-	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+    /** Create this parameter from HAPI information. **/
+    virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
+        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
 
 #if WITH_EDITOR
 
-	/** Create widget for this parameter and add it to a given category. **/
-	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
+    /** Create widget for this parameter and add it to a given category. **/
+    virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
 #endif
 
-	/** Upload parameter value to HAPI. **/
-	virtual bool UploadParameterValue() override;
+    /** Upload parameter value to HAPI. **/
+    virtual bool UploadParameterValue() override;
 
-	/** Set parameter value. **/
-	virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
-		bool bRecordUndo = true) override;
+    /** Set parameter value. **/
+    virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
+        bool bRecordUndo = true) override;
 
 /** UObject methods. **/
 public:
 
-	virtual void Serialize(FArchive& Ar) override;
+    virtual void Serialize(FArchive& Ar) override;
 
 public:
 
-	/** Get value of this property, used by Slate. **/
-	TOptional<float> GetValue(int32 Idx) const;
+    /** Get value of this property, used by Slate. **/
+    TOptional<float> GetValue(int32 Idx) const;
 
-	/** Set value of this property, used by Slate. **/
-	void SetValue(float InValue, int32 Idx, bool bTriggerModify = true, bool bRecordUndo = true);
+    /** Set value of this property, used by Slate. **/
+    void SetValue(float InValue, int32 Idx, bool bTriggerModify = true, bool bRecordUndo = true);
 
-	/** Return value of this property with optional fallback. **/
-	float GetParameterValue(int32 Idx, float DefaultValue) const;
+    /** Return value of this property with optional fallback. **/
+    float GetParameterValue(int32 Idx, float DefaultValue) const;
 
 #if WITH_EDITOR
 
-	/** Set value of this property through commit action, used by Slate. **/
-	void SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx);
+    /** Set value of this property through commit action, used by Slate. **/
+    void SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx);
 
-	/** Delegate fired when slider for this property begins moving. **/
-	void OnSliderMovingBegin(int32 Idx);
+    /** Delegate fired when slider for this property begins moving. **/
+    void OnSliderMovingBegin(int32 Idx);
 
-	/** Delegate fired when slider for this property has finished moving. **/
-	void OnSliderMovingFinish(float InValue, int32 Idx);
+    /** Delegate fired when slider for this property has finished moving. **/
+    void OnSliderMovingFinish(float InValue, int32 Idx);
 
 #endif
 
 protected:
 
-	/** Values of this property. **/
-	TArray<float> Values;
+    /** Values of this property. **/
+    TArray<float> Values;
 
-	/** Min and Max values for this property. **/
-	float ValueMin;
-	float ValueMax;
+    /** Min and Max values for this property. **/
+    float ValueMin;
+    float ValueMax;
 
-	/** Min and Max values for UI for this property. **/
-	float ValueUIMin;
-	float ValueUIMax;
+    /** Min and Max values for UI for this property. **/
+    float ValueUIMin;
+    float ValueUIMax;
 };

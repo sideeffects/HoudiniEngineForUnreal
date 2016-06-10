@@ -21,40 +21,40 @@ class UHoudiniAssetComponent;
 UCLASS(hidecategories=(Input), ConversionRoot, meta=(ChildCanTick))
 class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+    GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly,
-		meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
-	UHoudiniAssetComponent* HoudiniAssetComponent;
+    UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly,
+        meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniAsset"))
+    UHoudiniAssetComponent* HoudiniAssetComponent;
 
 public:
 
-	/** Return true if this actor is used for preview. **/
-	bool IsUsedForPreview() const;
+    /** Return true if this actor is used for preview. **/
+    bool IsUsedForPreview() const;
 
-	/** Return actor component. **/
-	UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
+    /** Return actor component. **/
+    UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
 
-	/** Reset actor's playtime. This time is used to set time and cook when in playmode. **/
-	void ResetHoudiniCurrentPlaytime();
+    /** Reset actor's playtime. This time is used to set time and cook when in playmode. **/
+    void ResetHoudiniCurrentPlaytime();
 
-	/** Return actor's playtime. **/
-	float GetHoudiniCurrentPlaytime() const;
+    /** Return actor's playtime. **/
+    float GetHoudiniCurrentPlaytime() const;
 
 /** AActor methods. **/
 public:
 
-	virtual void Tick(float DeltaSeconds) override;
+    virtual void Tick(float DeltaSeconds) override;
 
 #if WITH_EDITOR
 
-	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
-	virtual bool ShouldExport() override;
+    virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
+    virtual bool ShouldExport() override;
 
 #endif
 
 protected:
 
-	/** Used to track current playtime. **/
-	float CurrentPlayTime;
+    /** Used to track current playtime. **/
+    float CurrentPlayTime;
 };

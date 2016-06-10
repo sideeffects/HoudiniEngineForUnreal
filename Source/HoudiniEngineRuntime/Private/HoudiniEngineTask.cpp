@@ -20,25 +20,25 @@
 
 
 FHoudiniEngineTask::FHoudiniEngineTask() :
-	TaskType(EHoudiniEngineTaskType::None),
-	ActorName(TEXT("")),
-	AssetId(-1),
-	AssetLibraryId(-1),
-	AssetHapiName(-1),
-	bLoadedComponent(false)
+    TaskType(EHoudiniEngineTaskType::None),
+    ActorName(TEXT("")),
+    AssetId(-1),
+    AssetLibraryId(-1),
+    AssetHapiName(-1),
+    bLoadedComponent(false)
 {
-	HapiGUID.Invalidate();
+    HapiGUID.Invalidate();
 }
 
 
 FHoudiniEngineTask::FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID) :
-	HapiGUID(InHapiGUID),
-	TaskType(InTaskType),
-	ActorName(TEXT("")),
-	AssetId(-1),
-	AssetLibraryId(-1),
-	AssetHapiName(-1),
-	bLoadedComponent(false)
+    HapiGUID(InHapiGUID),
+    TaskType(InTaskType),
+    ActorName(TEXT("")),
+    AssetId(-1),
+    AssetLibraryId(-1),
+    AssetHapiName(-1),
+    bLoadedComponent(false)
 {
 
 }

@@ -20,7 +20,7 @@
 
 
 UHoudiniAssetParameterFolder::UHoudiniAssetParameterFolder(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer)
+    Super(ObjectInitializer)
 {
 
 }
@@ -34,46 +34,46 @@ UHoudiniAssetParameterFolder::~UHoudiniAssetParameterFolder()
 
 UHoudiniAssetParameterFolder*
 UHoudiniAssetParameterFolder::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	UObject* Outer = InHoudiniAssetComponent;
-	if(!Outer)
-	{
-		Outer = InParentParameter;
-		if(!Outer)
-		{
-			// Must have either component or parent not null.
-			check(false);
-		}
-	}
+    UObject* Outer = InHoudiniAssetComponent;
+    if(!Outer)
+    {
+        Outer = InParentParameter;
+        if(!Outer)
+        {
+            // Must have either component or parent not null.
+            check(false);
+        }
+    }
 
-	UHoudiniAssetParameterFolder* HoudiniAssetParameterFolder = NewObject<UHoudiniAssetParameterFolder>(Outer,
-		UHoudiniAssetParameterFolder::StaticClass(), NAME_None, RF_Public | RF_Transactional);
+    UHoudiniAssetParameterFolder* HoudiniAssetParameterFolder = NewObject<UHoudiniAssetParameterFolder>(Outer,
+        UHoudiniAssetParameterFolder::StaticClass(), NAME_None, RF_Public | RF_Transactional);
 
-	HoudiniAssetParameterFolder->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
-	return HoudiniAssetParameterFolder;
+    HoudiniAssetParameterFolder->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
+    return HoudiniAssetParameterFolder;
 }
 
 
 bool
 UHoudiniAssetParameterFolder::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-	UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
 {
-	if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
-	{
-		return false;
-	}
+    if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
+    {
+        return false;
+    }
 
-	// We can only handle folder and folder list types.
-	if(HAPI_PARMTYPE_FOLDER != ParmInfo.type)
-	{
-		return false;
-	}
+    // We can only handle folder and folder list types.
+    if(HAPI_PARMTYPE_FOLDER != ParmInfo.type)
+    {
+        return false;
+    }
 
-	// Assign internal Hapi values index.
-	SetValuesIndex(ParmInfo.intValuesIndex);
+    // Assign internal Hapi values index.
+    SetValuesIndex(ParmInfo.intValuesIndex);
 
-	return true;
+    return true;
 }
 
 
@@ -82,10 +82,10 @@ UHoudiniAssetParameterFolder::CreateParameter(UHoudiniAssetComponent* InHoudiniA
 void
 UHoudiniAssetParameterFolder::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 {
-	if(ParentParameter && ParentParameter->IsActiveChildParameter(this))
-	{
-		Super::CreateWidget(DetailCategoryBuilder);
-	}
+    if(ParentParameter && ParentParameter->IsActiveChildParameter(this))
+    {
+        Super::CreateWidget(DetailCategoryBuilder);
+    }
 }
 
 #endif

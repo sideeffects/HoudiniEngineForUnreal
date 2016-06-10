@@ -18,8 +18,8 @@
 
 
 UHoudiniAssetComponentMaterials::UHoudiniAssetComponentMaterials(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer),
-	HoudiniAssetComponentMaterialsFlagsPacked(0u)
+    Super(ObjectInitializer),
+    HoudiniAssetComponentMaterialsFlagsPacked(0u)
 {
 
 }
@@ -28,55 +28,55 @@ UHoudiniAssetComponentMaterials::UHoudiniAssetComponentMaterials(const FObjectIn
 void
 UHoudiniAssetComponentMaterials::Serialize(FArchive& Ar)
 {
-	// Call base implementation.
-	Super::Serialize(Ar);
+    // Call base implementation.
+    Super::Serialize(Ar);
 
-	Ar << Assignments;
-	Ar << Replacements;
+    Ar << Assignments;
+    Ar << Replacements;
 }
 
 
 void
 UHoudiniAssetComponentMaterials::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
-	UHoudiniAssetComponentMaterials* HoudiniAssetComponentMaterials = Cast<UHoudiniAssetComponentMaterials>(InThis);
-	if(HoudiniAssetComponentMaterials)
-	{
-		// Add references to all cached materials.
-		for(TMap<FString, UMaterial*>::TIterator
-			Iter(HoudiniAssetComponentMaterials->Assignments); Iter; ++Iter)
-		{
-			UMaterial* Material = Iter.Value();
-			Collector.AddReferencedObject(Material, InThis);
-		}
+    UHoudiniAssetComponentMaterials* HoudiniAssetComponentMaterials = Cast<UHoudiniAssetComponentMaterials>(InThis);
+    if(HoudiniAssetComponentMaterials)
+    {
+        // Add references to all cached materials.
+        for(TMap<FString, UMaterial*>::TIterator
+            Iter(HoudiniAssetComponentMaterials->Assignments); Iter; ++Iter)
+        {
+            UMaterial* Material = Iter.Value();
+            Collector.AddReferencedObject(Material, InThis);
+        }
 
-		// Add references for replaced materials.
-		for(TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >::TIterator
-			Iter(HoudiniAssetComponentMaterials->Replacements); Iter; ++Iter)
-		{
-			TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = Iter.Value();
+        // Add references for replaced materials.
+        for(TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> >::TIterator
+            Iter(HoudiniAssetComponentMaterials->Replacements); Iter; ++Iter)
+        {
+            TMap<FString, UMaterialInterface*>& MaterialReplacementsValues = Iter.Value();
 
-			for(TMap<FString, UMaterialInterface*>::TIterator
-				IterInterfaces(MaterialReplacementsValues); IterInterfaces; ++IterInterfaces)
-			{
-				UMaterialInterface* MaterialInterface = IterInterfaces.Value();
-				if(MaterialInterface)
-				{
-					Collector.AddReferencedObject(MaterialInterface, InThis);
-				}
-			}
-		}
-	}
+            for(TMap<FString, UMaterialInterface*>::TIterator
+                IterInterfaces(MaterialReplacementsValues); IterInterfaces; ++IterInterfaces)
+            {
+                UMaterialInterface* MaterialInterface = IterInterfaces.Value();
+                if(MaterialInterface)
+                {
+                    Collector.AddReferencedObject(MaterialInterface, InThis);
+                }
+            }
+        }
+    }
 
-	// Call base implementation.
-	Super::AddReferencedObjects(InThis, Collector);
+    // Call base implementation.
+    Super::AddReferencedObjects(InThis, Collector);
 }
 
 
 void
 UHoudiniAssetComponentMaterials::ResetMaterialInfo()
 {
-	Assignments.Empty();
-	Replacements.Empty();
+    Assignments.Empty();
+    Replacements.Empty();
 }
 

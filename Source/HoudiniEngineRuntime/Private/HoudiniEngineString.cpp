@@ -23,21 +23,21 @@
 
 
 FHoudiniEngineString::FHoudiniEngineString() :
-	StringId(-1)
+    StringId(-1)
 {
 
 }
 
 
 FHoudiniEngineString::FHoudiniEngineString(int32 InStringId) :
-	StringId(InStringId)
+    StringId(InStringId)
 {
 
 }
 
 
 FHoudiniEngineString::FHoudiniEngineString(const FHoudiniEngineString& Other) :
-	StringId(Other.StringId)
+    StringId(Other.StringId)
 {
 
 }
@@ -46,12 +46,12 @@ FHoudiniEngineString::FHoudiniEngineString(const FHoudiniEngineString& Other) :
 FHoudiniEngineString&
 FHoudiniEngineString::operator=(const FHoudiniEngineString& Other)
 {
-	if(this != &Other)
-	{
-		StringId = Other.StringId;
-	}
+    if(this != &Other)
+    {
+        StringId = Other.StringId;
+    }
 
-	return *this;
+    return *this;
 }
 
 
@@ -59,7 +59,7 @@ FHoudiniEngineString::operator=(const FHoudiniEngineString& Other)
 bool
 FHoudiniEngineString::operator==(const FHoudiniEngineString& Other) const
 {
-	return StringId == Other.StringId;
+    return StringId == Other.StringId;
 }
 
 
@@ -67,95 +67,95 @@ FHoudiniEngineString::operator==(const FHoudiniEngineString& Other) const
 bool
 FHoudiniEngineString::operator!=(const FHoudiniEngineString& Other) const
 {
-	return StringId != Other.StringId;
+    return StringId != Other.StringId;
 }
 
 
 int32
 FHoudiniEngineString::GetId() const
 {
-	return StringId;
+    return StringId;
 }
 
 
 bool
 FHoudiniEngineString::HasValidId() const
 {
-	return StringId > 0;
+    return StringId > 0;
 }
 
 
 bool
 FHoudiniEngineString::ToStdString(std::string& String) const
 {
-	String = "";
+    String = "";
 
-	if(StringId >= 0)
-	{
-		int32 NameLength = 0;
-		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetStringBufLength(FHoudiniEngine::Get().GetSession(), StringId,
-			&NameLength))
-		{
-			if(NameLength)
-			{
-				std::vector<char> NameBuffer(NameLength, '\0');
-				if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetString(FHoudiniEngine::Get().GetSession(), StringId,
-					&NameBuffer[0], NameLength))
-				{
-					String = std::string(NameBuffer.begin(), NameBuffer.end());
-					return true;
-				}
-			}
-		}
-	}
+    if(StringId >= 0)
+    {
+        int32 NameLength = 0;
+        if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetStringBufLength(FHoudiniEngine::Get().GetSession(), StringId,
+            &NameLength))
+        {
+            if(NameLength)
+            {
+                std::vector<char> NameBuffer(NameLength, '\0');
+                if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetString(FHoudiniEngine::Get().GetSession(), StringId,
+                    &NameBuffer[0], NameLength))
+                {
+                    String = std::string(NameBuffer.begin(), NameBuffer.end());
+                    return true;
+                }
+            }
+        }
+    }
 
-	return false;
+    return false;
 }
 
 
 bool
 FHoudiniEngineString::ToFName(FName& Name) const
 {
-	Name = NAME_None;
-	FString NameString = TEXT("");
-	if(ToFString(NameString))
-	{
-		Name = FName(*NameString);
-		return true;
-	}
+    Name = NAME_None;
+    FString NameString = TEXT("");
+    if(ToFString(NameString))
+    {
+        Name = FName(*NameString);
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 
 bool
 FHoudiniEngineString::ToFString(FString& String) const
 {
-	String = TEXT("");
-	std::string NamePlain = "";
+    String = TEXT("");
+    std::string NamePlain = "";
 
-	if(ToStdString(NamePlain))
-	{
-		String = UTF8_TO_TCHAR(NamePlain.c_str());
-		return true;
-	}
+    if(ToStdString(NamePlain))
+    {
+        String = UTF8_TO_TCHAR(NamePlain.c_str());
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 
 bool
 FHoudiniEngineString::ToFText(FText& Text) const
 {
-	Text = FText::GetEmpty();
-	FString NameString = TEXT("");
+    Text = FText::GetEmpty();
+    FString NameString = TEXT("");
 
-	if(ToFString(NameString))
-	{
-		Text = FText::FromString(NameString);
-		return true;
-	}
+    if(ToFString(NameString))
+    {
+        Text = FText::FromString(NameString);
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
