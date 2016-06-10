@@ -17,16 +17,16 @@
 
 enum EHoudiniAssetComponentVersion
 {
-	VER_HOUDINI_ENGINE_COMPONENT_BASE = 0,
+    VER_HOUDINI_ENGINE_COMPONENT_BASE = 0,
 
-	// We have to keep dummy flag here for compatibility reasons.
-	VER_HOUDINI_ENGINE_COMPONENT_NOT_USED,
+    // We have to keep dummy flag here for compatibility reasons.
+    VER_HOUDINI_ENGINE_COMPONENT_NOT_USED,
 
-	// Serialization of parameter name map.
-	VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP,
+    // Serialization of parameter name map.
+    VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP,
 
-	// -----<new versions can be added before this line>-------------------------------------------------
-	// - this needs to be the last line (see note below)
-	VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION_PLUS_ONE,
-	VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION = VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION_PLUS_ONE - 1
+    // -----<new versions can be added before this line>-------------------------------------------------
+    // - this needs to be the last line (see note below)
+    VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION_PLUS_ONE,
+    VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION = VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION_PLUS_ONE - 1
 };

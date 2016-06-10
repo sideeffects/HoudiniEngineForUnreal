@@ -21,78 +21,78 @@
 
 
 FHoudiniAssetThumbnailScene::FHoudiniAssetThumbnailScene()
-	: FThumbnailPreviewScene()
+    : FThumbnailPreviewScene()
 {
-	bForceAllUsedMipsResident = false;
+    bForceAllUsedMipsResident = false;
 
-	// Create preview actor.
-	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	SpawnInfo.bNoFail = true;
+    // Create preview actor.
+    FActorSpawnParameters SpawnInfo;
+    SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    SpawnInfo.bNoFail = true;
 
-	// Preview actor should be marked as transient.
-	SpawnInfo.ObjectFlags = RF_Transient;
+    // Preview actor should be marked as transient.
+    SpawnInfo.ObjectFlags = RF_Transient;
 
-	// Create spawn actor.
-	PreviewHoudiniAssetActor = GetWorld()->SpawnActor<AHoudiniAssetActor>(SpawnInfo);
+    // Create spawn actor.
+    PreviewHoudiniAssetActor = GetWorld()->SpawnActor<AHoudiniAssetActor>(SpawnInfo);
 
-	PreviewHoudiniAssetActor->HoudiniAssetComponent->SetMobility(EComponentMobility::Movable);
-	PreviewHoudiniAssetActor->SetActorEnableCollision(false);
+    PreviewHoudiniAssetActor->HoudiniAssetComponent->SetMobility(EComponentMobility::Movable);
+    PreviewHoudiniAssetActor->SetActorEnableCollision(false);
 }
 
 
 void
 FHoudiniAssetThumbnailScene::SetHoudiniAsset(UHoudiniAsset* HoudiniAsset)
 {
-	if(HoudiniAsset)
-	{
-		if(PreviewHoudiniAssetActor->HoudiniAssetComponent->ContainsHoudiniLogoGeometry())
-		{
-			float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
+    if(HoudiniAsset)
+    {
+        if(PreviewHoudiniAssetActor->HoudiniAssetComponent->ContainsHoudiniLogoGeometry())
+        {
+            float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
 
-			PreviewHoudiniAssetActor->SetActorLocation(FVector(0.0f, 0.0f, BoundsZOffset), false);
-			PreviewHoudiniAssetActor->SetActorRotation(FRotator(0.0f, 175.0f, 0.0f));
-		}
+            PreviewHoudiniAssetActor->SetActorLocation(FVector(0.0f, 0.0f, BoundsZOffset), false);
+            PreviewHoudiniAssetActor->SetActorRotation(FRotator(0.0f, 175.0f, 0.0f));
+        }
 
-		PreviewHoudiniAssetActor->GetHoudiniAssetComponent()->SetHoudiniAsset(HoudiniAsset);
-		PreviewHoudiniAssetActor->HoudiniAssetComponent->UpdateBounds();
+        PreviewHoudiniAssetActor->GetHoudiniAssetComponent()->SetHoudiniAsset(HoudiniAsset);
+        PreviewHoudiniAssetActor->HoudiniAssetComponent->UpdateBounds();
 
-		PreviewHoudiniAssetActor->HoudiniAssetComponent->RecreateRenderState_Concurrent();
-	}
+        PreviewHoudiniAssetActor->HoudiniAssetComponent->RecreateRenderState_Concurrent();
+    }
 }
 
 
 void
 FHoudiniAssetThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin,
-	float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
+    float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
 {
-	check(PreviewHoudiniAssetActor);
-	check(PreviewHoudiniAssetActor->HoudiniAssetComponent);
+    check(PreviewHoudiniAssetActor);
+    check(PreviewHoudiniAssetActor->HoudiniAssetComponent);
 
-	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
+    const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
 
-	// Add extra size to view slightly outside of the sphere to compensate for perspective
-	const float HalfMeshSize = PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds.SphereRadius * 1.15f;
-	const float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
-	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
+    // Add extra size to view slightly outside of the sphere to compensate for perspective
+    const float HalfMeshSize = PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds.SphereRadius * 1.15f;
+    const float BoundsZOffset = GetBoundsZOffset(PreviewHoudiniAssetActor->HoudiniAssetComponent->Bounds);
+    const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-	UHoudiniAsset* PreviewHoudiniAsset = PreviewHoudiniAssetActor->GetHoudiniAssetComponent()->GetHoudiniAsset();
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewHoudiniAsset->ThumbnailInfo);
+    UHoudiniAsset* PreviewHoudiniAsset = PreviewHoudiniAssetActor->GetHoudiniAssetComponent()->GetHoudiniAsset();
+    USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewHoudiniAsset->ThumbnailInfo);
 
-	if(ThumbnailInfo)
-	{
-		if(TargetDistance + ThumbnailInfo->OrbitZoom < 0)
-		{
-			ThumbnailInfo->OrbitZoom = -TargetDistance;
-		}
-	}
-	else
-	{
-		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
-	}
+    if(ThumbnailInfo)
+    {
+        if(TargetDistance + ThumbnailInfo->OrbitZoom < 0)
+        {
+            ThumbnailInfo->OrbitZoom = -TargetDistance;
+        }
+    }
+    else
+    {
+        ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+    }
 
-	OutOrigin = FVector(0, 0, -BoundsZOffset);
-	OutOrbitPitch = ThumbnailInfo->OrbitPitch;
-	OutOrbitYaw = ThumbnailInfo->OrbitYaw;
-	OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
+    OutOrigin = FVector(0, 0, -BoundsZOffset);
+    OutOrbitPitch = ThumbnailInfo->OrbitPitch;
+    OutOrbitYaw = ThumbnailInfo->OrbitYaw;
+    OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
 }

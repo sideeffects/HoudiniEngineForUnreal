@@ -20,161 +20,161 @@
 IMPLEMENT_HIT_PROXY(HHoudiniHandleVisProxy, HComponentVisProxy);
 
 HHoudiniHandleVisProxy::HHoudiniHandleVisProxy(const UActorComponent* InComponent) :
-	HComponentVisProxy(InComponent, HPP_Wireframe)
+    HComponentVisProxy(InComponent, HPP_Wireframe)
 {
 }
 
 FHoudiniHandleComponentVisualizerCommands::FHoudiniHandleComponentVisualizerCommands() :
-	TCommands<FHoudiniHandleComponentVisualizerCommands>(
-		"HoudiniHandleComponentVisualizer",
-		LOCTEXT("HoudiniHandleComponentVisualizer", "Houdini Handle Component Visualizer"),
-		NAME_None,
-		FEditorStyle::GetStyleSetName()
-	)
+    TCommands<FHoudiniHandleComponentVisualizerCommands>(
+        "HoudiniHandleComponentVisualizer",
+        LOCTEXT("HoudiniHandleComponentVisualizer", "Houdini Handle Component Visualizer"),
+        NAME_None,
+        FEditorStyle::GetStyleSetName()
+    )
 {
 }
 
 void
 FHoudiniHandleComponentVisualizerCommands::RegisterCommands()
-{	
+{   
 }
 
 FHoudiniHandleComponentVisualizer::FHoudiniHandleComponentVisualizer() :
-	FComponentVisualizer(),
-	EditedComponent(nullptr),
-	bEditing(false)
+    FComponentVisualizer(),
+    EditedComponent(nullptr),
+    bEditing(false)
 {
-	FHoudiniHandleComponentVisualizerCommands::Register();
-	VisualizerActions = MakeShareable(new FUICommandList);
+    FHoudiniHandleComponentVisualizerCommands::Register();
+    VisualizerActions = MakeShareable(new FUICommandList);
 }
 
 FHoudiniHandleComponentVisualizer::~FHoudiniHandleComponentVisualizer()
 {
-	FHoudiniHandleComponentVisualizerCommands::Unregister();
+    FHoudiniHandleComponentVisualizerCommands::Unregister();
 }
 
 void
 FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View,
-	FPrimitiveDrawInterface* PDI)
+    FPrimitiveDrawInterface* PDI)
 {
-	const UHoudiniHandleComponent* HandleComponent = Cast<const UHoudiniHandleComponent>(Component);
-	if (!HandleComponent)
-	{
-		return;
-	}
+    const UHoudiniHandleComponent* HandleComponent = Cast<const UHoudiniHandleComponent>(Component);
+    if (!HandleComponent)
+    {
+        return;
+    }
 
-	static const FColor Color(255, 0, 255);
-	static const float GrabHandleSize = 12.0f;
+    static const FColor Color(255, 0, 255);
+    static const float GrabHandleSize = 12.0f;
 
-	// Draw point and set hit box for it.
-	PDI->SetHitProxy(new HHoudiniHandleVisProxy(HandleComponent));
-	PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), Color, GrabHandleSize, SDPG_Foreground );
-	PDI->SetHitProxy(nullptr);
+    // Draw point and set hit box for it.
+    PDI->SetHitProxy(new HHoudiniHandleVisProxy(HandleComponent));
+    PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), Color, GrabHandleSize, SDPG_Foreground );
+    PDI->SetHitProxy(nullptr);
 }
 
 bool
 FHoudiniHandleComponentVisualizer::VisProxyHandleClick(FLevelEditorViewportClient* InViewportClient,
-	HComponentVisProxy* VisProxy, const FViewportClick& Click)
+    HComponentVisProxy* VisProxy, const FViewportClick& Click)
 {
-	bEditing = false;
+    bEditing = false;
 
-	if ( VisProxy && VisProxy->Component.IsValid() )
-	{
-		const UHoudiniHandleComponent* Component =
-			CastChecked<const UHoudiniHandleComponent>(VisProxy->Component.Get());
+    if ( VisProxy && VisProxy->Component.IsValid() )
+    {
+        const UHoudiniHandleComponent* Component =
+            CastChecked<const UHoudiniHandleComponent>(VisProxy->Component.Get());
 
-		EditedComponent = const_cast<UHoudiniHandleComponent*>(Component);
+        EditedComponent = const_cast<UHoudiniHandleComponent*>(Component);
 
-		if(Component)
-		{
-			if ( VisProxy->IsA(HHoudiniHandleVisProxy::StaticGetType()) )
-			{
-				bEditing = true;
-			}
-		}
-	}
+        if(Component)
+        {
+            if ( VisProxy->IsA(HHoudiniHandleVisProxy::StaticGetType()) )
+            {
+                bEditing = true;
+            }
+        }
+    }
 
-	return bEditing;
+    return bEditing;
 }
 
 void
 FHoudiniHandleComponentVisualizer::EndEditing()
 {
-	EditedComponent = nullptr;
+    EditedComponent = nullptr;
 }
 
 bool
 FHoudiniHandleComponentVisualizer::GetWidgetLocation(
-	const FEditorViewportClient* ViewportClient,
-	FVector& OutLocation
+    const FEditorViewportClient* ViewportClient,
+    FVector& OutLocation
 ) const
 {
-	if ( EditedComponent )
-	{
-		OutLocation = EditedComponent->ComponentToWorld.GetLocation();
-		return true;
-	}
+    if ( EditedComponent )
+    {
+        OutLocation = EditedComponent->ComponentToWorld.GetLocation();
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 bool
 FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
-	const FEditorViewportClient* ViewportClient,
-	FMatrix& OutMatrix
+    const FEditorViewportClient* ViewportClient,
+    FMatrix& OutMatrix
 ) const
-{	
-	if ( EditedComponent && ViewportClient->GetWidgetMode() == FWidget::WM_Scale )
-	{
-		OutMatrix = FRotationMatrix::Make( EditedComponent->ComponentToWorld.GetRotation() );
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+{   
+    if ( EditedComponent && ViewportClient->GetWidgetMode() == FWidget::WM_Scale )
+    {
+        OutMatrix = FRotationMatrix::Make( EditedComponent->ComponentToWorld.GetRotation() );
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 bool
 FHoudiniHandleComponentVisualizer::HandleInputDelta(
-	FEditorViewportClient* ViewportClient, FViewport* Viewport,
-	FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale
+    FEditorViewportClient* ViewportClient, FViewport* Viewport,
+    FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale
 )
 {
-	if ( !EditedComponent )
-	{
-		return false;
-	}
+    if ( !EditedComponent )
+    {
+        return false;
+    }
 
-	bool bUpdated = false;
-	if ( !DeltaTranslate.IsZero() )
-	{
-		EditedComponent->SetWorldLocation(EditedComponent->ComponentToWorld.GetLocation() + DeltaTranslate);
-		bUpdated = true;
-	}
+    bool bUpdated = false;
+    if ( !DeltaTranslate.IsZero() )
+    {
+        EditedComponent->SetWorldLocation(EditedComponent->ComponentToWorld.GetLocation() + DeltaTranslate);
+        bUpdated = true;
+    }
 
-	if ( !DeltaRotate.IsZero() )
-	{
-		EditedComponent->SetWorldRotation(DeltaRotate.Quaternion() * EditedComponent->ComponentToWorld.GetRotation());
-		bUpdated = true;
-	}
+    if ( !DeltaRotate.IsZero() )
+    {
+        EditedComponent->SetWorldRotation(DeltaRotate.Quaternion() * EditedComponent->ComponentToWorld.GetRotation());
+        bUpdated = true;
+    }
 
-	if ( !DeltaScale.IsZero() )
-	{
-		EditedComponent->SetWorldScale3D( EditedComponent->ComponentToWorld.GetScale3D() + DeltaScale );
-		bUpdated = true;
-	}
+    if ( !DeltaScale.IsZero() )
+    {
+        EditedComponent->SetWorldScale3D( EditedComponent->ComponentToWorld.GetScale3D() + DeltaScale );
+        bUpdated = true;
+    }
 
-	if ( bUpdated )
-	{
-		if ( GEditor )
-		{
-			GEditor->RedrawLevelEditingViewports(true);
-		}
+    if ( bUpdated )
+    {
+        if ( GEditor )
+        {
+            GEditor->RedrawLevelEditingViewports(true);
+        }
 
-		EditedComponent->UpdateTransformParameters();
-	}	
+        EditedComponent->UpdateTransformParameters();
+    }   
 
-	return true;
+    return true;
 }
 

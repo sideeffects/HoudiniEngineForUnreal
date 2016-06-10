@@ -26,38 +26,38 @@ class FName;
 
 class HOUDINIENGINERUNTIME_API FHoudiniEngineString
 {
-	public:
+    public:
 
-		FHoudiniEngineString();
-		FHoudiniEngineString(int32 InStringId);
-		FHoudiniEngineString(const FHoudiniEngineString& Other);
+        FHoudiniEngineString();
+        FHoudiniEngineString(int32 InStringId);
+        FHoudiniEngineString(const FHoudiniEngineString& Other);
 
-	public:
+    public:
 
-		FHoudiniEngineString& operator=(const FHoudiniEngineString& Other);
+        FHoudiniEngineString& operator=(const FHoudiniEngineString& Other);
 
-	public:
+    public:
 
-		bool operator==(const FHoudiniEngineString& Other) const;
-		bool operator!=(const FHoudiniEngineString& Other) const;
+        bool operator==(const FHoudiniEngineString& Other) const;
+        bool operator!=(const FHoudiniEngineString& Other) const;
 
-	public:
+    public:
 
-		bool ToStdString(std::string& String) const;
-		bool ToFName(FName& Name) const;
-		bool ToFString(FString& String) const;
-		bool ToFText(FText& Text) const;
+        bool ToStdString(std::string& String) const;
+        bool ToFName(FName& Name) const;
+        bool ToFString(FString& String) const;
+        bool ToFText(FText& Text) const;
 
-	public:
+    public:
 
-		/** Return id of this string. **/
-		int32 GetId() const;
+        /** Return id of this string. **/
+        int32 GetId() const;
 
-		/** Return true if this string has a valid id. **/
-		bool HasValidId() const;
+        /** Return true if this string has a valid id. **/
+        bool HasValidId() const;
 
-	protected:
+    protected:
 
-		/** Id of the underlying Houdini Engine string. **/
-		int32 StringId;
+        /** Id of the underlying Houdini Engine string. **/
+        int32 StringId;
 };

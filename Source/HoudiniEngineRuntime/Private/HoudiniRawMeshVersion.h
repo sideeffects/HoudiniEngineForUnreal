@@ -17,10 +17,10 @@
 
 enum EHoudiniRawMeshVersion
 {
-	VER_HOUDINI_ENGINE_RAWMESH_BASE = 0,
+    VER_HOUDINI_ENGINE_RAWMESH_BASE = 0,
 
-	// -----<new versions can be added before this line>-------------------------------------------------
-	// - this needs to be the last line (see note below)
-	VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION_PLUS_ONE,
-	VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION = VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION_PLUS_ONE - 1
+    // -----<new versions can be added before this line>-------------------------------------------------
+    // - this needs to be the last line (see note below)
+    VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION_PLUS_ONE,
+    VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION = VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION_PLUS_ONE - 1
 };

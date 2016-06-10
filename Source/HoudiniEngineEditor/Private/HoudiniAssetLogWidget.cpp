@@ -26,77 +26,77 @@ SHoudiniAssetLogWidget::SHoudiniAssetLogWidget()
 void
 SHoudiniAssetLogWidget::Construct(const FArguments& InArgs)
 {
-	WidgetWindow = InArgs._WidgetWindow;
-	LogText = InArgs._LogText;
+    WidgetWindow = InArgs._WidgetWindow;
+    LogText = InArgs._LogText;
 
-	this->ChildSlot
-	[
-		SNew(SBorder)
-		.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
-		.Content()
-		[
-			SNew(SVerticalBox)
+    this->ChildSlot
+    [
+        SNew(SBorder)
+        .BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
+        .Content()
+        [
+            SNew(SVerticalBox)
 
-			+SVerticalBox::Slot()
-			[
-				SNew(SRichTextBlock)
-				.Text(this, &SHoudiniAssetLogWidget::GetLogText)
-				.AutoWrapText(true)
-			]
+            +SVerticalBox::Slot()
+            [
+                SNew(SRichTextBlock)
+                .Text(this, &SHoudiniAssetLogWidget::GetLogText)
+                .AutoWrapText(true)
+            ]
 
-			+SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
+            +SVerticalBox::Slot()
+            .HAlign(HAlign_Center)
+            .AutoHeight()
+            [
+                SNew(SHorizontalBox)
 
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(0.0f, 4.0f, 4.0f, 4.0f)
-				[
-					SNew(SButton)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("HoudiniAssetLogWidget_CopyToClipboard", "Copy"))
-					.OnClicked(this, &SHoudiniAssetLogWidget::OnButtonCopyToClipboard)
-				]
+                +SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(0.0f, 4.0f, 4.0f, 4.0f)
+                [
+                    SNew(SButton)
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Text(LOCTEXT("HoudiniAssetLogWidget_CopyToClipboard", "Copy"))
+                    .OnClicked(this, &SHoudiniAssetLogWidget::OnButtonCopyToClipboard)
+                ]
 
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(0.0f, 4.0f, 4.0f, 4.0f)
-				[
-					SNew(SButton)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("HoudiniAssetLogWidget_OK", "Accept"))
-					.OnClicked(this, &SHoudiniAssetLogWidget::OnButtonOk)
-				]
-			]
-		]
-	];
+                +SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(0.0f, 4.0f, 4.0f, 4.0f)
+                [
+                    SNew(SButton)
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Text(LOCTEXT("HoudiniAssetLogWidget_OK", "Accept"))
+                    .OnClicked(this, &SHoudiniAssetLogWidget::OnButtonOk)
+                ]
+            ]
+        ]
+    ];
 }
 
 
 FReply
 SHoudiniAssetLogWidget::OnButtonOk()
 {
-	WidgetWindow->HideWindow();
-	WidgetWindow->RequestDestroyWindow();
+    WidgetWindow->HideWindow();
+    WidgetWindow->RequestDestroyWindow();
 
-	return FReply::Handled();
+    return FReply::Handled();
 }
 
 
 FText
 SHoudiniAssetLogWidget::GetLogText() const
 {
-	return FText::FromString(LogText);
+    return FText::FromString(LogText);
 }
 
 
 FReply
 SHoudiniAssetLogWidget::OnButtonCopyToClipboard()
 {
-	FPlatformMisc::ClipboardCopy(*LogText);
-	return FReply::Handled();
+    FPlatformMisc::ClipboardCopy(*LogText);
+    return FReply::Handled();
 }

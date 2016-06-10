@@ -28,30 +28,30 @@ class UHoudiniAssetComponent;
 UCLASS(EditInlineNew, config=Engine)
 class HOUDINIENGINERUNTIME_API UHoudiniAssetComponentMaterials : public UObject
 {
-	GENERATED_UCLASS_BODY()
+    GENERATED_UCLASS_BODY()
 
-	friend class UHoudiniAssetComponent;
-	friend struct FHoudiniEngineUtils;
+    friend class UHoudiniAssetComponent;
+    friend struct FHoudiniEngineUtils;
 
 /** UObject methods. **/
 public:
 
-	virtual void Serialize(FArchive& Ar) override;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+    virtual void Serialize(FArchive& Ar) override;
+    static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 public:
 
-	/** Reset the object. **/
-	void ResetMaterialInfo();
+    /** Reset the object. **/
+    void ResetMaterialInfo();
 
 protected:
 
-	/** Material assignments. **/
-	TMap<FString, UMaterial*> Assignments;
+    /** Material assignments. **/
+    TMap<FString, UMaterial*> Assignments;
 
-	/** Material replacements. **/
-	TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> > Replacements;
+    /** Material replacements. **/
+    TMap<FHoudiniGeoPartObject, TMap<FString, UMaterialInterface*> > Replacements;
 
-	/** Flags used by this instance. **/
-	uint32 HoudiniAssetComponentMaterialsFlagsPacked;
+    /** Flags used by this instance. **/
+    uint32 HoudiniAssetComponentMaterialsFlagsPacked;
 };

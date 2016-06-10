@@ -28,35 +28,35 @@ FHoudiniAssetBroker::~FHoudiniAssetBroker()
 UClass*
 FHoudiniAssetBroker::GetSupportedAssetClass()
 {
-	return UHoudiniAsset::StaticClass();
+    return UHoudiniAsset::StaticClass();
 }
 
 
 bool
 FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset)
 {
-	if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
-	{
-		UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(InAsset);
+    if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
+    {
+        UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(InAsset);
 
-		if(HoudiniAsset || !InAsset)
-		{
-			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
-			return true;
-		}
-	}
+        if(HoudiniAsset || !InAsset)
+        {
+            HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
+            return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
 
 UObject*
 FHoudiniAssetBroker::GetAssetFromComponent(UActorComponent* InComponent)
 {
-	if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
-	{
-		return HoudiniAssetComponent->GetHoudiniAsset();
-	}
+    if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
+    {
+        return HoudiniAssetComponent->GetHoudiniAsset();
+    }
 
-	return nullptr;
+    return nullptr;
 }
