@@ -20,43 +20,43 @@ class SWindow;
 
 class SHoudiniAssetLogWidget : public SCompoundWidget
 {
-	public:
+    public:
 
-		SLATE_BEGIN_ARGS(SHoudiniAssetLogWidget)
-			: _WidgetWindow(), _LogText(TEXT(""))
-		{}
+        SLATE_BEGIN_ARGS(SHoudiniAssetLogWidget)
+            : _WidgetWindow(), _LogText(TEXT(""))
+        {}
 
-		SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
-		SLATE_ARGUMENT(FString, LogText)
-		SLATE_END_ARGS()
+        SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
+        SLATE_ARGUMENT(FString, LogText)
+        SLATE_END_ARGS()
 
-	public:
+    public:
 
-		SHoudiniAssetLogWidget();
+        SHoudiniAssetLogWidget();
 
-	public:
+    public:
 
-		/** Get log text. **/
-		FText GetLogText() const;
+        /** Get log text. **/
+        FText GetLogText() const;
 
-	public:
+    public:
 
-		/** Widget construct. **/
-		void Construct(const FArguments& InArgs);
+        /** Widget construct. **/
+        void Construct(const FArguments& InArgs);
 
-	public:
+    public:
 
-		/** Called when Ok button is pressed. **/
-		FReply OnButtonOk();
+        /** Called when Ok button is pressed. **/
+        FReply OnButtonOk();
 
-		/** Called when copy to clipboard button is pressed. **/
-		FReply OnButtonCopyToClipboard();
+        /** Called when copy to clipboard button is pressed. **/
+        FReply OnButtonCopyToClipboard();
 
-	public:
+    public:
 
-		/** Parent widget window. **/
-		TSharedPtr<SWindow> WidgetWindow;
+        /** Parent widget window. **/
+        TSharedPtr<SWindow> WidgetWindow;
 
-		/** Text of the log. **/
-		FString LogText;
+        /** Text of the log. **/
+        FString LogText;
 };

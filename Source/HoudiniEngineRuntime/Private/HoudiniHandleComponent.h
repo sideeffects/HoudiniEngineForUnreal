@@ -23,159 +23,159 @@ class UHoudiniAssetInput;
 UCLASS(config=Engine)
 class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
 {
-	friend class UHoudiniAssetComponent;
+    friend class UHoudiniAssetComponent;
 
 #if WITH_EDITOR
 
-	friend class FHoudiniHandleComponentVisualizer;
+    friend class FHoudiniHandleComponentVisualizer;
 
 #endif
 
-	GENERATED_UCLASS_BODY()
+    GENERATED_UCLASS_BODY()
 
-	virtual ~UHoudiniHandleComponent();
+    virtual ~UHoudiniHandleComponent();
 
 /** UObject methods. **/
 public:
 
-	virtual void Serialize(FArchive& Ar) override;
+    virtual void Serialize(FArchive& Ar) override;
 
 #if WITH_EDITOR
 
-	virtual void PostEditUndo() override;
+    virtual void PostEditUndo() override;
 
 #endif
 
 public:
-	bool Construct( HAPI_AssetId AssetId, int32 HandleIdx, const FString& HandleName,
-					const HAPI_HandleInfo&, const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& );
+    bool Construct( HAPI_AssetId AssetId, int32 HandleIdx, const FString& HandleName,
+                    const HAPI_HandleInfo&, const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& );
 
-	void ResolveDuplicatedParameters(const TMap<HAPI_ParmId, UHoudiniAssetParameter*>&);
+    void ResolveDuplicatedParameters(const TMap<HAPI_ParmId, UHoudiniAssetParameter*>&);
 
-	// Update HAPI transform handle parameters from the current ComponentToWorld Unreal transform
-	void UpdateTransformParameters();
+    // Update HAPI transform handle parameters from the current ComponentToWorld Unreal transform
+    void UpdateTransformParameters();
 
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+    static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 protected:
 
 private:
-	static HAPI_RSTOrder GetHapiRSTOrder(const TSharedPtr<FString>&);
-	static HAPI_XYZOrder GetHapiXYZOrder(const TSharedPtr<FString>&);
+    static HAPI_RSTOrder GetHapiRSTOrder(const TSharedPtr<FString>&);
+    static HAPI_XYZOrder GetHapiXYZOrder(const TSharedPtr<FString>&);
 
-	template <class ASSET_PARM>
-	class THandleParameter
-	{
-	public:
-		THandleParameter()
-			: AssetParameter(nullptr)
-			, TupleIdx(0)
-		{}
+    template <class ASSET_PARM>
+    class THandleParameter
+    {
+    public:
+        THandleParameter()
+            : AssetParameter(nullptr)
+            , TupleIdx(0)
+        {}
 
-		void AddReferencedObject(FReferenceCollector& Collector, const UObject* ReferencingObject)
-		{
-			if ( AssetParameter )
-			{
-				Collector.AddReferencedObject(AssetParameter, ReferencingObject);
-			}
-		}
+        void AddReferencedObject(FReferenceCollector& Collector, const UObject* ReferencingObject)
+        {
+            if ( AssetParameter )
+            {
+                Collector.AddReferencedObject(AssetParameter, ReferencingObject);
+            }
+        }
 
-		friend FArchive& operator<<(FArchive& Ar, THandleParameter& InThis)
-		{
-			Ar << InThis.AssetParameter;
-			Ar << InThis.TupleIdx;
+        friend FArchive& operator<<(FArchive& Ar, THandleParameter& InThis)
+        {
+            Ar << InThis.AssetParameter;
+            Ar << InThis.TupleIdx;
 
-			return Ar;
-		}
+            return Ar;
+        }
 
-		template <typename VALUE>
-		bool Bind(
-			VALUE& OutValue,
-			const char* CmpName,
-			int32 InTupleIdx,
-			const FString& HandleParmName,
-			HAPI_ParmId AssetParamId,
-			const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& Parameters )
-		{			
-			if (HandleParmName == CmpName)
-			{
-				if ( UHoudiniAssetParameter* const* FoundAbstractParm = Parameters.Find(AssetParamId) )
-				{
-					AssetParameter = Cast<ASSET_PARM>(*FoundAbstractParm);
-					if ( AssetParameter )
-					{
-						auto Optional = AssetParameter->GetValue(InTupleIdx);
-						if ( Optional.IsSet() )
-						{
-							TupleIdx = InTupleIdx;
-							OutValue = static_cast<VALUE>( Optional.GetValue() );
-							return true;
-						}
-					}
-				}
-			}
+        template <typename VALUE>
+        bool Bind(
+            VALUE& OutValue,
+            const char* CmpName,
+            int32 InTupleIdx,
+            const FString& HandleParmName,
+            HAPI_ParmId AssetParamId,
+            const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& Parameters )
+        {           
+            if (HandleParmName == CmpName)
+            {
+                if ( UHoudiniAssetParameter* const* FoundAbstractParm = Parameters.Find(AssetParamId) )
+                {
+                    AssetParameter = Cast<ASSET_PARM>(*FoundAbstractParm);
+                    if ( AssetParameter )
+                    {
+                        auto Optional = AssetParameter->GetValue(InTupleIdx);
+                        if ( Optional.IsSet() )
+                        {
+                            TupleIdx = InTupleIdx;
+                            OutValue = static_cast<VALUE>( Optional.GetValue() );
+                            return true;
+                        }
+                    }
+                }
+            }
 
-			return false;
-		}
+            return false;
+        }
 
-		void ResolveDuplicated(const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& NewParameters)
-		{
-			if (AssetParameter)
-			{
-				if ( UHoudiniAssetParameter* const* FoundNewParameter = NewParameters.Find(AssetParameter->GetParmId()) )
-				{
-					AssetParameter = Cast<ASSET_PARM>(*FoundNewParameter);
-				}
-				else
-				{
-					AssetParameter = nullptr;
-				}
-			}
-		}
+        void ResolveDuplicated(const TMap<HAPI_ParmId, UHoudiniAssetParameter*>& NewParameters)
+        {
+            if (AssetParameter)
+            {
+                if ( UHoudiniAssetParameter* const* FoundNewParameter = NewParameters.Find(AssetParameter->GetParmId()) )
+                {
+                    AssetParameter = Cast<ASSET_PARM>(*FoundNewParameter);
+                }
+                else
+                {
+                    AssetParameter = nullptr;
+                }
+            }
+        }
 
-		template <typename VALUE>
-		VALUE Get(VALUE DefaulValue) const
-		{
-			if ( AssetParameter )
-			{
-				auto Optional = AssetParameter->GetValue(TupleIdx);
-				if ( Optional.IsSet() )
-				{
-					return static_cast<VALUE>(Optional.GetValue());
-				}
-			}
+        template <typename VALUE>
+        VALUE Get(VALUE DefaulValue) const
+        {
+            if ( AssetParameter )
+            {
+                auto Optional = AssetParameter->GetValue(TupleIdx);
+                if ( Optional.IsSet() )
+                {
+                    return static_cast<VALUE>(Optional.GetValue());
+                }
+            }
 
-			return DefaulValue;
-		}
+            return DefaulValue;
+        }
 
-		template <typename VALUE>
-		THandleParameter& operator=(VALUE Value)
-		{
-			if ( AssetParameter )
-			{
-				AssetParameter->SetValue( Value, TupleIdx );
-			}
+        template <typename VALUE>
+        THandleParameter& operator=(VALUE Value)
+        {
+            if ( AssetParameter )
+            {
+                AssetParameter->SetValue( Value, TupleIdx );
+            }
 
-			return *this;
-		}
-		
-		ASSET_PARM* AssetParameter;
-		int32 TupleIdx;
-	};
+            return *this;
+        }
+        
+        ASSET_PARM* AssetParameter;
+        int32 TupleIdx;
+    };
 
-	struct EXformParameter
-	{
-		enum Type
-		{
-			TX, TY, TZ,
-			RX, RY, RZ,
-			SX, SY, SZ,
-			COUNT
-		};		
-	};
+    struct EXformParameter
+    {
+        enum Type
+        {
+            TX, TY, TZ,
+            RX, RY, RZ,
+            SX, SY, SZ,
+            COUNT
+        };      
+    };
 
-	typedef THandleParameter<UHoudiniAssetParameterFloat> FXformParameter;
-	FXformParameter XformParms[EXformParameter::COUNT];
+    typedef THandleParameter<UHoudiniAssetParameterFloat> FXformParameter;
+    FXformParameter XformParms[EXformParameter::COUNT];
 
-	THandleParameter<UHoudiniAssetParameterChoice> RSTParm, RotOrderParm;
+    THandleParameter<UHoudiniAssetParameterChoice> RSTParm, RotOrderParm;
 };

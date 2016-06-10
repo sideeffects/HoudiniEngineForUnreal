@@ -21,29 +21,29 @@
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterLabel : public UHoudiniAssetParameter
 {
-	GENERATED_UCLASS_BODY()
+    GENERATED_UCLASS_BODY()
 
 public:
 
-	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterLabel();
+    /** Destructor. **/
+    virtual ~UHoudiniAssetParameterLabel();
 
 public:
 
-	/** Create instance of this class. **/
-	static UHoudiniAssetParameterLabel* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+    /** Create instance of this class. **/
+    static UHoudiniAssetParameterLabel* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
-	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+    /** Create this parameter from HAPI information. **/
+    virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
+        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
 
 #if WITH_EDITOR
 
-	/** Create widget for this parameter and add it to a given category. **/
-	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
+    /** Create widget for this parameter and add it to a given category. **/
+    virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
 #endif
 };

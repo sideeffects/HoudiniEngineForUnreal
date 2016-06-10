@@ -22,80 +22,80 @@
 
 
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer),
-	CurrentPlayTime(0.0f)
+    Super(ObjectInitializer),
+    CurrentPlayTime(0.0f)
 {
-	bCanBeDamaged = false;
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
+    bCanBeDamaged = false;
+    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bStartWithTickEnabled = true;
 
-	// Create Houdini component and attach it to a root component.
-	HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this,
-		TEXT("HoudiniAssetComponent"));
+    // Create Houdini component and attach it to a root component.
+    HoudiniAssetComponent = ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this,
+        TEXT("HoudiniAssetComponent"));
 
-	HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	RootComponent = HoudiniAssetComponent;
+    HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+    RootComponent = HoudiniAssetComponent;
 }
 
 
 UHoudiniAssetComponent*
 AHoudiniAssetActor::GetHoudiniAssetComponent() const
 {
-	return HoudiniAssetComponent;
+    return HoudiniAssetComponent;
 }
 
 
 bool
 AHoudiniAssetActor::IsUsedForPreview() const
 {
-	return HasAnyFlags(RF_Transient);
+    return HasAnyFlags(RF_Transient);
 }
 
 
 void
 AHoudiniAssetActor::ResetHoudiniCurrentPlaytime()
 {
-	CurrentPlayTime = 0.0f;
+    CurrentPlayTime = 0.0f;
 }
 
 
 float
 AHoudiniAssetActor::GetHoudiniCurrentPlaytime() const
 {
-	return CurrentPlayTime;
+    return CurrentPlayTime;
 }
 
 
 void
 AHoudiniAssetActor::Tick(float DeltaSeconds)
 {
-	Super::Tick(DeltaSeconds);
+    Super::Tick(DeltaSeconds);
 
 #if WITH_EDITOR
 
-	if(HoudiniAssetComponent->bTimeCookInPlaymode)
-	{
-		HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
-		if(-1 == AssetId)
-		{
-			// If component is not instantiating or cooking, we can set time and force cook.
-			if(!HoudiniAssetComponent->IsInstantiatingOrCooking())
-			{
-				FHoudiniEngineUtils::SetCurrentTime(0.0f);
-				HoudiniAssetComponent->StartTaskAssetCookingManual();
-			}
-		}
-		else
-		{
-			FHoudiniEngineUtils::SetCurrentTime(CurrentPlayTime);
-			FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr);
+    if(HoudiniAssetComponent->bTimeCookInPlaymode)
+    {
+        HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+        if(-1 == AssetId)
+        {
+            // If component is not instantiating or cooking, we can set time and force cook.
+            if(!HoudiniAssetComponent->IsInstantiatingOrCooking())
+            {
+                FHoudiniEngineUtils::SetCurrentTime(0.0f);
+                HoudiniAssetComponent->StartTaskAssetCookingManual();
+            }
+        }
+        else
+        {
+            FHoudiniEngineUtils::SetCurrentTime(CurrentPlayTime);
+            FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), AssetId, nullptr);
 
-			HoudiniAssetComponent->PostCook();
-		}
+            HoudiniAssetComponent->PostCook();
+        }
 
-		// Increment play time.
-		CurrentPlayTime += DeltaSeconds;
-	}
+        // Increment play time.
+        CurrentPlayTime += DeltaSeconds;
+    }
 
 #endif
 
@@ -107,45 +107,45 @@ AHoudiniAssetActor::Tick(float DeltaSeconds)
 bool
 AHoudiniAssetActor::ShouldImport(FString* ActorPropString, bool IsMovingLevel)
 {
-	if(ActorPropString)
-	{
-		// Locate actor which is being copied in clipboard string.
-		AHoudiniAssetActor* CopiedActor = FHoudiniEngineUtils::LocateClipboardActor(*ActorPropString);
+    if(ActorPropString)
+    {
+        // Locate actor which is being copied in clipboard string.
+        AHoudiniAssetActor* CopiedActor = FHoudiniEngineUtils::LocateClipboardActor(*ActorPropString);
 
-		// We no longer need clipboard string and can empty it. This seems to avoid occasional crash bug in UE4 which
-		// happens on copy / paste.
-		ActorPropString->Empty();
+        // We no longer need clipboard string and can empty it. This seems to avoid occasional crash bug in UE4 which
+        // happens on copy / paste.
+        ActorPropString->Empty();
 
-		if(CopiedActor)
-		{
-			// Get Houdini component of an actor which is being copied.
-			UHoudiniAssetComponent* CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
-			if(CopiedActorHoudiniAssetComponent)
-			{
-				HoudiniAssetComponent->OnComponentClipboardCopy(CopiedActorHoudiniAssetComponent);
+        if(CopiedActor)
+        {
+            // Get Houdini component of an actor which is being copied.
+            UHoudiniAssetComponent* CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
+            if(CopiedActorHoudiniAssetComponent)
+            {
+                HoudiniAssetComponent->OnComponentClipboardCopy(CopiedActorHoudiniAssetComponent);
 
-				// If actor is copied through moving, we need to copy main transform.
-				const FTransform& ComponentWorldTransform = CopiedActorHoudiniAssetComponent->GetComponentTransform();
-					HoudiniAssetComponent->SetWorldLocationAndRotation(ComponentWorldTransform.GetLocation(),
-						ComponentWorldTransform.GetRotation());
+                // If actor is copied through moving, we need to copy main transform.
+                const FTransform& ComponentWorldTransform = CopiedActorHoudiniAssetComponent->GetComponentTransform();
+                    HoudiniAssetComponent->SetWorldLocationAndRotation(ComponentWorldTransform.GetLocation(),
+                        ComponentWorldTransform.GetRotation());
 
-				// We also need to copy actor label.
-				const FString& CopiedActorLabel = CopiedActor->GetActorLabel();
-				FActorLabelUtilities::SetActorLabelUnique(this, CopiedActorLabel);
+                // We also need to copy actor label.
+                const FString& CopiedActorLabel = CopiedActor->GetActorLabel();
+                FActorLabelUtilities::SetActorLabelUnique(this, CopiedActorLabel);
 
-				return true;
-			}
-		}
-	}
+                return true;
+            }
+        }
+    }
 
-	return false;
+    return false;
 }
 
 
 bool
 AHoudiniAssetActor::ShouldExport()
 {
-	return true;
+    return true;
 }
 
 #endif

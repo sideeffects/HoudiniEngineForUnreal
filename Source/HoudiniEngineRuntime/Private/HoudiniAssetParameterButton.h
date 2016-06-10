@@ -21,45 +21,45 @@
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterButton : public UHoudiniAssetParameter
 {
-	GENERATED_UCLASS_BODY()
+    GENERATED_UCLASS_BODY()
 
 public:
 
-	/** Destructor. **/
-	virtual ~UHoudiniAssetParameterButton();
+    /** Destructor. **/
+    virtual ~UHoudiniAssetParameterButton();
 
 public:
 
-	/** Create instance of this class. **/
-	static UHoudiniAssetParameterButton* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+    /** Create instance of this class. **/
+    static UHoudiniAssetParameterButton* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
+        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
 
 public:
 
-	/** Create this parameter from HAPI information. **/
-	virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-		UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+    /** Create this parameter from HAPI information. **/
+    virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
+        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
 
 #if WITH_EDITOR
 
-	/** Create widget for this parameter and add it to a given category. **/
-	virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
+    /** Create widget for this parameter and add it to a given category. **/
+    virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
 
 #endif
 
-	/** Upload parameter value to HAPI. **/
-	virtual bool UploadParameterValue() override;
+    /** Upload parameter value to HAPI. **/
+    virtual bool UploadParameterValue() override;
 
-	/** Set parameter value. **/
-	virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
-		bool bRecordUndo = true) override;
+    /** Set parameter value. **/
+    virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
+        bool bRecordUndo = true) override;
 
 protected:
 
 #if WITH_EDITOR
 
-	/** Handler for button click. **/
-	FReply OnButtonClick();
+    /** Handler for button click. **/
+    FReply OnButtonClick();
 
 #endif
 };
