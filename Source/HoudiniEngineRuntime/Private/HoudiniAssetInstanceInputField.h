@@ -15,6 +15,7 @@
 
 #pragma once
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetInstanceInputField.generated.h"
 
 
