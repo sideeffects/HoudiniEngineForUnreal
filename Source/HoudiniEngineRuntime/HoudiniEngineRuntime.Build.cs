@@ -16,7 +16,7 @@
 
 /*
 
-    Houdini Version: 15.5.504
+    Houdini Version: 15.5.505
     Houdini Engine Version: 2.0.24
     Unreal Version: 4.11.1
 
@@ -31,7 +31,7 @@ public class HoudiniEngineRuntime : ModuleRules
 	{
 		bool bIsRelease = true;
 		string HFSPath = "";
-		string HoudiniVersion = "15.5.504";
+		string HoudiniVersion = "15.5.505";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -103,6 +103,9 @@ public class HoudiniEngineRuntime : ModuleRules
 		if( HAPIIncludePath != "" )
 		{
 			PublicIncludePaths.Add( HAPIIncludePath );
+
+			// Add the custom include path as well in case the toolkit path doesn't exist yet.
+			PublicIncludePaths.Add( HFSPath + "/custom/houdini/include/HAPI" );
 		}
 
 		PublicIncludePaths.AddRange(
