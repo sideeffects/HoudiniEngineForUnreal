@@ -17,9 +17,8 @@
 #include "HoudiniAssetFactory.h"
 #include "HoudiniAsset.h"
 
-
-UHoudiniAssetFactory::UHoudiniAssetFactory(const FObjectInitializer& ObjectInitializer) :
-    Super(ObjectInitializer)
+UHoudiniAssetFactory::UHoudiniAssetFactory( const FObjectInitializer & ObjectInitializer )
+    : Super( ObjectInitializer )
 {
     // This factory is responsible for manufacturing HoudiniEngine assets.
     SupportedClass = UHoudiniAsset::StaticClass();
@@ -37,70 +36,64 @@ UHoudiniAssetFactory::UHoudiniAssetFactory(const FObjectInitializer& ObjectIniti
     bText = false;
 
     // Add supported formats.
-    Formats.Add(TEXT("otl;Houdini Engine Asset"));
-    Formats.Add(TEXT("otllc;Houdini Engine Limited Commercial Asset"));
-    Formats.Add(TEXT("hda;Houdini Engine Asset"));
-    Formats.Add(TEXT("hdalc;Houdini Engine Limited Commercial Asset"));
+    Formats.Add( TEXT( "otl;Houdini Engine Asset" ) );
+    Formats.Add( TEXT( "otllc;Houdini Engine Limited Commercial Asset" ) );
+    Formats.Add( TEXT( "hda;Houdini Engine Asset" ) );
+    Formats.Add( TEXT( "hdalc;Houdini Engine Limited Commercial Asset" ) );
 }
 
-
 bool
-UHoudiniAssetFactory::DoesSupportClass(UClass* Class)
+UHoudiniAssetFactory::DoesSupportClass( UClass * Class )
 {
     return Class == SupportedClass;
 }
 
-
 FText
 UHoudiniAssetFactory::GetDisplayName() const
 {
-    return LOCTEXT("HoudiniAssetFactoryDescription", "Houdini Engine Asset");
+    return LOCTEXT( "HoudiniAssetFactoryDescription", "Houdini Engine Asset" );
 }
 
-
-UObject*
-UHoudiniAssetFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags,
-    UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn)
+UObject *
+UHoudiniAssetFactory::FactoryCreateBinary(
+    UClass * InClass, UObject* InParent, FName InName, EObjectFlags Flags,
+    UObject * Context, const TCHAR * Type, const uint8 *& Buffer,
+    const uint8 * BufferEnd, FFeedbackContext * Warn )
 {
     // Broadcast notification that a new asset is being imported.
-    FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+    FEditorDelegates::OnAssetPreImport.Broadcast( this, InClass, InParent, InName, Type );
 
     // Create a new asset.
-    UHoudiniAsset* HoudiniAsset = NewObject<UHoudiniAsset>(InParent, InName, Flags);
-    HoudiniAsset->CreateAsset(Buffer, BufferEnd, UFactory::GetCurrentFilename());
+    UHoudiniAsset * HoudiniAsset = NewObject< UHoudiniAsset >( InParent, InName, Flags );
+    HoudiniAsset->CreateAsset( Buffer, BufferEnd, UFactory::GetCurrentFilename() );
 
     // Create reimport information.
-    UAssetImportData* AssetImportData = HoudiniAsset->AssetImportData;
-    if(!AssetImportData)
+    UAssetImportData * AssetImportData = HoudiniAsset->AssetImportData;
+    if ( !AssetImportData )
     {
-        AssetImportData = NewObject<UAssetImportData>(HoudiniAsset, UAssetImportData::StaticClass());
+        AssetImportData = NewObject< UAssetImportData >( HoudiniAsset, UAssetImportData::StaticClass() );
         HoudiniAsset->AssetImportData = AssetImportData;
     }
 
-    AssetImportData->Update(UFactory::GetCurrentFilename());
+    AssetImportData->Update( UFactory::GetCurrentFilename() );
 
     // Broadcast notification that the new asset has been imported.
-    FEditorDelegates::OnAssetPostImport.Broadcast(this, HoudiniAsset);
+    FEditorDelegates::OnAssetPostImport.Broadcast( this, HoudiniAsset );
 
     return HoudiniAsset;
 }
 
-
 bool
-UHoudiniAssetFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+UHoudiniAssetFactory::CanReimport( UObject * Obj, TArray< FString > & OutFilenames )
 {
-    UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
-    if(HoudiniAsset)
+    UHoudiniAsset * HoudiniAsset = Cast< UHoudiniAsset >( Obj );
+    if ( HoudiniAsset )
     {
-        UAssetImportData* AssetImportData = HoudiniAsset->AssetImportData;
-        if(AssetImportData)
-        {
-            OutFilenames.Add(AssetImportData->GetFirstFilename());
-        }
+        UAssetImportData * AssetImportData = HoudiniAsset->AssetImportData;
+        if ( AssetImportData )
+            OutFilenames.Add( AssetImportData->GetFirstFilename() );
         else
-        {
-            OutFilenames.Add(TEXT(""));
-        }
+            OutFilenames.Add( TEXT( "" ) );
 
         return true;
     }
@@ -108,50 +101,41 @@ UHoudiniAssetFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
     return false;
 }
 
-
 void
-UHoudiniAssetFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+UHoudiniAssetFactory::SetReimportPaths( UObject * Obj, const TArray< FString > & NewReimportPaths )
 {
-    UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
-    if(HoudiniAsset && (1 == NewReimportPaths.Num()))
-    {
-        HoudiniAsset->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
-    }
+    UHoudiniAsset * HoudiniAsset = Cast< UHoudiniAsset >( Obj );
+    if ( HoudiniAsset && ( 1 == NewReimportPaths.Num() ) )
+        HoudiniAsset->AssetImportData->UpdateFilenameOnly( NewReimportPaths[ 0 ] );
 }
 
-
 EReimportResult::Type
-UHoudiniAssetFactory::Reimport(UObject* Obj)
+UHoudiniAssetFactory::Reimport( UObject * Obj )
 {
-    UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Obj);
-    if(HoudiniAsset && HoudiniAsset->AssetImportData)
+    UHoudiniAsset * HoudiniAsset = Cast< UHoudiniAsset >( Obj );
+    if ( HoudiniAsset && HoudiniAsset->AssetImportData )
     {
         // Make sure file is valid and exists.
-        const FString& Filename = HoudiniAsset->AssetImportData->GetFirstFilename();
+        const FString & Filename = HoudiniAsset->AssetImportData->GetFirstFilename();
 
-        if(!Filename.Len() || (INDEX_NONE == IFileManager::Get().FileSize(*Filename)))
-        {
+        if ( !Filename.Len() || IFileManager::Get().FileSize( *Filename ) == INDEX_NONE )
             return EReimportResult::Failed;
-        }
 
-        if(UFactory::StaticImportObject(HoudiniAsset->GetClass(), HoudiniAsset->GetOuter(), *HoudiniAsset->GetName(),
-            RF_Public | RF_Standalone, *Filename, NULL, this))
+        if ( UFactory::StaticImportObject(
+            HoudiniAsset->GetClass(), HoudiniAsset->GetOuter(), *HoudiniAsset->GetName(),
+            RF_Public | RF_Standalone, *Filename, NULL, this ) )
         {
-            HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimported successfully."));
+            HOUDINI_LOG_MESSAGE( TEXT( "Houdini Asset reimported successfully." ) );
 
-            if(HoudiniAsset->GetOuter())
-            {
+            if ( HoudiniAsset->GetOuter() )
                 HoudiniAsset->GetOuter()->MarkPackageDirty();
-            }
             else
-            {
                 HoudiniAsset->MarkPackageDirty();
-            }
 
             return EReimportResult::Succeeded;
         }
     }
 
-    HOUDINI_LOG_MESSAGE(TEXT("Houdini Asset reimport has failed."));
+    HOUDINI_LOG_MESSAGE( TEXT( "Houdini Asset reimport has failed." ) );
     return EReimportResult::Failed;
 }
