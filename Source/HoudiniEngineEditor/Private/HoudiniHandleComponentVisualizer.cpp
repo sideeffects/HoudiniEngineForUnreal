@@ -16,36 +16,31 @@
 #include "HoudiniHandleComponentVisualizer.h"
 #include "HoudiniEngineEditor.h"
 
+IMPLEMENT_HIT_PROXY( HHoudiniHandleVisProxy, HComponentVisProxy );
 
-IMPLEMENT_HIT_PROXY(HHoudiniHandleVisProxy, HComponentVisProxy);
+HHoudiniHandleVisProxy::HHoudiniHandleVisProxy( const UActorComponent * InComponent )
+    : HComponentVisProxy( InComponent, HPP_Wireframe )
+{}
 
-HHoudiniHandleVisProxy::HHoudiniHandleVisProxy(const UActorComponent* InComponent) :
-    HComponentVisProxy(InComponent, HPP_Wireframe)
-{
-}
-
-FHoudiniHandleComponentVisualizerCommands::FHoudiniHandleComponentVisualizerCommands() :
-    TCommands<FHoudiniHandleComponentVisualizerCommands>(
+FHoudiniHandleComponentVisualizerCommands::FHoudiniHandleComponentVisualizerCommands()
+    : TCommands< FHoudiniHandleComponentVisualizerCommands >(
         "HoudiniHandleComponentVisualizer",
-        LOCTEXT("HoudiniHandleComponentVisualizer", "Houdini Handle Component Visualizer"),
+        LOCTEXT( "HoudiniHandleComponentVisualizer", "Houdini Handle Component Visualizer" ),
         NAME_None,
-        FEditorStyle::GetStyleSetName()
-    )
-{
-}
+        FEditorStyle::GetStyleSetName() )
+{}
 
 void
 FHoudiniHandleComponentVisualizerCommands::RegisterCommands()
-{   
-}
+{}
 
-FHoudiniHandleComponentVisualizer::FHoudiniHandleComponentVisualizer() :
-    FComponentVisualizer(),
-    EditedComponent(nullptr),
-    bEditing(false)
+FHoudiniHandleComponentVisualizer::FHoudiniHandleComponentVisualizer()
+    : FComponentVisualizer()
+    , EditedComponent( nullptr )
+    , bEditing( false )
 {
     FHoudiniHandleComponentVisualizerCommands::Register();
-    VisualizerActions = MakeShareable(new FUICommandList);
+    VisualizerActions = MakeShareable( new FUICommandList );
 }
 
 FHoudiniHandleComponentVisualizer::~FHoudiniHandleComponentVisualizer()
@@ -54,43 +49,41 @@ FHoudiniHandleComponentVisualizer::~FHoudiniHandleComponentVisualizer()
 }
 
 void
-FHoudiniHandleComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View,
-    FPrimitiveDrawInterface* PDI)
+FHoudiniHandleComponentVisualizer::DrawVisualization(
+    const UActorComponent * Component, const FSceneView * View,
+    FPrimitiveDrawInterface * PDI )
 {
-    const UHoudiniHandleComponent* HandleComponent = Cast<const UHoudiniHandleComponent>(Component);
-    if (!HandleComponent)
-    {
+    const UHoudiniHandleComponent * HandleComponent = Cast< const UHoudiniHandleComponent >( Component );
+    if ( !HandleComponent )
         return;
-    }
 
-    static const FColor Color(255, 0, 255);
+    static const FColor Color( 255, 0, 255 );
     static const float GrabHandleSize = 12.0f;
 
     // Draw point and set hit box for it.
-    PDI->SetHitProxy(new HHoudiniHandleVisProxy(HandleComponent));
+    PDI->SetHitProxy( new HHoudiniHandleVisProxy( HandleComponent ) );
     PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), Color, GrabHandleSize, SDPG_Foreground );
-    PDI->SetHitProxy(nullptr);
+    PDI->SetHitProxy( nullptr );
 }
 
 bool
-FHoudiniHandleComponentVisualizer::VisProxyHandleClick(FLevelEditorViewportClient* InViewportClient,
-    HComponentVisProxy* VisProxy, const FViewportClick& Click)
+FHoudiniHandleComponentVisualizer::VisProxyHandleClick(
+    FLevelEditorViewportClient * InViewportClient,
+    HComponentVisProxy * VisProxy, const FViewportClick & Click )
 {
     bEditing = false;
 
     if ( VisProxy && VisProxy->Component.IsValid() )
     {
-        const UHoudiniHandleComponent* Component =
-            CastChecked<const UHoudiniHandleComponent>(VisProxy->Component.Get());
+        const UHoudiniHandleComponent * Component =
+            CastChecked< const UHoudiniHandleComponent >( VisProxy->Component.Get() );
 
-        EditedComponent = const_cast<UHoudiniHandleComponent*>(Component);
+        EditedComponent = const_cast< UHoudiniHandleComponent * >( Component );
 
-        if(Component)
+        if ( Component )
         {
-            if ( VisProxy->IsA(HHoudiniHandleVisProxy::StaticGetType()) )
-            {
+            if ( VisProxy->IsA( HHoudiniHandleVisProxy::StaticGetType() ) )
                 bEditing = true;
-            }
         }
     }
 
@@ -105,9 +98,8 @@ FHoudiniHandleComponentVisualizer::EndEditing()
 
 bool
 FHoudiniHandleComponentVisualizer::GetWidgetLocation(
-    const FEditorViewportClient* ViewportClient,
-    FVector& OutLocation
-) const
+    const FEditorViewportClient * ViewportClient,
+    FVector & OutLocation ) const
 {
     if ( EditedComponent )
     {
@@ -120,9 +112,8 @@ FHoudiniHandleComponentVisualizer::GetWidgetLocation(
 
 bool
 FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
-    const FEditorViewportClient* ViewportClient,
-    FMatrix& OutMatrix
-) const
+    const FEditorViewportClient * ViewportClient,
+    FMatrix & OutMatrix ) const
 {   
     if ( EditedComponent && ViewportClient->GetWidgetMode() == FWidget::WM_Scale )
     {
@@ -137,25 +128,22 @@ FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
 
 bool
 FHoudiniHandleComponentVisualizer::HandleInputDelta(
-    FEditorViewportClient* ViewportClient, FViewport* Viewport,
-    FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale
-)
+    FEditorViewportClient * ViewportClient, FViewport * Viewport,
+    FVector& DeltaTranslate, FRotator & DeltaRotate, FVector & DeltaScale )
 {
     if ( !EditedComponent )
-    {
         return false;
-    }
 
     bool bUpdated = false;
     if ( !DeltaTranslate.IsZero() )
     {
-        EditedComponent->SetWorldLocation(EditedComponent->ComponentToWorld.GetLocation() + DeltaTranslate);
+        EditedComponent->SetWorldLocation( EditedComponent->ComponentToWorld.GetLocation() + DeltaTranslate );
         bUpdated = true;
     }
 
     if ( !DeltaRotate.IsZero() )
     {
-        EditedComponent->SetWorldRotation(DeltaRotate.Quaternion() * EditedComponent->ComponentToWorld.GetRotation());
+        EditedComponent->SetWorldRotation( DeltaRotate.Quaternion() * EditedComponent->ComponentToWorld.GetRotation() );
         bUpdated = true;
     }
 
@@ -168,12 +156,10 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(
     if ( bUpdated )
     {
         if ( GEditor )
-        {
-            GEditor->RedrawLevelEditingViewports(true);
-        }
+            GEditor->RedrawLevelEditingViewports( true );
 
         EditedComponent->UpdateTransformParameters();
-    }   
+    }
 
     return true;
 }

@@ -16,30 +16,29 @@
 #pragma once
 #include "HoudiniAssetActorFactory.generated.h"
 
-
 class FText;
 class AActor;
 class UObject;
 class FAssetData;
 
-UCLASS(config=Editor)
+UCLASS( config = Editor )
 class UHoudiniAssetActorFactory : public UActorFactory
 {
     GENERATED_UCLASS_BODY()
 
-/** UActorFactory methods. **/
-public:
+    /** UActorFactory methods. **/
+    public:
 
-    /** Return true if Actor can be created from a given asset. **/
-    virtual bool CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg) override;
+        /** Return true if Actor can be created from a given asset. **/
+        virtual bool CanCreateActorFrom( const FAssetData & AssetData, FText & OutErrorMsg ) override;
 
-    /** Given an instance of an actor pertaining to this factory, find the asset that should be used to create a new actor. **/
-    virtual UObject* GetAssetFromActorInstance(AActor* Instance) override;
+        /** Given an instance of an actor pertaining to this factory, find the asset that should be used to create a new actor. **/
+        virtual UObject * GetAssetFromActorInstance( AActor * Instance ) override;
 
-    /** Subclasses may implement this to modify the actor after it has been spawned. **/
-    virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) override;
+        /** Subclasses may implement this to modify the actor after it has been spawned. **/
+        virtual void PostSpawnActor( UObject * Asset, AActor * NewActor ) override;
 
-    /** Override this in derived factory classes if needed.  This is called after a blueprint is created by this factory to **/
-    /** update the blueprint's CDO properties with state from the asset for this factory.                                   **/
-    virtual void PostCreateBlueprint(UObject* Asset, AActor* CDO) override;
+        /** Override this in derived factory classes if needed.  This is called after a blueprint is created by this factory to **/
+        /** update the blueprint's CDO properties with state from the asset for this factory.                                   **/
+        virtual void PostCreateBlueprint( UObject * Asset, AActor * CDO ) override;
 };

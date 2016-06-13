@@ -16,32 +16,32 @@
 #pragma once
 #include "HoudiniAssetThumbnailRenderer.generated.h"
 
-
 class UObject;
 class FCanvas;
 class FRenderTarget;
 class UHoudiniAsset;
 class FHoudiniAssetThumbnailScene;
 
-
-UCLASS(config=Editor)
+UCLASS( config = Editor )
 class UHoudiniAssetThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
     GENERATED_UCLASS_BODY()
 
-/** ThumbnailRenderer methods. **/
-public:
+    /** ThumbnailRenderer methods. **/
+    public:
 
-    virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget,
-        FCanvas* Canvas) override;
+        virtual void Draw(
+            UObject * Object, int32 X, int32 Y, uint32 Width, uint32 Height,
+            FRenderTarget * RenderTarget,
+            FCanvas * Canvas) override;
 
-/** UObject methods. **/
-public:
+    /** UObject methods. **/
+    public:
 
-    virtual void BeginDestroy() override;
+        virtual void BeginDestroy() override;
 
-private:
+    private:
 
-    /** Used thumbnail scene. **/
-    FHoudiniAssetThumbnailScene* ThumbnailScene;
+        /** Used thumbnail scene. **/
+        FHoudiniAssetThumbnailScene * ThumbnailScene;
 };
