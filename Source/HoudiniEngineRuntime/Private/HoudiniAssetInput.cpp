@@ -28,60 +28,59 @@
 #include "HoudiniAssetParameterVersion.h"
 #include "HoudiniEngineString.h"
 
-
-UHoudiniAssetInput::UHoudiniAssetInput(const FObjectInitializer& ObjectInitializer) :
-    Super(ObjectInitializer),
-    InputObject(nullptr),
-    InputCurve(nullptr),
-    InputAssetComponent(nullptr),
-    InputLandscapeProxy(nullptr),
-    ConnectedAssetId(-1),
-    InputIndex(0),
-    ChoiceIndex(EHoudiniAssetInputType::GeometryInput),
-    bStaticMeshChanged(false),
-    bSwitchedToCurve(false),
-    bLoadedParameter(false),
-    bInputAssetConnectedInHoudini(false),
-    bLandscapeInputSelectionOnly(false),
-    bLandscapeExportCurves(false),
-    bLandscapeExportFullGeometry(false),
-    bLandscapeExportMaterials(true),
-    bLandscapeExportLighting(false),
-    bLandscapeExportNormalizedUVs(false),
-    bLandscapeExportTileUVs(false)
+UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitializer )
+    : Super( ObjectInitializer )
+    , InputObject( nullptr )
+    , InputCurve( nullptr )
+    , InputAssetComponent( nullptr )
+    , InputLandscapeProxy( nullptr )
+    , ConnectedAssetId( -1 )
+    , InputIndex( 0 )
+    , ChoiceIndex( EHoudiniAssetInputType::GeometryInput )
+    , bStaticMeshChanged( false )
+    , bSwitchedToCurve( false )
+    , bLoadedParameter( false )
+    , bInputAssetConnectedInHoudini( false )
+    , bLandscapeInputSelectionOnly( false )
+    , bLandscapeExportCurves( false )
+    , bLandscapeExportFullGeometry( false )
+    , bLandscapeExportMaterials( true )
+    , bLandscapeExportLighting( false )
+    , bLandscapeExportNormalizedUVs( false )
+    , bLandscapeExportTileUVs( false )
 {
-    ChoiceStringValue = TEXT("");
+    ChoiceStringValue = TEXT( "" );
 }
-
 
 UHoudiniAssetInput::~UHoudiniAssetInput()
+{}
+
+UHoudiniAssetInput *
+UHoudiniAssetInput::Create( UHoudiniAssetComponent * InHoudiniAssetComponent, int32 InInputIndex )
 {
-
-}
-
-
-UHoudiniAssetInput*
-UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int32 InInputIndex)
-{
-    UHoudiniAssetInput* HoudiniAssetInput = nullptr;
+    UHoudiniAssetInput * HoudiniAssetInput = nullptr;
 
     // Get name of this input.
     HAPI_StringHandle InputStringHandle;
-    if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetInputName(FHoudiniEngine::Get().GetSession(),
-        InHoudiniAssetComponent->GetAssetId(), InInputIndex, HAPI_INPUT_GEOMETRY, &InputStringHandle))
+    if ( FHoudiniApi::GetInputName(
+        FHoudiniEngine::Get().GetSession(),
+        InHoudiniAssetComponent->GetAssetId(),
+        InInputIndex, HAPI_INPUT_GEOMETRY, &InputStringHandle ) != HAPI_RESULT_SUCCESS )
     {
         return HoudiniAssetInput;
     }
 
-    HoudiniAssetInput = NewObject<UHoudiniAssetInput>(InHoudiniAssetComponent,
-        UHoudiniAssetInput::StaticClass(), NAME_None, RF_Public | RF_Transactional);
+    HoudiniAssetInput = NewObject< UHoudiniAssetInput >(
+        InHoudiniAssetComponent,
+        UHoudiniAssetInput::StaticClass(),
+        NAME_None, RF_Public | RF_Transactional );
 
     // Set component and other information.
     HoudiniAssetInput->HoudiniAssetComponent = InHoudiniAssetComponent;
     HoudiniAssetInput->InputIndex = InInputIndex;
 
     // Get input string from handle.
-    HoudiniAssetInput->SetNameAndLabel(InputStringHandle);
+    HoudiniAssetInput->SetNameAndLabel( InputStringHandle );
 
     // By default geometry input is chosen.
     HoudiniAssetInput->ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
@@ -92,171 +91,158 @@ UHoudiniAssetInput::Create(UHoudiniAssetComponent* InHoudiniAssetComponent, int3
     return HoudiniAssetInput;
 }
 
-
 void
 UHoudiniAssetInput::CreateWidgetResources()
 {
-    ChoiceStringValue = TEXT("");
+    ChoiceStringValue = TEXT( "" );
     StringChoiceLabels.Empty();
 
     {
-        FString* ChoiceLabel = new FString(TEXT("Geometry Input"));
-        StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+        FString * ChoiceLabel = new FString( TEXT( "Geometry Input" ) );
+        StringChoiceLabels.Add( TSharedPtr< FString >( ChoiceLabel ) );
 
-        if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
-        {
+        if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
             ChoiceStringValue = *ChoiceLabel;
-        }
     }
     {
-        FString* ChoiceLabel = new FString(TEXT("Asset Input"));
-        StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+        FString * ChoiceLabel = new FString( TEXT( "Asset Input" ) );
+        StringChoiceLabels.Add( TSharedPtr< FString >( ChoiceLabel ) );
 
-        if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
-        {
+        if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
             ChoiceStringValue = *ChoiceLabel;
-        }
     }
     {
-        FString* ChoiceLabel = new FString(TEXT("Curve Input"));
-        StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+        FString * ChoiceLabel = new FString( TEXT( "Curve Input" ) );
+        StringChoiceLabels.Add( TSharedPtr< FString >( ChoiceLabel ) );
 
-        if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
-        {
+        if ( ChoiceIndex == EHoudiniAssetInputType::CurveInput )
             ChoiceStringValue = *ChoiceLabel;
-        }
     }
     {
-        FString* ChoiceLabel = new FString(TEXT("Landscape Input"));
-        StringChoiceLabels.Add(TSharedPtr<FString>(ChoiceLabel));
+        FString * ChoiceLabel = new FString( TEXT( "Landscape Input" ) );
+        StringChoiceLabels.Add( TSharedPtr< FString >( ChoiceLabel ) );
 
-        if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
-        {
+        if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
             ChoiceStringValue = *ChoiceLabel;
-        }
     }
 }
-
 
 void
 UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
 {
-    if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
+    if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
-        if(InputAssetComponent)
-        {
-            InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
-        }
+        if ( InputAssetComponent )
+            InputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
 
         InputAssetComponent = nullptr;
         ConnectedAssetId = -1;
     }
     else
     {
-        if(HoudiniAssetComponent)
+        if ( HoudiniAssetComponent )
         {
             HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-            if(FHoudiniEngineUtils::IsValidAssetId(HostAssetId))
-            {
-                FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);
-            }
+            if ( FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
+                FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
         }
 
-        if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
         {
-            FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
+            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
             ConnectedAssetId = -1;
         }
     }
 }
 
-
 bool
-UHoudiniAssetInput::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetInput::CreateParameter(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
     // This implementation is not a true parameter. This method should not be called.
-    check(false);
+    check( false );
     return false;
 }
-
 
 #if WITH_EDITOR
 
 void
-UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
+UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
 {
     StaticMeshThumbnailBorder.Reset();
     StaticMeshComboButton.Reset();
     InputTypeComboBox.Reset();
 
     // Get thumbnail pool for this builder.
-    IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
-    TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+    IDetailLayoutBuilder & DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
+    TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
-    FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
-    FText ParameterLabelText = FText::FromString(GetParameterLabel());
+    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FText ParameterLabelText = FText::FromString( GetParameterLabel() );
 
-    Row.NameWidget.Widget = SNew(STextBlock)
-                            .Text(ParameterLabelText)
-                            .ToolTipText(ParameterLabelText)
-                            .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+    Row.NameWidget.Widget =
+        SNew( STextBlock )
+            .Text( ParameterLabelText )
+            .ToolTipText( ParameterLabelText )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
 
     // Create thumbnail for this static mesh.
-    TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(
-        new FAssetThumbnail(InputObject, 64, 64, AssetThumbnailPool));
+    TSharedPtr< FAssetThumbnail > StaticMeshThumbnail = MakeShareable(
+        new FAssetThumbnail( InputObject, 64, 64, AssetThumbnailPool ) );
 
-    TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-    TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
-    TSharedPtr<SHorizontalBox> ButtonBox;
+    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
+    TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
+    TSharedPtr< SHorizontalBox > ButtonBox;
 
-    if(StringChoiceLabels.Num() > 0)
+    if ( StringChoiceLabels.Num() > 0 )
     {
-        VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
         [
-            SAssignNew(InputTypeComboBox, SComboBox<TSharedPtr<FString> >)
-            .OptionsSource(&StringChoiceLabels)
-            .InitiallySelectedItem(StringChoiceLabels[ChoiceIndex])
-            .OnGenerateWidget(SComboBox<TSharedPtr<FString> >::FOnGenerateWidget::CreateUObject(
-                this, &UHoudiniAssetInput::CreateChoiceEntryWidget))
-            .OnSelectionChanged(SComboBox<TSharedPtr<FString> >::FOnSelectionChanged::CreateUObject(
-                this, &UHoudiniAssetInput::OnChoiceChange))
+            SAssignNew( InputTypeComboBox, SComboBox<TSharedPtr< FString > > )
+            .OptionsSource( &StringChoiceLabels )
+            .InitiallySelectedItem( StringChoiceLabels[ ChoiceIndex ] )
+            .OnGenerateWidget( SComboBox< TSharedPtr< FString > >::FOnGenerateWidget::CreateUObject(
+                this, &UHoudiniAssetInput::CreateChoiceEntryWidget ) )
+            .OnSelectionChanged( SComboBox< TSharedPtr< FString > >::FOnSelectionChanged::CreateUObject(
+                this, &UHoudiniAssetInput::OnChoiceChange ) )
             [
-                SNew(STextBlock)
-                .Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::HandleChoiceContentText)))
-                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                SNew( STextBlock )
+                .Text(TAttribute< FText >::Create( TAttribute< FText >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::HandleChoiceContentText ) ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
             ]
         ];
     }
 
-    if(EHoudiniAssetInputType::GeometryInput == ChoiceIndex)
+    if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
     {
-        VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
         [
-            SNew(SAssetDropTarget)
-            .OnIsAssetAcceptableForDrop(SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(
-                this, &UHoudiniAssetInput::OnStaticMeshDraggedOver))
+            SNew( SAssetDropTarget )
+            .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(
+                this, &UHoudiniAssetInput::OnStaticMeshDraggedOver ) )
             .OnAssetDropped(SAssetDropTarget::FOnAssetDropped::CreateUObject(
-                this, &UHoudiniAssetInput::OnStaticMeshDropped))
+                this, &UHoudiniAssetInput::OnStaticMeshDropped ) )
             [
-                SAssignNew(HorizontalBox, SHorizontalBox)
+                SAssignNew( HorizontalBox, SHorizontalBox )
             ]
         ];
 
-        HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
+        HorizontalBox->AddSlot().Padding( 0.0f, 0.0f, 2.0f, 0.0f ).AutoWidth()
         [
-            SAssignNew(StaticMeshThumbnailBorder, SBorder)
-            .Padding(5.0f)
-            .BorderImage(TAttribute<const FSlateBrush*>::Create(
-                TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetStaticMeshThumbnailBorder)))
-            .OnMouseDoubleClick(FPointerEventHandler::CreateUObject(this, &UHoudiniAssetInput::OnThumbnailDoubleClick))
+            SAssignNew( StaticMeshThumbnailBorder, SBorder )
+            .Padding( 5.0f )
+            .BorderImage( TAttribute< const FSlateBrush * >::Create(
+                TAttribute< const FSlateBrush * >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetStaticMeshThumbnailBorder ) ) )
+            .OnMouseDoubleClick( FPointerEventHandler::CreateUObject( this, &UHoudiniAssetInput::OnThumbnailDoubleClick ) )
             [
-                SNew(SBox)
-                .WidthOverride(64)
-                .HeightOverride(64)
-                .ToolTipText(ParameterLabelText)
+                SNew( SBox )
+                .WidthOverride( 64 )
+                .HeightOverride( 64 )
+                .ToolTipText( ParameterLabelText )
                 [
                     StaticMeshThumbnail->MakeThumbnailWidget()
                 ]
@@ -264,35 +250,33 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
         ];
 
         FText MeshNameText = FText::GetEmpty();
-        if(InputObject)
-        {
-            MeshNameText = FText::FromString(InputObject->GetName());
-        }
+        if ( InputObject )
+            MeshNameText = FText::FromString( InputObject->GetName() );
 
         HorizontalBox->AddSlot()
-        .FillWidth(1.0f)
-        .Padding(0.0f, 4.0f, 4.0f, 4.0f)
-        .VAlign(VAlign_Center)
+        .FillWidth( 1.0f )
+        .Padding( 0.0f, 4.0f, 4.0f, 4.0f )
+        .VAlign( VAlign_Center )
         [
-            SNew(SVerticalBox)
+            SNew( SVerticalBox )
             +SVerticalBox::Slot()
-            .HAlign(HAlign_Fill)
+            .HAlign( HAlign_Fill )
             [
-                SAssignNew(ButtonBox, SHorizontalBox)
+                SAssignNew( ButtonBox, SHorizontalBox )
                 +SHorizontalBox::Slot()
                 [
-                    SAssignNew(StaticMeshComboButton, SComboButton)
-                    .ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
-                    .ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+                    SAssignNew( StaticMeshComboButton, SComboButton )
+                    .ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
+                    .ForegroundColor( FEditorStyle::GetColor( "PropertyEditor.AssetName.ColorAndOpacity" ) )
                     .OnGetMenuContent(FOnGetContent::CreateUObject(
-                        this, &UHoudiniAssetInput::OnGetStaticMeshMenuContent))
-                    .ContentPadding(2.0f)
+                        this, &UHoudiniAssetInput::OnGetStaticMeshMenuContent ) )
+                    .ContentPadding( 2.0f )
                     .ButtonContent()
                     [
-                        SNew(STextBlock)
-                        .TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
-                        .Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-                        .Text(MeshNameText)
+                        SNew( STextBlock )
+                        .TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
+                        .Font( FEditorStyle::GetFontStyle( FName( TEXT( "PropertyWindow.NormalFont" ) ) ) )
+                        .Text( MeshNameText )
                     ]
                 ]
             ]
@@ -300,274 +284,267 @@ UHoudiniAssetInput::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
 
         // Create tooltip.
         FFormatNamedArguments Args;
-        Args.Add(TEXT("Asset"), MeshNameText);
-        FText StaticMeshTooltip = FText::Format(LOCTEXT("BrowseToSpecificAssetInContentBrowser",
-            "Browse to '{Asset}' in Content Browser"), Args);
+        Args.Add( TEXT( "Asset" ), MeshNameText );
+        FText StaticMeshTooltip = FText::Format(
+            LOCTEXT( "BrowseToSpecificAssetInContentBrowser",
+            "Browse to '{Asset}' in Content Browser" ), Args );
 
         ButtonBox->AddSlot()
         .AutoWidth()
-        .Padding(2.0f, 0.0f)
-        .VAlign(VAlign_Center)
+        .Padding( 2.0f, 0.0f )
+        .VAlign( VAlign_Center )
         [
             PropertyCustomizationHelpers::MakeBrowseButton(
-                FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshBrowse),
-                TAttribute<FText>(StaticMeshTooltip))
+                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnStaticMeshBrowse ),
+                TAttribute< FText >( StaticMeshTooltip ) )
         ];
 
         ButtonBox->AddSlot()
         .AutoWidth()
-        .Padding(2.0f, 0.0f)
-        .VAlign(VAlign_Center)
+        .Padding( 2.0f, 0.0f )
+        .VAlign( VAlign_Center )
         [
-            SNew(SButton)
-            .ToolTipText(LOCTEXT("ResetToBase", "Reset to default static mesh"))
-            .ButtonStyle(FEditorStyle::Get(), "NoBorder")
-            .ContentPadding(0)
-            .Visibility(EVisibility::Visible)
-            .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnResetStaticMeshClicked))
+            SNew( SButton )
+            .ToolTipText( LOCTEXT( "ResetToBase", "Reset to default static mesh" ) )
+            .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+            .ContentPadding( 0 )
+            .Visibility( EVisibility::Visible )
+            .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetInput::OnResetStaticMeshClicked ) )
             [
-                SNew(SImage)
-                .Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+                SNew( SImage )
+                .Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
             ]
         ];
     }
-    else if(EHoudiniAssetInputType::AssetInput == ChoiceIndex)
+    else if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
-        VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             PropertyCustomizationHelpers::MakeActorPickerWithMenu(
                 nullptr,
                 true,
-                FOnShouldFilterActor::CreateUObject(this, &UHoudiniAssetInput::OnInputActorFilter),
-                FOnActorSelected::CreateUObject(this, &UHoudiniAssetInput::OnInputActorSelected),
-                FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorCloseComboButton),
-                FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorUse)
-            )
+                FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnInputActorFilter ),
+                FOnActorSelected::CreateUObject( this, &UHoudiniAssetInput::OnInputActorSelected ),
+                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorCloseComboButton ),
+                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorUse ) )
         ];
     }
-    else if(EHoudiniAssetInputType::CurveInput == ChoiceIndex)
+    else if ( ChoiceIndex == EHoudiniAssetInputType::CurveInput )
     {
         // Go through all input curve parameters and build their widgets recursively.
-        for(TMap<FString, UHoudiniAssetParameter*>::TIterator
-            IterParams(InputCurveParameters); IterParams; ++IterParams)
+        for ( TMap< FString, UHoudiniAssetParameter * >::TIterator
+            IterParams( InputCurveParameters ); IterParams; ++IterParams )
         {
-            UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-            if(HoudiniAssetParameter)
-            {
-                HoudiniAssetParameter->CreateWidget(VerticalBox);
-            }
+            UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+            if ( HoudiniAssetParameter )
+                HoudiniAssetParameter->CreateWidget( VerticalBox );
         }
     }
-    else if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
+    else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
     {
-        VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             PropertyCustomizationHelpers::MakeActorPickerWithMenu(
                 nullptr,
                 true,
-                FOnShouldFilterActor::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorFilter),
-                FOnActorSelected::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorSelected),
-                FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorCloseComboButton),
-                FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnLandscapeActorUse)
-            )
+                FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorFilter ),
+                FOnActorSelected::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorSelected ),
+                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorCloseComboButton ),
+                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorUse ) )
         ];
 
         {
-            TSharedPtr<SCheckBox> CheckBoxExportSelected;
+            TSharedPtr< SCheckBox > CheckBoxExportSelected;
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(CheckBoxExportSelected, SCheckBox)
+                SAssignNew( CheckBoxExportSelected, SCheckBox )
                 .Content()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("LandscapeSelectedCheckbox", "Export Selected Landscape Only"))
-                    .ToolTipText(LOCTEXT("LandscapeSelectedCheckbox", "Export Selected Landscape Only"))
-                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "LandscapeSelectedCheckbox", "Export Selected Landscape Only" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeSelectedCheckbox", "Export Selected Landscape Only" ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont") ) )
                 ]
-                .IsChecked(TAttribute<ECheckBoxState>::Create(
-                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-                        &UHoudiniAssetInput::IsCheckedExportOnlySelected)))
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-                    &UHoudiniAssetInput::CheckStateChangedExportOnlySelected))
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsCheckedExportOnlySelected) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportOnlySelected ) )
             ];
         }
 
         {
-            TSharedPtr<SCheckBox> CheckBoxExportFullGeometry;
+            TSharedPtr< SCheckBox > CheckBoxExportFullGeometry;
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(CheckBoxExportFullGeometry, SCheckBox)
+                SAssignNew( CheckBoxExportFullGeometry, SCheckBox )
                 .Content()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry"))
-                    .ToolTipText(LOCTEXT("LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry"))
-                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry" ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
-                .IsChecked(TAttribute<ECheckBoxState>::Create(
-                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-                        &UHoudiniAssetInput::IsCheckedExportFullGeometry)))
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-                    &UHoudiniAssetInput::CheckStateChangedExportFullGeometry))
+                .IsChecked(TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsCheckedExportFullGeometry ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportFullGeometry ) )
             ];
         }
 
         {
-            TSharedPtr<SCheckBox> CheckBoxExportMaterials;
+            TSharedPtr< SCheckBox > CheckBoxExportMaterials;
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(CheckBoxExportMaterials, SCheckBox)
+                SAssignNew( CheckBoxExportMaterials, SCheckBox )
                 .Content()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("LandscapeMaterialsCheckbox", "Export Landscape Materials"))
-                    .ToolTipText(LOCTEXT("LandscapeMaterialsCheckbox", "Export Landscape Materials"))
-                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "LandscapeMaterialsCheckbox", "Export Landscape Materials" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeMaterialsCheckbox", "Export Landscape Materials" ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
-                .IsChecked(TAttribute<ECheckBoxState>::Create(
-                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-                        &UHoudiniAssetInput::IsCheckedExportMaterials)))
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-                    &UHoudiniAssetInput::CheckStateChangedExportMaterials))
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsCheckedExportMaterials ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportMaterials ) )
             ];
         }
 
         {
-            TSharedPtr<SCheckBox> CheckBoxExportTileUVs;
+            TSharedPtr< SCheckBox > CheckBoxExportTileUVs;
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(CheckBoxExportTileUVs, SCheckBox)
+                SAssignNew( CheckBoxExportTileUVs, SCheckBox )
                 .Content()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("LandscapeTileUVsCheckbox", "Export Landscape Tile UVs"))
-                    .ToolTipText(LOCTEXT("LandscapeTileUVsCheckbox", "Export Landscape Tile UVs"))
-                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "LandscapeTileUVsCheckbox", "Export Landscape Tile UVs" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeTileUVsCheckbox", "Export Landscape Tile UVs" ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
-                .IsChecked(TAttribute<ECheckBoxState>::Create(
-                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-                        &UHoudiniAssetInput::IsCheckedExportTileUVs)))
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-                    &UHoudiniAssetInput::CheckStateChangedExportTileUVs))
+                .IsChecked(TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsCheckedExportTileUVs ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportTileUVs ) )
             ];
         }
 
         {
-            TSharedPtr<SCheckBox> CheckBoxExportNormalizedUVs;
+            TSharedPtr< SCheckBox > CheckBoxExportNormalizedUVs;
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(CheckBoxExportNormalizedUVs, SCheckBox)
+                SAssignNew( CheckBoxExportNormalizedUVs, SCheckBox )
                 .Content()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs"))
-                    .ToolTipText(LOCTEXT("LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs"))
-                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs" ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
-                .IsChecked(TAttribute<ECheckBoxState>::Create(
-                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-                        &UHoudiniAssetInput::IsCheckedExportNormalizedUVs)))
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-                    &UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs))
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsCheckedExportNormalizedUVs ) ) )
+                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs ) )
             ];
         }
 
         {
-            TSharedPtr<SCheckBox> CheckBoxExportLighting;
+            TSharedPtr< SCheckBox > CheckBoxExportLighting;
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(CheckBoxExportLighting, SCheckBox)
+                SAssignNew( CheckBoxExportLighting, SCheckBox )
                 .Content()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("LandscapeLightingCheckbox", "Export Landscape Lighting"))
-                    .ToolTipText(LOCTEXT("LandscapeLightingCheckbox", "Export Landscape Lighting"))
-                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "LandscapeLightingCheckbox", "Export Landscape Lighting" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeLightingCheckbox", "Export Landscape Lighting" ) )
+                    .Font(FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
-                .IsChecked(TAttribute<ECheckBoxState>::Create(
-                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-                        &UHoudiniAssetInput::IsCheckedExportLighting)))
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-                    &UHoudiniAssetInput::CheckStateChangedExportLighting))
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsCheckedExportLighting ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportLighting ) )
             ];
         }
 
         {
-            TSharedPtr<SCheckBox> CheckBoxExportCurves;
+            TSharedPtr< SCheckBox > CheckBoxExportCurves;
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(CheckBoxExportCurves, SCheckBox)
+                SAssignNew( CheckBoxExportCurves, SCheckBox )
                 .Content()
                 [
-                    SNew(STextBlock)
-                    .Text(LOCTEXT("LandscapeCurvesCheckbox", "Export Landscape Curves"))
-                    .ToolTipText(LOCTEXT("LandscapeCurvesCheckbox", "Export Landscape Curves"))
-                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                    SNew( STextBlock )
+                    .Text( LOCTEXT( "LandscapeCurvesCheckbox", "Export Landscape Curves" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeCurvesCheckbox", "Export Landscape Curves" ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
-                .IsChecked(TAttribute<ECheckBoxState>::Create(
-                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(this,
-                        &UHoudiniAssetInput::IsCheckedExportCurves)))
-                .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(this,
-                    &UHoudiniAssetInput::CheckStateChangedExportCurves))
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsCheckedExportCurves ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportCurves ) )
             ];
 
             // Disable curves until we have them implemented.
-            if(CheckBoxExportCurves.IsValid())
-            {
-                CheckBoxExportCurves->SetEnabled(false);
-            }
+            if ( CheckBoxExportCurves.IsValid() )
+                CheckBoxExportCurves->SetEnabled( false );
         }
 
-        VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
-            SNew(SHorizontalBox)
+            SNew( SHorizontalBox )
             +SHorizontalBox::Slot()
-            .Padding(1, 2, 4, 2)
+            .Padding( 1, 2, 4, 2 )
             [
-                SNew(SButton)
-                .VAlign(VAlign_Center)
-                .HAlign(HAlign_Center)
-                .Text(LOCTEXT("LandscapeInputRecommit", "Recommit Landscape"))
-                .ToolTipText(LOCTEXT("LandscapeInputRecommit", "Recommit Landscape"))
-                .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickRecommit))
+                SNew( SButton )
+                .VAlign( VAlign_Center )
+                .HAlign( HAlign_Center )
+                .Text( LOCTEXT( "LandscapeInputRecommit", "Recommit Landscape" ) )
+                .ToolTipText( LOCTEXT( "LandscapeInputRecommit", "Recommit Landscape" ) )
+                .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetInput::OnButtonClickRecommit ) )
             ]
         ];
     }
 
     Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
+    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
 #endif
-
 
 bool
 UHoudiniAssetInput::UploadParameterValue()
 {
     HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
 
-    switch(ChoiceIndex)
+    switch ( ChoiceIndex )
     {
         case EHoudiniAssetInputType::GeometryInput:
         {
-            UStaticMesh* StaticMesh = Cast<UStaticMesh>(InputObject);
-            if(StaticMesh)
+            UStaticMesh * StaticMesh = Cast< UStaticMesh >( InputObject );
+            if ( StaticMesh )
             {
-                if(bStaticMeshChanged || bLoadedParameter)
+                if ( bStaticMeshChanged || bLoadedParameter )
                 {
                     // Disconnect and destroy currently connected asset, if there's one.
                     DisconnectAndDestroyInputAsset();
 
                     // Connect input and create connected asset. Will return by reference.
-                    if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, StaticMesh,
-                        ConnectedAssetId))
+                    if ( !FHoudiniEngineUtils::HapiCreateAndConnectAsset( HostAssetId, InputIndex, StaticMesh, ConnectedAssetId ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -589,12 +566,12 @@ UHoudiniAssetInput::UploadParameterValue()
         case EHoudiniAssetInputType::AssetInput:
         {
             // Process connected asset.
-            if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId())
-                && !bInputAssetConnectedInHoudini)
+            if ( InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() )
+                && !bInputAssetConnectedInHoudini )
             {
                 ConnectInputAssetActor();
             }
-            else if(bInputAssetConnectedInHoudini && !InputAssetComponent)
+            else if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
             {
                 DisconnectInputAssetActor();
             }
@@ -610,32 +587,32 @@ UHoudiniAssetInput::UploadParameterValue()
         case EHoudiniAssetInputType::CurveInput:
         {
             // If we have no curve asset, create it.
-            if(!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+            if ( !FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
             {
-                if(!FHoudiniEngineUtils::HapiCreateCurve(ConnectedAssetId))
+                if ( !FHoudiniEngineUtils::HapiCreateCurve( ConnectedAssetId ) )
                 {
                     bChanged = false;
                     return false;
                 }
 
                 // Connect asset.
-                FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex);
+                FHoudiniEngineUtils::HapiConnectAsset( ConnectedAssetId, 0, HostAssetId, InputIndex );
             }
 
-            if(bLoadedParameter)
+            if ( bLoadedParameter )
             {
                 HAPI_AssetInfo CurveAssetInfo;
-                FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo);
+                FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo );
 
                 // If we just loaded our curve, we need to set parameters.
-                for(TMap<FString, UHoudiniAssetParameter*>::TIterator
-                    IterParams(InputCurveParameters); IterParams; ++IterParams)
+                for ( TMap< FString, UHoudiniAssetParameter * >::TIterator
+                    IterParams( InputCurveParameters ); IterParams; ++IterParams )
                 {
-                    UHoudiniAssetParameter* Parameter = IterParams.Value();
-                    if(Parameter)
+                    UHoudiniAssetParameter * Parameter = IterParams.Value();
+                    if ( Parameter )
                     {
                         // We need to update node id for loaded parameters.
-                        Parameter->SetNodeId(CurveAssetInfo.nodeId);
+                        Parameter->SetNodeId( CurveAssetInfo.nodeId );
 
                         // Upload parameter value.
                         Parameter->UploadParameterValue();
@@ -645,27 +622,28 @@ UHoudiniAssetInput::UploadParameterValue()
 
             // Also upload points.
             HAPI_NodeId NodeId = -1;
-            if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
+            if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) )
             {
-                const TArray<FVector>& CurvePoints = InputCurve->GetCurvePoints();
+                const TArray< FVector > & CurvePoints = InputCurve->GetCurvePoints();
 
-                FString PositionString = TEXT("");
-                FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
+                FString PositionString = TEXT( "" );
+                FHoudiniEngineUtils::CreatePositionsString( CurvePoints, PositionString );
 
                 // Get param id.
                 HAPI_ParmId ParmId = -1;
-                if(HAPI_RESULT_SUCCESS == 
-                    FHoudiniApi::GetParmIdFromName(FHoudiniEngine::Get().GetSession(), NodeId,
-                        HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId))
+                if ( FHoudiniApi::GetParmIdFromName(
+                    FHoudiniEngine::Get().GetSession(), NodeId,
+                    HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId ) == HAPI_RESULT_SUCCESS )
                 {
-                    std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-                    FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), NodeId,
-                        ConvertedString.c_str(), ParmId, 0);
+                    std::string ConvertedString = TCHAR_TO_UTF8( *PositionString );
+                    FHoudiniApi::SetParmStringValue(
+                        FHoudiniEngine::Get().GetSession(), NodeId,
+                        ConvertedString.c_str(), ParmId, 0 );
                 }
             }
 
             // Cook the spline asset.
-            FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
+            FHoudiniApi::CookAsset( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
 
             // We need to update the curve.
             UpdateInputCurve();
@@ -677,16 +655,17 @@ UHoudiniAssetInput::UploadParameterValue()
 
         case EHoudiniAssetInputType::LandscapeInput:
         {
-            if(InputLandscapeProxy)
+            if ( InputLandscapeProxy )
             {
                 // Disconnect and destroy currently connected asset, if there's one.
                 DisconnectAndDestroyInputAsset();
 
                 // Connect input and create connected asset. Will return by reference.
-                if(!FHoudiniEngineUtils::HapiCreateAndConnectAsset(HostAssetId, InputIndex, InputLandscapeProxy,
+                if ( !FHoudiniEngineUtils::HapiCreateAndConnectAsset(
+                    HostAssetId, InputIndex, InputLandscapeProxy,
                     ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
                     bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting,
-                    bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs))
+                    bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs ) )
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
@@ -704,7 +683,7 @@ UHoudiniAssetInput::UploadParameterValue()
 
         default:
         {
-            check(0);
+            check( 0 );
         }
     }
 
@@ -712,7 +691,6 @@ UHoudiniAssetInput::UploadParameterValue()
     bLoadedParameter = false;
     return Super::UploadParameterValue();
 }
-
 
 void
 UHoudiniAssetInput::BeginDestroy()
@@ -726,7 +704,6 @@ UHoudiniAssetInput::BeginDestroy()
     DisconnectAndDestroyInputAsset();
 }
 
-
 void
 UHoudiniAssetInput::PostLoad()
 {
@@ -736,40 +713,39 @@ UHoudiniAssetInput::PostLoad()
     CreateWidgetResources();
 
     // Patch input curve parameter links.
-    for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(InputCurveParameters); IterParams; ++IterParams)
+    for ( TMap< FString, UHoudiniAssetParameter * >::TIterator IterParams( InputCurveParameters ); IterParams; ++IterParams )
     {
         FString ParameterKey = IterParams.Key();
-        UHoudiniAssetParameter* Parameter = IterParams.Value();
+        UHoudiniAssetParameter * Parameter = IterParams.Value();
 
-        if(Parameter)
+        if ( Parameter )
         {
-            Parameter->SetHoudiniAssetComponent(nullptr);
-            Parameter->SetParentParameter(this);
+            Parameter->SetHoudiniAssetComponent( nullptr );
+            Parameter->SetParentParameter( this );
         }
     }
 
     // Set input callback object for this curve.
-    if(InputCurve)
+    if ( InputCurve )
     {
-        InputCurve->SetHoudiniAssetInput(this);
-        InputCurve->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+        InputCurve->SetHoudiniAssetInput( this );
+        InputCurve->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
     }
 }
 
-
 void
-UHoudiniAssetInput::Serialize(FArchive& Ar)
+UHoudiniAssetInput::Serialize( FArchive & Ar )
 {
     // Call base implementation.
-    Super::Serialize(Ar);
+    Super::Serialize( Ar );
 
     // Serialize current choice selection.
-    SerializeEnumeration<EHoudiniAssetInputType::Enum>(Ar, ChoiceIndex);
+    SerializeEnumeration< EHoudiniAssetInputType::Enum >( Ar, ChoiceIndex );
     Ar << ChoiceStringValue;
 
     // We need these temporary variables for undo state tracking.
     bool bLocalInputAssetConnectedInHoudini = bInputAssetConnectedInHoudini;
-    UHoudiniAssetComponent* LocalInputAssetComponent = InputAssetComponent;
+    UHoudiniAssetComponent * LocalInputAssetComponent = InputAssetComponent;
 
     Ar << HoudiniAssetInputFlagsPacked;
 
@@ -787,31 +763,25 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
     Ar << InputCurveParameters;
 
     // Serialize landscape used for input.
-    if(HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT)
-    {
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT )
         Ar << InputLandscapeProxy;
-    }
 
     // Create necessary widget resources.
-    if(Ar.IsLoading())
+    if ( Ar.IsLoading() )
     {
         bLoadedParameter = true;
 
-        if(Ar.IsTransacting())
+        if ( Ar.IsTransacting() )
         {
             bInputAssetConnectedInHoudini = bLocalInputAssetConnectedInHoudini;
 
-            if(LocalInputAssetComponent != InputAssetComponent)
+            if ( LocalInputAssetComponent != InputAssetComponent )
             {
-                if(InputAssetComponent)
-                {
+                if ( InputAssetComponent )
                     bInputAssetConnectedInHoudini = false;
-                }
 
-                if(LocalInputAssetComponent)
-                {
-                    LocalInputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
-                }
+                if ( LocalInputAssetComponent )
+                    LocalInputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
             }
         }
         else
@@ -823,84 +793,67 @@ UHoudiniAssetInput::Serialize(FArchive& Ar)
     }
 }
 
-
 void
-UHoudiniAssetInput::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+UHoudiniAssetInput::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
-    UHoudiniAssetInput* HoudiniAssetInput = Cast<UHoudiniAssetInput>(InThis);
-    if(HoudiniAssetInput)
+    UHoudiniAssetInput * HoudiniAssetInput = Cast< UHoudiniAssetInput >( InThis );
+    if ( HoudiniAssetInput )
     {
         // Add reference to held geometry object.
-        if(HoudiniAssetInput->InputObject)
-        {
-            Collector.AddReferencedObject(HoudiniAssetInput->InputObject, InThis);
-        }
+        if ( HoudiniAssetInput->InputObject )
+            Collector.AddReferencedObject( HoudiniAssetInput->InputObject, InThis );
 
         // Add reference to held input asset component, if we have one.
-        if(HoudiniAssetInput->InputAssetComponent)
-        {
-            Collector.AddReferencedObject(HoudiniAssetInput->InputAssetComponent, InThis);
-        }
+        if ( HoudiniAssetInput->InputAssetComponent )
+            Collector.AddReferencedObject( HoudiniAssetInput->InputAssetComponent, InThis );
 
         // Add reference to held curve object.
-        if(HoudiniAssetInput->InputCurve)
-        {
-            Collector.AddReferencedObject(HoudiniAssetInput->InputCurve, InThis);
-        }
+        if ( HoudiniAssetInput->InputCurve )
+            Collector.AddReferencedObject( HoudiniAssetInput->InputCurve, InThis );
 
         // Add reference to held landscape.
-        if(HoudiniAssetInput->InputLandscapeProxy)
-        {
-            Collector.AddReferencedObject(HoudiniAssetInput->InputLandscapeProxy, InThis);
-        }
+        if ( HoudiniAssetInput->InputLandscapeProxy )
+            Collector.AddReferencedObject( HoudiniAssetInput->InputLandscapeProxy, InThis );
 
         // Add references for all curve input parameters.
-        for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(HoudiniAssetInput->InputCurveParameters);
-            IterParams; ++IterParams)
+        for ( TMap< FString, UHoudiniAssetParameter * >::TIterator IterParams( HoudiniAssetInput->InputCurveParameters );
+            IterParams; ++IterParams )
         {
-            UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-            if(HoudiniAssetParameter)
-            {
-                Collector.AddReferencedObject(HoudiniAssetParameter, InThis);
-            }
+            UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+            if ( HoudiniAssetParameter )
+                Collector.AddReferencedObject( HoudiniAssetParameter, InThis );
         }
     }
 
     // Call base implementation.
-    Super::AddReferencedObjects(InThis, Collector);
+    Super::AddReferencedObjects( InThis, Collector );
 }
-
 
 void
 UHoudiniAssetInput::ClearInputCurveParameters()
 {
-    for(TMap<FString, UHoudiniAssetParameter*>::TIterator IterParams(InputCurveParameters); IterParams; ++IterParams)
+    for( TMap< FString, UHoudiniAssetParameter * >::TIterator IterParams( InputCurveParameters ); IterParams; ++IterParams )
     {
-        UHoudiniAssetParameter* HoudiniAssetParameter = IterParams.Value();
-        if(HoudiniAssetParameter)
-        {
+        UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+        if ( HoudiniAssetParameter )
             HoudiniAssetParameter->ConditionalBeginDestroy();
-        }
     }
 
     InputCurveParameters.Empty();
 }
 
-
 void
 UHoudiniAssetInput::DestroyInputCurve()
 {
     // If we have spline, delete it.
-    if(InputCurve)
+    if ( InputCurve )
     {
         InputCurve->DetachFromParent();
         InputCurve->UnregisterComponent();
         InputCurve->DestroyComponent();
 
-        if(HoudiniAssetComponent)
-        {
-            HoudiniAssetComponent->AttachChildren.Remove(InputCurve);
-        }
+        if ( HoudiniAssetComponent )
+            HoudiniAssetComponent->AttachChildren.Remove( InputCurve );
 
         InputCurve = nullptr;
     }
@@ -908,18 +861,17 @@ UHoudiniAssetInput::DestroyInputCurve()
     ClearInputCurveParameters();
 }
 
-
 #if WITH_EDITOR
 
 void
-UHoudiniAssetInput::OnStaticMeshDropped(UObject* Object)
+UHoudiniAssetInput::OnStaticMeshDropped( UObject * Object )
 {
-    if(Object != InputObject)
+    if ( Object != InputObject )
     {
         FScopedTransaction Transaction(
-            TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Input Geometry Change"),
-            HoudiniAssetComponent);
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -927,140 +879,118 @@ UHoudiniAssetInput::OnStaticMeshDropped(UObject* Object)
         bStaticMeshChanged = true;
         MarkChanged();
 
-        HoudiniAssetComponent->UpdateEditorProperties(false);
+        HoudiniAssetComponent->UpdateEditorProperties( false );
     }
 }
 
-
 bool
-UHoudiniAssetInput::OnStaticMeshDraggedOver(const UObject* InObject) const
+UHoudiniAssetInput::OnStaticMeshDraggedOver( const UObject * InObject ) const
 {
     // We only allow static meshes as geo inputs at this time.
-    if(InObject && InObject->IsA(UStaticMesh::StaticClass()))
-    {
+    if ( InObject && InObject->IsA( UStaticMesh::StaticClass() ) )
         return true;
-    }
 
     return false;
 }
 
-
-const FSlateBrush*
+const FSlateBrush *
 UHoudiniAssetInput::GetStaticMeshThumbnailBorder() const
 {
-    if(StaticMeshThumbnailBorder.IsValid() && StaticMeshThumbnailBorder->IsHovered())
-    {
-        return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
-    }
+    if ( StaticMeshThumbnailBorder.IsValid() && StaticMeshThumbnailBorder->IsHovered() )
+        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailLight" );
     else
-    {
-        return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
-    }
+        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
 }
 
-
 FReply
-UHoudiniAssetInput::OnThumbnailDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+UHoudiniAssetInput::OnThumbnailDoubleClick( const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent )
 {
-    if(InputObject && InputObject->IsA(UStaticMesh::StaticClass()) && GEditor)
-    {
-        GEditor->EditObject(InputObject);
-    }
+    if ( InputObject && InputObject->IsA( UStaticMesh::StaticClass() ) && GEditor )
+        GEditor->EditObject( InputObject );
 
     return FReply::Handled();
 }
 
-
-TSharedRef<SWidget>
+TSharedRef< SWidget >
 UHoudiniAssetInput::OnGetStaticMeshMenuContent()
 {
-    TArray<const UClass*> AllowedClasses;
-    AllowedClasses.Add(UStaticMesh::StaticClass());
+    TArray< const UClass * > AllowedClasses;
+    AllowedClasses.Add( UStaticMesh::StaticClass() );
 
-    TArray<UFactory*> NewAssetFactories;
+    TArray< UFactory * > NewAssetFactories;
 
     return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
-        FAssetData(InputObject),
+        FAssetData( InputObject ),
         true,
         AllowedClasses,
         NewAssetFactories,
         OnShouldFilterStaticMesh,
-        FOnAssetSelected::CreateUObject(this, &UHoudiniAssetInput::OnStaticMeshSelected),
-        FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::CloseStaticMeshComboButton));
+        FOnAssetSelected::CreateUObject( this, &UHoudiniAssetInput::OnStaticMeshSelected ),
+        FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::CloseStaticMeshComboButton ) );
 }
 
-
 void
-UHoudiniAssetInput::OnStaticMeshSelected(const FAssetData& AssetData)
+UHoudiniAssetInput::OnStaticMeshSelected( const FAssetData & AssetData )
 {
-    if(StaticMeshComboButton.IsValid())
+    if ( StaticMeshComboButton.IsValid() )
     {
-        StaticMeshComboButton->SetIsOpen(false);
+        StaticMeshComboButton->SetIsOpen( false );
 
-        UObject* Object = AssetData.GetAsset();
-        OnStaticMeshDropped(Object);
+        UObject * Object = AssetData.GetAsset();
+        OnStaticMeshDropped( Object );
     }
 }
 
-
-TSharedRef<SWidget>
-UHoudiniAssetInput::CreateChoiceEntryWidget(TSharedPtr<FString> ChoiceEntry)
+TSharedRef< SWidget >
+UHoudiniAssetInput::CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry )
 {
-    FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+    FText ChoiceEntryText = FText::FromString( *ChoiceEntry );
 
-    return SNew(STextBlock)
-           .Text(ChoiceEntryText)
-           .ToolTipText(ChoiceEntryText)
-           .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+    return SNew( STextBlock )
+        .Text( ChoiceEntryText )
+        .ToolTipText( ChoiceEntryText )
+        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
 }
-
 
 void
 UHoudiniAssetInput::OnStaticMeshBrowse()
 {
-    if(GEditor && InputObject)
+    if ( GEditor && InputObject )
     {
-        TArray<UObject*> Objects;
-        Objects.Add(InputObject);
-        GEditor->SyncBrowserToObjects(Objects);
+        TArray< UObject * > Objects;
+        Objects.Add( InputObject );
+        GEditor->SyncBrowserToObjects( Objects );
     }
 }
 
-
 void
 UHoudiniAssetInput::CloseStaticMeshComboButton()
-{
-
-}
-
+{}
 
 FReply
 UHoudiniAssetInput::OnResetStaticMeshClicked()
 {
-    OnStaticMeshDropped(nullptr);
+    OnStaticMeshDropped( nullptr );
     return FReply::Handled();
 }
 
-
 void
-UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType )
 {
-    if(!NewChoice.IsValid())
-    {
+    if ( !NewChoice.IsValid() )
         return;
-    }
 
-    ChoiceStringValue = *(NewChoice.Get());
+    ChoiceStringValue = *( NewChoice.Get() );
 
     // We need to match selection based on label.
     bool bChanged = false;
     int32 ActiveLabel = 0;
 
-    for(int32 LabelIdx = 0; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx)
+    for ( int32 LabelIdx = 0; LabelIdx < StringChoiceLabels.Num(); ++LabelIdx )
     {
-        FString* ChoiceLabel = StringChoiceLabels[LabelIdx].Get();
+        FString * ChoiceLabel = StringChoiceLabels[ LabelIdx ].Get();
 
-        if(ChoiceLabel && ChoiceLabel->Equals(ChoiceStringValue))
+        if ( ChoiceLabel && ChoiceLabel->Equals( ChoiceStringValue ) )
         {
             bChanged = true;
             ActiveLabel = LabelIdx;
@@ -1068,9 +998,9 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
         }
     }
 
-    if(bChanged)
+    if ( bChanged )
     {
-        switch(ChoiceIndex)
+        switch ( ChoiceIndex )
         {
             case EHoudiniAssetInputType::GeometryInput:
             {
@@ -1107,7 +1037,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
             default:
             {
                 // Unhandled new input type?
-                check(0);
+                check( 0 );
                 break;
             }
         }
@@ -1116,9 +1046,9 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
         DisconnectAndDestroyInputAsset();
 
         // Switch mode.
-        ChoiceIndex = static_cast<EHoudiniAssetInputType::Enum>(ActiveLabel);
+        ChoiceIndex = static_cast< EHoudiniAssetInputType::Enum >( ActiveLabel );
 
-        switch(ChoiceIndex)
+        switch ( ChoiceIndex )
         {
             case EHoudiniAssetInputType::GeometryInput:
             {
@@ -1138,14 +1068,15 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
                 // We are switching to curve input.
 
                 // Create new spline component.
-                UHoudiniSplineComponent* HoudiniSplineComponent =
-                    NewObject<UHoudiniSplineComponent>(this, UHoudiniSplineComponent::StaticClass(),
-                        NAME_None, RF_Public | RF_Transactional);
+                UHoudiniSplineComponent * HoudiniSplineComponent =
+                    NewObject< UHoudiniSplineComponent >( 
+                        this, UHoudiniSplineComponent::StaticClass(),
+                        NAME_None, RF_Public | RF_Transactional );
 
-                HoudiniSplineComponent->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+                HoudiniSplineComponent->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
                 HoudiniSplineComponent->RegisterComponent();
-                HoudiniSplineComponent->SetVisibility(true);
-                HoudiniSplineComponent->SetHoudiniAssetInput(this);
+                HoudiniSplineComponent->SetVisibility( true );
+                HoudiniSplineComponent->SetHoudiniAssetInput( this );
 
                 // Store this component as input curve.
                 InputCurve = HoudiniSplineComponent;
@@ -1163,7 +1094,7 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
             default:
             {
                 // Unhandled new input type?
-                check(0);
+                check( 0 );
                 break;
             }
         }
@@ -1175,24 +1106,24 @@ UHoudiniAssetInput::OnChoiceChange(TSharedPtr<FString> NewChoice, ESelectInfo::T
 }
 
 bool
-UHoudiniAssetInput::OnInputActorFilter(const AActor* const Actor) const
+UHoudiniAssetInput::OnInputActorFilter( const AActor * const Actor ) const
 {
-    return (Actor && Actor->IsA(AHoudiniAssetActor::StaticClass()));
+    return ( Actor && Actor->IsA( AHoudiniAssetActor::StaticClass() ) );
 }
 
-
 void
-UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
+UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
 {
-    if(!Actor && InputAssetComponent)
+    if ( !Actor && InputAssetComponent )
     {
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Input Asset Change"),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Input Asset Change" ),
+            HoudiniAssetComponent );
         Modify();
 
         // Tell the old input asset we are no longer connected.
-        InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
+        InputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
 
         // We cleared the selection so just reset all the values.
         InputAssetComponent = nullptr;
@@ -1200,31 +1131,26 @@ UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
     }
     else
     {
-        AHoudiniAssetActor* HoudiniAssetActor = (AHoudiniAssetActor*) Actor;
-        UHoudiniAssetComponent* ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+        AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *) Actor;
+        UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 
         // If we just selected the already selected Actor do nothing.
-        if(ConnectedHoudiniAssetComponent == InputAssetComponent)
-        {
+        if ( ConnectedHoudiniAssetComponent == InputAssetComponent )
             return;
-        }
 
         // Do not allow the input asset to be ourself!
-        if(ConnectedHoudiniAssetComponent == HoudiniAssetComponent)
-        {
+        if ( ConnectedHoudiniAssetComponent == HoudiniAssetComponent )
             return;
-        }
 
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Input Asset Change"),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Input Asset Change" ),
+            HoudiniAssetComponent );
         Modify();
 
         // Tell the old input asset we are no longer connected.
-        if(InputAssetComponent)
-        {
-            InputAssetComponent->RemoveDownstreamAsset(HoudiniAssetComponent, InputIndex);
-        }
+        if ( InputAssetComponent)
+            InputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
 
         InputAssetComponent = ConnectedHoudiniAssetComponent;
         ConnectedAssetId = InputAssetComponent->GetAssetId();
@@ -1237,43 +1163,34 @@ UHoudiniAssetInput::OnInputActorSelected(AActor* Actor)
     MarkChanged();
 }
 
-
 void
 UHoudiniAssetInput::OnInputActorCloseComboButton()
-{
-
-}
-
+{}
 
 void
 UHoudiniAssetInput::OnInputActorUse()
-{
-
-}
-
+{}
 
 bool
-UHoudiniAssetInput::OnLandscapeActorFilter(const AActor* const Actor) const
+UHoudiniAssetInput::OnLandscapeActorFilter( const AActor * const Actor ) const
 {
-    return (Actor && Actor->IsA(ALandscapeProxy::StaticClass()));
+    return ( Actor && Actor->IsA( ALandscapeProxy::StaticClass() ) );
 }
 
-
 void
-UHoudiniAssetInput::OnLandscapeActorSelected(AActor* Actor)
+UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
 {
-    ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
-    if(LandscapeProxy)
+    ALandscapeProxy * LandscapeProxy = Cast<ALandscapeProxy>( Actor );
+    if ( LandscapeProxy )
     {
         // If we just selected the already selected landscape, do nothing.
-        if(LandscapeProxy == InputLandscapeProxy)
-        {
+        if ( LandscapeProxy == InputLandscapeProxy )
             return;
-        }
 
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Input Landscape Change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Input Landscape Change." ),
+            HoudiniAssetComponent );
         Modify();
 
         // Store new landscape.
@@ -1281,9 +1198,10 @@ UHoudiniAssetInput::OnLandscapeActorSelected(AActor* Actor)
     }
     else
     {
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Input Landscape Change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Input Landscape Change." ),
+            HoudiniAssetComponent );
         Modify();
 
         InputLandscapeProxy = nullptr;
@@ -1293,67 +1211,52 @@ UHoudiniAssetInput::OnLandscapeActorSelected(AActor* Actor)
     MarkChanged();
 }
 
-
 void
 UHoudiniAssetInput::OnLandscapeActorCloseComboButton()
-{
-
-}
-
+{}
 
 void
 UHoudiniAssetInput::OnLandscapeActorUse()
-{
-
-}
+{}
 
 #endif
 
 void
 UHoudiniAssetInput::ConnectInputAssetActor()
 {
-    if(InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId())
-        && !bInputAssetConnectedInHoudini)
+    if ( InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() )
+        && !bInputAssetConnectedInHoudini )
     {
         FHoudiniEngineUtils::HapiConnectAsset(
             InputAssetComponent->GetAssetId(),
             0, // We just pick the first OBJ since we have no way letting the user pick.
             HoudiniAssetComponent->GetAssetId(),
-            InputIndex
-        );
+            InputIndex );
 
         ConnectedAssetId = InputAssetComponent->GetAssetId();
 
-        InputAssetComponent->AddDownstreamAsset(HoudiniAssetComponent, InputIndex);
+        InputAssetComponent->AddDownstreamAsset( HoudiniAssetComponent, InputIndex );
         bInputAssetConnectedInHoudini = true;
     }
 }
 
-
 void
 UHoudiniAssetInput::DisconnectInputAssetActor()
 {
-    if(bInputAssetConnectedInHoudini && !InputAssetComponent)
+    if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
     {
-        FHoudiniEngineUtils::HapiDisconnectAsset(HoudiniAssetComponent->GetAssetId(), InputIndex);
+        FHoudiniEngineUtils::HapiDisconnectAsset( HoudiniAssetComponent->GetAssetId(), InputIndex );
         bInputAssetConnectedInHoudini = false;
     }
 }
 
-
 void
 UHoudiniAssetInput::ConnectLandscapeActor()
-{
-
-}
-
+{}
 
 void
 UHoudiniAssetInput::DisconnectLandscapeActor()
-{
-
-}
-
+{}
 
 HAPI_AssetId
 UHoudiniAssetInput::GetConnectedAssetId() const
@@ -1361,63 +1264,50 @@ UHoudiniAssetInput::GetConnectedAssetId() const
     return ConnectedAssetId;
 }
 
-
 bool
 UHoudiniAssetInput::IsGeometryAssetConnected() const
 {
-    if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
     {
-        if(InputObject && InputObject->IsA(UStaticMesh::StaticClass()))
-        {
+        if ( InputObject && InputObject->IsA( UStaticMesh::StaticClass() ) )
             return true;
-        }
     }
 
     return false;
 }
-
 
 bool
 UHoudiniAssetInput::IsInputAssetConnected() const
 {
-    if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && InputAssetComponent && bInputAssetConnectedInHoudini)
-    {
+    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && InputAssetComponent && bInputAssetConnectedInHoudini )
         return true;
-    }
 
     return false;
 }
-
 
 bool
 UHoudiniAssetInput::IsCurveAssetConnected() const
 {
-    if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
     {
-        if(InputCurve)
-        {
+        if ( InputCurve )
             return true;
-        }
     }
 
     return false;
 }
-
 
 bool
 UHoudiniAssetInput::IsLandscapeAssetConnected() const
 {
-    if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
     {
-        if(EHoudiniAssetInputType::LandscapeInput == ChoiceIndex)
-        {
+        if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
             return true;
-        }
     }
 
     return false;
 }
-
 
 void
 UHoudiniAssetInput::OnInputCurveChanged()
@@ -1425,7 +1315,6 @@ UHoudiniAssetInput::OnInputCurveChanged()
     MarkPreChanged();
     MarkChanged();
 }
-
 
 void
 UHoudiniAssetInput::ExternalDisconnectInputAssetActor()
@@ -1437,44 +1326,35 @@ UHoudiniAssetInput::ExternalDisconnectInputAssetActor()
     MarkChanged();
 }
 
-
 bool
 UHoudiniAssetInput::DoesInputAssetNeedInstantiation()
 {
-    if(ChoiceIndex != EHoudiniAssetInputType::AssetInput)
-    {
+    if ( ChoiceIndex != EHoudiniAssetInputType::AssetInput )
         return false;
-    }
 
-    if(InputAssetComponent == nullptr)
-    {
+    if ( InputAssetComponent == nullptr )
         return false;
-    }
 
-    if(!FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId()))
-    {
+    if ( !FHoudiniEngineUtils::IsValidAssetId(InputAssetComponent->GetAssetId() ) )
         return true;
-    }
 
     return false;
 }
 
-
-UHoudiniAssetComponent*
+UHoudiniAssetComponent *
 UHoudiniAssetInput::GetConnectedInputAssetComponent()
 {
     return InputAssetComponent;
 }
 
-
 void
-UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
+UHoudiniAssetInput::NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
-    if(HoudiniAssetParameter && EHoudiniAssetInputType::CurveInput == ChoiceIndex)
+    if ( HoudiniAssetParameter && ChoiceIndex == EHoudiniAssetInputType::CurveInput )
     {
         MarkPreChanged();
         
-        if(FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
         {
             // We need to upload changed param back to HAPI.
             HoudiniAssetParameter->UploadParameterValue();
@@ -1483,7 +1363,6 @@ UHoudiniAssetInput::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniA
         MarkChanged();
     }
 }
-
 
 void
 UHoudiniAssetInput::UpdateInputCurve()
@@ -1494,145 +1373,154 @@ UHoudiniAssetInput::UpdateInputCurve()
     int32 CurveClosed = 1;
 
     HAPI_NodeId NodeId = -1;
-    if(FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId))
+    if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) )
     {
-        FHoudiniEngineUtils::HapiGetParameterDataAsString(NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT(""),
-            CurvePointsString);
-        FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE,
-            (int32) EHoudiniSplineComponentType::Bezier, (int32&) CurveTypeValue);
-        FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD,
-            (int32) EHoudiniSplineComponentMethod::CVs, (int32&) CurveMethodValue);
-        FHoudiniEngineUtils::HapiGetParameterDataAsInteger(NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed);
+        FHoudiniEngineUtils::HapiGetParameterDataAsString(
+            NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT( "" ),
+            CurvePointsString );
+        FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+            NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE,
+            (int32) EHoudiniSplineComponentType::Bezier, (int32 &) CurveTypeValue );
+        FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+            NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD,
+            (int32) EHoudiniSplineComponentMethod::CVs, (int32 &) CurveMethodValue );
+        FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+            NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed );
     }
 
     // Construct geo part object.
-    FHoudiniGeoPartObject HoudiniGeoPartObject(ConnectedAssetId, 0, 0, 0);
+    FHoudiniGeoPartObject HoudiniGeoPartObject( ConnectedAssetId, 0, 0, 0 );
     HoudiniGeoPartObject.bIsCurve = true;
 
     HAPI_AttributeInfo AttributeRefinedCurvePositions;
-    TArray<float> RefinedCurvePositions;
-    FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION,
-        AttributeRefinedCurvePositions, RefinedCurvePositions);
+    TArray< float > RefinedCurvePositions;
+    FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+        HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_POSITION,
+        AttributeRefinedCurvePositions, RefinedCurvePositions );
 
     // Process coords string and extract positions.
-    TArray<FVector> CurvePoints;
-    FHoudiniEngineUtils::ExtractStringPositions(CurvePointsString, CurvePoints);
+    TArray< FVector > CurvePoints;
+    FHoudiniEngineUtils::ExtractStringPositions( CurvePointsString, CurvePoints );
 
-    TArray<FVector> CurveDisplayPoints;
-    FHoudiniEngineUtils::ConvertScaleAndFlipVectorData(RefinedCurvePositions, CurveDisplayPoints);
+    TArray< FVector > CurveDisplayPoints;
+    FHoudiniEngineUtils::ConvertScaleAndFlipVectorData( RefinedCurvePositions, CurveDisplayPoints );
 
-    InputCurve->Construct(HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
-        (CurveClosed == 1));
+    InputCurve->Construct(
+        HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
+        ( CurveClosed == 1 ) );
 
     // We also need to construct curve parameters we care about.
-    TMap<FString, UHoudiniAssetParameter*> NewInputCurveParameters;
+    TMap< FString, UHoudiniAssetParameter * > NewInputCurveParameters;
 
     {
         HAPI_NodeInfo NodeInfo;
-        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId,
-            &NodeInfo), false);
+        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+            FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ),
+            false );
 
-        TArray<HAPI_ParmInfo> ParmInfos;
-        ParmInfos.SetNumUninitialized(NodeInfo.parmCount);
-        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeId,
-            &ParmInfos[0], 0, NodeInfo.parmCount), false);
+        TArray< HAPI_ParmInfo > ParmInfos;
+        ParmInfos.SetNumUninitialized( NodeInfo.parmCount );
+        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+            FHoudiniApi::GetParameters(
+                FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[ 0 ], 0, NodeInfo.parmCount ),
+            false);
 
         // Retrieve integer values for this asset.
-        TArray<int32> ParmValueInts;
-        ParmValueInts.SetNumZeroed(NodeInfo.parmIntValueCount);
-        if(NodeInfo.parmIntValueCount > 0)
+        TArray< int32 > ParmValueInts;
+        ParmValueInts.SetNumZeroed( NodeInfo.parmIntValueCount );
+        if ( NodeInfo.parmIntValueCount > 0 )
         {
-            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmIntValues(FHoudiniEngine::Get().GetSession(),
-                NodeId, &ParmValueInts[0], 0, NodeInfo.parmIntValueCount), false);
+            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+                FHoudiniApi::GetParmIntValues(
+                    FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueInts[ 0 ], 0, NodeInfo.parmIntValueCount ),
+                false );
         }
 
         // Retrieve float values for this asset.
-        TArray<float> ParmValueFloats;
-        ParmValueFloats.SetNumZeroed(NodeInfo.parmFloatValueCount);
-        if(NodeInfo.parmFloatValueCount > 0)
+        TArray< float > ParmValueFloats;
+        ParmValueFloats.SetNumZeroed( NodeInfo.parmFloatValueCount );
+        if ( NodeInfo.parmFloatValueCount > 0 )
         {
-            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(),
-                NodeId, &ParmValueFloats[0], 0, NodeInfo.parmFloatValueCount), false);
+            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+                FHoudiniApi::GetParmFloatValues(
+                    FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueFloats[ 0 ], 0, NodeInfo.parmFloatValueCount ),
+                false );
         }
 
         // Retrieve string values for this asset.
-        TArray<HAPI_StringHandle> ParmValueStrings;
-        ParmValueStrings.SetNumZeroed(NodeInfo.parmStringValueCount);
-        if(NodeInfo.parmStringValueCount > 0)
+        TArray< HAPI_StringHandle > ParmValueStrings;
+        ParmValueStrings.SetNumZeroed( NodeInfo.parmStringValueCount );
+        if ( NodeInfo.parmStringValueCount > 0 )
         {
-            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(FHoudiniApi::GetParmStringValues(FHoudiniEngine::Get().GetSession(),
-                NodeId, true, &ParmValueStrings[0], 0, NodeInfo.parmStringValueCount), false);
+            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+                FHoudiniApi::GetParmStringValues(
+                    FHoudiniEngine::Get().GetSession(), NodeId, true, &ParmValueStrings[ 0 ], 0, NodeInfo.parmStringValueCount ),
+                false );
         }
 
         // Create properties for parameters.
-        for(int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx)
+        for ( int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx )
         {
             // Retrieve param info at this index.
-            const HAPI_ParmInfo& ParmInfo = ParmInfos[ParamIdx];
+            const HAPI_ParmInfo & ParmInfo = ParmInfos[ ParamIdx ];
 
             // If parameter is invisible, skip it.
-            if(ParmInfo.invisible)
-            {
+            if ( ParmInfo.invisible )
                 continue;
-            }
 
             FString ParameterName;
-            FHoudiniEngineString HoudiniEngineString(ParmInfo.nameSH);
-            if(!HoudiniEngineString.ToFString(ParameterName))
+            FHoudiniEngineString HoudiniEngineString( ParmInfo.nameSH );
+            if ( !HoudiniEngineString.ToFString( ParameterName ) )
             {
                 // We had trouble retrieving name of this parameter, skip it.
                 continue;
             }
 
             // See if it's one of parameters we are interested in.
-            if(!ParameterName.Equals(TEXT(HAPI_UNREAL_PARAM_CURVE_METHOD)) &&
-                !ParameterName.Equals(TEXT(HAPI_UNREAL_PARAM_CURVE_TYPE)) &&
-                !ParameterName.Equals(TEXT(HAPI_UNREAL_PARAM_CURVE_CLOSED)))
+            if ( !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_METHOD ) ) &&
+                !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_TYPE ) ) &&
+                !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_CLOSED ) ) )
             {
                 // Not parameter we are interested in.
                 continue;
             }
 
             // See if this parameter has already been created.
-            UHoudiniAssetParameter* const* FoundHoudiniAssetParameter = InputCurveParameters.Find(ParameterName);
-            UHoudiniAssetParameter* HoudiniAssetParameter = nullptr;
+            UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = InputCurveParameters.Find( ParameterName );
+            UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
 
             // If parameter exists, we can reuse it.
-            if(FoundHoudiniAssetParameter)
+            if ( FoundHoudiniAssetParameter )
             {
                 HoudiniAssetParameter = *FoundHoudiniAssetParameter;
 
                 // Remove parameter from current map.
-                InputCurveParameters.Remove(ParameterName);
+                InputCurveParameters.Remove( ParameterName );
 
                 // Reinitialize parameter and add it to map.
-                HoudiniAssetParameter->CreateParameter(nullptr, this, NodeId, ParmInfo);
-                NewInputCurveParameters.Add(ParameterName, HoudiniAssetParameter);
+                HoudiniAssetParameter->CreateParameter( nullptr, this, NodeId, ParmInfo );
+                NewInputCurveParameters.Add( ParameterName, HoudiniAssetParameter );
                 continue;
             }
             else
             {
-                if(HAPI_PARMTYPE_INT == ParmInfo.type)
+                if ( ParmInfo.type == HAPI_PARMTYPE_INT )
                 {
-                    if(!ParmInfo.choiceCount)
-                    {
-                        HoudiniAssetParameter = UHoudiniAssetParameterInt::Create(nullptr, this, NodeId, ParmInfo);
-                    }
+                    if ( !ParmInfo.choiceCount )
+                        HoudiniAssetParameter = UHoudiniAssetParameterInt::Create( nullptr, this, NodeId, ParmInfo );
                     else
-                    {
-                        HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create(nullptr, this, NodeId, ParmInfo);
-                    }
+                        HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create( nullptr, this, NodeId, ParmInfo );
                 }
-                else if(HAPI_PARMTYPE_TOGGLE == ParmInfo.type)
+                else if ( ParmInfo.type == HAPI_PARMTYPE_TOGGLE )
                 {
-                    HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create(nullptr, this, NodeId, ParmInfo);
+                    HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create( nullptr, this, NodeId, ParmInfo );
                 }
                 else
                 {
-                    check(false);
+                    check( false );
                 }
 
-                NewInputCurveParameters.Add(ParameterName, HoudiniAssetParameter);
+                NewInputCurveParameters.Add( ParameterName, HoudiniAssetParameter );
             }
         }
 
@@ -1640,40 +1528,39 @@ UHoudiniAssetInput::UpdateInputCurve()
         InputCurveParameters = NewInputCurveParameters;
     }
 
-    if(bSwitchedToCurve)
+    if ( bSwitchedToCurve )
     {
 
 #if WITH_EDITOR
 
         // We need to trigger details panel update.
-        HoudiniAssetComponent->UpdateEditorProperties(false);
+        HoudiniAssetComponent->UpdateEditorProperties( false );
 #endif
 
         bSwitchedToCurve = false;
     }
 }
 
-
 FText
 UHoudiniAssetInput::HandleChoiceContentText() const
 {
-    return FText::FromString(ChoiceStringValue);
+    return FText::FromString( ChoiceStringValue );
 }
-
 
 #if WITH_EDITOR
 
 void
-UHoudiniAssetInput::CheckStateChangedExportOnlySelected(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportOnlySelected( ECheckBoxState NewState )
 {
-    int32 bState = (ECheckBoxState::Checked == NewState);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if(bLandscapeInputSelectionOnly != bState)
+    if ( bLandscapeInputSelectionOnly != bState )
     {
         // Record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Selection mode change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Selection mode change." ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -1685,30 +1572,27 @@ UHoudiniAssetInput::CheckStateChangedExportOnlySelected(ECheckBoxState NewState)
     }
 }
 
-
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportOnlySelected() const
 {
-    if(bLandscapeInputSelectionOnly)
-    {
+    if ( bLandscapeInputSelectionOnly )
         return ECheckBoxState::Checked;
-    }
 
     return ECheckBoxState::Unchecked;
 }
 
-
 void
-UHoudiniAssetInput::CheckStateChangedExportCurves(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportCurves( ECheckBoxState NewState )
 {
-    int32 bState = (ECheckBoxState::Checked == NewState);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if(bLandscapeExportCurves != bState)
+    if ( bLandscapeExportCurves != bState )
     {
         // Record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Curve mode change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Curve mode change." ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -1720,30 +1604,27 @@ UHoudiniAssetInput::CheckStateChangedExportCurves(ECheckBoxState NewState)
     }
 }
 
-
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportCurves() const
 {
-    if(bLandscapeExportCurves)
-    {
+    if ( bLandscapeExportCurves )
         return ECheckBoxState::Checked;
-    }
 
     return ECheckBoxState::Unchecked;
 }
 
-
 void
-UHoudiniAssetInput::CheckStateChangedExportFullGeometry(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportFullGeometry( ECheckBoxState NewState )
 {
-    int32 bState = (ECheckBoxState::Checked == NewState);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if(bLandscapeExportFullGeometry != bState)
+    if ( bLandscapeExportFullGeometry != bState )
     {
         // Record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Full Geometry mode change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Full Geometry mode change." ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -1755,30 +1636,27 @@ UHoudiniAssetInput::CheckStateChangedExportFullGeometry(ECheckBoxState NewState)
     }
 }
 
-
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportFullGeometry() const
 {
-    if(bLandscapeExportFullGeometry)
-    {
+    if ( bLandscapeExportFullGeometry )
         return ECheckBoxState::Checked;
-    }
 
     return ECheckBoxState::Unchecked;
 }
 
-
 void
-UHoudiniAssetInput::CheckStateChangedExportMaterials(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportMaterials( ECheckBoxState NewState )
 {
-    int32 bState = (ECheckBoxState::Checked == NewState);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if(bLandscapeExportMaterials != bState)
+    if ( bLandscapeExportMaterials != bState )
     {
         // Record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Materials mode change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Materials mode change." ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -1790,30 +1668,27 @@ UHoudiniAssetInput::CheckStateChangedExportMaterials(ECheckBoxState NewState)
     }
 }
 
-
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportMaterials() const
 {
-    if(bLandscapeExportMaterials)
-    {
+    if ( bLandscapeExportMaterials )
         return ECheckBoxState::Checked;
-    }
 
     return ECheckBoxState::Unchecked;
 }
 
-
 void
-UHoudiniAssetInput::CheckStateChangedExportLighting(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportLighting( ECheckBoxState NewState )
 {
-    int32 bState = (ECheckBoxState::Checked == NewState);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if(bLandscapeExportLighting != bState)
+    if ( bLandscapeExportLighting != bState )
     {
         // Record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Lighting mode change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Lighting mode change." ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -1825,30 +1700,27 @@ UHoudiniAssetInput::CheckStateChangedExportLighting(ECheckBoxState NewState)
     }
 }
 
-
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportLighting() const
 {
-    if(bLandscapeExportLighting)
-    {
+    if ( bLandscapeExportLighting )
         return ECheckBoxState::Checked;
-    }
 
     return ECheckBoxState::Unchecked;
 }
 
-
 void
-UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs( ECheckBoxState NewState )
 {
-    int32 bState = (ECheckBoxState::Checked == NewState);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if(bLandscapeExportNormalizedUVs != bState)
+    if ( bLandscapeExportNormalizedUVs != bState )
     {
         // Record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Normalized UVs mode change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Normalized UVs mode change." ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -1860,30 +1732,27 @@ UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs(ECheckBoxState NewState
     }
 }
 
-
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportNormalizedUVs() const
 {
-    if(bLandscapeExportNormalizedUVs)
-    {
+    if ( bLandscapeExportNormalizedUVs )
         return ECheckBoxState::Checked;
-    }
 
     return ECheckBoxState::Unchecked;
 }
 
-
 void
-UHoudiniAssetInput::CheckStateChangedExportTileUVs(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedExportTileUVs( ECheckBoxState NewState )
 {
-    int32 bState = (ECheckBoxState::Checked == NewState);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if(bLandscapeExportTileUVs != bState)
+    if ( bLandscapeExportTileUVs != bState )
     {
         // Record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape Tile UVs mode change."),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Tile UVs mode change." ),
+            HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
@@ -1899,10 +1768,8 @@ UHoudiniAssetInput::CheckStateChangedExportTileUVs(ECheckBoxState NewState)
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportTileUVs() const
 {
-    if(bLandscapeExportTileUVs)
-    {
+    if ( bLandscapeExportTileUVs )
         return ECheckBoxState::Checked;
-    }
 
     return ECheckBoxState::Unchecked;
 }
