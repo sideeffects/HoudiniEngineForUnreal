@@ -18,30 +18,27 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 
-
 FHoudiniAssetBroker::~FHoudiniAssetBroker()
 {
 
 }
 
-
-UClass*
+UClass *
 FHoudiniAssetBroker::GetSupportedAssetClass()
 {
     return UHoudiniAsset::StaticClass();
 }
 
-
 bool
-FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset)
+FHoudiniAssetBroker::AssignAssetToComponent( UActorComponent * InComponent, UObject * InAsset )
 {
-    if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
+    if ( UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >( InComponent ) )
     {
-        UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(InAsset);
+        UHoudiniAsset * HoudiniAsset = Cast< UHoudiniAsset >( InAsset );
 
-        if(HoudiniAsset || !InAsset)
+        if ( HoudiniAsset || !InAsset )
         {
-            HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
+            HoudiniAssetComponent->SetHoudiniAsset( HoudiniAsset );
             return true;
         }
     }
@@ -49,11 +46,10 @@ FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent* InComponent, UObjec
     return false;
 }
 
-
-UObject*
-FHoudiniAssetBroker::GetAssetFromComponent(UActorComponent* InComponent)
+UObject *
+FHoudiniAssetBroker::GetAssetFromComponent( UActorComponent * InComponent )
 {
-    if(UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
+    if ( UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >( InComponent ) )
     {
         return HoudiniAssetComponent->GetHoudiniAsset();
     }
