@@ -197,6 +197,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Clear input curve parameters. **/
         void ClearInputCurveParameters();
 
+        /** Disconnect the input curve component but do not destroy the curve. **/
+        void DisconnectInputCurve();
+
         /** Destroy input curve object. **/
         void DestroyInputCurve();
 
