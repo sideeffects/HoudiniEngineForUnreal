@@ -843,6 +843,17 @@ UHoudiniAssetInput::ClearInputCurveParameters()
 }
 
 void
+UHoudiniAssetInput::DisconnectInputCurve()
+{
+    // If we have spline, delete it.
+    if ( InputCurve )
+    {
+        InputCurve->DetachFromParent();
+        InputCurve->UnregisterComponent();
+    }
+}
+
+void
 UHoudiniAssetInput::DestroyInputCurve()
 {
     // If we have spline, delete it.
@@ -1021,7 +1032,7 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
             case EHoudiniAssetInputType::CurveInput:
             {
                 // We are switching away from curve input.
-                DestroyInputCurve();
+                DisconnectInputCurve();
                 break;
             }
 
@@ -1067,19 +1078,17 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
             {
                 // We are switching to curve input.
 
-                // Create new spline component.
-                UHoudiniSplineComponent * HoudiniSplineComponent =
-                    NewObject< UHoudiniSplineComponent >( 
+                // Create new spline component if necessary.
+                if ( !InputCurve )
+                    InputCurve = NewObject< UHoudiniSplineComponent >(
                         this, UHoudiniSplineComponent::StaticClass(),
                         NAME_None, RF_Public | RF_Transactional );
 
-                HoudiniSplineComponent->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
-                HoudiniSplineComponent->RegisterComponent();
-                HoudiniSplineComponent->SetVisibility( true );
-                HoudiniSplineComponent->SetHoudiniAssetInput( this );
-
-                // Store this component as input curve.
-                InputCurve = HoudiniSplineComponent;
+                // Attach or re-attach curve component to asset.
+                InputCurve->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
+                InputCurve->RegisterComponent();
+                InputCurve->SetVisibility( true );
+                InputCurve->SetHoudiniAssetInput( this );
 
                 bSwitchedToCurve = true;
                 break;
