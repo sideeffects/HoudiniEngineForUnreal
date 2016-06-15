@@ -55,6 +55,7 @@ FHoudiniSplineComponentVisualizer::FHoudiniSplineComponentVisualizer()
     : FComponentVisualizer()
     , EditedHoudiniSplineComponent( nullptr )
     , bCurveEditing( false )
+    , bAllowDuplication( true )
     , EditedControlPointIndex( INDEX_NONE )
 {
     FHoudiniSplineComponentVisualizerCommands::Register();
@@ -180,6 +181,24 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
     return bCurveEditing;
 }
 
+bool
+FHoudiniSplineComponentVisualizer::HandleInputKey(
+    FEditorViewportClient * ViewportClient, FViewport * Viewport, FKey Key, EInputEvent Event )
+{
+    bool bHandled = false;
+
+    if ( Key == EKeys::LeftMouseButton && Event == IE_Released )
+    {
+        // Reset duplication flag on LMB release.
+        bAllowDuplication = true;
+    }
+
+    if ( Event == IE_Pressed )
+        bHandled = VisualizerActions->ProcessCommandBindings( Key, FSlateApplication::Get().GetModifierKeys(), false );
+
+    return bHandled;
+}
+
 void
 FHoudiniSplineComponentVisualizer::EndEditing()
 {
@@ -213,6 +232,13 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(
 {
     if ( EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE )
     {
+        if ( ViewportClient->IsAltPressed() && bAllowDuplication )
+        {
+            OnDuplicateControlPoint();
+            // Don't duplicate again until we release LMB
+            bAllowDuplication = false;
+        }
+
         // Get curve points.
         const TArray< FVector > & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
 
@@ -327,59 +353,38 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified( int32 PointIndex, co
 void
 FHoudiniSplineComponentVisualizer::OnAddControlPoint()
 {
-    if ( EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE )
+    if ( !EditedHoudiniSplineComponent || EditedControlPointIndex == INDEX_NONE )
+        return;
+
+    const TArray< FVector > & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+    check( EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num() );
+
+    FVector OtherPoint;
+    FVector Point = CurvePoints[ EditedControlPointIndex ];
+
+    if ( EditedControlPointIndex + 1 != CurvePoints.Num() )
     {
-        const TArray< FVector > & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
-        check( EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num() );
-
-        FVector OtherPoint;
-        FVector Point = CurvePoints[ EditedControlPointIndex ];
-
-        if ( EditedControlPointIndex + 1 != CurvePoints.Num() )
+        OtherPoint = CurvePoints[ EditedControlPointIndex + 1 ];
+    }
+    else
+    {
+        if ( EditedHoudiniSplineComponent->bClosedCurve )
         {
-            OtherPoint = CurvePoints[ EditedControlPointIndex + 1 ];
+            OtherPoint = CurvePoints[ 0 ];
         }
         else
         {
-            if ( EditedHoudiniSplineComponent->bClosedCurve )
-            {
-                OtherPoint = CurvePoints[ 0 ];
-            }
-            else
-            {
-                OtherPoint = CurvePoints[ EditedControlPointIndex - 1 ];
-            }
+            OtherPoint = CurvePoints[ EditedControlPointIndex - 1 ];
         }
-
-        FVector Dir = ( OtherPoint - Point ) / 2.0f;
-        FVector NewPoint = Point + Dir;
-
-        int32 ControlPointIndex = EditedControlPointIndex + 1;
-        if ( ControlPointIndex == CurvePoints.Num() )
-        {
-            if ( EditedHoudiniSplineComponent->bClosedCurve )
-                ControlPointIndex = 0;
-            else
-                ControlPointIndex = EditedControlPointIndex;
-        }
-
-        UHoudiniAssetComponent * HoudiniAssetComponent =
-            Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->AttachParent );
-
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_EDITOR ),
-            LOCTEXT( "HoudiniSplineComponentChange", "Houdini Spline Component: Adding a control point" ),
-            HoudiniAssetComponent );
-        EditedHoudiniSplineComponent->Modify();
-
-        EditedHoudiniSplineComponent->AddPoint( ControlPointIndex, NewPoint );
-        EditedHoudiniSplineComponent->UploadControlPoints();
-
-        // Select newly created point.
-        EditedControlPointIndex = ControlPointIndex;
-
-        UpdateHoudiniComponents();
     }
+
+    FVector Dir = ( OtherPoint - Point ) / 2.0f;
+    FVector NewPoint = Point + Dir;
+
+    int32 NewPointIndex = AddControlPoint( NewPoint );
+
+    // Select the new point.
+    EditedControlPointIndex = NewPointIndex;
 }
 
 bool
@@ -424,4 +429,58 @@ FHoudiniSplineComponentVisualizer::IsDeleteControlPointValid() const
     }
 
     return false;
+}
+
+int32
+FHoudiniSplineComponentVisualizer::AddControlPoint( const FVector & NewPoint )
+{
+    if ( !EditedHoudiniSplineComponent || EditedControlPointIndex == INDEX_NONE )
+        return EditedControlPointIndex;
+
+    const TArray< FVector > & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+    check( EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num() );
+
+    int32 ControlPointIndex = EditedControlPointIndex + 1;
+    if ( ControlPointIndex == CurvePoints.Num() )
+    {
+        if ( EditedHoudiniSplineComponent->bClosedCurve )
+            ControlPointIndex = 0;
+        else
+            ControlPointIndex = EditedControlPointIndex;
+    }
+
+    UHoudiniAssetComponent * HoudiniAssetComponent =
+        Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->AttachParent );
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_EDITOR ),
+        LOCTEXT( "HoudiniSplineComponentChange", "Houdini Spline Component: Adding a control point" ),
+        HoudiniAssetComponent );
+    EditedHoudiniSplineComponent->Modify();
+
+    EditedHoudiniSplineComponent->AddPoint( ControlPointIndex, NewPoint );
+    EditedHoudiniSplineComponent->UploadControlPoints();
+
+    UpdateHoudiniComponents();
+
+    // Return the newly created point index.
+    return ControlPointIndex;
+}
+
+void
+FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint()
+{
+    if ( !EditedHoudiniSplineComponent || EditedControlPointIndex == INDEX_NONE )
+        return;
+
+    const TArray< FVector > & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
+    check( EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num() );
+
+    // We just add the new point on top of the existing point.
+    FVector NewPoint = CurvePoints[ EditedControlPointIndex ];
+
+    // Add the point. We actually don't select the new point, instead allow the existing
+    // point to become the "new" point. This is because we cannot add points at the end
+    // of the curve.
+    AddControlPoint( NewPoint );
 }
