@@ -35,7 +35,8 @@ public class HoudiniEngineRuntime : ModuleRules
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
-			Target.Platform != UnrealTargetPlatform.Mac )
+			Target.Platform != UnrealTargetPlatform.Mac &&
+			Target.Platform != UnrealTargetPlatform.Linux )
 		{
 			string Err = string.Format( "Houdini Engine : Compiling on unsupported platform." );
 			System.Console.WriteLine( Err );
@@ -85,6 +86,11 @@ public class HoudiniEngineRuntime : ModuleRules
 				{
 					HFSPath = HPath;
 				}
+			}
+			else
+			{
+				HFSPath = System.Environment.GetEnvironmentVariable( "HFS" );
+				System.Console.WriteLine( "Linux - found HFS:" + HFSPath );
 			}
 		}
 
