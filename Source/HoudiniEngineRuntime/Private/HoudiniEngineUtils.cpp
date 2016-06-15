@@ -7075,8 +7075,10 @@ FHoudiniEngineUtils::LoadLibHAPI(FString& StoredLibHAPILocation)
 #   elif PLATFORM_LINUX
 
     // Attempt to load from standard Linux installation.
-    FString HoudiniLocation = FString::Printf(
-        TEXT("/opt/dev%s/") + HAPI_HFS_SUBFOLDER_LINUX, *HoudiniVersionString);
+    // TODO: Support this.
+    //FString HoudiniLocation = FString::Printf(
+        //TEXT("/opt/dev%s/") + HAPI_HFS_SUBFOLDER_LINUX, *HoudiniVersionString);
+    FString HoudiniLocation = HOUDINI_ENGINE_HFS_PATH;
 
 #   endif
 
