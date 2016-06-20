@@ -524,6 +524,22 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
+void
+UHoudiniAssetInput::PostEditUndo()
+{
+    Super::PostEditUndo();
+
+    if ( InputCurve && ChoiceIndex == EHoudiniAssetInputType::CurveInput )
+    {
+        auto * owner = HoudiniAssetComponent->GetOwner();
+        owner->AddOwnedComponent( InputCurve );
+
+        InputCurve->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
+        InputCurve->RegisterComponent();
+        InputCurve->SetVisibility( true );
+    }
+}
+
 #endif
 
 bool
@@ -622,7 +638,7 @@ UHoudiniAssetInput::UploadParameterValue()
 
             // Also upload points.
             HAPI_NodeId NodeId = -1;
-            if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) )
+            if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) && InputCurve )
             {
                 const TArray< FVector > & CurvePoints = InputCurve->GetCurvePoints();
 
@@ -1011,6 +1027,12 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
 
     if ( bChanged )
     {
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Input Type Change" ),
+            HoudiniAssetComponent );
+        Modify();
+
         switch ( ChoiceIndex )
         {
             case EHoudiniAssetInputType::GeometryInput:
@@ -1081,7 +1103,7 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
                 // Create new spline component if necessary.
                 if ( !InputCurve )
                     InputCurve = NewObject< UHoudiniSplineComponent >(
-                        this, UHoudiniSplineComponent::StaticClass(),
+                        HoudiniAssetComponent->GetOwner(), UHoudiniSplineComponent::StaticClass(),
                         NAME_None, RF_Public | RF_Transactional );
 
                 // Attach or re-attach curve component to asset.

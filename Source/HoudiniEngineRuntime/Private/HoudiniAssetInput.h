@@ -63,6 +63,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Create widget for this parameter and add it to a given category. **/
         virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder );
 
+        virtual void PostEditUndo() override;
+
 #endif
 
         /** Upload parameter value to HAPI. **/
