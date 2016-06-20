@@ -3776,6 +3776,12 @@ UHoudiniAssetComponent::SerializeInputs( FArchive & Ar )
 
     Ar << Inputs;
 
+    if ( Ar.IsTransacting() )
+    {
+        for ( int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx )
+            Inputs[ InputIdx ]->Serialize( Ar );
+    }
+
     if ( Ar.IsLoading() )
     {
         if ( !Ar.IsTransacting() )
