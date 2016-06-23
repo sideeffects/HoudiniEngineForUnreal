@@ -38,8 +38,10 @@ UHoudiniAssetFactory::UHoudiniAssetFactory( const FObjectInitializer & ObjectIni
     // Add supported formats.
     Formats.Add( TEXT( "otl;Houdini Engine Asset" ) );
     Formats.Add( TEXT( "otllc;Houdini Engine Limited Commercial Asset" ) );
+    Formats.Add( TEXT( "otlnc;Houdini Engine Non-Commercial Asset" ) );
     Formats.Add( TEXT( "hda;Houdini Engine Asset" ) );
     Formats.Add( TEXT( "hdalc;Houdini Engine Limited Commercial Asset" ) );
+    Formats.Add( TEXT( "hdanc;Houdini Engine Non-Commercial Asset" ) );
 }
 
 bool
