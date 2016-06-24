@@ -24,92 +24,81 @@
 #include "HoudiniAssetParameterVersion.h"
 #include "HoudiniEngineString.h"
 
-
 uint32
-GetTypeHash(const UHoudiniAssetParameter* HoudiniAssetParameter)
+GetTypeHash( const UHoudiniAssetParameter * HoudiniAssetParameter )
 {
-    if(HoudiniAssetParameter)
-    {
+    if ( HoudiniAssetParameter )
         return HoudiniAssetParameter->GetTypeHash();
-    }
 
     return 0;
 }
 
-
-UHoudiniAssetParameter::UHoudiniAssetParameter(const FObjectInitializer& ObjectInitializer) :
-    Super(ObjectInitializer),
+UHoudiniAssetParameter::UHoudiniAssetParameter( const FObjectInitializer & ObjectInitializer )
+    : Super( ObjectInitializer )
 #if WITH_EDITOR
-    DetailCategoryBuilder(nullptr),
+    , DetailCategoryBuilder( nullptr )
 #endif
-    HoudiniAssetComponent(nullptr),
-    HoudiniAssetInstance(nullptr),
-    ParentParameter(nullptr),
-    NodeId(-1),
-    ParmId(-1),
-    ParmParentId(-1),
-    ChildIndex(0),
-    TupleSize(1),
-    ValuesIndex(-1),
-    MultiparmInstanceIndex(-1),
-    ActiveChildParameter(0),
-    bIsSpare(false),
-    bIsDisabled(false),
-    bChanged(false),
-    bSliderDragged(false),
-    bIsChildOfMultiparm(false),
-    bIsSubstanceParameter(false),
-    HoudiniAssetParameterVersion(VER_HOUDINI_ENGINE_PARAM_BASE)
+    , HoudiniAssetComponent( nullptr )
+    , HoudiniAssetInstance( nullptr )
+    , ParentParameter( nullptr )
+    , NodeId( -1 )
+    , ParmId( -1 )
+    , ParmParentId( -1 )
+    , ChildIndex( 0 )
+    , TupleSize( 1 )
+    , ValuesIndex( -1 )
+    , MultiparmInstanceIndex( -1 )
+    , ActiveChildParameter( 0 )
+    , bIsSpare( false )
+    , bIsDisabled( false )
+    , bChanged( false )
+    , bSliderDragged( false )
+    , bIsChildOfMultiparm( false )
+    , bIsSubstanceParameter( false )
+    , HoudiniAssetParameterVersion( VER_HOUDINI_ENGINE_PARAM_BASE )
 {
-    ParameterName = TEXT("");
-    ParameterLabel = TEXT("");
+    ParameterName = TEXT( "" );
+    ParameterLabel = TEXT( "" );
 }
-
 
 UHoudiniAssetParameter::~UHoudiniAssetParameter()
-{
-
-}
-
+{}
 
 bool
-UHoudiniAssetParameter::CreateParameter(UHoudiniAssetInstance* InHoudiniAssetInstance,
-    const FHoudiniParameterObject& HoudiniParameterObject)
+UHoudiniAssetParameter::CreateParameter(
+    UHoudiniAssetInstance * InHoudiniAssetInstance,
+    const FHoudiniParameterObject & HoudiniParameterObject )
 {
     return true;
 }
 
-
 bool
-UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameter::CreateParameter(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId,
+    const HAPI_ParmInfo & ParmInfo )
 {
     // We need to reset child parameters.
     ResetChildParameters();
 
     // If parameter has changed, we do not need to recreate it.
-    if(bChanged)
-    {
+    if ( bChanged )
         return false;
-    }
 
     // If parameter is invisible, we cannot create it.
-    if(!IsVisible(ParmInfo))
-    {
+    if ( !IsVisible( ParmInfo ) )
         return false;
-    }
 
     // Set name and label.
-    if(!SetNameAndLabel(ParmInfo))
-    {
+    if ( !SetNameAndLabel( ParmInfo ) )
         return false;
-    }
 
     // If it is a Substance parameter, mark it as such.
-    bIsSubstanceParameter = ParameterName.StartsWith(HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX);
+    bIsSubstanceParameter = ParameterName.StartsWith( HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX );
 
     // Set ids.
-    SetNodeParmIds(InNodeId, ParmInfo.id);
+    SetNodeParmIds( InNodeId, ParmInfo.id );
 
     // Set parent id.
     ParmParentId = ParmInfo.parentId;
@@ -141,64 +130,53 @@ UHoudiniAssetParameter::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetCo
     return true;
 }
 
-
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameter::CreateWidget(IDetailCategoryBuilder& InDetailCategoryBuilder)
+UHoudiniAssetParameter::CreateWidget( IDetailCategoryBuilder & InDetailCategoryBuilder )
 {
     // Store category builder.
     DetailCategoryBuilder = &InDetailCategoryBuilder;
 
     // Recursively create all child parameters.
-    for(TArray<UHoudiniAssetParameter*>::TIterator IterParameter(ChildParameters); IterParameter; ++IterParameter)
-    {
-        (*IterParameter)->CreateWidget(InDetailCategoryBuilder);
-    }
+    for ( TArray< UHoudiniAssetParameter * >::TIterator IterParameter( ChildParameters ); IterParameter; ++IterParameter)
+        (*IterParameter)->CreateWidget( InDetailCategoryBuilder );
 }
 
-
 void
-UHoudiniAssetParameter::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
+UHoudiniAssetParameter::CreateWidget( TSharedPtr<SVerticalBox> VerticalBox )
 {
     // Default implementation does nothing.
 }
-
 
 bool
 UHoudiniAssetParameter::IsColorPickerWindowOpen() const
 {
     bool bOpenWindow = false;
 
-    for(int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ++ChildIdx)
+    for ( int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ++ChildIdx )
     {
-        UHoudiniAssetParameter* Parameter = ChildParameters[ChildIdx];
-        if(Parameter)
-        {
+        UHoudiniAssetParameter * Parameter = ChildParameters[ ChildIdx ];
+        if ( Parameter )
             bOpenWindow |= Parameter->IsColorPickerWindowOpen();
-        }
     }
 
     return bOpenWindow;
 }
 
-
-#endif
-
+#endif // WITH_EDITOR
 
 void
-UHoudiniAssetParameter::NotifyChildParameterChanged(UHoudiniAssetParameter* HoudiniAssetParameter)
+UHoudiniAssetParameter::NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
     // Default implementation does nothing.
 }
 
-
 void
-UHoudiniAssetParameter::NotifyChildParameterWillChange(UHoudiniAssetParameter* HoudiniAssetParameter)
+UHoudiniAssetParameter::NotifyChildParameterWillChange( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
     // Default implementation does nothing.
 }
-
 
 void
 UHoudiniAssetParameter::NotifyChildParametersCreated()
@@ -206,13 +184,11 @@ UHoudiniAssetParameter::NotifyChildParametersCreated()
     // Default implementation does nothing.
 }
 
-
 void
 UHoudiniAssetParameter::NotifyChildParametersLoaded()
 {
     // Default implementation does nothing.
 }
-
 
 bool
 UHoudiniAssetParameter::UploadParameterValue()
@@ -222,14 +198,12 @@ UHoudiniAssetParameter::UploadParameterValue()
     return true;
 }
 
-
 bool
-UHoudiniAssetParameter::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+UHoudiniAssetParameter::SetParameterVariantValue( const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
     // Default implementation does nothing.
     return false;
 }
-
 
 bool
 UHoudiniAssetParameter::HasChanged() const
@@ -237,28 +211,26 @@ UHoudiniAssetParameter::HasChanged() const
     return bChanged;
 }
 
-
 void
-UHoudiniAssetParameter::SetHoudiniAssetComponent(UHoudiniAssetComponent* InHoudiniAssetComponent)
+UHoudiniAssetParameter::SetHoudiniAssetComponent( UHoudiniAssetComponent * InHoudiniAssetComponent )
 {
     HoudiniAssetComponent = InHoudiniAssetComponent;
 }
 
-
 void
-UHoudiniAssetParameter::SetParentParameter(UHoudiniAssetParameter* InParentParameter)
+UHoudiniAssetParameter::SetParentParameter( UHoudiniAssetParameter * InParentParameter )
 {
-    if(ParentParameter != InParentParameter)
+    if ( ParentParameter != InParentParameter )
     {
         ParentParameter = InParentParameter;
 
-        if(ParentParameter)
+        if ( ParentParameter )
         {
             // Retrieve parent parameter id. We ignore folder lists, they are artificial parents created by us.
             ParmParentId = ParentParameter->GetParmId();
 
             // Add this parameter to parent collection of child parameters.
-            ParentParameter->AddChildParameter(this);
+            ParentParameter->AddChildParameter( this );
         }
         else
         {
@@ -268,31 +240,25 @@ UHoudiniAssetParameter::SetParentParameter(UHoudiniAssetParameter* InParentParam
     }
 }
 
-
 bool
 UHoudiniAssetParameter::IsChildParameter() const
 {
     return ParentParameter != nullptr;
 }
 
-
 void
-UHoudiniAssetParameter::AddChildParameter(UHoudiniAssetParameter* HoudiniAssetParameter)
+UHoudiniAssetParameter::AddChildParameter( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
-    if(HoudiniAssetParameter)
-    {
-        ChildParameters.Add(HoudiniAssetParameter);
-    }
+    if ( HoudiniAssetParameter )
+        ChildParameters.Add( HoudiniAssetParameter );
 }
-
 
 uint32
 UHoudiniAssetParameter::GetTypeHash() const
 {
     // We do hashing based on parameter name.
-    return ::GetTypeHash(ParameterName);
+    return ::GetTypeHash( ParameterName );
 }
-
 
 HAPI_ParmId
 UHoudiniAssetParameter::GetParmId() const
@@ -300,47 +266,40 @@ UHoudiniAssetParameter::GetParmId() const
     return ParmId;
 }
 
-
 HAPI_ParmId
 UHoudiniAssetParameter::GetParmParentId() const
 {
     return ParmParentId;
 }
 
-
 void
-UHoudiniAssetParameter::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+UHoudiniAssetParameter::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
-    UHoudiniAssetParameter* HoudiniAssetParameter = Cast<UHoudiniAssetParameter>(InThis);
-    if(HoudiniAssetParameter)
+    UHoudiniAssetParameter * HoudiniAssetParameter = Cast< UHoudiniAssetParameter >( InThis );
+    if ( HoudiniAssetParameter )
     {
-        UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetParameter->HoudiniAssetComponent;
-        if(HoudiniAssetComponent)
-        {
-            Collector.AddReferencedObject(HoudiniAssetComponent, InThis);
-        }
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetParameter->HoudiniAssetComponent;
+        if ( HoudiniAssetComponent )
+            Collector.AddReferencedObject( HoudiniAssetComponent, InThis );
     }
 
     // Call base implementation.
-    Super::AddReferencedObjects(InThis, Collector);
+    Super::AddReferencedObjects( InThis, Collector );
 }
 
-
 void
-UHoudiniAssetParameter::Serialize(FArchive& Ar)
+UHoudiniAssetParameter::Serialize( FArchive & Ar )
 {
     // Call base implementation.
-    Super::Serialize(Ar);
+    Super::Serialize( Ar );
 
     HoudiniAssetParameterVersion = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
 
     Ar << HoudiniAssetParameterFlagsPacked;
 
-    if(Ar.IsLoading())
-    {
+    if ( Ar.IsLoading() )
         bChanged = false;
-    }
 
     Ar << ParameterName;
     Ar << ParameterLabel;
@@ -355,18 +314,15 @@ UHoudiniAssetParameter::Serialize(FArchive& Ar)
     Ar << ValuesIndex;
     Ar << MultiparmInstanceIndex;
 
-    if(HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_ASSET_INSTANCE_MEMBER)
-    {
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_ASSET_INSTANCE_MEMBER )
         Ar << HoudiniAssetInstance;
-    }
 
-    if(Ar.IsTransacting())
+    if ( Ar.IsTransacting() )
     {
         Ar << HoudiniAssetComponent;
         Ar << ParentParameter;
     }
 }
-
 
 #if WITH_EDITOR
 
@@ -379,62 +335,56 @@ UHoudiniAssetParameter::PostEditUndo()
     MarkChanged();
 }
 
-#endif
-
+#endif // WITH_EDITOR
 
 void
-UHoudiniAssetParameter::SetNodeParmIds(HAPI_NodeId InNodeId, HAPI_ParmId InParmId)
+UHoudiniAssetParameter::SetNodeParmIds( HAPI_NodeId InNodeId, HAPI_ParmId InParmId )
 {
     NodeId = InNodeId;
     ParmId = InParmId;
 }
 
-
 bool
 UHoudiniAssetParameter::HasValidNodeParmIds() const
 {
-    return ((-1 != NodeId) && (-1 != ParmId));
+    return ( NodeId != -1 ) && ( ParmId != -1 );
 }
 
-
 bool
-UHoudiniAssetParameter::IsVisible(const HAPI_ParmInfo& ParmInfo) const
+UHoudiniAssetParameter::IsVisible( const HAPI_ParmInfo & ParmInfo ) const
 {
     return ParmInfo.invisible == false;
 }
 
-
 bool
-UHoudiniAssetParameter::SetNameAndLabel(const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameter::SetNameAndLabel( const HAPI_ParmInfo & ParmInfo )
 {
-    FHoudiniEngineString HoudiniEngineStringName(ParmInfo.nameSH);
-    FHoudiniEngineString HoudiniEngineStringLabel(ParmInfo.labelSH);
+    FHoudiniEngineString HoudiniEngineStringName( ParmInfo.nameSH );
+    FHoudiniEngineString HoudiniEngineStringLabel( ParmInfo.labelSH );
 
     bool bresult = true;
 
-    bresult |= HoudiniEngineStringName.ToFString(ParameterName);
-    bresult |= HoudiniEngineStringLabel.ToFString(ParameterLabel);
+    bresult |= HoudiniEngineStringName.ToFString( ParameterName );
+    bresult |= HoudiniEngineStringLabel.ToFString( ParameterLabel );
 
     return bresult;
 }
 
-
 bool
-UHoudiniAssetParameter::SetNameAndLabel(HAPI_StringHandle StringHandle)
+UHoudiniAssetParameter::SetNameAndLabel( HAPI_StringHandle StringHandle )
 {
-    FHoudiniEngineString HoudiniEngineString(StringHandle);
+    FHoudiniEngineString HoudiniEngineString( StringHandle );
 
     bool bresult = true;
 
-    bresult |= HoudiniEngineString.ToFString(ParameterName);
-    bresult |= HoudiniEngineString.ToFString(ParameterLabel);
+    bresult |= HoudiniEngineString.ToFString( ParameterName );
+    bresult |= HoudiniEngineString.ToFString( ParameterLabel );
 
     return bresult;
 }
 
-
 bool
-UHoudiniAssetParameter::SetNameAndLabel(const FString& Name)
+UHoudiniAssetParameter::SetNameAndLabel( const FString & Name )
 {
     ParameterName = Name;
     ParameterLabel = Name;
@@ -442,28 +392,22 @@ UHoudiniAssetParameter::SetNameAndLabel(const FString& Name)
     return true;
 }
 
-
 void
-UHoudiniAssetParameter::MarkPreChanged(bool bMarkAndTriggerUpdate)
+UHoudiniAssetParameter::MarkPreChanged( bool bMarkAndTriggerUpdate )
 {
 #if WITH_EDITOR
 
-    if(HoudiniAssetComponent && bMarkAndTriggerUpdate)
-    {
-        HoudiniAssetComponent->NotifyParameterWillChange(this);
-    }
+    if ( HoudiniAssetComponent && bMarkAndTriggerUpdate )
+        HoudiniAssetComponent->NotifyParameterWillChange( this );
 
-    if(ParentParameter && bMarkAndTriggerUpdate)
-    {
-        ParentParameter->NotifyChildParameterWillChange(this);
-    }
+    if ( ParentParameter && bMarkAndTriggerUpdate )
+        ParentParameter->NotifyChildParameterWillChange( this );
 
-#endif
+#endif // WITH_EDITOR
 }
 
-
 void
-UHoudiniAssetParameter::MarkChanged(bool bMarkAndTriggerUpdate)
+UHoudiniAssetParameter::MarkChanged( bool bMarkAndTriggerUpdate )
 {
     // Set changed flag.
     bChanged = true;
@@ -471,20 +415,15 @@ UHoudiniAssetParameter::MarkChanged(bool bMarkAndTriggerUpdate)
 #if WITH_EDITOR
 
     // Notify component about change.
-    if(HoudiniAssetComponent && bMarkAndTriggerUpdate)
-    {
-        HoudiniAssetComponent->NotifyParameterChanged(this);
-    }
+    if ( HoudiniAssetComponent && bMarkAndTriggerUpdate )
+        HoudiniAssetComponent->NotifyParameterChanged( this );
 
     // Notify parent parameter about change.
-    if(ParentParameter && bMarkAndTriggerUpdate)
-    {
-        ParentParameter->NotifyChildParameterChanged(this);
-    }
+    if ( ParentParameter && bMarkAndTriggerUpdate )
+        ParentParameter->NotifyChildParameterChanged( this );
 
-#endif
+#endif // WITH_EDITOR
 }
-
 
 void
 UHoudiniAssetParameter::UnmarkChanged()
@@ -492,13 +431,11 @@ UHoudiniAssetParameter::UnmarkChanged()
     bChanged = false;
 }
 
-
 void
 UHoudiniAssetParameter::ResetChildParameters()
 {
     ChildParameters.Empty();
 }
-
 
 int32
 UHoudiniAssetParameter::GetTupleSize() const
@@ -506,20 +443,17 @@ UHoudiniAssetParameter::GetTupleSize() const
     return TupleSize;
 }
 
-
 bool
 UHoudiniAssetParameter::IsArray() const
 {
     return TupleSize > 1;
 }
 
-
 void
-UHoudiniAssetParameter::SetValuesIndex(int32 InValuesIndex)
+UHoudiniAssetParameter::SetValuesIndex( int32 InValuesIndex )
 {
     ValuesIndex = InValuesIndex;
 }
-
 
 int32
 UHoudiniAssetParameter::GetActiveChildParameter() const
@@ -527,13 +461,11 @@ UHoudiniAssetParameter::GetActiveChildParameter() const
     return ActiveChildParameter;
 }
 
-
 bool
 UHoudiniAssetParameter::HasChildParameters() const
 {
     return ChildParameters.Num() > 0;
 }
-
 
 bool
 UHoudiniAssetParameter::IsSubstanceParameter() const
@@ -541,53 +473,44 @@ UHoudiniAssetParameter::IsSubstanceParameter() const
     return bIsSubstanceParameter;
 }
 
-
 bool
-UHoudiniAssetParameter::IsActiveChildParameter(UHoudiniAssetParameter* ChildParam) const
+UHoudiniAssetParameter::IsActiveChildParameter( UHoudiniAssetParameter * ChildParam ) const
 {
-    if(ChildParam && (ActiveChildParameter < ChildParameters.Num()))
-    {
-        return (ChildParameters[ActiveChildParameter] == ChildParam);
-    }
+    if ( ChildParam && ( ActiveChildParameter < ChildParameters.Num() ) )
+        return ChildParameters[ ActiveChildParameter ] == ChildParam;
 
     return false;
 }
 
-
-UHoudiniAssetComponent*
+UHoudiniAssetComponent *
 UHoudiniAssetParameter::GetHoudiniAssetComponent() const
 {
     return HoudiniAssetComponent;
 }
 
-
-UHoudiniAssetParameter*
+UHoudiniAssetParameter *
 UHoudiniAssetParameter::GetParentParameter() const
 {
     return ParentParameter;
 }
 
-
-UHoudiniAssetInstance*
+UHoudiniAssetInstance *
 UHoudiniAssetParameter::GetAssetInstance() const
 {
     return HoudiniAssetInstance;
 }
 
-
-const FString&
+const FString &
 UHoudiniAssetParameter::GetParameterName() const
 {
     return ParameterName;
 }
 
-
-const FString&
+const FString &
 UHoudiniAssetParameter::GetParameterLabel() const
 {
     return ParameterLabel;
 }
-
 
 #if WITH_EDITOR
 
@@ -607,79 +530,77 @@ UHoudiniAssetParameter::AssignUniqueParameterName()
 }
 
 void
-UHoudiniAssetParameter::CreateNameWidget(FDetailWidgetRow& Row, bool bLabel)
+UHoudiniAssetParameter::CreateNameWidget( FDetailWidgetRow & Row, bool bLabel )
 {
-    FText ParameterLabelText = FText::FromString(GetParameterLabel());
-    const FText& FinalParameterLabelText = bLabel ? ParameterLabelText : FText::GetEmpty();
+    FText ParameterLabelText = FText::FromString( GetParameterLabel() );
+    const FText & FinalParameterLabelText = bLabel ? ParameterLabelText : FText::GetEmpty();
 
-    if(bIsChildOfMultiparm && ParentParameter)
+    if ( bIsChildOfMultiparm && ParentParameter )
     {
-        TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+        TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
 
-        TSharedRef<SWidget> ClearButton = PropertyCustomizationHelpers::MakeClearButton(
+        TSharedRef< SWidget > ClearButton = PropertyCustomizationHelpers::MakeClearButton(
             FSimpleDelegate::CreateUObject(
-                (UHoudiniAssetParameterMultiparm*) ParentParameter,
+                (UHoudiniAssetParameterMultiparm *) ParentParameter,
                 &UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance,
-                MultiparmInstanceIndex),
-            LOCTEXT("RemoveMultiparmInstanceToolTip", "Remove"));
-        TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(
+                MultiparmInstanceIndex ),
+            LOCTEXT( "RemoveMultiparmInstanceToolTip", "Remove" ) );
+        TSharedRef< SWidget > AddButton = PropertyCustomizationHelpers::MakeAddButton(
             FSimpleDelegate::CreateUObject(
-                (UHoudiniAssetParameterMultiparm*) ParentParameter,
+                (UHoudiniAssetParameterMultiparm *) ParentParameter,
                 &UHoudiniAssetParameterMultiparm::AddMultiparmInstance,
-                MultiparmInstanceIndex),
-            LOCTEXT("InsertBeforeMultiparmInstanceToolTip", "Insert Before"));
+                MultiparmInstanceIndex ),
+            LOCTEXT( "InsertBeforeMultiparmInstanceToolTip", "Insert Before" ) );
 
-        if(ChildIndex != 0)
+        if ( ChildIndex != 0 )
         {
-            AddButton.Get().SetVisibility(EVisibility::Hidden);
-            ClearButton.Get().SetVisibility(EVisibility::Hidden);
+            AddButton.Get().SetVisibility( EVisibility::Hidden );
+            ClearButton.Get().SetVisibility( EVisibility::Hidden );
         }
 
-        HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
+        HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
         [
             ClearButton
         ];
 
-        HorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 0.0f)
+        HorizontalBox->AddSlot().AutoWidth().Padding( 0.0f, 0.0f )
         [
             AddButton
         ];
 
-        HorizontalBox->AddSlot().Padding(2, 5, 5, 2)
+        HorizontalBox->AddSlot().Padding( 2, 5, 5, 2 )
         [
-            SNew(STextBlock)
-            .Text(FinalParameterLabelText)
-            .ToolTipText(ParameterLabelText)
-            .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+            SNew( STextBlock )
+            .Text( FinalParameterLabelText )
+            .ToolTipText( ParameterLabelText )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
         ];
 
         Row.NameWidget.Widget = HorizontalBox;
     }
     else
     {
-        Row.NameWidget.Widget = SNew(STextBlock)
-                                .Text(FinalParameterLabelText)
-                                .ToolTipText(ParameterLabelText)
-                                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+        Row.NameWidget.Widget =
+            SNew( STextBlock )
+                .Text( FinalParameterLabelText )
+                .ToolTipText( ParameterLabelText )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
     }
 }
 
-#endif
-
+#endif // WITH_EDITOR
 
 void
-UHoudiniAssetParameter::SetNodeId(HAPI_NodeId InNodeId)
+UHoudiniAssetParameter::SetNodeId( HAPI_NodeId InNodeId )
 {
     NodeId = InNodeId;
 }
-
 
 bool
 UHoudiniAssetParameter::IsSpare() const
 {
     return bIsSpare;
 }
-
 
 bool
 UHoudiniAssetParameter::IsDisabled() const
