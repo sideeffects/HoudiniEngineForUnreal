@@ -21,30 +21,25 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
 
-
-UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat(const FObjectInitializer& ObjectInitializer) :
-    Super(ObjectInitializer),
-    ValueMin(TNumericLimits<float>::Lowest()),
-    ValueMax(TNumericLimits<float>::Max()),
-    ValueUIMin(TNumericLimits<float>::Lowest()),
-    ValueUIMax(TNumericLimits<float>::Max())
+UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat( const FObjectInitializer & ObjectInitializer )
+    : Super( ObjectInitializer )
+    , ValueMin( TNumericLimits< float >::Lowest() )
+    , ValueMax( TNumericLimits< float >::Max() )
+    , ValueUIMin( TNumericLimits< float >::Lowest() )
+    , ValueUIMax( TNumericLimits< float >::Max() )
 {
     // Parameter will have at least one value.
-    Values.AddZeroed(1);
+    Values.AddZeroed( 1 );
 }
-
 
 UHoudiniAssetParameterFloat::~UHoudiniAssetParameterFloat()
-{
-
-}
-
+{}
 
 void
-UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
+UHoudiniAssetParameterFloat::Serialize( FArchive & Ar )
 {
     // Call base implementation.
-    Super::Serialize(Ar);
+    Super::Serialize( Ar );
 
     Ar << Values;
 
@@ -55,78 +50,75 @@ UHoudiniAssetParameterFloat::Serialize(FArchive& Ar)
     Ar << ValueUIMax;
 }
 
-
-UHoudiniAssetParameterFloat*
-UHoudiniAssetParameterFloat::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterFloat *
+UHoudiniAssetParameterFloat::Create(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject* Outer = InHoudiniAssetComponent;
-    if(!Outer)
+    UObject * Outer = InHoudiniAssetComponent;
+    if ( !Outer )
     {
         Outer = InParentParameter;
-        if(!Outer)
+        if ( !Outer )
         {
             // Must have either component or parent not null.
-            check(false);
+            check( false );
         }
     }
 
-    UHoudiniAssetParameterFloat* HoudiniAssetParameterFloat = NewObject<UHoudiniAssetParameterFloat>(Outer,
-        UHoudiniAssetParameterFloat::StaticClass(), NAME_None, RF_Public | RF_Transactional);
+    UHoudiniAssetParameterFloat * HoudiniAssetParameterFloat = NewObject< UHoudiniAssetParameterFloat >(
+        Outer, UHoudiniAssetParameterFloat::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterFloat->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
+    HoudiniAssetParameterFloat->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterFloat;
 }
 
-
 bool
-UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterFloat::CreateParameter(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
-    {
+    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
         return false;
-    }
 
     // We can only handle float type.
-    if(HAPI_PARMTYPE_FLOAT != ParmInfo.type)
+    if ( ParmInfo.type != HAPI_PARMTYPE_FLOAT )
     {
         return false;
     }
 
     // Assign internal Hapi values index.
-    SetValuesIndex(ParmInfo.floatValuesIndex);
+    SetValuesIndex( ParmInfo.floatValuesIndex );
 
     // Get the actual value for this property.
-    Values.SetNumZeroed(TupleSize);
-    if(HAPI_RESULT_SUCCESS != FHoudiniApi::GetParmFloatValues(FHoudiniEngine::Get().GetSession(), InNodeId, &Values[0],
-        ValuesIndex, TupleSize))
+    Values.SetNumZeroed( TupleSize );
+    if ( FHoudiniApi::GetParmFloatValues(
+        FHoudiniEngine::Get().GetSession(), InNodeId, &Values[ 0 ],
+        ValuesIndex, TupleSize ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
 
     // Set min and max for this property.
-    if(ParmInfo.hasMin)
-    {
+    if ( ParmInfo.hasMin )
         ValueMin = ParmInfo.min;
-    }
 
-    if(ParmInfo.hasMax)
-    {
+    if ( ParmInfo.hasMax )
         ValueMax = ParmInfo.max;
-    }
 
     bool bUsesDefaultMinMax = false;
 
     // Set min and max for UI for this property.
-    if(ParmInfo.hasUIMin)
+    if ( ParmInfo.hasUIMin )
     {
         ValueUIMin = ParmInfo.UIMin;
     }
     else
     {
         // If it is not set, use supplied min.
-        if(ParmInfo.hasMin)
+        if ( ParmInfo.hasMin )
         {
             ValueUIMin = ValueMin;
         }
@@ -138,14 +130,14 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
         }
     }
 
-    if(ParmInfo.hasUIMax)
+    if ( ParmInfo.hasUIMax )
     {
         ValueUIMax = ParmInfo.UIMax;
     }
     else
     {
         // If it is not set, use supplied max.
-        if(ParmInfo.hasMax)
+        if ( ParmInfo.hasMax )
         {
             ValueUIMax = ValueMax;
         }
@@ -157,29 +149,29 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
         }
     }
 
-    if(bUsesDefaultMinMax)
+    if ( bUsesDefaultMinMax )
     {
         // If we are using defaults, we can detect some most common parameter names and alter defaults.
 
-        FString ParameterName = TEXT("");
-        FHoudiniEngineString HoudiniEngineString(ParmInfo.nameSH);
-        HoudiniEngineString.ToFString(ParameterName);
+        FString ParameterName = TEXT( "" );
+        FHoudiniEngineString HoudiniEngineString( ParmInfo.nameSH );
+        HoudiniEngineString.ToFString( ParameterName );
 
-        static const FString ParameterNameTranslate(TEXT(HAPI_UNREAL_PARAM_TRANSLATE));
-        static const FString ParameterNameRotate(TEXT(HAPI_UNREAL_PARAM_ROTATE));
-        static const FString ParameterNameScale(TEXT(HAPI_UNREAL_PARAM_SCALE));
-        static const FString ParameterNamePivot(TEXT(HAPI_UNREAL_PARAM_PIVOT));
+        static const FString ParameterNameTranslate( TEXT( HAPI_UNREAL_PARAM_TRANSLATE ) );
+        static const FString ParameterNameRotate( TEXT( HAPI_UNREAL_PARAM_ROTATE ) );
+        static const FString ParameterNameScale( TEXT( HAPI_UNREAL_PARAM_SCALE ) );
+        static const FString ParameterNamePivot( TEXT( HAPI_UNREAL_PARAM_PIVOT ) );
 
-        if(!ParameterName.IsEmpty())
+        if ( !ParameterName.IsEmpty() )
         {
-            if(ParameterName.Equals(ParameterNameTranslate)
-                || ParameterName.Equals(ParameterNameScale)
-                || ParameterName.Equals(ParameterNamePivot))
+            if ( ParameterName.Equals( ParameterNameTranslate )
+                || ParameterName.Equals( ParameterNameScale )
+                || ParameterName.Equals( ParameterNamePivot ) )
             {
                 ValueUIMin = -1.0f;
                 ValueUIMax = 1.0f;
             }
-            else if(ParameterName.Equals(ParameterNameRotate))
+            else if ( ParameterName.Equals( ParameterNameRotate ) )
             {
                 ValueUIMin = 0.0f;
                 ValueUIMax = 360.0f;
@@ -190,70 +182,66 @@ UHoudiniAssetParameterFloat::CreateParameter(UHoudiniAssetComponent* InHoudiniAs
     return true;
 }
 
-
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFloat::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
+UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
 {
-    Super::CreateWidget(DetailCategoryBuilder);
+    Super::CreateWidget( DetailCategoryBuilder );
 
-    FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow(FText::GetEmpty());
+    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.
-    CreateNameWidget(Row, true);
+    CreateNameWidget( Row, true );
 
-    TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
 
-    for(int32 Idx = 0; Idx < TupleSize; ++Idx)
+    for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
     {
-        TSharedPtr<SNumericEntryBox<float> > NumericEntryBox;
+        TSharedPtr< SNumericEntryBox< float > > NumericEntryBox;
 
-        VerticalBox->AddSlot().Padding(2, 2, 5, 2)
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
         [
-            SAssignNew(NumericEntryBox, SNumericEntryBox<float>)
-            .AllowSpin(true)
+            SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
+            .AllowSpin( true )
 
-            .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 
-            .MinValue(ValueMin)
-            .MaxValue(ValueMax)
+            .MinValue( ValueMin )
+            .MaxValue( ValueMax )
 
-            .MinSliderValue(ValueUIMin)
-            .MaxSliderValue(ValueUIMax)
+            .MinSliderValue( ValueUIMin )
+            .MaxSliderValue( ValueUIMax )
 
-            .Value(TAttribute<TOptional<float> >::Create(TAttribute<TOptional<float> >::FGetter::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::GetValue, Idx)))
-            .OnValueChanged(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::SetValue, Idx, true, true))
-            .OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx))
-            .OnBeginSliderMovement(FSimpleDelegate::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx))
-            .OnEndSliderMovement(SNumericEntryBox<float>::FOnValueChanged::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx))
+            .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                this, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
+            .OnValueChanged( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
+                this, &UHoudiniAssetParameterFloat::SetValue, Idx, true, true ) )
+            .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateUObject(
+                this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx ) )
+            .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
+                this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
+            .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
+                this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
 
-            .SliderExponent(1.0f)
+            .SliderExponent( 1.0f )
         ];
 
-        if(NumericEntryBox.IsValid())
-        {
-            NumericEntryBox->SetEnabled(!bIsDisabled);
-        }
+        if ( NumericEntryBox.IsValid() )
+            NumericEntryBox->SetEnabled( !bIsDisabled );
     }
 
     Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
+    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
-#endif
-
+#endif // WITH_EDITOR
 
 bool
 UHoudiniAssetParameterFloat::UploadParameterValue()
 {
-    if(HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmFloatValues(FHoudiniEngine::Get().GetSession(), NodeId, &Values[0],
-        ValuesIndex, TupleSize))
+    if ( FHoudiniApi::SetParmFloatValues( FHoudiniEngine::Get().GetSession(), NodeId, &Values[ 0 ],
+        ValuesIndex, TupleSize ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
@@ -261,131 +249,110 @@ UHoudiniAssetParameterFloat::UploadParameterValue()
     return Super::UploadParameterValue();
 }
 
-
 bool
-UHoudiniAssetParameterFloat::SetParameterVariantValue(const FVariant& Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+UHoudiniAssetParameterFloat::SetParameterVariantValue( const FVariant & Variant, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
     int32 VariantType = Variant.GetType();
     float VariantValue = 0.0f;
 
-    if(Idx >= 0 && Idx < Values.Num())
-    {
+    if ( Idx >= 0 && Idx < Values.Num() )
         return false;
-    }
 
-    if(EVariantTypes::Float == VariantType)
-    {
+    if ( VariantType == EVariantTypes::Float )
         VariantValue = Variant.GetValue<float>();
-    }
-    else if(EVariantTypes::Double == VariantType)
-    {
-        VariantValue = (float) Variant.GetValue<double>();
-    }
+    else if ( VariantType == EVariantTypes::Double )
+        VariantValue = (float) Variant.GetValue< double >();
     else
-    {
         return false;
-    }
 
 #if WITH_EDITOR
 
-    FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-        LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
-            HoudiniAssetComponent);
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
+        HoudiniAssetComponent );
 
     Modify();
 
-    if(!bRecordUndo)
-    {
+    if ( !bRecordUndo )
         Transaction.Cancel();
-    }
 
-#endif
+#endif // WITH_EDITOR
 
-    MarkPreChanged(bTriggerModify);
-    Values[Idx] = VariantValue;
-    MarkChanged(bTriggerModify);
+    MarkPreChanged( bTriggerModify );
+    Values[ Idx ] = VariantValue;
+    MarkChanged( bTriggerModify );
 
     return true;
 }
 
-
-TOptional<float>
-UHoudiniAssetParameterFloat::GetValue(int32 Idx) const
+TOptional< float >
+UHoudiniAssetParameterFloat::GetValue( int32 Idx ) const
 {
-    return TOptional<float>(Values[Idx]);
+    return TOptional< float >( Values[ Idx ] );
 }
 
-
 void
-UHoudiniAssetParameterFloat::SetValue(float InValue, int32 Idx, bool bTriggerModify, bool bRecordUndo)
+UHoudiniAssetParameterFloat::SetValue( float InValue, int32 Idx, bool bTriggerModify, bool bRecordUndo )
 {
-    if(Values[Idx] != InValue)
+    if ( InValue != Values[ Idx ] )
     {
 
 #if WITH_EDITOR
 
         // If this is not a slider change (user typed in values manually), record undo information.
-        FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-            LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
-            HoudiniAssetComponent);
+        FScopedTransaction Transaction(
+            TEXT( HOUDINI_MODULE_RUNTIME ),
+            LOCTEXT( "HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value" ),
+            HoudiniAssetComponent );
         Modify();
 
-        if(bSliderDragged || !bRecordUndo)
-        {
+        if ( bSliderDragged || !bRecordUndo )
             Transaction.Cancel();
-        }
 
-#endif
+#endif // WITH_EDITOR
 
-        MarkPreChanged(bTriggerModify);
+        MarkPreChanged( bTriggerModify );
 
-        Values[Idx] = FMath::Clamp<float>(InValue, ValueMin, ValueMax);
+        Values[ Idx ] = FMath::Clamp< float >( InValue, ValueMin, ValueMax );
 
         // Mark this parameter as changed.
-        MarkChanged(bTriggerModify);
+        MarkChanged( bTriggerModify );
     }
 }
-
 
 float
-UHoudiniAssetParameterFloat::GetParameterValue(int32 Idx, float DefaultValue) const
+UHoudiniAssetParameterFloat::GetParameterValue( int32 Idx, float DefaultValue ) const
 {
-    if(Values.Num() <= Idx)
-    {
+    if ( Values.Num() <= Idx )
         return DefaultValue;
-    }
 
-    return Values[Idx];
+    return Values[ Idx ];
 }
-
 
 #if WITH_EDITOR
 
+void
+UHoudiniAssetParameterFloat::SetValueCommitted( float InValue, ETextCommit::Type CommitType, int32 Idx )
+{}
 
 void
-UHoudiniAssetParameterFloat::SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx)
-{
-
-}
-
-
-void
-UHoudiniAssetParameterFloat::OnSliderMovingBegin(int32 Idx)
+UHoudiniAssetParameterFloat::OnSliderMovingBegin( int32 Idx )
 {
     // We want to record undo increments only when user lets go of the slider.
-    FScopedTransaction Transaction(TEXT(HOUDINI_MODULE_RUNTIME),
-        LOCTEXT("HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value"),
-        HoudiniAssetComponent);
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value" ),
+        HoudiniAssetComponent );
     Modify();
 
     bSliderDragged = true;
 }
 
-
 void
-UHoudiniAssetParameterFloat::OnSliderMovingFinish(float InValue, int32 Idx)
+UHoudiniAssetParameterFloat::OnSliderMovingFinish( float InValue, int32 Idx )
 {
     bSliderDragged = false;
 }
 
-#endif
+#endif // WITH_EDITOR

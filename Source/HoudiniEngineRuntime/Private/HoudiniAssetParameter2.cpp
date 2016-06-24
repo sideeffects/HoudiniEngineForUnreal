@@ -18,54 +18,45 @@
 #include "HoudiniAssetParameter2Version.h"
 #include "HoudiniAssetInstance.h"
 
-
 uint32
-GetTypeHash(const UHoudiniAssetParameter2* HoudiniAssetParameter)
+GetTypeHash( const UHoudiniAssetParameter2 * HoudiniAssetParameter )
 {
-    if(HoudiniAssetParameter)
-    {
+    if ( HoudiniAssetParameter )
         return HoudiniAssetParameter->GetTypeHash();
-    }
 
     return 0;
 }
 
-
-UHoudiniAssetParameter2::UHoudiniAssetParameter2(const FObjectInitializer& ObjectInitializer) :
-    Super(ObjectInitializer),
+UHoudiniAssetParameter2::UHoudiniAssetParameter2( const FObjectInitializer & ObjectInitializer )
+    : Super( ObjectInitializer )
 #if WITH_EDITOR
-    DetailCategoryBuilder(nullptr),
+    , DetailCategoryBuilder( nullptr )
 #endif
-    HoudiniAssetInstance(nullptr),
-    UHoudiniAssetParentParameter(nullptr),
-    ParameterName(TEXT("")),
-    ParameterLabel(TEXT("")),
-    ChildIndex(0),
-    ParameterSize(1),
-    MultiparmInstanceIndex(-1),
-    ActiveChildParameter(0),
-    bIsSpare(false),
-    bIsEnabled(true),
-    bIsVisible(true),
-    bChanged(false),
-    bSliderDragged(false),
-    bIsChildOfMultiparm(false),
-    bIsSubstanceParameter(false),
-    HoudiniAssetParameterVersion(VER_HOUDINI_ENGINE_PARAM2_BASE)
-{
-
-}
-
+    , HoudiniAssetInstance( nullptr )
+    , UHoudiniAssetParentParameter( nullptr )
+    , ParameterName( TEXT( "" ) )
+    , ParameterLabel( TEXT( "" ) )
+    , ChildIndex( 0 )
+    , ParameterSize( 1 )
+    , MultiparmInstanceIndex( -1 )
+    , ActiveChildParameter( 0 )
+    , bIsSpare( false )
+    , bIsEnabled( true )
+    , bIsVisible( true )
+    , bChanged( false )
+    , bSliderDragged( false )
+    , bIsChildOfMultiparm( false )
+    , bIsSubstanceParameter( false )
+    , HoudiniAssetParameterVersion( VER_HOUDINI_ENGINE_PARAM2_BASE )
+{}
 
 UHoudiniAssetParameter2::~UHoudiniAssetParameter2()
-{
-
-}
-
+{}
 
 bool
-UHoudiniAssetParameter2::CreateParameter(UHoudiniAssetInstance* InHoudiniAssetInstance,
-    const FHoudiniParameterObject& InHoudiniParameterObject)
+UHoudiniAssetParameter2::CreateParameter(
+    UHoudiniAssetInstance * InHoudiniAssetInstance,
+    const FHoudiniParameterObject & InHoudiniParameterObject )
 {
     // Store parameter object and instance.
     HoudiniParameterObject = InHoudiniParameterObject;
@@ -75,18 +66,16 @@ UHoudiniAssetParameter2::CreateParameter(UHoudiniAssetInstance* InHoudiniAssetIn
     ChildParameters.Empty();
 
     // If parameter has changed, we do not need to recreate it.
-    if(bChanged)
-    {
+    if ( bChanged )
         return false;
-    }
 
     bIsVisible = HoudiniParameterObject.HapiIsVisible();
     bIsEnabled = HoudiniParameterObject.HapiIsEnabled();
     bIsSpare = HoudiniParameterObject.HapiIsSpare();
     bIsSubstanceParameter = HoudiniParameterObject.HapiIsSubstance();
 
-    HoudiniParameterObject.HapiGetLabel(ParameterLabel);
-    HoudiniParameterObject.HapiGetName(ParameterName);
+    HoudiniParameterObject.HapiGetLabel( ParameterLabel );
+    HoudiniParameterObject.HapiGetName( ParameterName );
 
     ChildIndex = HoudiniParameterObject.HapiGetChildIndex();
     ParameterSize = HoudiniParameterObject.HapiGetSize();
@@ -95,11 +84,10 @@ UHoudiniAssetParameter2::CreateParameter(UHoudiniAssetInstance* InHoudiniAssetIn
     return true;
 }
 
-
 void
-UHoudiniAssetParameter2::Serialize(FArchive& Ar)
+UHoudiniAssetParameter2::Serialize( FArchive & Ar )
 {
-    Super::Serialize(Ar);
+    Super::Serialize( Ar );
 
     HoudiniAssetParameterVersion = VER_HOUDINI_ENGINE_PARAM2_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
@@ -109,57 +97,48 @@ UHoudiniAssetParameter2::Serialize(FArchive& Ar)
     Ar << HoudiniParameterObject;
 }
 
-
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameter2::CreateWidget(IDetailCategoryBuilder& InDetailCategoryBuilder)
+UHoudiniAssetParameter2::CreateWidget( IDetailCategoryBuilder & InDetailCategoryBuilder )
 {
     // Store category builder.
     DetailCategoryBuilder = &InDetailCategoryBuilder;
 
     // Recursively create all child parameters.
-    for(TArray<UHoudiniAssetParameter2*>::TIterator IterParameter(ChildParameters); IterParameter; ++IterParameter)
-    {
-        (*IterParameter)->CreateWidget(InDetailCategoryBuilder);
-    }
+    for ( TArray< UHoudiniAssetParameter2 * >::TIterator IterParameter( ChildParameters ); IterParameter; ++IterParameter )
+        (*IterParameter)->CreateWidget( InDetailCategoryBuilder );
 }
 
-
 void
-UHoudiniAssetParameter2::CreateWidget(TSharedPtr<SVerticalBox> VerticalBox)
+UHoudiniAssetParameter2::CreateWidget( TSharedPtr<SVerticalBox> VerticalBox )
 {
     // Default implementation does nothing.
 }
-
 
 bool
 UHoudiniAssetParameter2::IsColorPickerWindowOpen() const
 {
     bool bOpenWindow = false;
 
-    for(int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ++ChildIdx)
+    for ( int32 ChildIdx = 0, ChildNum = ChildParameters.Num(); ChildIdx < ChildNum; ++ChildIdx )
     {
-        UHoudiniAssetParameter2* Parameter = ChildParameters[ChildIdx];
-        if(Parameter)
-        {
+        UHoudiniAssetParameter2 * Parameter = ChildParameters[ ChildIdx ];
+        if ( Parameter )
             bOpenWindow |= Parameter->IsColorPickerWindowOpen();
-        }
     }
 
     return bOpenWindow;
 }
 
-#endif
-
+#endif // WITH_EDITOR
 
 uint32
 UHoudiniAssetParameter2::GetTypeHash() const
 {
     // We do hashing based on parameter name.
-    return ::GetTypeHash(ParameterName);
+    return ::GetTypeHash( ParameterName );
 }
-
 
 bool
 UHoudiniAssetParameter2::HasChanged() const
@@ -167,34 +146,29 @@ UHoudiniAssetParameter2::HasChanged() const
     return bChanged;
 }
 
-
-const FString&
+const FString &
 UHoudiniAssetParameter2::GetParameterName() const
 {
     return ParameterName;
 }
 
-
-const FString&
+const FString &
 UHoudiniAssetParameter2::GetParameterLabel() const
 {
     return ParameterLabel;
 }
 
-
-UHoudiniAssetInstance*
+UHoudiniAssetInstance *
 UHoudiniAssetParameter2::GetAssetInstance() const
 {
     return HoudiniAssetInstance;
 }
-
 
 int32
 UHoudiniAssetParameter2::GetSize() const
 {
     return ParameterSize;
 }
-
 
 bool
 UHoudiniAssetParameter2::IsArray() const
