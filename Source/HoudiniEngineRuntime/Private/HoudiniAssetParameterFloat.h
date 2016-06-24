@@ -17,82 +17,88 @@
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterFloat.generated.h"
 
-
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFloat : public UHoudiniAssetParameter
 {
     GENERATED_UCLASS_BODY()
 
-public:
+    public:
 
-    /** Destructor. **/
-    virtual ~UHoudiniAssetParameterFloat();
+        /** Destructor. **/
+        virtual ~UHoudiniAssetParameterFloat();
 
-public:
+    public:
 
-    /** Create instance of this class. **/
-    static UHoudiniAssetParameterFloat* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+        /** Create instance of this class. **/
+        static UHoudiniAssetParameterFloat* Create(
+            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetParameter * InParentParameter,
+            HAPI_NodeId InNodeId,
+            const HAPI_ParmInfo & ParmInfo );
 
-public:
+    public:
 
-    /** Create this parameter from HAPI information. **/
-    virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
-
-#if WITH_EDITOR
-
-    /** Create widget for this parameter and add it to a given category. **/
-    virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
-
-#endif
-
-    /** Upload parameter value to HAPI. **/
-    virtual bool UploadParameterValue() override;
-
-    /** Set parameter value. **/
-    virtual bool SetParameterVariantValue(const FVariant& Variant, int32 Idx = 0, bool bTriggerModify = true,
-        bool bRecordUndo = true) override;
-
-/** UObject methods. **/
-public:
-
-    virtual void Serialize(FArchive& Ar) override;
-
-public:
-
-    /** Get value of this property, used by Slate. **/
-    TOptional<float> GetValue(int32 Idx) const;
-
-    /** Set value of this property, used by Slate. **/
-    void SetValue(float InValue, int32 Idx, bool bTriggerModify = true, bool bRecordUndo = true);
-
-    /** Return value of this property with optional fallback. **/
-    float GetParameterValue(int32 Idx, float DefaultValue) const;
+        /** Create this parameter from HAPI information. **/
+        virtual bool CreateParameter(
+            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetParameter * InParentParameter,
+            HAPI_NodeId InNodeId,
+            const HAPI_ParmInfo & ParmInfo ) override;
 
 #if WITH_EDITOR
 
-    /** Set value of this property through commit action, used by Slate. **/
-    void SetValueCommitted(float InValue, ETextCommit::Type CommitType, int32 Idx);
+        /** Create widget for this parameter and add it to a given category. **/
+        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
 
-    /** Delegate fired when slider for this property begins moving. **/
-    void OnSliderMovingBegin(int32 Idx);
+#endif // WITH_EDITOR
 
-    /** Delegate fired when slider for this property has finished moving. **/
-    void OnSliderMovingFinish(float InValue, int32 Idx);
+        /** Upload parameter value to HAPI. **/
+        virtual bool UploadParameterValue() override;
 
-#endif
+        /** Set parameter value. **/
+        virtual bool SetParameterVariantValue(
+            const FVariant & Variant, int32 Idx = 0, bool bTriggerModify = true,
+            bool bRecordUndo = true ) override;
 
-protected:
+    /** UObject methods. **/
+    public:
 
-    /** Values of this property. **/
-    TArray<float> Values;
+        virtual void Serialize( FArchive & Ar ) override;
 
-    /** Min and Max values for this property. **/
-    float ValueMin;
-    float ValueMax;
+    public:
 
-    /** Min and Max values for UI for this property. **/
-    float ValueUIMin;
-    float ValueUIMax;
+        /** Get value of this property, used by Slate. **/
+        TOptional< float > GetValue( int32 Idx ) const;
+
+        /** Set value of this property, used by Slate. **/
+        void SetValue( float InValue, int32 Idx, bool bTriggerModify = true, bool bRecordUndo = true );
+
+        /** Return value of this property with optional fallback. **/
+        float GetParameterValue( int32 Idx, float DefaultValue ) const;
+
+#if WITH_EDITOR
+
+        /** Set value of this property through commit action, used by Slate. **/
+        void SetValueCommitted( float InValue, ETextCommit::Type CommitType, int32 Idx );
+
+        /** Delegate fired when slider for this property begins moving. **/
+        void OnSliderMovingBegin( int32 Idx );
+
+        /** Delegate fired when slider for this property has finished moving. **/
+        void OnSliderMovingFinish( float InValue, int32 Idx );
+
+#endif // WITH_EDITOR
+
+    protected:
+
+        /** Values of this property. **/
+        TArray< float > Values;
+
+        /** Min and Max values for this property. **/
+        float ValueMin;
+        float ValueMax;
+
+        /** Min and Max values for UI for this property. **/
+        float ValueUIMin;
+        float ValueUIMax;
 };
