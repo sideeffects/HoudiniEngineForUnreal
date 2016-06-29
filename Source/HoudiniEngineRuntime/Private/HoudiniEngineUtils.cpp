@@ -5084,7 +5084,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(UHoudiniAssetComponent* Houd
 
     // Material should have at least one multiply expression.
     UMaterialExpressionMultiply* MaterialExpressionMultiply = Cast<UMaterialExpressionMultiply>(MaterialExpression);
-    if(!MaterialExpression)
+    if(!MaterialExpressionMultiply)
     {
         MaterialExpressionMultiply = NewObject<UMaterialExpressionMultiply>(Material,
             UMaterialExpressionMultiply::StaticClass(), NAME_None, RF_Transactional);
