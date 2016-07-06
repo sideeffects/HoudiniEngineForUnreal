@@ -125,6 +125,14 @@ UHoudiniAssetInput::CreateWidgetResources()
         if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
             ChoiceStringValue = *ChoiceLabel;
     }
+    {
+        // Temporarily disabled. Work in progress.
+        /*FString * ChoiceLabel = new FString( TEXT( "World Outliner Input" ) );
+        StringChoiceLabels.Add( TSharedPtr< FString >( ChoiceLabel ) );
+
+        if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+            ChoiceStringValue = *ChoiceLabel;*/
+    }
 }
 
 void
@@ -347,10 +355,10 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
             PropertyCustomizationHelpers::MakeActorPickerWithMenu(
                 nullptr,
                 true,
-                FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorFilter ),
+                FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnInputActorFilter ),
                 FOnActorSelected::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorSelected ),
-                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorCloseComboButton ),
-                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorUse ) )
+                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorCloseComboButton ),
+                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorUse ) )
         ];
 
         {
@@ -517,6 +525,17 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 .ToolTipText( LOCTEXT( "LandscapeInputRecommit", "Recommit Landscape" ) )
                 .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetInput::OnButtonClickRecommit ) )
             ]
+        ];
+    }
+    else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+    {
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        [
+            SNew( SButton )
+            .VAlign( VAlign_Center )
+            .HAlign( HAlign_Center )
+            .Text( LOCTEXT( "WorldInputStartSelection", "Start Selection" ) )
+            .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetInput::OnButtonClickSelectActors ) )
         ];
     }
 
@@ -694,6 +713,11 @@ UHoudiniAssetInput::UploadParameterValue()
                 DisconnectAndDestroyInputAsset();
             }
 
+            break;
+        }
+
+        case EHoudiniAssetInputType::WorldInput:
+        {
             break;
         }
 
@@ -1067,6 +1091,12 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
                 break;
             }
 
+            case EHoudiniAssetInputType::WorldInput:
+            {
+                // We are switching away from World Outliner input.
+                break;
+            }
+
             default:
             {
                 // Unhandled new input type?
@@ -1122,6 +1152,12 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
                 break;
             }
 
+            case EHoudiniAssetInputType::WorldInput:
+            {
+                // We are switching to World Outliner input.
+                break;
+            }
+
             default:
             {
                 // Unhandled new input type?
@@ -1139,7 +1175,15 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
 bool
 UHoudiniAssetInput::OnInputActorFilter( const AActor * const Actor ) const
 {
-    return ( Actor && Actor->IsA( AHoudiniAssetActor::StaticClass() ) );
+    if ( !Actor )
+        return false;
+
+    if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
+        return Actor->IsA( AHoudiniAssetActor::StaticClass() );
+    else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
+        return Actor->IsA( ALandscapeProxy::StaticClass() );
+
+    return false;
 }
 
 void
@@ -1202,16 +1246,10 @@ void
 UHoudiniAssetInput::OnInputActorUse()
 {}
 
-bool
-UHoudiniAssetInput::OnLandscapeActorFilter( const AActor * const Actor ) const
-{
-    return ( Actor && Actor->IsA( ALandscapeProxy::StaticClass() ) );
-}
-
 void
 UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
 {
-    ALandscapeProxy * LandscapeProxy = Cast<ALandscapeProxy>( Actor );
+    ALandscapeProxy * LandscapeProxy = Cast< ALandscapeProxy >( Actor );
     if ( LandscapeProxy )
     {
         // If we just selected the already selected landscape, do nothing.
@@ -1241,14 +1279,6 @@ UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
     MarkPreChanged();
     MarkChanged();
 }
-
-void
-UHoudiniAssetInput::OnLandscapeActorCloseComboButton()
-{}
-
-void
-UHoudiniAssetInput::OnLandscapeActorUse()
-{}
 
 #endif
 
@@ -1334,6 +1364,18 @@ UHoudiniAssetInput::IsLandscapeAssetConnected() const
     if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
     {
         if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
+            return true;
+    }
+
+    return false;
+}
+
+bool
+UHoudiniAssetInput::IsWorldInputAssetConnected() const
+{
+    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+    {
+        if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
             return true;
     }
 
@@ -1813,6 +1855,53 @@ UHoudiniAssetInput::OnButtonClickRecommit()
 
     MarkPreChanged();
     MarkChanged();
+
+    return FReply::Handled();
+}
+
+FReply
+UHoudiniAssetInput::OnButtonClickSelectActors()
+{
+    // There's no undo operation for button.
+
+    FPropertyEditorModule & PropertyModule =
+        FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
+
+    // Locate the details panel.
+    FName DetailsPanelName = "LevelEditorSelectionDetails";
+    TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
+
+    if ( !DetailsView.IsValid() )
+        return FReply::Handled();
+
+    if ( !DetailsView->IsLocked() )
+    {
+        class SLocalDetailsView : public SDetailsViewBase
+        {
+            public:
+                void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
+        };
+        auto * LocalDetailsView = static_cast< SLocalDetailsView * >( DetailsView.Get() );
+        LocalDetailsView->LockDetailsView();
+        check( DetailsView->IsLocked() );
+    }
+    else
+    {
+        if ( GEditor && GEditor->GetSelectedObjects() )
+        {
+            // If details panel is locked, locate selected actors and check if this component belongs to one of them.
+
+            USelection * SelectedActors = GEditor->GetSelectedActors();
+
+            // If the builder brush is selected, first deselect it.
+            for ( FSelectionIterator It( *SelectedActors ); It; ++It )
+            {
+                AActor * Actor = Cast< AActor >( *It );
+                if ( Actor )
+                    HOUDINI_LOG_MESSAGE( TEXT( "QQQQQQQQQQ: %s" ), *Actor->GetName() );
+            }
+        }
+    }
 
     return FReply::Handled();
 }
