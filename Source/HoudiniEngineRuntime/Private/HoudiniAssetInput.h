@@ -30,7 +30,8 @@ namespace EHoudiniAssetInputType
         GeometryInput = 0,
         AssetInput,
         CurveInput,
-        LandscapeInput
+        LandscapeInput,
+        WorldInput
     };
 }
 
@@ -98,6 +99,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Return true if connected asset is a landscape asset. **/
         bool IsLandscapeAssetConnected() const;
 
+        /** Return true if connected asset is a merge of a world outliner set of inputs. **/
+        bool IsWorldInputAssetConnected() const;
+
         /** Disconnect connected input asset. **/
         void DisconnectAndDestroyInputAsset();
 
@@ -162,17 +166,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Called when the input actor selection combo is used. **/
         void OnInputActorUse();
 
-        /** Called on landscape selection to filter the actors by type. **/
-        bool OnLandscapeActorFilter( const AActor * const Actor ) const;
-
         /** Called when change of landscape selection. **/
         void OnLandscapeActorSelected( AActor * Actor );
-
-        /** Called when the landscape actor selection combo is closed. **/
-        void OnLandscapeActorCloseComboButton();
-
-        /** Called when the landscape actor selection combo is used. **/
-        void OnLandscapeActorUse();
 
 #endif
 
@@ -274,6 +269,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Handler for landscape recommit button. **/
         FReply OnButtonClickRecommit();
+
+        /** Handler for World Outliner input selection button. **/
+        FReply OnButtonClickSelectActors();
 
 #endif
 

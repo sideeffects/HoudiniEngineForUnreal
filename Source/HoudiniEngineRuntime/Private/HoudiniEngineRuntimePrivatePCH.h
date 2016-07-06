@@ -48,6 +48,8 @@
 #include "Editor/UnrealEd/Public/Layers/ILayers.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Editor/PropertyEditor/Private/PropertyNode.h"
+#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #include "ScopedTransaction.h"
 #include "RawMesh.h"
 #include "Kismet2/KismetEditorUtilities.h"
