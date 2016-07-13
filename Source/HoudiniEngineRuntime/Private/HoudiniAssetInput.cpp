@@ -2028,11 +2028,11 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
         check( !DetailsView->IsLocked() );
 
         AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
-        TArray< UObject * > SelectedActors;
-        SelectedActors.Add( HoudiniAssetActor );
+        TArray< UObject * > DummySelectedActors;
+        DummySelectedActors.Add( HoudiniAssetActor );
 
         // Reset selected actor to itself, force refresh and override the lock.
-        DetailsView->SetObjects( SelectedActors, true, true );
+        DetailsView->SetObjects( DummySelectedActors, true, true );
     }
 
     HoudiniAssetComponent->UpdateEditorProperties( false );
