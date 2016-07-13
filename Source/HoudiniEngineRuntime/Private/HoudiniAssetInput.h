@@ -35,6 +35,23 @@ namespace EHoudiniAssetInputType
     };
 }
 
+struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
+{
+    /** Serialization. **/
+    void Serialize( FArchive & Ar );
+
+    AActor * Actor;
+    UStaticMeshComponent * StaticMeshComponent;
+    UStaticMesh * StaticMesh;
+
+    FTransform ActorTransform;
+
+    HAPI_AssetId AssetId;
+
+    /** Temporary variable holding serialization version. **/
+    uint32 HoudiniAssetParameterVersion;
+};
+
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParameter
 {
@@ -290,6 +307,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Landscape actor used for input. **/
         ALandscapeProxy * InputLandscapeProxy;
 
+        TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;
+
         /** Id of currently connected asset. **/
         HAPI_AssetId ConnectedAssetId;
 
@@ -341,3 +360,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
             uint32 HoudiniAssetInputFlagsPacked;
         };
 };
+
+/** Serialization function. **/
+HOUDINIENGINERUNTIME_API FArchive & operator<<(
+    FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOutlinerMesh );

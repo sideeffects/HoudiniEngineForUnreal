@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "HoudiniAssetInput.h"
 #include "HoudiniGeoPartObject.h"
 
 
@@ -166,6 +167,12 @@ public:
     /** new asset id.                                                                                               **/
     static bool HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh* Mesh,
         HAPI_AssetId& ConnectedAssetId);
+
+    static bool HapiCreateAndConnectAsset(
+        HAPI_AssetId HostAssetId,
+        int32 InputIndex,
+        TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
+        HAPI_AssetId & ConnectedAssetId );
 
     /** HAPI : Marshaling, disconnect input asset from a given slot. **/
     static bool HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex);

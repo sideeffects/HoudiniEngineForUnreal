@@ -443,6 +443,8 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
     }
 
+    ZeroMemory( &HapiTransform, sizeof( HAPI_Transform ) );
+
     HapiTransform.rstOrder = HAPI_SRT;
 
     FQuat UnrealRotation = UnrealTransform.GetRotation();
@@ -505,6 +507,8 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
         TransformScaleFactor = HoudiniRuntimeSettings->TransformScaleFactor;
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
     }
+
+    ZeroMemory( &HapiTransformEuler, sizeof( HAPI_TransformEuler ) );
 
     HapiTransformEuler.rstOrder = HAPI_SRT;
     HapiTransformEuler.rotationOrder = HAPI_XYZ;
@@ -2601,6 +2605,48 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(HAPI_AssetId HostAssetId, int32 I
     return true;
 }
 
+bool
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(
+    HAPI_AssetId HostAssetId,
+    int32 InputIndex,
+    TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
+    HAPI_AssetId & ConnectedAssetId )
+{
+    if ( OutlinerMeshArray.Num() <= 0 )
+        return false;
+
+    // Create the merge SOP asset. This will be our "ConnectedAssetId".
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::InstantiateAsset(
+        FHoudiniEngine::Get().GetSession(),
+        "SOP/merge", true, &ConnectedAssetId ), false );
+
+    for ( int32 InputIdx = 0; InputIdx < OutlinerMeshArray.Num(); ++InputIdx )
+    {
+        auto & OutlinerMesh = OutlinerMeshArray[ InputIdx ];
+        if ( !HapiCreateAndConnectAsset(
+            ConnectedAssetId,
+            InputIdx,
+            OutlinerMesh.StaticMesh,
+            OutlinerMesh.AssetId ) )
+        {
+            OutlinerMesh.AssetId = -1;
+            continue;
+        }
+
+        HAPI_TransformEuler HapiTransform;
+        FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ActorTransform, HapiTransform );
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAssetTransform(
+            FHoudiniEngine::Get().GetSession(),
+            OutlinerMesh.AssetId, &HapiTransform ), false );
+    }
+
+    // Now we can connect assets together.
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectAssetGeometry(
+        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, InputIndex ), false );
+
+    return true;
+}
 
 bool
 FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_AssetId HostAssetId, int32 InputIndex)
