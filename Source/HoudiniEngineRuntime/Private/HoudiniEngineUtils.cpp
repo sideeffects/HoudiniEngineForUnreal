@@ -443,7 +443,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
     }
 
-    ZeroMemory( &HapiTransform, sizeof( HAPI_Transform ) );
+    FMemory::Memzero< HAPI_Transform >( HapiTransform );
 
     HapiTransform.rstOrder = HAPI_SRT;
 
@@ -508,7 +508,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
     }
 
-    ZeroMemory( &HapiTransformEuler, sizeof( HAPI_TransformEuler ) );
+    FMemory::Memzero< HAPI_TransformEuler >( HapiTransformEuler );
 
     HapiTransformEuler.rstOrder = HAPI_SRT;
     HapiTransformEuler.rotationOrder = HAPI_XYZ;
