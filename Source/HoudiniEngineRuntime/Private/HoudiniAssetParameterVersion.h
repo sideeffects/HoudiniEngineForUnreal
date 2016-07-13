@@ -25,6 +25,9 @@ enum EHoudiniAssetParameterVersion
     // Asset instance member.
     VER_HOUDINI_ENGINE_PARAM_ASSET_INSTANCE_MEMBER,
 
+    // World Outliner inputs.
+    VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT,
+
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)
     VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION_PLUS_ONE,

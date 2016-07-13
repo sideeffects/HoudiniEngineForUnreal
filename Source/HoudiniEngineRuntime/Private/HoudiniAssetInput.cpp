@@ -28,6 +28,21 @@
 #include "HoudiniAssetParameterVersion.h"
 #include "HoudiniEngineString.h"
 
+void
+FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
+{
+    HoudiniAssetParameterVersion = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION;
+    Ar << HoudiniAssetParameterVersion;
+
+    Ar << Actor;
+
+    Ar << StaticMeshComponent;
+    Ar << StaticMesh;
+    Ar << ActorTransform;
+
+    Ar << AssetId;
+}
+
 UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
     , InputObject( nullptr )
@@ -127,11 +142,11 @@ UHoudiniAssetInput::CreateWidgetResources()
     }
     {
         // Temporarily disabled. Work in progress.
-        /*FString * ChoiceLabel = new FString( TEXT( "World Outliner Input" ) );
+        FString * ChoiceLabel = new FString( TEXT( "World Outliner Input" ) );
         StringChoiceLabels.Add( TSharedPtr< FString >( ChoiceLabel ) );
 
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
-            ChoiceStringValue = *ChoiceLabel;*/
+            ChoiceStringValue = *ChoiceLabel;
     }
 }
 
@@ -159,6 +174,18 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         {
             FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
             ConnectedAssetId = -1;
+        }
+
+        if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+        {
+            for ( auto & OutlinerMesh : InputOutlinerMeshArray )
+            {
+                if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerMesh.AssetId ) )
+                {
+                    FHoudiniEngineUtils::DestroyHoudiniAsset( OutlinerMesh.AssetId );
+                    OutlinerMesh.AssetId = -1;
+                }
+            }
         }
     }
 }
@@ -529,12 +556,23 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
+        FPropertyEditorModule & PropertyModule =
+            FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
+
+        // Locate the details panel.
+        FName DetailsPanelName = "LevelEditorSelectionDetails";
+        TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
+
+        auto ButtonLabel = LOCTEXT( "WorldInputStartSelection", "Start Selection (Lock Details Panel)" );
+        if ( DetailsView->IsLocked() )
+            ButtonLabel = LOCTEXT( "WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)" );
+
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
-            .Text( LOCTEXT( "WorldInputStartSelection", "Start Selection" ) )
+            .Text( ButtonLabel )
             .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetInput::OnButtonClickSelectActors ) )
         ];
     }
@@ -718,6 +756,31 @@ UHoudiniAssetInput::UploadParameterValue()
 
         case EHoudiniAssetInputType::WorldInput:
         {
+            if ( InputOutlinerMeshArray.Num() > 0 )
+            {
+                if ( bStaticMeshChanged || bLoadedParameter )
+                {
+                    // Disconnect and destroy currently connected asset, if there's one.
+                    DisconnectAndDestroyInputAsset();
+
+                    // Connect input and create connected asset. Will return by reference.
+                    if ( !FHoudiniEngineUtils::HapiCreateAndConnectAsset(
+                        HostAssetId, InputIndex, InputOutlinerMeshArray, ConnectedAssetId ) )
+                    {
+                        bChanged = false;
+                        ConnectedAssetId = -1;
+                        return false;
+                    }
+
+                    bStaticMeshChanged = false;
+                }
+            }
+            else
+            {
+                // Either mesh was reset or null mesh has been assigned.
+                DisconnectAndDestroyInputAsset();
+            }
+
             break;
         }
 
@@ -805,6 +868,10 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
     // Serialize landscape used for input.
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT )
         Ar << InputLandscapeProxy;
+
+    // Serialize world outliner inputs.
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT )
+        Ar << InputOutlinerMeshArray;
 
     // Create necessary widget resources.
     if ( Ar.IsLoading() )
@@ -1874,36 +1941,110 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
     if ( !DetailsView.IsValid() )
         return FReply::Handled();
 
+    class SLocalDetailsView : public SDetailsViewBase
+    {
+        public:
+        void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
+        void UnlockDetailsView() { SDetailsViewBase::bIsLocked = false; }
+    };
+    auto * LocalDetailsView = static_cast< SLocalDetailsView * >( DetailsView.Get() );
+
     if ( !DetailsView->IsLocked() )
     {
-        class SLocalDetailsView : public SDetailsViewBase
-        {
-            public:
-                void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
-        };
-        auto * LocalDetailsView = static_cast< SLocalDetailsView * >( DetailsView.Get() );
         LocalDetailsView->LockDetailsView();
         check( DetailsView->IsLocked() );
+
+        // Force refresh of details view.
+        HoudiniAssetComponent->UpdateEditorProperties( false );
+
+        return FReply::Handled();
     }
-    else
+
+    if ( !GEditor || !GEditor->GetSelectedObjects() )
+        return FReply::Handled();
+
+    // If details panel is locked, locate selected actors and check if this component belongs to one of them.
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini World Outliner Input Change" ),
+        HoudiniAssetComponent );
+    Modify();
+
+    MarkPreChanged();
+    bStaticMeshChanged = true;
+
+    // Delete all assets and reset the array.
+    // TODO: Make this process a little more efficient.
+    DisconnectAndDestroyInputAsset();
+    InputOutlinerMeshArray.Empty();
+
+    USelection * SelectedActors = GEditor->GetSelectedActors();
+
+    // If the builder brush is selected, first deselect it.
+    for ( FSelectionIterator It( *SelectedActors ); It; ++It )
     {
-        if ( GEditor && GEditor->GetSelectedObjects() )
+        AActor * Actor = Cast< AActor >( *It );
+        if ( !Actor )
+            continue;
+
+        // Don't allow selection of ourselves. Bad things happen if we do.
+        if ( Actor == HoudiniAssetComponent->GetOwner() )
+            continue;
+
+        for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
         {
-            // If details panel is locked, locate selected actors and check if this component belongs to one of them.
+            UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
+            if ( !StaticMeshComponent )
+                continue;
 
-            USelection * SelectedActors = GEditor->GetSelectedActors();
+            UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
+            if ( !StaticMesh )
+                continue;
 
-            // If the builder brush is selected, first deselect it.
-            for ( FSelectionIterator It( *SelectedActors ); It; ++It )
+            bool bFound = false;
+
+            // If mesh not found, add it.
+            if ( !bFound )
             {
-                AActor * Actor = Cast< AActor >( *It );
-                if ( Actor )
-                    HOUDINI_LOG_MESSAGE( TEXT( "QQQQQQQQQQ: %s" ), *Actor->GetName() );
+                FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+
+                OutlinerMesh.Actor = Actor;
+                OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
+                OutlinerMesh.StaticMesh = StaticMesh;
+                OutlinerMesh.ActorTransform = Actor->GetTransform();
+                OutlinerMesh.AssetId = -1;
+
+                InputOutlinerMeshArray.Add( OutlinerMesh );
             }
         }
     }
+
+    MarkChanged();
+
+    if ( DetailsView->IsLocked() )
+    {
+        LocalDetailsView->UnlockDetailsView();
+        check( !DetailsView->IsLocked() );
+
+        AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
+        TArray< UObject * > SelectedActors;
+        SelectedActors.Add( HoudiniAssetActor );
+
+        // Reset selected actor to itself, force refresh and override the lock.
+        DetailsView->SetObjects( SelectedActors, true, true );
+    }
+
+    HoudiniAssetComponent->UpdateEditorProperties( false );
 
     return FReply::Handled();
 }
 
 #endif
+
+FArchive &
+operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOutlinerMesh )
+{
+    HoudiniAssetInputOutlinerMesh.Serialize( Ar );
+    return Ar;
+}
