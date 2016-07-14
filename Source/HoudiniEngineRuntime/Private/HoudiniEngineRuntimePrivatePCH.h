@@ -50,6 +50,7 @@
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/PropertyEditor/Private/PropertyNode.h"
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "ScopedTransaction.h"
 #include "RawMesh.h"
 #include "Kismet2/KismetEditorUtilities.h"

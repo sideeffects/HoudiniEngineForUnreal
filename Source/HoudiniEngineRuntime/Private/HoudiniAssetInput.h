@@ -40,12 +40,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     /** Serialization. **/
     void Serialize( FArchive & Ar );
 
+    /** Selected mesh's Actor, for reference. **/
     AActor * Actor;
+
+    /** Selected mesh's component, for reference. **/
     UStaticMeshComponent * StaticMeshComponent;
+
+    /** The selected mesh. **/
     UStaticMesh * StaticMesh;
 
+    /** Actor transform used to see if the transfrom changed since last marshal into Houdini. **/
     FTransform ActorTransform;
 
+    /** Mesh's input asset id. **/
     HAPI_AssetId AssetId;
 
     /** Temporary variable holding serialization version. **/
@@ -186,6 +193,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Called when change of landscape selection. **/
         void OnLandscapeActorSelected( AActor * Actor );
 
+        /** Called when change of World Outliner selection in Actor Picker. **/
+        void OnWorldOutlinerActorSelected( AActor * Actor );
+
 #endif
 
         /** Called to retrieve the name of selected item. **/
@@ -307,6 +317,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Landscape actor used for input. **/
         ALandscapeProxy * InputLandscapeProxy;
 
+        /** List of selected meshes and actors from the World Outliner. **/
         TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;
 
         /** Id of currently connected asset. **/
