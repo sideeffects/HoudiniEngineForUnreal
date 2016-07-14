@@ -19,129 +19,118 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
 
-
-UHoudiniAssetParameterFolderList::UHoudiniAssetParameterFolderList(const FObjectInitializer& ObjectInitializer) :
-    Super(ObjectInitializer)
-{
-
-}
-
+UHoudiniAssetParameterFolderList::UHoudiniAssetParameterFolderList( const FObjectInitializer & ObjectInitializer)
+    : Super( ObjectInitializer )
+{}
 
 UHoudiniAssetParameterFolderList::~UHoudiniAssetParameterFolderList()
+{}
+
+UHoudiniAssetParameterFolderList *
+UHoudiniAssetParameterFolderList::Create(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
-
-}
-
-
-UHoudiniAssetParameterFolderList*
-UHoudiniAssetParameterFolderList::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
-{
-    UObject* Outer = InHoudiniAssetComponent;
-    if(!Outer)
+    UObject * Outer = InHoudiniAssetComponent;
+    if ( !Outer )
     {
         Outer = InParentParameter;
-        if(!Outer)
+        if ( !Outer )
         {
             // Must have either component or parent not null.
-            check(false);
+            check( false );
         }
     }
 
-    UHoudiniAssetParameterFolderList* HoudiniAssetParameterFolderList =
-        NewObject<UHoudiniAssetParameterFolderList>(Outer, UHoudiniAssetParameterFolderList::StaticClass(), NAME_None, 
-            RF_Public | RF_Transactional);
+    UHoudiniAssetParameterFolderList * HoudiniAssetParameterFolderList =
+        NewObject< UHoudiniAssetParameterFolderList >(
+            Outer, UHoudiniAssetParameterFolderList::StaticClass(), NAME_None,
+            RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterFolderList->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
+    HoudiniAssetParameterFolderList->CreateParameter(
+        InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+
     return HoudiniAssetParameterFolderList;
 }
 
-
 bool
-UHoudiniAssetParameterFolderList::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterFolderList::CreateParameter(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
-    if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
-    {
+    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
         return false;
-    }
 
     // We can only handle folder and folder list types.
-    if(HAPI_PARMTYPE_FOLDERLIST != ParmInfo.type)
-    {
+    if ( ParmInfo.type != HAPI_PARMTYPE_FOLDERLIST )
         return false;
-    }
 
     // Assign internal Hapi values index.
-    SetValuesIndex(ParmInfo.intValuesIndex);
+    SetValuesIndex( ParmInfo.intValuesIndex );
 
     return true;
 }
 
-
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFolderList::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
+UHoudiniAssetParameterFolderList::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
 {
-    TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
 
-    DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+    DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
     [
         SAssignNew(HorizontalBox, SHorizontalBox)
     ];
 
-    for(int32 ParameterIdx = 0; ParameterIdx < ChildParameters.Num(); ++ParameterIdx)
+    for ( int32 ParameterIdx = 0; ParameterIdx < ChildParameters.Num(); ++ParameterIdx )
     {
-        UHoudiniAssetParameter* HoudiniAssetParameterChild = ChildParameters[ParameterIdx];
-        if(HoudiniAssetParameterChild->IsA(UHoudiniAssetParameterFolder::StaticClass()))
+        UHoudiniAssetParameter * HoudiniAssetParameterChild = ChildParameters[ ParameterIdx ];
+        if ( HoudiniAssetParameterChild->IsA( UHoudiniAssetParameterFolder::StaticClass() ) )
         {
-            FText ParameterLabelText = FText::FromString(HoudiniAssetParameterChild->GetParameterLabel());
+            FText ParameterLabelText = FText::FromString( HoudiniAssetParameterChild->GetParameterLabel() );
 
-            HorizontalBox->AddSlot().Padding(0, 2, 0, 2)
+            HorizontalBox->AddSlot().Padding( 0, 2, 0, 2 )
             [
-                SNew(SButton)
-                .VAlign(VAlign_Center)
-                .HAlign(HAlign_Center)
-                .Text(ParameterLabelText)
-                .ToolTipText(ParameterLabelText)
-                .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetParameterFolderList::OnButtonClick, ParameterIdx))
+                SNew( SButton )
+                .VAlign( VAlign_Center )
+                .HAlign( HAlign_Center )
+                .Text( ParameterLabelText )
+                .ToolTipText( ParameterLabelText )
+                .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetParameterFolderList::OnButtonClick, ParameterIdx ) )
             ];
         }
     }
 
-    Super::CreateWidget(DetailCategoryBuilder);
+    Super::CreateWidget( DetailCategoryBuilder );
 
-    if(ChildParameters.Num() > 1)
+    if ( ChildParameters.Num() > 1 )
     {
-        TSharedPtr<STextBlock> TextBlock;
+        TSharedPtr< STextBlock > TextBlock;
 
-        DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+        DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
         [
-            SAssignNew(TextBlock, STextBlock)
-            .Text(FText::GetEmpty())
-            .ToolTipText(FText::GetEmpty())
-            .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-            .WrapTextAt(HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH)
+            SAssignNew( TextBlock, STextBlock )
+            .Text( FText::GetEmpty() )
+            .ToolTipText( FText::GetEmpty() )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            .WrapTextAt( HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH )
         ];
 
-        if(TextBlock.IsValid())
-        {
-            TextBlock->SetEnabled(!bIsDisabled);
-        }
+        if ( TextBlock.IsValid() )
+            TextBlock->SetEnabled( !bIsDisabled );
     }
 }
 
-
 FReply
-UHoudiniAssetParameterFolderList::OnButtonClick(int32 ParameterIdx)
+UHoudiniAssetParameterFolderList::OnButtonClick( int32 ParameterIdx )
 {
     ActiveChildParameter = ParameterIdx;
 
-    if(HoudiniAssetComponent)
-    {
-        HoudiniAssetComponent->UpdateEditorProperties(false);
-    }
+    if ( HoudiniAssetComponent )
+        HoudiniAssetComponent->UpdateEditorProperties( false );
 
     return FReply::Handled();
 }

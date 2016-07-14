@@ -17,33 +17,36 @@
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterFolder.generated.h"
 
-
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFolder : public UHoudiniAssetParameter
 {
     GENERATED_UCLASS_BODY()
 
-public:
+    public:
 
-    /** Destructor. **/
-    virtual ~UHoudiniAssetParameterFolder();
+        /** Destructor. **/
+        virtual ~UHoudiniAssetParameterFolder();
 
-public:
+    public:
 
-    /** Create instance of this class. **/
-    static UHoudiniAssetParameterFolder* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+        /** Create instance of this class. **/
+        static UHoudiniAssetParameterFolder * Create(
+            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetParameter * InParentParameter,
+            HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo );
 
-public:
+    public:
 
-    /** Create this parameter from HAPI information. **/
-    virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+        /** Create this parameter from HAPI information. **/
+        virtual bool CreateParameter(
+            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetParameter * InParentParameter,
+            HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo ) override;
 
 #if WITH_EDITOR
 
-    /** Create widget for this parameter and add it to a given category. **/
-    virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
+        /** Create widget for this parameter and add it to a given category. **/
+        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
 
 #endif
 };

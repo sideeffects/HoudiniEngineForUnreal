@@ -17,7 +17,6 @@
 
 #include "HoudiniAssetComponent.h"
 
-
 namespace EHoudiniEngineTaskType
 {
     enum Type
@@ -42,7 +41,7 @@ struct FHoudiniEngineTask
 {
     /** Constructors. **/
     FHoudiniEngineTask();
-    FHoudiniEngineTask(EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID);
+    FHoudiniEngineTask( EHoudiniEngineTaskType::Type InTaskType, FGuid InHapiGUID );
 
     /** GUID of this request. **/
     FGuid HapiGUID;
@@ -51,10 +50,10 @@ struct FHoudiniEngineTask
     EHoudiniEngineTaskType::Type TaskType;
 
     /** Houdini asset for instantiation. **/
-    TWeakObjectPtr<UHoudiniAsset> Asset;
+    TWeakObjectPtr< UHoudiniAsset > Asset;
 
     /** Houdini asset component for cooking. **/
-    TWeakObjectPtr<UHoudiniAssetComponent> AssetComponent;
+    TWeakObjectPtr< UHoudiniAssetComponent > AssetComponent;
 
     /** Name of the actor requesting this task. **/
     FString ActorName;
