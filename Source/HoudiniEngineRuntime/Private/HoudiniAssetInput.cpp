@@ -2125,12 +2125,13 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
 
     MarkChanged();
 
+    AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
+
     if ( DetailsView->IsLocked() )
     {
         LocalDetailsView->UnlockDetailsView();
         check( !DetailsView->IsLocked() );
 
-        AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
         TArray< UObject * > DummySelectedActors;
         DummySelectedActors.Add( HoudiniAssetActor );
 
@@ -2138,6 +2139,13 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
         DetailsView->SetObjects( DummySelectedActors, true, true );
     }
 
+    // Reselect the Asset Actor. If we don't do this, our Asset parameters will stop
+    // refreshing and the user will be very confused. It is also resetting the state
+    // of the selection before the input actor selection process was started.
+    GEditor->SelectNone( false, true );
+    GEditor->SelectActor( HoudiniAssetActor, true, true );
+
+    // Update parameter layout.
     HoudiniAssetComponent->UpdateEditorProperties( false );
 
     // Start or stop the tick timer to check if the selected Actors have been transformed.
