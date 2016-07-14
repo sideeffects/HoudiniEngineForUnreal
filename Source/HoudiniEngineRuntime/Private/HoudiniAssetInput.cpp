@@ -176,6 +176,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
             ConnectedAssetId = -1;
         }
 
+        // World Input Actors' Meshes need to have their corresponding Input Assets destroyed too.
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
         {
             for ( auto & OutlinerMesh : InputOutlinerMeshArray )
@@ -1208,6 +1209,10 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
             case EHoudiniAssetInputType::WorldInput:
             {
                 // We are switching away from World Outliner input.
+
+                // Stop monitoring the Actors for transform changes.
+                StopWorldOutlinerTicking();
+
                 break;
             }
 
@@ -1269,6 +1274,10 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
             case EHoudiniAssetInputType::WorldInput:
             {
                 // We are switching to World Outliner input.
+
+                // Start monitoring the Actors for transform changes.
+                StartWorldOutlinerTicking();
+
                 break;
             }
 
@@ -1404,6 +1413,36 @@ void
 UHoudiniAssetInput::OnWorldOutlinerActorSelected( AActor * )
 {
     // Do nothing.
+}
+
+void
+UHoudiniAssetInput::TickWorldOutlinerInputs()
+{
+    bool bChanged = false;
+    for ( auto & OutlinerMesh : InputOutlinerMeshArray )
+    {
+        if ( !OutlinerMesh.ActorTransform.Equals( OutlinerMesh.Actor->GetTransform() ) && OutlinerMesh.AssetId >= 0 )
+        {
+            if ( !bChanged )
+            {
+                Modify();
+                MarkPreChanged();
+                bChanged = true;
+            }
+
+            OutlinerMesh.ActorTransform = OutlinerMesh.Actor->GetTransform();
+
+            HAPI_TransformEuler HapiTransform;
+            FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ActorTransform, HapiTransform );
+
+            FHoudiniApi::SetAssetTransform(
+                FHoudiniEngine::Get().GetSession(),
+                OutlinerMesh.AssetId, &HapiTransform );
+        }
+    }
+
+    if ( bChanged )
+        MarkChanged();
 }
 
 #endif
@@ -2096,7 +2135,36 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
 
     HoudiniAssetComponent->UpdateEditorProperties( false );
 
+    // Start or stop the tick timer to check if the selected Actors have been transformed.
+    if ( InputOutlinerMeshArray.Num() > 0 )
+        StartWorldOutlinerTicking();
+    else if ( InputOutlinerMeshArray.Num() <= 0 )
+        StopWorldOutlinerTicking();
+
     return FReply::Handled();
+}
+
+void
+UHoudiniAssetInput::StartWorldOutlinerTicking()
+{
+    if ( InputOutlinerMeshArray.Num() > 0 && !WorldOutlinerTimerDelegate.IsBound() && GEditor )
+    {
+        WorldOutlinerTimerDelegate = FTimerDelegate::CreateUObject( this, &UHoudiniAssetInput::TickWorldOutlinerInputs );
+
+        // We need to register delegate with the timer system.
+        static const float TickTimerDelay = 0.5f;
+        GEditor->GetTimerManager()->SetTimer( WorldOutlinerTimerHandle, WorldOutlinerTimerDelegate, TickTimerDelay, true );
+    }
+}
+
+void
+UHoudiniAssetInput::StopWorldOutlinerTicking()
+{
+    if ( InputOutlinerMeshArray.Num() <= 0 && WorldOutlinerTimerDelegate.IsBound() && GEditor )
+    {
+        GEditor->GetTimerManager()->ClearTimer( WorldOutlinerTimerHandle );
+        WorldOutlinerTimerDelegate.Unbind();
+    }
 }
 
 #endif
