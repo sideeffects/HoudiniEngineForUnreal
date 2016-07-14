@@ -1278,6 +1278,11 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
                 // Start monitoring the Actors for transform changes.
                 StartWorldOutlinerTicking();
 
+                // Force recook and reconnect of the input assets.
+                HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+                FHoudiniEngineUtils::HapiCreateAndConnectAsset(
+                    HostAssetId, InputIndex, InputOutlinerMeshArray, ConnectedAssetId );
+
                 break;
             }
 
