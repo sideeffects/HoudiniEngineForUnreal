@@ -15,38 +15,35 @@
 
 #pragma once
 
-
 class FText;
 class FString;
 class FName;
 
-
 #include <string>
-
 
 class HOUDINIENGINERUNTIME_API FHoudiniEngineString
 {
     public:
 
         FHoudiniEngineString();
-        FHoudiniEngineString(int32 InStringId);
-        FHoudiniEngineString(const FHoudiniEngineString& Other);
+        FHoudiniEngineString( int32 InStringId );
+        FHoudiniEngineString( const FHoudiniEngineString & Other );
 
     public:
 
-        FHoudiniEngineString& operator=(const FHoudiniEngineString& Other);
+        FHoudiniEngineString & operator=( const FHoudiniEngineString & Other );
 
     public:
 
-        bool operator==(const FHoudiniEngineString& Other) const;
-        bool operator!=(const FHoudiniEngineString& Other) const;
+        bool operator==( const FHoudiniEngineString & Other ) const;
+        bool operator!=( const FHoudiniEngineString & Other ) const;
 
     public:
 
-        bool ToStdString(std::string& String) const;
-        bool ToFName(FName& Name) const;
-        bool ToFString(FString& String) const;
-        bool ToFText(FText& Text) const;
+        bool ToStdString( std::string & String ) const;
+        bool ToFName( FName & Name ) const;
+        bool ToFString( FString & String ) const;
+        bool ToFText( FText & Text ) const;
 
     public:
 

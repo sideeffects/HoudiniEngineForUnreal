@@ -17,7 +17,6 @@
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterRamp.generated.h"
 
-
 class UCurveBase;
 class UHoudiniAssetParameterRamp;
 class UHoudiniAssetParameterFloat;
@@ -25,32 +24,30 @@ class UHoudiniAssetParameterColor;
 class UHoudiniAssetParameterChoice;
 class SHoudiniAssetParameterRampCurveEditor;
 
-
 UCLASS(BlueprintType)
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveFloat : public UCurveFloat
 {
     GENERATED_UCLASS_BODY()
 
-public:
+    public:
 
-    /** Set parent ramp parameter. **/
-    void SetParentRampParameter(UHoudiniAssetParameterRamp* InHoudiniAssetParameterRamp);
+        /** Set parent ramp parameter. **/
+        void SetParentRampParameter( UHoudiniAssetParameterRamp * InHoudiniAssetParameterRamp );
 
-/** FCurveOwnerInterface methods. **/
-public:
+    /** FCurveOwnerInterface methods. **/
+    public:
 
 #if WITH_EDITOR
 
-    virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+        virtual void OnCurveChanged( const TArray< FRichCurveEditInfo > & ChangedCurveEditInfos ) override;
 
 #endif
 
-protected:
+    protected:
 
-    /** Parent ramp parameter. **/
-    UHoudiniAssetParameterRamp* HoudiniAssetParameterRamp;
+        /** Parent ramp parameter. **/
+        UHoudiniAssetParameterRamp * HoudiniAssetParameterRamp;
 };
-
 
 namespace EHoudiniAssetParameterRampCurveColorEvent
 {
@@ -65,62 +62,59 @@ namespace EHoudiniAssetParameterRampCurveColorEvent
     };
 }
 
-
-UCLASS(BlueprintType)
-class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveColor : public UCurveLinearColor,
-    public FTickableGameObject
+UCLASS( BlueprintType )
+class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveColor : public UCurveLinearColor, public FTickableGameObject
 {
     GENERATED_UCLASS_BODY()
 
-public:
+    public:
 
-    /** Set parent ramp parameter. **/
-    void SetParentRampParameter(UHoudiniAssetParameterRamp* InHoudiniAssetParameterRamp);
+        /** Set parent ramp parameter. **/
+        void SetParentRampParameter( UHoudiniAssetParameterRamp * InHoudiniAssetParameterRamp );
 
-    /** Return the current type of event. **/
-    EHoudiniAssetParameterRampCurveColorEvent::Type GetColorEvent() const;
+        /** Return the current type of event. **/
+        EHoudiniAssetParameterRampCurveColorEvent::Type GetColorEvent() const;
 
-    /** Reset the current type of event. **/
-    void ResetColorEvent();
+        /** Reset the current type of event. **/
+        void ResetColorEvent();
 
 
-/** FCurveOwnerInterface methods. **/
-public:
+    /** FCurveOwnerInterface methods. **/
+    public:
 
 #if WITH_EDITOR
 
-    virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+        virtual void OnCurveChanged( const TArray< FRichCurveEditInfo > & ChangedCurveEditInfos ) override;
 
 #endif
 
-/** UObject methods. **/
-public:
+    /** UObject methods. **/
+    public:
 
-    virtual bool Modify(bool bAlwaysMarkDirty);
+        virtual bool Modify( bool bAlwaysMarkDirty );
 
-/** FTickableGameObject methods. **/
-public:
+    /** FTickableGameObject methods. **/
+    public:
 
-    virtual bool IsTickableInEditor() const;
-    virtual bool IsTickableWhenPaused() const;
-    virtual void Tick(float DeltaTime) override;
-    virtual TStatId GetStatId() const override;
-    virtual bool IsTickable() const override;
+        virtual bool IsTickableInEditor() const;
+        virtual bool IsTickableWhenPaused() const;
+        virtual void Tick( float DeltaTime ) override;
+        virtual TStatId GetStatId() const override;
+        virtual bool IsTickable() const override;
 
-protected:
+    protected:
 
-    /** Attempt to map current editor transaction type to curve transactions. **/
-    EHoudiniAssetParameterRampCurveColorEvent::Type GetEditorCurveTransaction() const;
+        /** Attempt to map current editor transaction type to curve transactions. **/
+        EHoudiniAssetParameterRampCurveColorEvent::Type GetEditorCurveTransaction() const;
 
-protected:
+    protected:
 
-    /** Parent ramp parameter. **/
-    UHoudiniAssetParameterRamp* HoudiniAssetParameterRamp;
+        /** Parent ramp parameter. **/
+        UHoudiniAssetParameterRamp * HoudiniAssetParameterRamp;
 
-    /** Current event. **/
-    EHoudiniAssetParameterRampCurveColorEvent::Type ColorEvent;
+        /** Current event. **/
+        EHoudiniAssetParameterRampCurveColorEvent::Type ColorEvent;
 };
-
 
 namespace EHoudiniAssetParameterRampKeyInterpolation
 {
@@ -136,111 +130,118 @@ namespace EHoudiniAssetParameterRampKeyInterpolation
     };
 }
 
-
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAssetParameterMultiparm
 {
     GENERATED_UCLASS_BODY()
 
-public:
+    public:
 
-    /** Destructor. **/
-    virtual ~UHoudiniAssetParameterRamp();
+        /** Destructor. **/
+        virtual ~UHoudiniAssetParameterRamp();
 
-public:
+    public:
 
-    /** Create instance of this class. **/
-    static UHoudiniAssetParameterRamp* Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo);
+        /** Create instance of this class. **/
+        static UHoudiniAssetParameterRamp * Create(
+            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetParameter * InParentParameter,
+            HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo );
 
-public:
+    public:
 
-    /** Create this parameter from HAPI information. **/
-    virtual bool CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-        UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo) override;
+        /** Create this parameter from HAPI information. **/
+        virtual bool CreateParameter(
+            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetParameter * InParentParameter,
+            HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo) override;
 
-    /** Notification from component that all child parameters have been created. **/
-    virtual void NotifyChildParametersCreated();
+        /** Notification from component that all child parameters have been created. **/
+        virtual void NotifyChildParametersCreated();
 
-/** UObject methods. **/
-public:
+    /** UObject methods. **/
+    public:
 
-    virtual void Serialize(FArchive& Ar) override;
-    virtual void PostLoad() override;
-    virtual void BeginDestroy() override;
-    static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-
-#if WITH_EDITOR
-
-    /** Create widget for this parameter and add it to a given category. **/
-    virtual void CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder) override;
-
-#endif
-
-    /** Called when curve editing is finished and update should take place. **/
-    void OnCurveEditingFinished();
-
-    /** Called when float ramp parameter changes via user interface. **/
-    void OnCurveFloatChanged(UHoudiniAssetParameterRampCurveFloat* CurveFloat);
-
-    /** Called when color ramp parameter changes via user interface. **/
-    void OnCurveColorChanged(UHoudiniAssetParameterRampCurveColor* CurveColor);
-
-protected:
-
-    /** Populate curve with point data. **/
-    void GenerateCurvePoints();
-
-    /** Return number of ramp keys. **/
-    int32 GetRampKeyCount() const;
-
-    /** Translate choice value into interpolation enumeration. **/
-    EHoudiniAssetParameterRampKeyInterpolation::Type
-        TranslateChoiceKeyInterpolation(UHoudiniAssetParameterChoice* ChoiceParam) const;
-
-    /** Return Unreal ramp key interpolation type from Houdini ramp key interpolation type. **/
-    ERichCurveInterpMode
-        TranslateHoudiniRampKeyInterpolation(EHoudiniAssetParameterRampKeyInterpolation::Type KeyInterpolation) const;
-
-    /** Return Houdini ramp key interpolation type from Unreal ramp key interpolation type. **/
-    EHoudiniAssetParameterRampKeyInterpolation::Type
-        TranslateUnrealRampKeyInterpolation(ERichCurveInterpMode RichCurveInterpMode) const;
-
-    /** Retrieve ramp key parameters for a given index of a float ramp. **/
-    bool GetRampKeysCurveFloat(int32 Idx, UHoudiniAssetParameterFloat*& Position, UHoudiniAssetParameterFloat*& Value,
-        UHoudiniAssetParameterChoice*& Interp) const;
-
-    /** Retrieve ramp key parameters for a given index of a color ramp. **/
-    bool GetRampKeysCurveColor(int32 Idx, UHoudiniAssetParameterFloat*& Position, UHoudiniAssetParameterColor*& Value,
-        UHoudiniAssetParameterChoice*& Interp) const;
-
-protected:
-
-    //! Default spline interpolation method.
-    static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultSplineInterpolation;
-
-    //! Default unknown interpolation method.
-    static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultUnknownInterpolation;
-
-protected:
+        virtual void Serialize( FArchive & Ar ) override;
+        virtual void PostLoad() override;
+        virtual void BeginDestroy() override;
+        static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
 
 #if WITH_EDITOR
 
-    //! Curve editor widget.
-    TSharedPtr<SHoudiniAssetParameterRampCurveEditor> CurveEditor;
+        /** Create widget for this parameter and add it to a given category. **/
+        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
 
 #endif
 
-    //! Curves which are being edited.
-    UHoudiniAssetParameterRampCurveFloat* HoudiniAssetParameterRampCurveFloat;
-    UHoudiniAssetParameterRampCurveColor* HoudiniAssetParameterRampCurveColor;
+        /** Called when curve editing is finished and update should take place. **/
+        void OnCurveEditingFinished();
 
-    //! Set to true if this ramp is a float ramp. Otherwise is considered a color ramp.
-    bool bIsFloatRamp;
+        /** Called when float ramp parameter changes via user interface. **/
+        void OnCurveFloatChanged( UHoudiniAssetParameterRampCurveFloat * CurveFloat );
 
-    //! Set to true if the curve has changed through Slate interaction.
-    bool bIsCurveChanged;
+        /** Called when color ramp parameter changes via user interface. **/
+        void OnCurveColorChanged( UHoudiniAssetParameterRampCurveColor * CurveColor );
 
-    //! Set to true when curve data needs to be re-uploaded to Houdini Engine.
-    bool bIsCurveUploadRequired;
+    protected:
+
+        /** Populate curve with point data. **/
+        void GenerateCurvePoints();
+
+        /** Return number of ramp keys. **/
+        int32 GetRampKeyCount() const;
+
+        /** Translate choice value into interpolation enumeration. **/
+        EHoudiniAssetParameterRampKeyInterpolation::Type
+        TranslateChoiceKeyInterpolation( UHoudiniAssetParameterChoice * ChoiceParam ) const;
+
+        /** Return Unreal ramp key interpolation type from Houdini ramp key interpolation type. **/
+        ERichCurveInterpMode TranslateHoudiniRampKeyInterpolation(
+            EHoudiniAssetParameterRampKeyInterpolation::Type KeyInterpolation ) const;
+
+        /** Return Houdini ramp key interpolation type from Unreal ramp key interpolation type. **/
+        EHoudiniAssetParameterRampKeyInterpolation::Type
+        TranslateUnrealRampKeyInterpolation( ERichCurveInterpMode RichCurveInterpMode ) const;
+
+        /** Retrieve ramp key parameters for a given index of a float ramp. **/
+        bool GetRampKeysCurveFloat(
+            int32 Idx, UHoudiniAssetParameterFloat *& Position,
+            UHoudiniAssetParameterFloat *& Value,
+            UHoudiniAssetParameterChoice *& Interp ) const;
+
+        /** Retrieve ramp key parameters for a given index of a color ramp. **/
+        bool GetRampKeysCurveColor(
+            int32 Idx, UHoudiniAssetParameterFloat *& Position,
+            UHoudiniAssetParameterColor *& Value,
+            UHoudiniAssetParameterChoice *& Interp ) const;
+
+    protected:
+
+        //! Default spline interpolation method.
+        static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultSplineInterpolation;
+
+        //! Default unknown interpolation method.
+        static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultUnknownInterpolation;
+
+    protected:
+
+#if WITH_EDITOR
+
+        //! Curve editor widget.
+        TSharedPtr< SHoudiniAssetParameterRampCurveEditor > CurveEditor;
+
+#endif
+
+        //! Curves which are being edited.
+        UHoudiniAssetParameterRampCurveFloat * HoudiniAssetParameterRampCurveFloat;
+        UHoudiniAssetParameterRampCurveColor * HoudiniAssetParameterRampCurveColor;
+
+        //! Set to true if this ramp is a float ramp. Otherwise is considered a color ramp.
+        bool bIsFloatRamp;
+
+        //! Set to true if the curve has changed through Slate interaction.
+        bool bIsCurveChanged;
+
+        //! Set to true when curve data needs to be re-uploaded to Houdini Engine.
+        bool bIsCurveUploadRequired;
 };

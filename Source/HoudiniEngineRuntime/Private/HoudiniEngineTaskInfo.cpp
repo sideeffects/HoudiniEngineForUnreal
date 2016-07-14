@@ -16,25 +16,21 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineTaskInfo.h"
 
+FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo()
+    : Result( HAPI_RESULT_SUCCESS )
+    , AssetId( -1 )
+    , TaskType( EHoudiniEngineTaskType::None )
+    , TaskState( EHoudiniEngineTaskState::None )
+    , bLoadedComponent( false )
+{}
 
-FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo() :
-    Result(HAPI_RESULT_SUCCESS),
-    AssetId(-1),
-    TaskType(EHoudiniEngineTaskType::None),
-    TaskState(EHoudiniEngineTaskState::None),
-    bLoadedComponent(false)
-{
-
-}
-
-
-FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetId InAssetId,
-    EHoudiniEngineTaskType::Type InTaskType, EHoudiniEngineTaskState::Type InTaskState) :
-    Result(InResult),
-    AssetId(InAssetId),
-    TaskType(InTaskType),
-    TaskState(InTaskState),
-    bLoadedComponent(false)
-{
-
-}
+FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo(
+    HAPI_Result InResult, HAPI_AssetId InAssetId,
+    EHoudiniEngineTaskType::Type InTaskType,
+    EHoudiniEngineTaskState::Type InTaskState )
+    : Result( InResult )
+    , AssetId( InAssetId )
+    , TaskType( InTaskType )
+    , TaskState( InTaskState )
+    , bLoadedComponent( false )
+{}

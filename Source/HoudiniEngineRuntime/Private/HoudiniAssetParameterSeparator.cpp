@@ -17,89 +17,78 @@
 #include "HoudiniAssetParameterSeparator.h"
 #include "HoudiniAssetComponent.h"
 
-
-UHoudiniAssetParameterSeparator::UHoudiniAssetParameterSeparator(const FObjectInitializer& ObjectInitializer) :
+UHoudiniAssetParameterSeparator::UHoudiniAssetParameterSeparator( const FObjectInitializer & ObjectInitializer ) :
     Super(ObjectInitializer)
-{
-
-}
-
+{}
 
 UHoudiniAssetParameterSeparator::~UHoudiniAssetParameterSeparator()
+{}
+
+UHoudiniAssetParameterSeparator *
+UHoudiniAssetParameterSeparator::Create(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-
-}
-
-
-UHoudiniAssetParameterSeparator*
-UHoudiniAssetParameterSeparator::Create(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
-{
-    UObject* Outer = InHoudiniAssetComponent;
-    if(!Outer)
+    UObject * Outer = InHoudiniAssetComponent;
+    if ( !Outer )
     {
         Outer = InParentParameter;
-        if(!Outer)
+        if ( !Outer )
         {
             // Must have either component or parent not null.
-            check(false);
+            check( false );
         }
     }
 
-    UHoudiniAssetParameterSeparator* HoudiniAssetParameterSeparator = NewObject<UHoudiniAssetParameterSeparator>(Outer,
-        UHoudiniAssetParameterSeparator::StaticClass(), NAME_None, RF_Public | RF_Transactional);
+    UHoudiniAssetParameterSeparator * HoudiniAssetParameterSeparator = NewObject< UHoudiniAssetParameterSeparator >(
+        Outer, UHoudiniAssetParameterSeparator::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterSeparator->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
+    HoudiniAssetParameterSeparator->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterSeparator;
 }
 
-
 bool
-UHoudiniAssetParameterSeparator::CreateParameter(UHoudiniAssetComponent* InHoudiniAssetComponent,
-    UHoudiniAssetParameter* InParentParameter, HAPI_NodeId InNodeId, const HAPI_ParmInfo& ParmInfo)
+UHoudiniAssetParameterSeparator::CreateParameter(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if(!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
-    {
+    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
         return false;
-    }
 
     // We can only handle separator type.
-    if(HAPI_PARMTYPE_SEPARATOR != ParmInfo.type)
-    {
+    if ( ParmInfo.type != HAPI_PARMTYPE_SEPARATOR )
         return false;
-    }
 
     // Assign internal Hapi values index.
-    SetValuesIndex(ParmInfo.stringValuesIndex);
+    SetValuesIndex( ParmInfo.stringValuesIndex );
 
     return true;
 }
 
-
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterSeparator::CreateWidget(IDetailCategoryBuilder& DetailCategoryBuilder)
+UHoudiniAssetParameterSeparator::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
 {
-    Super::CreateWidget(DetailCategoryBuilder);
+    Super::CreateWidget( DetailCategoryBuilder );
 
-    TSharedPtr<SSeparator> Separator;
+    TSharedPtr< SSeparator > Separator;
 
-    DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+    DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
     [
-        SNew(SVerticalBox)
+        SNew( SVerticalBox )
         +SVerticalBox::Slot()
-        .Padding(0, 0, 5, 0)
+        .Padding( 0, 0, 5, 0 )
         [
-            SAssignNew(Separator, SSeparator)
-            .Thickness(2.0f)
+            SAssignNew( Separator, SSeparator )
+            .Thickness( 2.0f )
         ]
     ];
 
-    if(Separator.IsValid())
-    {
-        Separator->SetEnabled(!bIsDisabled);
-    }
+    if ( Separator.IsValid() )
+        Separator->SetEnabled( !bIsDisabled );
 }
 
 #endif
