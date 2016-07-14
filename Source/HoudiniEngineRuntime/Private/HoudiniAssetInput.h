@@ -196,6 +196,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Called when change of World Outliner selection in Actor Picker. **/
         void OnWorldOutlinerActorSelected( AActor * Actor );
 
+        /** Check if input Actors have had their Transforms changed. **/
+        void TickWorldOutlinerInputs();
+
 #endif
 
         /** Called to retrieve the name of selected item. **/
@@ -300,6 +303,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Handler for World Outliner input selection button. **/
         FReply OnButtonClickSelectActors();
 
+        /** Start world outliner Actor transform monitor ticking. **/
+        void StartWorldOutlinerTicking();
+
+        /** Stop world outliner Actor transform monitor ticking. **/
+        void StopWorldOutlinerTicking();
+
 #endif
 
         /** Value of choice option. **/
@@ -328,6 +337,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Choice selection. **/
         EHoudiniAssetInputType::Enum ChoiceIndex;
+
+        /** Timer handle, this timer is used for seeing if input Actors have changed. **/
+        FTimerHandle WorldOutlinerTimerHandle;
+
+        /** Timer delegate, we use it for ticking to see if input Actors have changed. **/
+        FTimerDelegate WorldOutlinerTimerDelegate;
 
         /** Flags used by this input. **/
         union
