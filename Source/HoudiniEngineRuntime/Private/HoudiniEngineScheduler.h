@@ -18,79 +18,80 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 
-
 class FHoudiniEngineScheduler : public FRunnable, FSingleThreadRunnable
 {
+    public:
 
-public:
+        FHoudiniEngineScheduler();
+        virtual ~FHoudiniEngineScheduler();
 
-    FHoudiniEngineScheduler();
-    virtual ~FHoudiniEngineScheduler();
+    /** FRunnable methods. **/
+    public:
 
-/** FRunnable methods. **/
-public:
+        virtual uint32 Run() override;
+        virtual void Stop() override;
+        FSingleThreadRunnable * GetSingleThreadInterface() override;
 
-    virtual uint32 Run() override;
-    virtual void Stop() override;
-    FSingleThreadRunnable* GetSingleThreadInterface() override;
+    /** FSingleThreadRunnable methods. **/
+    public:
 
-/** FSingleThreadRunnable methods. **/
-public:
+        virtual void Tick() override;
 
-    virtual void Tick() override;
+    public:
 
-public:
+        /** Add a task. **/
+        void AddTask( const FHoudiniEngineTask & Task );
 
-    /** Add a task. **/
-    void AddTask(const FHoudiniEngineTask& Task);
+        /** Add instantiation response task info. **/
+        void AddResponseTaskInfo(
+            HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
+            EHoudiniEngineTaskState::Type TaskState,
+            HAPI_AssetId AssetId, const FHoudiniEngineTask & Task );
 
-    /** Add instantiation response task info. **/
-    void AddResponseTaskInfo(HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
-        EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask& Task);
+        void AddResponseMessageTaskInfo(
+            HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
+            EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask & Task,
+            const FString & ErrorMessage );
 
-    void AddResponseMessageTaskInfo(HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
-        EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask& Task,
-        const FString& ErrorMessage);
+    protected:
 
-protected:
+        /** Process queued tasks. **/
+        void ProcessQueuedTasks();
 
-    /** Process queued tasks. **/
-    void ProcessQueuedTasks();
+        /** Task : instantiate an asset. **/
+        void TaskInstantiateAsset( const FHoudiniEngineTask & Task );
 
-    /** Task : instantiate an asset. **/
-    void TaskInstantiateAsset(const FHoudiniEngineTask& Task);
+        /** Task : cook an asset. **/
+        void TaskCookAsset( const FHoudiniEngineTask & Task );
 
-    /** Task : cook an asset. **/
-    void TaskCookAsset(const FHoudiniEngineTask& Task);
+        /** Create description of task's state. **/
+        void TaskDescription( FHoudiniEngineTaskInfo & Task, const FString & ActorName, const FString & StatusString );
 
-    /** Create description of task's state. **/
-    void TaskDescription(FHoudiniEngineTaskInfo& Task, const FString& ActorName, const FString& StatusString);
+        /** Delete an asset. **/
+        void TaskDeleteAsset( const FHoudiniEngineTask & Task );
 
-    /** Delete an asset. **/
-    void TaskDeleteAsset(const FHoudiniEngineTask& Task);
+    protected:
 
-protected:
+        /** Initial number of tasks in our circular queue. **/
+        static const uint32 InitialTaskSize;
 
-    /** Initial number of tasks in our circular queue. **/
-    static const uint32 InitialTaskSize;
+    protected:
 
-protected:
+        /** Synchronization primitive. **/
+        FCriticalSection CriticalSection;
 
-    /** Synchronization primitive. **/
-    FCriticalSection CriticalSection;
+        /** List of scheduled tasks. **/
+        FHoudiniEngineTask* Tasks;
 
-    /** List of scheduled tasks. **/
-    FHoudiniEngineTask* Tasks;
+        /** Head of the circular queue. **/
+        uint32 PositionWrite;
 
-    /** Head of the circular queue. **/
-    uint32 PositionWrite;
+        /** Tail of the circular queue. **/
+        uint32 PositionRead;
 
-    /** Tail of the circular queue. **/
-    uint32 PositionRead;
+        /** Size of the circular queue. **/
+        uint32 TaskCount;
 
-    /** Size of the circular queue. **/
-    uint32 TaskCount;
-
-    /** Stopping flag. **/
-    bool bStopping;
+        /** Stopping flag. **/
+        bool bStopping;
 };

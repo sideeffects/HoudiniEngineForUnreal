@@ -15,33 +15,31 @@
 
 #pragma once
 
-
 class UClass;
 class FString;
 class UObject;
 struct HAPI_MaterialInfo;
 
-
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineSubstance
 {
-
 #if WITH_EDITOR
 
-public:
+    public:
 
-    /** Used to locate and load (if found) Substance instance factory object. **/
-    static UObject* LoadSubstanceInstanceFactory(UClass* InstanceFactoryClass, const FString& SubstanceMaterialName);
+        /** Used to locate and load (if found) Substance instance factory object. **/
+        static UObject * LoadSubstanceInstanceFactory( UClass * InstanceFactoryClass, const FString & SubstanceMaterialName );
 
-    /** Used to locate and load (if found) Substance graph instance object. **/
-    static UObject* LoadSubstanceGraphInstance(UClass* GraphInstanceClass, UObject* InstanceFactory);
+        /** Used to locate and load (if found) Substance graph instance object. **/
+        static UObject * LoadSubstanceGraphInstance( UClass * GraphInstanceClass, UObject * InstanceFactory );
 
-#endif
+#endif // WITH_EDITOR
 
-    /** Retrieve Substance RTTI classes we are interested in. **/
-    static bool RetrieveSubstanceRTTIClasses(UClass*& InstanceFactoryClass, UClass*& GraphInstanceClass,
-        UClass*& UtilityClass);
+        /** Retrieve Substance RTTI classes we are interested in. **/
+        static bool RetrieveSubstanceRTTIClasses(
+            UClass *& InstanceFactoryClass,
+            UClass *& GraphInstanceClass,
+            UClass *& UtilityClass );
 
-    /** HAPI: Check if material is a Substance material. If it is, return its name by reference. **/
-    static bool GetSubstanceMaterialName(const HAPI_MaterialInfo& MaterialInfo, FString& SubstanceMaterialName);
+        /** HAPI: Check if material is a Substance material. If it is, return its name by reference. **/
+        static bool GetSubstanceMaterialName( const HAPI_MaterialInfo & MaterialInfo, FString & SubstanceMaterialName );
 };
-

@@ -21,55 +21,38 @@
 
 #include <vector>
 
+FHoudiniEngineString::FHoudiniEngineString()
+    : StringId( -1 )
+{}
 
-FHoudiniEngineString::FHoudiniEngineString() :
-    StringId(-1)
+FHoudiniEngineString::FHoudiniEngineString( int32 InStringId )
+    : StringId( InStringId )
+{}
+
+FHoudiniEngineString::FHoudiniEngineString( const FHoudiniEngineString & Other )
+    : StringId( Other.StringId )
+{}
+
+FHoudiniEngineString &
+FHoudiniEngineString::operator=( const FHoudiniEngineString & Other )
 {
-
-}
-
-
-FHoudiniEngineString::FHoudiniEngineString(int32 InStringId) :
-    StringId(InStringId)
-{
-
-}
-
-
-FHoudiniEngineString::FHoudiniEngineString(const FHoudiniEngineString& Other) :
-    StringId(Other.StringId)
-{
-
-}
-
-
-FHoudiniEngineString&
-FHoudiniEngineString::operator=(const FHoudiniEngineString& Other)
-{
-    if(this != &Other)
-    {
+    if ( this != &Other )
         StringId = Other.StringId;
-    }
 
     return *this;
 }
 
-
-
 bool
-FHoudiniEngineString::operator==(const FHoudiniEngineString& Other) const
+FHoudiniEngineString::operator==( const FHoudiniEngineString & Other ) const
 {
-    return StringId == Other.StringId;
+    return Other.StringId == StringId;
 }
 
-
-
 bool
-FHoudiniEngineString::operator!=(const FHoudiniEngineString& Other) const
+FHoudiniEngineString::operator!=( const FHoudiniEngineString & Other ) const
 {
-    return StringId != Other.StringId;
+    return Other.StringId != StringId;
 }
-
 
 int32
 FHoudiniEngineString::GetId() const
@@ -77,32 +60,31 @@ FHoudiniEngineString::GetId() const
     return StringId;
 }
 
-
 bool
 FHoudiniEngineString::HasValidId() const
 {
     return StringId > 0;
 }
 
-
 bool
-FHoudiniEngineString::ToStdString(std::string& String) const
+FHoudiniEngineString::ToStdString( std::string & String ) const
 {
     String = "";
 
-    if(StringId >= 0)
+    if ( StringId >= 0 )
     {
         int32 NameLength = 0;
-        if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetStringBufLength(FHoudiniEngine::Get().GetSession(), StringId,
-            &NameLength))
+        if ( FHoudiniApi::GetStringBufLength(
+            FHoudiniEngine::Get().GetSession(), StringId, &NameLength ) == HAPI_RESULT_SUCCESS )
         {
-            if(NameLength)
+            if ( NameLength )
             {
-                std::vector<char> NameBuffer(NameLength, '\0');
-                if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetString(FHoudiniEngine::Get().GetSession(), StringId,
-                    &NameBuffer[0], NameLength))
+                std::vector< char > NameBuffer( NameLength, '\0' );
+                if ( FHoudiniApi::GetString(
+                    FHoudiniEngine::Get().GetSession(), StringId,
+                    &NameBuffer[ 0 ], NameLength ) == HAPI_RESULT_SUCCESS )
                 {
-                    String = std::string(NameBuffer.begin(), NameBuffer.end());
+                    String = std::string( NameBuffer.begin(), NameBuffer.end() );
                     return true;
                 }
             }
@@ -112,50 +94,46 @@ FHoudiniEngineString::ToStdString(std::string& String) const
     return false;
 }
 
-
 bool
-FHoudiniEngineString::ToFName(FName& Name) const
+FHoudiniEngineString::ToFName( FName & Name ) const
 {
     Name = NAME_None;
-    FString NameString = TEXT("");
-    if(ToFString(NameString))
+    FString NameString = TEXT( "" );
+    if ( ToFString( NameString ) )
     {
-        Name = FName(*NameString);
+        Name = FName( *NameString );
         return true;
     }
 
     return false;
 }
 
-
 bool
-FHoudiniEngineString::ToFString(FString& String) const
+FHoudiniEngineString::ToFString( FString & String ) const
 {
-    String = TEXT("");
+    String = TEXT( "" );
     std::string NamePlain = "";
 
-    if(ToStdString(NamePlain))
+    if ( ToStdString( NamePlain ) )
     {
-        String = UTF8_TO_TCHAR(NamePlain.c_str());
+        String = UTF8_TO_TCHAR( NamePlain.c_str() );
         return true;
     }
 
     return false;
 }
-
 
 bool
-FHoudiniEngineString::ToFText(FText& Text) const
+FHoudiniEngineString::ToFText( FText & Text ) const
 {
     Text = FText::GetEmpty();
-    FString NameString = TEXT("");
+    FString NameString = TEXT( "" );
 
-    if(ToFString(NameString))
+    if ( ToFString( NameString ) )
     {
-        Text = FText::FromString(NameString);
+        Text = FText::FromString( NameString );
         return true;
     }
 
     return false;
 }
-

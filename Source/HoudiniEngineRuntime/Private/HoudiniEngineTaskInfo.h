@@ -17,7 +17,6 @@
 
 #include "HoudiniEngineTask.h"
 
-
 namespace EHoudiniEngineTaskState
 {
     enum Type
@@ -37,8 +36,10 @@ struct FHoudiniEngineTaskInfo
 {
     /** Constructors. **/
     FHoudiniEngineTaskInfo();
-    FHoudiniEngineTaskInfo(HAPI_Result InResult, HAPI_AssetId InAssetId, EHoudiniEngineTaskType::Type InTaskType,
-        EHoudiniEngineTaskState::Type InTaskState);
+    FHoudiniEngineTaskInfo(
+        HAPI_Result InResult, HAPI_AssetId InAssetId,
+        EHoudiniEngineTaskType::Type InTaskType,
+        EHoudiniEngineTaskState::Type InTaskState );
 
     /** Current HAPI result. **/
     HAPI_Result Result;

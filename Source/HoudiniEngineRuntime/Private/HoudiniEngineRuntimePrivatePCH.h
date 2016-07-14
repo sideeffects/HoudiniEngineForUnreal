@@ -119,10 +119,10 @@
 /** See whether we are in Editor or Engine module. **/
 #ifdef HOUDINI_ENGINE_EDITOR
 #define LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
-DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngineEditor, Log, All );
 #else
 #define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
-DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #endif
 
 /** Definitions coming from UBT. **/
@@ -138,96 +138,96 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #ifdef HOUDINI_ENGINE_LOGGING
 
 #ifdef HOUDINI_ENGINE_EDITOR
-#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT, ...)                            \
-    do                                                                                  \
-    {                                                                                   \
-        UE_LOG(LogHoudiniEngineEditor, VERBOSITY, HOUDINI_LOG_TEXT, ##__VA_ARGS__);     \
-    }                                                                                   \
-    while(0)
+#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT, ...) \
+    do \
+    { \
+        UE_LOG( LogHoudiniEngineEditor, VERBOSITY, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); \
+    } \
+    while ( 0 )
 #else
-#define HOUDINI_LOG_HELPER(VERBOSITY, HOUDINI_LOG_TEXT, ...)                            \
-    do                                                                                  \
-    {                                                                                   \
-        UE_LOG(LogHoudiniEngine, VERBOSITY, HOUDINI_LOG_TEXT, ##__VA_ARGS__);           \
-    }                                                                                   \
-    while(0)
+#define HOUDINI_LOG_HELPER( VERBOSITY, HOUDINI_LOG_TEXT, ... ) \
+    do \
+    { \
+        UE_LOG( LogHoudiniEngine, VERBOSITY, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); \
+    } \
+    while ( 0 )
 #endif
 
-#define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT, ...)                                      \
-    HOUDINI_LOG_HELPER(Log, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
+#define HOUDINI_LOG_MESSAGE( HOUDINI_LOG_TEXT, ... ) \
+    HOUDINI_LOG_HELPER( Log, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
-#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT, ...)                                        \
-    HOUDINI_LOG_HELPER(Fatal, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
+#define HOUDINI_LOG_FATAL( HOUDINI_LOG_TEXT, ... ) \
+    HOUDINI_LOG_HELPER( Fatal, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
-#define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT, ...)                                        \
-    HOUDINI_LOG_HELPER(Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
+#define HOUDINI_LOG_ERROR( HOUDINI_LOG_TEXT, ... ) \
+    HOUDINI_LOG_HELPER( Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
-#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT, ...)                                      \
-    HOUDINI_LOG_HELPER(Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
+#define HOUDINI_LOG_WARNING( HOUDINI_LOG_TEXT, ... ) \
+    HOUDINI_LOG_HELPER( Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
-#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT, ...)                                      \
-    HOUDINI_LOG_HELPER(Display, HOUDINI_LOG_TEXT, ##__VA_ARGS__)
+#define HOUDINI_LOG_DISPLAY( HOUDINI_LOG_TEXT, ... ) \
+    HOUDINI_LOG_HELPER( Display, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
 #else
 
-#define HOUDINI_LOG_MESSAGE(HOUDINI_LOG_TEXT, ...)
-#define HOUDINI_LOG_FATAL(HOUDINI_LOG_TEXT, ...)
-#define HOUDINI_LOG_ERROR(HOUDINI_LOG_TEXT, ...)
-#define HOUDINI_LOG_WARNING(HOUDINI_LOG_TEXT, ...)
-#define HOUDINI_LOG_DISPLAY(HOUDINI_LOG_TEXT, ...)
+#define HOUDINI_LOG_MESSAGE( HOUDINI_LOG_TEXT, ... )
+#define HOUDINI_LOG_FATAL( HOUDINI_LOG_TEXT, ... )
+#define HOUDINI_LOG_ERROR( HOUDINI_LOG_TEXT, ... )
+#define HOUDINI_LOG_WARNING( HOUDINI_LOG_TEXT, ... )
+#define HOUDINI_LOG_DISPLAY( HOUDINI_LOG_TEXT, ... )
 
 #endif // HOUDINI_ENGINE_LOGGING
 
 
 /** Error checking - this macro will check the status and return specified parameter. **/
-#define HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HAPI_LOG_ROUTINE)                     \
-    do                                                                                                              \
-    {                                                                                                               \
-        HAPI_Result ResultVariable = HAPI_PARAM_CALL;                                                               \
-        if(HAPI_RESULT_SUCCESS != ResultVariable)                                                                   \
-        {                                                                                                           \
-            HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());                 \
-            return HAPI_PARAM_RETURN;                                                                               \
-        }                                                                                                           \
-    }                                                                                                               \
-    while(0)
+#define HOUDINI_CHECK_ERROR_RETURN_HELPER( HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HAPI_LOG_ROUTINE ) \
+    do \
+    { \
+        HAPI_Result ResultVariable = HAPI_PARAM_CALL; \
+        if ( ResultVariable != HAPI_RESULT_SUCCESS ) \
+        { \
+            HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s" ), *FHoudiniEngineUtils::GetErrorDescription() ); \
+            return HAPI_PARAM_RETURN; \
+        } \
+    } \
+    while ( 0 )
 
-#define HOUDINI_CHECK_ERROR_RETURN(HAPI_PARAM_CALL, HAPI_PARAM_RETURN)                                              \
-    HOUDINI_CHECK_ERROR_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HOUDINI_LOG_ERROR)
+#define HOUDINI_CHECK_ERROR_RETURN( HAPI_PARAM_CALL, HAPI_PARAM_RETURN ) \
+    HOUDINI_CHECK_ERROR_RETURN_HELPER( HAPI_PARAM_CALL, HAPI_PARAM_RETURN, HOUDINI_LOG_ERROR )
 
 
 /** Error checking - this macro will check the status, execute specified parameter and return. **/
-#define HOUDINI_CHECK_ERROR_EXECUTE_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN, HAPI_LOG_ROUTINE)     \
-    do                                                                                                              \
-    {                                                                                                               \
-        HAPI_Result ResultVariable = HAPI_PARAM_CALL;                                                               \
-        if(HAPI_RESULT_SUCCESS != ResultVariable)                                                                   \
-        {                                                                                                           \
-            HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());                 \
-            HAPI_PARAM_EXECUTE_RETURN;                                                                              \
-            return;                                                                                                 \
-        }                                                                                                           \
-    }                                                                                                               \
-    while(0)
+#define HOUDINI_CHECK_ERROR_EXECUTE_RETURN_HELPER( HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN, HAPI_LOG_ROUTINE ) \
+    do \
+    { \
+        HAPI_Result ResultVariable = HAPI_PARAM_CALL; \
+        if ( ResultVariable != HAPI_RESULT_SUCCESS ) \
+        { \
+            HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s" ), *FHoudiniEngineUtils::GetErrorDescription() ); \
+            HAPI_PARAM_EXECUTE_RETURN; \
+            return; \
+        } \
+    } \
+    while ( 0 )
 
-#define HOUDINI_CHECK_ERROR_EXECUTE_RETURN(HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN)                              \
-    HOUDINI_CHECK_ERROR_EXECUTE_RETURN_HELPER(HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN, HOUDINI_LOG_ERROR)
+#define HOUDINI_CHECK_ERROR_EXECUTE_RETURN( HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN ) \
+    HOUDINI_CHECK_ERROR_EXECUTE_RETURN_HELPER( HAPI_PARAM_CALL, HAPI_PARAM_EXECUTE_RETURN, HOUDINI_LOG_ERROR )
 
 
 /* Error checking - this macro will check the status. **/
-#define HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HAPI_LOG_ROUTINE)                            \
-    do                                                                                                              \
-    {                                                                                                               \
-        *HAPI_PARAM_RESULT = HAPI_PARAM_CALL;                                                                       \
-        if(HAPI_RESULT_SUCCESS != *HAPI_PARAM_RESULT)                                                               \
-        {                                                                                                           \
-            HAPI_LOG_ROUTINE(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());                 \
-        }                                                                                                           \
-    }                                                                                                               \
-    while(0)
+#define HOUDINI_CHECK_ERROR_HELPER( HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HAPI_LOG_ROUTINE ) \
+    do \
+    { \
+        *HAPI_PARAM_RESULT = HAPI_PARAM_CALL; \
+        if ( *HAPI_PARAM_RESULT != HAPI_RESULT_SUCCESS ) \
+        { \
+            HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s" ), *FHoudiniEngineUtils::GetErrorDescription() ); \
+        } \
+    } \
+    while ( 0 )
 
-#define HOUDINI_CHECK_ERROR(HAPI_PARAM_RESULT, HAPI_PARAM_CALL)                                                     \
-    HOUDINI_CHECK_ERROR_HELPER(HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HOUDINI_LOG_ERROR)
+#define HOUDINI_CHECK_ERROR( HAPI_PARAM_RESULT, HAPI_PARAM_CALL ) \
+    HOUDINI_CHECK_ERROR_HELPER( HAPI_PARAM_RESULT, HAPI_PARAM_CALL, HOUDINI_LOG_ERROR )
 
 /** HAPI related attribute definitions. **/
 
@@ -380,26 +380,26 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_DESIRED_SETTINGS_ROW_FULL_WIDGET_WIDTH      400
 
 /** Various variable names used to store meta information in generated packages. **/
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT               TEXT("HoudiniGeneratedObject")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_NAME                 TEXT("HoudiniGeneratedName")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE         TEXT("HoudiniGeneratedTextureType")
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT               TEXT( "HoudiniGeneratedObject" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_NAME                 TEXT( "HoudiniGeneratedName" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE         TEXT( "HoudiniGeneratedTextureType" )
 
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL       TEXT("N")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE      TEXT("C_A")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR     TEXT("S")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS    TEXT("R")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC     TEXT("M")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE     TEXT("E")
-#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK TEXT("O")
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL       TEXT( "N" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE      TEXT( "C_A" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR     TEXT( "S" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS    TEXT( "R" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC     TEXT( "M" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE     TEXT( "E" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK TEXT( "O" )
 
 /** Various session related settings. **/
-#define HAPI_UNREAL_SESSION_SERVER_HOST                     TEXT("localhost")
+#define HAPI_UNREAL_SESSION_SERVER_HOST                     TEXT( "localhost" )
 #define HAPI_UNREAL_SESSION_SERVER_PORT                     9090
 
 #if PLATFORM_MAC
-#define HAPI_UNREAL_SESSION_SERVER_PIPENAME                 TEXT("/tmp/hapi")
+#define HAPI_UNREAL_SESSION_SERVER_PIPENAME                 TEXT( "/tmp/hapi" )
 #else
-#define HAPI_UNREAL_SESSION_SERVER_PIPENAME                 TEXT("hapi")
+#define HAPI_UNREAL_SESSION_SERVER_PIPENAME                 TEXT( "hapi" )
 #endif
 
 #define HAPI_UNREAL_SESSION_SERVER_AUTOSTART                false
@@ -413,60 +413,57 @@ DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngine, Log, All);
 #define HAPI_UNREAL_SCALE_SMALL_VALUE                       KINDA_SMALL_NUMBER * 2.0f
 
 /** Default material name. **/
-#define HAPI_UNREAL_DEFAULT_MATERIAL_NAME                   TEXT("default_material")
+#define HAPI_UNREAL_DEFAULT_MATERIAL_NAME                   TEXT( "default_material" )
 
 /** Threshold alpha. **/
 #define HAPI_UNREAL_ALPHA_THRESHOLD                         0.95f
 
 /** Defines used for Substance processing. **/
-#define HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX                  TEXT("_substanceInput")
-#define HAPI_UNREAL_PARAM_SUBSTANCE_LABEL                   TEXT("Substance")
-#define HAPI_UNREAL_PARAM_SUBSTANCE_FILENAME                TEXT("filename")
+#define HAPI_UNREAL_PARAM_SUBSTANCE_PREFIX                  TEXT( "_substanceInput" )
+#define HAPI_UNREAL_PARAM_SUBSTANCE_LABEL                   TEXT( "Substance" )
+#define HAPI_UNREAL_PARAM_SUBSTANCE_FILENAME                TEXT( "filename" )
 
 /** Names for Substance classes which we are retrieving through RTTI. **/
-#define HAPI_UNREAL_SUBSTANCE_CLASS_INSTANCE_FACTORY        TEXT("SubstanceInstanceFactory")
-#define HAPI_UNREAL_SUBSTANCE_CLASS_GRAPH_INSTANCE          TEXT("SubstanceGraphInstance")
-#define HAPI_UNREAL_SUBSTANCE_CLASS_UTILITY                 TEXT("SubstanceUtility")
+#define HAPI_UNREAL_SUBSTANCE_CLASS_INSTANCE_FACTORY        TEXT( "SubstanceInstanceFactory" )
+#define HAPI_UNREAL_SUBSTANCE_CLASS_GRAPH_INSTANCE          TEXT( "SubstanceGraphInstance" )
+#define HAPI_UNREAL_SUBSTANCE_CLASS_UTILITY                 TEXT( "SubstanceUtility" )
 
 /** Names of Substance class properties we are using. **/
-#define HAPI_UNREAL_SUBSTANCE_PROPERTY_FACTORY_PARENT       TEXT("Parent")
+#define HAPI_UNREAL_SUBSTANCE_PROPERTY_FACTORY_PARENT       TEXT( "Parent" )
 
 #define HAPI_UNREAL_ENABLE_LOADER
 
 /** Names of HAPI libraries on different platforms. **/
 #ifdef HAPI_UNREAL_ENABLE_LOADER
-#define HAPI_LIB_OBJECT_WINDOWS         TEXT("libHAPIL.dll")
-#define HAPI_LIB_OBJECT_MAC             TEXT("libHAPIL.dylib")
-#define HAPI_LIB_OBJECT_LINUX           TEXT("libHAPIL.so")
+#define HAPI_LIB_OBJECT_WINDOWS         TEXT( "libHAPIL.dll" )
+#define HAPI_LIB_OBJECT_MAC             TEXT( "libHAPIL.dylib" )
+#define HAPI_LIB_OBJECT_LINUX           TEXT( "libHAPIL.so" )
 #else
-#define HAPI_LIB_OBJECT_WINDOWS         TEXT("libHAPI.dll")
-#define HAPI_LIB_OBJECT_MAC             TEXT("libHAPI.dylib")
-#define HAPI_LIB_OBJECT_LINUX           TEXT("libHAPI.so")
+#define HAPI_LIB_OBJECT_WINDOWS         TEXT( "libHAPI.dll" )
+#define HAPI_LIB_OBJECT_MAC             TEXT( "libHAPI.dylib" )
+#define HAPI_LIB_OBJECT_LINUX           TEXT( "libHAPI.so" )
 #endif
 
 /** HFS subfolder containing HAPI lib. **/
-#define HAPI_HFS_SUBFOLDER_WINDOWS      TEXT("bin")
-#define HAPI_HFS_SUBFOLDER_MAC          TEXT("dsolib")
-#define HAPI_HFS_SUBFOLDER_LINUX        TEXT("dsolib")
+#define HAPI_HFS_SUBFOLDER_WINDOWS      TEXT( "bin" )
+#define HAPI_HFS_SUBFOLDER_MAC          TEXT( "dsolib" )
+#define HAPI_HFS_SUBFOLDER_LINUX        TEXT( "dsolib" )
 
 /** Unreal HAPI Resources. **/
-#define HAPI_UNREAL_RESOURCE_HOUDINI_LOGO       TEXT("/HoudiniEngine/houdini_logo.houdini_logo")
-#define HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL   TEXT("/HoudiniEngine/houdini_default_material.houdini_default_material")
-#define HAPI_UNREAL_RESOURCE_BGEO_IMPORT        TEXT("/HoudiniEngine/houdini_bgeo_import.houdini_bgeo_import")
+#define HAPI_UNREAL_RESOURCE_HOUDINI_LOGO       TEXT( "/HoudiniEngine/houdini_logo.houdini_logo" )
+#define HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL   TEXT( "/HoudiniEngine/houdini_default_material.houdini_default_material" )
+#define HAPI_UNREAL_RESOURCE_BGEO_IMPORT        TEXT( "/HoudiniEngine/houdini_bgeo_import.houdini_bgeo_import" )
 
 /** Helper function to serialize enumerations. **/
-template <typename TEnum>
-FORCEINLINE
-FArchive&
-SerializeEnumeration(FArchive& Ar, TEnum& E)
+template < typename TEnum >
+FORCEINLINE FArchive &
+SerializeEnumeration( FArchive & Ar, TEnum & E )
 {
     uint8 B = (uint8) E;
     Ar << B;
 
-    if(Ar.IsLoading())
-    {
+    if ( Ar.IsLoading() )
         E = (TEnum) B;
-    }
 
     return Ar;
 }
@@ -487,7 +484,6 @@ struct FHoudiniScopedGlobalSilence
 
     bool bGlobalSilent;
 };
-
 
 /** Struct to disable transactional buffer serialization. This is used to avoid including undo reference count. **/
 struct FHoudiniScopedGlobalTransactionDisable
