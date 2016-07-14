@@ -2060,6 +2060,14 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
         // Force refresh of details view.
         HoudiniAssetComponent->UpdateEditorProperties( false );
 
+        // Select the previously chosen input Actors from the World Outliner.
+        GEditor->SelectNone( false, true );
+        for ( auto & OutlinerMesh : InputOutlinerMeshArray )
+        {
+            if ( OutlinerMesh.Actor )
+                GEditor->SelectActor( OutlinerMesh.Actor, true, true );
+        }
+
         return FReply::Handled();
     }
 
