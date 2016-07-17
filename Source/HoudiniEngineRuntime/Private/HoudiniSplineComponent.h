@@ -17,7 +17,6 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniSplineComponent.generated.h"
 
-
 namespace EHoudiniSplineComponentType
 {
     enum Enum
@@ -27,7 +26,6 @@ namespace EHoudiniSplineComponentType
         Bezier
     };
 }
-
 
 namespace EHoudiniSplineComponentMethod
 {
@@ -39,117 +37,120 @@ namespace EHoudiniSplineComponentMethod
     };
 }
 
-
 class UHoudiniAssetInput;
 
-
-UCLASS(config=Engine)
+UCLASS( config = Engine )
 class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
 {
-    friend class UHoudiniAssetComponent;
+    public:
+        friend class UHoudiniAssetComponent;
 
 #if WITH_EDITOR
 
-    friend class FHoudiniSplineComponentVisualizer;
+        friend class FHoudiniSplineComponentVisualizer;
 
-#endif
+#endif // WITH_EDITOR
 
-    GENERATED_UCLASS_BODY()
+        GENERATED_UCLASS_BODY()
 
-    virtual ~UHoudiniSplineComponent();
+        virtual ~UHoudiniSplineComponent();
 
-/** UObject methods. **/
-public:
+    /** UObject methods. **/
+    public:
 
-    virtual void Serialize(FArchive& Ar) override;
+        virtual void Serialize(FArchive& Ar) override;
 
 #if WITH_EDITOR
 
-    virtual void PostEditUndo() override;
+        virtual void PostEditUndo() override;
 
-#endif
+#endif // WITH_EDITOR
 
-public:
+    public:
 
-    /** Construct spline from given information. Resets any existing state. **/
-    bool Construct(const FHoudiniGeoPartObject& InHoudiniGeoPartObject, const TArray<FVector>& InCurvePoints,
-        const TArray<FVector>& InCurveDisplayPoints, EHoudiniSplineComponentType::Enum InCurveType,
-        EHoudiniSplineComponentMethod::Enum InCurveMethod, bool bInClosedCurve = false);
+        /** Construct spline from given information. Resets any existing state. **/
+        bool Construct(
+            const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
+            const TArray< FVector > & InCurvePoints,
+            const TArray< FVector > & InCurveDisplayPoints,
+            EHoudiniSplineComponentType::Enum InCurveType,
+            EHoudiniSplineComponentMethod::Enum InCurveMethod,
+            bool bInClosedCurve = false );
 
-    /** Return the type of this curve. **/
-    EHoudiniSplineComponentType::Enum GetCurveType() const;
+        /** Return the type of this curve. **/
+        EHoudiniSplineComponentType::Enum GetCurveType() const;
 
-    /** Return method used by this curve. **/
-    EHoudiniSplineComponentMethod::Enum GetCurveMethod() const;
+        /** Return method used by this curve. **/
+        EHoudiniSplineComponentMethod::Enum GetCurveMethod() const;
 
-    /** Return true if this curve is closed. **/
-    bool IsClosedCurve() const;
+        /** Return true if this curve is closed. **/
+        bool IsClosedCurve() const;
 
-    /** Return number of curve points. **/
-    int32 GetCurvePointCount() const;
+        /** Return number of curve points. **/
+        int32 GetCurvePointCount() const;
 
-    /** Resets all points of this curve. **/
-    void ResetCurvePoints();
+        /** Resets all points of this curve. **/
+        void ResetCurvePoints();
 
-    /** Reset display points of this curve. **/
-    void ResetCurveDisplayPoints();
+        /** Reset display points of this curve. **/
+        void ResetCurveDisplayPoints();
 
-    /** Add a point to this curve. **/
-    void AddPoint(const FVector& Point);
+        /** Add a point to this curve. **/
+        void AddPoint( const FVector & Point );
 
-    /** Add points to this curve. **/
-    void AddPoints(const TArray<FVector>& Points);
+        /** Add points to this curve. **/
+        void AddPoints( const TArray< FVector > & Points );
 
-    /** Add display points to this curve. **/
-    void AddDisplayPoints(const TArray<FVector>& Points);
+        /** Add display points to this curve. **/
+        void AddDisplayPoints( const TArray< FVector > & Points );
 
-    /** Return true if this spline is a valid spline. **/
-    bool IsValidCurve() const;
+        /** Return true if this spline is a valid spline. **/
+        bool IsValidCurve() const;
 
-    /** Update point at given index with new information. **/
-    void UpdatePoint(int32 PointIndex, const FVector& Point);
+        /** Update point at given index with new information. **/
+        void UpdatePoint( int32 PointIndex, const FVector & Point );
 
-    /** Upload changed control points to HAPI. **/
-    void UploadControlPoints();
+        /** Upload changed control points to HAPI. **/
+        void UploadControlPoints();
 
-    /** Remove point at a given index. **/
-    void RemovePoint(int32 PointIndex);
+        /** Remove point at a given index. **/
+        void RemovePoint( int32 PointIndex );
 
-    /** Add a point to this curve at given point index. **/
-    void AddPoint(int32 PointIndex, const FVector& Point);
+        /** Add a point to this curve at given point index. **/
+        void AddPoint( int32 PointIndex, const FVector & Point );
 
-    /** Return true if this is an input curve. **/
-    bool IsInputCurve() const;
+        /** Return true if this is an input curve. **/
+        bool IsInputCurve() const;
 
-    /** Assign input parameter to this spline, if it is an input curve. **/
-    void SetHoudiniAssetInput(UHoudiniAssetInput* InHoudiniAssetInput);
+        /** Assign input parameter to this spline, if it is an input curve. **/
+        void SetHoudiniAssetInput( UHoudiniAssetInput * InHoudiniAssetInput );
 
-    /** Used by visualizer to notify about input spline update. **/
-    void NotifyHoudiniInputCurveChanged();
+        /** Used by visualizer to notify about input spline update. **/
+        void NotifyHoudiniInputCurveChanged();
 
-    /** Return curve points. **/
-    const TArray<FVector>& GetCurvePoints() const;
+        /** Return curve points. **/
+        const TArray< FVector > & GetCurvePoints() const;
 
-protected:
+    protected:
 
-    /** Corresponding geo part object. **/
-    FHoudiniGeoPartObject HoudiniGeoPartObject;
+        /** Corresponding geo part object. **/
+        FHoudiniGeoPartObject HoudiniGeoPartObject;
 
-    /** List of points composing this curve. **/
-    TArray<FVector> CurvePoints;
+        /** List of points composing this curve. **/
+        TArray< FVector > CurvePoints;
 
-    /** List of refined points used for drawing. **/
-    TArray<FVector> CurveDisplayPoints;
+        /** List of refined points used for drawing. **/
+        TArray< FVector > CurveDisplayPoints;
 
-    /** Corresponding asset input parameter if this is an input curve. **/
-    UHoudiniAssetInput* HoudiniAssetInput;
+        /** Corresponding asset input parameter if this is an input curve. **/
+        UHoudiniAssetInput * HoudiniAssetInput;
 
-    /** Type of this curve. **/
-    EHoudiniSplineComponentType::Enum CurveType;
+        /** Type of this curve. **/
+        EHoudiniSplineComponentType::Enum CurveType;
 
-    /** Method used for this curve. **/
-    EHoudiniSplineComponentMethod::Enum CurveMethod;
+        /** Method used for this curve. **/
+        EHoudiniSplineComponentMethod::Enum CurveMethod;
 
-    /** Whether this spline is closed. **/
-    bool bClosedCurve;
+        /** Whether this spline is closed. **/
+        bool bClosedCurve;
 };
