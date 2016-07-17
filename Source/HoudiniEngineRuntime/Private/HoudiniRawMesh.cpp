@@ -18,65 +18,54 @@
 #include "HoudiniRawMeshVersion.h"
 #include "HoudiniGeoPartObject.h"
 
+FHoudiniRawMesh::FHoudiniRawMesh(
+    HAPI_AssetId InAssetId,
+    HAPI_ObjectId InObjectId,
+    HAPI_GeoId InGeoId,
+    HAPI_PartId InPartId )
+    : AssetId( InAssetId )
+    , ObjectId( InObjectId )
+    , GeoId( InGeoId )
+    , PartId( InPartId )
+    , HoudiniRawMeshFlagsPacked( 0u )
+    , HoudiniRawMeshVersion( VER_HOUDINI_ENGINE_RAWMESH_BASE )
+{}
 
-FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
-    HAPI_PartId InPartId) :
-    AssetId(InAssetId),
-    ObjectId(InObjectId),
-    GeoId(InGeoId),
-    PartId(InPartId),
-    HoudiniRawMeshFlagsPacked(0u),
-    HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
-{
+FHoudiniRawMesh::FHoudiniRawMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject )
+    : AssetId( HoudiniGeoPartObject.AssetId )
+    , ObjectId( HoudiniGeoPartObject.ObjectId )
+    , GeoId( HoudiniGeoPartObject.GeoId )
+    , PartId( HoudiniGeoPartObject.PartId )
+    , HoudiniRawMeshFlagsPacked( 0u )
+    , HoudiniRawMeshVersion( VER_HOUDINI_ENGINE_RAWMESH_BASE )
+{}
 
-}
+FHoudiniRawMesh::FHoudiniRawMesh( HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject & HoudiniGeoPartObject )
+    : AssetId( OtherAssetId )
+    , ObjectId( HoudiniGeoPartObject.ObjectId )
+    , GeoId( HoudiniGeoPartObject.GeoId )
+    , PartId( HoudiniGeoPartObject.PartId )
+    , HoudiniRawMeshFlagsPacked( 0u )
+    , HoudiniRawMeshVersion( VER_HOUDINI_ENGINE_RAWMESH_BASE )
+{}
 
-
-FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniGeoPartObject& HoudiniGeoPartObject) :
-    AssetId(HoudiniGeoPartObject.AssetId),
-    ObjectId(HoudiniGeoPartObject.ObjectId),
-    GeoId(HoudiniGeoPartObject.GeoId),
-    PartId(HoudiniGeoPartObject.PartId),
-    HoudiniRawMeshFlagsPacked(0u),
-    HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
-{
-
-}
-
-
-FHoudiniRawMesh::FHoudiniRawMesh(HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject& HoudiniGeoPartObject) :
-    AssetId(OtherAssetId),
-    ObjectId(HoudiniGeoPartObject.ObjectId),
-    GeoId(HoudiniGeoPartObject.GeoId),
-    PartId(HoudiniGeoPartObject.PartId),
-    HoudiniRawMeshFlagsPacked(0u),
-    HoudiniRawMeshVersion(VER_HOUDINI_ENGINE_RAWMESH_BASE)
-{
-
-}
-
-
-FHoudiniRawMesh::FHoudiniRawMesh(const FHoudiniRawMesh& HoudiniRawMesh) :
-    AssetId(HoudiniRawMesh.AssetId),
-    ObjectId(HoudiniRawMesh.ObjectId),
-    GeoId(HoudiniRawMesh.GeoId),
-    PartId(HoudiniRawMesh.PartId),
-    HoudiniRawMeshFlagsPacked(0u),
-    HoudiniRawMeshVersion(HoudiniRawMesh.HoudiniRawMeshVersion)
-{
-
-}
-
+FHoudiniRawMesh::FHoudiniRawMesh( const FHoudiniRawMesh & HoudiniRawMesh )
+    : AssetId( HoudiniRawMesh.AssetId )
+    , ObjectId( HoudiniRawMesh.ObjectId )
+    , GeoId( HoudiniRawMesh.GeoId )
+    , PartId( HoudiniRawMesh.PartId )
+    , HoudiniRawMeshFlagsPacked( 0u )
+    , HoudiniRawMeshVersion( HoudiniRawMesh.HoudiniRawMeshVersion )
+{}
 
 bool
-FHoudiniRawMesh::BuildRawMesh(FRawMesh& RawMesh, bool bFullRebuild) const
+FHoudiniRawMesh::BuildRawMesh( FRawMesh & RawMesh, bool bFullRebuild ) const
 {
     return false;
 }
 
-
 bool
-FHoudiniRawMesh::Serialize(FArchive& Ar)
+FHoudiniRawMesh::Serialize( FArchive & Ar )
 {
     HoudiniRawMeshVersion = VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION;
     Ar << HoudiniRawMeshVersion;
@@ -93,29 +82,25 @@ FHoudiniRawMesh::Serialize(FArchive& Ar)
     return true;
 }
 
-
 uint32
 FHoudiniRawMesh::GetTypeHash() const
 {
-    int32 HashBuffer[4] = { ObjectId, GeoId, PartId, SplitId };
-    return FCrc::MemCrc_DEPRECATED((void*) &HashBuffer[0], sizeof(HashBuffer));
+    int32 HashBuffer[ 4 ] = { ObjectId, GeoId, PartId, SplitId };
+    return FCrc::MemCrc_DEPRECATED( (void *) &HashBuffer[ 0 ], sizeof( HashBuffer ) );
 }
 
-
 FArchive&
-operator<<(FArchive& Ar, FHoudiniRawMesh& HoudiniRawMesh)
+operator<<( FArchive & Ar, FHoudiniRawMesh & HoudiniRawMesh )
 {
-    HoudiniRawMesh.Serialize(Ar);
+    HoudiniRawMesh.Serialize( Ar );
     return Ar;
 }
 
-
 uint32
-GetTypeHash(const FHoudiniRawMesh& HoudiniRawMesh)
+GetTypeHash( const FHoudiniRawMesh & HoudiniRawMesh )
 {
     return HoudiniRawMesh.GetTypeHash();
 }
-
 
 void
 FHoudiniRawMesh::ResetAttributesAndVertices()
@@ -128,40 +113,31 @@ FHoudiniRawMesh::ResetAttributesAndVertices()
     Vertices.Empty();
 }
 
-
 bool
-FHoudiniRawMesh::LocateAttribute(const FString& AttributeName, FHoudiniAttributeObject& HoudiniAttributeObject) const
+FHoudiniRawMesh::LocateAttribute(
+    const FString & AttributeName, FHoudiniAttributeObject & HoudiniAttributeObject ) const
 {
-    if(LocateAttributePoint(AttributeName, HoudiniAttributeObject))
-    {
+    if ( LocateAttributePoint( AttributeName, HoudiniAttributeObject ) )
         return true;
-    }
 
-    if(LocateAttributeVertex(AttributeName, HoudiniAttributeObject))
-    {
+    if ( LocateAttributeVertex( AttributeName, HoudiniAttributeObject ) )
         return true;
-    }
 
-    if(LocateAttributePrimitive(AttributeName, HoudiniAttributeObject))
-    {
+    if ( LocateAttributePrimitive( AttributeName, HoudiniAttributeObject ) )
         return true;
-    }
 
-    if(LocateAttributeDetail(AttributeName, HoudiniAttributeObject))
-    {
+    if ( LocateAttributeDetail( AttributeName, HoudiniAttributeObject ) )
         return true;
-    }
 
     return false;
 }
 
-
 bool
-FHoudiniRawMesh::LocateAttributePoint(const FString& AttributeName,
-    FHoudiniAttributeObject& HoudiniAttributeObject) const
+FHoudiniRawMesh::LocateAttributePoint(
+    const FString & AttributeName, FHoudiniAttributeObject & HoudiniAttributeObject) const
 {
-    const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesPoint.Find(AttributeName);
-    if(FoundHoudiniAttributeObject)
+    const FHoudiniAttributeObject * FoundHoudiniAttributeObject = AttributesPoint.Find( AttributeName );
+    if ( FoundHoudiniAttributeObject )
     {
         HoudiniAttributeObject = *FoundHoudiniAttributeObject;
         return true;
@@ -170,13 +146,12 @@ FHoudiniRawMesh::LocateAttributePoint(const FString& AttributeName,
     return false;
 }
 
-
 bool
-FHoudiniRawMesh::LocateAttributeVertex(const FString& AttributeName,
-    FHoudiniAttributeObject& HoudiniAttributeObject) const
+FHoudiniRawMesh::LocateAttributeVertex(
+    const FString & AttributeName, FHoudiniAttributeObject & HoudiniAttributeObject ) const
 {
-    const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesVertex.Find(AttributeName);
-    if(FoundHoudiniAttributeObject)
+    const FHoudiniAttributeObject * FoundHoudiniAttributeObject = AttributesVertex.Find( AttributeName );
+    if ( FoundHoudiniAttributeObject )
     {
         HoudiniAttributeObject = *FoundHoudiniAttributeObject;
         return true;
@@ -185,13 +160,12 @@ FHoudiniRawMesh::LocateAttributeVertex(const FString& AttributeName,
     return false;
 }
 
-
 bool
-FHoudiniRawMesh::LocateAttributePrimitive(const FString& AttributeName,
-    FHoudiniAttributeObject& HoudiniAttributeObject) const
+FHoudiniRawMesh::LocateAttributePrimitive(
+    const FString & AttributeName, FHoudiniAttributeObject & HoudiniAttributeObject ) const
 {
-    const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesPrimitive.Find(AttributeName);
-    if(FoundHoudiniAttributeObject)
+    const FHoudiniAttributeObject * FoundHoudiniAttributeObject = AttributesPrimitive.Find( AttributeName );
+    if ( FoundHoudiniAttributeObject )
     {
         HoudiniAttributeObject = *FoundHoudiniAttributeObject;
         return true;
@@ -200,13 +174,12 @@ FHoudiniRawMesh::LocateAttributePrimitive(const FString& AttributeName,
     return false;
 }
 
-
 bool
-FHoudiniRawMesh::LocateAttributeDetail(const FString& AttributeName,
-    FHoudiniAttributeObject& HoudiniAttributeObject) const
+FHoudiniRawMesh::LocateAttributeDetail(
+    const FString & AttributeName, FHoudiniAttributeObject & HoudiniAttributeObject ) const
 {
-    const FHoudiniAttributeObject* FoundHoudiniAttributeObject = AttributesDetail.Find(AttributeName);
-    if(FoundHoudiniAttributeObject)
+    const FHoudiniAttributeObject * FoundHoudiniAttributeObject = AttributesDetail.Find( AttributeName );
+    if ( FoundHoudiniAttributeObject )
     {
         HoudiniAttributeObject = *FoundHoudiniAttributeObject;
         return true;
@@ -214,21 +187,20 @@ FHoudiniRawMesh::LocateAttributeDetail(const FString& AttributeName,
 
     return false;
 }
-
 
 bool
 FHoudiniRawMesh::HapiRefetch()
 {
-    FHoudiniGeoPartObject HoudiniGeoPartObject(AssetId, ObjectId, GeoId, PartId);
+    FHoudiniGeoPartObject HoudiniGeoPartObject( AssetId, ObjectId, GeoId, PartId );
 
-    if(!HoudiniGeoPartObject.HapiGetVertices(AssetId, Vertices))
+    if ( !HoudiniGeoPartObject.HapiGetVertices( AssetId, Vertices ) )
     {
         ResetAttributesAndVertices();
         return false;
     }
 
-    if(!HoudiniGeoPartObject.HapiGetAllAttributeObjects(AttributesPoint, AttributesVertex, AttributesPrimitive,
-        AttributesDetail))
+    if ( !HoudiniGeoPartObject.HapiGetAllAttributeObjects(
+        AttributesPoint, AttributesVertex, AttributesPrimitive, AttributesDetail ) )
     {
         ResetAttributesAndVertices();
         return false;
@@ -237,40 +209,33 @@ FHoudiniRawMesh::HapiRefetch()
     return true;
 }
 
-
 bool
-FHoudiniRawMesh::HapiGetVertexPositions(TArray<FVector>& VertexPositions, float GeometryScale, bool bSwapYZAxis) const
+FHoudiniRawMesh::HapiGetVertexPositions( TArray< FVector > & VertexPositions, float GeometryScale, bool bSwapYZAxis ) const
 {
     VertexPositions.Empty();
 
     FHoudiniAttributeObject HoudiniAttributeObject;
 
     // Position attribute is always on a point.
-    if(!LocateAttributePoint(TEXT(HAPI_UNREAL_ATTRIB_POSITION), HoudiniAttributeObject))
-    {
+    if ( !LocateAttributePoint( TEXT( HAPI_UNREAL_ATTRIB_POSITION ), HoudiniAttributeObject ) )
         return false;
-    }
 
     // We now need to fetch attribute data.
-    TArray<float> PositionValues;
+    TArray< float > PositionValues;
     int32 TupleSize = 0;
-    if(!HoudiniAttributeObject.HapiGetValues(PositionValues, TupleSize))
-    {
+    if ( !HoudiniAttributeObject.HapiGetValues( PositionValues, TupleSize ) )
         return false;
-    }
 
-    if(!PositionValues.Num())
-    {
+    if ( !PositionValues.Num() )
         return false;
-    }
 
-    if(3 == TupleSize)
+    if ( TupleSize == 3 )
     {
         int PositionEntries = PositionValues.Num() / 3;
-        VertexPositions.SetNumUninitialized(PositionEntries);
+        VertexPositions.SetNumUninitialized( PositionEntries );
 
         // We can do direct memory transfer.
-        FMemory::Memcpy(VertexPositions.GetData(), PositionValues.GetData(), VertexPositions.Num() * sizeof(FVector));
+        FMemory::Memcpy( VertexPositions.GetData(), PositionValues.GetData(), VertexPositions.Num() * sizeof( FVector ) );
     }
     else
     {
@@ -278,67 +243,55 @@ FHoudiniRawMesh::HapiGetVertexPositions(TArray<FVector>& VertexPositions, float 
         return false;
     }
 
-    for(int32 Idx = 0, Num = VertexPositions.Num(); Idx < Num; ++Idx)
+    for ( int32 Idx = 0, Num = VertexPositions.Num(); Idx < Num; ++Idx )
     {
-        FVector& VertexPosition = VertexPositions[Idx];
+        FVector & VertexPosition = VertexPositions[ Idx ];
         VertexPosition *= GeometryScale;
 
-        if(bSwapYZAxis)
-        {
-            Swap(VertexPosition.Y, VertexPosition.Z);
-        }
+        if ( bSwapYZAxis )
+            Swap( VertexPosition.Y, VertexPosition.Z );
     }
 
     return true;
 }
 
-
 bool
-FHoudiniRawMesh::HapiGetVertexColors(TArray<FColor>& VertexColors) const
+FHoudiniRawMesh::HapiGetVertexColors( TArray< FColor > & VertexColors ) const
 {
     VertexColors.Empty();
 
     FHoudiniAttributeObject HoudiniAttributeObject;
 
     // Colors can be on any attribute.
-    if(!LocateAttribute(TEXT(HAPI_UNREAL_ATTRIB_COLOR), HoudiniAttributeObject))
-    {
+    if ( !LocateAttribute( TEXT( HAPI_UNREAL_ATTRIB_COLOR ), HoudiniAttributeObject ) )
         return false;
-    }
 
-    TArray<float> ColorValues;
+    TArray< float > ColorValues;
     int32 TupleSize = 0;
 
-    if(!HoudiniAttributeObject.HapiGetValuesAsVertex(Vertices, ColorValues, TupleSize))
-    {
+    if ( !HoudiniAttributeObject.HapiGetValuesAsVertex( Vertices, ColorValues, TupleSize ) )
         return false;
-    }
 
-    if(!ColorValues.Num())
-    {
+    if ( !ColorValues.Num() )
         return false;
-    }
 
-    if(3 == TupleSize || 4 == TupleSize)
+    if ( TupleSize == 3 || TupleSize == 4 )
     {
         int32 ColorCount = ColorValues.Num() / TupleSize;
-        VertexColors.SetNumUninitialized(ColorCount);
+        VertexColors.SetNumUninitialized( ColorCount );
 
-        for(int32 Idx = 0; Idx < ColorCount; ++Idx)
+        for ( int32 Idx = 0; Idx < ColorCount; ++Idx )
         {
             FLinearColor WedgeColor;
 
-            WedgeColor.R =
-                FMath::Clamp(ColorValues[Idx * TupleSize + 0], 0.0f, 1.0f);
-            WedgeColor.G =
-                FMath::Clamp(ColorValues[Idx * TupleSize + 1], 0.0f, 1.0f);
-            WedgeColor.B =
-                FMath::Clamp(ColorValues[Idx * TupleSize + 2], 0.0f, 1.0f);
+            WedgeColor.R = FMath::Clamp( ColorValues[ Idx * TupleSize + 0 ], 0.0f, 1.0f );
+            WedgeColor.G = FMath::Clamp( ColorValues[ Idx * TupleSize + 1 ], 0.0f, 1.0f );
+            WedgeColor.B = FMath::Clamp( ColorValues[ Idx * TupleSize + 2 ], 0.0f, 1.0f );
 
-            if(4 == TupleSize)
+            if ( TupleSize == 4 )
             {
                 // We have alpha.
-                WedgeColor.A = FMath::Clamp(ColorValues[Idx * TupleSize + 3], 0.0f, 1.0f);
+                WedgeColor.A = FMath::Clamp( ColorValues[ Idx * TupleSize + 3 ], 0.0f, 1.0f );
             }
             else
             {
@@ -346,7 +299,7 @@ FHoudiniRawMesh::HapiGetVertexColors(TArray<FColor>& VertexColors) const
             }
 
             // Convert linear color to fixed color.
-            VertexColors[Idx] = WedgeColor.ToFColor(false);
+            VertexColors[ Idx ] = WedgeColor.ToFColor( false );
         }
     }
     else
@@ -358,47 +311,40 @@ FHoudiniRawMesh::HapiGetVertexColors(TArray<FColor>& VertexColors) const
     return true;
 }
 
-
 bool
-FHoudiniRawMesh::HapiGetVertexNormals(TArray<FVector>& VertexNormals, bool bSwapYZAxis) const
+FHoudiniRawMesh::HapiGetVertexNormals( TArray< FVector > & VertexNormals, bool bSwapYZAxis ) const
 {
     VertexNormals.Empty();
 
     FHoudiniAttributeObject HoudiniAttributeObject;
 
     // Colors can be on any attribute.
-    if(!LocateAttribute(TEXT(HAPI_UNREAL_ATTRIB_NORMAL), HoudiniAttributeObject))
-    {
+    if ( !LocateAttribute( TEXT( HAPI_UNREAL_ATTRIB_NORMAL ), HoudiniAttributeObject ) )
         return false;
-    }
 
-    TArray<float> NormalValues;
+    TArray< float > NormalValues;
     int32 TupleSize = 0;
 
-    if(!HoudiniAttributeObject.HapiGetValuesAsVertex(Vertices, NormalValues, TupleSize))
-    {
+    if ( !HoudiniAttributeObject.HapiGetValuesAsVertex( Vertices, NormalValues, TupleSize ) )
         return false;
-    }
 
-    if(!NormalValues.Num())
-    {
+    if ( !NormalValues.Num() )
         return false;
-    }
 
-    if(3 == TupleSize)
+    if ( TupleSize == 3)
     {
         int32 NormalCount = NormalValues.Num() / 3;
-        VertexNormals.SetNumUninitialized(NormalCount);
+        VertexNormals.SetNumUninitialized( NormalCount );
 
         // We can do direct memory transfer.
-        FMemory::Memcpy(VertexNormals.GetData(), NormalValues.GetData(), VertexNormals.Num() * sizeof(FVector));
+        FMemory::Memcpy( VertexNormals.GetData(), NormalValues.GetData(), VertexNormals.Num() * sizeof( FVector ) );
 
-        if(bSwapYZAxis)
+        if ( bSwapYZAxis )
         {
-            for(int32 Idx = 0; Idx < NormalCount; ++Idx)
+            for ( int32 Idx = 0; Idx < NormalCount; ++Idx )
             {
-                FVector& NormalVector = VertexNormals[Idx];
-                Swap(NormalVector.Y, NormalVector.Z);
+                FVector& NormalVector = VertexNormals[ Idx ];
+                Swap( NormalVector.Y, NormalVector.Z );
             }
         }
     }
@@ -411,9 +357,8 @@ FHoudiniRawMesh::HapiGetVertexNormals(TArray<FVector>& VertexNormals, bool bSwap
     return true;
 }
 
-
 bool
-FHoudiniRawMesh::HapiGetVertexUVs(TMap<int32, TArray<FVector2D> >& VertexUVs, bool bPatchUVAxis) const
+FHoudiniRawMesh::HapiGetVertexUVs( TMap< int32, TArray< FVector2D > >& VertexUVs, bool bPatchUVAxis ) const
 {
     VertexUVs.Empty();
 
@@ -421,52 +366,44 @@ FHoudiniRawMesh::HapiGetVertexUVs(TMap<int32, TArray<FVector2D> >& VertexUVs, bo
     FHoudiniAttributeObject HoudiniAttributeObject;
 
     // Layer SOP supports up to 16 channels.
-    for(int32 UVChannelIdx = 0; UVChannelIdx < 16; ++UVChannelIdx)
+    for ( int32 UVChannelIdx = 0; UVChannelIdx < 16; ++UVChannelIdx )
     {
-        FString UVAttributeName = TEXT(HAPI_UNREAL_ATTRIB_UV);
+        FString UVAttributeName = TEXT( HAPI_UNREAL_ATTRIB_UV );
 
-        if(UVChannelIdx > 0)
-        {
-            UVAttributeName = FString::Printf(TEXT("%s%d"), *UVAttributeName, (UVChannelIdx + 1));
-        }
+        if ( UVChannelIdx > 0 )
+            UVAttributeName = FString::Printf( TEXT( "%s%d" ), *UVAttributeName, UVChannelIdx + 1 );
 
         // Colors can be on any attribute.
-        if(!LocateAttribute(UVAttributeName, HoudiniAttributeObject))
-        {
+        if ( !LocateAttribute( UVAttributeName, HoudiniAttributeObject ) )
             continue;
-        }
 
-        TArray<float> UVValues;
+        TArray< float > UVValues;
         int32 TupleSize = 0;
 
-        if(!HoudiniAttributeObject.HapiGetValuesAsVertex(Vertices, UVValues, TupleSize))
-        {
+        if ( !HoudiniAttributeObject.HapiGetValuesAsVertex( Vertices, UVValues, TupleSize ) )
             continue;
-        }
 
-        if(!UVValues.Num() || !TupleSize)
-        {
+        if ( !UVValues.Num() || !TupleSize )
             continue;
-        }
 
         int32 UVCount = UVValues.Num() / TupleSize;
-        TArray<FVector2D> UVs;
-        UVs.SetNumUninitialized(UVCount);
+        TArray< FVector2D > UVs;
+        UVs.SetNumUninitialized( UVCount );
 
-        if(2 == TupleSize)
+        if ( TupleSize == 2 )
         {
             // We can do direct memory transfer.
-            FMemory::Memcpy(UVs.GetData(), UVValues.GetData(), UVs.Num() * sizeof(FVector2D));
+            FMemory::Memcpy( UVs.GetData(), UVValues.GetData(), UVs.Num() * sizeof( FVector2D ) );
             
             bFoundUVs = true;
         }
-        else if(3 == TupleSize)
+        else if ( TupleSize == 3 )
         {
-            for(int32 Idx = 0; Idx < UVCount; ++Idx)
+            for ( int32 Idx = 0; Idx < UVCount; ++Idx )
             {
                 // Ignore 3rd coordinate.
-                FVector2D UVPoint(UVValues[Idx * TupleSize + 0], UVValues[Idx * TupleSize + 1]);
-                UVs[Idx] = UVPoint;
+                FVector2D UVPoint( UVValues[ Idx * TupleSize + 0 ], UVValues[ Idx * TupleSize + 1 ] );
+                UVs[ Idx ] = UVPoint;
             }
 
             bFoundUVs = true;
@@ -476,16 +413,16 @@ FHoudiniRawMesh::HapiGetVertexUVs(TMap<int32, TArray<FVector2D> >& VertexUVs, bo
             continue;
         }
 
-        if(bPatchUVAxis)
+        if ( bPatchUVAxis )
         {
-            for(int32 Idx = 0; Idx < UVCount; ++Idx)
+            for ( int32 Idx = 0; Idx < UVCount; ++Idx )
             {
-                FVector2D& WedgeUV = UVs[Idx];
+                FVector2D & WedgeUV = UVs[ Idx ];
                 WedgeUV.Y = 1.0f - WedgeUV.Y;
             }
         }
 
-        VertexUVs.Add(UVChannelIdx, UVs);
+        VertexUVs.Add( UVChannelIdx, UVs );
     }
 
     return bFoundUVs;

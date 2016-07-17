@@ -15,24 +15,23 @@
 
 #pragma once
 
-
 struct HOUDINIENGINERUNTIME_API FHoudiniInputObject
 {
-public:
+    public:
 
-    FHoudiniInputObject(int32 InInputIndex);
-    FHoudiniInputObject(const FHoudiniInputObject& HoudiniInputObject);
+        FHoudiniInputObject( int32 InInputIndex );
+        FHoudiniInputObject( const FHoudiniInputObject & HoudiniInputObject );
 
-protected:
+    protected:
 
-    /** Index of this input. **/
-    int32 InputIndex;
+        /** Index of this input. **/
+        int32 InputIndex;
 
-protected:
+    protected:
 
-    /** Flags used by input object. **/
-    uint32 HoudiniInputObjectFlagsPacked;
+        /** Flags used by input object. **/
+        uint32 HoudiniInputObjectFlagsPacked;
 
-    /** Temporary variable holding serialization version. **/
-    uint32 HoudiniInputObjectVersion;
+        /** Temporary variable holding serialization version. **/
+        uint32 HoudiniInputObjectVersion;
 };
