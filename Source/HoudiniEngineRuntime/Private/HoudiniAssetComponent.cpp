@@ -223,25 +223,26 @@ SAssetSelectionWidget::OnButtonCancel()
 
 
 // Macro to update given property on all components.
-#define HOUDINI_UPDATE_ALL_CHILD_COMPONENTS(COMPONENT_CLASS, PROPERTY)                                      \
-    do                                                                                                      \
-    {                                                                                                       \
-        TArray<UActorComponent*> ReregisterComponents;                                                      \
-        for(TArray<USceneComponent*>::TIterator Iter(AttachChildren); Iter; ++Iter)                         \
-        {                                                                                                   \
-            COMPONENT_CLASS* Component = Cast<COMPONENT_CLASS>(*Iter);                                      \
-            if(Component)                                                                                   \
-            {                                                                                               \
-                Component->PROPERTY = PROPERTY;                                                             \
-                ReregisterComponents.Add(Component);                                                        \
-            }                                                                                               \
-        }                                                                                                   \
-                                                                                                            \
-        if(ReregisterComponents.Num() > 0)                                                                  \
-        {                                                                                                   \
-            FMultiComponentReregisterContext MultiComponentReregisterContext(ReregisterComponents);         \
-        }                                                                                                   \
-    }                                                                                                       \
+#define HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( COMPONENT_CLASS, PROPERTY ) \
+    do \
+    { \
+        TArray< UActorComponent * > ReregisterComponents; \
+        const auto & LocalAttachChildren = GetAttachChildren(); \
+        for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter ) \
+        { \
+            COMPONENT_CLASS * Component = Cast< COMPONENT_CLASS >( *Iter ); \
+            if ( Component ) \
+            { \
+                Component->PROPERTY = PROPERTY; \
+                ReregisterComponents.Add( Component ); \
+            } \
+        } \
+    \
+        if ( ReregisterComponents.Num() > 0 ) \
+        { \
+            FMultiComponentReregisterContext MultiComponentReregisterContext( ReregisterComponents ); \
+        } \
+    } \
     while( 0 )
 
 bool
@@ -686,7 +687,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 StaticMeshComponents.Add( StaticMesh, StaticMeshComponent );
 
                 // Attach created static mesh component to our Houdini component.
-                StaticMeshComponent->AttachTo( this, NAME_None, EAttachLocation::KeepRelativeOffset );
+                StaticMeshComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
 
                 StaticMeshComponent->SetStaticMesh( StaticMesh );
                 StaticMeshComponent->SetVisibility( true );
@@ -753,11 +754,8 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
                 // Detach and destroy the component.
                 UStaticMeshComponent * StaticMeshComponent = *FoundStaticMeshComponent;
                 StaticMeshComponent->UnregisterComponent();
-                StaticMeshComponent->DetachFromParent();
+                StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
                 StaticMeshComponent->DestroyComponent();
-
-                // Remove this component from the list of attached components.
-                AttachChildren.Remove( StaticMeshComponent );
             }
         }
 
@@ -1799,7 +1797,8 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
     if ( Property->GetName() == TEXT( "Mobility" ) )
     {
         // Mobility was changed, we need to update it for all attached components as well.
-        for ( TArray< USceneComponent * >::TIterator Iter( AttachChildren ); Iter; ++Iter)
+        const auto & LocalAttachChildren = GetAttachChildren();
+        for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter)
         {
             USceneComponent * SceneComponent = *Iter;
             SceneComponent->SetMobility( Mobility );
@@ -1884,16 +1883,20 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
 void
 UHoudiniAssetComponent::RemoveAllAttachedComponents()
 {
-    while( AttachChildren.Num() != 0 )
+    while ( true )
     {
-        USceneComponent * Component = AttachChildren[ AttachChildren.Num() - 1 ];
+        const int32 ChildCount = GetAttachChildren().Num();
+        if ( ChildCount <= 0 )
+            break;
 
-        Component->DetachFromParent();
+        USceneComponent * Component = GetAttachChildren()[ ChildCount - 1 ];
+
+        Component->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         Component->UnregisterComponent();
         Component->DestroyComponent();
     }
 
-    AttachChildren.Empty();
+    check( GetAttachChildren().Num() == 0 );
 }
 
 void
@@ -2147,17 +2150,19 @@ UHoudiniAssetComponent::CalcBounds( const FTransform & LocalToWorld ) const
 {
     FBoxSphereBounds Bounds;
 
-    if ( AttachChildren.Num() == 0 )
+    const auto & LocalAttachedChildren = GetAttachChildren();
+
+    if ( LocalAttachedChildren.Num() == 0 )
         Bounds = FBoxSphereBounds( FBox(
             -FVector( 1.0f, 1.0f, 1.0f ) * HALF_WORLD_MAX,
             FVector( 1.0f, 1.0f, 1.0f ) * HALF_WORLD_MAX ) );
-    else if ( AttachChildren[ 0 ] )
-        Bounds = AttachChildren[ 0 ]->CalcBounds( LocalToWorld );
+    else if ( LocalAttachedChildren[ 0 ] )
+        Bounds = LocalAttachedChildren[ 0 ]->CalcBounds( LocalToWorld );
 
-    for ( int32 Idx = 1; Idx < AttachChildren.Num(); ++Idx )
+    for ( int32 Idx = 1; Idx < LocalAttachedChildren.Num(); ++Idx )
     {
-        if ( AttachChildren[ Idx ] )
-            Bounds = Bounds + AttachChildren[ Idx ]->CalcBounds( LocalToWorld );
+        if ( LocalAttachedChildren[ Idx ] )
+            Bounds = Bounds + LocalAttachedChildren[ Idx ]->CalcBounds( LocalToWorld );
     }
 
     return Bounds;
@@ -2200,7 +2205,8 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
 
     // Update physics representation right away.
     RecreatePhysicsState();
-    for ( TArray< USceneComponent * >::TIterator Iter( AttachChildren ); Iter; ++Iter )
+    const auto & LocalAttachChildren = GetAttachChildren();
+    for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
     {
         USceneComponent * SceneComponent = *Iter;
         SceneComponent->RecreatePhysicsState();
@@ -2217,21 +2223,21 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
     {
         UStaticMeshComponent * StaticMeshComponent = Iter.Value();
         if ( StaticMeshComponent )
-            StaticMeshComponent->AttachTo( this, NAME_None, EAttachLocation::KeepRelativeOffset );
+            StaticMeshComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
     for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
         UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
         if( HoudiniSplineComponent )
-            HoudiniSplineComponent->AttachTo( this, NAME_None, EAttachLocation::KeepRelativeOffset );
+            HoudiniSplineComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 
     for ( TMap< FString, UHoudiniHandleComponent * >::TIterator Iter( HandleComponents ); Iter; ++Iter )
     {
         UHoudiniHandleComponent * HoudiniHandleComponent = Iter.Value();
         if ( HoudiniHandleComponent )
-            HoudiniHandleComponent->AttachTo( this, NAME_None, EAttachLocation::KeepRelativeOffset );
+            HoudiniHandleComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
 }
 
@@ -2404,7 +2410,8 @@ UHoudiniAssetComponent::PostLoad()
     // Update static mobility.
     if ( Mobility == EComponentMobility::Static )
     {
-        for ( TArray< USceneComponent * >::TIterator Iter( AttachChildren ); Iter; ++Iter )
+        const auto & LocalAttachChildren = GetAttachChildren();
+        for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
         {
             USceneComponent * SceneComponent = *Iter;
             SceneComponent->SetMobility( EComponentMobility::Static );
@@ -2720,7 +2727,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
             if ( HoudiniGeoPartObject.IsCollidable() )
                 DuplicatedComponent->SetVisibility( false );
 
-            DuplicatedComponent->AttachTo( RootComponent );
+            DuplicatedComponent->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepRelativeTransform );
             DuplicatedComponent->RegisterComponent();
         }
     }
@@ -2969,8 +2976,8 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
         }
 
         // If we have no parent, we need to re-attach.
-        if ( !HoudiniSplineComponent->AttachParent )
-            HoudiniSplineComponent->AttachTo( this, NAME_None, EAttachLocation::KeepRelativeOffset );
+        if ( !HoudiniSplineComponent->GetAttachParent() )
+            HoudiniSplineComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
 
         HoudiniSplineComponent->SetVisibility( true );
 
@@ -3431,8 +3438,8 @@ UHoudiniAssetComponent::CreateHandles()
                 continue;
 
             // If we have no parent, we need to re-attach.
-            if ( !HandleComponent->AttachParent )
-                HandleComponent->AttachTo( this, NAME_None, EAttachLocation::KeepRelativeOffset );
+            if ( !HandleComponent->GetAttachParent() )
+                HandleComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
 
             HandleComponent->SetVisibility( true );
 
@@ -3655,12 +3662,9 @@ UHoudiniAssetComponent::ClearCurves()
     {
         UHoudiniSplineComponent * SplineComponent = Iter.Value();
 
-        SplineComponent->DetachFromParent();
+        SplineComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         SplineComponent->UnregisterComponent();
         SplineComponent->DestroyComponent();
-
-        // Remove this component from the list of attached components.
-        AttachChildren.Remove( SplineComponent );
     }
 
     SplineComponents.Empty();
@@ -3686,12 +3690,9 @@ UHoudiniAssetComponent::ClearHandles()
     {
         UHoudiniHandleComponent * HandleComponent = NameToComponent.Value;
 
-        HandleComponent->DetachFromParent();
+        HandleComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         HandleComponent->UnregisterComponent();
         HandleComponent->DestroyComponent();
-
-        // Remove this component from the list of attached components.
-        AttachChildren.Remove(HandleComponent);
     }
 
     HandleComponents.Empty();
@@ -3890,7 +3891,7 @@ UHoudiniAssetComponent::RemoveStaticMeshComponent( UStaticMesh * StaticMesh )
         UStaticMeshComponent * StaticMeshComponent = *FoundStaticMeshComponent;
         if ( StaticMeshComponent )
         {
-            StaticMeshComponent->DetachFromParent();
+            StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
             StaticMeshComponent->UnregisterComponent();
             StaticMeshComponent->DestroyComponent();
         }

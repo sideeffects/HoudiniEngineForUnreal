@@ -318,7 +318,7 @@ FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
         else
         {
             UHoudiniAssetComponent * HoudiniAssetComponent =
-                Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->AttachParent );
+                Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->GetAttachParent() );
 
             if ( HoudiniAssetComponent )
                 HoudiniAssetComponent->NotifyHoudiniSplineChanged( EditedHoudiniSplineComponent );
@@ -335,7 +335,7 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified( int32 PointIndex, co
     if ( EditedHoudiniSplineComponent )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent =
-            Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->AttachParent );
+            Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->GetAttachParent() );
 
         FScopedTransaction Transaction( TEXT( HOUDINI_MODULE_EDITOR ),
             LOCTEXT( "HoudiniSplineComponentChange", "Houdini Spline Component: Moving a point" ),
@@ -401,7 +401,7 @@ FHoudiniSplineComponentVisualizer::OnDeleteControlPoint()
     if ( EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE )
     {
         UHoudiniAssetComponent * HoudiniAssetComponent =
-            Cast< UHoudiniAssetComponent >(EditedHoudiniSplineComponent->AttachParent );
+            Cast< UHoudiniAssetComponent >(EditedHoudiniSplineComponent->GetAttachParent() );
 
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_EDITOR ),
@@ -450,7 +450,7 @@ FHoudiniSplineComponentVisualizer::AddControlPoint( const FVector & NewPoint )
     }
 
     UHoudiniAssetComponent * HoudiniAssetComponent =
-        Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->AttachParent );
+        Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->GetAttachParent() );
 
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_EDITOR ),
