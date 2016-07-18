@@ -66,7 +66,9 @@ public:
 	typedef HAPI_Result (*DisconnectAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx);
 	typedef HAPI_Result (*DisconnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
 	typedef HAPI_Result (*ExtractImageToFileFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
+	typedef HAPI_Result (*ExtractImageToFileOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
 	typedef HAPI_Result (*ExtractImageToMemoryFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, int * buffer_size);
+	typedef HAPI_Result (*ExtractImageToMemoryOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, int * buffer_size);
 	typedef HAPI_Result (*GetActiveCacheCountFuncPtr)(const HAPI_Session * session, int * active_cache_count);
 	typedef HAPI_Result (*GetActiveCacheNamesFuncPtr)(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
 	typedef HAPI_Result (*GetAssetInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info);
@@ -103,6 +105,7 @@ public:
 	typedef HAPI_Result (*GetCurveKnotsOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * knots_array, int start, int length);
 	typedef HAPI_Result (*GetCurveOrdersFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length);
 	typedef HAPI_Result (*GetCurveOrdersOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * orders_array, int start, int length);
+	typedef HAPI_Result (*GetDisplayGeoInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId object_node_id, HAPI_GeoInfo * geo_info);
 	typedef HAPI_Result (*GetEnvIntFuncPtr)(HAPI_EnvIntType int_type, int * value);
 	typedef HAPI_Result (*GetFaceCountsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts_array, int start, int length);
 	typedef HAPI_Result (*GetFaceCountsOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * face_counts_array, int start, int length);
@@ -119,9 +122,13 @@ public:
 	typedef HAPI_Result (*GetHandleBindingInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	typedef HAPI_Result (*GetHandleInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	typedef HAPI_Result (*GetImageInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ImageInfo * image_info);
+	typedef HAPI_Result (*GetImageInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info);
 	typedef HAPI_Result (*GetImageMemoryBufferFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int length);
+	typedef HAPI_Result (*GetImageMemoryBufferOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, char * buffer, int length);
 	typedef HAPI_Result (*GetImagePlaneCountFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, int * image_plane_count);
+	typedef HAPI_Result (*GetImagePlaneCountOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, int * image_plane_count);
 	typedef HAPI_Result (*GetImagePlanesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_StringHandle * image_planes_array, int image_plane_count);
+	typedef HAPI_Result (*GetImagePlanesOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_StringHandle * image_planes_array, int image_plane_count);
 	typedef HAPI_Result (*GetInputNameFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, HAPI_InputType input_type, HAPI_StringHandle * name);
 	typedef HAPI_Result (*GetInstanceTransformsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
@@ -131,8 +138,12 @@ public:
 	typedef HAPI_Result (*GetManagerNodeIdFuncPtr)(const HAPI_Session * session, HAPI_NodeType node_type, HAPI_NodeId * node_id);
 	typedef HAPI_Result (*GetMaterialIdsOnFacesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids_array, int start, int length);
 	typedef HAPI_Result (*GetMaterialInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info);
+	typedef HAPI_Result (*GetMaterialInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_MaterialInfo * material_info);
+	typedef HAPI_Result (*GetMaterialNodeIdsOnFacesFuncPtr)(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_NodeId * material_ids_array, int start, int length);
 	typedef HAPI_Result (*GetMaterialOnGroupFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info);
+	typedef HAPI_Result (*GetMaterialOnGroupOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId geometry_node_id, const char * group_name, HAPI_MaterialInfo * material_info);
 	typedef HAPI_Result (*GetMaterialOnPartFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
+	typedef HAPI_Result (*GetMaterialOnPartOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
 	typedef HAPI_Result (*GetNewAssetIdsFuncPtr)(const HAPI_Session * session, HAPI_AssetId * asset_ids_array, int new_asset_count);
 	typedef HAPI_Result (*GetNextVolumeTileFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	typedef HAPI_Result (*GetNextVolumeTileOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
@@ -202,6 +213,7 @@ public:
 	typedef HAPI_Result (*RemoveMultiparmInstanceFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	typedef HAPI_Result (*RenameNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
 	typedef HAPI_Result (*RenderTextureToImageFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ParmId parm_id);
+	typedef HAPI_Result (*RenderTextureToImageOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id);
 	typedef HAPI_Result (*ResetSimulationFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id);
 	typedef HAPI_Result (*RevertGeoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
 	typedef HAPI_Result (*RevertGeoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
@@ -236,6 +248,7 @@ public:
 	typedef HAPI_Result (*SetGroupMembershipFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	typedef HAPI_Result (*SetGroupMembershipOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	typedef HAPI_Result (*SetImageInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const HAPI_ImageInfo * image_info);
+	typedef HAPI_Result (*SetImageInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const HAPI_ImageInfo * image_info);
 	typedef HAPI_Result (*SetObjectTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, const HAPI_TransformEuler * transform);
 	typedef HAPI_Result (*SetObjectTransformOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_TransformEuler * trans);
 	typedef HAPI_Result (*SetParmFloatValueFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float value);
@@ -303,7 +316,9 @@ public:
 	static DisconnectAssetTransformFuncPtr DisconnectAssetTransform;
 	static DisconnectNodeInputFuncPtr DisconnectNodeInput;
 	static ExtractImageToFileFuncPtr ExtractImageToFile;
+	static ExtractImageToFileOnNodeFuncPtr ExtractImageToFileOnNode;
 	static ExtractImageToMemoryFuncPtr ExtractImageToMemory;
+	static ExtractImageToMemoryOnNodeFuncPtr ExtractImageToMemoryOnNode;
 	static GetActiveCacheCountFuncPtr GetActiveCacheCount;
 	static GetActiveCacheNamesFuncPtr GetActiveCacheNames;
 	static GetAssetInfoFuncPtr GetAssetInfo;
@@ -340,6 +355,7 @@ public:
 	static GetCurveKnotsOnNodeFuncPtr GetCurveKnotsOnNode;
 	static GetCurveOrdersFuncPtr GetCurveOrders;
 	static GetCurveOrdersOnNodeFuncPtr GetCurveOrdersOnNode;
+	static GetDisplayGeoInfoFuncPtr GetDisplayGeoInfo;
 	static GetEnvIntFuncPtr GetEnvInt;
 	static GetFaceCountsFuncPtr GetFaceCounts;
 	static GetFaceCountsOnNodeFuncPtr GetFaceCountsOnNode;
@@ -356,9 +372,13 @@ public:
 	static GetHandleBindingInfoFuncPtr GetHandleBindingInfo;
 	static GetHandleInfoFuncPtr GetHandleInfo;
 	static GetImageInfoFuncPtr GetImageInfo;
+	static GetImageInfoOnNodeFuncPtr GetImageInfoOnNode;
 	static GetImageMemoryBufferFuncPtr GetImageMemoryBuffer;
+	static GetImageMemoryBufferOnNodeFuncPtr GetImageMemoryBufferOnNode;
 	static GetImagePlaneCountFuncPtr GetImagePlaneCount;
+	static GetImagePlaneCountOnNodeFuncPtr GetImagePlaneCountOnNode;
 	static GetImagePlanesFuncPtr GetImagePlanes;
+	static GetImagePlanesOnNodeFuncPtr GetImagePlanesOnNode;
 	static GetInputNameFuncPtr GetInputName;
 	static GetInstanceTransformsFuncPtr GetInstanceTransforms;
 	static GetInstancedPartIdsFuncPtr GetInstancedPartIds;
@@ -368,8 +388,12 @@ public:
 	static GetManagerNodeIdFuncPtr GetManagerNodeId;
 	static GetMaterialIdsOnFacesFuncPtr GetMaterialIdsOnFaces;
 	static GetMaterialInfoFuncPtr GetMaterialInfo;
+	static GetMaterialInfoOnNodeFuncPtr GetMaterialInfoOnNode;
+	static GetMaterialNodeIdsOnFacesFuncPtr GetMaterialNodeIdsOnFaces;
 	static GetMaterialOnGroupFuncPtr GetMaterialOnGroup;
+	static GetMaterialOnGroupOnNodeFuncPtr GetMaterialOnGroupOnNode;
 	static GetMaterialOnPartFuncPtr GetMaterialOnPart;
+	static GetMaterialOnPartOnNodeFuncPtr GetMaterialOnPartOnNode;
 	static GetNewAssetIdsFuncPtr GetNewAssetIds;
 	static GetNextVolumeTileFuncPtr GetNextVolumeTile;
 	static GetNextVolumeTileOnNodeFuncPtr GetNextVolumeTileOnNode;
@@ -439,6 +463,7 @@ public:
 	static RemoveMultiparmInstanceFuncPtr RemoveMultiparmInstance;
 	static RenameNodeFuncPtr RenameNode;
 	static RenderTextureToImageFuncPtr RenderTextureToImage;
+	static RenderTextureToImageOnNodeFuncPtr RenderTextureToImageOnNode;
 	static ResetSimulationFuncPtr ResetSimulation;
 	static RevertGeoFuncPtr RevertGeo;
 	static RevertGeoOnNodeFuncPtr RevertGeoOnNode;
@@ -473,6 +498,7 @@ public:
 	static SetGroupMembershipFuncPtr SetGroupMembership;
 	static SetGroupMembershipOnNodeFuncPtr SetGroupMembershipOnNode;
 	static SetImageInfoFuncPtr SetImageInfo;
+	static SetImageInfoOnNodeFuncPtr SetImageInfoOnNode;
 	static SetObjectTransformFuncPtr SetObjectTransform;
 	static SetObjectTransformOnNodeFuncPtr SetObjectTransformOnNode;
 	static SetParmFloatValueFuncPtr SetParmFloatValue;
@@ -540,7 +566,9 @@ public:
 	static HAPI_Result DisconnectAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx);
 	static HAPI_Result DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
 	static HAPI_Result ExtractImageToFileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
+	static HAPI_Result ExtractImageToFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
 	static HAPI_Result ExtractImageToMemoryEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const char * image_file_format_name, const char * image_planes, int * buffer_size);
+	static HAPI_Result ExtractImageToMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, int * buffer_size);
 	static HAPI_Result GetActiveCacheCountEmptyStub(const HAPI_Session * session, int * active_cache_count);
 	static HAPI_Result GetActiveCacheNamesEmptyStub(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
 	static HAPI_Result GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info);
@@ -577,6 +605,7 @@ public:
 	static HAPI_Result GetCurveKnotsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * knots_array, int start, int length);
 	static HAPI_Result GetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * orders_array, int start, int length);
 	static HAPI_Result GetCurveOrdersOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * orders_array, int start, int length);
+	static HAPI_Result GetDisplayGeoInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId object_node_id, HAPI_GeoInfo * geo_info);
 	static HAPI_Result GetEnvIntEmptyStub(HAPI_EnvIntType int_type, int * value);
 	static HAPI_Result GetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, int * face_counts_array, int start, int length);
 	static HAPI_Result GetFaceCountsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * face_counts_array, int start, int length);
@@ -593,9 +622,13 @@ public:
 	static HAPI_Result GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	static HAPI_Result GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	static HAPI_Result GetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ImageInfo * image_info);
+	static HAPI_Result GetImageInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info);
 	static HAPI_Result GetImageMemoryBufferEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int length);
+	static HAPI_Result GetImageMemoryBufferOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, char * buffer, int length);
 	static HAPI_Result GetImagePlaneCountEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, int * image_plane_count);
+	static HAPI_Result GetImagePlaneCountOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, int * image_plane_count);
 	static HAPI_Result GetImagePlanesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_StringHandle * image_planes_array, int image_plane_count);
+	static HAPI_Result GetImagePlanesOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_StringHandle * image_planes_array, int image_plane_count);
 	static HAPI_Result GetInputNameEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, HAPI_InputType input_type, HAPI_StringHandle * name);
 	static HAPI_Result GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	static HAPI_Result GetInstancedPartIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
@@ -605,8 +638,12 @@ public:
 	static HAPI_Result GetManagerNodeIdEmptyStub(const HAPI_Session * session, HAPI_NodeType node_type, HAPI_NodeId * node_id);
 	static HAPI_Result GetMaterialIdsOnFacesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_MaterialId * material_ids_array, int start, int length);
 	static HAPI_Result GetMaterialInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_MaterialInfo * material_info);
+	static HAPI_Result GetMaterialInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_MaterialInfo * material_info);
+	static HAPI_Result GetMaterialNodeIdsOnFacesEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_NodeId * material_ids_array, int start, int length);
 	static HAPI_Result GetMaterialOnGroupEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info);
+	static HAPI_Result GetMaterialOnGroupOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, const char * group_name, HAPI_MaterialInfo * material_info);
 	static HAPI_Result GetMaterialOnPartEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
+	static HAPI_Result GetMaterialOnPartOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
 	static HAPI_Result GetNewAssetIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId * asset_ids_array, int new_asset_count);
 	static HAPI_Result GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	static HAPI_Result GetNextVolumeTileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
@@ -676,6 +713,7 @@ public:
 	static HAPI_Result RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	static HAPI_Result RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
 	static HAPI_Result RenderTextureToImageEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ParmId parm_id);
+	static HAPI_Result RenderTextureToImageOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id);
 	static HAPI_Result ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id);
 	static HAPI_Result RevertGeoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id);
 	static HAPI_Result RevertGeoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
@@ -710,6 +748,7 @@ public:
 	static HAPI_Result SetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	static HAPI_Result SetGroupMembershipOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length);
 	static HAPI_Result SetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, const HAPI_ImageInfo * image_info);
+	static HAPI_Result SetImageInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const HAPI_ImageInfo * image_info);
 	static HAPI_Result SetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, const HAPI_TransformEuler * transform);
 	static HAPI_Result SetObjectTransformOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_TransformEuler * trans);
 	static HAPI_Result SetParmFloatValueEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * parm_name, int index, float value);
