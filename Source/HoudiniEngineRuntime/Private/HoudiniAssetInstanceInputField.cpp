@@ -146,11 +146,8 @@ UHoudiniAssetInstanceInputField::BeginDestroy()
         if ( InstancedStaticMeshComponent )
         {
             InstancedStaticMeshComponent->UnregisterComponent();
-            InstancedStaticMeshComponent->DetachFromParent();
+            InstancedStaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
             InstancedStaticMeshComponent->DestroyComponent();
-
-            if ( HoudiniAssetComponent )
-                HoudiniAssetComponent->AttachChildren.Remove( InstancedStaticMeshComponent );
         }
     }
 
@@ -205,7 +202,8 @@ UHoudiniAssetInstanceInputField::CreateInstancedComponent( int32 VariationIdx )
 
     InstancedStaticMeshComponents[ VariationIdx ]->SetStaticMesh( StaticMesh );
     InstancedStaticMeshComponents[ VariationIdx ]->SetMobility( HoudiniAssetComponent->Mobility );
-    InstancedStaticMeshComponents[ VariationIdx ]->AttachTo( HoudiniAssetComponent );
+    InstancedStaticMeshComponents[ VariationIdx ]->AttachToComponent(
+        HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
     InstancedStaticMeshComponents[ VariationIdx ]->RegisterComponent();
     InstancedStaticMeshComponents[ VariationIdx ]->GetBodyInstance()->bAutoWeld = false;
 
@@ -351,13 +349,10 @@ UHoudiniAssetInstanceInputField::RemoveInstanceVariation( int32 VariationIdx )
     UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ VariationIdx ];
 
     InstancedStaticMeshComponent->UnregisterComponent();
-    InstancedStaticMeshComponent->DetachFromParent();
+    InstancedStaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
     InstancedStaticMeshComponent->DestroyComponent();
 
     InstancedStaticMeshComponents.RemoveAt( VariationIdx );
-
-    if ( HoudiniAssetComponent )
-        HoudiniAssetComponent->AttachChildren.Remove( InstancedStaticMeshComponent );
 
     UpdateInstanceTransforms( true );
 }

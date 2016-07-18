@@ -639,7 +639,7 @@ UHoudiniAssetInput::PostEditUndo()
         auto * owner = HoudiniAssetComponent->GetOwner();
         owner->AddOwnedComponent( InputCurve );
 
-        InputCurve->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
+        InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
         InputCurve->RegisterComponent();
         InputCurve->SetVisibility( true );
     }
@@ -880,7 +880,7 @@ UHoudiniAssetInput::PostLoad()
     if ( InputCurve )
     {
         InputCurve->SetHoudiniAssetInput( this );
-        InputCurve->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
+        InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
     }
 }
 
@@ -1003,7 +1003,7 @@ UHoudiniAssetInput::DisconnectInputCurve()
     // If we have spline, delete it.
     if ( InputCurve )
     {
-        InputCurve->DetachFromParent();
+        InputCurve->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         InputCurve->UnregisterComponent();
     }
 }
@@ -1014,12 +1014,9 @@ UHoudiniAssetInput::DestroyInputCurve()
     // If we have spline, delete it.
     if ( InputCurve )
     {
-        InputCurve->DetachFromParent();
+        InputCurve->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         InputCurve->UnregisterComponent();
         InputCurve->DestroyComponent();
-
-        if ( HoudiniAssetComponent )
-            HoudiniAssetComponent->AttachChildren.Remove( InputCurve );
 
         InputCurve = nullptr;
     }
@@ -1256,7 +1253,7 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
                         NAME_None, RF_Public | RF_Transactional );
 
                 // Attach or re-attach curve component to asset.
-                InputCurve->AttachTo( HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
+                InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
                 InputCurve->RegisterComponent();
                 InputCurve->SetVisibility( true );
                 InputCurve->SetHoudiniAssetInput( this );

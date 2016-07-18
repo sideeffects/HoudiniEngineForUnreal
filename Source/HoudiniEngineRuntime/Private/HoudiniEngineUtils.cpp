@@ -4714,8 +4714,17 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponent * 
                         Scene->RelativeRotation = FRotator::ZeroRotator;
 
                         // Clear out the attachment info after having copied the properties from the source actor
-                        Scene->AttachParent = nullptr;
-                        Scene->AttachChildren.Empty();
+                        Scene->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+                        while ( true )
+                        {
+                            const int32 ChildCount = Scene->GetAttachChildren().Num();
+                            if ( ChildCount <= 0 )
+                                break;
+
+                            USceneComponent * Component = Scene->GetAttachChildren()[ ChildCount - 1 ];
+                            Component->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+                        }
+                        check( Scene->GetAttachChildren().Num() == 0 );
 
                         // Ensure the light mass information is cleaned up
                         Scene->InvalidateLightingCache();
