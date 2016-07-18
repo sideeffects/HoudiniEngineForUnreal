@@ -2834,6 +2834,25 @@ HAPI_DECL HAPI_SetObjectTransform( const HAPI_Session * session,
 
 // GEOMETRY GETTERS ---------------------------------------------------------
 
+/// @brief  Get the display geo (SOP) node inside an Object node. If there
+///         there are multiple display SOP nodes, only the first one is
+///         returned.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      object_node_id
+///                 The object node id.
+///
+/// @param[out]     geo_info
+///                 ::HAPI_GeoInfo return value.
+///
+HAPI_DECL HAPI_GetDisplayGeoInfo( const HAPI_Session * session,
+                                  HAPI_NodeId object_node_id,
+                                  HAPI_GeoInfo * geo_info );
+
 /// @brief  Get the geometry info struct (::HAPI_GeoInfo) on a SOP node.
 ///
 /// @param[in]      session
@@ -5094,6 +5113,404 @@ HAPI_DECL HAPI_DisconnectAssetGeometry( const HAPI_Session * session,
                                         int input_idx );
 
 // MATERIALS ----------------------------------------------------------------
+
+/// @brief  Get material ids by face/primitive. The material ids returned
+///         will be valid as long as the asset is alive. You should query
+///         this list after every cook to see if the material assignments
+///         have changed. You should also query each material individually
+///         using ::HAPI_GetMaterialInfo() to see if it is dirty and needs
+///         to be re-imported.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      geometry_node_id
+///                 The geometry node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     are_all_the_same
+///                 (optional) If true, all faces on this part have the
+///                 same material assignment. You can pass NULL here.
+///
+/// @param[out]     material_ids_array
+///                 An array of ::HAPI_MaterialId at least the size of
+///                 @p length and at most the size of
+///                 ::HAPI_PartInfo::faceCount.
+///
+/// @param[in]      start
+///                 The starting index into the list of faces from which
+///                 you wish to get the material ids from. Note that
+///                 this should be less than ::HAPI_PartInfo::faceCount.
+///
+/// @param[in]      length
+///                 The number of material ids you wish to get. Note that
+///                 this should be at most:
+///                 ::HAPI_PartInfo::faceCount - @p start.
+///
+HAPI_DECL HAPI_GetMaterialNodeIdsOnFaces( const HAPI_Session * session,
+                                          HAPI_NodeId geometry_node_id,
+                                          HAPI_PartId part_id,
+                                          HAPI_Bool * are_all_the_same,
+                                          HAPI_NodeId * material_ids_array,
+                                          int start, int length );
+
+/// @brief  Get the material info.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[out]     material_info
+///                 The returned material info.
+///
+HAPI_DECL HAPI_GetMaterialInfoOnNode( const HAPI_Session * session,
+                                      HAPI_NodeId material_node_id,
+                                      HAPI_MaterialInfo * material_info );
+
+/// @brief  Get the material on a part.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      geometry_node_id
+///                 The geometry node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     material_info
+///                 The returned ::HAPI_MaterialInfo. If there is no
+///                 material on this part the call will still succeed
+///                 but the ::HAPI_MaterialInfo::exists will be set to
+///                 false.
+///
+HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialIdsOnFaces)
+HAPI_GetMaterialOnPartOnNode( const HAPI_Session * session,
+                              HAPI_NodeId geometry_node_id,
+                              HAPI_PartId part_id,
+                              HAPI_MaterialInfo * material_info );
+
+/// @brief  Get the material on a group. Use the
+///         ::HAPI_GetGroupMembership() call to determine where the
+///         material should be applied.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      geometry_node_id
+///                 The geometry node id.
+///
+/// @param[in]      group_name
+///                 The group name.
+///
+/// @param[out]     material_info
+///                 The returned ::HAPI_MaterialInfo. If there is no
+///                 material on this group the call will still succeed
+///                 but the ::HAPI_MaterialInfo::exists will be set to
+///                 false.
+///
+HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialIdsOnFaces)
+HAPI_GetMaterialOnGroupOnNode( const HAPI_Session * session,
+                               HAPI_NodeId geometry_node_id,
+                               const char * group_name,
+                               HAPI_MaterialInfo * material_info );
+
+/// @brief  Render only a single texture to an image for later extraction.
+///         An example use of this method might be to render the diffuse,
+///         normal, and bump texture maps of a material to individual
+///         texture files for use within the client application.
+///
+///         Note that you must call this first for any of the other material
+///         APIs to work.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[in]      parm_id
+///                 This is the index in the parameter list of the
+///                 material_id's node of the parameter containing the
+///                 texture map file path.
+///
+HAPI_DECL HAPI_RenderTextureToImageOnNode( const HAPI_Session * session,
+                                           HAPI_NodeId material_node_id,
+                                           HAPI_ParmId parm_id );
+
+/// @brief  Get information about the image that was just rendered, like
+///         resolution and default file format. This information will be
+///         used when extracting planes to an image.
+///
+///         Note that you must call ::HAPI_RenderTextureToImage() first for
+///         this method call to make sense.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[out]     image_info
+///                 The struct containing the image information.
+///
+HAPI_DECL HAPI_GetImageInfoOnNode( const HAPI_Session * session,
+                                   HAPI_NodeId material_node_id,
+                                   HAPI_ImageInfo * image_info );
+
+/// @brief  Set image information like resolution and file format.
+///         This information will be used when extracting planes to
+///         an image.
+///
+///         Note that you must call ::HAPI_RenderTextureToImage() first for
+///         this method call to make sense.
+///
+///         You should also first call ::HAPI_GetImageInfo() to get the
+///         current Image Info and change only the properties
+///         you don't like.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[in]      image_info
+///                 The struct containing the new image information.
+///
+HAPI_DECL HAPI_SetImageInfoOnNode( const HAPI_Session * session,
+                                   HAPI_NodeId material_node_id,
+                                   const HAPI_ImageInfo * image_info );
+
+/// @brief  Get the number of image planes for the just rendered image.
+///
+///         Note that you must call ::HAPI_RenderTextureToImage() first for
+///         this method call to make sense.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[out]     image_plane_count
+///                 The number of image planes.
+///
+HAPI_DECL HAPI_GetImagePlaneCountOnNode( const HAPI_Session * session,
+                                         HAPI_NodeId material_node_id,
+                                         int * image_plane_count );
+
+/// @brief  Get the names of the image planes of the just rendered image.
+///
+///         Note that you must call ::HAPI_RenderTextureToImage() first for
+///         this method call to make sense.
+///
+///         You should also call ::HAPI_GetImagePlaneCount() first to get
+///         the total number of image planes so you know how large the
+///         image_planes string handle array should be.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[out]     image_planes_array
+///                 The image plane names.
+///
+/// @param[in]      image_plane_count
+///                 The number of image planes to get names for. This
+///                 must be less than or equal to the count returned
+///                 by ::HAPI_GetImagePlaneCount().
+///
+HAPI_DECL HAPI_GetImagePlanesOnNode( const HAPI_Session * session,
+                                     HAPI_NodeId material_node_id,
+                                     HAPI_StringHandle * image_planes_array,
+                                     int image_plane_count );
+
+/// @brief  Extract a rendered image to a file.
+///
+///         Note that you must call ::HAPI_RenderTextureToImage() first for
+///         this method call to make sense.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[in]      image_file_format_name
+///                 The image file format name you wish the image to be
+///                 extracted as. You can leave this parameter NULL to
+///                 get the image in the original format if it comes from
+///                 another texture file or in the default HAPI format,
+///                 which is ::HAPI_DEFAULT_IMAGE_FORMAT_NAME, if the image
+///                 is generated.
+///
+///                 You can get some of the very common standard image
+///                 file format names from HAPI_Common.h under the
+///                 "Defines" section.
+///
+///                 You can also get a list of all supported file formats
+///                 (and the exact names this parameter expects)
+///                 by using ::HAPI_GetSupportedImageFileFormats(). This
+///                 list will include custom file formats you created via
+///                 custom DSOs (see HDK docs about IMG_Format). You will
+///                 get back a list of ::HAPI_ImageFileFormat. This
+///                 parameter expects the ::HAPI_ImageFileFormat::nameSH
+///                 of a given image file format.
+///
+/// @param[in]      image_planes
+///                 The image planes you wish to extract into the file.
+///                 Multiple image planes should be separated by spaces.
+///
+/// @param[in]      destination_folder_path
+///                 The folder where the image file should be created.
+///
+/// @param[in]      destination_file_name
+///                 Optional parameter to overwrite the name of the
+///                 extracted texture file. This should NOT include
+///                 the extension as the file type will be decided
+///                 by the ::HAPI_ImageInfo you can set using
+///                 ::HAPI_SetImageInfo(). You still have to use
+///                 destination_file_path to get the final file path.
+///
+///                 Pass in NULL to have the file name be automatically
+///                 generated from the name of the material SHOP node,
+///                 the name of the texture map parameter if the
+///                 image was rendered from a texture, and the image
+///                 plane names specified.
+///
+/// @param[out]     destination_file_path
+///                 The full path string handle, including the
+///                 destination_folder_path and the texture file name,
+///                 to the extracted file. Note that this string handle
+///                 will only be valid until the next call to
+///                 this function.
+///
+HAPI_DECL HAPI_ExtractImageToFileOnNode( const HAPI_Session * session,
+                                         HAPI_NodeId material_node_id,
+                                         const char * image_file_format_name,
+                                         const char * image_planes,
+                                         const char * destination_folder_path,
+                                         const char * destination_file_name,
+                                         int * destination_file_path );
+
+/// @brief  Extract a rendered image to memory.
+///
+///         Note that you must call ::HAPI_RenderTextureToImage() first for
+///         this method call to make sense.
+///
+///         Also note that this function will do all the work of
+///         extracting and compositing the image into a memory buffer
+///         but will not return to you that buffer, only its size. Use
+///         the returned size to allocated a sufficiently large buffer
+///         and call ::HAPI_GetImageMemoryBuffer() to fill your buffer
+///         with the just extracted image.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[in]      image_file_format_name
+///                 The image file format name you wish the image to be
+///                 extracted as. You can leave this parameter NULL to
+///                 get the image in the original format if it comes from
+///                 another texture file or in the default HAPI format,
+///                 which is ::HAPI_DEFAULT_IMAGE_FORMAT_NAME, if the image
+///                 is generated.
+///
+///                 You can get some of the very common standard image
+///                 file format names from HAPI_Common.h under the
+///                 "Defines" section.
+///
+///                 You can also get a list of all supported file formats
+///                 (and the exact names this parameter expects)
+///                 by using ::HAPI_GetSupportedImageFileFormats(). This
+///                 list will include custom file formats you created via
+///                 custom DSOs (see HDK docs about IMG_Format). You will
+///                 get back a list of ::HAPI_ImageFileFormat. This
+///                 parameter expects the ::HAPI_ImageFileFormat::nameSH
+///                 of a given image file format.
+///
+/// @param[in]      image_planes
+///                 The image planes you wish to extract into the file.
+///                 Multiple image planes should be separated by spaces.
+///
+/// @param[out]     buffer_size
+///                 The extraction will be done to an internal buffer
+///                 who's size you get via this parameter. Use the
+///                 returned buffer_size when calling
+///                 ::HAPI_GetImageMemoryBuffer() to get the image
+///                 buffer you just extracted.
+///
+HAPI_DECL HAPI_ExtractImageToMemoryOnNode( const HAPI_Session * session,
+                                           HAPI_NodeId material_node_id,
+                                           const char * image_file_format_name,
+                                           const char * image_planes,
+                                           int * buffer_size );
+
+/// @brief  Fill your allocated buffer with the just extracted
+///         image buffer.
+///
+///         Note that you must call ::HAPI_RenderTextureToImage() first for
+///         this method call to make sense.
+///
+///         Also note that you must call ::HAPI_ExtractImageToMemory()
+///         first in order to perform the extraction and get the
+///         extracted image buffer size that you need to know how much
+///         memory to allocated to fit your extracted image.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      material_node_id
+///                 The material node id.
+///
+/// @param[out]     buffer
+///                 The buffer passed in here will be filled with the
+///                 image buffer created during the call to
+///                 ::HAPI_ExtractImageToMemory().
+///
+/// @param[in]      length
+///                 Sanity check. This size should be the same as the
+///                 size allocated for the buffer passed in and should
+///                 be at least as large as the buffer_size returned by
+///                 the call to ::HAPI_ExtractImageToMemory().
+///
+HAPI_DECL HAPI_GetImageMemoryBufferOnNode( const HAPI_Session * session,
+                                           HAPI_NodeId material_node_id,
+                                           char * buffer, int length );
 
 /// @brief  Get material ids by face/primitive. The material ids returned
 ///         will be valid as long as the asset is alive. You should query
