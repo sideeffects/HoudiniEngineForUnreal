@@ -1398,6 +1398,33 @@ HAPI_DECL HAPI_SaveHIPFile( const HAPI_Session * session,
 
 // NODES --------------------------------------------------------------------
 
+/// @brief  Determine if your instance of the node actually still exists
+///         inside the Houdini scene. This is what can be used to
+///         determine when the Houdini scene needs to be re-populated
+///         using the host application's instances of the nodes.
+///         Note that this function will ALWAYS return
+///         ::HAPI_RESULT_SUCCESS.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      unique_node_id
+///                 The unique node id from
+///                 ::HAPI_NodeInfo::uniqueHoudiniNodeId.
+///
+/// @param[out]     answer
+///                 Answer to the question.
+///
+HAPI_DECL HAPI_IsNodeValid( const HAPI_Session * session,
+                            HAPI_NodeId node_id,
+                            int unique_node_id,
+                            HAPI_Bool * answer );
+
 /// @brief  Fill an ::HAPI_NodeInfo struct.
 ///
 /// @param[in]      session
