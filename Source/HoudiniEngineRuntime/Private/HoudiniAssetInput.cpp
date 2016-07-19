@@ -764,7 +764,7 @@ UHoudiniAssetInput::UploadParameterValue()
             }
 
             // Cook the spline asset.
-            FHoudiniApi::CookAsset( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
+            FHoudiniApi::CookNode( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
 
             // We need to update the curve.
             UpdateInputCurve();
@@ -1437,7 +1437,7 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             HAPI_TransformEuler HapiTransform;
             FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ActorTransform, HapiTransform );
 
-            FHoudiniApi::SetAssetTransform(
+            FHoudiniApi::SetObjectTransformOnNode(
                 FHoudiniEngine::Get().GetSession(),
                 OutlinerMesh.AssetId, &HapiTransform );
         }

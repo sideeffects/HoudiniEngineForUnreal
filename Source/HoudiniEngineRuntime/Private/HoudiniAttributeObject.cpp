@@ -493,9 +493,9 @@ FHoudiniAttributeObject::HapiRefetch()
     {
         case HAPI_STORAGETYPE_INT:
         {
-            if ( FHoudiniApi::GetAttributeIntData(
-                FHoudiniEngine::Get().GetSession(), AssetId,
-                ObjectId, GeoId, PartId, AttributeNameRaw.c_str(),
+            if ( FHoudiniApi::GetAttributeIntDataOnNode(
+                FHoudiniEngine::Get().GetSession(),
+                GeoId, PartId, AttributeNameRaw.c_str(),
                 &ResultAttributeInfo, -1, (int *) &Value[ 0 ], 0,
                 ValueCount ) != HAPI_RESULT_SUCCESS )
             {
@@ -507,9 +507,9 @@ FHoudiniAttributeObject::HapiRefetch()
 
         case HAPI_STORAGETYPE_FLOAT:
         {
-            if ( FHoudiniApi::GetAttributeFloatData(
-                FHoudiniEngine::Get().GetSession(), AssetId,
-                ObjectId, GeoId, PartId, AttributeNameRaw.c_str(),
+            if ( FHoudiniApi::GetAttributeFloatDataOnNode(
+                FHoudiniEngine::Get().GetSession(),
+                GeoId, PartId, AttributeNameRaw.c_str(),
                 &ResultAttributeInfo, -1, (float *) &Value[ 0 ], 0,
                 ValueCount ) != HAPI_RESULT_SUCCESS )
             {
@@ -521,9 +521,9 @@ FHoudiniAttributeObject::HapiRefetch()
 
         case HAPI_STORAGETYPE_STRING:
         {
-            if ( FHoudiniApi::GetAttributeStringData(
-                FHoudiniEngine::Get().GetSession(), AssetId,
-                ObjectId, GeoId, PartId, AttributeNameRaw.c_str(),
+            if ( FHoudiniApi::GetAttributeStringDataOnNode(
+                FHoudiniEngine::Get().GetSession(),
+                GeoId, PartId, AttributeNameRaw.c_str(),
                 &ResultAttributeInfo, (int *) &Value[ 0 ], 0,
                 ValueCount ) != HAPI_RESULT_SUCCESS )
             {
@@ -557,8 +557,8 @@ FHoudiniAttributeObject::HapiGetAttributeInfo( HAPI_AttributeInfo & AttributeInf
     std::string AttributeNameRaw = TCHAR_TO_UTF8( *AttributeName );
     FMemory::Memset< HAPI_AttributeInfo >( AttributeInfo, 0 );
 
-    if ( FHoudiniApi::GetAttributeInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, ObjectId,
+    if ( FHoudiniApi::GetAttributeInfoOnNode(
+        FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, AttributeNameRaw.c_str(),
         AttributeOwner, &AttributeInfo ) == HAPI_RESULT_SUCCESS )
     {

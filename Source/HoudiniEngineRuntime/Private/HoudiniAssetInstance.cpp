@@ -200,8 +200,8 @@ UHoudiniAssetInstance::InstantiateAsset(
 
     // We instantiate without cooking.
     HAPI_AssetId AssetIdNew = -1;
-    if ( FHoudiniApi::InstantiateAsset(
-        FHoudiniEngine::Get().GetSession(), &AssetNameString[ 0 ], false, &AssetIdNew) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), -1,  &AssetNameString[ 0 ], nullptr, false, &AssetIdNew) != HAPI_RESULT_SUCCESS )
     {
         HOUDINI_LOG_MESSAGE(
             TEXT( "Error instantiating the asset, %s failed InstantiateAsset API call." ),
@@ -302,10 +302,10 @@ UHoudiniAssetInstance::CookAsset( bool * bCookedWithErrors )
 
     double TimingStart = FPlatformTime::Seconds();
 
-    if ( FHoudiniApi::CookAsset( FHoudiniEngine::Get().GetSession(), AssetId, nullptr ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::CookNode( FHoudiniEngine::Get().GetSession(), AssetId, nullptr ) != HAPI_RESULT_SUCCESS )
     {
         HOUDINI_LOG_MESSAGE(
-            TEXT( "Error cooking the %s asset, failed CookAsset API call." ),
+            TEXT( "Error cooking the %s asset, failed CookNode API call." ),
             *InstantiatedAssetName);
         return false;
     }
@@ -460,29 +460,23 @@ UHoudiniAssetInstance::GetGeoPartObjects( TArray< FHoudiniGeoPartObject > & InGe
         FHoudiniEngineString HoudiniEngineStringObjectName( ObjectInfo.nameSH );
         HoudiniEngineStringObjectName.ToFString( ObjectName );
 
-        for ( int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx )
+        HAPI_GeoInfo GeoInfo;
+        if ( !HapiGetDisplayGeoInfo( ObjectInfo.id, GeoInfo ) )
+            continue;
+
+        for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
         {
-            HAPI_GeoInfo GeoInfo;
-            if ( !HapiGetGeoInfo( ObjectInfo.id, GeoIdx, GeoInfo ) )
+            HAPI_PartInfo PartInfo;
+            if ( !HapiGetPartInfo( ObjectInfo.id, GeoInfo.id, PartIdx, PartInfo ) )
                 continue;
 
-            if ( !GeoInfo.isDisplayGeo )
-                continue;
+            FString PartName = TEXT( "" );
+            FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
+            HoudiniEngineStringPartName.ToFString( PartName );
 
-            for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
-            {
-                HAPI_PartInfo PartInfo;
-                if ( !HapiGetPartInfo( ObjectInfo.id, GeoInfo.id, PartIdx, PartInfo ) )
-                    continue;
-
-                FString PartName = TEXT( "" );
-                FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
-                HoudiniEngineStringPartName.ToFString( PartName );
-
-                InGeoPartObjects.Add( FHoudiniGeoPartObject(
-                    ObjectTransform, ObjectName, PartName, AssetId, ObjectInfo.id,
-                    GeoInfo.id, PartInfo.id ) );
-            }
+            InGeoPartObjects.Add( FHoudiniGeoPartObject(
+                ObjectTransform, ObjectName, PartName, AssetId, ObjectInfo.id,
+                GeoInfo.id, PartInfo.id ) );
         }
     }
 
@@ -580,20 +574,22 @@ UHoudiniAssetInstance::HapiGetObjectInfos( TArray< HAPI_ObjectInfo > & ObjectInf
     if ( !IsValidAssetInstance() )
         return false;
 
-    HAPI_AssetInfo AssetInfo;
-    if ( !HapiGetAssetInfo( AssetInfo ) )
+    HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    int32 ObjectCount = 0;
+
+    Result = FHoudiniApi::ComposeObjectList(
+        FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount );
+    if ( Result != HAPI_RESULT_SUCCESS )
         return false;
 
-    if ( AssetInfo.objectCount > 0 )
-    {
-        ObjectInfos.SetNumUninitialized( AssetInfo.objectCount );
-        if ( FHoudiniApi::GetObjects(
-            FHoudiniEngine::Get().GetSession(), AssetId,
-            &ObjectInfos[ 0 ], 0, AssetInfo.objectCount ) != HAPI_RESULT_SUCCESS )
-        {
-            return false;
-        }
-    }
+    if ( ObjectCount <= 0 )
+        return true;
+
+    Result = FHoudiniApi::GetComposedObjectList(
+        FHoudiniEngine::Get().GetSession(), AssetId, &ObjectInfos[ 0 ], 0, ObjectCount );
+    if ( Result != HAPI_RESULT_SUCCESS )
+        return false;
 
     return true;
 }
@@ -606,26 +602,30 @@ UHoudiniAssetInstance::HapiGetObjectTransforms( TArray< FTransform > & ObjectTra
     if ( !IsValidAssetInstance() )
         return false;
 
-    HAPI_AssetInfo AssetInfo;
-    if ( !HapiGetAssetInfo( AssetInfo ) )
+    HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    int32 ObjectCount = 0;
+
+    Result = FHoudiniApi::ComposeObjectList(
+        FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount );
+    if ( Result != HAPI_RESULT_SUCCESS )
         return false;
 
-    if ( AssetInfo.objectCount > 0 )
-    {
-        TArray< HAPI_Transform > HapiObjectTransforms;
-        HapiObjectTransforms.SetNumUninitialized( AssetInfo.objectCount );
-        ObjectTransforms.SetNumUninitialized( AssetInfo.objectCount );
+    if ( ObjectCount <= 0 )
+        return true;
 
-        if ( FHoudiniApi::GetObjectTransforms(
-            FHoudiniEngine::Get().GetSession(), AssetId,
-            HAPI_SRT, &HapiObjectTransforms[ 0 ], 0, AssetInfo.objectCount ) != HAPI_RESULT_SUCCESS )
-        {
-            return false;
-        }
+    TArray< HAPI_Transform > HapiObjectTransforms;
+    HapiObjectTransforms.SetNumUninitialized( ObjectCount );
+    ObjectTransforms.SetNumUninitialized( ObjectCount );
 
-        for ( int32 Idx = 0; Idx < AssetInfo.objectCount; ++Idx )
-            FHoudiniEngineUtils::TranslateHapiTransform( HapiObjectTransforms[ Idx ], ObjectTransforms[ Idx ] );
-    }
+    Result = FHoudiniApi::GetComposedObjectTransforms(
+        FHoudiniEngine::Get().GetSession(), AssetId,
+            HAPI_SRT, &HapiObjectTransforms[ 0 ], 0, ObjectCount );
+    if ( Result != HAPI_RESULT_SUCCESS )
+        return false;
+
+    for ( int32 Idx = 0; Idx < ObjectCount; ++Idx )
+        FHoudiniEngineUtils::TranslateHapiTransform( HapiObjectTransforms[ Idx ], ObjectTransforms[ Idx ] );
 
     return true;
 }
@@ -638,29 +638,29 @@ UHoudiniAssetInstance::HapiGetAssetTransform( FTransform & InTransform ) const
     if ( !IsValidAssetInstance() )
         return false;
 
-    HAPI_TransformEuler AssetEulerTransform;
-    if ( FHoudiniApi::GetAssetTransform(
+    HAPI_Transform AssetTransform;
+    if ( FHoudiniApi::GetObjectTransform(
         FHoudiniEngine::Get().GetSession(), AssetId,
-        HAPI_SRT, HAPI_XYZ, &AssetEulerTransform ) != HAPI_RESULT_SUCCESS )
+        HAPI_SRT, /*HAPI_XYZ,*/ &AssetTransform ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
 
     // Convert HAPI Euler transform to Unreal one.
-    FHoudiniEngineUtils::TranslateHapiTransform( AssetEulerTransform, InTransform );
+    FHoudiniEngineUtils::TranslateHapiTransform( AssetTransform, InTransform );
     return true;
 }
 
 bool
-UHoudiniAssetInstance::HapiGetGeoInfo( HAPI_ObjectId ObjectId, int32 GeoIdx, HAPI_GeoInfo & GeoInfo ) const
+UHoudiniAssetInstance::HapiGetDisplayGeoInfo( HAPI_ObjectId ObjectId, HAPI_GeoInfo & GeoInfo ) const
 {
     FMemory::Memset< HAPI_GeoInfo >( GeoInfo, 0 );
 
     if ( !IsValidAssetInstance() )
         return false;
 
-    if ( FHoudiniApi::GetGeoInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoIdx, &GeoInfo ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), ObjectId, &GeoInfo ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
@@ -678,8 +678,8 @@ UHoudiniAssetInstance::HapiGetPartInfo(
     if ( !IsValidAssetInstance() )
         return false;
 
-    if ( FHoudiniApi::GetPartInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, PartIdx, &PartInfo ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetPartInfoOnNode(
+        FHoudiniEngine::Get().GetSession(), GeoId, PartIdx, &PartInfo ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }

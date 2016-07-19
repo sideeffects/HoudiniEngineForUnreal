@@ -75,8 +75,8 @@ bool
 FHoudiniMaterialObject::HapiGetMaterialInfo( HAPI_MaterialInfo & MaterialInfo ) const
 {
     FMemory::Memset< HAPI_MaterialInfo >( MaterialInfo, 0 );
-    if ( FHoudiniApi::GetMaterialInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, MaterialId,
+    if ( FHoudiniApi::GetMaterialInfoOnNode(
+        FHoudiniEngine::Get().GetSession(), MaterialId,
         &MaterialInfo ) != HAPI_RESULT_SUCCESS )
     {
         return false;

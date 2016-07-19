@@ -138,7 +138,8 @@ FHoudiniEngineScheduler::TaskInstantiateAsset( const FHoudiniEngineTask & Task )
         LastUpdateTime = FPlatformTime::Seconds();
 
         // We instantiate without cooking.
-        Result = FHoudiniApi::InstantiateAsset( FHoudiniEngine::Get().GetSession(), &AssetNameString[ 0 ], false, &AssetId );
+        Result = FHoudiniApi::CreateNode(
+            FHoudiniEngine::Get().GetSession(), -1, &AssetNameString[ 0 ], nullptr, false, &AssetId );
         if ( Result != HAPI_RESULT_SUCCESS )
         {
             AddResponseMessageTaskInfo(
@@ -265,7 +266,7 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
         return;
     }
 
-    Result = FHoudiniApi::CookAsset( FHoudiniEngine::Get().GetSession(), AssetId, nullptr );
+    Result = FHoudiniApi::CookNode( FHoudiniEngine::Get().GetSession(), AssetId, nullptr );
     if ( Result != HAPI_RESULT_SUCCESS )
     {
         AddResponseMessageTaskInfo(

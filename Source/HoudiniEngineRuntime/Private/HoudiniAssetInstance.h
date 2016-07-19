@@ -122,8 +122,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstance : public UObject
         /** Retrieve all object transforms. **/
         bool HapiGetObjectTransforms( TArray< FTransform > & ObjectTransforms ) const;
 
-        /** Retrieve geo info structure. **/
-        bool HapiGetGeoInfo( HAPI_ObjectId ObjectId, int32 GeoIdx, HAPI_GeoInfo & GeoInfo ) const;
+        /** Retrieve the display geo info structure. **/
+        bool HapiGetDisplayGeoInfo( HAPI_ObjectId ObjectId, HAPI_GeoInfo & GeoInfo ) const;
 
         /** Retrieve part info structure. **/
         bool HapiGetPartInfo( HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, int32 PartIdx, HAPI_PartInfo& PartInfo ) const;
