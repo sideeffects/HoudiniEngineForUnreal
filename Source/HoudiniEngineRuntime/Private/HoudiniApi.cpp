@@ -534,6 +534,9 @@ FHoudiniApi::IsAssetValid = &FHoudiniApi::IsAssetValidEmptyStub;
 FHoudiniApi::IsInitializedFuncPtr
 FHoudiniApi::IsInitialized = &FHoudiniApi::IsInitializedEmptyStub;
 
+FHoudiniApi::IsNodeValidFuncPtr
+FHoudiniApi::IsNodeValid = &FHoudiniApi::IsNodeValidEmptyStub;
+
 FHoudiniApi::IsSessionValidFuncPtr
 FHoudiniApi::IsSessionValid = &FHoudiniApi::IsSessionValidEmptyStub;
 
@@ -937,6 +940,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::Interrupt = (InterruptFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Interrupt"));
 	FHoudiniApi::IsAssetValid = (IsAssetValidFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsAssetValid"));
 	FHoudiniApi::IsInitialized = (IsInitializedFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsInitialized"));
+	FHoudiniApi::IsNodeValid = (IsNodeValidFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsNodeValid"));
 	FHoudiniApi::IsSessionValid = (IsSessionValidFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsSessionValid"));
 	FHoudiniApi::LoadAssetLibraryFromFile = (LoadAssetLibraryFromFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadAssetLibraryFromFile"));
 	FHoudiniApi::LoadAssetLibraryFromMemory = (LoadAssetLibraryFromMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadAssetLibraryFromMemory"));
@@ -1190,6 +1194,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::Interrupt = &FHoudiniApi::InterruptEmptyStub;
 	FHoudiniApi::IsAssetValid = &FHoudiniApi::IsAssetValidEmptyStub;
 	FHoudiniApi::IsInitialized = &FHoudiniApi::IsInitializedEmptyStub;
+	FHoudiniApi::IsNodeValid = &FHoudiniApi::IsNodeValidEmptyStub;
 	FHoudiniApi::IsSessionValid = &FHoudiniApi::IsSessionValidEmptyStub;
 	FHoudiniApi::LoadAssetLibraryFromFile = &FHoudiniApi::LoadAssetLibraryFromFileEmptyStub;
 	FHoudiniApi::LoadAssetLibraryFromMemory = &FHoudiniApi::LoadAssetLibraryFromMemoryEmptyStub;
@@ -2474,6 +2479,13 @@ FHoudiniApi::IsAssetValidEmptyStub(const HAPI_Session * session, HAPI_AssetId as
 
 HAPI_Result
 FHoudiniApi::IsInitializedEmptyStub(const HAPI_Session * session)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::IsNodeValidEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int unique_node_id, HAPI_Bool * answer)
 {
 	return HAPI_RESULT_FAILURE;
 }

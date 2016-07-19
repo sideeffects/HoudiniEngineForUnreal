@@ -200,6 +200,7 @@ public:
 	typedef HAPI_Result (*InterruptFuncPtr)(const HAPI_Session * session);
 	typedef HAPI_Result (*IsAssetValidFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int asset_validation_id, int * answer);
 	typedef HAPI_Result (*IsInitializedFuncPtr)(const HAPI_Session * session);
+	typedef HAPI_Result (*IsNodeValidFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int unique_node_id, HAPI_Bool * answer);
 	typedef HAPI_Result (*IsSessionValidFuncPtr)(const HAPI_Session * session);
 	typedef HAPI_Result (*LoadAssetLibraryFromFileFuncPtr)(const HAPI_Session * session, const char * file_path, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId* library_id);
 	typedef HAPI_Result (*LoadAssetLibraryFromMemoryFuncPtr)(const HAPI_Session * session, const char * library_buffer, int library_buffer_length, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id);
@@ -450,6 +451,7 @@ public:
 	static InterruptFuncPtr Interrupt;
 	static IsAssetValidFuncPtr IsAssetValid;
 	static IsInitializedFuncPtr IsInitialized;
+	static IsNodeValidFuncPtr IsNodeValid;
 	static IsSessionValidFuncPtr IsSessionValid;
 	static LoadAssetLibraryFromFileFuncPtr LoadAssetLibraryFromFile;
 	static LoadAssetLibraryFromMemoryFuncPtr LoadAssetLibraryFromMemory;
@@ -700,6 +702,7 @@ public:
 	static HAPI_Result InterruptEmptyStub(const HAPI_Session * session);
 	static HAPI_Result IsAssetValidEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int asset_validation_id, int * answer);
 	static HAPI_Result IsInitializedEmptyStub(const HAPI_Session * session);
+	static HAPI_Result IsNodeValidEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int unique_node_id, HAPI_Bool * answer);
 	static HAPI_Result IsSessionValidEmptyStub(const HAPI_Session * session);
 	static HAPI_Result LoadAssetLibraryFromFileEmptyStub(const HAPI_Session * session, const char * file_path, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId* library_id);
 	static HAPI_Result LoadAssetLibraryFromMemoryEmptyStub(const HAPI_Session * session, const char * library_buffer, int library_buffer_length, HAPI_Bool allow_overwrite, HAPI_AssetLibraryId * library_id);
