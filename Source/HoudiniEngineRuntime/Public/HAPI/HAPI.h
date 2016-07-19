@@ -1176,6 +1176,23 @@ HAPI_DECL HAPI_CreateInputAsset( const HAPI_Session * session,
 HAPI_DECL HAPI_DestroyAsset( const HAPI_Session * session,
                              HAPI_AssetId asset_id );
 
+/// @brief  Fill an asset_info struct from a node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     asset_info
+///                 Returned ::HAPI_AssetInfo struct.
+///
+HAPI_DECL HAPI_GetAssetInfoOnNode( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_AssetInfo * asset_info );
+
 /// @brief  Fill an asset_info struct.
 ///
 /// @param[in]      session
