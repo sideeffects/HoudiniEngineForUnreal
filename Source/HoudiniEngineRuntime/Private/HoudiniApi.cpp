@@ -150,6 +150,9 @@ FHoudiniApi::GetActiveCacheNames = &FHoudiniApi::GetActiveCacheNamesEmptyStub;
 FHoudiniApi::GetAssetInfoFuncPtr
 FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
 
+FHoudiniApi::GetAssetInfoOnNodeFuncPtr
+FHoudiniApi::GetAssetInfoOnNode = &FHoudiniApi::GetAssetInfoOnNodeEmptyStub;
+
 FHoudiniApi::GetAssetTransformFuncPtr
 FHoudiniApi::GetAssetTransform = &FHoudiniApi::GetAssetTransformEmptyStub;
 
@@ -812,6 +815,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetActiveCacheCount = (GetActiveCacheCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheCount"));
 	FHoudiniApi::GetActiveCacheNames = (GetActiveCacheNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheNames"));
 	FHoudiniApi::GetAssetInfo = (GetAssetInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetInfo"));
+	FHoudiniApi::GetAssetInfoOnNode = (GetAssetInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetInfoOnNode"));
 	FHoudiniApi::GetAssetTransform = (GetAssetTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetTransform"));
 	FHoudiniApi::GetAttributeFloat64Data = (GetAttributeFloat64DataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloat64Data"));
 	FHoudiniApi::GetAttributeFloat64DataOnNode = (GetAttributeFloat64DataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloat64DataOnNode"));
@@ -1066,6 +1070,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetActiveCacheCount = &FHoudiniApi::GetActiveCacheCountEmptyStub;
 	FHoudiniApi::GetActiveCacheNames = &FHoudiniApi::GetActiveCacheNamesEmptyStub;
 	FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
+	FHoudiniApi::GetAssetInfoOnNode = &FHoudiniApi::GetAssetInfoOnNodeEmptyStub;
 	FHoudiniApi::GetAssetTransform = &FHoudiniApi::GetAssetTransformEmptyStub;
 	FHoudiniApi::GetAttributeFloat64Data = &FHoudiniApi::GetAttributeFloat64DataEmptyStub;
 	FHoudiniApi::GetAttributeFloat64DataOnNode = &FHoudiniApi::GetAttributeFloat64DataOnNodeEmptyStub;
@@ -1583,6 +1588,13 @@ FHoudiniApi::GetActiveCacheNamesEmptyStub(const HAPI_Session * session, HAPI_Str
 
 HAPI_Result
 FHoudiniApi::GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetAssetInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info)
 {
 	return HAPI_RESULT_FAILURE;
 }

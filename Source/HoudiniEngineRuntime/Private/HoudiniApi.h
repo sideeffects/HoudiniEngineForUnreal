@@ -72,6 +72,7 @@ public:
 	typedef HAPI_Result (*GetActiveCacheCountFuncPtr)(const HAPI_Session * session, int * active_cache_count);
 	typedef HAPI_Result (*GetActiveCacheNamesFuncPtr)(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
 	typedef HAPI_Result (*GetAssetInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info);
+	typedef HAPI_Result (*GetAssetInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
 	typedef HAPI_Result (*GetAssetTransformFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform);
 	typedef HAPI_Result (*GetAttributeFloat64DataFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
 	typedef HAPI_Result (*GetAttributeFloat64DataOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
@@ -323,6 +324,7 @@ public:
 	static GetActiveCacheCountFuncPtr GetActiveCacheCount;
 	static GetActiveCacheNamesFuncPtr GetActiveCacheNames;
 	static GetAssetInfoFuncPtr GetAssetInfo;
+	static GetAssetInfoOnNodeFuncPtr GetAssetInfoOnNode;
 	static GetAssetTransformFuncPtr GetAssetTransform;
 	static GetAttributeFloat64DataFuncPtr GetAttributeFloat64Data;
 	static GetAttributeFloat64DataOnNodeFuncPtr GetAttributeFloat64DataOnNode;
@@ -574,6 +576,7 @@ public:
 	static HAPI_Result GetActiveCacheCountEmptyStub(const HAPI_Session * session, int * active_cache_count);
 	static HAPI_Result GetActiveCacheNamesEmptyStub(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
 	static HAPI_Result GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_AssetInfo * asset_info);
+	static HAPI_Result GetAssetInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
 	static HAPI_Result GetAssetTransformEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_RSTOrder rst_order, HAPI_XYZOrder rot_order, HAPI_TransformEuler * transform);
 	static HAPI_Result GetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
 	static HAPI_Result GetAttributeFloat64DataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length);
