@@ -994,7 +994,7 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp( UHoudiniAssetComponent * Houdin
 
         if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
         {
-            auto result = FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo );
+            auto result = FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo );
             if ( result == HAPI_RESULT_SUCCESS )
             {
                 FString HelpLogString = TEXT( "" );

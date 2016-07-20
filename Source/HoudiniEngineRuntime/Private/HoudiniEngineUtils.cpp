@@ -220,7 +220,7 @@ FHoudiniEngineUtils::ComputeAssetPresetBufferLength( HAPI_AssetId AssetId, int32
     HAPI_AssetInfo AssetInfo;
     OutBufferLength = 0;
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     int32 BufferLength = 0;
@@ -239,7 +239,7 @@ FHoudiniEngineUtils::SetAssetPreset( HAPI_AssetId AssetId, const TArray< char > 
     {
         HAPI_AssetInfo AssetInfo;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
             FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPreset(
@@ -259,7 +259,7 @@ FHoudiniEngineUtils::GetAssetPreset( HAPI_AssetId AssetId, TArray< char > & Pres
     PresetBuffer.Empty();
 
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     int32 BufferLength = 0;
@@ -309,7 +309,7 @@ bool
 FHoudiniEngineUtils::GetUniqueMaterialShopName( HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString & Name )
 {
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     HAPI_MaterialInfo MaterialInfo;
@@ -557,7 +557,7 @@ FHoudiniEngineUtils::GetHoudiniAssetName( HAPI_AssetId AssetId, FString & NameSt
 {
     HAPI_AssetInfo AssetInfo;
 
-    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
     {
         FHoudiniEngineString HoudiniEngineString( AssetInfo.nameSH );
         return HoudiniEngineString.ToFString( NameString );
@@ -3091,7 +3091,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     // Retrieve asset transform.

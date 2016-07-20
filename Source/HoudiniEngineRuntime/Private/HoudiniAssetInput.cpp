@@ -723,7 +723,7 @@ UHoudiniAssetInput::UploadParameterValue()
             if ( bLoadedParameter )
             {
                 HAPI_AssetInfo CurveAssetInfo;
-                FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo );
+                FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo );
 
                 // If we just loaded our curve, we need to set parameters.
                 for ( TMap< FString, UHoudiniAssetParameter * >::TIterator

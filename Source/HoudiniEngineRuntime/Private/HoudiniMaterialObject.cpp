@@ -176,7 +176,7 @@ FHoudiniMaterialObject::HapiGetMaterialShopName( FString & ShopName ) const
     HAPI_AssetInfo AssetInfo;
     FMemory::Memset< HAPI_AssetInfo >( AssetInfo, 0 );
 
-    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
         return false;
 
     HAPI_NodeInfo AssetNodeInfo;

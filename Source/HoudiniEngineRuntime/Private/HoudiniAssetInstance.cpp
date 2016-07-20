@@ -560,7 +560,7 @@ UHoudiniAssetInstance::HapiGetAssetInfo( HAPI_AssetInfo & AssetInfo ) const
     if ( !IsValidAssetInstance() )
         return false;
 
-    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
         return false;
 
     return true;
