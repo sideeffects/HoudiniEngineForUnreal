@@ -5114,8 +5114,11 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
             }
             else
             {
-                ImagePacking = HAPI_IMAGE_PACKING_RGB;
-                PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR;
+                // We still need to have the Alpha plane, just not the CreateTexture2DParameters
+                // alpha option. This is because all texture data from Houdini Engine contains
+                // the alpha plane by default.
+                ImagePacking = HAPI_IMAGE_PACKING_RGBA;
+                PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA;
             }
         }
         else
