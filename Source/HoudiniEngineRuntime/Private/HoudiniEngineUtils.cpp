@@ -3355,7 +3355,10 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             }
 
                             if ( MaterialInfo.hasChanged )
+                            {
                                 bMaterialsChanged = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -4233,7 +4236,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     Material = ReplacementMaterial;
 
                                 StaticMesh->Materials.Empty();
-                                StaticMesh->Materials.Add(Material);
+                                StaticMesh->Materials.Add( Material );
                             }
                             else
                             {
@@ -7153,14 +7156,14 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
         // Retrieve object at this index.
         const HAPI_ObjectInfo & ObjectInfo = ObjectInfos[ ObjectIdx ];
 
-        // Iterate through all geos.
-        for ( int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx )
+        // This is a loop that goes over once and stops. We use this so we can then
+        // exit out of the scope using break or continue.
+        for ( int32 Idx = 0; Idx < 1; ++Idx )
         {
             // Get Geo information.
             HAPI_GeoInfo GeoInfo;
-            if ( FHoudiniApi::GetGeoInfo(
-                FHoudiniEngine::Get().GetSession(), AssetInfo.id,
-                ObjectInfo.id, GeoIdx, &GeoInfo ) != HAPI_RESULT_SUCCESS )
+            if ( FHoudiniApi::GetDisplayGeoInfo(
+                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) != HAPI_RESULT_SUCCESS )
             {
                 continue;
             }
