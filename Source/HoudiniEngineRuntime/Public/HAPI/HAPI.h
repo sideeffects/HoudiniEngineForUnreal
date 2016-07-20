@@ -2595,6 +2595,11 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
 /// @param[in]      node_id
 ///                 The object node id.
 ///
+/// @param[in]      relative_to_node_id
+///                 The object node id for the object to which the returned
+///                 transform will be relative to. Pass -1 or the node_id
+///                 to just get the object's local transform.
+///
 /// @param[in]      rst_order
 ///                 The order of application of translation, rotation and
 ///                 scale.
@@ -2604,6 +2609,7 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_GetObjectTransform( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
+                                   HAPI_NodeId relative_to_node_id,
                                    HAPI_RSTOrder rst_order,
                                    HAPI_Transform * transform );
 
