@@ -598,8 +598,8 @@ FHoudiniEngineUtils::HapiGetGroupNames(
     HAPI_GroupType GroupType, TArray< FString > & GroupNames )
 {
     HAPI_GeoInfo GeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, &GeoInfo ), false );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfoOnNode(
+        FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ), false );
 
     int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType( GroupType, GeoInfo );
 
@@ -1383,8 +1383,8 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId
     if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
     {
         HAPI_GeoInfo GeoInfo;
-        if ( FHoudiniApi::GetGeoInfo(
-            FHoudiniEngine::Get().GetSession(), AssetId, ObjectId, GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
+        if ( FHoudiniApi::GetGeoInfoOnNode(
+            FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
         {
             NodeId = GeoInfo.nodeId;
             return true;
@@ -3097,7 +3097,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     // Retrieve asset transform.
     HAPI_Transform AssetTransform;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectTransform(
-        FHoudiniEngine::Get().GetSession(), AssetId, HAPI_SRT, /*HAPI_XYZ,*/ &AssetTransform ), false );
+        FHoudiniEngine::Get().GetSession(), AssetId, AssetId,
+        HAPI_SRT, &AssetTransform ), false );
 
     // Convert HAPI Euler transform to Unreal one.
     FTransform AssetUnrealTransform;
@@ -3175,19 +3176,26 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         FTransform TransformMatrix;
         FHoudiniEngineUtils::TranslateHapiTransform( ObjectTransform, TransformMatrix );
 
-        // Iterate through all Geo informations within this object.
-        for ( int32 GeoIdx = 0; GeoIdx < ObjectInfo.geoCount; ++GeoIdx )
+        // This is a loop that goes over once and stops. We use this so we can then
+        // exit out of the scope using break or continue.
+        for ( int32 Idx = 0; Idx < 1; ++Idx )
         {
+            HAPI_GeoId GeoId = -1;
+
             // Get Geo information.
             HAPI_GeoInfo GeoInfo;
-            if ( FHoudiniApi::GetGeoInfo(
-                FHoudiniEngine::Get().GetSession(), AssetId, ObjectInfo.id, GeoIdx, &GeoInfo ) != HAPI_RESULT_SUCCESS )
+            if ( FHoudiniApi::GetDisplayGeoInfo(
+                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) != HAPI_RESULT_SUCCESS )
             {
                 HOUDINI_LOG_MESSAGE(
-                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d] unable to retrieve GeoInfo, " )
+                    TEXT( "Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, " )
                     TEXT( "- skipping." ),
-                    ObjectIdx, *ObjectName, GeoIdx );
+                    ObjectInfo.nodeId, *ObjectName );
                 continue;
+            }
+            else
+            {
+                GeoId = GeoInfo.nodeId;
             }
 
             if ( GeoInfo.type == HAPI_GEOTYPE_CURVE )
@@ -3216,7 +3224,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             // Get object / geo group memberships for primitives.
             TArray< FString > ObjectGeoGroupNames;
             FHoudiniEngineUtils::HapiGetGroupNames(
-                AssetId, ObjectInfo.id, GeoIdx, HAPI_GROUPTYPE_PRIM,
+                AssetId, ObjectInfo.id, GeoId, HAPI_GROUPTYPE_PRIM,
                 ObjectGeoGroupNames );
 
             bool bIsRenderCollidable = false;
@@ -3261,7 +3269,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve PartInfo, " )
                         TEXT( "- skipping." ),
-                        ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                     continue;
                 }
 
@@ -3294,7 +3302,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found, " )
                         TEXT( "- skipping." ),
-                        ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                     continue;
                 }
 
@@ -3318,7 +3326,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         HOUDINI_LOG_MESSAGE(
                             TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve material face assignments, " )
                             TEXT( "- skipping." ),
-                            ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                            ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                         continue;
                     }
 
@@ -3429,7 +3437,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         HOUDINI_LOG_MESSAGE(
                             TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is instancer but has 0 points " )
                             TEXT( "skipping." ),
-                            ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                            ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                         continue;
                     }
                 }
@@ -3447,7 +3455,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] has 0 vertices and non-zero points, " )
                         TEXT( "but is not an intstancer - skipping." ),
-                        ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                     continue;
                 }
 
@@ -3464,7 +3472,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list " )
                         TEXT( "- skipping." ),
-                        ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
 
                     continue;
                 }
@@ -3646,7 +3654,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             HOUDINI_LOG_MESSAGE(
                                 TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has changed " )
                                 TEXT( "but static mesh does not exist - skipping." ),
-                                ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                                ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                             continue;
                         }
                     }
@@ -3732,7 +3740,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             HOUDINI_LOG_MESSAGE(
                                 TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data " )
                                 TEXT( "- skipping." ),
-                                ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                                ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
 
                             if ( bStaticMeshCreated )
                                 StaticMesh->MarkPendingKill();
@@ -4320,7 +4328,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             HOUDINI_LOG_MESSAGE(
                                 TEXT( "Skipping Lightmap Generation: Object [%d %s], Geo [%d], Part [%d %s] invalid face detected " )
                                 TEXT( "- skipping." ),
-                                ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                                ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                         }
                     }
 
@@ -4371,16 +4379,16 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 
-                    TArray<FText> BuildErrors;
+                    TArray< FText > BuildErrors;
                     StaticMesh->Build( true, &BuildErrors );
 
                     for ( int32 BuildErrorIdx = 0; BuildErrorIdx < BuildErrors.Num(); ++BuildErrorIdx )
                     {
-                        const FText& TextError = BuildErrors[BuildErrorIdx];
+                        const FText & TextError = BuildErrors[ BuildErrorIdx ];
                         HOUDINI_LOG_MESSAGE(
                             TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], Split [%d] build error " )
                             TEXT( "- %s." ),
-                            ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
+                            ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
                     }
 
                     StaticMesh->MarkPackageDirty();
@@ -7129,11 +7137,15 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
     InstancerMaterialIds.Empty();
     InstancerMaterialMap.Empty();
 
+    int32 ObjectCount = 0;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ComposeObjectList(
+        FHoudiniEngine::Get().GetSession(),
+        AssetInfo.id, nullptr, &ObjectCount ), false );
     TArray< HAPI_ObjectInfo > ObjectInfos;
-    ObjectInfos.SetNumUninitialized( AssetInfo.objectCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjects(
-        FHoudiniEngine::Get().GetSession(), AssetInfo.id,
-        &ObjectInfos[0], 0, AssetInfo.objectCount ), false );
+    ObjectInfos.SetNumUninitialized( ObjectCount );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedObjectList(
+        FHoudiniEngine::Get().GetSession(),
+        AssetInfo.id, &ObjectInfos[ 0 ], 0, ObjectCount ), false );
 
     // Iterate through all objects.
     for ( int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx )
@@ -7179,7 +7191,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
                     if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
                         FHoudiniEngine::Get().GetSession(),
                         GeoInfo.id, PartInfo.id, &bSingleFaceMaterial,
-                        &FaceMaterialIds[0], 0, PartInfo.faceCount ) != HAPI_RESULT_SUCCESS )
+                        &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) != HAPI_RESULT_SUCCESS )
                     {
                         continue;
                     }

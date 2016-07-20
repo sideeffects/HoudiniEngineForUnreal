@@ -2140,7 +2140,7 @@ FHoudiniApi::GetObjectInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId no
 
 
 HAPI_Result
-FHoudiniApi::GetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform)
+FHoudiniApi::GetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeId relative_to_node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transform)
 {
 	return HAPI_RESULT_FAILURE;
 }

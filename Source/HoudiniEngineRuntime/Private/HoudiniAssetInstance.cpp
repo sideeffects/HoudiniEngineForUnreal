@@ -640,8 +640,8 @@ UHoudiniAssetInstance::HapiGetAssetTransform( FTransform & InTransform ) const
 
     HAPI_Transform AssetTransform;
     if ( FHoudiniApi::GetObjectTransform(
-        FHoudiniEngine::Get().GetSession(), AssetId,
-        HAPI_SRT, /*HAPI_XYZ,*/ &AssetTransform ) != HAPI_RESULT_SUCCESS )
+        FHoudiniEngine::Get().GetSession(), AssetId, AssetId,
+        HAPI_SRT, &AssetTransform ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
