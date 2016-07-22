@@ -509,9 +509,9 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
 
     if ( ImportAxis == HRSAI_Unreal )
     {
-        HapiTransformEuler.rotationEuler[ 0 ] = -Rotator.Roll;
+        HapiTransformEuler.rotationEuler[ 0 ] = Rotator.Roll;
         HapiTransformEuler.rotationEuler[ 1 ] = -Rotator.Yaw;
-        HapiTransformEuler.rotationEuler[ 2 ] = -Rotator.Pitch;
+        HapiTransformEuler.rotationEuler[ 2 ] = Rotator.Pitch;
 
         Swap( UnrealTranslation.Y, UnrealTranslation.Z );
         HapiTransformEuler.position[ 0 ] = UnrealTranslation.X;
