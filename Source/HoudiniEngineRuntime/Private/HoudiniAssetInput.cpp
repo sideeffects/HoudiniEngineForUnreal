@@ -1421,9 +1421,29 @@ void
 UHoudiniAssetInput::TickWorldOutlinerInputs()
 {
     bool bChanged = false;
+    TArray< UStaticMeshComponent * > InputOutlinerMeshArrayPendingKill;
     for ( auto & OutlinerMesh : InputOutlinerMeshArray )
     {
-        if ( !OutlinerMesh.ActorTransform.Equals( OutlinerMesh.Actor->GetTransform() ) && OutlinerMesh.AssetId >= 0 )
+        if ( OutlinerMesh.Actor->IsPendingKill() )
+        {
+            if ( !bChanged )
+            {
+                Modify();
+                MarkPreChanged();
+                bChanged = true;
+            }
+
+            // Destroy Houdini asset.
+            if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerMesh.AssetId ) )
+            {
+                FHoudiniEngineUtils::DestroyHoudiniAsset( OutlinerMesh.AssetId );
+                OutlinerMesh.AssetId = -1;
+            }
+
+            // Mark mesh for deletion.
+            InputOutlinerMeshArrayPendingKill.Add( OutlinerMesh.StaticMeshComponent );
+        }
+        else if ( !OutlinerMesh.ActorTransform.Equals( OutlinerMesh.Actor->GetTransform() ) && OutlinerMesh.AssetId >= 0 )
         {
             if ( !bChanged )
             {
@@ -1444,7 +1464,20 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
     }
 
     if ( bChanged )
+    {
+        // Delete all tracked meshes slated for deletion above.
+        while ( InputOutlinerMeshArrayPendingKill.Num() > 0 )
+        {
+            auto OutlinerMeshToKill = InputOutlinerMeshArrayPendingKill.Pop( false );
+
+            InputOutlinerMeshArray.RemoveAll( [ & ]( FHoudiniAssetInputOutlinerMesh & Element )
+            {
+                return Element.StaticMeshComponent == OutlinerMeshToKill;
+            } );
+        }
+
         MarkChanged();
+    }
 }
 
 #endif
