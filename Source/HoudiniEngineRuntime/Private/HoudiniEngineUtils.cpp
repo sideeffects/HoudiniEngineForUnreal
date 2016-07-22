@@ -1378,6 +1378,37 @@ FHoudiniEngineUtils::HapiCreateCurve( HAPI_AssetId & CurveAssetId )
 }
 
 bool
+FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_AssetId AssetId, FTransform & InTransform )
+{
+    HAPI_NodeInfo LocalAssetNodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId,
+        &LocalAssetNodeInfo ), false );
+
+    HAPI_Transform LocalHapiTransform;
+
+    if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP )
+    {
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectTransform(
+            FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, -1,
+            HAPI_SRT, &LocalHapiTransform ), false );
+    }
+    else if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ )
+    {
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectTransform(
+            FHoudiniEngine::Get().GetSession(), AssetId, -1,
+            HAPI_SRT, &LocalHapiTransform ), false );
+    }
+    else
+        return false;
+
+    // Convert HAPI transform to Unreal one.
+    FHoudiniEngineUtils::TranslateHapiTransform( LocalHapiTransform, InTransform );
+
+    return true;
+}
+
+bool
 FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId & NodeId )
 {
     if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
@@ -1393,6 +1424,98 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId
 
     NodeId = -1;
     return false;
+}
+
+bool
+FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos )
+{
+    HAPI_NodeInfo LocalAssetNodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId,
+        &LocalAssetNodeInfo ), false );
+
+    int32 ObjectCount = 0;
+    if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP )
+    {
+        ObjectCount = 1;
+        ObjectInfos.SetNumUninitialized( 1 );
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectInfo(
+            FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId,
+            &ObjectInfos[ 0 ] ), false );
+    }
+    else if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ )
+    {
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ComposeObjectList(
+            FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount ), false );
+
+        if ( ObjectCount <= 0 )
+        {
+            ObjectCount = 1;
+            ObjectInfos.SetNumUninitialized( 1 );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectInfo(
+                FHoudiniEngine::Get().GetSession(), AssetId,
+                &ObjectInfos[ 0 ] ), false );
+        }
+        else
+        {
+            ObjectInfos.SetNumUninitialized( ObjectCount );
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedObjectList(
+                FHoudiniEngine::Get().GetSession(), AssetId,
+                &ObjectInfos[ 0 ], 0, ObjectCount ), false );
+        }
+    }
+    else
+        return false;
+
+    return true;
+}
+
+bool
+FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_AssetId AssetId, TArray< HAPI_Transform > & ObjectTransforms )
+{
+    HAPI_NodeInfo LocalAssetNodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId,
+        &LocalAssetNodeInfo ), false );
+
+    int32 ObjectCount = 1;
+    ObjectTransforms.SetNumUninitialized( 1 );
+
+    FMemory::Memzero< HAPI_Transform >( ObjectTransforms[ 0 ] );
+
+    ObjectTransforms[ 0 ].rotationQuaternion[ 3 ] = 1.0f;
+    ObjectTransforms[ 0 ].scale[ 0 ] = 1.0f;
+    ObjectTransforms[ 0 ].scale[ 1 ] = 1.0f;
+    ObjectTransforms[ 0 ].scale[ 2 ] = 1.0f;
+    ObjectTransforms[ 0 ].rstOrder = HAPI_SRT;
+
+    if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP )
+    {
+        // Do nothing. Identity transform will be used for the main parent object.
+    }
+    else if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ )
+    {
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ComposeObjectList(
+            FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount ), false );
+
+        if ( ObjectCount <= 0 )
+        {
+            // Do nothing. Identity transform will be used for the main asset object.
+        }
+        else
+        {
+            ObjectTransforms.SetNumUninitialized( ObjectCount );
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedObjectTransforms(
+                FHoudiniEngine::Get().GetSession(), AssetId,
+                HAPI_SRT, &ObjectTransforms[ 0 ], 0, ObjectCount ), false );
+        }
+    }
+    else
+        return false;
+
+    return true;
 }
 
 bool
@@ -3095,32 +3218,21 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     // Retrieve asset transform.
-    HAPI_Transform AssetTransform;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectTransform(
-        FHoudiniEngine::Get().GetSession(), AssetId, AssetId,
-        HAPI_SRT, &AssetTransform ), false );
-
-    // Convert HAPI Euler transform to Unreal one.
     FTransform AssetUnrealTransform;
-    TranslateHapiTransform( AssetTransform, AssetUnrealTransform );
+    if ( !FHoudiniEngineUtils::HapiGetAssetTransform( AssetId, AssetUnrealTransform ) )
+        return false;
     ComponentTransform = AssetUnrealTransform;
 
     // Retrieve information about each object contained within our asset.
-    int32 ObjectCount = 0;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ComposeObjectList(
-        FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount ), false );
     TArray< HAPI_ObjectInfo > ObjectInfos;
-    ObjectInfos.SetNumUninitialized( ObjectCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedObjectList(
-        FHoudiniEngine::Get().GetSession(), AssetId,
-        &ObjectInfos[ 0 ], 0, ObjectCount ), false );
+    if ( !HapiGetObjectInfos( AssetId, ObjectInfos ) )
+        return false;
+    const int32 ObjectCount = ObjectInfos.Num();
 
     // Retrieve transforms for each object in this asset.
     TArray< HAPI_Transform > ObjectTransforms;
-    ObjectTransforms.SetNumUninitialized( ObjectCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedObjectTransforms(
-        FHoudiniEngine::Get().GetSession(), AssetId, HAPI_SRT, &ObjectTransforms[ 0 ], 0,
-        ObjectCount ), false );
+    if ( !HapiGetObjectTransforms( AssetId, ObjectTransforms ) )
+        return false;
 
     // Containers used for raw data extraction.
     TArray< int32 > VertexList;
@@ -7143,15 +7255,10 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
     InstancerMaterialIds.Empty();
     InstancerMaterialMap.Empty();
 
-    int32 ObjectCount = 0;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ComposeObjectList(
-        FHoudiniEngine::Get().GetSession(),
-        AssetInfo.id, nullptr, &ObjectCount ), false );
     TArray< HAPI_ObjectInfo > ObjectInfos;
-    ObjectInfos.SetNumUninitialized( ObjectCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedObjectList(
-        FHoudiniEngine::Get().GetSession(),
-        AssetInfo.id, &ObjectInfos[ 0 ], 0, ObjectCount ), false );
+    if ( !HapiGetObjectInfos( AssetInfo.id, ObjectInfos ) )
+        return false;
+    const int32 ObjectCount = ObjectInfos.Num();
 
     // Iterate through all objects.
     for ( int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx )

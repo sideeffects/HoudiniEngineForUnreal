@@ -574,24 +574,7 @@ UHoudiniAssetInstance::HapiGetObjectInfos( TArray< HAPI_ObjectInfo > & ObjectInf
     if ( !IsValidAssetInstance() )
         return false;
 
-    HAPI_Result Result = HAPI_RESULT_SUCCESS;
-
-    int32 ObjectCount = 0;
-
-    Result = FHoudiniApi::ComposeObjectList(
-        FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount );
-    if ( Result != HAPI_RESULT_SUCCESS )
-        return false;
-
-    if ( ObjectCount <= 0 )
-        return true;
-
-    Result = FHoudiniApi::GetComposedObjectList(
-        FHoudiniEngine::Get().GetSession(), AssetId, &ObjectInfos[ 0 ], 0, ObjectCount );
-    if ( Result != HAPI_RESULT_SUCCESS )
-        return false;
-
-    return true;
+    return FHoudiniEngineUtils::HapiGetObjectInfos( AssetId, ObjectInfos );
 }
 
 bool
@@ -602,28 +585,12 @@ UHoudiniAssetInstance::HapiGetObjectTransforms( TArray< FTransform > & ObjectTra
     if ( !IsValidAssetInstance() )
         return false;
 
-    HAPI_Result Result = HAPI_RESULT_SUCCESS;
-
-    int32 ObjectCount = 0;
-
-    Result = FHoudiniApi::ComposeObjectList(
-        FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount );
-    if ( Result != HAPI_RESULT_SUCCESS )
-        return false;
-
-    if ( ObjectCount <= 0 )
-        return true;
-
     TArray< HAPI_Transform > HapiObjectTransforms;
-    HapiObjectTransforms.SetNumUninitialized( ObjectCount );
-    ObjectTransforms.SetNumUninitialized( ObjectCount );
-
-    Result = FHoudiniApi::GetComposedObjectTransforms(
-        FHoudiniEngine::Get().GetSession(), AssetId,
-            HAPI_SRT, &HapiObjectTransforms[ 0 ], 0, ObjectCount );
-    if ( Result != HAPI_RESULT_SUCCESS )
+    if ( !FHoudiniEngineUtils::HapiGetObjectTransforms( AssetId, HapiObjectTransforms ) )
         return false;
+    const int32 ObjectCount = HapiObjectTransforms.Num();
 
+    ObjectTransforms.SetNumUninitialized( ObjectCount );
     for ( int32 Idx = 0; Idx < ObjectCount; ++Idx )
         FHoudiniEngineUtils::TranslateHapiTransform( HapiObjectTransforms[ Idx ], ObjectTransforms[ Idx ] );
 
@@ -638,16 +605,9 @@ UHoudiniAssetInstance::HapiGetAssetTransform( FTransform & InTransform ) const
     if ( !IsValidAssetInstance() )
         return false;
 
-    HAPI_Transform AssetTransform;
-    if ( FHoudiniApi::GetObjectTransform(
-        FHoudiniEngine::Get().GetSession(), AssetId, AssetId,
-        HAPI_SRT, &AssetTransform ) != HAPI_RESULT_SUCCESS )
-    {
+    if ( !FHoudiniEngineUtils::HapiGetAssetTransform( AssetId, InTransform ) )
         return false;
-    }
 
-    // Convert HAPI Euler transform to Unreal one.
-    FHoudiniEngineUtils::TranslateHapiTransform( AssetTransform, InTransform );
     return true;
 }
 

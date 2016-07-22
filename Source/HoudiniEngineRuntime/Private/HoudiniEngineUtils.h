@@ -159,8 +159,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Create curve for input. **/
         static bool HapiCreateCurve( HAPI_AssetId & CurveAssetId );
 
+        /** HAPI : Retrieve the asset node's object transform. **/
+        static bool HapiGetAssetTransform( HAPI_AssetId AssetId, FTransform & InTransform );
+
         /** HAPI : Retrieve Node id from given parameters. **/
         static bool HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId & NodeId );
+
+        /** HAPI : Retrieve HAPI_ObjectInfo's from given asset node id. **/
+        static bool HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos );
+
+        /** HAPI : Retrieve object transforms from given asset node id. **/
+        static bool HapiGetObjectTransforms( HAPI_AssetId AssetId, TArray< HAPI_Transform > & ObjectTransforms );
 
         /** HAPI : Marshalling, extract landscape geometry and upload it. Return new asset id. **/
         static bool HapiCreateAndConnectAsset(
