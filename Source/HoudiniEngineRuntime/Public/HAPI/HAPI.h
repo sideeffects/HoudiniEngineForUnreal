@@ -1762,6 +1762,30 @@ HAPI_DECL HAPI_QueryNodeInput( const HAPI_Session * session,
                                int input_index,
                                HAPI_NodeId * connected_node_id );
 
+/// @brief  Get the name of an node's input. This function will return
+///         a string handle for the name which will be valid (persist)
+///         until the next call to this function.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      input_idx
+///                 Input index of the asset.
+///
+/// @param[out]     name
+///                 Input name string handle return value - valid until
+///                 the next call to this function.
+///
+HAPI_DECL HAPI_GetNodeInputName( const HAPI_Session * session,
+                                 HAPI_NodeId node_id,
+                                 int input_idx,
+                                 HAPI_StringHandle * name );
+
 // PARAMETERS ---------------------------------------------------------------
 
 /// @brief  Fill an array of ::HAPI_ParmInfo structs with parameter
