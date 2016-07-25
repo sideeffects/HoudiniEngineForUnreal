@@ -296,7 +296,7 @@ FHoudiniEngineUtils::IsHoudiniAssetValid( HAPI_AssetId AssetId )
 bool
 FHoudiniEngineUtils::DestroyHoudiniAsset( HAPI_AssetId AssetId )
 {
-    return FHoudiniApi::DestroyAsset( FHoudiniEngine::Get().GetSession(), AssetId ) == HAPI_RESULT_SUCCESS;
+    return FHoudiniApi::DeleteNode( FHoudiniEngine::Get().GetSession(), AssetId ) == HAPI_RESULT_SUCCESS;
 }
 
 void
@@ -2246,10 +2246,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeoOnNode(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
 
-    // Now we can connect assets together.
-    //HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectAssetGeometry(
-    //    FHoudiniEngine::Get().GetSession(),
-    //    ConnectedAssetId, 0, HostAssetId, InputIndex ), false );
+    // Now we can connect input node to the asset node.
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex,
+        ConnectedAssetId ), false );
 
 #endif
 
@@ -2689,10 +2689,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeoOnNode(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
 
-    // Now we can connect assets together.
-    //HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectAssetGeometry(
-    //    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-    //    0, HostAssetId, InputIndex ), false );
+    // Now we can connect input node to the asset node.
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex,
+        ConnectedAssetId ), false );
 
 #endif
 
@@ -2735,9 +2735,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             OutlinerMesh.AssetId, &HapiTransform ), false );
     }
 
-    // Now we can connect assets together.
-    //HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectAssetGeometry(
-    //    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, InputIndex ), false );
+    // Now we can connect input node to the asset node.
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex,
+        ConnectedAssetId ), false );
 
     return true;
 }
@@ -2747,9 +2748,8 @@ FHoudiniEngineUtils::HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputI
 {
 #if WITH_EDITOR
 
-    //HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::DisconnectAssetGeometry(
-    //    FHoudiniEngine::Get().GetSession(), HostAssetId,
-    //    InputIndex ), false );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::DisconnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex ), false );
 
 #endif // WITH_EDITOR
 
@@ -2762,9 +2762,9 @@ FHoudiniEngineUtils::HapiConnectAsset(
 {
 #if WITH_EDITOR
 
-    //HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectAssetGeometry(
-    //    FHoudiniEngine::Get().GetSession(), AssetIdFrom,
-    //    ObjectIdFrom, AssetIdTo, InputIndex ), false );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), AssetIdTo, InputIndex,
+        ObjectIdFrom ), false );
 
 #endif // WITH_EDITOR
 
