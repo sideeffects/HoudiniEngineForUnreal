@@ -2910,7 +2910,8 @@ HAPI_DECL HAPI_SetObjectTransform( const HAPI_Session * session,
 
 /// @brief  Get the display geo (SOP) node inside an Object node. If there
 ///         there are multiple display SOP nodes, only the first one is
-///         returned.
+///         returned. If the node is a display SOP itself and not a network
+///         it will return its own geo info.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
