@@ -381,6 +381,9 @@ FHoudiniApi::GetNextVolumeTileOnNode = &FHoudiniApi::GetNextVolumeTileOnNodeEmpt
 FHoudiniApi::GetNodeInfoFuncPtr
 FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
 
+FHoudiniApi::GetNodeInputNameFuncPtr
+FHoudiniApi::GetNodeInputName = &FHoudiniApi::GetNodeInputNameEmptyStub;
+
 FHoudiniApi::GetObjectInfoFuncPtr
 FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
 
@@ -892,6 +895,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
 	FHoudiniApi::GetNextVolumeTileOnNode = (GetNextVolumeTileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTileOnNode"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
+	FHoudiniApi::GetNodeInputName = (GetNodeInputNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInputName"));
 	FHoudiniApi::GetObjectInfo = (GetObjectInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectInfo"));
 	FHoudiniApi::GetObjectTransform = (GetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransform"));
 	FHoudiniApi::GetObjectTransforms = (GetObjectTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectTransforms"));
@@ -1147,6 +1151,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 	FHoudiniApi::GetNextVolumeTileOnNode = &FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub;
 	FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
+	FHoudiniApi::GetNodeInputName = &FHoudiniApi::GetNodeInputNameEmptyStub;
 	FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
 	FHoudiniApi::GetObjectTransform = &FHoudiniApi::GetObjectTransformEmptyStub;
 	FHoudiniApi::GetObjectTransforms = &FHoudiniApi::GetObjectTransformsEmptyStub;
@@ -2127,6 +2132,13 @@ FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub(const HAPI_Session * session, HAPI
 
 HAPI_Result
 FHoudiniApi::GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetNodeInputNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_idx, HAPI_StringHandle * name)
 {
 	return HAPI_RESULT_FAILURE;
 }

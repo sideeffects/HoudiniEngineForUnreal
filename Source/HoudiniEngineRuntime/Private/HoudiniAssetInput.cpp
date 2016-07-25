@@ -77,10 +77,10 @@ UHoudiniAssetInput::Create( UHoudiniAssetComponent * InHoudiniAssetComponent, in
 
     // Get name of this input.
     HAPI_StringHandle InputStringHandle;
-    if ( FHoudiniApi::GetInputName(
+    if ( FHoudiniApi::GetNodeInputName(
         FHoudiniEngine::Get().GetSession(),
         InHoudiniAssetComponent->GetAssetId(),
-        InInputIndex, HAPI_INPUT_GEOMETRY, &InputStringHandle ) != HAPI_RESULT_SUCCESS )
+        InInputIndex, &InputStringHandle ) != HAPI_RESULT_SUCCESS )
     {
         return HoudiniAssetInput;
     }
