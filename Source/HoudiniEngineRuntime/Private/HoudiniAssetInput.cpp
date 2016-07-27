@@ -623,6 +623,10 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
         [
             MenuBuilder.MakeWidget()
         ];
+
+        // This is the only place we can really put this.
+        if ( InputOutlinerMeshArray.Num() > 0 )
+            StartWorldOutlinerTicking();
     }
 
     Row.ValueWidget.Widget = VerticalBox;
