@@ -623,10 +623,6 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
         [
             MenuBuilder.MakeWidget()
         ];
-
-        // This is the only place we can really put this.
-        if ( InputOutlinerMeshArray.Num() > 0 )
-            StartWorldOutlinerTicking();
     }
 
     Row.ValueWidget.Widget = VerticalBox;
@@ -923,7 +919,11 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
 
     // Serialize world outliner inputs.
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT )
+    {
         Ar << InputOutlinerMeshArray;
+        if ( InputOutlinerMeshArray.Num() > 0 )
+            StartWorldOutlinerTicking();
+    }
 
     // Create necessary widget resources.
     if ( Ar.IsLoading() )
