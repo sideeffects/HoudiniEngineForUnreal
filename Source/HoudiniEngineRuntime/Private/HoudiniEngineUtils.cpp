@@ -2730,9 +2730,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         HAPI_TransformEuler HapiTransform;
         FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ActorTransform, HapiTransform );
 
+        HAPI_NodeInfo LocalAssetNodeInfo;
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+            FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
+            &LocalAssetNodeInfo ), false );
+
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransformOnNode(
             FHoudiniEngine::Get().GetSession(),
-            OutlinerMesh.AssetId, &HapiTransform ), false );
+            LocalAssetNodeInfo.parentId, &HapiTransform ), false );
     }
 
     // Now we can connect input node to the asset node.
