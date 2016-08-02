@@ -2883,6 +2883,38 @@ HAPI_DECL HAPI_GetObjectTransforms( const HAPI_Session * session,
                                     int start, int length );
 
 /// @brief  Fill an array of ::HAPI_Transform structs with the transforms
+///         of each instance of this instancer object.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      rst_order
+///                 The order of application of translation, rotation and
+///                 scale.
+///
+/// @param[out]     transforms_array
+///                 Array of ::HAPI_Transform at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_PartInfo::pointCount - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_PartInfo::pointCount - @p start.
+///
+HAPI_DECL HAPI_GetInstanceTransformsOnNode( const HAPI_Session * session,
+                                            HAPI_NodeId node_id,
+                                            HAPI_RSTOrder rst_order,
+                                            HAPI_Transform * transforms_array,
+                                            int start, int length );
+
+/// @brief  Fill an array of ::HAPI_Transform structs with the transforms
 ///         of each instance of this instancer object
 ///
 /// @param[in]      session
