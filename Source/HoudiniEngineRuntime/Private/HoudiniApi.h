@@ -134,6 +134,7 @@ public:
 	typedef HAPI_Result (*GetImagePlanesOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_StringHandle * image_planes_array, int image_plane_count);
 	typedef HAPI_Result (*GetInputNameFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, HAPI_InputType input_type, HAPI_StringHandle * name);
 	typedef HAPI_Result (*GetInstanceTransformsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
+	typedef HAPI_Result (*GetInstanceTransformsOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	typedef HAPI_Result (*GetInstancedPartIdsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
 	typedef HAPI_Result (*GetInstancedPartIdsOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
 	typedef HAPI_Result (*GetInstancerPartTransformsFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
@@ -389,6 +390,7 @@ public:
 	static GetImagePlanesOnNodeFuncPtr GetImagePlanesOnNode;
 	static GetInputNameFuncPtr GetInputName;
 	static GetInstanceTransformsFuncPtr GetInstanceTransforms;
+	static GetInstanceTransformsOnNodeFuncPtr GetInstanceTransformsOnNode;
 	static GetInstancedPartIdsFuncPtr GetInstancedPartIds;
 	static GetInstancedPartIdsOnNodeFuncPtr GetInstancedPartIdsOnNode;
 	static GetInstancerPartTransformsFuncPtr GetInstancerPartTransforms;
@@ -644,6 +646,7 @@ public:
 	static HAPI_Result GetImagePlanesOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_StringHandle * image_planes_array, int image_plane_count);
 	static HAPI_Result GetInputNameEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int input_idx, HAPI_InputType input_type, HAPI_StringHandle * name);
 	static HAPI_Result GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
+	static HAPI_Result GetInstanceTransformsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
 	static HAPI_Result GetInstancedPartIdsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
 	static HAPI_Result GetInstancedPartIdsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length);
 	static HAPI_Result GetInstancerPartTransformsEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length);
