@@ -3375,7 +3375,7 @@ UHoudiniAssetComponent::CreateHandles()
         TArray< HAPI_HandleInfo > HandleInfos;
         HandleInfos.SetNumZeroed( AssetInfo.handleCount );
 
-        if ( FHoudiniApi::GetHandleInfo(
+        if ( FHoudiniApi::GetHandleInfoOnNode(
             FHoudiniEngine::Get().GetSession(), AssetId,
             &HandleInfos[ 0 ], 0, AssetInfo.handleCount ) != HAPI_RESULT_SUCCESS )
         {

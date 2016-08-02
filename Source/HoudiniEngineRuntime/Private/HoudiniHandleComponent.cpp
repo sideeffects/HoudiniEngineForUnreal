@@ -73,7 +73,7 @@ UHoudiniHandleComponent::Construct(
     TArray< HAPI_HandleBindingInfo > BindingInfos;
     BindingInfos.SetNumZeroed( HandleInfo.bindingsCount );
 
-    if ( FHoudiniApi::GetHandleBindingInfo(
+    if ( FHoudiniApi::GetHandleBindingInfoOnNode(
         FHoudiniEngine::Get().GetSession(),
         AssetId, HandleIdx, &BindingInfos[ 0 ], 0,
         HandleInfo.bindingsCount ) != HAPI_RESULT_SUCCESS )
