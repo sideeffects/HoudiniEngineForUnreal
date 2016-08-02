@@ -874,10 +874,11 @@ HAPI_DECL HAPI_SetTimelineOptions(
 /// @param[out]     answer
 ///                 Answer to the question. 1 for valid, 0 for invalid.
 ///
-HAPI_DECL HAPI_IsAssetValid( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             int asset_validation_id,
-                             int * answer );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_IsAssetValid( const HAPI_Session * session,
+                   HAPI_AssetId asset_id,
+                   int asset_validation_id,
+                   int * answer );
 
 /// @brief  Loads a Houdini asset library (OTL) from a .otl file.
 ///         It does NOT instantiate anything inside the Houdini scene.
@@ -1099,10 +1100,11 @@ HAPI_DECL HAPI_GetAvailableAssets( const HAPI_Session * session,
 ///                 Newly created asset's id. Use ::HAPI_GetAssetInfo()
 ///                 to get more information about the asset.
 ///
-HAPI_DECL HAPI_InstantiateAsset( const HAPI_Session * session,
-                                 const char * asset_name,
-                                 HAPI_Bool cook_on_load,
-                                 HAPI_AssetId * asset_id );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_InstantiateAsset( const HAPI_Session * session,
+                       const char * asset_name,
+                       HAPI_Bool cook_on_load,
+                       HAPI_AssetId * asset_id );
 
 /// @brief  Creates a special curve asset that can be used as input for
 ///         other assets in the scene.
@@ -1123,8 +1125,9 @@ HAPI_DECL HAPI_InstantiateAsset( const HAPI_Session * session,
 ///                 ::HAPI_GetAssetInfo() to get more information
 ///                 about the asset.
 ///
-HAPI_DECL HAPI_CreateCurve( const HAPI_Session * session,
-                            HAPI_AssetId * asset_id );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_CreateCurve( const HAPI_Session * session,
+                  HAPI_AssetId * asset_id );
 
 /// @brief  Creates a special asset that can accept geometry input.
 ///         This will create a dummy OBJ node with a Null SOP inside that
@@ -1159,9 +1162,10 @@ HAPI_DECL HAPI_CreateCurve( const HAPI_Session * session,
 ///                 You can also pass NULL in which case the name will
 ///                 be "input#" where # is some number.
 ///
-HAPI_DECL HAPI_CreateInputAsset( const HAPI_Session * session,
-                                 HAPI_AssetId * asset_id,
-                                 const char * name );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_CreateInputAsset( const HAPI_Session * session,
+                       HAPI_AssetId * asset_id,
+                       const char * name );
 
 /// @brief  Destroy the asset instance.
 ///
@@ -1173,8 +1177,9 @@ HAPI_DECL HAPI_CreateInputAsset( const HAPI_Session * session,
 /// @param[in]      asset_id
 ///                 The asset id.
 ///
-HAPI_DECL HAPI_DestroyAsset( const HAPI_Session * session,
-                             HAPI_AssetId asset_id );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_DestroyAsset( const HAPI_Session * session,
+                   HAPI_AssetId asset_id );
 
 /// @brief  Fill an asset_info struct from a node.
 ///
@@ -1206,9 +1211,10 @@ HAPI_DECL HAPI_GetAssetInfoOnNode( const HAPI_Session * session,
 /// @param[out]     asset_info
 ///                 Return value - contains things like asset id.
 ///
-HAPI_DECL HAPI_GetAssetInfo( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             HAPI_AssetInfo * asset_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAssetInfoOnAsset( const HAPI_Session * session,
+                          HAPI_AssetId asset_id,
+                          HAPI_AssetInfo * asset_info );
 
 /// @brief  Initiate a cook on this asset. Note that this may trigger
 ///         cooks on other assets if they are connected.
@@ -1240,9 +1246,10 @@ HAPI_DECL HAPI_GetAssetInfo( const HAPI_Session * session,
 ///                 cook options that you specified when calling
 ///                 ::HAPI_Initialize().
 ///
-HAPI_DECL HAPI_CookAsset( const HAPI_Session * session,
-                          HAPI_AssetId asset_id,
-                          const HAPI_CookOptions * cook_options );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_CookAsset( const HAPI_Session * session,
+                HAPI_AssetId asset_id,
+                const HAPI_CookOptions * cook_options );
 
 /// @brief  Interrupt a cook or load operation.
 ///
@@ -1274,11 +1281,12 @@ HAPI_DECL HAPI_Interrupt( const HAPI_Session * session );
 /// @param[out]     transform
 ///                 The actual transform struct.
 ///
-HAPI_DECL HAPI_GetAssetTransform( const HAPI_Session * session,
-                                  HAPI_AssetId asset_id,
-                                  HAPI_RSTOrder rst_order,
-                                  HAPI_XYZOrder rot_order,
-                                  HAPI_TransformEuler * transform );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAssetTransform( const HAPI_Session * session,
+                        HAPI_AssetId asset_id,
+                        HAPI_RSTOrder rst_order,
+                        HAPI_XYZOrder rot_order,
+                        HAPI_TransformEuler * transform );
 
 /// @brief  Set the transform of an asset to match the transform of the
 ///         asset on the client side.
@@ -1294,9 +1302,10 @@ HAPI_DECL HAPI_GetAssetTransform( const HAPI_Session * session,
 /// @param[in]      transform
 ///                 The actual transform struct.
 ///
-HAPI_DECL HAPI_SetAssetTransform( const HAPI_Session * session,
-                                  HAPI_AssetId asset_id,
-                                  const HAPI_TransformEuler * transform );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetAssetTransform( const HAPI_Session * session,
+                        HAPI_AssetId asset_id,
+                        const HAPI_TransformEuler * transform );
 
 /// @brief  Get the name of an asset's input. This function will return
 ///         a string handle for the name which will be valid (persist)
@@ -1320,11 +1329,12 @@ HAPI_DECL HAPI_SetAssetTransform( const HAPI_Session * session,
 ///                 Input name string handle return value - valid until
 ///                 the next call to this function.
 ///
-HAPI_DECL HAPI_GetInputName( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             int input_idx,
-                             HAPI_InputType input_type,
-                             HAPI_StringHandle * name );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetInputName( const HAPI_Session * session,
+                   HAPI_AssetId asset_id,
+                   int input_idx,
+                   HAPI_InputType input_type,
+                   HAPI_StringHandle * name );
 
 // HIP FILES ----------------------------------------------------------------
 
@@ -1365,8 +1375,9 @@ HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
 /// @param[out]     new_asset_count
 ///                 A pointer to an int that will receive the asset count.
 ///
-HAPI_DECL HAPI_CheckForNewAssets( const HAPI_Session * session,
-                                  int * new_asset_count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_CheckForNewAssets( const HAPI_Session * session,
+                        int * new_asset_count );
 
 /// @brief  Retrieves the asset ids from the previous call to
 ///         ::HAPI_CheckForNewAssets().
@@ -1386,9 +1397,10 @@ HAPI_DECL HAPI_CheckForNewAssets( const HAPI_Session * session,
 ///                 Must be the new_asset_count you got from
 ///                 HAPI_CheckForNewAssets().
 ///
-HAPI_DECL HAPI_GetNewAssetIds( const HAPI_Session * session,
-                               HAPI_AssetId * asset_ids_array,
-                               int new_asset_count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetNewAssetIds( const HAPI_Session * session,
+                     HAPI_AssetId * asset_ids_array,
+                     int new_asset_count );
 
 /// @brief  Saves a .hip file of the current Houdini scene.
 ///
@@ -2528,10 +2540,11 @@ HAPI_DECL HAPI_GetHandleBindingInfoOnNode(
 ///                 Must be at least 1 and at most
 ///                 ::HAPI_AssetInfo::handleCount - start.
 ///
-HAPI_DECL HAPI_GetHandleInfo( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_HandleInfo * handle_infos_array,
-                              int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetHandleInfoOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_HandleInfo * handle_infos_array,
+                           int start, int length );
 
 /// @brief  Fill an array of ::HAPI_HandleInfo structs with information
 ///         about every exposed user manipulation handle on the asset.
@@ -2560,7 +2573,8 @@ HAPI_DECL HAPI_GetHandleInfo( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_HandleInfo::bindingsCount - start.
 ///
-HAPI_DECL HAPI_GetHandleBindingInfo(
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetHandleBindingInfoOnAsset(
                         const HAPI_Session * session,
                         HAPI_AssetId asset_id,
                         int handle_index,
@@ -2840,10 +2854,11 @@ HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AssetInfo::objectCount  - start.
 ///
-HAPI_DECL HAPI_GetObjects( const HAPI_Session * session,
-                           HAPI_AssetId asset_id,
-                           HAPI_ObjectInfo * object_infos_array,
-                           int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetObjects( const HAPI_Session * session,
+                 HAPI_AssetId asset_id,
+                 HAPI_ObjectInfo * object_infos_array,
+                 int start, int length );
 
 /// @brief  Fill an array of ::HAPI_Transform structs with the transforms
 ///         of each visible object in the scene that has a SOP network
@@ -2876,11 +2891,12 @@ HAPI_DECL HAPI_GetObjects( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AssetInfo::objectCount - start.
 ///
-HAPI_DECL HAPI_GetObjectTransforms( const HAPI_Session * session,
-                                    HAPI_AssetId asset_id,
-                                    HAPI_RSTOrder rst_order,
-                                    HAPI_Transform * transforms_array,
-                                    int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetObjectTransforms( const HAPI_Session * session,
+                          HAPI_AssetId asset_id,
+                          HAPI_RSTOrder rst_order,
+                          HAPI_Transform * transforms_array,
+                          int start, int length );
 
 /// @brief  Fill an array of ::HAPI_Transform structs with the transforms
 ///         of each instance of this instancer object.
@@ -2946,13 +2962,14 @@ HAPI_DECL HAPI_GetInstanceTransformsOnNode( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::pointCount - @p start.
 ///
-HAPI_DECL HAPI_GetInstanceTransforms( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id,
-                                      HAPI_ObjectId object_id,
-                                      HAPI_GeoId geo_id,
-                                      HAPI_RSTOrder rst_order,
-                                      HAPI_Transform * transforms_array,
-                                      int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetInstanceTransformsOnAsset( const HAPI_Session * session,
+                                   HAPI_AssetId asset_id,
+                                   HAPI_ObjectId object_id,
+                                   HAPI_GeoId geo_id,
+                                   HAPI_RSTOrder rst_order,
+                                   HAPI_Transform * transforms_array,
+                                   int start, int length );
 
 /// @brief  Set the transform of an individual object. Note that the object
 ///         nodes have to either be editable or have their transform
@@ -2994,10 +3011,11 @@ HAPI_DECL HAPI_SetObjectTransformOnNode( const HAPI_Session * session,
 /// @param[in]      transform
 ///                 A ::HAPI_TransformEuler that stores the transform.
 ///
-HAPI_DECL HAPI_SetObjectTransform( const HAPI_Session * session,
-                                   HAPI_AssetId asset_id,
-                                   HAPI_ObjectId object_id,
-                                   const HAPI_TransformEuler * transform );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetObjectTransformOnAsset( const HAPI_Session * session,
+                                HAPI_AssetId asset_id,
+                                HAPI_ObjectId object_id,
+                                const HAPI_TransformEuler * transform );
 
 // GEOMETRY GETTERS ---------------------------------------------------------
 
@@ -3060,11 +3078,12 @@ HAPI_DECL HAPI_GetGeoInfoOnNode( const HAPI_Session * session,
 /// @param[out]     geo_info
 ///                 ::HAPI_GeoInfo return value.
 ///
-HAPI_DECL HAPI_GetGeoInfo( const HAPI_Session * session,
-                           HAPI_AssetId asset_id,
-                           HAPI_ObjectId object_id,
-                           HAPI_GeoId geo_id,
-                           HAPI_GeoInfo * geo_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetGeoInfoOnAsset( const HAPI_Session * session,
+                        HAPI_AssetId asset_id,
+                        HAPI_ObjectId object_id,
+                        HAPI_GeoId geo_id,
+                        HAPI_GeoInfo * geo_info );
 
 /// @brief  Get a particular part info struct.
 ///
@@ -3646,10 +3665,11 @@ HAPI_DECL HAPI_GetInstancerPartTransformsOnNode(
 /// @param[out]     part_info
 ///                 ::HAPI_PartInfo return value.
 ///
-HAPI_DECL HAPI_GetPartInfo( const HAPI_Session * session,
-                            HAPI_AssetId asset_id, HAPI_ObjectId object_id,
-                            HAPI_GeoId geo_id, HAPI_PartId part_id,
-                            HAPI_PartInfo * part_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetPartInfoOnAsset( const HAPI_Session * session,
+                         HAPI_AssetId asset_id, HAPI_ObjectId object_id,
+                         HAPI_GeoId geo_id, HAPI_PartId part_id,
+                         HAPI_PartInfo * part_info );
 
 /// @brief  Get the array of faces where the nth integer in the array is
 ///         the number of vertices the nth face has.
@@ -3682,13 +3702,14 @@ HAPI_DECL HAPI_GetPartInfo( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::faceCount - @p start.
 ///
-HAPI_DECL HAPI_GetFaceCounts( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              HAPI_PartId part_id,
-                              int * face_counts_array,
-                              int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetFaceCountsOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           HAPI_PartId part_id,
+                           int * face_counts_array,
+                           int start, int length );
 
 /// @brief  Get array containing the vertex-point associations where the
 ///         ith element in the array is the point index the ith vertex
@@ -3722,13 +3743,14 @@ HAPI_DECL HAPI_GetFaceCounts( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::vertexCount - @p start.
 ///
-HAPI_DECL HAPI_GetVertexList( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              HAPI_PartId part_id,
-                              int * vertex_list_array,
-                              int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetVertexListOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           HAPI_PartId part_id,
+                           int * vertex_list_array,
+                           int start, int length );
 
 /// @brief  Get the main geometry info struct (::HAPI_GeoInfo).
 ///
@@ -3760,14 +3782,15 @@ HAPI_DECL HAPI_GetVertexList( const HAPI_Session * session,
 ///                 ::HAPI_AttributeInfo::exists to see if this attribute
 ///                 exists.
 ///
-HAPI_DECL HAPI_GetAttributeInfo( const HAPI_Session * session,
-                                 HAPI_AssetId asset_id,
-                                 HAPI_ObjectId object_id,
-                                 HAPI_GeoId geo_id,
-                                 HAPI_PartId part_id,
-                                 const char * name,
-                                 HAPI_AttributeOwner owner,
-                                 HAPI_AttributeInfo * attr_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAttributeInfoOnAsset( const HAPI_Session * session,
+                              HAPI_AssetId asset_id,
+                              HAPI_ObjectId object_id,
+                              HAPI_GeoId geo_id,
+                              HAPI_PartId part_id,
+                              const char * name,
+                              HAPI_AttributeOwner owner,
+                              HAPI_AttributeInfo * attr_info );
 
 /// @brief  Get list of attribute names by attribute owner. Note that the
 ///         name string handles are only valid until the next time this
@@ -3804,14 +3827,15 @@ HAPI_DECL HAPI_GetAttributeInfo( const HAPI_Session * session,
 ///                 Sanity check count. Must be equal to the appropriate
 ///                 attribute owner type count in ::HAPI_PartInfo.
 ///
-HAPI_DECL HAPI_GetAttributeNames( const HAPI_Session * session,
-                                  HAPI_AssetId asset_id,
-                                  HAPI_ObjectId object_id,
-                                  HAPI_GeoId geo_id,
-                                  HAPI_PartId part_id,
-                                  HAPI_AttributeOwner owner,
-                                  HAPI_StringHandle * attribute_names_array,
-                                  int count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAttributeNamesOnAsset( const HAPI_Session * session,
+                               HAPI_AssetId asset_id,
+                               HAPI_ObjectId object_id,
+                               HAPI_GeoId geo_id,
+                               HAPI_PartId part_id,
+                               HAPI_AttributeOwner owner,
+                               HAPI_StringHandle * attribute_names_array,
+                               int count );
 
 /// @brief  Get attribute integer data.
 ///
@@ -3862,16 +3886,17 @@ HAPI_DECL HAPI_GetAttributeNames( const HAPI_Session * session,
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
 ///
-HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
-                                    HAPI_AssetId asset_id,
-                                    HAPI_ObjectId object_id,
-                                    HAPI_GeoId geo_id,
-                                    HAPI_PartId part_id,
-                                    const char * name,
-                                    HAPI_AttributeInfo * attr_info,
-                                    int stride,
-                                    int * data_array,
-                                    int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAttributeIntDataOnAsset( const HAPI_Session * session,
+                                 HAPI_AssetId asset_id,
+                                 HAPI_ObjectId object_id,
+                                 HAPI_GeoId geo_id,
+                                 HAPI_PartId part_id,
+                                 const char * name,
+                                 HAPI_AttributeInfo * attr_info,
+                                 int stride,
+                                 int * data_array,
+                                 int start, int length );
 
 /// @brief  Get attribute 64-bit integer data.
 ///
@@ -3922,16 +3947,17 @@ HAPI_DECL HAPI_GetAttributeIntData( const HAPI_Session * session,
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
 ///
-HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id,
-                                      HAPI_ObjectId object_id,
-                                      HAPI_GeoId geo_id,
-                                      HAPI_PartId part_id,
-                                      const char * name,
-                                      HAPI_AttributeInfo * attr_info,
-                                      int stride,
-                                      HAPI_Int64 * data_array,
-                                      int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAttributeInt64DataOnAsset( const HAPI_Session * session,
+                                   HAPI_AssetId asset_id,
+                                   HAPI_ObjectId object_id,
+                                   HAPI_GeoId geo_id,
+                                   HAPI_PartId part_id,
+                                   const char * name,
+                                   HAPI_AttributeInfo * attr_info,
+                                   int stride,
+                                   HAPI_Int64 * data_array,
+                                   int start, int length );
 
 /// @brief  Get attribute float data.
 ///
@@ -3982,16 +4008,17 @@ HAPI_DECL HAPI_GetAttributeInt64Data( const HAPI_Session * session,
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
 ///
-HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id,
-                                      HAPI_ObjectId object_id,
-                                      HAPI_GeoId geo_id,
-                                      HAPI_PartId part_id,
-                                      const char * name,
-                                      HAPI_AttributeInfo * attr_info,
-                                      int stride,
-                                      float * data_array,
-                                      int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAttributeFloatDataOnAsset( const HAPI_Session * session,
+                                   HAPI_AssetId asset_id,
+                                   HAPI_ObjectId object_id,
+                                   HAPI_GeoId geo_id,
+                                   HAPI_PartId part_id,
+                                   const char * name,
+                                   HAPI_AttributeInfo * attr_info,
+                                   int stride,
+                                   float * data_array,
+                                   int start, int length );
 
 /// @brief  Get 64-bit attribute float data.
 ///
@@ -4042,16 +4069,17 @@ HAPI_DECL HAPI_GetAttributeFloatData( const HAPI_Session * session,
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
 ///
-HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
-                                        HAPI_AssetId asset_id,
-                                        HAPI_ObjectId object_id,
-                                        HAPI_GeoId geo_id,
-                                        HAPI_PartId part_id,
-                                        const char * name,
-                                        HAPI_AttributeInfo * attr_info,
-                                        int stride,
-                                        double * data_array,
-                                        int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAttributeFloat64DataOnAsset( const HAPI_Session * session,
+                                     HAPI_AssetId asset_id,
+                                     HAPI_ObjectId object_id,
+                                     HAPI_GeoId geo_id,
+                                     HAPI_PartId part_id,
+                                     const char * name,
+                                     HAPI_AttributeInfo * attr_info,
+                                     int stride,
+                                     double * data_array,
+                                     int start, int length );
 
 /// @brief  Get attribute string data. Note that the string handles
 ///         returned are only valid until the next time this function
@@ -4097,15 +4125,16 @@ HAPI_DECL HAPI_GetAttributeFloat64Data( const HAPI_Session * session,
 ///                 Note, if 0 is passed for length, the function will just
 ///                 do nothing and return ::HAPI_RESULT_SUCCESS.
 ///
-HAPI_DECL HAPI_GetAttributeStringData( const HAPI_Session * session,
-                                       HAPI_AssetId asset_id,
-                                       HAPI_ObjectId object_id,
-                                       HAPI_GeoId geo_id,
-                                       HAPI_PartId part_id,
-                                       const char * name,
-                                       HAPI_AttributeInfo * attr_info,
-                                       HAPI_StringHandle * data_array,
-                                       int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetAttributeStringDataOnAsset( const HAPI_Session * session,
+                                    HAPI_AssetId asset_id,
+                                    HAPI_ObjectId object_id,
+                                    HAPI_GeoId geo_id,
+                                    HAPI_PartId part_id,
+                                    const char * name,
+                                    HAPI_AttributeInfo * attr_info,
+                                    HAPI_StringHandle * data_array,
+                                    int start, int length );
 
 /// @brief  Get group names for an entire geo. Please note that this
 ///         function is NOT per-part, but it is per-geo. The companion
@@ -4141,13 +4170,14 @@ HAPI_DECL HAPI_GetAttributeStringData( const HAPI_Session * session,
 ///                 Sanity check. Should be less than or equal to the size
 ///                 of @p group_names.
 ///
-HAPI_DECL HAPI_GetGroupNames( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              HAPI_GroupType group_type,
-                              HAPI_StringHandle * group_names_array,
-                              int group_count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetGroupNamesOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           HAPI_GroupType group_type,
+                           HAPI_StringHandle * group_names_array,
+                           int group_count );
 
 /// @brief  Get group membership.
 ///
@@ -4193,16 +4223,17 @@ HAPI_DECL HAPI_GetGroupNames( const HAPI_Session * session,
 ///                 Should be less than or equal to the size
 ///                 of @p membership.
 ///
-HAPI_DECL HAPI_GetGroupMembership( const HAPI_Session * session,
-                                   HAPI_AssetId asset_id,
-                                   HAPI_ObjectId object_id,
-                                   HAPI_GeoId geo_id,
-                                   HAPI_PartId part_id,
-                                   HAPI_GroupType group_type,
-                                   const char * group_name,
-                                   HAPI_Bool * membership_array_all_equal,
-                                   int * membership_array,
-                                   int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetGroupMembershipOnAsset( const HAPI_Session * session,
+                                HAPI_AssetId asset_id,
+                                HAPI_ObjectId object_id,
+                                HAPI_GeoId geo_id,
+                                HAPI_PartId part_id,
+                                HAPI_GroupType group_type,
+                                const char * group_name,
+                                HAPI_Bool * membership_array_all_equal,
+                                int * membership_array,
+                                int start, int length );
 
 /// @brief  Get the part ids that this instancer part is instancing.
 ///
@@ -4235,13 +4266,14 @@ HAPI_DECL HAPI_GetGroupMembership( const HAPI_Session * session,
 ///                 Should be less than @p part_id's 
 ///                 ::HAPI_PartInfo::instancedPartCount - @p start.
 ///
-HAPI_DECL HAPI_GetInstancedPartIds( const HAPI_Session * session,
-                                    HAPI_AssetId asset_id,
-                                    HAPI_ObjectId object_id,
-                                    HAPI_GeoId geo_id,
-                                    HAPI_PartId part_id, 
-                                    HAPI_PartId * instanced_parts_array,
-                                    int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetInstancedPartIdsOnAsset( const HAPI_Session * session,
+                                 HAPI_AssetId asset_id,
+                                 HAPI_ObjectId object_id,
+                                 HAPI_GeoId geo_id,
+                                 HAPI_PartId part_id, 
+                                 HAPI_PartId * instanced_parts_array,
+                                 int start, int length );
 
 /// @brief  Get the instancer part's list of transforms on which to
 ///         instance the instanced parts you got from 
@@ -4280,14 +4312,15 @@ HAPI_DECL HAPI_GetInstancedPartIds( const HAPI_Session * session,
 ///                 Should be less than @p part_id's 
 ///                 ::HAPI_PartInfo::instanceCount - @p start.
 ///
-HAPI_DECL HAPI_GetInstancerPartTransforms( const HAPI_Session * session,
-                                           HAPI_AssetId asset_id,
-                                           HAPI_ObjectId object_id,
-                                           HAPI_GeoId geo_id,
-                                           HAPI_PartId part_id,
-                                           HAPI_RSTOrder rst_order,
-                                           HAPI_Transform * transforms_array,
-                                           int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetInstancerPartTransformsOnAsset( const HAPI_Session * session,
+                                        HAPI_AssetId asset_id,
+                                        HAPI_ObjectId object_id,
+                                        HAPI_GeoId geo_id,
+                                        HAPI_PartId part_id,
+                                        HAPI_RSTOrder rst_order,
+                                        HAPI_Transform * transforms_array,
+                                        int start, int length );
 
 // GEOMETRY SETTERS ---------------------------------------------------------
 
@@ -4731,11 +4764,12 @@ HAPI_DECL HAPI_RevertGeoOnNode( const HAPI_Session * session,
 ///                 ::HAPI_PartInfo value that describes the input
 ///                 geometry.
 ///
-HAPI_DECL HAPI_SetPartInfo( const HAPI_Session * session,
-                            HAPI_AssetId asset_id,
-                            HAPI_ObjectId object_id,
-                            HAPI_GeoId geo_id,
-                            const HAPI_PartInfo * part_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetPartInfoOnAsset( const HAPI_Session * session,
+                         HAPI_AssetId asset_id,
+                         HAPI_ObjectId object_id,
+                         HAPI_GeoId geo_id,
+                         const HAPI_PartInfo * part_info );
 
 /// @brief  Set the array of faces where the nth integer in the array is
 ///         the number of vertices the nth face has.
@@ -4765,12 +4799,13 @@ HAPI_DECL HAPI_SetPartInfo( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::faceCount - @p start.
 ///
-HAPI_DECL HAPI_SetFaceCounts( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              const int * face_counts_array,
-                              int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetFaceCountsOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           const int * face_counts_array,
+                           int start, int length );
 
 /// @brief  Set array containing the vertex-point associations where the
 ///         ith element in the array is the point index the ith vertex
@@ -4801,12 +4836,13 @@ HAPI_DECL HAPI_SetFaceCounts( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_PartInfo::vertexCount - @p start.
 ///
-HAPI_DECL HAPI_SetVertexList( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              const int * vertex_list_array,
-                              int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetVertexListOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           const int * vertex_list_array,
+                           int start, int length );
 
 /// @brief  Add an attribute.
 ///
@@ -4830,12 +4866,13 @@ HAPI_DECL HAPI_SetVertexList( const HAPI_Session * session,
 /// @param[in]      attr_info
 ///                 ::HAPI_AttributeInfo stores attribute properties.
 ///
-HAPI_DECL HAPI_AddAttribute( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             HAPI_ObjectId object_id,
-                             HAPI_GeoId geo_id,
-                             const char * name,
-                             const HAPI_AttributeInfo * attr_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_AddAttributeOnAsset( const HAPI_Session * session,
+                          HAPI_AssetId asset_id,
+                          HAPI_ObjectId object_id,
+                          HAPI_GeoId geo_id,
+                          const char * name,
+                          const HAPI_AttributeInfo * attr_info );
 
 /// @brief  Set attribute integer data.
 ///
@@ -4874,14 +4911,15 @@ HAPI_DECL HAPI_AddAttribute( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///
-HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
-                                    HAPI_AssetId asset_id,
-                                    HAPI_ObjectId object_id,
-                                    HAPI_GeoId geo_id,
-                                    const char * name,
-                                    const HAPI_AttributeInfo * attr_info,
-                                    const int * data_array,
-                                    int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetAttributeIntDataOnAsset( const HAPI_Session * session,
+                                 HAPI_AssetId asset_id,
+                                 HAPI_ObjectId object_id,
+                                 HAPI_GeoId geo_id,
+                                 const char * name,
+                                 const HAPI_AttributeInfo * attr_info,
+                                 const int * data_array,
+                                 int start, int length );
 
 /// @brief  Set 64-bit attribute integer data.
 ///
@@ -4920,14 +4958,15 @@ HAPI_DECL HAPI_SetAttributeIntData( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///
-HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id,
-                                      HAPI_ObjectId object_id,
-                                      HAPI_GeoId geo_id,
-                                      const char * name,
-                                      const HAPI_AttributeInfo * attr_info,
-                                      const HAPI_Int64 * data_array,
-                                      int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetAttributeInt64DataOnAsset( const HAPI_Session * session,
+                                   HAPI_AssetId asset_id,
+                                   HAPI_ObjectId object_id,
+                                   HAPI_GeoId geo_id,
+                                   const char * name,
+                                   const HAPI_AttributeInfo * attr_info,
+                                   const HAPI_Int64 * data_array,
+                                   int start, int length );
 
 /// @brief  Set attribute float data.
 ///
@@ -4966,14 +5005,15 @@ HAPI_DECL HAPI_SetAttributeInt64Data( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///
-HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id,
-                                      HAPI_ObjectId object_id,
-                                      HAPI_GeoId geo_id,
-                                      const char * name,
-                                      const HAPI_AttributeInfo * attr_info,
-                                      const float * data_array,
-                                      int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetAttributeFloatDataOnAsset( const HAPI_Session * session,
+                                   HAPI_AssetId asset_id,
+                                   HAPI_ObjectId object_id,
+                                   HAPI_GeoId geo_id,
+                                   const char * name,
+                                   const HAPI_AttributeInfo * attr_info,
+                                   const float * data_array,
+                                   int start, int length );
 
 /// @brief  Set 64-bit attribute float data.
 ///
@@ -5012,14 +5052,15 @@ HAPI_DECL HAPI_SetAttributeFloatData( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///
-HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
-                                        HAPI_AssetId asset_id,
-                                        HAPI_ObjectId object_id,
-                                        HAPI_GeoId geo_id,
-                                        const char * name,
-                                        const HAPI_AttributeInfo * attr_info,
-                                        const double * data_array,
-                                        int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetAttributeFloat64DataOnAsset( const HAPI_Session * session,
+                                     HAPI_AssetId asset_id,
+                                     HAPI_ObjectId object_id,
+                                     HAPI_GeoId geo_id,
+                                     const char * name,
+                                     const HAPI_AttributeInfo * attr_info,
+                                     const double * data_array,
+                                     int start, int length );
 
 /// @brief  Set attribute string data.
 ///
@@ -5058,14 +5099,15 @@ HAPI_DECL HAPI_SetAttributeFloat64Data( const HAPI_Session * session,
 ///                 Must be at least 0 and at most
 ///                 ::HAPI_AttributeInfo::count - @p start.
 ///
-HAPI_DECL HAPI_SetAttributeStringData( const HAPI_Session * session,
-                                       HAPI_AssetId asset_id,
-                                       HAPI_ObjectId object_id,
-                                       HAPI_GeoId geo_id,
-                                       const char * name,
-                                       const HAPI_AttributeInfo *attr_info,
-                                       const char ** data_array,
-                                       int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetAttributeStringDataOnAsset( const HAPI_Session * session,
+                                    HAPI_AssetId asset_id,
+                                    HAPI_ObjectId object_id,
+                                    HAPI_GeoId geo_id,
+                                    const char * name,
+                                    const HAPI_AttributeInfo *attr_info,
+                                    const char ** data_array,
+                                    int start, int length );
 
 /// @brief  Add a group to the input geo with the given type and name.
 ///
@@ -5089,12 +5131,13 @@ HAPI_DECL HAPI_SetAttributeStringData( const HAPI_Session * session,
 /// @param[in]      group_name
 ///                 Name of new group to be added.
 ///
-HAPI_DECL HAPI_AddGroup( const HAPI_Session * session,
-                         HAPI_AssetId asset_id,
-                         HAPI_ObjectId object_id,
-                         HAPI_GeoId geo_id,
-                         HAPI_GroupType group_type,
-                         const char * group_name );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_AddGroupOnAsset( const HAPI_Session * session,
+                      HAPI_AssetId asset_id,
+                      HAPI_ObjectId object_id,
+                      HAPI_GeoId geo_id,
+                      HAPI_GroupType group_type,
+                      const char * group_name );
 
 /// @brief  Set group membership.
 ///
@@ -5132,14 +5175,15 @@ HAPI_DECL HAPI_AddGroup( const HAPI_Session * session,
 ///                 Should be less than or equal to the size
 ///                 of @p membership.
 ///
-HAPI_DECL HAPI_SetGroupMembership( const HAPI_Session * session,
-                                   HAPI_AssetId asset_id,
-                                   HAPI_ObjectId object_id,
-                                   HAPI_GeoId geo_id,
-                                   HAPI_GroupType group_type,
-                                   const char * group_name,
-                                   const int * membership_array,
-                                   int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetGroupMembershipOnAsset( const HAPI_Session * session,
+                                HAPI_AssetId asset_id,
+                                HAPI_ObjectId object_id,
+                                HAPI_GeoId geo_id,
+                                HAPI_GroupType group_type,
+                                const char * group_name,
+                                const int * membership_array,
+                                int start, int length );
 
 /// @brief  Commit the current input geometry to the cook engine. Nodes
 ///         that use this geometry node will re-cook using the input
@@ -5159,10 +5203,11 @@ HAPI_DECL HAPI_SetGroupMembership( const HAPI_Session * session,
 /// @param[in]      geo_id
 ///                 The geometry id.
 ///
-HAPI_DECL HAPI_CommitGeo( const HAPI_Session * session,
-                          HAPI_AssetId asset_id,
-                          HAPI_ObjectId object_id,
-                          HAPI_GeoId geo_id );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_CommitGeoOnAsset( const HAPI_Session * session,
+                       HAPI_AssetId asset_id,
+                       HAPI_ObjectId object_id,
+                       HAPI_GeoId geo_id );
 
 /// @brief  Remove all changes that have been committed to this
 ///         geometry.  Only applies to geometry nodes that are
@@ -5182,10 +5227,11 @@ HAPI_DECL HAPI_CommitGeo( const HAPI_Session * session,
 /// @param[in]      geo_id
 ///                 The geometry id.
 ///
-HAPI_DECL HAPI_RevertGeo( const HAPI_Session * session,
-                          HAPI_AssetId asset_id,
-                          HAPI_ObjectId object_id,
-                          HAPI_GeoId geo_id );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_RevertGeoOnAsset( const HAPI_Session * session,
+                       HAPI_AssetId asset_id,
+                       HAPI_ObjectId object_id,
+                       HAPI_GeoId geo_id );
 
 // INTER-ASSET --------------------------------------------------------------
 
@@ -5206,10 +5252,11 @@ HAPI_DECL HAPI_RevertGeo( const HAPI_Session * session,
 ///                 The index on the destination asset where the
 ///                 connection should be made.
 ///
-HAPI_DECL HAPI_ConnectAssetTransform( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id_from,
-                                      HAPI_AssetId asset_id_to,
-                                      int input_idx );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_ConnectAssetTransform( const HAPI_Session * session,
+                            HAPI_AssetId asset_id_from,
+                            HAPI_AssetId asset_id_to,
+                            int input_idx );
 
 /// @brief  Break an existing transform connection
 ///
@@ -5225,9 +5272,10 @@ HAPI_DECL HAPI_ConnectAssetTransform( const HAPI_Session * session,
 ///                 The index on the asset where the connection
 ///                 should be broken.
 ///
-HAPI_DECL HAPI_DisconnectAssetTransform( const HAPI_Session * session,
-                                         HAPI_AssetId asset_id,
-                                         int input_idx );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_DisconnectAssetTransform( const HAPI_Session * session,
+                               HAPI_AssetId asset_id,
+                               int input_idx );
 
 /// @brief  Connect the geometry of two assets together.  For
 ///         example we can connect a particular piece of geometry from
@@ -5256,11 +5304,12 @@ HAPI_DECL HAPI_DisconnectAssetTransform( const HAPI_Session * session,
 ///                 The index on the destination asset where the
 ///                 connection should be made.
 ///
-HAPI_DECL HAPI_ConnectAssetGeometry( const HAPI_Session * session,
-                                     HAPI_AssetId asset_id_from,
-                                     HAPI_ObjectId object_id_from,
-                                     HAPI_AssetId asset_id_to,
-                                     int input_idx );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_ConnectAssetGeometry( const HAPI_Session * session,
+                           HAPI_AssetId asset_id_from,
+                           HAPI_ObjectId object_id_from,
+                           HAPI_AssetId asset_id_to,
+                           int input_idx );
 
 /// @brief  Break an existing geometry connection
 ///
@@ -5276,9 +5325,10 @@ HAPI_DECL HAPI_ConnectAssetGeometry( const HAPI_Session * session,
 ///                 The index on the asset where the connection
 ///                 should be broken.
 ///
-HAPI_DECL HAPI_DisconnectAssetGeometry( const HAPI_Session * session,
-                                        HAPI_AssetId asset_id,
-                                        int input_idx );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_DisconnectAssetGeometry( const HAPI_Session * session,
+                              HAPI_AssetId asset_id,
+                              int input_idx );
 
 // MATERIALS ----------------------------------------------------------------
 
@@ -5362,7 +5412,7 @@ HAPI_DECL HAPI_GetMaterialInfoOnNode( const HAPI_Session * session,
 ///                 but the ::HAPI_MaterialInfo::exists will be set to
 ///                 false.
 ///
-HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialIdsOnFaces)
+HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialNodeIdsOnFaces)
 HAPI_GetMaterialOnPartOnNode( const HAPI_Session * session,
                               HAPI_NodeId geometry_node_id,
                               HAPI_PartId part_id,
@@ -5389,7 +5439,7 @@ HAPI_GetMaterialOnPartOnNode( const HAPI_Session * session,
 ///                 but the ::HAPI_MaterialInfo::exists will be set to
 ///                 false.
 ///
-HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialIdsOnFaces)
+HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialNodeIdsOnFaces)
 HAPI_GetMaterialOnGroupOnNode( const HAPI_Session * session,
                                HAPI_NodeId geometry_node_id,
                                const char * group_name,
@@ -5723,14 +5773,15 @@ HAPI_DECL HAPI_GetImageMemoryBufferOnNode( const HAPI_Session * session,
 ///                 this should be at most:
 ///                 ::HAPI_PartInfo::faceCount - @p start.
 ///
-HAPI_DECL HAPI_GetMaterialIdsOnFaces( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id,
-                                      HAPI_ObjectId object_id,
-                                      HAPI_GeoId geo_id,
-                                      HAPI_PartId part_id,
-                                      HAPI_Bool * are_all_the_same,
-                                      HAPI_MaterialId * material_ids_array,
-                                      int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetMaterialIdsOnFaces( const HAPI_Session * session,
+                            HAPI_AssetId asset_id,
+                            HAPI_ObjectId object_id,
+                            HAPI_GeoId geo_id,
+                            HAPI_PartId part_id,
+                            HAPI_Bool * are_all_the_same,
+                            HAPI_MaterialId * material_ids_array,
+                            int start, int length );
 
 /// @brief  Get the material info.
 ///
@@ -5749,10 +5800,11 @@ HAPI_DECL HAPI_GetMaterialIdsOnFaces( const HAPI_Session * session,
 /// @param[out]     material_info
 ///                 The returned material info.
 ///
-HAPI_DECL HAPI_GetMaterialInfo( const HAPI_Session * session,
-                                HAPI_AssetId asset_id,
-                                HAPI_MaterialId material_id,
-                                HAPI_MaterialInfo * material_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetMaterialInfoOnAsset( const HAPI_Session * session,
+                             HAPI_AssetId asset_id,
+                             HAPI_MaterialId material_id,
+                             HAPI_MaterialInfo * material_info );
 
 /// @brief  Get the material on a part.
 ///
@@ -5780,12 +5832,12 @@ HAPI_DECL HAPI_GetMaterialInfo( const HAPI_Session * session,
 ///                 false.
 ///
 HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialIdsOnFaces)
-HAPI_GetMaterialOnPart( const HAPI_Session * session,
-                        HAPI_AssetId asset_id,
-                        HAPI_ObjectId object_id,
-                        HAPI_GeoId geo_id,
-                        HAPI_PartId part_id,
-                        HAPI_MaterialInfo * material_info );
+HAPI_GetMaterialOnPartOnAsset( const HAPI_Session * session,
+                               HAPI_AssetId asset_id,
+                               HAPI_ObjectId object_id,
+                               HAPI_GeoId geo_id,
+                               HAPI_PartId part_id,
+                               HAPI_MaterialInfo * material_info );
 
 /// @brief  Get the material on a group. Use the
 ///         ::HAPI_GetGroupMembership() call to determine where the
@@ -5815,12 +5867,12 @@ HAPI_GetMaterialOnPart( const HAPI_Session * session,
 ///                 false.
 ///
 HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialIdsOnFaces)
-HAPI_GetMaterialOnGroup( const HAPI_Session * session,
-                         HAPI_AssetId asset_id,
-                         HAPI_ObjectId object_id,
-                         HAPI_GeoId geo_id,
-                         const char * group_name,
-                         HAPI_MaterialInfo * material_info );
+HAPI_GetMaterialOnGroupOnAsset( const HAPI_Session * session,
+                                HAPI_AssetId asset_id,
+                                HAPI_ObjectId object_id,
+                                HAPI_GeoId geo_id,
+                                const char * group_name,
+                                HAPI_MaterialInfo * material_info );
 
 /// @brief  Render only a single texture to an image for later extraction.
 ///         An example use of this method might be to render the diffuse,
@@ -5846,10 +5898,11 @@ HAPI_GetMaterialOnGroup( const HAPI_Session * session,
 ///                 material_id's node of the parameter containing the
 ///                 texture map file path.
 ///
-HAPI_DECL HAPI_RenderTextureToImage( const HAPI_Session * session,
-                                     HAPI_AssetId asset_id,
-                                     HAPI_MaterialId material_id,
-                                     HAPI_ParmId parm_id );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_RenderTextureToImageOnAsset( const HAPI_Session * session,
+                                  HAPI_AssetId asset_id,
+                                  HAPI_MaterialId material_id,
+                                  HAPI_ParmId parm_id );
 
 /// @brief  Get the number of supported texture file formats.
 ///
@@ -5911,10 +5964,11 @@ HAPI_DECL HAPI_GetSupportedImageFileFormats(
 /// @param[out]     image_info
 ///                 The struct containing the image information.
 ///
-HAPI_DECL HAPI_GetImageInfo( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             HAPI_MaterialId material_id,
-                             HAPI_ImageInfo * image_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetImageInfoOnAsset( const HAPI_Session * session,
+                          HAPI_AssetId asset_id,
+                          HAPI_MaterialId material_id,
+                          HAPI_ImageInfo * image_info );
 
 /// @brief  Set image information like resolution and file format.
 ///         This information will be used when extracting planes to
@@ -5941,10 +5995,11 @@ HAPI_DECL HAPI_GetImageInfo( const HAPI_Session * session,
 /// @param[in]      image_info
 ///                 The struct containing the new image information.
 ///
-HAPI_DECL HAPI_SetImageInfo( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             HAPI_MaterialId material_id,
-                             const HAPI_ImageInfo * image_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetImageInfoOnAsset( const HAPI_Session * session,
+                          HAPI_AssetId asset_id,
+                          HAPI_MaterialId material_id,
+                          const HAPI_ImageInfo * image_info );
 
 /// @brief  Get the number of image planes for the just rendered image.
 ///
@@ -5965,10 +6020,11 @@ HAPI_DECL HAPI_SetImageInfo( const HAPI_Session * session,
 /// @param[out]     image_plane_count
 ///                 The number of image planes.
 ///
-HAPI_DECL HAPI_GetImagePlaneCount( const HAPI_Session * session,
-                                   HAPI_AssetId asset_id,
-                                   HAPI_MaterialId material_id,
-                                   int * image_plane_count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetImagePlaneCountOnAsset( const HAPI_Session * session,
+                                HAPI_AssetId asset_id,
+                                HAPI_MaterialId material_id,
+                                int * image_plane_count );
 
 /// @brief  Get the names of the image planes of the just rendered image.
 ///
@@ -5998,11 +6054,12 @@ HAPI_DECL HAPI_GetImagePlaneCount( const HAPI_Session * session,
 ///                 must be less than or equal to the count returned
 ///                 by ::HAPI_GetImagePlaneCount().
 ///
-HAPI_DECL HAPI_GetImagePlanes( const HAPI_Session * session,
-                               HAPI_AssetId asset_id,
-                               HAPI_MaterialId material_id,
-                               HAPI_StringHandle * image_planes_array,
-                               int image_plane_count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetImagePlanesOnAsset( const HAPI_Session * session,
+                            HAPI_AssetId asset_id,
+                            HAPI_MaterialId material_id,
+                            HAPI_StringHandle * image_planes_array,
+                            int image_plane_count );
 
 /// @brief  Extract a rendered image to a file.
 ///
@@ -6069,14 +6126,15 @@ HAPI_DECL HAPI_GetImagePlanes( const HAPI_Session * session,
 ///                 will only be valid until the next call to
 ///                 this function.
 ///
-HAPI_DECL HAPI_ExtractImageToFile( const HAPI_Session * session,
-                                   HAPI_AssetId asset_id,
-                                   HAPI_MaterialId material_id,
-                                   const char * image_file_format_name,
-                                   const char * image_planes,
-                                   const char * destination_folder_path,
-                                   const char * destination_file_name,
-                                   int * destination_file_path );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_ExtractImageToFileOnAsset( const HAPI_Session * session,
+                                HAPI_AssetId asset_id,
+                                HAPI_MaterialId material_id,
+                                const char * image_file_format_name,
+                                const char * image_planes,
+                                const char * destination_folder_path,
+                                const char * destination_file_name,
+                                int * destination_file_path );
 
 /// @brief  Extract a rendered image to memory.
 ///
@@ -6133,12 +6191,13 @@ HAPI_DECL HAPI_ExtractImageToFile( const HAPI_Session * session,
 ///                 ::HAPI_GetImageMemoryBuffer() to get the image
 ///                 buffer you just extracted.
 ///
-HAPI_DECL HAPI_ExtractImageToMemory( const HAPI_Session * session,
-                                     HAPI_AssetId asset_id,
-                                     HAPI_MaterialId material_id,
-                                     const char * image_file_format_name,
-                                     const char * image_planes,
-                                     int * buffer_size );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_ExtractImageToMemoryOnAsset( const HAPI_Session * session,
+                                  HAPI_AssetId asset_id,
+                                  HAPI_MaterialId material_id,
+                                  const char * image_file_format_name,
+                                  const char * image_planes,
+                                  int * buffer_size );
 
 /// @brief  Fill your allocated buffer with the just extracted
 ///         image buffer.
@@ -6173,10 +6232,11 @@ HAPI_DECL HAPI_ExtractImageToMemory( const HAPI_Session * session,
 ///                 be at least as large as the buffer_size returned by
 ///                 the call to ::HAPI_ExtractImageToMemory().
 ///
-HAPI_DECL HAPI_GetImageMemoryBuffer( const HAPI_Session * session,
-                                     HAPI_AssetId asset_id,
-                                     HAPI_MaterialId material_id,
-                                     char * buffer, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetImageMemoryBufferOnAsset( const HAPI_Session * session,
+                                  HAPI_AssetId asset_id,
+                                  HAPI_MaterialId material_id,
+                                  char * buffer, int length );
 
 // SIMULATION/ANIMATION -----------------------------------------------------
 
@@ -6584,12 +6644,13 @@ HAPI_DECL HAPI_SetVolumeTileIntDataOnNode( const HAPI_Session * session,
 ///                 The meta-data associated with the volume on the
 ///                 part specified by the previous parameters.
 ///
-HAPI_DECL HAPI_GetVolumeInfo( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              HAPI_PartId part_id,
-                              HAPI_VolumeInfo * volume_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetVolumeInfoOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           HAPI_PartId part_id,
+                           HAPI_VolumeInfo * volume_info );
 
 /// @brief  Iterate through a volume based on 8x8x8 sections of the volume
 ///         Start iterating through the value of the volume at part_id.
@@ -6615,12 +6676,13 @@ HAPI_DECL HAPI_GetVolumeInfo( const HAPI_Session * session,
 ///                 The tile info referring to the first tile in the
 ///                 volume at part_id.
 ///
-HAPI_DECL HAPI_GetFirstVolumeTile( const HAPI_Session * session,
-                                   HAPI_AssetId asset_id,
-                                   HAPI_ObjectId object_id,
-                                   HAPI_GeoId geo_id,
-                                   HAPI_PartId part_id,
-                                   HAPI_VolumeTileInfo * tile );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetFirstVolumeTileOnAsset( const HAPI_Session * session,
+                                HAPI_AssetId asset_id,
+                                HAPI_ObjectId object_id,
+                                HAPI_GeoId geo_id,
+                                HAPI_PartId part_id,
+                                HAPI_VolumeTileInfo * tile );
 
 /// @brief  Iterate through a volume based on 8x8x8 sections of the volume
 ///         Continue iterating through the value of the volume at part_id.
@@ -6646,12 +6708,13 @@ HAPI_DECL HAPI_GetFirstVolumeTile( const HAPI_Session * session,
 ///                 The tile info referring to the next tile in the
 ///                 set of tiles associated with the volume at this part.
 ///
-HAPI_DECL HAPI_GetNextVolumeTile( const HAPI_Session * session,
-                                  HAPI_AssetId asset_id,
-                                  HAPI_ObjectId object_id,
-                                  HAPI_GeoId geo_id,
-                                  HAPI_PartId part_id,
-                                  HAPI_VolumeTileInfo * tile );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetNextVolumeTileOnAsset( const HAPI_Session * session,
+                               HAPI_AssetId asset_id,
+                               HAPI_ObjectId object_id,
+                               HAPI_GeoId geo_id,
+                               HAPI_PartId part_id,
+                               HAPI_VolumeTileInfo * tile );
 
 /// @brief  Retrieve floating point values of the voxel at a specific
 ///         index. Note that you must call ::HAPI_GetVolumeInfo() prior
@@ -6690,16 +6753,17 @@ HAPI_DECL HAPI_GetNextVolumeTile( const HAPI_Session * session,
 ///                 Should be equal to the volume's
 ///                 ::HAPI_VolumeInfo::tupleSize.
 ///
-HAPI_DECL HAPI_GetVolumeVoxelFloatData( const HAPI_Session * session,
-                                        HAPI_AssetId asset_id,
-                                        HAPI_ObjectId object_id,
-                                        HAPI_GeoId geo_id,
-                                        HAPI_PartId part_id,
-                                        int x_index,
-                                        int y_index,
-                                        int z_index,
-                                        float * values_array,
-                                        int value_count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetVolumeVoxelFloatDataOnAsset( const HAPI_Session * session,
+                                     HAPI_AssetId asset_id,
+                                     HAPI_ObjectId object_id,
+                                     HAPI_GeoId geo_id,
+                                     HAPI_PartId part_id,
+                                     int x_index,
+                                     int y_index,
+                                     int z_index,
+                                     float * values_array,
+                                     int value_count );
 
 /// @brief  Retrieve floating point values of the voxels pointed to
 ///         by a tile. Note that a tile may extend beyond the limits
@@ -6738,15 +6802,16 @@ HAPI_DECL HAPI_GetVolumeVoxelFloatData( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The length should be ( 8 ^ 3 ) * tupleSize.
 ///
-HAPI_DECL HAPI_GetVolumeTileFloatData( const HAPI_Session * session,
-                                       HAPI_AssetId asset_id,
-                                       HAPI_ObjectId object_id,
-                                       HAPI_GeoId geo_id,
-                                       HAPI_PartId part_id,
-                                       float fill_value,
-                                       const HAPI_VolumeTileInfo * tile,
-                                       float * values_array,
-                                       int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetVolumeTileFloatDataOnAsset( const HAPI_Session * session,
+                                    HAPI_AssetId asset_id,
+                                    HAPI_ObjectId object_id,
+                                    HAPI_GeoId geo_id,
+                                    HAPI_PartId part_id,
+                                    float fill_value,
+                                    const HAPI_VolumeTileInfo * tile,
+                                    float * values_array,
+                                    int length );
 
 /// @brief  Retrieve integer point values of the voxel at a specific
 ///         index. Note that you must call ::HAPI_GetVolumeInfo() prior
@@ -6785,16 +6850,17 @@ HAPI_DECL HAPI_GetVolumeTileFloatData( const HAPI_Session * session,
 ///                 Should be equal to the volume's
 ///                 ::HAPI_VolumeInfo::tupleSize.
 ///
-HAPI_DECL HAPI_GetVolumeVoxelIntData( const HAPI_Session * session,
-                                      HAPI_AssetId asset_id,
-                                      HAPI_ObjectId object_id,
-                                      HAPI_GeoId geo_id,
-                                      HAPI_PartId part_id,
-                                      int x_index,
-                                      int y_index,
-                                      int z_index,
-                                      int * values_array,
-                                      int value_count );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetVolumeVoxelIntDataOnAsset( const HAPI_Session * session,
+                                   HAPI_AssetId asset_id,
+                                   HAPI_ObjectId object_id,
+                                   HAPI_GeoId geo_id,
+                                   HAPI_PartId part_id,
+                                   int x_index,
+                                   int y_index,
+                                   int z_index,
+                                   int * values_array,
+                                   int value_count );
 
 /// @brief  Retrieve integer point values of the voxels pointed to
 ///         by a tile. Note that a tile may extend beyond the limits
@@ -6833,15 +6899,16 @@ HAPI_DECL HAPI_GetVolumeVoxelIntData( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The length should be ( 8 ^ 3 ) * tupleSize.
 ///
-HAPI_DECL HAPI_GetVolumeTileIntData( const HAPI_Session * session,
-                                     HAPI_AssetId asset_id,
-                                     HAPI_ObjectId object_id,
-                                     HAPI_GeoId geo_id,
-                                     HAPI_PartId part_id,
-                                     int fill_value,
-                                     const HAPI_VolumeTileInfo * tile,
-                                     int * values_array,
-                                     int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetVolumeTileIntDataOnAsset( const HAPI_Session * session,
+                                  HAPI_AssetId asset_id,
+                                  HAPI_ObjectId object_id,
+                                  HAPI_GeoId geo_id,
+                                  HAPI_PartId part_id,
+                                  int fill_value,
+                                  const HAPI_VolumeTileInfo * tile,
+                                  int * values_array,
+                                  int length );
 
 /// @brief  Set the volume info of a geo on a geo input.
 ///
@@ -6865,11 +6932,12 @@ HAPI_DECL HAPI_GetVolumeTileIntData( const HAPI_Session * session,
 ///                 data format, tuple size, and taper. The tile size is
 ///                 always 8x8x8.
 ///
-HAPI_DECL HAPI_SetVolumeInfo( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              const HAPI_VolumeInfo * volume_info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetVolumeInfoOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           const HAPI_VolumeInfo * volume_info );
 
 /// @brief  Set the values of a float tile: this is an 8x8x8 subsection of
 ///         the volume.
@@ -6899,13 +6967,14 @@ HAPI_DECL HAPI_SetVolumeInfo( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The length should be ( 8 ^ 3 ) * tupleSize.
 ///
-HAPI_DECL HAPI_SetVolumeTileFloatData( const HAPI_Session * session,
-                                       HAPI_AssetId asset_id,
-                                       HAPI_ObjectId object_id,
-                                       HAPI_GeoId geo_id,
-                                       const HAPI_VolumeTileInfo * tile,
-                                       const float * values_array,
-                                       int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetVolumeTileFloatDataOnAsset( const HAPI_Session * session,
+                                    HAPI_AssetId asset_id,
+                                    HAPI_ObjectId object_id,
+                                    HAPI_GeoId geo_id,
+                                    const HAPI_VolumeTileInfo * tile,
+                                    const float * values_array,
+                                    int length );
 
 /// @brief  Set the values of an int tile: this is an 8x8x8 subsection of
 ///         the volume.
@@ -6935,13 +7004,14 @@ HAPI_DECL HAPI_SetVolumeTileFloatData( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The length should be ( 8 ^ 3 ) * tupleSize.
 ///
-HAPI_DECL HAPI_SetVolumeTileIntData( const HAPI_Session * session,
-                                     HAPI_AssetId asset_id,
-                                     HAPI_ObjectId object_id,
-                                     HAPI_GeoId geo_id,
-                                     const HAPI_VolumeTileInfo * tile,
-                                     const int * values_array,
-                                     int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetVolumeTileIntDataOnAsset( const HAPI_Session * session,
+                                  HAPI_AssetId asset_id,
+                                  HAPI_ObjectId object_id,
+                                  HAPI_GeoId geo_id,
+                                  const HAPI_VolumeTileInfo * tile,
+                                  const int * values_array,
+                                  int length );
 
 // CURVES -------------------------------------------------------------------
 
@@ -7202,12 +7272,13 @@ HAPI_DECL HAPI_SetCurveKnotsOnNode( const HAPI_Session * session,
 ///                 the curves, including the type, order,
 ///                 and periodicity.
 ///
-HAPI_DECL HAPI_GetCurveInfo( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             HAPI_ObjectId object_id,
-                             HAPI_GeoId geo_id,
-                             HAPI_PartId part_id,
-                             HAPI_CurveInfo * info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetCurveInfoOnAsset( const HAPI_Session * session,
+                          HAPI_AssetId asset_id,
+                          HAPI_ObjectId object_id,
+                          HAPI_GeoId geo_id,
+                          HAPI_PartId part_id,
+                          HAPI_CurveInfo * info );
 
 /// @brief  Retrieve the number of vertices for each curve in the part.
 ///
@@ -7237,13 +7308,14 @@ HAPI_DECL HAPI_GetCurveInfo( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The number of curves' counts to retrieve.
 ///
-HAPI_DECL HAPI_GetCurveCounts( const HAPI_Session * session,
-                               HAPI_AssetId asset_id,
-                               HAPI_ObjectId object_id,
-                               HAPI_GeoId geo_id,
-                               HAPI_PartId part_id,
-                               int * counts_array,
-                               int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetCurveCountsOnAsset( const HAPI_Session * session,
+                            HAPI_AssetId asset_id,
+                            HAPI_ObjectId object_id,
+                            HAPI_GeoId geo_id,
+                            HAPI_PartId part_id,
+                            int * counts_array,
+                            int start, int length );
 
 /// @brief  Retrieve the orders for each curve in the part if the
 ///         curve has varying order.
@@ -7275,13 +7347,14 @@ HAPI_DECL HAPI_GetCurveCounts( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The number of curves' orders to retrieve.
 ///
-HAPI_DECL HAPI_GetCurveOrders( const HAPI_Session * session,
-                               HAPI_AssetId asset_id,
-                               HAPI_ObjectId object_id,
-                               HAPI_GeoId geo_id,
-                               HAPI_PartId part_id,
-                               int * orders_array,
-                               int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetCurveOrdersOnAsset( const HAPI_Session * session,
+                            HAPI_AssetId asset_id,
+                            HAPI_ObjectId object_id,
+                            HAPI_GeoId geo_id,
+                            HAPI_PartId part_id,
+                            int * orders_array,
+                            int start, int length );
 
 /// @brief  Retrieve the knots of the curves in this part.
 ///
@@ -7316,13 +7389,14 @@ HAPI_DECL HAPI_GetCurveOrders( const HAPI_Session * session,
 ///                 vertices (see ::HAPI_GetCurveOrders(),
 ///                 and ::HAPI_GetCurveCounts()).
 ///
-HAPI_DECL HAPI_GetCurveKnots( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              HAPI_PartId part_id,
-                              float * knots_array,
-                              int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetCurveKnotsOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           HAPI_PartId part_id,
+                           float * knots_array,
+                           int start, int length );
 
 /// @brief  Set meta-data for the curve mesh, including the
 ///         curve type, order, and periodicity.
@@ -7350,12 +7424,13 @@ HAPI_DECL HAPI_GetCurveKnots( const HAPI_Session * session,
 ///                 the curves, including the type, order,
 ///                 and periodicity.
 ///
-HAPI_DECL HAPI_SetCurveInfo( const HAPI_Session * session,
-                             HAPI_AssetId asset_id,
-                             HAPI_ObjectId object_id,
-                             HAPI_GeoId geo_id,
-                             HAPI_PartId part_id,
-                             const HAPI_CurveInfo * info );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetCurveInfoOnAsset( const HAPI_Session * session,
+                          HAPI_AssetId asset_id,
+                          HAPI_ObjectId object_id,
+                          HAPI_GeoId geo_id,
+                          HAPI_PartId part_id,
+                          const HAPI_CurveInfo * info );
 
 /// @brief  Set the number of vertices for each curve in the part.
 ///
@@ -7386,13 +7461,14 @@ HAPI_DECL HAPI_SetCurveInfo( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The number of curves' counts to set.
 ///
-HAPI_DECL HAPI_SetCurveCounts( const HAPI_Session * session,
-                               HAPI_AssetId asset_id,
-                               HAPI_ObjectId object_id,
-                               HAPI_GeoId geo_id,
-                               HAPI_PartId part_id,
-                               const int * counts_array,
-                               int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetCurveCountsOnAsset( const HAPI_Session * session,
+                            HAPI_AssetId asset_id,
+                            HAPI_ObjectId object_id,
+                            HAPI_GeoId geo_id,
+                            HAPI_PartId part_id,
+                            const int * counts_array,
+                            int start, int length );
 
 /// @brief  Set the orders for each curve in the part if the
 ///         curve has varying order.
@@ -7424,13 +7500,14 @@ HAPI_DECL HAPI_SetCurveCounts( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The number of curves' orders to retrieve.
 ///
-HAPI_DECL HAPI_SetCurveOrders( const HAPI_Session * session,
-                               HAPI_AssetId asset_id,
-                               HAPI_ObjectId object_id,
-                               HAPI_GeoId geo_id,
-                               HAPI_PartId part_id,
-                               const int * orders_array,
-                               int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetCurveOrdersOnAsset( const HAPI_Session * session,
+                            HAPI_AssetId asset_id,
+                            HAPI_ObjectId object_id,
+                            HAPI_GeoId geo_id,
+                            HAPI_PartId part_id,
+                            const int * orders_array,
+                            int start, int length );
 
 /// @brief  Set the knots of the curves in this part.
 ///
@@ -7465,13 +7542,14 @@ HAPI_DECL HAPI_SetCurveOrders( const HAPI_Session * session,
 ///                 vertices (see ::HAPI_SetCurveOrders(),
 ///                 and ::HAPI_SetCurveCounts()).
 ///
-HAPI_DECL HAPI_SetCurveKnots( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              HAPI_PartId part_id,
-                              const float * knots_array,
-                              int start, int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SetCurveKnotsOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           HAPI_PartId part_id,
+                           const float * knots_array,
+                           int start, int length );
 
 // BASIC PRIMITIVES ---------------------------------------------------------
 
@@ -7737,11 +7815,12 @@ HAPI_DECL HAPI_LoadGeoFromMemoryOnNode( const HAPI_Session * session,
 ///                 The name of the file to be saved.  The extension
 ///                 of the file determines its type.
 ///
-HAPI_DECL HAPI_SaveGeoToFile( const HAPI_Session * session,
-                              HAPI_AssetId asset_id,
-                              HAPI_ObjectId object_id,
-                              HAPI_GeoId geo_id,
-                              const char * file_name );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SaveGeoToFileOnAsset( const HAPI_Session * session,
+                           HAPI_AssetId asset_id,
+                           HAPI_ObjectId object_id,
+                           HAPI_GeoId geo_id,
+                           const char * file_name );
 
 /// @brief  Loads a geometry file and put its contents onto a SOP
 ///         node.
@@ -7763,11 +7842,12 @@ HAPI_DECL HAPI_SaveGeoToFile( const HAPI_Session * session,
 /// @param[in]      file_name
 ///                 The name of the file to be loaded
 ///
-HAPI_DECL HAPI_LoadGeoFromFile( const HAPI_Session * session,
-                                HAPI_AssetId asset_id,
-                                HAPI_ObjectId object_id,
-                                HAPI_GeoId geo_id,
-                                const char * file_name );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_LoadGeoFromFileOnAsset( const HAPI_Session * session,
+                             HAPI_AssetId asset_id,
+                             HAPI_ObjectId object_id,
+                             HAPI_GeoId geo_id,
+                             const char * file_name );
 
 /// @brief  Cache the current state of the geo to memory, given the
 ///         format, and return the size. Use this size with your call
@@ -7795,12 +7875,13 @@ HAPI_DECL HAPI_LoadGeoFromFile( const HAPI_Session * session,
 /// @param[out]     size
 ///                 The size of the buffer required to hold the output.
 ///
-HAPI_DECL HAPI_GetGeoSize( const HAPI_Session * session,
-                           HAPI_AssetId asset_id,
-                           HAPI_ObjectId object_id,
-                           HAPI_GeoId geo_id,
-                           const char * format,
-                           int * size );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_GetGeoSizeOnAsset( const HAPI_Session * session,
+                        HAPI_AssetId asset_id,
+                        HAPI_ObjectId object_id,
+                        HAPI_GeoId geo_id,
+                        const char * format,
+                        int * size );
 
 /// @brief  Saves the cached geometry to your buffer in memory,
 ///         whose format and required size is identified by the call to
@@ -7832,12 +7913,13 @@ HAPI_DECL HAPI_GetGeoSize( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The size of the buffer passed in.
 ///
-HAPI_DECL HAPI_SaveGeoToMemory( const HAPI_Session * session,
-                                HAPI_AssetId asset_id,
-                                HAPI_ObjectId object_id,
-                                HAPI_GeoId geo_id,
-                                char * buffer,
-                                int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_SaveGeoToMemoryOnAsset( const HAPI_Session * session,
+                             HAPI_AssetId asset_id,
+                             HAPI_ObjectId object_id,
+                             HAPI_GeoId geo_id,
+                             char * buffer,
+                             int length );
 
 /// @brief  Loads a geometry from memory and put its
 ///         contents onto a SOP node.
@@ -7865,12 +7947,13 @@ HAPI_DECL HAPI_SaveGeoToMemory( const HAPI_Session * session,
 /// @param[in]      length
 ///                 The size of the buffer passed in.
 ///
-HAPI_DECL HAPI_LoadGeoFromMemory( const HAPI_Session * session,
-                                  HAPI_AssetId asset_id,
-                                  HAPI_ObjectId object_id,
-                                  HAPI_GeoId geo_id,
-                                  const char * format,
-                                  const char * buffer,
-                                  int length );
+HAPI_DECL_DEPRECATED( 3.0.35, 16.0.326 )
+HAPI_LoadGeoFromMemoryOnAsset( const HAPI_Session * session,
+                               HAPI_AssetId asset_id,
+                               HAPI_ObjectId object_id,
+                               HAPI_GeoId geo_id,
+                               const char * format,
+                               const char * buffer,
+                               int length );
 
 #endif // __HAPI_h__
