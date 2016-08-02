@@ -468,9 +468,8 @@ FHoudiniGeoPartObject::HapiGetInstanceTransforms( HAPI_AssetId OtherAssetId, TAr
         TArray< HAPI_Transform > InstanceTransforms;
         InstanceTransforms.SetNumZeroed( PointCount );
 
-        if ( FHoudiniApi::GetInstanceTransforms(
-            FHoudiniEngine::Get().GetSession(), OtherAssetId,
-            ObjectId, GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
+        if ( FHoudiniApi::GetInstanceTransformsOnNode(
+            FHoudiniEngine::Get().GetSession(), GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
             0, PointCount) == HAPI_RESULT_SUCCESS )
         {
             for ( int32 PointIdx = 0; PointIdx < PointCount; ++PointIdx )
