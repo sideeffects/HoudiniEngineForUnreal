@@ -297,8 +297,14 @@ FHoudiniApi::GetGroupNamesOnNode = &FHoudiniApi::GetGroupNamesOnNodeEmptyStub;
 FHoudiniApi::GetHandleBindingInfoFuncPtr
 FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
 
+FHoudiniApi::GetHandleBindingInfoOnNodeFuncPtr
+FHoudiniApi::GetHandleBindingInfoOnNode = &FHoudiniApi::GetHandleBindingInfoOnNodeEmptyStub;
+
 FHoudiniApi::GetHandleInfoFuncPtr
 FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
+
+FHoudiniApi::GetHandleInfoOnNodeFuncPtr
+FHoudiniApi::GetHandleInfoOnNode = &FHoudiniApi::GetHandleInfoOnNodeEmptyStub;
 
 FHoudiniApi::GetImageInfoFuncPtr
 FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
@@ -867,7 +873,9 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetGroupNames = (GetGroupNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNames"));
 	FHoudiniApi::GetGroupNamesOnNode = (GetGroupNamesOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNamesOnNode"));
 	FHoudiniApi::GetHandleBindingInfo = (GetHandleBindingInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleBindingInfo"));
+	FHoudiniApi::GetHandleBindingInfoOnNode = (GetHandleBindingInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleBindingInfoOnNode"));
 	FHoudiniApi::GetHandleInfo = (GetHandleInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleInfo"));
+	FHoudiniApi::GetHandleInfoOnNode = (GetHandleInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleInfoOnNode"));
 	FHoudiniApi::GetImageInfo = (GetImageInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageInfo"));
 	FHoudiniApi::GetImageInfoOnNode = (GetImageInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageInfoOnNode"));
 	FHoudiniApi::GetImageMemoryBuffer = (GetImageMemoryBufferFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageMemoryBuffer"));
@@ -1123,7 +1131,9 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetGroupNames = &FHoudiniApi::GetGroupNamesEmptyStub;
 	FHoudiniApi::GetGroupNamesOnNode = &FHoudiniApi::GetGroupNamesOnNodeEmptyStub;
 	FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
+	FHoudiniApi::GetHandleBindingInfoOnNode = &FHoudiniApi::GetHandleBindingInfoOnNodeEmptyStub;
 	FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
+	FHoudiniApi::GetHandleInfoOnNode = &FHoudiniApi::GetHandleInfoOnNodeEmptyStub;
 	FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
 	FHoudiniApi::GetImageInfoOnNode = &FHoudiniApi::GetImageInfoOnNodeEmptyStub;
 	FHoudiniApi::GetImageMemoryBuffer = &FHoudiniApi::GetImageMemoryBufferEmptyStub;
@@ -1942,7 +1952,21 @@ FHoudiniApi::GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_As
 
 
 HAPI_Result
+FHoudiniApi::GetHandleBindingInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetHandleInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }

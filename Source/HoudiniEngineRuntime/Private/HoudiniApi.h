@@ -121,7 +121,9 @@ public:
 	typedef HAPI_Result (*GetGroupNamesFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	typedef HAPI_Result (*GetGroupNamesOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	typedef HAPI_Result (*GetHandleBindingInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
+	typedef HAPI_Result (*GetHandleBindingInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	typedef HAPI_Result (*GetHandleInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
+	typedef HAPI_Result (*GetHandleInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	typedef HAPI_Result (*GetImageInfoFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ImageInfo * image_info);
 	typedef HAPI_Result (*GetImageInfoOnNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info);
 	typedef HAPI_Result (*GetImageMemoryBufferFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int length);
@@ -374,7 +376,9 @@ public:
 	static GetGroupNamesFuncPtr GetGroupNames;
 	static GetGroupNamesOnNodeFuncPtr GetGroupNamesOnNode;
 	static GetHandleBindingInfoFuncPtr GetHandleBindingInfo;
+	static GetHandleBindingInfoOnNodeFuncPtr GetHandleBindingInfoOnNode;
 	static GetHandleInfoFuncPtr GetHandleInfo;
+	static GetHandleInfoOnNodeFuncPtr GetHandleInfoOnNode;
 	static GetImageInfoFuncPtr GetImageInfo;
 	static GetImageInfoOnNodeFuncPtr GetImageInfoOnNode;
 	static GetImageMemoryBufferFuncPtr GetImageMemoryBuffer;
@@ -627,7 +631,9 @@ public:
 	static HAPI_Result GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	static HAPI_Result GetGroupNamesOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count);
 	static HAPI_Result GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
+	static HAPI_Result GetHandleBindingInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length);
 	static HAPI_Result GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
+	static HAPI_Result GetHandleInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length);
 	static HAPI_Result GetImageInfoEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, HAPI_ImageInfo * image_info);
 	static HAPI_Result GetImageInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info);
 	static HAPI_Result GetImageMemoryBufferEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_MaterialId material_id, char * buffer, int length);
