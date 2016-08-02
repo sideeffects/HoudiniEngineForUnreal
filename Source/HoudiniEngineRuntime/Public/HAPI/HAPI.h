@@ -2446,6 +2446,67 @@ HAPI_DECL HAPI_RemoveMultiparmInstance( const HAPI_Session * session,
 // HANDLES ------------------------------------------------------------------
 
 /// @brief  Fill an array of ::HAPI_HandleInfo structs with information
+///         about every exposed user manipulation handle on the node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     handle_infos_array
+///                 Array of ::HAPI_HandleInfo at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_AssetInfo::handleCount - 1.
+///
+/// @param[in]      length
+///                 Must be at least 1 and at most
+///                 ::HAPI_AssetInfo::handleCount - start.
+///
+HAPI_DECL HAPI_GetHandleInfoOnNode( const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_HandleInfo * handle_infos_array,
+                                    int start, int length );
+
+/// @brief  Fill an array of ::HAPI_HandleInfo structs with information
+///         about every exposed user manipulation handle on the node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      handle_index
+///                 The index of the handle, from 0 to handleCount - 1
+///                 from the call to ::HAPI_GetAssetInfo().
+///
+/// @param[out]     handle_binding_infos_array
+///                 Array of ::HAPI_HandleBindingInfo at least the size
+///                 of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_HandleInfo::bindingsCount - 1.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_HandleInfo::bindingsCount - start.
+///
+HAPI_DECL HAPI_GetHandleBindingInfoOnNode(
+                        const HAPI_Session * session,
+                        HAPI_NodeId node_id,
+                        int handle_index,
+                        HAPI_HandleBindingInfo * handle_binding_infos_array,
+                        int start, int length );
+
+/// @brief  Fill an array of ::HAPI_HandleInfo structs with information
 ///         about every exposed user manipulation handle on the asset.
 ///
 /// @param[in]      session
