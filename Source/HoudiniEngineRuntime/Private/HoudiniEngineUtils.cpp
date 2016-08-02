@@ -947,9 +947,9 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
 
     TArray< HAPI_Transform > InstanceTransforms;
     InstanceTransforms.SetNumZeroed( PartInfo.pointCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstanceTransforms(
-        FHoudiniEngine::Get().GetSession(), AssetId,
-        ObjectId, GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstanceTransformsOnNode(
+        FHoudiniEngine::Get().GetSession(),
+        GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
         0, PartInfo.pointCount ), false );
 
     for ( int32 Idx = 0; Idx < PartInfo.pointCount; ++Idx )
@@ -1352,8 +1352,8 @@ FHoudiniEngineUtils::HapiCreateCurve( HAPI_AssetId & CurveAssetId )
 #if WITH_EDITOR
 
     HAPI_AssetId AssetId = -1;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateCurve(
-        FHoudiniEngine::Get().GetSession(), &AssetId ), false );
+    /*HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateCurve(
+        FHoudiniEngine::Get().GetSession(), &AssetId ), false );*/
 
     CurveAssetId = AssetId;
 

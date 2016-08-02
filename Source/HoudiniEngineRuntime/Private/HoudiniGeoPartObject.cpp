@@ -696,9 +696,9 @@ FHoudiniGeoPartObject::HapiGeoGetInfo( HAPI_AssetId OtherAssetId, HAPI_GeoInfo &
 {
     FMemory::Memset< HAPI_GeoInfo >( GeoInfo, 0 );
 
-    if ( FHoudiniApi::GetGeoInfo(
-        FHoudiniEngine::Get().GetSession(), OtherAssetId, ObjectId,
-        GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), OtherAssetId,
+        &GeoInfo ) == HAPI_RESULT_SUCCESS )
     {
         return true;
     }

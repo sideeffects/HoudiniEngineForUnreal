@@ -1461,9 +1461,15 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             HAPI_TransformEuler HapiTransform;
             FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ActorTransform, HapiTransform );
 
-            FHoudiniApi::SetAssetTransform(
-                FHoudiniEngine::Get().GetSession(),
-                OutlinerMesh.AssetId, &HapiTransform );
+            HAPI_NodeInfo LocalAssetNodeInfo;
+            const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
+                FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
+                &LocalAssetNodeInfo );
+
+            if ( LocalResult == HAPI_RESULT_SUCCESS )
+                FHoudiniApi::SetObjectTransformOnNode(
+                    FHoudiniEngine::Get().GetSession(),
+                    LocalAssetNodeInfo.parentId, &HapiTransform );
         }
     }
 
