@@ -75,7 +75,7 @@ bool
 FHoudiniMaterialObject::HapiGetMaterialInfo( HAPI_MaterialInfo & MaterialInfo ) const
 {
     FMemory::Memset< HAPI_MaterialInfo >( MaterialInfo, 0 );
-    if ( FHoudiniApi::GetMaterialInfoOnNode(
+    if ( FHoudiniApi::GetMaterialInfo(
         FHoudiniEngine::Get().GetSession(), MaterialId,
         &MaterialInfo ) != HAPI_RESULT_SUCCESS )
     {
@@ -176,7 +176,7 @@ FHoudiniMaterialObject::HapiGetMaterialShopName( FString & ShopName ) const
     HAPI_AssetInfo AssetInfo;
     FMemory::Memset< HAPI_AssetInfo >( AssetInfo, 0 );
 
-    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
         return false;
 
     HAPI_NodeInfo AssetNodeInfo;

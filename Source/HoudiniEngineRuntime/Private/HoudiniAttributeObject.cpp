@@ -493,7 +493,7 @@ FHoudiniAttributeObject::HapiRefetch()
     {
         case HAPI_STORAGETYPE_INT:
         {
-            if ( FHoudiniApi::GetAttributeIntDataOnNode(
+            if ( FHoudiniApi::GetAttributeIntData(
                 FHoudiniEngine::Get().GetSession(),
                 GeoId, PartId, AttributeNameRaw.c_str(),
                 &ResultAttributeInfo, -1, (int *) &Value[ 0 ], 0,
@@ -507,7 +507,7 @@ FHoudiniAttributeObject::HapiRefetch()
 
         case HAPI_STORAGETYPE_FLOAT:
         {
-            if ( FHoudiniApi::GetAttributeFloatDataOnNode(
+            if ( FHoudiniApi::GetAttributeFloatData(
                 FHoudiniEngine::Get().GetSession(),
                 GeoId, PartId, AttributeNameRaw.c_str(),
                 &ResultAttributeInfo, -1, (float *) &Value[ 0 ], 0,
@@ -521,7 +521,7 @@ FHoudiniAttributeObject::HapiRefetch()
 
         case HAPI_STORAGETYPE_STRING:
         {
-            if ( FHoudiniApi::GetAttributeStringDataOnNode(
+            if ( FHoudiniApi::GetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(),
                 GeoId, PartId, AttributeNameRaw.c_str(),
                 &ResultAttributeInfo, (int *) &Value[ 0 ], 0,
@@ -557,7 +557,7 @@ FHoudiniAttributeObject::HapiGetAttributeInfo( HAPI_AttributeInfo & AttributeInf
     std::string AttributeNameRaw = TCHAR_TO_UTF8( *AttributeName );
     FMemory::Memset< HAPI_AttributeInfo >( AttributeInfo, 0 );
 
-    if ( FHoudiniApi::GetAttributeInfoOnNode(
+    if ( FHoudiniApi::GetAttributeInfo(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, AttributeNameRaw.c_str(),
         AttributeOwner, &AttributeInfo ) == HAPI_RESULT_SUCCESS )

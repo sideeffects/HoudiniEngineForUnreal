@@ -220,7 +220,7 @@ FHoudiniEngineUtils::ComputeAssetPresetBufferLength( HAPI_AssetId AssetId, int32
     HAPI_AssetInfo AssetInfo;
     OutBufferLength = 0;
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     int32 BufferLength = 0;
@@ -239,7 +239,7 @@ FHoudiniEngineUtils::SetAssetPreset( HAPI_AssetId AssetId, const TArray< char > 
     {
         HAPI_AssetInfo AssetInfo;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
             FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPreset(
@@ -259,7 +259,7 @@ FHoudiniEngineUtils::GetAssetPreset( HAPI_AssetId AssetId, TArray< char > & Pres
     PresetBuffer.Empty();
 
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     int32 BufferLength = 0;
@@ -309,11 +309,11 @@ bool
 FHoudiniEngineUtils::GetUniqueMaterialShopName( HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString & Name )
 {
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     HAPI_MaterialInfo MaterialInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetMaterialInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetMaterialInfo(
         FHoudiniEngine::Get().GetSession(), MaterialId,
         &MaterialInfo ), false );
 
@@ -557,7 +557,7 @@ FHoudiniEngineUtils::GetHoudiniAssetName( HAPI_AssetId AssetId, FString & NameSt
 {
     HAPI_AssetInfo AssetInfo;
 
-    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
     {
         FHoudiniEngineString HoudiniEngineString( AssetInfo.nameSH );
         return HoudiniEngineString.ToFString( NameString );
@@ -598,7 +598,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(
     HAPI_GroupType GroupType, TArray< FString > & GroupNames )
 {
     HAPI_GeoInfo GeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo(
         FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ), false );
 
     int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType( GroupType, GeoInfo );
@@ -606,7 +606,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(
     if ( GroupCount > 0 )
     {
         std::vector< int32 > GroupNameHandles( GroupCount, 0 );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupNamesOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupNames(
             FHoudiniEngine::Get().GetSession(),
             GeoId, GroupType, &GroupNameHandles[ 0 ], GroupCount ), false );
 
@@ -630,14 +630,14 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
     const FString & GroupName, TArray< int32 > & GroupMembership )
 {
     HAPI_PartInfo PartInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, &PartInfo ), false );
 
     int32 ElementCount = FHoudiniEngineUtils::HapiGetElementCountByGroupType( GroupType, PartInfo );
     std::string ConvertedGroupName = TCHAR_TO_UTF8( *GroupName );
 
     GroupMembership.SetNumUninitialized( ElementCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupMembershipOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupMembership(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, GroupType,
         ConvertedGroupName.c_str(), NULL, &GroupMembership[ 0 ], 0, ElementCount ), false );
 
@@ -723,7 +723,7 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(
     HAPI_PartId PartId, const char * Name, HAPI_AttributeOwner Owner )
 {
     HAPI_AttributeInfo AttribInfo;
-    if ( FHoudiniApi::GetAttributeInfoOnNode(
+    if ( FHoudiniApi::GetAttributeInfo(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, Name, Owner, &AttribInfo ) != HAPI_RESULT_SUCCESS )
     {
@@ -778,7 +778,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
     HAPI_AttributeInfo AttributeInfo;
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
     {
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfoOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
             FHoudiniEngine::Get().GetSession(), GeoId, PartId, Name,
             (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
 
@@ -795,7 +795,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
     // Allocate sufficient buffer for data.
     Data.SetNumUninitialized( AttributeInfo.count * AttributeInfo.tupleSize );
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeFloatDataOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeFloatData(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, Name,
         &AttributeInfo, -1, &Data[ 0 ], 0, AttributeInfo.count ), false );
 
@@ -830,7 +830,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
     HAPI_AttributeInfo AttributeInfo;
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
     {
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfoOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
             FHoudiniEngine::Get().GetSession(),
             GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
 
@@ -847,7 +847,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
     // Allocate sufficient buffer for data.
     Data.SetNumUninitialized( AttributeInfo.count * AttributeInfo.tupleSize );
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeIntDataOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeIntData(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, Name, &AttributeInfo, -1, &Data[ 0 ], 0, AttributeInfo.count ), false );
 
@@ -883,7 +883,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
     HAPI_AttributeInfo AttributeInfo;
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
     {
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfoOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
             FHoudiniEngine::Get().GetSession(),
             GeoId, PartId, Name, (HAPI_AttributeOwner) AttrIdx, &AttributeInfo ), false );
 
@@ -899,7 +899,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
 
     TArray< HAPI_StringHandle > StringHandles;
     StringHandles.Init( -1, AttributeInfo.count * AttributeInfo.tupleSize );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeStringDataOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeStringData(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, Name, &AttributeInfo,
         &StringHandles[ 0 ], 0, AttributeInfo.count ), false );
 
@@ -938,7 +938,7 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
 
     // Number of instances is number of points.
     HAPI_PartInfo PartInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(), GeoId,
         PartId, &PartInfo ), false );
 
@@ -947,7 +947,7 @@ FHoudiniEngineUtils::HapiGetInstanceTransforms(
 
     TArray< HAPI_Transform > InstanceTransforms;
     InstanceTransforms.SetNumZeroed( PartInfo.pointCount );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstanceTransformsOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstanceTransforms(
         FHoudiniEngine::Get().GetSession(),
         GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
         0, PartInfo.pointCount ), false );
@@ -981,14 +981,14 @@ FHoudiniEngineUtils::HapiGetImagePlanes(
     ImagePlanes.Empty();
     int32 ImagePlaneCount = 0;
 
-    if ( FHoudiniApi::RenderTextureToImageOnNode(
+    if ( FHoudiniApi::RenderTextureToImage(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.id, NodeParmId ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
 
-    if ( FHoudiniApi::GetImagePlaneCountOnNode(
+    if ( FHoudiniApi::GetImagePlaneCount(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.id, &ImagePlaneCount ) != HAPI_RESULT_SUCCESS )
     {
@@ -1001,7 +1001,7 @@ FHoudiniEngineUtils::HapiGetImagePlanes(
     TArray< HAPI_StringHandle > ImagePlaneStringHandles;
     ImagePlaneStringHandles.SetNumUninitialized( ImagePlaneCount );
 
-    if ( FHoudiniApi::GetImagePlanesOnNode(
+    if ( FHoudiniApi::GetImagePlanes(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.id, &ImagePlaneStringHandles[ 0 ], ImagePlaneCount ) != HAPI_RESULT_SUCCESS )
     {
@@ -1027,7 +1027,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 {
     if ( bRenderToImage )
     {
-        if ( FHoudiniApi::RenderTextureToImageOnNode(
+        if ( FHoudiniApi::RenderTextureToImage(
             FHoudiniEngine::Get().GetSession(),
             MaterialInfo.id, NodeParmId ) != HAPI_RESULT_SUCCESS )
         {
@@ -1037,7 +1037,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 
     HAPI_ImageInfo ImageInfo;
 
-    if ( FHoudiniApi::GetImageInfoOnNode(
+    if ( FHoudiniApi::GetImageInfo(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.id, &ImageInfo ) != HAPI_RESULT_SUCCESS )
     {
@@ -1048,7 +1048,7 @@ FHoudiniEngineUtils::HapiExtractImage(
     ImageInfo.interleaved = true;
     ImageInfo.packing = ImagePacking;
 
-    if ( FHoudiniApi::SetImageInfoOnNode(
+    if ( FHoudiniApi::SetImageInfo(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.id, &ImageInfo) != HAPI_RESULT_SUCCESS )
     {
@@ -1057,7 +1057,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 
     int32 ImageBufferSize = 0;
 
-    if ( FHoudiniApi::ExtractImageToMemoryOnNode(
+    if ( FHoudiniApi::ExtractImageToMemory(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.id, HAPI_RAW_FORMAT_NAME,
         PlaneType, &ImageBufferSize ) != HAPI_RESULT_SUCCESS )
@@ -1070,7 +1070,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 
     ImageBuffer.SetNumUninitialized( ImageBufferSize );
 
-    if ( FHoudiniApi::GetImageMemoryBufferOnNode(
+    if ( FHoudiniApi::GetImageMemoryBuffer(
         FHoudiniEngine::Get().GetSession(),
         MaterialInfo.id, &ImageBuffer[ 0 ],
         ImageBufferSize ) != HAPI_RESULT_SUCCESS )
@@ -1414,7 +1414,7 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId
     if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
     {
         HAPI_GeoInfo GeoInfo;
-        if ( FHoudiniApi::GetGeoInfoOnNode(
+        if ( FHoudiniApi::GetGeoInfo(
             FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
         {
             NodeId = GeoInfo.nodeId;
@@ -1638,7 +1638,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
         FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &DisplayGeoInfo ), false );
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0, &Part ), false );
 
     // Extract point data.
@@ -1867,12 +1867,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 
         bool bFailedAttribute = true;
 
-        if ( FHoudiniApi::AddAttributeOnNode(
+        if ( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME,
             &AttributeInfoPointLandscapeComponentNames ) == HAPI_RESULT_SUCCESS )
         {
-            if ( FHoudiniApi::SetAttributeStringDataOnNode(
+            if ( FHoudiniApi::SetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(),
                 DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME,
                 &AttributeInfoPointLandscapeComponentNames,
@@ -1901,11 +1901,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoPointPosition.storage = HAPI_STORAGETYPE_FLOAT;
         AttributeInfoPointPosition.originalOwner = HAPI_ATTROWNER_INVALID;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointPosition ), false );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_POSITION,
             &AttributeInfoPointPosition, AllPositions.GetData(),
@@ -1923,11 +1923,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoPointNormal.storage = HAPI_STORAGETYPE_FLOAT;
         AttributeInfoPointNormal.originalOwner = HAPI_ATTROWNER_INVALID;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoPointNormal ), false );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoPointNormal,
             (const float *) PositionNormals.GetData(), 0, AttributeInfoPointNormal.count ), false );
@@ -1944,12 +1944,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoPointLandscapeComponentVertexIndices.storage = HAPI_STORAGETYPE_INT;
         AttributeInfoPointLandscapeComponentVertexIndices.originalOwner = HAPI_ATTROWNER_INVALID;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX,
             &AttributeInfoPointLandscapeComponentVertexIndices ), false );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX,
             &AttributeInfoPointLandscapeComponentVertexIndices,
@@ -1968,11 +1968,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoPointUV.storage = HAPI_STORAGETYPE_FLOAT;
         AttributeInfoPointUV.originalOwner = HAPI_ATTROWNER_INVALID;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoPointUV ), false );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoPointUV,
             (const float *) PositionUVs.GetData(), 0, AttributeInfoPointUV.count ), false );
@@ -1990,11 +1990,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoPointLightmapColor.storage = HAPI_STORAGETYPE_FLOAT;
         AttributeInfoPointLightmapColor.originalOwner = HAPI_ATTROWNER_INVALID;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, &AttributeInfoPointLightmapColor ), false );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, &AttributeInfoPointLightmapColor,
             (const float *) LightmapVertexValues.GetData(), 0,
@@ -2013,11 +2013,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoPointWeightmapUV.storage = HAPI_STORAGETYPE_FLOAT;
         AttributeInfoPointWeightmapUV.originalOwner = HAPI_ATTROWNER_INVALID;
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP, &AttributeInfoPointWeightmapUV ), false );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP, &AttributeInfoPointWeightmapUV,
             (const float*) PositionWeightmapUVs.GetData(), 0,
@@ -2101,7 +2101,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         }
 
         // We can now set vertex list.
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVertexListOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVertexList(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, LandscapeIndices.GetData(), 0, LandscapeIndices.Num() ), false );
 
@@ -2109,7 +2109,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         TArray< int32 > LandscapeFaces;
         LandscapeFaces.Init( 4, QuadCount );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetFaceCountsOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetFaceCounts(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num() ), false );
     }
@@ -2147,11 +2147,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             AttributeInfoPrimitiveMaterial.storage = HAPI_STORAGETYPE_STRING;
             AttributeInfoPrimitiveMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
                 FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
                 MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial ), false );
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringDataOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
                 MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial,
                 (const char **) FaceMaterials.GetData(), 0, AttributeInfoPrimitiveMaterial.count ), false );
@@ -2169,12 +2169,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             AttributeInfoPrimitiveMaterialHole.storage = HAPI_STORAGETYPE_STRING;
             AttributeInfoPrimitiveMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
                 FHoudiniEngine::Get().GetSession(),
                 DisplayGeoInfo.nodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
                 &AttributeInfoPrimitiveMaterialHole ), false );
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringDataOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(),
                 DisplayGeoInfo.nodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
                 &AttributeInfoPrimitiveMaterialHole, (const char **) FaceHoleMaterials.GetData(), 0,
@@ -2200,11 +2200,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             AttributeInfoDetailMaterial.storage = HAPI_STORAGETYPE_STRING;
             AttributeInfoDetailMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
                 FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
                 MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial ), false );
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringDataOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
                 MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial,
                 (const char**) &MaterialNameStr, 0, AttributeInfoDetailMaterial.count ), false );
@@ -2229,12 +2229,12 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             AttributeInfoDetailMaterialHole.storage = HAPI_STORAGETYPE_STRING;
             AttributeInfoDetailMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
                 FHoudiniEngine::Get().GetSession(),
                 DisplayGeoInfo.nodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
                 &AttributeInfoDetailMaterialHole ), false );
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringDataOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
                 FHoudiniEngine::Get().GetSession(),
                 DisplayGeoInfo.nodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
                 &AttributeInfoDetailMaterialHole, (const char **) &MaterialNameStr, 0,
@@ -2243,7 +2243,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     }
 
     // Commit the geo.
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
 
     // Now we can connect input node to the asset node.
@@ -2324,7 +2324,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
         FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &DisplayGeoInfo ), false );
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetPartInfo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0, &Part ), false );
 
     // Create point attribute info.
@@ -2337,7 +2337,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
     AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
         HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint ), false );
 
@@ -2369,7 +2369,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     }
 
     // Now that we have raw positions, we can upload them for our attribute.
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
         0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
         StaticMeshVertices.GetData(), 0,
@@ -2431,10 +2431,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
             AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
             AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
                 FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
                 0, UVAttributeNameString, &AttributeInfoVertex ), false );
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
                 FHoudiniEngine::Get().GetSession(),
                 DisplayGeoInfo.nodeId, 0, UVAttributeNameString, &AttributeInfoVertex,
                 (const float *) StaticMeshUVs.GetData(), 0, AttributeInfoVertex.count ), false );
@@ -2480,10 +2480,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
         AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
         AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex ), false );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex,
             (const float *) ChangedNormals.GetData(),
@@ -2525,10 +2525,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
         AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
         AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex ), false );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
             (const float *) ChangedColors.GetData(), 0, AttributeInfoVertex.count ), false );
@@ -2561,14 +2561,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         }
 
         // We can now set vertex list.
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVertexListOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVertexList(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, StaticMeshIndices.GetData(), 0, StaticMeshIndices.Num() ), false );
 
         // We need to generate array of face counts.
         TArray< int32 > StaticMeshFaceCounts;
         StaticMeshFaceCounts.Init( 3, Part.faceCount );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetFaceCountsOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetFaceCounts(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, StaticMeshFaceCounts.GetData(), 0, StaticMeshFaceCounts.Num() ), false );
     }
@@ -2600,13 +2600,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 
         bool bAttributeError = false;
 
-        if ( FHoudiniApi::AddAttributeOnNode( FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
+        if ( FHoudiniApi::AddAttribute( FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0,
             MarshallingAttributeName.c_str(), &AttributeInfoMaterial ) != HAPI_RESULT_SUCCESS )
         {
             bAttributeError = true;
         }
 
-        if ( FHoudiniApi::SetAttributeStringDataOnNode(
+        if ( FHoudiniApi::SetAttributeStringData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoMaterial,
             (const char **) StaticMeshFaceMaterials.GetData(), 0,
@@ -2645,10 +2645,10 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
         AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
         AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks ), false );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoSmoothingMasks,
             (const int32 *) RawMesh.FaceSmoothingMasks.GetData(), 0, RawMesh.FaceSmoothingMasks.Num() ), false );
@@ -2676,17 +2676,17 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
         AttributeInfoLightMapResolution.storage = HAPI_STORAGETYPE_INT;
         AttributeInfoLightMapResolution.originalOwner = HAPI_ATTROWNER_INVALID;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttributeOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
             0, MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution ), false );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntDataOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfoLightMapResolution,
             (const int32 *) LightMapResolutions.GetData(), 0, LightMapResolutions.Num() ), false );
     }
 
     // Commit the geo.
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
 
     // Now we can connect input node to the asset node.
@@ -2735,7 +2735,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
             &LocalAssetNodeInfo ), false );
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransformOnNode(
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
             FHoudiniEngine::Get().GetSession(),
             LocalAssetNodeInfo.parentId, &HapiTransform ), false );
     }
@@ -2785,7 +2785,7 @@ FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_AssetId AssetId, const FTransfo
         HAPI_TransformEuler TransformEuler;
         FHoudiniEngineUtils::TranslateUnrealTransform( Transform, TransformEuler );
 
-        if ( FHoudiniApi::SetObjectTransformOnNode(
+        if ( FHoudiniApi::SetObjectTransform(
             FHoudiniEngine::Get().GetSession(), AssetId, &TransformEuler ) == HAPI_RESULT_SUCCESS )
         {
             return true;
@@ -3219,7 +3219,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     // Retrieve asset transform.
@@ -3377,7 +3377,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 HAPI_PartInfo PartInfo;
                 FString PartName = TEXT( "" );
 
-                if ( FHoudiniApi::GetPartInfoOnNode(
+                if ( FHoudiniApi::GetPartInfo(
                     FHoudiniEngine::Get().GetSession(), GeoInfo.id, PartIdx,
                     &PartInfo ) != HAPI_RESULT_SUCCESS )
                 {
@@ -3464,7 +3464,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         {
                             HAPI_MaterialInfo MaterialInfo;
 
-                            if ( FHoudiniApi::GetMaterialInfoOnNode(
+                            if ( FHoudiniApi::GetMaterialInfo(
                                 FHoudiniEngine::Get().GetSession(), FaceMaterialIds[ MaterialFaceIdx ],
                                 &MaterialInfo ) != HAPI_RESULT_SUCCESS )
                             {
@@ -3582,7 +3582,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Retrieve all vertex indices.
                 VertexList.SetNumUninitialized( PartInfo.vertexCount );
 
-                if ( FHoudiniApi::GetVertexListOnNode(
+                if ( FHoudiniApi::GetVertexList(
                     FHoudiniEngine::Get().GetSession(), GeoInfo.id, PartInfo.id,
                     &VertexList[ 0 ], 0, PartInfo.vertexCount ) != HAPI_RESULT_SUCCESS )
                 {
@@ -4954,7 +4954,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
         // Get material information.
         HAPI_MaterialInfo MaterialInfo;
-        if ( FHoudiniApi::GetMaterialInfoOnNode(
+        if ( FHoudiniApi::GetMaterialInfo(
             FHoudiniEngine::Get().GetSession(),
             MaterialId, &MaterialInfo ) != HAPI_RESULT_SUCCESS )
         {
@@ -5287,7 +5287,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
                 TextureDiffusePackage = Cast< UPackage >( TextureDiffuse->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
-            Result = FHoudiniApi::GetImageInfoOnNode(
+            Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.id, &ImageInfo );
 
@@ -5524,7 +5524,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
                 TextureOpacityPackage = Cast< UPackage >( TextureOpacity->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
-            Result = FHoudiniApi::GetImageInfoOnNode(
+            Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.id, &ImageInfo );
 
@@ -5879,7 +5879,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                 TextureNormalPackage = Cast< UPackage >( TextureNormal->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
-            Result = FHoudiniApi::GetImageInfoOnNode(
+            Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.id, &ImageInfo );
 
@@ -5995,7 +5995,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                     TextureNormalPackage = Cast< UPackage >( TextureNormal->GetOuter() );
 
                 HAPI_ImageInfo ImageInfo;
-                Result = FHoudiniApi::GetImageInfoOnNode(
+                Result = FHoudiniApi::GetImageInfo(
                     FHoudiniEngine::Get().GetSession(),
                     MaterialInfo.id, &ImageInfo );
 
@@ -6136,7 +6136,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
                 TextureSpecularPackage = Cast< UPackage >( TextureSpecular->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
-            Result = FHoudiniApi::GetImageInfoOnNode(
+            Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.id, &ImageInfo );
 
@@ -6334,7 +6334,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
                 TextureRoughnessPackage = Cast< UPackage >( TextureRoughness->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
-            Result = FHoudiniApi::GetImageInfoOnNode(
+            Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.id, &ImageInfo );
 
@@ -6525,7 +6525,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
                 TextureMetallicPackage = Cast< UPackage >( TextureMetallic->GetOuter() );
 
             HAPI_ImageInfo ImageInfo;
-            Result = FHoudiniApi::GetImageInfoOnNode(
+            Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
                 MaterialInfo.id, &ImageInfo );
 
@@ -7290,7 +7290,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
                 HAPI_PartInfo PartInfo;
                 FString PartName = TEXT( "" );
 
-                if ( FHoudiniApi::GetPartInfoOnNode(
+                if ( FHoudiniApi::GetPartInfo(
                     FHoudiniEngine::Get().GetSession(),
                     GeoInfo.id, PartIdx, &PartInfo ) != HAPI_RESULT_SUCCESS )
                 {

@@ -440,7 +440,7 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(
     HAPI_AttributeInfo AttributeInfo;
     FMemory::Memset< HAPI_AttributeInfo >( AttributeInfo, 0 );
 
-    if ( FHoudiniApi::GetAttributeInfoOnNode(
+    if ( FHoudiniApi::GetAttributeInfo(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttributeName,
         AttributeOwner, &AttributeInfo ) == HAPI_RESULT_SUCCESS )
     {
@@ -468,7 +468,7 @@ FHoudiniGeoPartObject::HapiGetInstanceTransforms( HAPI_AssetId OtherAssetId, TAr
         TArray< HAPI_Transform > InstanceTransforms;
         InstanceTransforms.SetNumZeroed( PointCount );
 
-        if ( FHoudiniApi::GetInstanceTransformsOnNode(
+        if ( FHoudiniApi::GetInstanceTransforms(
             FHoudiniEngine::Get().GetSession(), GeoId, HAPI_SRT, &InstanceTransforms[ 0 ],
             0, PointCount) == HAPI_RESULT_SUCCESS )
         {
@@ -696,9 +696,9 @@ FHoudiniGeoPartObject::HapiGeoGetInfo( HAPI_AssetId OtherAssetId, HAPI_GeoInfo &
 {
     FMemory::Memset< HAPI_GeoInfo >( GeoInfo, 0 );
 
-    if ( FHoudiniApi::GetDisplayGeoInfo(
-        FHoudiniEngine::Get().GetSession(), OtherAssetId,
-        &GeoInfo ) == HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetGeoInfo(
+        FHoudiniEngine::Get().GetSession(),
+        GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
     {
         return true;
     }
@@ -921,7 +921,7 @@ FHoudiniGeoPartObject::HapiPartGetInfo( HAPI_AssetId OtherAssetId, HAPI_PartInfo
 {
     FMemory::Memset< HAPI_PartInfo >( PartInfo, 0 );
 
-    if ( FHoudiniApi::GetPartInfoOnNode(
+    if ( FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, &PartInfo ) == HAPI_RESULT_SUCCESS )
     {
@@ -1154,7 +1154,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(
 {
     FMemory::Memset< HAPI_AttributeInfo >( AttributeInfo, 0 );
 
-    if ( FHoudiniApi::GetAttributeInfoOnNode(
+    if ( FHoudiniApi::GetAttributeInfo(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, AttributeName, AttributeOwner,
         &AttributeInfo ) == HAPI_RESULT_SUCCESS )
@@ -1289,7 +1289,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
 
     AttributeData.SetNumUninitialized( ResultAttributeInfo.count * ResultAttributeInfo.tupleSize );
 
-    if ( FHoudiniApi::GetAttributeFloatDataOnNode(
+    if ( FHoudiniApi::GetAttributeFloatData(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttributeName,
         &ResultAttributeInfo, -1, &AttributeData[ 0 ], 0,
         ResultAttributeInfo.count ) == HAPI_RESULT_SUCCESS )
@@ -1453,7 +1453,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
 
     AttributeData.SetNumUninitialized( ResultAttributeInfo.count * ResultAttributeInfo.tupleSize );
 
-    if ( FHoudiniApi::GetAttributeIntDataOnNode(
+    if ( FHoudiniApi::GetAttributeIntData(
         FHoudiniEngine::Get().GetSession(), GeoId, PartId, AttributeName,
         &ResultAttributeInfo, -1, &AttributeData[ 0 ], 0,
         ResultAttributeInfo.count ) == HAPI_RESULT_SUCCESS )
@@ -1617,7 +1617,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
 
     TArray< HAPI_StringHandle > StringHandles;
     StringHandles.Init( -1, ResultAttributeInfo.count * ResultAttributeInfo.tupleSize );
-    if ( FHoudiniApi::GetAttributeStringDataOnNode(
+    if ( FHoudiniApi::GetAttributeStringData(
         FHoudiniEngine::Get().GetSession(),
         GeoId, PartId, AttributeName, &ResultAttributeInfo,
         &StringHandles[ 0 ], 0, ResultAttributeInfo.count ) == HAPI_RESULT_SUCCESS )
@@ -1896,7 +1896,7 @@ FHoudiniGeoPartObject::HapiGetAttributeNames(
         TArray< HAPI_StringHandle > AttributeNameHandles;
         AttributeNameHandles.SetNumUninitialized( AttributeCount );
 
-        if ( FHoudiniApi::GetAttributeNamesOnNode(
+        if ( FHoudiniApi::GetAttributeNames(
             FHoudiniEngine::Get().GetSession(), GeoId, PartId,
             AttributeOwner, &AttributeNameHandles[ 0 ],
             AttributeCount ) != HAPI_RESULT_SUCCESS )
@@ -2053,7 +2053,7 @@ FHoudiniGeoPartObject::HapiGetVertices( HAPI_AssetId OtherAssetId, TArray< int32
 
     Vertices.SetNumUninitialized( VertexCount );
 
-    if ( FHoudiniApi::GetVertexListOnNode(
+    if ( FHoudiniApi::GetVertexList(
         FHoudiniEngine::Get().GetSession(), GeoId,
         PartId, &Vertices[ 0 ], 0, VertexCount ) != HAPI_RESULT_SUCCESS )
     {

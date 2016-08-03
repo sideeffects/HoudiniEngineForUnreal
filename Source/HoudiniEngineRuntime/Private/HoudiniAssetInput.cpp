@@ -723,7 +723,7 @@ UHoudiniAssetInput::UploadParameterValue()
             if ( bLoadedParameter )
             {
                 HAPI_AssetInfo CurveAssetInfo;
-                FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo );
+                FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo );
 
                 // If we just loaded our curve, we need to set parameters.
                 for ( TMap< FString, UHoudiniAssetParameter * >::TIterator
@@ -1467,7 +1467,7 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
                 &LocalAssetNodeInfo );
 
             if ( LocalResult == HAPI_RESULT_SUCCESS )
-                FHoudiniApi::SetObjectTransformOnNode(
+                FHoudiniApi::SetObjectTransform(
                     FHoudiniEngine::Get().GetSession(),
                     LocalAssetNodeInfo.parentId, &HapiTransform );
         }

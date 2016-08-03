@@ -3022,7 +3022,7 @@ UHoudiniAssetComponent::CreateParameters()
     TMap< FString, UHoudiniAssetParameter * > NewParameterByName;
 
     HAPI_AssetInfo AssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfoOnNode(
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
         FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ), false );
 
     HAPI_NodeInfo NodeInfo;
@@ -3344,7 +3344,7 @@ void
 UHoudiniAssetComponent::UpdateLoadedParameters()
 {
     HAPI_AssetInfo AssetInfo;
-    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
         return;
 
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
@@ -3364,7 +3364,7 @@ UHoudiniAssetComponent::CreateHandles()
     }
 
     HAPI_AssetInfo AssetInfo;
-    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
+    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
         return false;
 
     FHandleComponentMap NewHandleComponents;
@@ -3375,7 +3375,7 @@ UHoudiniAssetComponent::CreateHandles()
         TArray< HAPI_HandleInfo > HandleInfos;
         HandleInfos.SetNumZeroed( AssetInfo.handleCount );
 
-        if ( FHoudiniApi::GetHandleInfoOnNode(
+        if ( FHoudiniApi::GetHandleInfo(
             FHoudiniEngine::Get().GetSession(), AssetId,
             &HandleInfos[ 0 ], 0, AssetInfo.handleCount ) != HAPI_RESULT_SUCCESS )
         {
@@ -3467,7 +3467,7 @@ UHoudiniAssetComponent::CreateInputs()
 
     HAPI_AssetInfo AssetInfo;
     int32 InputCount = 0;
-    if ( FHoudiniApi::GetAssetInfoOnNode( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS
+    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS
         && AssetInfo.hasEverCooked )
     {
         InputCount = AssetInfo.geoInputCount;

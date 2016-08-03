@@ -18,11 +18,11 @@
 #include "HoudiniApi.h"
 
 
-FHoudiniApi::AddAttributeOnNodeFuncPtr
-FHoudiniApi::AddAttributeOnNode = &FHoudiniApi::AddAttributeOnNodeEmptyStub;
+FHoudiniApi::AddAttributeFuncPtr
+FHoudiniApi::AddAttribute = &FHoudiniApi::AddAttributeEmptyStub;
 
-FHoudiniApi::AddGroupOnNodeFuncPtr
-FHoudiniApi::AddGroupOnNode = &FHoudiniApi::AddGroupOnNodeEmptyStub;
+FHoudiniApi::AddGroupFuncPtr
+FHoudiniApi::AddGroup = &FHoudiniApi::AddGroupEmptyStub;
 
 FHoudiniApi::BindCustomImplementationFuncPtr
 FHoudiniApi::BindCustomImplementation = &FHoudiniApi::BindCustomImplementationEmptyStub;
@@ -36,8 +36,8 @@ FHoudiniApi::Cleanup = &FHoudiniApi::CleanupEmptyStub;
 FHoudiniApi::CloseSessionFuncPtr
 FHoudiniApi::CloseSession = &FHoudiniApi::CloseSessionEmptyStub;
 
-FHoudiniApi::CommitGeoOnNodeFuncPtr
-FHoudiniApi::CommitGeoOnNode = &FHoudiniApi::CommitGeoOnNodeEmptyStub;
+FHoudiniApi::CommitGeoFuncPtr
+FHoudiniApi::CommitGeo = &FHoudiniApi::CommitGeoEmptyStub;
 
 FHoudiniApi::ComposeChildNodeListFuncPtr
 FHoudiniApi::ComposeChildNodeList = &FHoudiniApi::ComposeChildNodeListEmptyStub;
@@ -93,11 +93,11 @@ FHoudiniApi::DeleteNode = &FHoudiniApi::DeleteNodeEmptyStub;
 FHoudiniApi::DisconnectNodeInputFuncPtr
 FHoudiniApi::DisconnectNodeInput = &FHoudiniApi::DisconnectNodeInputEmptyStub;
 
-FHoudiniApi::ExtractImageToFileOnNodeFuncPtr
-FHoudiniApi::ExtractImageToFileOnNode = &FHoudiniApi::ExtractImageToFileOnNodeEmptyStub;
+FHoudiniApi::ExtractImageToFileFuncPtr
+FHoudiniApi::ExtractImageToFile = &FHoudiniApi::ExtractImageToFileEmptyStub;
 
-FHoudiniApi::ExtractImageToMemoryOnNodeFuncPtr
-FHoudiniApi::ExtractImageToMemoryOnNode = &FHoudiniApi::ExtractImageToMemoryOnNodeEmptyStub;
+FHoudiniApi::ExtractImageToMemoryFuncPtr
+FHoudiniApi::ExtractImageToMemory = &FHoudiniApi::ExtractImageToMemoryEmptyStub;
 
 FHoudiniApi::GetActiveCacheCountFuncPtr
 FHoudiniApi::GetActiveCacheCount = &FHoudiniApi::GetActiveCacheCountEmptyStub;
@@ -105,29 +105,29 @@ FHoudiniApi::GetActiveCacheCount = &FHoudiniApi::GetActiveCacheCountEmptyStub;
 FHoudiniApi::GetActiveCacheNamesFuncPtr
 FHoudiniApi::GetActiveCacheNames = &FHoudiniApi::GetActiveCacheNamesEmptyStub;
 
-FHoudiniApi::GetAssetInfoOnNodeFuncPtr
-FHoudiniApi::GetAssetInfoOnNode = &FHoudiniApi::GetAssetInfoOnNodeEmptyStub;
+FHoudiniApi::GetAssetInfoFuncPtr
+FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
 
-FHoudiniApi::GetAttributeFloat64DataOnNodeFuncPtr
-FHoudiniApi::GetAttributeFloat64DataOnNode = &FHoudiniApi::GetAttributeFloat64DataOnNodeEmptyStub;
+FHoudiniApi::GetAttributeFloat64DataFuncPtr
+FHoudiniApi::GetAttributeFloat64Data = &FHoudiniApi::GetAttributeFloat64DataEmptyStub;
 
-FHoudiniApi::GetAttributeFloatDataOnNodeFuncPtr
-FHoudiniApi::GetAttributeFloatDataOnNode = &FHoudiniApi::GetAttributeFloatDataOnNodeEmptyStub;
+FHoudiniApi::GetAttributeFloatDataFuncPtr
+FHoudiniApi::GetAttributeFloatData = &FHoudiniApi::GetAttributeFloatDataEmptyStub;
 
-FHoudiniApi::GetAttributeInfoOnNodeFuncPtr
-FHoudiniApi::GetAttributeInfoOnNode = &FHoudiniApi::GetAttributeInfoOnNodeEmptyStub;
+FHoudiniApi::GetAttributeInfoFuncPtr
+FHoudiniApi::GetAttributeInfo = &FHoudiniApi::GetAttributeInfoEmptyStub;
 
-FHoudiniApi::GetAttributeInt64DataOnNodeFuncPtr
-FHoudiniApi::GetAttributeInt64DataOnNode = &FHoudiniApi::GetAttributeInt64DataOnNodeEmptyStub;
+FHoudiniApi::GetAttributeInt64DataFuncPtr
+FHoudiniApi::GetAttributeInt64Data = &FHoudiniApi::GetAttributeInt64DataEmptyStub;
 
-FHoudiniApi::GetAttributeIntDataOnNodeFuncPtr
-FHoudiniApi::GetAttributeIntDataOnNode = &FHoudiniApi::GetAttributeIntDataOnNodeEmptyStub;
+FHoudiniApi::GetAttributeIntDataFuncPtr
+FHoudiniApi::GetAttributeIntData = &FHoudiniApi::GetAttributeIntDataEmptyStub;
 
-FHoudiniApi::GetAttributeNamesOnNodeFuncPtr
-FHoudiniApi::GetAttributeNamesOnNode = &FHoudiniApi::GetAttributeNamesOnNodeEmptyStub;
+FHoudiniApi::GetAttributeNamesFuncPtr
+FHoudiniApi::GetAttributeNames = &FHoudiniApi::GetAttributeNamesEmptyStub;
 
-FHoudiniApi::GetAttributeStringDataOnNodeFuncPtr
-FHoudiniApi::GetAttributeStringDataOnNode = &FHoudiniApi::GetAttributeStringDataOnNodeEmptyStub;
+FHoudiniApi::GetAttributeStringDataFuncPtr
+FHoudiniApi::GetAttributeStringData = &FHoudiniApi::GetAttributeStringDataEmptyStub;
 
 FHoudiniApi::GetAvailableAssetCountFuncPtr
 FHoudiniApi::GetAvailableAssetCount = &FHoudiniApi::GetAvailableAssetCountEmptyStub;
@@ -159,17 +159,17 @@ FHoudiniApi::GetCookingCurrentCount = &FHoudiniApi::GetCookingCurrentCountEmptyS
 FHoudiniApi::GetCookingTotalCountFuncPtr
 FHoudiniApi::GetCookingTotalCount = &FHoudiniApi::GetCookingTotalCountEmptyStub;
 
-FHoudiniApi::GetCurveCountsOnNodeFuncPtr
-FHoudiniApi::GetCurveCountsOnNode = &FHoudiniApi::GetCurveCountsOnNodeEmptyStub;
+FHoudiniApi::GetCurveCountsFuncPtr
+FHoudiniApi::GetCurveCounts = &FHoudiniApi::GetCurveCountsEmptyStub;
 
-FHoudiniApi::GetCurveInfoOnNodeFuncPtr
-FHoudiniApi::GetCurveInfoOnNode = &FHoudiniApi::GetCurveInfoOnNodeEmptyStub;
+FHoudiniApi::GetCurveInfoFuncPtr
+FHoudiniApi::GetCurveInfo = &FHoudiniApi::GetCurveInfoEmptyStub;
 
-FHoudiniApi::GetCurveKnotsOnNodeFuncPtr
-FHoudiniApi::GetCurveKnotsOnNode = &FHoudiniApi::GetCurveKnotsOnNodeEmptyStub;
+FHoudiniApi::GetCurveKnotsFuncPtr
+FHoudiniApi::GetCurveKnots = &FHoudiniApi::GetCurveKnotsEmptyStub;
 
-FHoudiniApi::GetCurveOrdersOnNodeFuncPtr
-FHoudiniApi::GetCurveOrdersOnNode = &FHoudiniApi::GetCurveOrdersOnNodeEmptyStub;
+FHoudiniApi::GetCurveOrdersFuncPtr
+FHoudiniApi::GetCurveOrders = &FHoudiniApi::GetCurveOrdersEmptyStub;
 
 FHoudiniApi::GetDisplayGeoInfoFuncPtr
 FHoudiniApi::GetDisplayGeoInfo = &FHoudiniApi::GetDisplayGeoInfoEmptyStub;
@@ -177,74 +177,74 @@ FHoudiniApi::GetDisplayGeoInfo = &FHoudiniApi::GetDisplayGeoInfoEmptyStub;
 FHoudiniApi::GetEnvIntFuncPtr
 FHoudiniApi::GetEnvInt = &FHoudiniApi::GetEnvIntEmptyStub;
 
-FHoudiniApi::GetFaceCountsOnNodeFuncPtr
-FHoudiniApi::GetFaceCountsOnNode = &FHoudiniApi::GetFaceCountsOnNodeEmptyStub;
+FHoudiniApi::GetFaceCountsFuncPtr
+FHoudiniApi::GetFaceCounts = &FHoudiniApi::GetFaceCountsEmptyStub;
 
-FHoudiniApi::GetFirstVolumeTileOnNodeFuncPtr
-FHoudiniApi::GetFirstVolumeTileOnNode = &FHoudiniApi::GetFirstVolumeTileOnNodeEmptyStub;
+FHoudiniApi::GetFirstVolumeTileFuncPtr
+FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
 
-FHoudiniApi::GetGeoInfoOnNodeFuncPtr
-FHoudiniApi::GetGeoInfoOnNode = &FHoudiniApi::GetGeoInfoOnNodeEmptyStub;
+FHoudiniApi::GetGeoInfoFuncPtr
+FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
 
-FHoudiniApi::GetGeoSizeOnNodeFuncPtr
-FHoudiniApi::GetGeoSizeOnNode = &FHoudiniApi::GetGeoSizeOnNodeEmptyStub;
+FHoudiniApi::GetGeoSizeFuncPtr
+FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
 
-FHoudiniApi::GetGroupMembershipOnNodeFuncPtr
-FHoudiniApi::GetGroupMembershipOnNode = &FHoudiniApi::GetGroupMembershipOnNodeEmptyStub;
+FHoudiniApi::GetGroupMembershipFuncPtr
+FHoudiniApi::GetGroupMembership = &FHoudiniApi::GetGroupMembershipEmptyStub;
 
-FHoudiniApi::GetGroupNamesOnNodeFuncPtr
-FHoudiniApi::GetGroupNamesOnNode = &FHoudiniApi::GetGroupNamesOnNodeEmptyStub;
+FHoudiniApi::GetGroupNamesFuncPtr
+FHoudiniApi::GetGroupNames = &FHoudiniApi::GetGroupNamesEmptyStub;
 
-FHoudiniApi::GetHandleBindingInfoOnNodeFuncPtr
-FHoudiniApi::GetHandleBindingInfoOnNode = &FHoudiniApi::GetHandleBindingInfoOnNodeEmptyStub;
+FHoudiniApi::GetHandleBindingInfoFuncPtr
+FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
 
-FHoudiniApi::GetHandleInfoOnNodeFuncPtr
-FHoudiniApi::GetHandleInfoOnNode = &FHoudiniApi::GetHandleInfoOnNodeEmptyStub;
+FHoudiniApi::GetHandleInfoFuncPtr
+FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
 
-FHoudiniApi::GetImageInfoOnNodeFuncPtr
-FHoudiniApi::GetImageInfoOnNode = &FHoudiniApi::GetImageInfoOnNodeEmptyStub;
+FHoudiniApi::GetImageInfoFuncPtr
+FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
 
-FHoudiniApi::GetImageMemoryBufferOnNodeFuncPtr
-FHoudiniApi::GetImageMemoryBufferOnNode = &FHoudiniApi::GetImageMemoryBufferOnNodeEmptyStub;
+FHoudiniApi::GetImageMemoryBufferFuncPtr
+FHoudiniApi::GetImageMemoryBuffer = &FHoudiniApi::GetImageMemoryBufferEmptyStub;
 
-FHoudiniApi::GetImagePlaneCountOnNodeFuncPtr
-FHoudiniApi::GetImagePlaneCountOnNode = &FHoudiniApi::GetImagePlaneCountOnNodeEmptyStub;
+FHoudiniApi::GetImagePlaneCountFuncPtr
+FHoudiniApi::GetImagePlaneCount = &FHoudiniApi::GetImagePlaneCountEmptyStub;
 
-FHoudiniApi::GetImagePlanesOnNodeFuncPtr
-FHoudiniApi::GetImagePlanesOnNode = &FHoudiniApi::GetImagePlanesOnNodeEmptyStub;
+FHoudiniApi::GetImagePlanesFuncPtr
+FHoudiniApi::GetImagePlanes = &FHoudiniApi::GetImagePlanesEmptyStub;
 
-FHoudiniApi::GetInstanceTransformsOnNodeFuncPtr
-FHoudiniApi::GetInstanceTransformsOnNode = &FHoudiniApi::GetInstanceTransformsOnNodeEmptyStub;
+FHoudiniApi::GetInstanceTransformsFuncPtr
+FHoudiniApi::GetInstanceTransforms = &FHoudiniApi::GetInstanceTransformsEmptyStub;
 
-FHoudiniApi::GetInstancedPartIdsOnNodeFuncPtr
-FHoudiniApi::GetInstancedPartIdsOnNode = &FHoudiniApi::GetInstancedPartIdsOnNodeEmptyStub;
+FHoudiniApi::GetInstancedPartIdsFuncPtr
+FHoudiniApi::GetInstancedPartIds = &FHoudiniApi::GetInstancedPartIdsEmptyStub;
 
-FHoudiniApi::GetInstancerPartTransformsOnNodeFuncPtr
-FHoudiniApi::GetInstancerPartTransformsOnNode = &FHoudiniApi::GetInstancerPartTransformsOnNodeEmptyStub;
+FHoudiniApi::GetInstancerPartTransformsFuncPtr
+FHoudiniApi::GetInstancerPartTransforms = &FHoudiniApi::GetInstancerPartTransformsEmptyStub;
 
 FHoudiniApi::GetManagerNodeIdFuncPtr
 FHoudiniApi::GetManagerNodeId = &FHoudiniApi::GetManagerNodeIdEmptyStub;
 
-FHoudiniApi::GetMaterialInfoOnNodeFuncPtr
-FHoudiniApi::GetMaterialInfoOnNode = &FHoudiniApi::GetMaterialInfoOnNodeEmptyStub;
+FHoudiniApi::GetMaterialInfoFuncPtr
+FHoudiniApi::GetMaterialInfo = &FHoudiniApi::GetMaterialInfoEmptyStub;
 
 FHoudiniApi::GetMaterialNodeIdsOnFacesFuncPtr
 FHoudiniApi::GetMaterialNodeIdsOnFaces = &FHoudiniApi::GetMaterialNodeIdsOnFacesEmptyStub;
 
+FHoudiniApi::GetMaterialOnGroupFuncPtr
+FHoudiniApi::GetMaterialOnGroup = &FHoudiniApi::GetMaterialOnGroupEmptyStub;
+
 FHoudiniApi::GetMaterialOnGroupOnAssetFuncPtr
 FHoudiniApi::GetMaterialOnGroupOnAsset = &FHoudiniApi::GetMaterialOnGroupOnAssetEmptyStub;
 
-FHoudiniApi::GetMaterialOnGroupOnNodeFuncPtr
-FHoudiniApi::GetMaterialOnGroupOnNode = &FHoudiniApi::GetMaterialOnGroupOnNodeEmptyStub;
+FHoudiniApi::GetMaterialOnPartFuncPtr
+FHoudiniApi::GetMaterialOnPart = &FHoudiniApi::GetMaterialOnPartEmptyStub;
 
 FHoudiniApi::GetMaterialOnPartOnAssetFuncPtr
 FHoudiniApi::GetMaterialOnPartOnAsset = &FHoudiniApi::GetMaterialOnPartOnAssetEmptyStub;
 
-FHoudiniApi::GetMaterialOnPartOnNodeFuncPtr
-FHoudiniApi::GetMaterialOnPartOnNode = &FHoudiniApi::GetMaterialOnPartOnNodeEmptyStub;
-
-FHoudiniApi::GetNextVolumeTileOnNodeFuncPtr
-FHoudiniApi::GetNextVolumeTileOnNode = &FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub;
+FHoudiniApi::GetNextVolumeTileFuncPtr
+FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 
 FHoudiniApi::GetNodeInfoFuncPtr
 FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
@@ -297,8 +297,8 @@ FHoudiniApi::GetParmStringValue = &FHoudiniApi::GetParmStringValueEmptyStub;
 FHoudiniApi::GetParmStringValuesFuncPtr
 FHoudiniApi::GetParmStringValues = &FHoudiniApi::GetParmStringValuesEmptyStub;
 
-FHoudiniApi::GetPartInfoOnNodeFuncPtr
-FHoudiniApi::GetPartInfoOnNode = &FHoudiniApi::GetPartInfoOnNodeEmptyStub;
+FHoudiniApi::GetPartInfoFuncPtr
+FHoudiniApi::GetPartInfo = &FHoudiniApi::GetPartInfoEmptyStub;
 
 FHoudiniApi::GetPresetFuncPtr
 FHoudiniApi::GetPreset = &FHoudiniApi::GetPresetEmptyStub;
@@ -345,23 +345,23 @@ FHoudiniApi::GetTime = &FHoudiniApi::GetTimeEmptyStub;
 FHoudiniApi::GetTimelineOptionsFuncPtr
 FHoudiniApi::GetTimelineOptions = &FHoudiniApi::GetTimelineOptionsEmptyStub;
 
-FHoudiniApi::GetVertexListOnNodeFuncPtr
-FHoudiniApi::GetVertexListOnNode = &FHoudiniApi::GetVertexListOnNodeEmptyStub;
+FHoudiniApi::GetVertexListFuncPtr
+FHoudiniApi::GetVertexList = &FHoudiniApi::GetVertexListEmptyStub;
 
-FHoudiniApi::GetVolumeInfoOnNodeFuncPtr
-FHoudiniApi::GetVolumeInfoOnNode = &FHoudiniApi::GetVolumeInfoOnNodeEmptyStub;
+FHoudiniApi::GetVolumeInfoFuncPtr
+FHoudiniApi::GetVolumeInfo = &FHoudiniApi::GetVolumeInfoEmptyStub;
 
-FHoudiniApi::GetVolumeTileFloatDataOnNodeFuncPtr
-FHoudiniApi::GetVolumeTileFloatDataOnNode = &FHoudiniApi::GetVolumeTileFloatDataOnNodeEmptyStub;
+FHoudiniApi::GetVolumeTileFloatDataFuncPtr
+FHoudiniApi::GetVolumeTileFloatData = &FHoudiniApi::GetVolumeTileFloatDataEmptyStub;
 
-FHoudiniApi::GetVolumeTileIntDataOnNodeFuncPtr
-FHoudiniApi::GetVolumeTileIntDataOnNode = &FHoudiniApi::GetVolumeTileIntDataOnNodeEmptyStub;
+FHoudiniApi::GetVolumeTileIntDataFuncPtr
+FHoudiniApi::GetVolumeTileIntData = &FHoudiniApi::GetVolumeTileIntDataEmptyStub;
 
-FHoudiniApi::GetVolumeVoxelFloatDataOnNodeFuncPtr
-FHoudiniApi::GetVolumeVoxelFloatDataOnNode = &FHoudiniApi::GetVolumeVoxelFloatDataOnNodeEmptyStub;
+FHoudiniApi::GetVolumeVoxelFloatDataFuncPtr
+FHoudiniApi::GetVolumeVoxelFloatData = &FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub;
 
-FHoudiniApi::GetVolumeVoxelIntDataOnNodeFuncPtr
-FHoudiniApi::GetVolumeVoxelIntDataOnNode = &FHoudiniApi::GetVolumeVoxelIntDataOnNodeEmptyStub;
+FHoudiniApi::GetVolumeVoxelIntDataFuncPtr
+FHoudiniApi::GetVolumeVoxelIntData = &FHoudiniApi::GetVolumeVoxelIntDataEmptyStub;
 
 FHoudiniApi::InitializeFuncPtr
 FHoudiniApi::Initialize = &FHoudiniApi::InitializeEmptyStub;
@@ -387,11 +387,11 @@ FHoudiniApi::LoadAssetLibraryFromFile = &FHoudiniApi::LoadAssetLibraryFromFileEm
 FHoudiniApi::LoadAssetLibraryFromMemoryFuncPtr
 FHoudiniApi::LoadAssetLibraryFromMemory = &FHoudiniApi::LoadAssetLibraryFromMemoryEmptyStub;
 
-FHoudiniApi::LoadGeoFromFileOnNodeFuncPtr
-FHoudiniApi::LoadGeoFromFileOnNode = &FHoudiniApi::LoadGeoFromFileOnNodeEmptyStub;
+FHoudiniApi::LoadGeoFromFileFuncPtr
+FHoudiniApi::LoadGeoFromFile = &FHoudiniApi::LoadGeoFromFileEmptyStub;
 
-FHoudiniApi::LoadGeoFromMemoryOnNodeFuncPtr
-FHoudiniApi::LoadGeoFromMemoryOnNode = &FHoudiniApi::LoadGeoFromMemoryOnNodeEmptyStub;
+FHoudiniApi::LoadGeoFromMemoryFuncPtr
+FHoudiniApi::LoadGeoFromMemory = &FHoudiniApi::LoadGeoFromMemoryEmptyStub;
 
 FHoudiniApi::LoadHIPFileFuncPtr
 FHoudiniApi::LoadHIPFile = &FHoudiniApi::LoadHIPFileEmptyStub;
@@ -408,20 +408,20 @@ FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmpt
 FHoudiniApi::RenameNodeFuncPtr
 FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
 
-FHoudiniApi::RenderTextureToImageOnNodeFuncPtr
-FHoudiniApi::RenderTextureToImageOnNode = &FHoudiniApi::RenderTextureToImageOnNodeEmptyStub;
+FHoudiniApi::RenderTextureToImageFuncPtr
+FHoudiniApi::RenderTextureToImage = &FHoudiniApi::RenderTextureToImageEmptyStub;
 
 FHoudiniApi::ResetSimulationFuncPtr
 FHoudiniApi::ResetSimulation = &FHoudiniApi::ResetSimulationEmptyStub;
 
-FHoudiniApi::RevertGeoOnNodeFuncPtr
-FHoudiniApi::RevertGeoOnNode = &FHoudiniApi::RevertGeoOnNodeEmptyStub;
+FHoudiniApi::RevertGeoFuncPtr
+FHoudiniApi::RevertGeo = &FHoudiniApi::RevertGeoEmptyStub;
 
-FHoudiniApi::SaveGeoToFileOnNodeFuncPtr
-FHoudiniApi::SaveGeoToFileOnNode = &FHoudiniApi::SaveGeoToFileOnNodeEmptyStub;
+FHoudiniApi::SaveGeoToFileFuncPtr
+FHoudiniApi::SaveGeoToFile = &FHoudiniApi::SaveGeoToFileEmptyStub;
 
-FHoudiniApi::SaveGeoToMemoryOnNodeFuncPtr
-FHoudiniApi::SaveGeoToMemoryOnNode = &FHoudiniApi::SaveGeoToMemoryOnNodeEmptyStub;
+FHoudiniApi::SaveGeoToMemoryFuncPtr
+FHoudiniApi::SaveGeoToMemory = &FHoudiniApi::SaveGeoToMemoryEmptyStub;
 
 FHoudiniApi::SaveHIPFileFuncPtr
 FHoudiniApi::SaveHIPFile = &FHoudiniApi::SaveHIPFileEmptyStub;
@@ -429,47 +429,47 @@ FHoudiniApi::SaveHIPFile = &FHoudiniApi::SaveHIPFileEmptyStub;
 FHoudiniApi::SetAnimCurveFuncPtr
 FHoudiniApi::SetAnimCurve = &FHoudiniApi::SetAnimCurveEmptyStub;
 
-FHoudiniApi::SetAttributeFloat64DataOnNodeFuncPtr
-FHoudiniApi::SetAttributeFloat64DataOnNode = &FHoudiniApi::SetAttributeFloat64DataOnNodeEmptyStub;
+FHoudiniApi::SetAttributeFloat64DataFuncPtr
+FHoudiniApi::SetAttributeFloat64Data = &FHoudiniApi::SetAttributeFloat64DataEmptyStub;
 
-FHoudiniApi::SetAttributeFloatDataOnNodeFuncPtr
-FHoudiniApi::SetAttributeFloatDataOnNode = &FHoudiniApi::SetAttributeFloatDataOnNodeEmptyStub;
+FHoudiniApi::SetAttributeFloatDataFuncPtr
+FHoudiniApi::SetAttributeFloatData = &FHoudiniApi::SetAttributeFloatDataEmptyStub;
 
-FHoudiniApi::SetAttributeInt64DataOnNodeFuncPtr
-FHoudiniApi::SetAttributeInt64DataOnNode = &FHoudiniApi::SetAttributeInt64DataOnNodeEmptyStub;
+FHoudiniApi::SetAttributeInt64DataFuncPtr
+FHoudiniApi::SetAttributeInt64Data = &FHoudiniApi::SetAttributeInt64DataEmptyStub;
 
-FHoudiniApi::SetAttributeIntDataOnNodeFuncPtr
-FHoudiniApi::SetAttributeIntDataOnNode = &FHoudiniApi::SetAttributeIntDataOnNodeEmptyStub;
+FHoudiniApi::SetAttributeIntDataFuncPtr
+FHoudiniApi::SetAttributeIntData = &FHoudiniApi::SetAttributeIntDataEmptyStub;
 
-FHoudiniApi::SetAttributeStringDataOnNodeFuncPtr
-FHoudiniApi::SetAttributeStringDataOnNode = &FHoudiniApi::SetAttributeStringDataOnNodeEmptyStub;
+FHoudiniApi::SetAttributeStringDataFuncPtr
+FHoudiniApi::SetAttributeStringData = &FHoudiniApi::SetAttributeStringDataEmptyStub;
 
 FHoudiniApi::SetCachePropertyFuncPtr
 FHoudiniApi::SetCacheProperty = &FHoudiniApi::SetCachePropertyEmptyStub;
 
-FHoudiniApi::SetCurveCountsOnNodeFuncPtr
-FHoudiniApi::SetCurveCountsOnNode = &FHoudiniApi::SetCurveCountsOnNodeEmptyStub;
+FHoudiniApi::SetCurveCountsFuncPtr
+FHoudiniApi::SetCurveCounts = &FHoudiniApi::SetCurveCountsEmptyStub;
 
-FHoudiniApi::SetCurveInfoOnNodeFuncPtr
-FHoudiniApi::SetCurveInfoOnNode = &FHoudiniApi::SetCurveInfoOnNodeEmptyStub;
+FHoudiniApi::SetCurveInfoFuncPtr
+FHoudiniApi::SetCurveInfo = &FHoudiniApi::SetCurveInfoEmptyStub;
 
-FHoudiniApi::SetCurveKnotsOnNodeFuncPtr
-FHoudiniApi::SetCurveKnotsOnNode = &FHoudiniApi::SetCurveKnotsOnNodeEmptyStub;
+FHoudiniApi::SetCurveKnotsFuncPtr
+FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
 
-FHoudiniApi::SetCurveOrdersOnNodeFuncPtr
-FHoudiniApi::SetCurveOrdersOnNode = &FHoudiniApi::SetCurveOrdersOnNodeEmptyStub;
+FHoudiniApi::SetCurveOrdersFuncPtr
+FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
 
-FHoudiniApi::SetFaceCountsOnNodeFuncPtr
-FHoudiniApi::SetFaceCountsOnNode = &FHoudiniApi::SetFaceCountsOnNodeEmptyStub;
+FHoudiniApi::SetFaceCountsFuncPtr
+FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
 
-FHoudiniApi::SetGroupMembershipOnNodeFuncPtr
-FHoudiniApi::SetGroupMembershipOnNode = &FHoudiniApi::SetGroupMembershipOnNodeEmptyStub;
+FHoudiniApi::SetGroupMembershipFuncPtr
+FHoudiniApi::SetGroupMembership = &FHoudiniApi::SetGroupMembershipEmptyStub;
 
-FHoudiniApi::SetImageInfoOnNodeFuncPtr
-FHoudiniApi::SetImageInfoOnNode = &FHoudiniApi::SetImageInfoOnNodeEmptyStub;
+FHoudiniApi::SetImageInfoFuncPtr
+FHoudiniApi::SetImageInfo = &FHoudiniApi::SetImageInfoEmptyStub;
 
-FHoudiniApi::SetObjectTransformOnNodeFuncPtr
-FHoudiniApi::SetObjectTransformOnNode = &FHoudiniApi::SetObjectTransformOnNodeEmptyStub;
+FHoudiniApi::SetObjectTransformFuncPtr
+FHoudiniApi::SetObjectTransform = &FHoudiniApi::SetObjectTransformEmptyStub;
 
 FHoudiniApi::SetParmFloatValueFuncPtr
 FHoudiniApi::SetParmFloatValue = &FHoudiniApi::SetParmFloatValueEmptyStub;
@@ -489,8 +489,8 @@ FHoudiniApi::SetParmNodeValue = &FHoudiniApi::SetParmNodeValueEmptyStub;
 FHoudiniApi::SetParmStringValueFuncPtr
 FHoudiniApi::SetParmStringValue = &FHoudiniApi::SetParmStringValueEmptyStub;
 
-FHoudiniApi::SetPartInfoOnNodeFuncPtr
-FHoudiniApi::SetPartInfoOnNode = &FHoudiniApi::SetPartInfoOnNodeEmptyStub;
+FHoudiniApi::SetPartInfoFuncPtr
+FHoudiniApi::SetPartInfo = &FHoudiniApi::SetPartInfoEmptyStub;
 
 FHoudiniApi::SetPresetFuncPtr
 FHoudiniApi::SetPreset = &FHoudiniApi::SetPresetEmptyStub;
@@ -510,17 +510,17 @@ FHoudiniApi::SetTimelineOptions = &FHoudiniApi::SetTimelineOptionsEmptyStub;
 FHoudiniApi::SetTransformAnimCurveFuncPtr
 FHoudiniApi::SetTransformAnimCurve = &FHoudiniApi::SetTransformAnimCurveEmptyStub;
 
-FHoudiniApi::SetVertexListOnNodeFuncPtr
-FHoudiniApi::SetVertexListOnNode = &FHoudiniApi::SetVertexListOnNodeEmptyStub;
+FHoudiniApi::SetVertexListFuncPtr
+FHoudiniApi::SetVertexList = &FHoudiniApi::SetVertexListEmptyStub;
 
-FHoudiniApi::SetVolumeInfoOnNodeFuncPtr
-FHoudiniApi::SetVolumeInfoOnNode = &FHoudiniApi::SetVolumeInfoOnNodeEmptyStub;
+FHoudiniApi::SetVolumeInfoFuncPtr
+FHoudiniApi::SetVolumeInfo = &FHoudiniApi::SetVolumeInfoEmptyStub;
 
-FHoudiniApi::SetVolumeTileFloatDataOnNodeFuncPtr
-FHoudiniApi::SetVolumeTileFloatDataOnNode = &FHoudiniApi::SetVolumeTileFloatDataOnNodeEmptyStub;
+FHoudiniApi::SetVolumeTileFloatDataFuncPtr
+FHoudiniApi::SetVolumeTileFloatData = &FHoudiniApi::SetVolumeTileFloatDataEmptyStub;
 
-FHoudiniApi::SetVolumeTileIntDataOnNodeFuncPtr
-FHoudiniApi::SetVolumeTileIntDataOnNode = &FHoudiniApi::SetVolumeTileIntDataOnNodeEmptyStub;
+FHoudiniApi::SetVolumeTileIntDataFuncPtr
+FHoudiniApi::SetVolumeTileIntData = &FHoudiniApi::SetVolumeTileIntDataEmptyStub;
 
 FHoudiniApi::StartThriftNamedPipeServerFuncPtr
 FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServerEmptyStub;
@@ -534,13 +534,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 {
 	if(!LibraryHandle) return;
 
-	FHoudiniApi::AddAttributeOnNode = (AddAttributeOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_AddAttributeOnNode"));
-	FHoudiniApi::AddGroupOnNode = (AddGroupOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_AddGroupOnNode"));
+	FHoudiniApi::AddAttribute = (AddAttributeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_AddAttribute"));
+	FHoudiniApi::AddGroup = (AddGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_AddGroup"));
 	FHoudiniApi::BindCustomImplementation = (BindCustomImplementationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_BindCustomImplementation"));
 	FHoudiniApi::CheckForSpecificErrors = (CheckForSpecificErrorsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CheckForSpecificErrors"));
 	FHoudiniApi::Cleanup = (CleanupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Cleanup"));
 	FHoudiniApi::CloseSession = (CloseSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CloseSession"));
-	FHoudiniApi::CommitGeoOnNode = (CommitGeoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CommitGeoOnNode"));
+	FHoudiniApi::CommitGeo = (CommitGeoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CommitGeo"));
 	FHoudiniApi::ComposeChildNodeList = (ComposeChildNodeListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeChildNodeList"));
 	FHoudiniApi::ComposeNodeCookResult = (ComposeNodeCookResultFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeNodeCookResult"));
 	FHoudiniApi::ComposeObjectList = (ComposeObjectListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ComposeObjectList"));
@@ -559,18 +559,18 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CreateThriftSocketSession = (CreateThriftSocketSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateThriftSocketSession"));
 	FHoudiniApi::DeleteNode = (DeleteNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DeleteNode"));
 	FHoudiniApi::DisconnectNodeInput = (DisconnectNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_DisconnectNodeInput"));
-	FHoudiniApi::ExtractImageToFileOnNode = (ExtractImageToFileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToFileOnNode"));
-	FHoudiniApi::ExtractImageToMemoryOnNode = (ExtractImageToMemoryOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToMemoryOnNode"));
+	FHoudiniApi::ExtractImageToFile = (ExtractImageToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToFile"));
+	FHoudiniApi::ExtractImageToMemory = (ExtractImageToMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ExtractImageToMemory"));
 	FHoudiniApi::GetActiveCacheCount = (GetActiveCacheCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheCount"));
 	FHoudiniApi::GetActiveCacheNames = (GetActiveCacheNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheNames"));
-	FHoudiniApi::GetAssetInfoOnNode = (GetAssetInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetInfoOnNode"));
-	FHoudiniApi::GetAttributeFloat64DataOnNode = (GetAttributeFloat64DataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloat64DataOnNode"));
-	FHoudiniApi::GetAttributeFloatDataOnNode = (GetAttributeFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloatDataOnNode"));
-	FHoudiniApi::GetAttributeInfoOnNode = (GetAttributeInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeInfoOnNode"));
-	FHoudiniApi::GetAttributeInt64DataOnNode = (GetAttributeInt64DataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeInt64DataOnNode"));
-	FHoudiniApi::GetAttributeIntDataOnNode = (GetAttributeIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeIntDataOnNode"));
-	FHoudiniApi::GetAttributeNamesOnNode = (GetAttributeNamesOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeNamesOnNode"));
-	FHoudiniApi::GetAttributeStringDataOnNode = (GetAttributeStringDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeStringDataOnNode"));
+	FHoudiniApi::GetAssetInfo = (GetAssetInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetInfo"));
+	FHoudiniApi::GetAttributeFloat64Data = (GetAttributeFloat64DataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloat64Data"));
+	FHoudiniApi::GetAttributeFloatData = (GetAttributeFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeFloatData"));
+	FHoudiniApi::GetAttributeInfo = (GetAttributeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeInfo"));
+	FHoudiniApi::GetAttributeInt64Data = (GetAttributeInt64DataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeInt64Data"));
+	FHoudiniApi::GetAttributeIntData = (GetAttributeIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeIntData"));
+	FHoudiniApi::GetAttributeNames = (GetAttributeNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeNames"));
+	FHoudiniApi::GetAttributeStringData = (GetAttributeStringDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAttributeStringData"));
 	FHoudiniApi::GetAvailableAssetCount = (GetAvailableAssetCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAvailableAssetCount"));
 	FHoudiniApi::GetAvailableAssets = (GetAvailableAssetsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAvailableAssets"));
 	FHoudiniApi::GetBoxInfo = (GetBoxInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetBoxInfo"));
@@ -581,35 +581,35 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetComposedObjectTransforms = (GetComposedObjectTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetComposedObjectTransforms"));
 	FHoudiniApi::GetCookingCurrentCount = (GetCookingCurrentCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingCurrentCount"));
 	FHoudiniApi::GetCookingTotalCount = (GetCookingTotalCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCookingTotalCount"));
-	FHoudiniApi::GetCurveCountsOnNode = (GetCurveCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveCountsOnNode"));
-	FHoudiniApi::GetCurveInfoOnNode = (GetCurveInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveInfoOnNode"));
-	FHoudiniApi::GetCurveKnotsOnNode = (GetCurveKnotsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveKnotsOnNode"));
-	FHoudiniApi::GetCurveOrdersOnNode = (GetCurveOrdersOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveOrdersOnNode"));
+	FHoudiniApi::GetCurveCounts = (GetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveCounts"));
+	FHoudiniApi::GetCurveInfo = (GetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveInfo"));
+	FHoudiniApi::GetCurveKnots = (GetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveKnots"));
+	FHoudiniApi::GetCurveOrders = (GetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetCurveOrders"));
 	FHoudiniApi::GetDisplayGeoInfo = (GetDisplayGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetDisplayGeoInfo"));
 	FHoudiniApi::GetEnvInt = (GetEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetEnvInt"));
-	FHoudiniApi::GetFaceCountsOnNode = (GetFaceCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCountsOnNode"));
-	FHoudiniApi::GetFirstVolumeTileOnNode = (GetFirstVolumeTileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTileOnNode"));
-	FHoudiniApi::GetGeoInfoOnNode = (GetGeoInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfoOnNode"));
-	FHoudiniApi::GetGeoSizeOnNode = (GetGeoSizeOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSizeOnNode"));
-	FHoudiniApi::GetGroupMembershipOnNode = (GetGroupMembershipOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembershipOnNode"));
-	FHoudiniApi::GetGroupNamesOnNode = (GetGroupNamesOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNamesOnNode"));
-	FHoudiniApi::GetHandleBindingInfoOnNode = (GetHandleBindingInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleBindingInfoOnNode"));
-	FHoudiniApi::GetHandleInfoOnNode = (GetHandleInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleInfoOnNode"));
-	FHoudiniApi::GetImageInfoOnNode = (GetImageInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageInfoOnNode"));
-	FHoudiniApi::GetImageMemoryBufferOnNode = (GetImageMemoryBufferOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageMemoryBufferOnNode"));
-	FHoudiniApi::GetImagePlaneCountOnNode = (GetImagePlaneCountOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlaneCountOnNode"));
-	FHoudiniApi::GetImagePlanesOnNode = (GetImagePlanesOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlanesOnNode"));
-	FHoudiniApi::GetInstanceTransformsOnNode = (GetInstanceTransformsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstanceTransformsOnNode"));
-	FHoudiniApi::GetInstancedPartIdsOnNode = (GetInstancedPartIdsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedPartIdsOnNode"));
-	FHoudiniApi::GetInstancerPartTransformsOnNode = (GetInstancerPartTransformsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancerPartTransformsOnNode"));
+	FHoudiniApi::GetFaceCounts = (GetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFaceCounts"));
+	FHoudiniApi::GetFirstVolumeTile = (GetFirstVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetFirstVolumeTile"));
+	FHoudiniApi::GetGeoInfo = (GetGeoInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoInfo"));
+	FHoudiniApi::GetGeoSize = (GetGeoSizeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGeoSize"));
+	FHoudiniApi::GetGroupMembership = (GetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupMembership"));
+	FHoudiniApi::GetGroupNames = (GetGroupNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetGroupNames"));
+	FHoudiniApi::GetHandleBindingInfo = (GetHandleBindingInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleBindingInfo"));
+	FHoudiniApi::GetHandleInfo = (GetHandleInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetHandleInfo"));
+	FHoudiniApi::GetImageInfo = (GetImageInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageInfo"));
+	FHoudiniApi::GetImageMemoryBuffer = (GetImageMemoryBufferFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImageMemoryBuffer"));
+	FHoudiniApi::GetImagePlaneCount = (GetImagePlaneCountFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlaneCount"));
+	FHoudiniApi::GetImagePlanes = (GetImagePlanesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetImagePlanes"));
+	FHoudiniApi::GetInstanceTransforms = (GetInstanceTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstanceTransforms"));
+	FHoudiniApi::GetInstancedPartIds = (GetInstancedPartIdsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancedPartIds"));
+	FHoudiniApi::GetInstancerPartTransforms = (GetInstancerPartTransformsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetInstancerPartTransforms"));
 	FHoudiniApi::GetManagerNodeId = (GetManagerNodeIdFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetManagerNodeId"));
-	FHoudiniApi::GetMaterialInfoOnNode = (GetMaterialInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialInfoOnNode"));
+	FHoudiniApi::GetMaterialInfo = (GetMaterialInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialInfo"));
 	FHoudiniApi::GetMaterialNodeIdsOnFaces = (GetMaterialNodeIdsOnFacesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialNodeIdsOnFaces"));
+	FHoudiniApi::GetMaterialOnGroup = (GetMaterialOnGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroup"));
 	FHoudiniApi::GetMaterialOnGroupOnAsset = (GetMaterialOnGroupOnAssetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroupOnAsset"));
-	FHoudiniApi::GetMaterialOnGroupOnNode = (GetMaterialOnGroupOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroupOnNode"));
+	FHoudiniApi::GetMaterialOnPart = (GetMaterialOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPart"));
 	FHoudiniApi::GetMaterialOnPartOnAsset = (GetMaterialOnPartOnAssetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPartOnAsset"));
-	FHoudiniApi::GetMaterialOnPartOnNode = (GetMaterialOnPartOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPartOnNode"));
-	FHoudiniApi::GetNextVolumeTileOnNode = (GetNextVolumeTileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTileOnNode"));
+	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
 	FHoudiniApi::GetNodeInputName = (GetNodeInputNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInputName"));
 	FHoudiniApi::GetObjectInfo = (GetObjectInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetObjectInfo"));
@@ -627,7 +627,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetParmNodeValue = (GetParmNodeValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmNodeValue"));
 	FHoudiniApi::GetParmStringValue = (GetParmStringValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValue"));
 	FHoudiniApi::GetParmStringValues = (GetParmStringValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetParmStringValues"));
-	FHoudiniApi::GetPartInfoOnNode = (GetPartInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPartInfoOnNode"));
+	FHoudiniApi::GetPartInfo = (GetPartInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPartInfo"));
 	FHoudiniApi::GetPreset = (GetPresetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPreset"));
 	FHoudiniApi::GetPresetBufLength = (GetPresetBufLengthFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetPresetBufLength"));
 	FHoudiniApi::GetServerEnvInt = (GetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetServerEnvInt"));
@@ -643,12 +643,12 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetSupportedImageFileFormats = (GetSupportedImageFileFormatsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetSupportedImageFileFormats"));
 	FHoudiniApi::GetTime = (GetTimeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetTime"));
 	FHoudiniApi::GetTimelineOptions = (GetTimelineOptionsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetTimelineOptions"));
-	FHoudiniApi::GetVertexListOnNode = (GetVertexListOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVertexListOnNode"));
-	FHoudiniApi::GetVolumeInfoOnNode = (GetVolumeInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeInfoOnNode"));
-	FHoudiniApi::GetVolumeTileFloatDataOnNode = (GetVolumeTileFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileFloatDataOnNode"));
-	FHoudiniApi::GetVolumeTileIntDataOnNode = (GetVolumeTileIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileIntDataOnNode"));
-	FHoudiniApi::GetVolumeVoxelFloatDataOnNode = (GetVolumeVoxelFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelFloatDataOnNode"));
-	FHoudiniApi::GetVolumeVoxelIntDataOnNode = (GetVolumeVoxelIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelIntDataOnNode"));
+	FHoudiniApi::GetVertexList = (GetVertexListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVertexList"));
+	FHoudiniApi::GetVolumeInfo = (GetVolumeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeInfo"));
+	FHoudiniApi::GetVolumeTileFloatData = (GetVolumeTileFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileFloatData"));
+	FHoudiniApi::GetVolumeTileIntData = (GetVolumeTileIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeTileIntData"));
+	FHoudiniApi::GetVolumeVoxelFloatData = (GetVolumeVoxelFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelFloatData"));
+	FHoudiniApi::GetVolumeVoxelIntData = (GetVolumeVoxelIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetVolumeVoxelIntData"));
 	FHoudiniApi::Initialize = (InitializeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Initialize"));
 	FHoudiniApi::InsertMultiparmInstance = (InsertMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_InsertMultiparmInstance"));
 	FHoudiniApi::Interrupt = (InterruptFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_Interrupt"));
@@ -657,51 +657,51 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::IsSessionValid = (IsSessionValidFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_IsSessionValid"));
 	FHoudiniApi::LoadAssetLibraryFromFile = (LoadAssetLibraryFromFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadAssetLibraryFromFile"));
 	FHoudiniApi::LoadAssetLibraryFromMemory = (LoadAssetLibraryFromMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadAssetLibraryFromMemory"));
-	FHoudiniApi::LoadGeoFromFileOnNode = (LoadGeoFromFileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromFileOnNode"));
-	FHoudiniApi::LoadGeoFromMemoryOnNode = (LoadGeoFromMemoryOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromMemoryOnNode"));
+	FHoudiniApi::LoadGeoFromFile = (LoadGeoFromFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromFile"));
+	FHoudiniApi::LoadGeoFromMemory = (LoadGeoFromMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadGeoFromMemory"));
 	FHoudiniApi::LoadHIPFile = (LoadHIPFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_LoadHIPFile"));
 	FHoudiniApi::PythonThreadInterpreterLock = (PythonThreadInterpreterLockFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_PythonThreadInterpreterLock"));
 	FHoudiniApi::QueryNodeInput = (QueryNodeInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_QueryNodeInput"));
 	FHoudiniApi::RemoveMultiparmInstance = (RemoveMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveMultiparmInstance"));
 	FHoudiniApi::RenameNode = (RenameNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenameNode"));
-	FHoudiniApi::RenderTextureToImageOnNode = (RenderTextureToImageOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderTextureToImageOnNode"));
+	FHoudiniApi::RenderTextureToImage = (RenderTextureToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderTextureToImage"));
 	FHoudiniApi::ResetSimulation = (ResetSimulationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ResetSimulation"));
-	FHoudiniApi::RevertGeoOnNode = (RevertGeoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RevertGeoOnNode"));
-	FHoudiniApi::SaveGeoToFileOnNode = (SaveGeoToFileOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToFileOnNode"));
-	FHoudiniApi::SaveGeoToMemoryOnNode = (SaveGeoToMemoryOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToMemoryOnNode"));
+	FHoudiniApi::RevertGeo = (RevertGeoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RevertGeo"));
+	FHoudiniApi::SaveGeoToFile = (SaveGeoToFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToFile"));
+	FHoudiniApi::SaveGeoToMemory = (SaveGeoToMemoryFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveGeoToMemory"));
 	FHoudiniApi::SaveHIPFile = (SaveHIPFileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SaveHIPFile"));
 	FHoudiniApi::SetAnimCurve = (SetAnimCurveFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAnimCurve"));
-	FHoudiniApi::SetAttributeFloat64DataOnNode = (SetAttributeFloat64DataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloat64DataOnNode"));
-	FHoudiniApi::SetAttributeFloatDataOnNode = (SetAttributeFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloatDataOnNode"));
-	FHoudiniApi::SetAttributeInt64DataOnNode = (SetAttributeInt64DataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeInt64DataOnNode"));
-	FHoudiniApi::SetAttributeIntDataOnNode = (SetAttributeIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeIntDataOnNode"));
-	FHoudiniApi::SetAttributeStringDataOnNode = (SetAttributeStringDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeStringDataOnNode"));
+	FHoudiniApi::SetAttributeFloat64Data = (SetAttributeFloat64DataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloat64Data"));
+	FHoudiniApi::SetAttributeFloatData = (SetAttributeFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeFloatData"));
+	FHoudiniApi::SetAttributeInt64Data = (SetAttributeInt64DataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeInt64Data"));
+	FHoudiniApi::SetAttributeIntData = (SetAttributeIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeIntData"));
+	FHoudiniApi::SetAttributeStringData = (SetAttributeStringDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetAttributeStringData"));
 	FHoudiniApi::SetCacheProperty = (SetCachePropertyFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCacheProperty"));
-	FHoudiniApi::SetCurveCountsOnNode = (SetCurveCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveCountsOnNode"));
-	FHoudiniApi::SetCurveInfoOnNode = (SetCurveInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveInfoOnNode"));
-	FHoudiniApi::SetCurveKnotsOnNode = (SetCurveKnotsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnotsOnNode"));
-	FHoudiniApi::SetCurveOrdersOnNode = (SetCurveOrdersOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrdersOnNode"));
-	FHoudiniApi::SetFaceCountsOnNode = (SetFaceCountsOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetFaceCountsOnNode"));
-	FHoudiniApi::SetGroupMembershipOnNode = (SetGroupMembershipOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGroupMembershipOnNode"));
-	FHoudiniApi::SetImageInfoOnNode = (SetImageInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetImageInfoOnNode"));
-	FHoudiniApi::SetObjectTransformOnNode = (SetObjectTransformOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetObjectTransformOnNode"));
+	FHoudiniApi::SetCurveCounts = (SetCurveCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveCounts"));
+	FHoudiniApi::SetCurveInfo = (SetCurveInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveInfo"));
+	FHoudiniApi::SetCurveKnots = (SetCurveKnotsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveKnots"));
+	FHoudiniApi::SetCurveOrders = (SetCurveOrdersFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetCurveOrders"));
+	FHoudiniApi::SetFaceCounts = (SetFaceCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetFaceCounts"));
+	FHoudiniApi::SetGroupMembership = (SetGroupMembershipFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetGroupMembership"));
+	FHoudiniApi::SetImageInfo = (SetImageInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetImageInfo"));
+	FHoudiniApi::SetObjectTransform = (SetObjectTransformFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetObjectTransform"));
 	FHoudiniApi::SetParmFloatValue = (SetParmFloatValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmFloatValue"));
 	FHoudiniApi::SetParmFloatValues = (SetParmFloatValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmFloatValues"));
 	FHoudiniApi::SetParmIntValue = (SetParmIntValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmIntValue"));
 	FHoudiniApi::SetParmIntValues = (SetParmIntValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmIntValues"));
 	FHoudiniApi::SetParmNodeValue = (SetParmNodeValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmNodeValue"));
 	FHoudiniApi::SetParmStringValue = (SetParmStringValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetParmStringValue"));
-	FHoudiniApi::SetPartInfoOnNode = (SetPartInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetPartInfoOnNode"));
+	FHoudiniApi::SetPartInfo = (SetPartInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetPartInfo"));
 	FHoudiniApi::SetPreset = (SetPresetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetPreset"));
 	FHoudiniApi::SetServerEnvInt = (SetServerEnvIntFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetServerEnvInt"));
 	FHoudiniApi::SetServerEnvString = (SetServerEnvStringFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetServerEnvString"));
 	FHoudiniApi::SetTime = (SetTimeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetTime"));
 	FHoudiniApi::SetTimelineOptions = (SetTimelineOptionsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetTimelineOptions"));
 	FHoudiniApi::SetTransformAnimCurve = (SetTransformAnimCurveFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetTransformAnimCurve"));
-	FHoudiniApi::SetVertexListOnNode = (SetVertexListOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVertexListOnNode"));
-	FHoudiniApi::SetVolumeInfoOnNode = (SetVolumeInfoOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeInfoOnNode"));
-	FHoudiniApi::SetVolumeTileFloatDataOnNode = (SetVolumeTileFloatDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileFloatDataOnNode"));
-	FHoudiniApi::SetVolumeTileIntDataOnNode = (SetVolumeTileIntDataOnNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileIntDataOnNode"));
+	FHoudiniApi::SetVertexList = (SetVertexListFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVertexList"));
+	FHoudiniApi::SetVolumeInfo = (SetVolumeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeInfo"));
+	FHoudiniApi::SetVolumeTileFloatData = (SetVolumeTileFloatDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileFloatData"));
+	FHoudiniApi::SetVolumeTileIntData = (SetVolumeTileIntDataFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_SetVolumeTileIntData"));
 	FHoudiniApi::StartThriftNamedPipeServer = (StartThriftNamedPipeServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftNamedPipeServer"));
 	FHoudiniApi::StartThriftSocketServer = (StartThriftSocketServerFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_StartThriftSocketServer"));
 }
@@ -710,13 +710,13 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 void
 FHoudiniApi::FinalizeHAPI()
 {
-	FHoudiniApi::AddAttributeOnNode = &FHoudiniApi::AddAttributeOnNodeEmptyStub;
-	FHoudiniApi::AddGroupOnNode = &FHoudiniApi::AddGroupOnNodeEmptyStub;
+	FHoudiniApi::AddAttribute = &FHoudiniApi::AddAttributeEmptyStub;
+	FHoudiniApi::AddGroup = &FHoudiniApi::AddGroupEmptyStub;
 	FHoudiniApi::BindCustomImplementation = &FHoudiniApi::BindCustomImplementationEmptyStub;
 	FHoudiniApi::CheckForSpecificErrors = &FHoudiniApi::CheckForSpecificErrorsEmptyStub;
 	FHoudiniApi::Cleanup = &FHoudiniApi::CleanupEmptyStub;
 	FHoudiniApi::CloseSession = &FHoudiniApi::CloseSessionEmptyStub;
-	FHoudiniApi::CommitGeoOnNode = &FHoudiniApi::CommitGeoOnNodeEmptyStub;
+	FHoudiniApi::CommitGeo = &FHoudiniApi::CommitGeoEmptyStub;
 	FHoudiniApi::ComposeChildNodeList = &FHoudiniApi::ComposeChildNodeListEmptyStub;
 	FHoudiniApi::ComposeNodeCookResult = &FHoudiniApi::ComposeNodeCookResultEmptyStub;
 	FHoudiniApi::ComposeObjectList = &FHoudiniApi::ComposeObjectListEmptyStub;
@@ -735,18 +735,18 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CreateThriftSocketSession = &FHoudiniApi::CreateThriftSocketSessionEmptyStub;
 	FHoudiniApi::DeleteNode = &FHoudiniApi::DeleteNodeEmptyStub;
 	FHoudiniApi::DisconnectNodeInput = &FHoudiniApi::DisconnectNodeInputEmptyStub;
-	FHoudiniApi::ExtractImageToFileOnNode = &FHoudiniApi::ExtractImageToFileOnNodeEmptyStub;
-	FHoudiniApi::ExtractImageToMemoryOnNode = &FHoudiniApi::ExtractImageToMemoryOnNodeEmptyStub;
+	FHoudiniApi::ExtractImageToFile = &FHoudiniApi::ExtractImageToFileEmptyStub;
+	FHoudiniApi::ExtractImageToMemory = &FHoudiniApi::ExtractImageToMemoryEmptyStub;
 	FHoudiniApi::GetActiveCacheCount = &FHoudiniApi::GetActiveCacheCountEmptyStub;
 	FHoudiniApi::GetActiveCacheNames = &FHoudiniApi::GetActiveCacheNamesEmptyStub;
-	FHoudiniApi::GetAssetInfoOnNode = &FHoudiniApi::GetAssetInfoOnNodeEmptyStub;
-	FHoudiniApi::GetAttributeFloat64DataOnNode = &FHoudiniApi::GetAttributeFloat64DataOnNodeEmptyStub;
-	FHoudiniApi::GetAttributeFloatDataOnNode = &FHoudiniApi::GetAttributeFloatDataOnNodeEmptyStub;
-	FHoudiniApi::GetAttributeInfoOnNode = &FHoudiniApi::GetAttributeInfoOnNodeEmptyStub;
-	FHoudiniApi::GetAttributeInt64DataOnNode = &FHoudiniApi::GetAttributeInt64DataOnNodeEmptyStub;
-	FHoudiniApi::GetAttributeIntDataOnNode = &FHoudiniApi::GetAttributeIntDataOnNodeEmptyStub;
-	FHoudiniApi::GetAttributeNamesOnNode = &FHoudiniApi::GetAttributeNamesOnNodeEmptyStub;
-	FHoudiniApi::GetAttributeStringDataOnNode = &FHoudiniApi::GetAttributeStringDataOnNodeEmptyStub;
+	FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
+	FHoudiniApi::GetAttributeFloat64Data = &FHoudiniApi::GetAttributeFloat64DataEmptyStub;
+	FHoudiniApi::GetAttributeFloatData = &FHoudiniApi::GetAttributeFloatDataEmptyStub;
+	FHoudiniApi::GetAttributeInfo = &FHoudiniApi::GetAttributeInfoEmptyStub;
+	FHoudiniApi::GetAttributeInt64Data = &FHoudiniApi::GetAttributeInt64DataEmptyStub;
+	FHoudiniApi::GetAttributeIntData = &FHoudiniApi::GetAttributeIntDataEmptyStub;
+	FHoudiniApi::GetAttributeNames = &FHoudiniApi::GetAttributeNamesEmptyStub;
+	FHoudiniApi::GetAttributeStringData = &FHoudiniApi::GetAttributeStringDataEmptyStub;
 	FHoudiniApi::GetAvailableAssetCount = &FHoudiniApi::GetAvailableAssetCountEmptyStub;
 	FHoudiniApi::GetAvailableAssets = &FHoudiniApi::GetAvailableAssetsEmptyStub;
 	FHoudiniApi::GetBoxInfo = &FHoudiniApi::GetBoxInfoEmptyStub;
@@ -757,35 +757,35 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetComposedObjectTransforms = &FHoudiniApi::GetComposedObjectTransformsEmptyStub;
 	FHoudiniApi::GetCookingCurrentCount = &FHoudiniApi::GetCookingCurrentCountEmptyStub;
 	FHoudiniApi::GetCookingTotalCount = &FHoudiniApi::GetCookingTotalCountEmptyStub;
-	FHoudiniApi::GetCurveCountsOnNode = &FHoudiniApi::GetCurveCountsOnNodeEmptyStub;
-	FHoudiniApi::GetCurveInfoOnNode = &FHoudiniApi::GetCurveInfoOnNodeEmptyStub;
-	FHoudiniApi::GetCurveKnotsOnNode = &FHoudiniApi::GetCurveKnotsOnNodeEmptyStub;
-	FHoudiniApi::GetCurveOrdersOnNode = &FHoudiniApi::GetCurveOrdersOnNodeEmptyStub;
+	FHoudiniApi::GetCurveCounts = &FHoudiniApi::GetCurveCountsEmptyStub;
+	FHoudiniApi::GetCurveInfo = &FHoudiniApi::GetCurveInfoEmptyStub;
+	FHoudiniApi::GetCurveKnots = &FHoudiniApi::GetCurveKnotsEmptyStub;
+	FHoudiniApi::GetCurveOrders = &FHoudiniApi::GetCurveOrdersEmptyStub;
 	FHoudiniApi::GetDisplayGeoInfo = &FHoudiniApi::GetDisplayGeoInfoEmptyStub;
 	FHoudiniApi::GetEnvInt = &FHoudiniApi::GetEnvIntEmptyStub;
-	FHoudiniApi::GetFaceCountsOnNode = &FHoudiniApi::GetFaceCountsOnNodeEmptyStub;
-	FHoudiniApi::GetFirstVolumeTileOnNode = &FHoudiniApi::GetFirstVolumeTileOnNodeEmptyStub;
-	FHoudiniApi::GetGeoInfoOnNode = &FHoudiniApi::GetGeoInfoOnNodeEmptyStub;
-	FHoudiniApi::GetGeoSizeOnNode = &FHoudiniApi::GetGeoSizeOnNodeEmptyStub;
-	FHoudiniApi::GetGroupMembershipOnNode = &FHoudiniApi::GetGroupMembershipOnNodeEmptyStub;
-	FHoudiniApi::GetGroupNamesOnNode = &FHoudiniApi::GetGroupNamesOnNodeEmptyStub;
-	FHoudiniApi::GetHandleBindingInfoOnNode = &FHoudiniApi::GetHandleBindingInfoOnNodeEmptyStub;
-	FHoudiniApi::GetHandleInfoOnNode = &FHoudiniApi::GetHandleInfoOnNodeEmptyStub;
-	FHoudiniApi::GetImageInfoOnNode = &FHoudiniApi::GetImageInfoOnNodeEmptyStub;
-	FHoudiniApi::GetImageMemoryBufferOnNode = &FHoudiniApi::GetImageMemoryBufferOnNodeEmptyStub;
-	FHoudiniApi::GetImagePlaneCountOnNode = &FHoudiniApi::GetImagePlaneCountOnNodeEmptyStub;
-	FHoudiniApi::GetImagePlanesOnNode = &FHoudiniApi::GetImagePlanesOnNodeEmptyStub;
-	FHoudiniApi::GetInstanceTransformsOnNode = &FHoudiniApi::GetInstanceTransformsOnNodeEmptyStub;
-	FHoudiniApi::GetInstancedPartIdsOnNode = &FHoudiniApi::GetInstancedPartIdsOnNodeEmptyStub;
-	FHoudiniApi::GetInstancerPartTransformsOnNode = &FHoudiniApi::GetInstancerPartTransformsOnNodeEmptyStub;
+	FHoudiniApi::GetFaceCounts = &FHoudiniApi::GetFaceCountsEmptyStub;
+	FHoudiniApi::GetFirstVolumeTile = &FHoudiniApi::GetFirstVolumeTileEmptyStub;
+	FHoudiniApi::GetGeoInfo = &FHoudiniApi::GetGeoInfoEmptyStub;
+	FHoudiniApi::GetGeoSize = &FHoudiniApi::GetGeoSizeEmptyStub;
+	FHoudiniApi::GetGroupMembership = &FHoudiniApi::GetGroupMembershipEmptyStub;
+	FHoudiniApi::GetGroupNames = &FHoudiniApi::GetGroupNamesEmptyStub;
+	FHoudiniApi::GetHandleBindingInfo = &FHoudiniApi::GetHandleBindingInfoEmptyStub;
+	FHoudiniApi::GetHandleInfo = &FHoudiniApi::GetHandleInfoEmptyStub;
+	FHoudiniApi::GetImageInfo = &FHoudiniApi::GetImageInfoEmptyStub;
+	FHoudiniApi::GetImageMemoryBuffer = &FHoudiniApi::GetImageMemoryBufferEmptyStub;
+	FHoudiniApi::GetImagePlaneCount = &FHoudiniApi::GetImagePlaneCountEmptyStub;
+	FHoudiniApi::GetImagePlanes = &FHoudiniApi::GetImagePlanesEmptyStub;
+	FHoudiniApi::GetInstanceTransforms = &FHoudiniApi::GetInstanceTransformsEmptyStub;
+	FHoudiniApi::GetInstancedPartIds = &FHoudiniApi::GetInstancedPartIdsEmptyStub;
+	FHoudiniApi::GetInstancerPartTransforms = &FHoudiniApi::GetInstancerPartTransformsEmptyStub;
 	FHoudiniApi::GetManagerNodeId = &FHoudiniApi::GetManagerNodeIdEmptyStub;
-	FHoudiniApi::GetMaterialInfoOnNode = &FHoudiniApi::GetMaterialInfoOnNodeEmptyStub;
+	FHoudiniApi::GetMaterialInfo = &FHoudiniApi::GetMaterialInfoEmptyStub;
 	FHoudiniApi::GetMaterialNodeIdsOnFaces = &FHoudiniApi::GetMaterialNodeIdsOnFacesEmptyStub;
+	FHoudiniApi::GetMaterialOnGroup = &FHoudiniApi::GetMaterialOnGroupEmptyStub;
 	FHoudiniApi::GetMaterialOnGroupOnAsset = &FHoudiniApi::GetMaterialOnGroupOnAssetEmptyStub;
-	FHoudiniApi::GetMaterialOnGroupOnNode = &FHoudiniApi::GetMaterialOnGroupOnNodeEmptyStub;
+	FHoudiniApi::GetMaterialOnPart = &FHoudiniApi::GetMaterialOnPartEmptyStub;
 	FHoudiniApi::GetMaterialOnPartOnAsset = &FHoudiniApi::GetMaterialOnPartOnAssetEmptyStub;
-	FHoudiniApi::GetMaterialOnPartOnNode = &FHoudiniApi::GetMaterialOnPartOnNodeEmptyStub;
-	FHoudiniApi::GetNextVolumeTileOnNode = &FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub;
+	FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 	FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
 	FHoudiniApi::GetNodeInputName = &FHoudiniApi::GetNodeInputNameEmptyStub;
 	FHoudiniApi::GetObjectInfo = &FHoudiniApi::GetObjectInfoEmptyStub;
@@ -803,7 +803,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetParmNodeValue = &FHoudiniApi::GetParmNodeValueEmptyStub;
 	FHoudiniApi::GetParmStringValue = &FHoudiniApi::GetParmStringValueEmptyStub;
 	FHoudiniApi::GetParmStringValues = &FHoudiniApi::GetParmStringValuesEmptyStub;
-	FHoudiniApi::GetPartInfoOnNode = &FHoudiniApi::GetPartInfoOnNodeEmptyStub;
+	FHoudiniApi::GetPartInfo = &FHoudiniApi::GetPartInfoEmptyStub;
 	FHoudiniApi::GetPreset = &FHoudiniApi::GetPresetEmptyStub;
 	FHoudiniApi::GetPresetBufLength = &FHoudiniApi::GetPresetBufLengthEmptyStub;
 	FHoudiniApi::GetServerEnvInt = &FHoudiniApi::GetServerEnvIntEmptyStub;
@@ -819,12 +819,12 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetSupportedImageFileFormats = &FHoudiniApi::GetSupportedImageFileFormatsEmptyStub;
 	FHoudiniApi::GetTime = &FHoudiniApi::GetTimeEmptyStub;
 	FHoudiniApi::GetTimelineOptions = &FHoudiniApi::GetTimelineOptionsEmptyStub;
-	FHoudiniApi::GetVertexListOnNode = &FHoudiniApi::GetVertexListOnNodeEmptyStub;
-	FHoudiniApi::GetVolumeInfoOnNode = &FHoudiniApi::GetVolumeInfoOnNodeEmptyStub;
-	FHoudiniApi::GetVolumeTileFloatDataOnNode = &FHoudiniApi::GetVolumeTileFloatDataOnNodeEmptyStub;
-	FHoudiniApi::GetVolumeTileIntDataOnNode = &FHoudiniApi::GetVolumeTileIntDataOnNodeEmptyStub;
-	FHoudiniApi::GetVolumeVoxelFloatDataOnNode = &FHoudiniApi::GetVolumeVoxelFloatDataOnNodeEmptyStub;
-	FHoudiniApi::GetVolumeVoxelIntDataOnNode = &FHoudiniApi::GetVolumeVoxelIntDataOnNodeEmptyStub;
+	FHoudiniApi::GetVertexList = &FHoudiniApi::GetVertexListEmptyStub;
+	FHoudiniApi::GetVolumeInfo = &FHoudiniApi::GetVolumeInfoEmptyStub;
+	FHoudiniApi::GetVolumeTileFloatData = &FHoudiniApi::GetVolumeTileFloatDataEmptyStub;
+	FHoudiniApi::GetVolumeTileIntData = &FHoudiniApi::GetVolumeTileIntDataEmptyStub;
+	FHoudiniApi::GetVolumeVoxelFloatData = &FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub;
+	FHoudiniApi::GetVolumeVoxelIntData = &FHoudiniApi::GetVolumeVoxelIntDataEmptyStub;
 	FHoudiniApi::Initialize = &FHoudiniApi::InitializeEmptyStub;
 	FHoudiniApi::InsertMultiparmInstance = &FHoudiniApi::InsertMultiparmInstanceEmptyStub;
 	FHoudiniApi::Interrupt = &FHoudiniApi::InterruptEmptyStub;
@@ -833,51 +833,51 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::IsSessionValid = &FHoudiniApi::IsSessionValidEmptyStub;
 	FHoudiniApi::LoadAssetLibraryFromFile = &FHoudiniApi::LoadAssetLibraryFromFileEmptyStub;
 	FHoudiniApi::LoadAssetLibraryFromMemory = &FHoudiniApi::LoadAssetLibraryFromMemoryEmptyStub;
-	FHoudiniApi::LoadGeoFromFileOnNode = &FHoudiniApi::LoadGeoFromFileOnNodeEmptyStub;
-	FHoudiniApi::LoadGeoFromMemoryOnNode = &FHoudiniApi::LoadGeoFromMemoryOnNodeEmptyStub;
+	FHoudiniApi::LoadGeoFromFile = &FHoudiniApi::LoadGeoFromFileEmptyStub;
+	FHoudiniApi::LoadGeoFromMemory = &FHoudiniApi::LoadGeoFromMemoryEmptyStub;
 	FHoudiniApi::LoadHIPFile = &FHoudiniApi::LoadHIPFileEmptyStub;
 	FHoudiniApi::PythonThreadInterpreterLock = &FHoudiniApi::PythonThreadInterpreterLockEmptyStub;
 	FHoudiniApi::QueryNodeInput = &FHoudiniApi::QueryNodeInputEmptyStub;
 	FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmptyStub;
 	FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
-	FHoudiniApi::RenderTextureToImageOnNode = &FHoudiniApi::RenderTextureToImageOnNodeEmptyStub;
+	FHoudiniApi::RenderTextureToImage = &FHoudiniApi::RenderTextureToImageEmptyStub;
 	FHoudiniApi::ResetSimulation = &FHoudiniApi::ResetSimulationEmptyStub;
-	FHoudiniApi::RevertGeoOnNode = &FHoudiniApi::RevertGeoOnNodeEmptyStub;
-	FHoudiniApi::SaveGeoToFileOnNode = &FHoudiniApi::SaveGeoToFileOnNodeEmptyStub;
-	FHoudiniApi::SaveGeoToMemoryOnNode = &FHoudiniApi::SaveGeoToMemoryOnNodeEmptyStub;
+	FHoudiniApi::RevertGeo = &FHoudiniApi::RevertGeoEmptyStub;
+	FHoudiniApi::SaveGeoToFile = &FHoudiniApi::SaveGeoToFileEmptyStub;
+	FHoudiniApi::SaveGeoToMemory = &FHoudiniApi::SaveGeoToMemoryEmptyStub;
 	FHoudiniApi::SaveHIPFile = &FHoudiniApi::SaveHIPFileEmptyStub;
 	FHoudiniApi::SetAnimCurve = &FHoudiniApi::SetAnimCurveEmptyStub;
-	FHoudiniApi::SetAttributeFloat64DataOnNode = &FHoudiniApi::SetAttributeFloat64DataOnNodeEmptyStub;
-	FHoudiniApi::SetAttributeFloatDataOnNode = &FHoudiniApi::SetAttributeFloatDataOnNodeEmptyStub;
-	FHoudiniApi::SetAttributeInt64DataOnNode = &FHoudiniApi::SetAttributeInt64DataOnNodeEmptyStub;
-	FHoudiniApi::SetAttributeIntDataOnNode = &FHoudiniApi::SetAttributeIntDataOnNodeEmptyStub;
-	FHoudiniApi::SetAttributeStringDataOnNode = &FHoudiniApi::SetAttributeStringDataOnNodeEmptyStub;
+	FHoudiniApi::SetAttributeFloat64Data = &FHoudiniApi::SetAttributeFloat64DataEmptyStub;
+	FHoudiniApi::SetAttributeFloatData = &FHoudiniApi::SetAttributeFloatDataEmptyStub;
+	FHoudiniApi::SetAttributeInt64Data = &FHoudiniApi::SetAttributeInt64DataEmptyStub;
+	FHoudiniApi::SetAttributeIntData = &FHoudiniApi::SetAttributeIntDataEmptyStub;
+	FHoudiniApi::SetAttributeStringData = &FHoudiniApi::SetAttributeStringDataEmptyStub;
 	FHoudiniApi::SetCacheProperty = &FHoudiniApi::SetCachePropertyEmptyStub;
-	FHoudiniApi::SetCurveCountsOnNode = &FHoudiniApi::SetCurveCountsOnNodeEmptyStub;
-	FHoudiniApi::SetCurveInfoOnNode = &FHoudiniApi::SetCurveInfoOnNodeEmptyStub;
-	FHoudiniApi::SetCurveKnotsOnNode = &FHoudiniApi::SetCurveKnotsOnNodeEmptyStub;
-	FHoudiniApi::SetCurveOrdersOnNode = &FHoudiniApi::SetCurveOrdersOnNodeEmptyStub;
-	FHoudiniApi::SetFaceCountsOnNode = &FHoudiniApi::SetFaceCountsOnNodeEmptyStub;
-	FHoudiniApi::SetGroupMembershipOnNode = &FHoudiniApi::SetGroupMembershipOnNodeEmptyStub;
-	FHoudiniApi::SetImageInfoOnNode = &FHoudiniApi::SetImageInfoOnNodeEmptyStub;
-	FHoudiniApi::SetObjectTransformOnNode = &FHoudiniApi::SetObjectTransformOnNodeEmptyStub;
+	FHoudiniApi::SetCurveCounts = &FHoudiniApi::SetCurveCountsEmptyStub;
+	FHoudiniApi::SetCurveInfo = &FHoudiniApi::SetCurveInfoEmptyStub;
+	FHoudiniApi::SetCurveKnots = &FHoudiniApi::SetCurveKnotsEmptyStub;
+	FHoudiniApi::SetCurveOrders = &FHoudiniApi::SetCurveOrdersEmptyStub;
+	FHoudiniApi::SetFaceCounts = &FHoudiniApi::SetFaceCountsEmptyStub;
+	FHoudiniApi::SetGroupMembership = &FHoudiniApi::SetGroupMembershipEmptyStub;
+	FHoudiniApi::SetImageInfo = &FHoudiniApi::SetImageInfoEmptyStub;
+	FHoudiniApi::SetObjectTransform = &FHoudiniApi::SetObjectTransformEmptyStub;
 	FHoudiniApi::SetParmFloatValue = &FHoudiniApi::SetParmFloatValueEmptyStub;
 	FHoudiniApi::SetParmFloatValues = &FHoudiniApi::SetParmFloatValuesEmptyStub;
 	FHoudiniApi::SetParmIntValue = &FHoudiniApi::SetParmIntValueEmptyStub;
 	FHoudiniApi::SetParmIntValues = &FHoudiniApi::SetParmIntValuesEmptyStub;
 	FHoudiniApi::SetParmNodeValue = &FHoudiniApi::SetParmNodeValueEmptyStub;
 	FHoudiniApi::SetParmStringValue = &FHoudiniApi::SetParmStringValueEmptyStub;
-	FHoudiniApi::SetPartInfoOnNode = &FHoudiniApi::SetPartInfoOnNodeEmptyStub;
+	FHoudiniApi::SetPartInfo = &FHoudiniApi::SetPartInfoEmptyStub;
 	FHoudiniApi::SetPreset = &FHoudiniApi::SetPresetEmptyStub;
 	FHoudiniApi::SetServerEnvInt = &FHoudiniApi::SetServerEnvIntEmptyStub;
 	FHoudiniApi::SetServerEnvString = &FHoudiniApi::SetServerEnvStringEmptyStub;
 	FHoudiniApi::SetTime = &FHoudiniApi::SetTimeEmptyStub;
 	FHoudiniApi::SetTimelineOptions = &FHoudiniApi::SetTimelineOptionsEmptyStub;
 	FHoudiniApi::SetTransformAnimCurve = &FHoudiniApi::SetTransformAnimCurveEmptyStub;
-	FHoudiniApi::SetVertexListOnNode = &FHoudiniApi::SetVertexListOnNodeEmptyStub;
-	FHoudiniApi::SetVolumeInfoOnNode = &FHoudiniApi::SetVolumeInfoOnNodeEmptyStub;
-	FHoudiniApi::SetVolumeTileFloatDataOnNode = &FHoudiniApi::SetVolumeTileFloatDataOnNodeEmptyStub;
-	FHoudiniApi::SetVolumeTileIntDataOnNode = &FHoudiniApi::SetVolumeTileIntDataOnNodeEmptyStub;
+	FHoudiniApi::SetVertexList = &FHoudiniApi::SetVertexListEmptyStub;
+	FHoudiniApi::SetVolumeInfo = &FHoudiniApi::SetVolumeInfoEmptyStub;
+	FHoudiniApi::SetVolumeTileFloatData = &FHoudiniApi::SetVolumeTileFloatDataEmptyStub;
+	FHoudiniApi::SetVolumeTileIntData = &FHoudiniApi::SetVolumeTileIntDataEmptyStub;
 	FHoudiniApi::StartThriftNamedPipeServer = &FHoudiniApi::StartThriftNamedPipeServerEmptyStub;
 	FHoudiniApi::StartThriftSocketServer = &FHoudiniApi::StartThriftSocketServerEmptyStub;
 }
@@ -891,14 +891,14 @@ FHoudiniApi::IsHAPIInitialized()
 
 
 HAPI_Result
-FHoudiniApi::AddAttributeOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info)
+FHoudiniApi::AddAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::AddGroupOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name)
+FHoudiniApi::AddGroupEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -933,7 +933,7 @@ FHoudiniApi::CloseSessionEmptyStub(const HAPI_Session * session)
 
 
 HAPI_Result
-FHoudiniApi::CommitGeoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
+FHoudiniApi::CommitGeoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1066,14 +1066,14 @@ FHoudiniApi::DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_Nod
 
 
 HAPI_Result
-FHoudiniApi::ExtractImageToFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path)
+FHoudiniApi::ExtractImageToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::ExtractImageToMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, int * buffer_size)
+FHoudiniApi::ExtractImageToMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, int * buffer_size)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1094,56 +1094,56 @@ FHoudiniApi::GetActiveCacheNamesEmptyStub(const HAPI_Session * session, HAPI_Str
 
 
 HAPI_Result
-FHoudiniApi::GetAssetInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info)
+FHoudiniApi::GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetAttributeFloat64DataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length)
+FHoudiniApi::GetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, double * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetAttributeFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, float * data_array, int start, int length)
+FHoudiniApi::GetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, float * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetAttributeInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info)
+FHoudiniApi::GetAttributeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeOwner owner, HAPI_AttributeInfo * attr_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetAttributeInt64DataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, HAPI_Int64 * data_array, int start, int length)
+FHoudiniApi::GetAttributeInt64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, HAPI_Int64 * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetAttributeIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, int * data_array, int start, int length)
+FHoudiniApi::GetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, int stride, int * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetAttributeNamesOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle * attribute_names_array, int count)
+FHoudiniApi::GetAttributeNamesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_AttributeOwner owner, HAPI_StringHandle * attribute_names_array, int count)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetAttributeStringDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_StringHandle * data_array, int start, int length)
+FHoudiniApi::GetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, HAPI_AttributeInfo * attr_info, HAPI_StringHandle * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1220,28 +1220,28 @@ FHoudiniApi::GetCookingTotalCountEmptyStub(const HAPI_Session * session, int * c
 
 
 HAPI_Result
-FHoudiniApi::GetCurveCountsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * counts_array, int start, int length)
+FHoudiniApi::GetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * counts_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetCurveInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_CurveInfo * info)
+FHoudiniApi::GetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_CurveInfo * info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetCurveKnotsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * knots_array, int start, int length)
+FHoudiniApi::GetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float * knots_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetCurveOrdersOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * orders_array, int start, int length)
+FHoudiniApi::GetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * orders_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1262,105 +1262,105 @@ FHoudiniApi::GetEnvIntEmptyStub(HAPI_EnvIntType int_type, int * value)
 
 
 HAPI_Result
-FHoudiniApi::GetFaceCountsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * face_counts_array, int start, int length)
+FHoudiniApi::GetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * face_counts_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetFirstVolumeTileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
+FHoudiniApi::GetFirstVolumeTileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetGeoInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GeoInfo * geo_info)
+FHoudiniApi::GetGeoInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GeoInfo * geo_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetGeoSizeOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, int * size)
+FHoudiniApi::GetGeoSizeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, int * size)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetGroupMembershipOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length)
+FHoudiniApi::GetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, HAPI_Bool * membership_array_all_equal, int * membership_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetGroupNamesOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count)
+FHoudiniApi::GetGroupNamesEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_GroupType group_type, HAPI_StringHandle * group_names_array, int group_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetHandleBindingInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length)
+FHoudiniApi::GetHandleBindingInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int handle_index, HAPI_HandleBindingInfo * handle_binding_infos_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetHandleInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length)
+FHoudiniApi::GetHandleInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_HandleInfo * handle_infos_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetImageInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info)
+FHoudiniApi::GetImageInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ImageInfo * image_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetImageMemoryBufferOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, char * buffer, int length)
+FHoudiniApi::GetImageMemoryBufferEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, char * buffer, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetImagePlaneCountOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, int * image_plane_count)
+FHoudiniApi::GetImagePlaneCountEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, int * image_plane_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetImagePlanesOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_StringHandle * image_planes_array, int image_plane_count)
+FHoudiniApi::GetImagePlanesEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_StringHandle * image_planes_array, int image_plane_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetInstanceTransformsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
+FHoudiniApi::GetInstanceTransformsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetInstancedPartIdsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length)
+FHoudiniApi::GetInstancedPartIdsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartId * instanced_parts_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetInstancerPartTransformsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
+FHoudiniApi::GetInstancerPartTransformsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_RSTOrder rst_order, HAPI_Transform * transforms_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1374,7 +1374,7 @@ FHoudiniApi::GetManagerNodeIdEmptyStub(const HAPI_Session * session, HAPI_NodeTy
 
 
 HAPI_Result
-FHoudiniApi::GetMaterialInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_MaterialInfo * material_info)
+FHoudiniApi::GetMaterialInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_MaterialInfo * material_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1388,6 +1388,13 @@ FHoudiniApi::GetMaterialNodeIdsOnFacesEmptyStub(const HAPI_Session * session, HA
 
 
 HAPI_Result
+FHoudiniApi::GetMaterialOnGroupEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, const char * group_name, HAPI_MaterialInfo * material_info)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::GetMaterialOnGroupOnAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info)
 {
 	return HAPI_RESULT_FAILURE;
@@ -1395,7 +1402,7 @@ FHoudiniApi::GetMaterialOnGroupOnAssetEmptyStub(const HAPI_Session * session, HA
 
 
 HAPI_Result
-FHoudiniApi::GetMaterialOnGroupOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, const char * group_name, HAPI_MaterialInfo * material_info)
+FHoudiniApi::GetMaterialOnPartEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1409,14 +1416,7 @@ FHoudiniApi::GetMaterialOnPartOnAssetEmptyStub(const HAPI_Session * session, HAP
 
 
 HAPI_Result
-FHoudiniApi::GetMaterialOnPartOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::GetNextVolumeTileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
+FHoudiniApi::GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1542,7 +1542,7 @@ FHoudiniApi::GetParmStringValuesEmptyStub(const HAPI_Session * session, HAPI_Nod
 
 
 HAPI_Result
-FHoudiniApi::GetPartInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartInfo * part_info)
+FHoudiniApi::GetPartInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_PartInfo * part_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1654,42 +1654,42 @@ FHoudiniApi::GetTimelineOptionsEmptyStub(const HAPI_Session * session, HAPI_Time
 
 
 HAPI_Result
-FHoudiniApi::GetVertexListOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * vertex_list_array, int start, int length)
+FHoudiniApi::GetVertexListEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int * vertex_list_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetVolumeInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeInfo * volume_info)
+FHoudiniApi::GetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeInfo * volume_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetVolumeTileFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length)
+FHoudiniApi::GetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, float fill_value, const HAPI_VolumeTileInfo * tile, float * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetVolumeTileIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int fill_value, const HAPI_VolumeTileInfo * tile, int * values_array, int length)
+FHoudiniApi::GetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int fill_value, const HAPI_VolumeTileInfo * tile, int * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetVolumeVoxelFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count)
+FHoudiniApi::GetVolumeVoxelFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, float * values_array, int value_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::GetVolumeVoxelIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count)
+FHoudiniApi::GetVolumeVoxelIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1752,14 +1752,14 @@ FHoudiniApi::LoadAssetLibraryFromMemoryEmptyStub(const HAPI_Session * session, c
 
 
 HAPI_Result
-FHoudiniApi::LoadGeoFromFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name)
+FHoudiniApi::LoadGeoFromFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::LoadGeoFromMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length)
+FHoudiniApi::LoadGeoFromMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * format, const char * buffer, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1801,7 +1801,7 @@ FHoudiniApi::RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_
 
 
 HAPI_Result
-FHoudiniApi::RenderTextureToImageOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id)
+FHoudiniApi::RenderTextureToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1815,21 +1815,21 @@ FHoudiniApi::ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_AssetId
 
 
 HAPI_Result
-FHoudiniApi::RevertGeoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
+FHoudiniApi::RevertGeoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SaveGeoToFileOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name)
+FHoudiniApi::SaveGeoToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * file_name)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SaveGeoToMemoryOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length)
+FHoudiniApi::SaveGeoToMemoryEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1850,35 +1850,35 @@ FHoudiniApi::SetAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId nod
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeFloat64DataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_array, int start, int length)
+FHoudiniApi::SetAttributeFloat64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const double * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length)
+FHoudiniApi::SetAttributeFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const float * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeInt64DataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const HAPI_Int64 * data_array, int start, int length)
+FHoudiniApi::SetAttributeInt64DataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const HAPI_Int64 * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const int * data_array, int start, int length)
+FHoudiniApi::SetAttributeIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info, const int * data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetAttributeStringDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo *attr_info, const char ** data_array, int start, int length)
+FHoudiniApi::SetAttributeStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo *attr_info, const char ** data_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1892,56 +1892,56 @@ FHoudiniApi::SetCachePropertyEmptyStub(const HAPI_Session * session, const char 
 
 
 HAPI_Result
-FHoudiniApi::SetCurveCountsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * counts_array, int start, int length)
+FHoudiniApi::SetCurveCountsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * counts_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetCurveInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_CurveInfo * info)
+FHoudiniApi::SetCurveInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_CurveInfo * info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetCurveKnotsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const float * knots_array, int start, int length)
+FHoudiniApi::SetCurveKnotsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const float * knots_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetCurveOrdersOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * orders_array, int start, int length)
+FHoudiniApi::SetCurveOrdersEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * orders_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetFaceCountsOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * face_counts_array, int start, int length)
+FHoudiniApi::SetFaceCountsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * face_counts_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetGroupMembershipOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length)
+FHoudiniApi::SetGroupMembershipEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name, const int * membership_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetImageInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const HAPI_ImageInfo * image_info)
+FHoudiniApi::SetImageInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const HAPI_ImageInfo * image_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetObjectTransformOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_TransformEuler * trans)
+FHoudiniApi::SetObjectTransformEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_TransformEuler * trans)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1990,7 +1990,7 @@ FHoudiniApi::SetParmStringValueEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
-FHoudiniApi::SetPartInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_PartInfo * part_info)
+FHoudiniApi::SetPartInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_PartInfo * part_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2039,28 +2039,28 @@ FHoudiniApi::SetTransformAnimCurveEmptyStub(const HAPI_Session * session, HAPI_N
 
 
 HAPI_Result
-FHoudiniApi::SetVertexListOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * vertex_list_array, int start, int length)
+FHoudiniApi::SetVertexListEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * vertex_list_array, int start, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetVolumeInfoOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeInfo * volume_info)
+FHoudiniApi::SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeInfo * volume_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetVolumeTileFloatDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
+FHoudiniApi::SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetVolumeTileIntDataOnNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
+FHoudiniApi::SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
