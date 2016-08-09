@@ -7220,6 +7220,7 @@ FHoudiniEngineUtils::MaterialLocateExpression( UMaterialExpression * Expression,
     if ( ExpressionClass == Expression->GetClass() )
         return Expression;
 
+#if WITH_EDITOR
     // If this is a channel multiply expression, we can recurse.
     UMaterialExpressionMultiply * MaterialExpressionMultiply = Cast< UMaterialExpressionMultiply >( Expression );
     if ( MaterialExpressionMultiply )
@@ -7254,6 +7255,7 @@ FHoudiniEngineUtils::MaterialLocateExpression( UMaterialExpression * Expression,
             }
         }
     }
+#endif
 
     return nullptr;
 }
@@ -7440,6 +7442,8 @@ FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(
 
     return false;
 }
+
+#if WITH_EDITOR
 
 UStaticMesh *
 FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
@@ -7652,3 +7656,5 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
 
     return DuplicatedTexture;
 }
+
+#endif
