@@ -370,11 +370,15 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
             FString & MeshName, FGuid & BakeGUID, bool bBake = false );
 
+#if WITH_EDITOR
+
         /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
         /** materials and textures and their corresponding packages. **/
         static UStaticMesh * DuplicateStaticMeshAndCreatePackage(
             UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, bool bBake = false );
+
+#endif
 
     protected:
 
@@ -413,6 +417,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const TArray< int32 > & VertexList,
             const HAPI_AttributeInfo & AttribInfo, TArray< float > & Data );
 
+#if WITH_EDITOR
+
         /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
         /** and their corresponding packages. **/
         static UMaterial * DuplicateMaterialAndCreatePackage(
@@ -428,6 +434,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static void ReplaceDuplicatedMaterialTextureSample(
             UMaterialExpression * MaterialExpression,
             UHoudiniAssetComponent * Component, bool bBake );
+
+#endif
 
         /** Add Houdini meta information to package for a given object. **/
         static void AddHoudiniMetaInformationToPackage(

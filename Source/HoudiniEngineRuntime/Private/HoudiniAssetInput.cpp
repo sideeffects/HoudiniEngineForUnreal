@@ -921,8 +921,10 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT )
     {
         Ar << InputOutlinerMeshArray;
+#if WITH_EDITOR
         if ( InputOutlinerMeshArray.Num() > 0 )
             StartWorldOutlinerTicking();
+#endif
     }
 
     // Create necessary widget resources.
