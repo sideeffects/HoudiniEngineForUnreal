@@ -140,6 +140,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Get the HoudiniAssetComponent for the input asset. **/
         UHoudiniAssetComponent* GetConnectedInputAssetComponent();
+        
+        /** Invalidate all connected node ids */
+        void InvalidateNodeIds();
 
     protected:
 
@@ -358,7 +361,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
                 /** Is set to true if this parameter has been loaded. **/
                 uint32 bLoadedParameter : 1;
 
-                /** Is set to true if the input asset is actually connected inside Houdini. **/
+                /** Is set to true if the asset input is actually connected inside Houdini. **/
                 uint32 bInputAssetConnectedInHoudini : 1;
 
                 /** Is set to true when landscape input is set to selection only. **/
