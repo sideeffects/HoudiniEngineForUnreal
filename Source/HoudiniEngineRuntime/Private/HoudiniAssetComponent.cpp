@@ -565,7 +565,7 @@ UHoudiniAssetComponent::SetHoudiniAsset( UHoudiniAsset * InHoudiniAsset )
 
                 FString WarningMessage = FString::Printf(
                     TEXT( "Defined version: %d.%d.api:%d vs Running version: %d.%d.api:%d mismatch. " )
-                    TEXT( "%s was loaded, but has wrong version. " ),
+                    TEXT( "%s was loaded, but has wrong version. " )
                     TEXT( "No cooking / instantiation will take place." ),
                     BuiltEngineMajor,
                     BuiltEngineMinor,
@@ -590,7 +590,7 @@ UHoudiniAssetComponent::SetHoudiniAsset( UHoudiniAsset * InHoudiniAsset )
                 FString WarningTitle = TEXT( "Houdini Engine Plugin Warning" );
                 FText WarningTitleText = FText::FromString( WarningTitle );
                 FString WarningMessage = FString::Printf(
-                    TEXT( "Houdini Installation was not detected. " )
+                    TEXT( "Houdini Installation was not detected." )
                     TEXT( "Failed to locate or load %s. " )
                     TEXT( "No cooking / instantiation will take place." ),
                     *LibHAPIName );
