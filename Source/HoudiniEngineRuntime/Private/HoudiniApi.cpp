@@ -886,7 +886,7 @@ FHoudiniApi::FinalizeHAPI()
 bool
 FHoudiniApi::IsHAPIInitialized()
 {
-	return FHoudiniApi::IsInitialized != nullptr;
+	return ( FHoudiniApi::IsInitialized != &FHoudiniApi::IsInitializedEmptyStub );
 }
 
 
