@@ -2227,6 +2227,15 @@ UHoudiniAssetInput::StopWorldOutlinerTicking()
     }
 }
 
+void UHoudiniAssetInput::InvalidateNodeIds()
+{
+    ConnectedAssetId = -1;
+    for (auto& OutlinerInputMesh : InputOutlinerMeshArray)
+    {
+        OutlinerInputMesh.AssetId = -1;
+    }
+}
+
 #endif
 
 FArchive &

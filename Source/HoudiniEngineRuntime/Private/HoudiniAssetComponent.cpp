@@ -3602,13 +3602,15 @@ UHoudiniAssetComponent::DuplicateInputs( UHoudiniAssetComponent * DuplicatedHoud
         UHoudiniAssetInput * AssetInput = Inputs[ InputIdx ];
 
         // Duplicate input.
-        UHoudiniAssetInput * DuplicatedAssetInput = DuplicateObject( AssetInput, DuplicatedHoudiniComponent );
-        DuplicatedAssetInput->SetHoudiniAssetComponent( DuplicatedHoudiniComponent );
+        UHoudiniAssetInput * DuplicateAssetInput = DuplicateObject( AssetInput, DuplicatedHoudiniComponent );
+        DuplicateAssetInput->SetHoudiniAssetComponent( DuplicatedHoudiniComponent );
+        // Invalidate the node ids on the duplicate so that new inputs will be created.
+        DuplicateAssetInput->InvalidateNodeIds();
 
         // PIE does not like standalone flags.
-        DuplicatedAssetInput->ClearFlags( RF_Standalone );
+        DuplicateAssetInput->ClearFlags( RF_Standalone );
 
-        InInputs.Add( DuplicatedAssetInput );
+        InInputs.Add( DuplicateAssetInput );
     }
 }
 
