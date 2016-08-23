@@ -3336,6 +3336,29 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             if ( !GeoInfo.isDisplayGeo )
                 continue;
 
+            // TODO: (Workaround) If this object has a zero part count, it could be being instanced but
+            // filtered out by HAPI because it is not visible, in that case we want to force it to cook right now
+            // 
+            if (GeoInfo.partCount == 0)
+            {
+                HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+                    FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, nullptr), false);
+
+                if (FHoudiniApi::GetDisplayGeoInfo(
+                    FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo) != HAPI_RESULT_SUCCESS)
+                {
+                    HOUDINI_LOG_MESSAGE(
+                        TEXT("Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, ")
+                        TEXT("- skipping."),
+                        ObjectInfo.nodeId, *ObjectName);
+                    continue;
+                }
+                else
+                {
+                    GeoId = GeoInfo.nodeId;
+                }
+            }
+
             bool bGeoError = false;
 
             // Get object / geo group memberships for primitives.

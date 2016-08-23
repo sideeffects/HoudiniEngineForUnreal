@@ -664,13 +664,13 @@ FHoudiniGeoPartObject::HapiObjectGetGeoCount() const
 HAPI_NodeId
 FHoudiniGeoPartObject::HapiObjectGetNodeId() const
 {
-    int32 GeoCount = 0;
+    HAPI_NodeId NodeId = -1;
     HAPI_ObjectInfo ObjectInfo;
 
-    if ( HapiObjectGetInfo( ObjectInfo ) )
-        GeoCount = ObjectInfo.geoCount;
+    if (HapiObjectGetInfo(ObjectInfo))
+        NodeId = ObjectInfo.nodeId;
 
-    return GeoCount;
+    return NodeId;
 }
 
 HAPI_NodeId
