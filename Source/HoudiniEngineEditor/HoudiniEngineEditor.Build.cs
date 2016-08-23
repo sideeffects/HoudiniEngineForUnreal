@@ -73,7 +73,7 @@ public class HoudiniEngineEditor : ModuleRules
 			}
 			else if( Target.Platform == UnrealTargetPlatform.Mac )
 			{
-				string HPath = "/Applications/Houdini " + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
+				string HPath = "/Applications/Houdini/" + HoudiniVersion + "/Frameworks/Houdini.framework/Versions/Current/Resources";
 				if( !Directory.Exists( HPath ) )
 				{
 					if ( !Directory.Exists( HFSPath ) )
