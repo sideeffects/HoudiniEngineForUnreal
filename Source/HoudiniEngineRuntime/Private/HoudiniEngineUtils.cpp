@@ -4560,7 +4560,8 @@ FHoudiniEngineUtils::ContainsDegenerateTriangles( const FRawMesh & RawMesh )
         const FVector & Vertex1 = RawMesh.VertexPositions[ RawMesh.WedgeIndices[ WedgeIdx + 1 ] ];
         const FVector & Vertex2 = RawMesh.VertexPositions[ RawMesh.WedgeIndices[ WedgeIdx + 2 ] ];
 
-        if ( Vertex0 == Vertex1 || Vertex0 == Vertex2 || Vertex1 == Vertex2 )
+        // Strict equality will not detect properly all the degenerated triangles, we need to use Equals here
+        if ( Vertex0.Equals(Vertex1, THRESH_POINTS_ARE_SAME) || Vertex0.Equals(Vertex2, THRESH_POINTS_ARE_SAME) || Vertex1.Equals(Vertex2, THRESH_POINTS_ARE_SAME) )
             return true;
     }
 
@@ -4578,7 +4579,8 @@ FHoudiniEngineUtils::CountDegenerateTriangles( const FRawMesh & RawMesh )
         const FVector & Vertex1 = RawMesh.VertexPositions[ RawMesh.WedgeIndices[ WedgeIdx + 1 ] ];
         const FVector & Vertex2 = RawMesh.VertexPositions[ RawMesh.WedgeIndices[ WedgeIdx + 2 ] ];
 
-        if ( Vertex0 == Vertex1 || Vertex0 == Vertex2 || Vertex1 == Vertex2 )
+        // Strict equality will not detect properly all the degenerated triangles, we need to use Equals here
+        if( Vertex0.Equals(Vertex1, THRESH_POINTS_ARE_SAME) || Vertex0.Equals(Vertex2, THRESH_POINTS_ARE_SAME) || Vertex1.Equals(Vertex2, THRESH_POINTS_ARE_SAME) )
             DegenerateTriangleCount++;
     }
 
@@ -7121,7 +7123,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 
     // Attempt to load from standard Mac OS X installation.
     FString HoudiniLocation = FString::Printf(
-        TEXT( "/Library/Frameworks/Houdini.framework/Versions/%s/Libraries" ), *HoudiniVersionString );
+        TEXT("/Applications/Houdini/%s/Frameworks/Houdini.framework/Versions/%s/Libraries"), *HoudiniVersionString, *HoudiniVersionString );
 
 #   elif PLATFORM_LINUX
 
