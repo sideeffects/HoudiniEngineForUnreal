@@ -1,5 +1,5 @@
 /*
- * PROPRIETARY INFORMATION.  This software is proprietary to
+5 * PROPRIETARY INFORMATION.  This software is proprietary to
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
  *
@@ -1344,6 +1344,9 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
     else
     {
         AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *) Actor;
+        if (HoudiniAssetActor == nullptr)
+            return;
+
         UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 
         // If we just selected the already selected Actor do nothing.
