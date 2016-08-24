@@ -1347,6 +1347,9 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
     else
     {
         AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *) Actor;
+        if (HoudiniAssetActor == nullptr)
+            return;
+
         UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 
         // If we just selected the already selected Actor do nothing.
