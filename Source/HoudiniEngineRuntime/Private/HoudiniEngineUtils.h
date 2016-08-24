@@ -171,22 +171,21 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Retrieve object transforms from given asset node id. **/
         static bool HapiGetObjectTransforms( HAPI_AssetId AssetId, TArray< HAPI_Transform > & ObjectTransforms );
 
-        /** HAPI : Marshalling, extract landscape geometry and upload it. Return new asset id. **/
-        static bool HapiCreateAndConnectAsset(
-            HAPI_AssetId HostAssetId, int32 InputIndex,
+        /** HAPI : Marshalling, extract landscape geometry and upload it. Return true on success. **/
+        static bool HapiCreateInputNodeForData(
+            HAPI_AssetId HostAssetId,
             ALandscapeProxy * LandscapeProxy, HAPI_AssetId & ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
             bool bExportMaterials, bool bExportFullGeometry, bool bExportLighting, bool bExportNormalizedUVs,
             bool bExportTileUVs );
 
-        /** HAPI : Marshaling, extract geometry and create input asset form it. Connect to given host asset and return  **/
-        /** new asset id.                                                                                               **/
-        static bool HapiCreateAndConnectAsset(
-            HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh * Mesh,
+        /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
+        static bool HapiCreateInputNodeForData(
+            HAPI_AssetId HostAssetId, UStaticMesh * Mesh,
             HAPI_AssetId & ConnectedAssetId );
 
-        static bool HapiCreateAndConnectAsset(
+        /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
+        static bool HapiCreateInputNodeForData(
             HAPI_AssetId HostAssetId,
-            int32 InputIndex,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
             HAPI_AssetId & ConnectedAssetId );
 

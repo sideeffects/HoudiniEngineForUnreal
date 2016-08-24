@@ -1519,8 +1519,8 @@ FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_AssetId AssetId, TArray< HAPI
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateAndConnectAsset(
-    HAPI_AssetId HostAssetId, int32 InputIndex,
+FHoudiniEngineUtils::HapiCreateInputNodeForData(
+    HAPI_AssetId HostAssetId,
     ALandscapeProxy * LandscapeProxy, HAPI_AssetId & ConnectedAssetId,
     bool bExportOnlySelected, bool bExportCurves,
     bool bExportMaterials, bool bExportFullGeometry,
@@ -2246,19 +2246,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
 
-    // Now we can connect input node to the asset node.
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex,
-        ConnectedAssetId ), false );
-
 #endif
 
     return true;
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateAndConnectAsset(
-    HAPI_AssetId HostAssetId, int32 InputIndex, UStaticMesh * StaticMesh,
+FHoudiniEngineUtils::HapiCreateInputNodeForData(
+    HAPI_AssetId HostAssetId, UStaticMesh * StaticMesh,
     HAPI_AssetId & ConnectedAssetId)
 {
 #if WITH_EDITOR
@@ -2689,20 +2684,14 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
 
-    // Now we can connect input node to the asset node.
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex,
-        ConnectedAssetId ), false );
-
 #endif
 
     return true;
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateAndConnectAsset(
+FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_AssetId HostAssetId,
-    int32 InputIndex,
     TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
     HAPI_AssetId & ConnectedAssetId )
 {
@@ -2717,14 +2706,20 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     for ( int32 InputIdx = 0; InputIdx < OutlinerMeshArray.Num(); ++InputIdx )
     {
         auto & OutlinerMesh = OutlinerMeshArray[ InputIdx ];
-        if ( !HapiCreateAndConnectAsset(
+        if ( !HapiCreateInputNodeForData(
             ConnectedAssetId,
-            InputIdx,
             OutlinerMesh.StaticMesh,
             OutlinerMesh.AssetId ) )
         {
             OutlinerMesh.AssetId = -1;
             continue;
+        }
+        else
+        {
+            // Now we can connect input node to the asset node.
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+                FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
+                OutlinerMesh.AssetId), false);
         }
 
         HAPI_TransformEuler HapiTransform;
@@ -2739,11 +2734,6 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             FHoudiniEngine::Get().GetSession(),
             LocalAssetNodeInfo.parentId, &HapiTransform ), false );
     }
-
-    // Now we can connect input node to the asset node.
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), HostAssetId, InputIndex,
-        ConnectedAssetId ), false );
 
     return true;
 }

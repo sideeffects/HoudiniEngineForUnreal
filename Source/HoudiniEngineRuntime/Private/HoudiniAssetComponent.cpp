@@ -3176,9 +3176,25 @@ UHoudiniAssetComponent::CreateParameters()
                 }
 
                 case HAPI_PARMTYPE_NODE:
+                {
+                    if (ParmInfo.inputNodeType == HAPI_NODETYPE_ANY || 
+                        ParmInfo.inputNodeType == HAPI_NODETYPE_SOP || 
+                        ParmInfo.inputNodeType == HAPI_NODETYPE_OBJ)
+                    {
+                        HoudiniAssetParameter = UHoudiniAssetInput::Create(
+                            this, nullptr, AssetInfo.nodeId, ParmInfo);
+                    }
+                    else
+                    {
+                        HoudiniAssetParameter = UHoudiniAssetParameterString::Create(
+                            this, nullptr, AssetInfo.nodeId, ParmInfo);
+                    }
+                    break;
+                }
                 default:
                 {
                     // Just ignore unsupported types for now.
+                    HOUDINI_LOG_WARNING(TEXT("Parameter Type (%d) is unsupported"), static_cast<int32>(ParmInfo.type));
                     continue;
                 }
             }

@@ -71,8 +71,14 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
     public:
 
-        /** Create intance of this class. **/
+        /** Create instance of this class for use as an input **/
         static UHoudiniAssetInput * Create( UHoudiniAssetComponent * InHoudiniAssetComponent, int32 InInputIndex );
+        /** Create instance of this class for use as parameter **/
+        static UHoudiniAssetInput* Create(
+            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetParameter * InParentParameter,
+            HAPI_NodeId InNodeId,
+            const HAPI_ParmInfo & ParmInfo);
 
     public:
 
@@ -81,27 +87,27 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
             UHoudiniAssetComponent * InHoudiniAssetComponent,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId,
-            const HAPI_ParmInfo & ParmInfo);
+            const HAPI_ParmInfo & ParmInfo) override;
 
 #if WITH_EDITOR
 
         /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder );
+        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
 
         virtual void PostEditUndo() override;
 
 #endif
 
         /** Upload parameter value to HAPI. **/
-        virtual bool UploadParameterValue();
+        virtual bool UploadParameterValue() override;
 
         /** Notifaction from a child parameter about its change. **/
-        virtual void NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter );
+        virtual void NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter ) override;
 
     /** UObject methods. **/
     public:
 
-        virtual void BeginDestroy();
+        virtual void BeginDestroy() override;
         virtual void Serialize( FArchive & Ar ) override;
         virtual void PostLoad() override;
         static void AddReferencedObjects( UObject * InThis, FReferenceCollector& Collector );
@@ -235,6 +241,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Create necessary resources for this input. **/
         void CreateWidgetResources();
+
+        /** Connects input node to asset or sets the object path parameter, returns true on success */
+        bool ConnectInputNode();
 
     protected:
 
@@ -384,6 +393,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
                 /** Is set to true when uvs should be exported for each tile separately. **/
                 uint32 bLandscapeExportTileUVs : 1;
+
+                /** Is set to true when being used as an object-path parameter instead of an input */
+                uint32 bIsObjectPathParameter : 1;
             };
 
             uint32 HoudiniAssetInputFlagsPacked;

@@ -63,6 +63,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , bLandscapeExportLighting( false )
     , bLandscapeExportNormalizedUVs( false )
     , bLandscapeExportTileUVs( false )
+    , bIsObjectPathParameter( false )
 {
     ChoiceStringValue = TEXT( "" );
 }
@@ -103,6 +104,39 @@ UHoudiniAssetInput::Create( UHoudiniAssetComponent * InHoudiniAssetComponent, in
     // Create necessary widget resources.
     HoudiniAssetInput->CreateWidgetResources();
 
+    return HoudiniAssetInput;
+}
+
+UHoudiniAssetInput *
+UHoudiniAssetInput::Create(
+    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetParameter * InParentParameter,
+    HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
+{
+    UObject * Outer = InHoudiniAssetComponent;
+    if (!Outer)
+    {
+        Outer = InParentParameter;
+        if (!Outer)
+        {
+            // Must have either component or parent not null.
+            check(false);
+        }
+    }
+
+    UHoudiniAssetInput * HoudiniAssetInput = NewObject< UHoudiniAssetInput >(
+        Outer, UHoudiniAssetInput::StaticClass(), NAME_None, RF_Public | RF_Transactional);
+
+    // This is being used as a parameter
+    HoudiniAssetInput->bIsObjectPathParameter = true;
+
+    // By default geometry input is chosen.
+    HoudiniAssetInput->ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
+
+    // Create necessary widget resources.
+    HoudiniAssetInput->CreateWidgetResources();
+
+    HoudiniAssetInput->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
     return HoudiniAssetInput;
 }
 
@@ -197,9 +231,17 @@ UHoudiniAssetInput::CreateParameter(
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
-    // This implementation is not a true parameter. This method should not be called.
-    check( false );
-    return false;
+    // Inputs should never call this
+    check(bIsObjectPathParameter);
+
+    if (!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
+        return false;
+
+    // We can only handle node type.
+    if (ParmInfo.type != HAPI_PARMTYPE_NODE)
+        return false;
+
+    return true;
 }
 
 #if WITH_EDITOR
@@ -648,6 +690,28 @@ UHoudiniAssetInput::PostEditUndo()
 #endif
 
 bool
+UHoudiniAssetInput::ConnectInputNode()
+{
+    // Helper for connecting our input or setting the object path parameter
+    if (!bIsObjectPathParameter)
+    {
+        // Now we can connect input node to the asset node.
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+            FHoudiniEngine::Get().GetSession(), HoudiniAssetComponent->GetAssetId(), InputIndex,
+            ConnectedAssetId), false);
+    }
+    else
+    {
+        // Now we can assign the input node path to the parameter
+        std::string ParamNameString = TCHAR_TO_UTF8(*GetParameterName());
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmNodeValue(
+            FHoudiniEngine::Get().GetSession(), NodeId,
+            ParamNameString.c_str(), ConnectedAssetId), false);
+    }
+    return true;
+}
+
+bool
 UHoudiniAssetInput::UploadParameterValue()
 {
     HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
@@ -665,11 +729,15 @@ UHoudiniAssetInput::UploadParameterValue()
                     DisconnectAndDestroyInputAsset();
 
                     // Connect input and create connected asset. Will return by reference.
-                    if ( !FHoudiniEngineUtils::HapiCreateAndConnectAsset( HostAssetId, InputIndex, StaticMesh, ConnectedAssetId ) )
+                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( HostAssetId, StaticMesh, ConnectedAssetId ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
                         return false;
+                    }
+                    else
+                    {
+                        ConnectInputNode();
                     }
 
                     bStaticMeshChanged = false;
@@ -782,8 +850,8 @@ UHoudiniAssetInput::UploadParameterValue()
                 DisconnectAndDestroyInputAsset();
 
                 // Connect input and create connected asset. Will return by reference.
-                if ( !FHoudiniEngineUtils::HapiCreateAndConnectAsset(
-                    HostAssetId, InputIndex, InputLandscapeProxy,
+                if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
+                    HostAssetId, InputLandscapeProxy,
                     ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
                     bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting,
                     bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs ) )
@@ -791,6 +859,10 @@ UHoudiniAssetInput::UploadParameterValue()
                     bChanged = false;
                     ConnectedAssetId = -1;
                     return false;
+                }
+                else
+                {
+                    ConnectInputNode();
                 }
             }
             else
@@ -812,12 +884,16 @@ UHoudiniAssetInput::UploadParameterValue()
                     DisconnectAndDestroyInputAsset();
 
                     // Connect input and create connected asset. Will return by reference.
-                    if ( !FHoudiniEngineUtils::HapiCreateAndConnectAsset(
-                        HostAssetId, InputIndex, InputOutlinerMeshArray, ConnectedAssetId ) )
+                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
+                        HostAssetId, InputOutlinerMeshArray, ConnectedAssetId ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
                         return false;
+                    }
+                    else
+                    {
+                        ConnectInputNode();
                     }
 
                     bStaticMeshChanged = false;
@@ -1283,8 +1359,11 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
 
                 // Force recook and reconnect of the input assets.
                 HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-                FHoudiniEngineUtils::HapiCreateAndConnectAsset(
-                    HostAssetId, InputIndex, InputOutlinerMeshArray, ConnectedAssetId );
+                if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
+                    HostAssetId, InputOutlinerMeshArray, ConnectedAssetId))
+                {
+                    ConnectInputNode();
+                }
 
                 break;
             }
