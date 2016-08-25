@@ -157,7 +157,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool IsValidAssetId( HAPI_AssetId AssetId );
 
         /** HAPI : Create curve for input. **/
-        static bool HapiCreateCurve( HAPI_AssetId & CurveAssetId );
+        static bool HapiCreateCurveNode( HAPI_AssetId & CurveNodeId);
 
         /** HAPI : Retrieve the asset node's object transform. **/
         static bool HapiGetAssetTransform( HAPI_AssetId AssetId, FTransform & InTransform );

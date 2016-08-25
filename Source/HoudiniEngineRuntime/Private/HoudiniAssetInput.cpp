@@ -775,17 +775,18 @@ UHoudiniAssetInput::UploadParameterValue()
 
         case EHoudiniAssetInputType::CurveInput:
         {
-            // If we have no curve asset, create it.
+            // If we have no curve node, create it.
             if ( !FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
             {
-                if ( !FHoudiniEngineUtils::HapiCreateCurve( ConnectedAssetId ) )
+                if ( !FHoudiniEngineUtils::HapiCreateCurveNode( ConnectedAssetId ) )
                 {
                     bChanged = false;
+                    ConnectedAssetId = -1;
                     return false;
                 }
 
                 // Connect asset.
-                FHoudiniEngineUtils::HapiConnectAsset( ConnectedAssetId, 0, HostAssetId, InputIndex );
+                FHoudiniEngineUtils::HapiConnectAsset(0, ConnectedAssetId, HostAssetId, InputIndex );
             }
 
             if ( bLoadedParameter )
@@ -810,8 +811,8 @@ UHoudiniAssetInput::UploadParameterValue()
             }
 
             // Also upload points.
-            HAPI_NodeId NodeId = -1;
-            if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) && InputCurve )
+            HAPI_NodeId NodeId = ConnectedAssetId;
+            if( NodeId != -1 && InputCurve )
             {
                 const TArray< FVector > & CurvePoints = InputCurve->GetCurvePoints();
 
@@ -831,9 +832,9 @@ UHoudiniAssetInput::UploadParameterValue()
                 }
             }
 
-            // Cook the spline asset.
+            // Cook the spline node.
             FHoudiniApi::CookNode( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
-
+	    
             // We need to update the curve.
             UpdateInputCurve();
 
@@ -1739,8 +1740,8 @@ UHoudiniAssetInput::UpdateInputCurve()
     EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
     int32 CurveClosed = 1;
 
-    HAPI_NodeId NodeId = -1;
-    if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) )
+    HAPI_NodeId NodeId = ConnectedAssetId;
+    if(NodeId != -1)
     {
         FHoudiniEngineUtils::HapiGetParameterDataAsString(
             NodeId, HAPI_UNREAL_PARAM_CURVE_COORDS, TEXT( "" ),
@@ -1755,8 +1756,14 @@ UHoudiniAssetInput::UpdateInputCurve()
             NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed );
     }
 
+    // We need to get the NodeInfo to get the parent id
+    HAPI_NodeInfo NodeInfo;
+    HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+        FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo),
+        false);
+
     // Construct geo part object.
-    FHoudiniGeoPartObject HoudiniGeoPartObject( ConnectedAssetId, 0, 0, 0 );
+    FHoudiniGeoPartObject HoudiniGeoPartObject( ConnectedAssetId, NodeInfo.parentId, ConnectedAssetId, 0 );
     HoudiniGeoPartObject.bIsCurve = true;
 
     HAPI_AttributeInfo AttributeRefinedCurvePositions;
@@ -1772,128 +1779,124 @@ UHoudiniAssetInput::UpdateInputCurve()
     TArray< FVector > CurveDisplayPoints;
     FHoudiniEngineUtils::ConvertScaleAndFlipVectorData( RefinedCurvePositions, CurveDisplayPoints );
 
-    InputCurve->Construct(
-        HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
-        ( CurveClosed == 1 ) );
+    if (InputCurve != nullptr)
+    {
+        InputCurve->Construct(
+            HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
+            (CurveClosed == 1));
+    }
 
     // We also need to construct curve parameters we care about.
     TMap< FString, UHoudiniAssetParameter * > NewInputCurveParameters;
 
+    TArray< HAPI_ParmInfo > ParmInfos;
+    ParmInfos.SetNumUninitialized( NodeInfo.parmCount );
+    HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+        FHoudiniApi::GetParameters(
+            FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[ 0 ], 0, NodeInfo.parmCount ),
+	    false);
+
+    // Retrieve integer values for this asset.
+    TArray< int32 > ParmValueInts;
+    ParmValueInts.SetNumZeroed( NodeInfo.parmIntValueCount );
+    if ( NodeInfo.parmIntValueCount > 0 )
     {
-        HAPI_NodeInfo NodeInfo;
         HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
-            FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ),
-            false );
+            FHoudiniApi::GetParmIntValues(
+                FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueInts[ 0 ], 0, NodeInfo.parmIntValueCount ),
+		false );
+    }
 
-        TArray< HAPI_ParmInfo > ParmInfos;
-        ParmInfos.SetNumUninitialized( NodeInfo.parmCount );
+    // Retrieve float values for this asset.
+    TArray< float > ParmValueFloats;
+    ParmValueFloats.SetNumZeroed( NodeInfo.parmFloatValueCount );
+    if ( NodeInfo.parmFloatValueCount > 0 )
+    {
         HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
-            FHoudiniApi::GetParameters(
-                FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[ 0 ], 0, NodeInfo.parmCount ),
-            false);
+            FHoudiniApi::GetParmFloatValues(
+                FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueFloats[ 0 ], 0, NodeInfo.parmFloatValueCount ),
+		false );
+    }
 
-        // Retrieve integer values for this asset.
-        TArray< int32 > ParmValueInts;
-        ParmValueInts.SetNumZeroed( NodeInfo.parmIntValueCount );
-        if ( NodeInfo.parmIntValueCount > 0 )
+    // Retrieve string values for this asset.
+    TArray< HAPI_StringHandle > ParmValueStrings;
+    ParmValueStrings.SetNumZeroed( NodeInfo.parmStringValueCount );
+    if ( NodeInfo.parmStringValueCount > 0 )
+    {
+        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+            FHoudiniApi::GetParmStringValues(
+                FHoudiniEngine::Get().GetSession(), NodeId, true, &ParmValueStrings[ 0 ], 0, NodeInfo.parmStringValueCount ),
+		false );
+    }
+
+    // Create properties for parameters.
+    for ( int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx )
+    {
+        // Retrieve param info at this index.
+        const HAPI_ParmInfo & ParmInfo = ParmInfos[ ParamIdx ];
+
+        // If parameter is invisible, skip it.
+        if ( ParmInfo.invisible )
+            continue;
+
+        FString ParameterName;
+        FHoudiniEngineString HoudiniEngineString( ParmInfo.nameSH );
+        if ( !HoudiniEngineString.ToFString( ParameterName ) )
         {
-            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
-                FHoudiniApi::GetParmIntValues(
-                    FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueInts[ 0 ], 0, NodeInfo.parmIntValueCount ),
-                false );
+            // We had trouble retrieving name of this parameter, skip it.
+            continue;
         }
 
-        // Retrieve float values for this asset.
-        TArray< float > ParmValueFloats;
-        ParmValueFloats.SetNumZeroed( NodeInfo.parmFloatValueCount );
-        if ( NodeInfo.parmFloatValueCount > 0 )
+        // See if it's one of parameters we are interested in.
+        if ( !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_METHOD ) ) &&
+            !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_TYPE ) ) &&
+            !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_CLOSED ) ) )
         {
-            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
-                FHoudiniApi::GetParmFloatValues(
-                    FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueFloats[ 0 ], 0, NodeInfo.parmFloatValueCount ),
-                false );
+            // Not parameter we are interested in.
+            continue;
         }
 
-        // Retrieve string values for this asset.
-        TArray< HAPI_StringHandle > ParmValueStrings;
-        ParmValueStrings.SetNumZeroed( NodeInfo.parmStringValueCount );
-        if ( NodeInfo.parmStringValueCount > 0 )
+        // See if this parameter has already been created.
+        UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = InputCurveParameters.Find( ParameterName );
+        UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
+
+        // If parameter exists, we can reuse it.
+        if ( FoundHoudiniAssetParameter )
         {
-            HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
-                FHoudiniApi::GetParmStringValues(
-                    FHoudiniEngine::Get().GetSession(), NodeId, true, &ParmValueStrings[ 0 ], 0, NodeInfo.parmStringValueCount ),
-                false );
+            HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+
+            // Remove parameter from current map.
+            InputCurveParameters.Remove( ParameterName );
+
+            // Reinitialize parameter and add it to map.
+            HoudiniAssetParameter->CreateParameter( nullptr, this, NodeId, ParmInfo );
+            NewInputCurveParameters.Add( ParameterName, HoudiniAssetParameter );
+            continue;
         }
-
-        // Create properties for parameters.
-        for ( int32 ParamIdx = 0; ParamIdx < NodeInfo.parmCount; ++ParamIdx )
+        else
         {
-            // Retrieve param info at this index.
-            const HAPI_ParmInfo & ParmInfo = ParmInfos[ ParamIdx ];
-
-            // If parameter is invisible, skip it.
-            if ( ParmInfo.invisible )
-                continue;
-
-            FString ParameterName;
-            FHoudiniEngineString HoudiniEngineString( ParmInfo.nameSH );
-            if ( !HoudiniEngineString.ToFString( ParameterName ) )
+            if ( ParmInfo.type == HAPI_PARMTYPE_INT )
             {
-                // We had trouble retrieving name of this parameter, skip it.
-                continue;
+                if ( !ParmInfo.choiceCount )
+                    HoudiniAssetParameter = UHoudiniAssetParameterInt::Create( nullptr, this, NodeId, ParmInfo );
+                else
+                    HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create( nullptr, this, NodeId, ParmInfo );
             }
-
-            // See if it's one of parameters we are interested in.
-            if ( !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_METHOD ) ) &&
-                !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_TYPE ) ) &&
-                !ParameterName.Equals( TEXT( HAPI_UNREAL_PARAM_CURVE_CLOSED ) ) )
+            else if ( ParmInfo.type == HAPI_PARMTYPE_TOGGLE )
             {
-                // Not parameter we are interested in.
-                continue;
-            }
-
-            // See if this parameter has already been created.
-            UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = InputCurveParameters.Find( ParameterName );
-            UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
-
-            // If parameter exists, we can reuse it.
-            if ( FoundHoudiniAssetParameter )
-            {
-                HoudiniAssetParameter = *FoundHoudiniAssetParameter;
-
-                // Remove parameter from current map.
-                InputCurveParameters.Remove( ParameterName );
-
-                // Reinitialize parameter and add it to map.
-                HoudiniAssetParameter->CreateParameter( nullptr, this, NodeId, ParmInfo );
-                NewInputCurveParameters.Add( ParameterName, HoudiniAssetParameter );
-                continue;
+                HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create( nullptr, this, NodeId, ParmInfo );
             }
             else
             {
-                if ( ParmInfo.type == HAPI_PARMTYPE_INT )
-                {
-                    if ( !ParmInfo.choiceCount )
-                        HoudiniAssetParameter = UHoudiniAssetParameterInt::Create( nullptr, this, NodeId, ParmInfo );
-                    else
-                        HoudiniAssetParameter = UHoudiniAssetParameterChoice::Create( nullptr, this, NodeId, ParmInfo );
-                }
-                else if ( ParmInfo.type == HAPI_PARMTYPE_TOGGLE )
-                {
-                    HoudiniAssetParameter = UHoudiniAssetParameterToggle::Create( nullptr, this, NodeId, ParmInfo );
-                }
-                else
-                {
-                    check( false );
-                }
-
-                NewInputCurveParameters.Add( ParameterName, HoudiniAssetParameter );
+                check( false );
             }
-        }
 
-        ClearInputCurveParameters();
-        InputCurveParameters = NewInputCurveParameters;
+            NewInputCurveParameters.Add( ParameterName, HoudiniAssetParameter );
+        }
     }
+
+    ClearInputCurveParameters();
+    InputCurveParameters = NewInputCurveParameters;
 
     if ( bSwitchedToCurve )
     {

@@ -1347,31 +1347,31 @@ FHoudiniEngineUtils::IsValidAssetId( HAPI_AssetId AssetId )
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateCurve( HAPI_AssetId & CurveAssetId )
+FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & CurveNodeId)
 {
 #if WITH_EDITOR
 
-    HAPI_AssetId AssetId = -1;
-    /*HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateCurve(
-        FHoudiniEngine::Get().GetSession(), &AssetId ), false );*/
-
-    CurveAssetId = AssetId;
-
+    // Create the curve SOP Node
     HAPI_NodeId NodeId = -1;
-    if ( !FHoudiniEngineUtils::HapiGetNodeId( AssetId, 0, 0, NodeId ) )
-        return false;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), -1,
+        "SOP/curve", nullptr, false, &NodeId), false);
+    
+    CurveNodeId = NodeId;
 
     // Submit default points to curve.
     HAPI_ParmId ParmId = -1;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmIdFromName(
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIdFromName(
         FHoudiniEngine::Get().GetSession(), NodeId,
-        HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId ), false );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue(
-        FHoudiniEngine::Get().GetSession(), NodeId,
-        HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT, ParmId, 0 ), false );
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
-        FHoudiniEngine::Get().GetSession(), AssetId, nullptr ), false );
+        HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId), false);
 
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT, ParmId, 0), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+        FHoudiniEngine::Get().GetSession(), NodeId, nullptr), false);
+   
 #endif // WITH_EDITOR
 
     return true;
