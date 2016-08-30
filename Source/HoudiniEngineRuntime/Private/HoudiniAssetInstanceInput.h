@@ -275,6 +275,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
                 /** Set to true if this attribute instancer uses overrides. **/
                 uint32 bAttributeInstancerOverride : 1;
+
+                /** Set to true if this is a packed primitive instancer **/
+                uint32 bIsPackedPrimitiveInstancer : 1;
             };
 
             uint32 HoudiniAssetInstanceInputFlagsPacked;
