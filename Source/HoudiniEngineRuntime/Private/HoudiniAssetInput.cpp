@@ -650,7 +650,7 @@ UHoudiniAssetInput::PostEditUndo()
 bool
 UHoudiniAssetInput::UploadParameterValue()
 {
-    if(HoudiniAssetComponent == nulltpr)
+    if(HoudiniAssetComponent == nullptr)
         return false;
     
     HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
