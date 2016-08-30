@@ -1347,7 +1347,7 @@ FHoudiniEngineUtils::IsValidAssetId( HAPI_AssetId AssetId )
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & CurveNodeId)
+FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & CurveNodeId )
 {
 #if WITH_EDITOR
 
@@ -2766,24 +2766,42 @@ FHoudiniEngineUtils::HapiConnectAsset(
     return true;
 }
 
+
 bool
 FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_AssetId AssetId, const FTransform & Transform )
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
+        return false;
+
+    // Translate Unreal transform to HAPI Euler one.
+    HAPI_TransformEuler TransformEuler;
+    FHoudiniEngineUtils::TranslateUnrealTransform( Transform, TransformEuler );
+    
+    // Get the NodeInfo
+    HAPI_NodeInfo LocalAssetNodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId,
+        &LocalAssetNodeInfo), false);
+
+    if (LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP)
     {
-        // Translate Unreal transform to HAPI Euler one.
-        HAPI_TransformEuler TransformEuler;
-        FHoudiniEngineUtils::TranslateUnrealTransform( Transform, TransformEuler );
-
-        if ( FHoudiniApi::SetObjectTransform(
-            FHoudiniEngine::Get().GetSession(), AssetId, &TransformEuler ) == HAPI_RESULT_SUCCESS )
-        {
-            return true;
-        }
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+            FHoudiniEngine::Get().GetSession(), 
+            LocalAssetNodeInfo.parentId, 
+            &TransformEuler), false);
     }
+    else if (LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ)
+    {
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+            FHoudiniEngine::Get().GetSession(),
+            AssetId, &TransformEuler), false);
+    }
+    else
+        return false;
 
-    return false;
+    return true;
 }
+
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(

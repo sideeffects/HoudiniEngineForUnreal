@@ -245,6 +245,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Connects input node to asset or sets the object path parameter, returns true on success */
         bool ConnectInputNode();
 
+        /** Updates the input's Object Merge Transform type  **/
+        bool UpdateObjectMergeTransformType();
+
     protected:
 
         /** Parameters used by a curve input asset. **/

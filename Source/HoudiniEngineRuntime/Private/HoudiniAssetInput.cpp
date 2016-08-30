@@ -714,6 +714,9 @@ UHoudiniAssetInput::ConnectInputNode()
 bool
 UHoudiniAssetInput::UploadParameterValue()
 {
+    if (HoudiniAssetComponent == nullptr)
+        return false;
+    
     HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
 
     switch ( ChoiceIndex )
@@ -721,7 +724,12 @@ UHoudiniAssetInput::UploadParameterValue()
         case EHoudiniAssetInputType::GeometryInput:
         {
             UStaticMesh * StaticMesh = Cast< UStaticMesh >( InputObject );
-            if ( StaticMesh )
+            if ( StaticMesh == nullptr)
+            {
+                // Either mesh was reset or null mesh has been assigned.
+                DisconnectAndDestroyInputAsset();
+            }
+            else
             {
                 if ( bStaticMeshChanged || bLoadedParameter )
                 {
@@ -742,14 +750,10 @@ UHoudiniAssetInput::UploadParameterValue()
 
                     bStaticMeshChanged = false;
                 }
-            }
-            else
-            {
-                // Either mesh was reset or null mesh has been assigned.
-                DisconnectAndDestroyInputAsset();
-            }
 
-            break;
+                UpdateObjectMergeTransformType();
+            }
+	    break;
         }
     
         case EHoudiniAssetInputType::AssetInput:
@@ -759,6 +763,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 && !bInputAssetConnectedInHoudini )
             {
                 ConnectInputAssetActor();
+                UpdateObjectMergeTransformType();
             }
             else if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
             {
@@ -776,9 +781,9 @@ UHoudiniAssetInput::UploadParameterValue()
         case EHoudiniAssetInputType::CurveInput:
         {
             // If we have no curve node, create it.
-            if ( !FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+            if (!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) )
             {
-                if ( !FHoudiniEngineUtils::HapiCreateCurveNode( ConnectedAssetId ) )
+                if (!FHoudiniEngineUtils::HapiCreateCurveNode(ConnectedAssetId) )
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
@@ -786,55 +791,57 @@ UHoudiniAssetInput::UploadParameterValue()
                 }
 
                 // Connect asset.
-                FHoudiniEngineUtils::HapiConnectAsset(0, ConnectedAssetId, HostAssetId, InputIndex );
+                ConnectInputNode();
             }
 
-            if ( bLoadedParameter )
+            if (bLoadedParameter)
             {
                 HAPI_AssetInfo CurveAssetInfo;
-                FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo );
+                FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo);
 
                 // If we just loaded our curve, we need to set parameters.
-                for ( TMap< FString, UHoudiniAssetParameter * >::TIterator
-                    IterParams( InputCurveParameters ); IterParams; ++IterParams )
+                for (TMap< FString, UHoudiniAssetParameter * >::TIterator
+                IterParams(InputCurveParameters); IterParams; ++IterParams)
                 {
                     UHoudiniAssetParameter * Parameter = IterParams.Value();
-                    if ( Parameter )
-                    {
-                        // We need to update node id for loaded parameters.
-                        Parameter->SetNodeId( CurveAssetInfo.nodeId );
+                    if (Parameter == nullptr)
+                        continue;
 
-                        // Upload parameter value.
-                        Parameter->UploadParameterValue();
-                    }
+                    // We need to update node id for loaded parameters.
+                    Parameter->SetNodeId(CurveAssetInfo.nodeId);
+
+                    // Upload parameter value.
+                    Parameter->UploadParameterValue();
                 }
             }
 
             // Also upload points.
             HAPI_NodeId NodeId = ConnectedAssetId;
-            if( NodeId != -1 && InputCurve )
+            if (ConnectedAssetId != -1 && InputCurve)
             {
                 const TArray< FVector > & CurvePoints = InputCurve->GetCurvePoints();
 
-                FString PositionString = TEXT( "" );
-                FHoudiniEngineUtils::CreatePositionsString( CurvePoints, PositionString );
+                FString PositionString = TEXT("");
+                FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
 
                 // Get param id.
                 HAPI_ParmId ParmId = -1;
-                if ( FHoudiniApi::GetParmIdFromName(
+                if (FHoudiniApi::GetParmIdFromName(
                     FHoudiniEngine::Get().GetSession(), NodeId,
-                    HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId ) == HAPI_RESULT_SUCCESS )
+                    HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) == HAPI_RESULT_SUCCESS)
                 {
-                    std::string ConvertedString = TCHAR_TO_UTF8( *PositionString );
+                    std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
                     FHoudiniApi::SetParmStringValue(
                         FHoudiniEngine::Get().GetSession(), NodeId,
-                        ConvertedString.c_str(), ParmId, 0 );
+                        ConvertedString.c_str(), ParmId, 0);
                 }
             }
 
+            UpdateObjectMergeTransformType();
+
             // Cook the spline node.
-            FHoudiniApi::CookNode( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
-	    
+            FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
+
             // We need to update the curve.
             UpdateInputCurve();
 
@@ -842,42 +849,46 @@ UHoudiniAssetInput::UploadParameterValue()
 
             break;
         }
-
+    
         case EHoudiniAssetInputType::LandscapeInput:
         {
-            if ( InputLandscapeProxy )
+            if ( InputLandscapeProxy == nullptr)
+            {
+                // Either landscape was reset or null landscape has been assigned.
+                DisconnectAndDestroyInputAsset();
+            }
+            else
             {
                 // Disconnect and destroy currently connected asset, if there's one.
                 DisconnectAndDestroyInputAsset();
 
                 // Connect input and create connected asset. Will return by reference.
                 if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
-                    HostAssetId, InputLandscapeProxy,
-                    ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
-                    bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting,
-                    bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs ) )
+                        HostAssetId, InputLandscapeProxy,
+                        ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
+                        bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting,
+                        bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs ) )
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
                     return false;
                 }
-                else
-                {
-                    ConnectInputNode();
-                }
-            }
-            else
-            {
-                // Either landscape was reset or null landscape has been assigned.
-                DisconnectAndDestroyInputAsset();
-            }
 
+                // Connect the inputs and update the transform type
+                ConnectInputNode();
+                UpdateObjectMergeTransformType();
+            }
             break;
         }
 
         case EHoudiniAssetInputType::WorldInput:
         {
-            if ( InputOutlinerMeshArray.Num() > 0 )
+            if ( InputOutlinerMeshArray.Num() <= 0 )
+            {
+                // Either mesh was reset or null mesh has been assigned.
+                DisconnectAndDestroyInputAsset();
+            }
+            else
             {
                 if ( bStaticMeshChanged || bLoadedParameter )
                 {
@@ -898,14 +909,10 @@ UHoudiniAssetInput::UploadParameterValue()
                     }
 
                     bStaticMeshChanged = false;
+
+                    UpdateObjectMergeTransformType();
                 }
             }
-            else
-            {
-                // Either mesh was reset or null mesh has been assigned.
-                DisconnectAndDestroyInputAsset();
-            }
-
             break;
         }
 
@@ -915,10 +922,51 @@ UHoudiniAssetInput::UploadParameterValue()
         }
     }
 
-
     bLoadedParameter = false;
     return Super::UploadParameterValue();
 }
+
+
+bool
+UHoudiniAssetInput::UpdateObjectMergeTransformType()
+{
+    if (HoudiniAssetComponent == nullptr)
+        return false;
+
+    // Curves and Geometry inputs need their objectMerge's TransformType set to NONE
+    // or the results of the asset will have an offset
+    int nTransformType = -1;
+    switch (ChoiceIndex)
+    {
+        case EHoudiniAssetInputType::CurveInput:
+        case EHoudiniAssetInputType::GeometryInput:
+            nTransformType = 0;	// NONE
+            break;
+
+        case EHoudiniAssetInputType::AssetInput:
+        case EHoudiniAssetInputType::LandscapeInput:
+        case EHoudiniAssetInputType::WorldInput:
+            nTransformType = 1;	// INTO THIS OBJECT
+            break;
+    }
+
+    // Get the Input node ID from the host ID
+    HAPI_NodeId InputNodeId = -1;
+    HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::QueryNodeInput(
+        FHoudiniEngine::Get().GetSession(), HostAssetId,
+        InputIndex, &InputNodeId ), false );
+
+    // Change Parameter xformtype
+    std::string sParam = "xformtype";
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), InputNodeId,
+            sParam.c_str(), 0, nTransformType), false);
+    
+    return true;
+}
+
 
 void
 UHoudiniAssetInput::BeginDestroy()
@@ -1424,8 +1472,8 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
     else
     {
         AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *) Actor;
-	if (HoudiniAssetActor == nullptr)
-	    return;
+    if (HoudiniAssetActor == nullptr)
+        return;
 
         UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 
@@ -1785,6 +1833,10 @@ UHoudiniAssetInput::UpdateInputCurve()
             HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
             (CurveClosed == 1));
     }
+    else
+    {
+    InputCurve = nullptr;
+    }
 
     // We also need to construct curve parameters we care about.
     TMap< FString, UHoudiniAssetParameter * > NewInputCurveParameters;
@@ -1794,7 +1846,7 @@ UHoudiniAssetInput::UpdateInputCurve()
     HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
         FHoudiniApi::GetParameters(
             FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[ 0 ], 0, NodeInfo.parmCount ),
-	    false);
+        false);
 
     // Retrieve integer values for this asset.
     TArray< int32 > ParmValueInts;
@@ -1804,7 +1856,7 @@ UHoudiniAssetInput::UpdateInputCurve()
         HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
             FHoudiniApi::GetParmIntValues(
                 FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueInts[ 0 ], 0, NodeInfo.parmIntValueCount ),
-		false );
+        false );
     }
 
     // Retrieve float values for this asset.
@@ -1815,7 +1867,7 @@ UHoudiniAssetInput::UpdateInputCurve()
         HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
             FHoudiniApi::GetParmFloatValues(
                 FHoudiniEngine::Get().GetSession(), NodeId, &ParmValueFloats[ 0 ], 0, NodeInfo.parmFloatValueCount ),
-		false );
+        false );
     }
 
     // Retrieve string values for this asset.
@@ -1826,7 +1878,7 @@ UHoudiniAssetInput::UpdateInputCurve()
         HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
             FHoudiniApi::GetParmStringValues(
                 FHoudiniEngine::Get().GetSession(), NodeId, true, &ParmValueStrings[ 0 ], 0, NodeInfo.parmStringValueCount ),
-		false );
+        false );
     }
 
     // Create properties for parameters.
