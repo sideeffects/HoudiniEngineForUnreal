@@ -653,8 +653,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
             // This geo part is an instancer and has no mesh assigned.
             if ( StaticMesh != nullptr )
             {
-                // We are loading an old map that has static mesh 
-                check( HoudiniGeoPartObject.IsPackedPrimativeInstancer() && HoudiniAssetComponentVersion <= VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP );
+                // We are loading an old map that has static mesh - next cook will remove the static mesh from this part
             }
             FoundInstancers.Add( HoudiniGeoPartObject );
         }
