@@ -235,6 +235,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Create necessary resources for this input. **/
         void CreateWidgetResources();
+        
+        /** Updates the input's Object Merge Transform type  **/
+        bool UpdateObjectMergeTransformType();
 
     protected:
 

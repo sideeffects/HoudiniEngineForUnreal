@@ -1,5 +1,5 @@
 /*
-5 * PROPRIETARY INFORMATION.  This software is proprietary to
+ * PROPRIETARY INFORMATION.  This software is proprietary to
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
  *
@@ -650,6 +650,9 @@ UHoudiniAssetInput::PostEditUndo()
 bool
 UHoudiniAssetInput::UploadParameterValue()
 {
+    if(HoudiniAssetComponent == nulltpr)
+        return false;
+
     HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
 
     switch ( ChoiceIndex )
@@ -674,6 +677,8 @@ UHoudiniAssetInput::UploadParameterValue()
 
                     bStaticMeshChanged = false;
                 }
+                
+                UpdateObjectMergeTransformType();
             }
             else
             {
@@ -691,6 +696,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 && !bInputAssetConnectedInHoudini )
             {
                 ConnectInputAssetActor();
+                UpdateObjectMergeTransformType();
             }
             else if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
             {
@@ -714,7 +720,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 {
                     bChanged = false;
                     return false;
-                }
+                }          
 
                 // Connect asset.
                 FHoudiniEngineUtils::HapiConnectAsset( ConnectedAssetId, 0, HostAssetId, InputIndex );
@@ -740,7 +746,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     }
                 }
             }
-
+            
             // Also upload points.
             HAPI_NodeId NodeId = -1;
             if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) && InputCurve )
@@ -762,6 +768,8 @@ UHoudiniAssetInput::UploadParameterValue()
                         ConvertedString.c_str(), ParmId, 0 );
                 }
             }
+
+            UpdateObjectMergeTransformType();
 
             // Cook the spline asset.
             FHoudiniApi::CookAsset( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
@@ -792,6 +800,8 @@ UHoudiniAssetInput::UploadParameterValue()
                     ConnectedAssetId = -1;
                     return false;
                 }
+
+                UpdateObjectMergeTransformType();
             }
             else
             {
@@ -822,6 +832,9 @@ UHoudiniAssetInput::UploadParameterValue()
 
                     bStaticMeshChanged = false;
                 }
+
+                UpdateObjectMergeTransformType();
+
             }
             else
             {
@@ -837,11 +850,53 @@ UHoudiniAssetInput::UploadParameterValue()
             check( 0 );
         }
     }
+    
 
 
     bLoadedParameter = false;
     return Super::UploadParameterValue();
 }
+
+bool
+UHoudiniAssetInput::UpdateObjectMergeTransformType()
+{
+    if (HoudiniAssetComponent == nullptr)
+        return false;
+
+    // Curves and Geometry inputs need their objectMerge's TransformType set to NONE
+    // or the results of the asset will have an offset
+    int nTransformType = -1;
+    switch (ChoiceIndex)
+    {
+        case EHoudiniAssetInputType::CurveInput:
+        case EHoudiniAssetInputType::GeometryInput:
+            nTransformType = 0;	// NONE
+            break;
+
+        case EHoudiniAssetInputType::AssetInput:
+        case EHoudiniAssetInputType::LandscapeInput:
+        case EHoudiniAssetInputType::WorldInput:
+            nTransformType = 1;	// INTO THIS OBJECT
+            break;
+    }
+
+    // Get the Input node ID from the host ID
+    HAPI_NodeId InputNodeId = -1;
+    HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::QueryNodeInput(
+        FHoudiniEngine::Get().GetSession(), HostAssetId,
+        InputIndex, &InputNodeId ), false );
+
+    // Change Parameter xformtype
+    std::string sParam = "xformtype";
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), InputNodeId,
+            sParam.c_str(), 0, nTransformType), false);
+    
+    return true;
+}
+
 
 void
 UHoudiniAssetInput::BeginDestroy()
@@ -1687,10 +1742,13 @@ UHoudiniAssetInput::UpdateInputCurve()
     TArray< FVector > CurveDisplayPoints;
     FHoudiniEngineUtils::ConvertScaleAndFlipVectorData( RefinedCurvePositions, CurveDisplayPoints );
 
-    InputCurve->Construct(
-        HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
-        ( CurveClosed == 1 ) );
-
+    if (InputCurve != nullptr)
+    {
+        InputCurve->Construct(
+            HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
+            ( CurveClosed == 1 ) );
+    }
+    
     // We also need to construct curve parameters we care about.
     TMap< FString, UHoudiniAssetParameter * > NewInputCurveParameters;
 
