@@ -17,7 +17,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
-#include "HoudiniGeoPartObjectVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniAttributeObject.h"
 
@@ -85,7 +85,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject()
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
-    , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
+    , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(
@@ -115,7 +115,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
-    , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
+    , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(
@@ -146,7 +146,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( PartInfo.type == HAPI_PARTTYPE_VOLUME )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
-    , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
+    , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(
@@ -179,7 +179,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
-    , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
+    , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject( const FHoudiniGeoPartObject & GeoPartObject, bool bCopyLoaded )
@@ -208,7 +208,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject( const FHoudiniGeoPartObject & GeoP
     , bIsVolume( GeoPartObject.bIsVolume )
     , bInstancerAttributeMaterialAvailable( GeoPartObject.bInstancerAttributeMaterialAvailable )
     , bIsPackedPrimitiveInstancer( GeoPartObject.bIsPackedPrimitiveInstancer )
-    , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
+    , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
     if ( bCopyLoaded )
         bIsLoaded = true;
@@ -318,7 +318,7 @@ FHoudiniGeoPartObject::GetTypeHash() const
 void
 FHoudiniGeoPartObject::Serialize( FArchive & Ar )
 {
-    HoudiniGeoPartObjectVersion = VER_HOUDINI_ENGINE_GEOPARTOBJECT_AUTOMATIC_VERSION;
+    HoudiniGeoPartObjectVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniGeoPartObjectVersion;
 
     Ar << TransformMatrix;

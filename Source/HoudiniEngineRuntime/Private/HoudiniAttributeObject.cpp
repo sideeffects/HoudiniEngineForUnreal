@@ -15,7 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAttributeObject.h"
-#include "HoudiniAttributeObjectVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniGeoPartObject.h"
 
 FHoudiniAttributeObject::FHoudiniAttributeObject()
@@ -29,7 +29,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject()
     , GeoId( -1 )
     , PartId( -1 )
     , HoudiniAttributeObjectFlagsPacked( 0u )
-    , HoudiniAttributeObjectVersion( VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE )
+    , HoudiniAttributeObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniAttributeObject::FHoudiniAttributeObject(
@@ -45,7 +45,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(
     , GeoId( HoudiniGeoPartObject.GeoId )
     , PartId( HoudiniGeoPartObject.PartId )
     , HoudiniAttributeObjectFlagsPacked( 0u )
-    , HoudiniAttributeObjectVersion( VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE )
+    , HoudiniAttributeObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniAttributeObject::FHoudiniAttributeObject(
@@ -61,7 +61,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(
     , GeoId( HoudiniGeoPartObject.GeoId )
     , PartId( HoudiniGeoPartObject.PartId )
     , HoudiniAttributeObjectFlagsPacked( 0u )
-    , HoudiniAttributeObjectVersion( VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE )
+    , HoudiniAttributeObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniAttributeObject::FHoudiniAttributeObject(
@@ -77,7 +77,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(
     , GeoId( InGeoId )
     , PartId( InPartId )
     , HoudiniAttributeObjectFlagsPacked( 0u )
-    , HoudiniAttributeObjectVersion( VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE )
+    , HoudiniAttributeObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniAttributeObject::FHoudiniAttributeObject(
@@ -94,7 +94,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(
     , GeoId( InGeoId )
     , PartId( InPartId )
     , HoudiniAttributeObjectFlagsPacked( 0u )
-    , HoudiniAttributeObjectVersion( VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_BASE )
+    , HoudiniAttributeObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniAttributeObject::FHoudiniAttributeObject( const FHoudiniAttributeObject & HoudiniAttributeObject )
@@ -590,7 +590,7 @@ FHoudiniAttributeObject::HapiGetTupleSize() const
 bool
 FHoudiniAttributeObject::Serialize( FArchive & Ar )
 {
-    HoudiniAttributeObjectVersion = VER_HOUDINI_ENGINE_ATTRIBUTEOBJECT_AUTOMATIC_VERSION;
+    HoudiniAttributeObjectVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAttributeObjectVersion;
 
     Ar << HoudiniAttributeObjectFlagsPacked;
