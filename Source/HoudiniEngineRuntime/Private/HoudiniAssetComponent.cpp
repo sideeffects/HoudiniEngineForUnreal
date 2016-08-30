@@ -284,7 +284,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     , bComponentTransformHasChanged( false )
     , bLoadedComponentRequiresInstantiation( false )
     , bIsSharingAssetId( false )
-    , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION )
+    , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
     UObject * Object = ObjectInitializer.GetObj();
     UObject * ObjectOuter = Object->GetOuter();

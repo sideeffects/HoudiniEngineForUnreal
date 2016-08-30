@@ -17,7 +17,18 @@
 
 // Deprecated per-class versions used to load old files
 //
+// Serialization of parameter name map.
 #define VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP 2
+// Serialization of instancer material, if it is available.
+#define VER_HOUDINI_ENGINE_GEOPARTOBJECT_INSTANCER_MATERIAL_NAME 1
+// Serialization of attribute instancer material, if it is available.
+#define VER_HOUDINI_ENGINE_GEOPARTOBJECT_INSTANCER_ATTRIBUTE_MATERIAL_NAME 2
+// Landscape serialization in asset inputs.
+#define VER_HOUDINI_ENGINE_PARAM_LANDSCAPE_INPUT 1
+// Asset instance member.
+#define VER_HOUDINI_ENGINE_PARAM_ASSET_INSTANCE_MEMBER 2
+// World Outliner inputs.
+#define VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT 3
 
 enum EHoudiniPluginSerializationVersion
 {

@@ -15,7 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniMaterialObject.h"
-#include "HoudiniMaterialObjectVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniParameterObject.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
@@ -27,7 +27,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject()
     , NodeId( -1 )
     , MaterialId( -1 )
     , HoudiniMaterialObjectFlagsPacked( 0u )
-    , HoudiniMaterialObjectVersion( VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE )
+    , HoudiniMaterialObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniMaterialObject::FHoudiniMaterialObject( const HAPI_MaterialInfo & MaterialInfo )
@@ -35,7 +35,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject( const HAPI_MaterialInfo & Materi
     , NodeId( MaterialInfo.nodeId )
     , MaterialId( MaterialInfo.id )
     , HoudiniMaterialObjectFlagsPacked( 0u )
-    , HoudiniMaterialObjectVersion( VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE )
+    , HoudiniMaterialObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniMaterialObject::FHoudiniMaterialObject(
@@ -46,7 +46,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject(
     , NodeId( InNodeId )
     , MaterialId( InMaterialId )
     , HoudiniMaterialObjectFlagsPacked( 0u )
-    , HoudiniMaterialObjectVersion( VER_HOUDINI_ENGINE_MATERIALOBJECT_BASE )
+    , HoudiniMaterialObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniMaterialObject::FHoudiniMaterialObject( const FHoudiniMaterialObject & HoudiniMaterialObject )
