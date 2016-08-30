@@ -88,6 +88,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
         /** Return true if this geo part is used for collision and is renderable. **/
         bool IsRenderCollidable() const;
 
+        /** Return true if this geo part object corresponds to a packed primitive instancer **/
+        bool IsPackedPrimativeInstancer() const;
+
         /** Return true if corresponding geometry has changed. **/
         bool HasGeoChanged() const;
 
@@ -612,6 +615,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 
                 /** Is set to true when instancer attribute material is available. **/
                 uint32 bInstancerAttributeMaterialAvailable : 1;
+
+                /** Is set when referenced object contains packed primitive instancing */
+                uint32 bIsPackedPrimitiveInstancer : 1;
             };
 
             uint32 HoudiniGeoPartObjectFlagsPacked;

@@ -84,6 +84,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject()
     , bInstancerMaterialAvailable( false )
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
+    , bIsPackedPrimitiveInstancer( false )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
 {}
 
@@ -113,6 +114,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bInstancerMaterialAvailable( false )
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
+    , bIsPackedPrimitiveInstancer( false )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
 {}
 
@@ -143,6 +145,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bInstancerMaterialAvailable( false )
     , bIsVolume( PartInfo.type == HAPI_PARTTYPE_VOLUME )
     , bInstancerAttributeMaterialAvailable( false )
+    , bIsPackedPrimitiveInstancer( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
 {}
 
@@ -175,6 +178,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bInstancerMaterialAvailable( false )
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
+    , bIsPackedPrimitiveInstancer( false )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
 {}
 
@@ -203,6 +207,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject( const FHoudiniGeoPartObject & GeoP
     , bInstancerMaterialAvailable( GeoPartObject.bInstancerMaterialAvailable )
     , bIsVolume( GeoPartObject.bIsVolume )
     , bInstancerAttributeMaterialAvailable( GeoPartObject.bInstancerAttributeMaterialAvailable )
+    , bIsPackedPrimitiveInstancer( GeoPartObject.bIsPackedPrimitiveInstancer )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_ENGINE_GEOPARTOBJECT_BASE )
 {
     if ( bCopyLoaded )
@@ -374,6 +379,11 @@ FHoudiniGeoPartObject::HasParameters( HAPI_AssetId InAssetId ) const
     FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
 
     return NodeInfo.parmCount > 0;
+}
+
+bool FHoudiniGeoPartObject::IsPackedPrimativeInstancer() const
+{
+    return bIsPackedPrimitiveInstancer;
 }
 
 bool
