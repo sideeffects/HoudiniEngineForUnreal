@@ -28,6 +28,7 @@ UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer
     , ObjectToInstanceId( -1 )
     , bIsAttributeInstancer( false )
     , bAttributeInstancerOverride( false )
+    , bIsPackedPrimitiveInstancer( false )
 {
     TupleSize = 0;
 }
@@ -50,6 +51,8 @@ UHoudiniAssetInstanceInput::Create(
     // Get object to be instanced.
     HAPI_ObjectId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
+    bool bIsPackedPrimitiveInstancer = InHoudiniGeoPartObject.IsPackedPrimativeInstancer();
+
     // If this is an attribute instancer, see if attribute exists.
     bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
         HAPI_UNREAL_ATTRIB_INSTANCE,
@@ -66,7 +69,7 @@ UHoudiniAssetInstanceInput::Create(
             HAPI_ATTROWNER_POINT );
 
     // This is invalid combination, no object to instance and input is not an attribute instancer.
-    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 )
+    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 && !bIsPackedPrimitiveInstancer )
         return HoudiniAssetInstanceInput;
 
     HoudiniAssetInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
@@ -84,6 +87,7 @@ UHoudiniAssetInstanceInput::Create(
 
     // Check if this instancer is an attribute override instancer.
     HoudiniAssetInstanceInput->bAttributeInstancerOverride = bAttributeOverrideCheck;
+    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = bIsPackedPrimitiveInstancer;
 
     return HoudiniAssetInstanceInput;
 }
@@ -119,6 +123,7 @@ UHoudiniAssetInstanceInput::Create(
     HoudiniAssetInstanceInput->ObjectToInstanceId = InstanceInput->ObjectToInstanceId;
     HoudiniAssetInstanceInput->bIsAttributeInstancer = InstanceInput->bIsAttributeInstancer;
     HoudiniAssetInstanceInput->bAttributeInstancerOverride = InstanceInput->bAttributeInstancerOverride;
+    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = InstanceInput->bIsPackedPrimitiveInstancer;
 
     return HoudiniAssetInstanceInput;
 }
@@ -138,7 +143,69 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
     // List of new fields. Reused input fields will also be placed here.
     TArray< UHoudiniAssetInstanceInputField * > NewInstanceInputFields;
 
-    if ( bIsAttributeInstancer )
+    if ( bIsPackedPrimitiveInstancer )
+    {
+        // This is using packed primitives
+        HAPI_PartInfo PartInfo;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetPartInfo(
+            FHoudiniEngine::Get().GetSession(), AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId,
+            &PartInfo ), false );
+
+        // Retrieve part name.
+        FString PartName;
+        FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
+        HoudiniEngineStringPartName.ToFString( PartName );
+
+        HOUDINI_LOG_MESSAGE(
+            TEXT( "Part Instancer (%s): IPC=%d, IC=%d" ), *PartName, PartInfo.instancedPartCount, PartInfo.instanceCount );
+
+        // Get transforms for each instance
+        TArray<HAPI_Transform> InstancerPartTransforms;
+        InstancerPartTransforms.SetNumZeroed( PartInfo.instanceCount );
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstancerPartTransforms(
+            FHoudiniEngine::Get().GetSession(), AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, PartInfo.id,
+            HAPI_RSTORDER_DEFAULT, InstancerPartTransforms.GetData(), 0, PartInfo.instanceCount ), false );
+
+        // Get the part ids for parts being instanced
+        TArray<HAPI_PartId> InstancedPartIds;
+        InstancedPartIds.SetNumZeroed( PartInfo.instancedPartCount );
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstancedPartIds(
+            FHoudiniEngine::Get().GetSession(), AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, PartInfo.id,
+            InstancedPartIds.GetData(), 0, PartInfo.instancedPartCount ), false );
+
+        for ( auto InstancedPartId : InstancedPartIds )
+        {
+            HAPI_PartInfo InstancedPartInfo;
+            HOUDINI_CHECK_ERROR_RETURN(
+                FHoudiniApi::GetPartInfo(
+                    FHoudiniEngine::Get().GetSession(), AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, InstancedPartId,
+                    &InstancedPartInfo ), false );
+
+            TArray<FTransform> ObjectTransforms;
+            ObjectTransforms.SetNumUninitialized( InstancerPartTransforms.Num() );
+            for ( int32 InstanceIdx = 0; InstanceIdx < InstancerPartTransforms.Num(); ++InstanceIdx )
+            {
+                const auto& InstanceTransform = InstancerPartTransforms[InstanceIdx];
+                FHoudiniEngineUtils::TranslateHapiTransform( InstanceTransform, ObjectTransforms[InstanceIdx] );
+                //HOUDINI_LOG_MESSAGE( TEXT( "Instance %d:%d Transform: %s for Part Id %d" ), HoudiniGeoPartObject.PartId, InstanceIdx, *ObjectTransforms[ InstanceIdx ].ToString(), InstancedPartId );
+            }
+
+            // find static mesh for this instancer
+            if (UStaticMesh* FoundStaticMesh = HoudiniAssetComponent->LocateStaticMesh( 
+                HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.GeoId, InstancedPartId ))
+            {
+                CreateInstanceInputField( FoundStaticMesh, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
+            }
+            else
+            {
+                // TODO: No static mesh for this part id
+                HOUDINI_LOG_WARNING(
+                    TEXT( "Could not find static mesh for part id %d" ), InstancedPartId );
+            }
+        }
+    }
+    else if ( bIsAttributeInstancer )
     {
         HAPI_AttributeInfo ResultAttributeInfo;
         TArray< FString > PointInstanceValues;

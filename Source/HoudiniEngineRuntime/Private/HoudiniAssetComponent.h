@@ -251,6 +251,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** Locate static mesh for a given geo part. **/
         UStaticMesh * LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject ) const;
 
+        /** Locate static mesh for a given PartId */
+        UStaticMesh * LocateStaticMesh( HAPI_AssetId AssetId, HAPI_GeoId GeoId, HAPI_PartId PartId ) const;
+
         /** Locate static mesh component for given static mesh. **/
         UStaticMeshComponent * LocateStaticMeshComponent( UStaticMesh * StaticMesh ) const;
 
@@ -528,8 +531,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** Inputs for this component's asset. **/
         TArray< UHoudiniAssetInput * > Inputs;
 
-        /** Instance inputs for this component's asset. Object id is used as key. **/
-        TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * > InstanceInputs;
+        /** Instance inputs for this component's asset **/
+        TArray< UHoudiniAssetInstanceInput * > InstanceInputs;
 
         /** List of dependent downstream asset connections that have this asset as an asset input. **/
         TMap< UHoudiniAssetComponent * , TSet< int32 > > DownstreamAssetConnections;

@@ -288,6 +288,7 @@ FHoudiniEngine::StartupModule()
             CookOptions.maxVerticesPerPrimitive = 3;
             CookOptions.splitGeosByGroup = false;
             CookOptions.refineCurveToLinear = true;
+            CookOptions.packedPrimInstancingMode = HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT;
 
             HAPI_Result Result = FHoudiniApi::Initialize( SessionPtr, &CookOptions, true, -1, "", "", "", "" );
             if ( Result == HAPI_RESULT_SUCCESS )

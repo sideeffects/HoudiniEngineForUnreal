@@ -74,7 +74,6 @@ UHoudiniAssetInstanceInputField::Create(
 
     InputField->HoudiniGeoPartObject = OtherInputField->HoudiniGeoPartObject;
     InputField->HoudiniAssetComponent = InHoudiniAssetComponent;
-    InputField->HoudiniAssetInstanceInput = InputField->HoudiniAssetInstanceInput;
     InputField->InstancePathName = OtherInputField->InstancePathName;
     InputField->RotationOffsets = OtherInputField->RotationOffsets;
     InputField->ScaleOffsets = OtherInputField->ScaleOffsets;

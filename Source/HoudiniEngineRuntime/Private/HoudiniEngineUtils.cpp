@@ -3257,6 +3257,23 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
                 HoudiniEngineStringPartName.ToFString( PartName );
 
+                if (PartInfo.type == HAPI_PARTTYPE_INSTANCER)
+                {
+                    // This is a Packed Primitive instancer
+                    FHoudiniGeoPartObject HoudiniGeoPartObject(
+                        TransformMatrix, ObjectName, PartName, AssetId,
+                        ObjectInfo.id, GeoInfo.id, PartInfo.id );
+                    HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
+                    HoudiniGeoPartObject.bIsInstancer = false;
+                    HoudiniGeoPartObject.bIsCurve = false;
+                    HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
+                    HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
+                    HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = true;
+                    StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
+                    continue;
+                }
+
+
                 // Get name of attribute used for marshalling generated mesh name.
                 HAPI_AttributeInfo AttribGeneratedMeshName;
                 TArray< FString > GeneratedMeshNames;
@@ -3345,7 +3362,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     TransformMatrix, ObjectName, PartName, AssetId,
                     ObjectInfo.id, GeoInfo.id, PartInfo.id );
 
-                HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
+                HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !PartInfo.isInstanced;
                 HoudiniGeoPartObject.bIsInstancer = ObjectInfo.isInstancer;
                 HoudiniGeoPartObject.bIsCurve = ( PartInfo.type == HAPI_PARTTYPE_CURVE );
                 HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
@@ -7445,7 +7462,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
-    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() )
+    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() || !HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
     {
         // Create package for this duplicated mesh.
         FString MeshName;

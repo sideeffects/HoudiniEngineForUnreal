@@ -21,7 +21,6 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetInput.h"
-#include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterButton.h"
 #include "HoudiniAssetParameterChoice.h"
@@ -43,7 +42,7 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponentMaterials.h"
-#include "HoudiniAssetComponentVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 
 #if WITH_EDITOR
@@ -284,7 +283,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     , bComponentTransformHasChanged( false )
     , bLoadedComponentRequiresInstantiation( false )
     , bIsSharingAssetId( false )
-    , HoudiniAssetComponentVersion( VER_HOUDINI_ENGINE_COMPONENT_BASE )
+    , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION )
 {
     UObject * Object = ObjectInitializer.GetObj();
     UObject * ObjectOuter = Object->GetOuter();
@@ -359,11 +358,9 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
         }
 
         // Add references to all instance inputs.
-        for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator
-            Iter( HoudiniAssetComponent->InstanceInputs ); Iter; ++Iter )
+        for ( auto& InstanceInput : HoudiniAssetComponent->InstanceInputs)
         {
-            UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = Iter.Value();
-            Collector.AddReferencedObject( HoudiniAssetInstanceInput, InThis );
+            Collector.AddReferencedObject( InstanceInput, InThis );
         }
 
         // Add references to all handles.
@@ -650,10 +647,14 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
         UStaticMesh * StaticMesh = Iter.Value();
 
-        if ( HoudiniGeoPartObject.IsInstancer() )
+        if ( HoudiniGeoPartObject.IsInstancer() || HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
         {
             // This geo part is an instancer and has no mesh assigned.
-            check( !StaticMesh );
+            if ( StaticMesh != nullptr )
+            {
+                // We are loading an old map that has static mesh 
+                check( HoudiniGeoPartObject.IsPackedPrimativeInstancer() && HoudiniAssetComponentVersion <= VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP );
+            }
             FoundInstancers.Add( HoudiniGeoPartObject );
         }
         else if ( HoudiniGeoPartObject.IsCurve() )
@@ -2062,11 +2063,10 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
                 }
             }
 
-            for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator Iter( InstanceInputs ); Iter; ++Iter )
+            for ( auto& InstanceInput : InstanceInputs )
             {
-                UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = Iter.Value();
-                if ( HoudiniAssetInstanceInput )
-                    HoudiniAssetInstanceInput->GetMaterialReplacementMeshes( Material, MaterialReplacementsMap );
+                if ( InstanceInput )
+                    InstanceInput->GetMaterialReplacementMeshes( Material, MaterialReplacementsMap );
             }
 
             if ( MaterialReplacementsMap.Num() > 0 )
@@ -2329,15 +2329,13 @@ UHoudiniAssetComponent::OnRegister()
         }
 
         // Instanced static meshes.
-        for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator Iter( InstanceInputs ); Iter; ++Iter )
+        for ( auto& InstanceInput : InstanceInputs )
         {
-            UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = Iter.Value();
-
-            // Recreate render state.
-            HoudiniAssetInstanceInput->RecreateRenderStates();
+             // Recreate render state.
+            InstanceInput->RecreateRenderStates();
 
             // Recreate physics state.
-            HoudiniAssetInstanceInput->RecreatePhysicsStates();
+            InstanceInput->RecreatePhysicsStates();
         }
     }
 }
@@ -2474,7 +2472,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     }
 
     // Serialize format version.
-    HoudiniAssetComponentVersion = VER_HOUDINI_ENGINE_COMPONENT_AUTOMATIC_VERSION;
+    HoudiniAssetComponentVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetComponentVersion;
 
     // Serialize component state.
@@ -2727,13 +2725,10 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 
     // Duplicate instanced static mesh components.
     {
-        for( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator
-            IterInstanceInputs( InstanceInputs ); IterInstanceInputs; ++IterInstanceInputs )
+        for( auto& InstanceInput : InstanceInputs )
         {
-            UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = IterInstanceInputs.Value();
-
-            if ( HoudiniAssetInstanceInput )
-                HoudiniAssetInstanceInput->CloneComponentsAndAttachToActor( Actor );
+            if ( InstanceInput )
+                InstanceInput->CloneComponentsAndAttachToActor( Actor );
         }
     }
 
@@ -3501,46 +3496,24 @@ UHoudiniAssetComponent::UploadLoadedCurves()
 void
 UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObject > & Instancers )
 {
-    TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * > NewInstanceInputs;
+    ClearInstanceInputs();
 
     for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter( Instancers ); Iter; ++Iter )
     {
-        const FHoudiniGeoPartObject & HoudiniGeoPartObject = *Iter;
-
-        // Check if this instance input already exists.
-        UHoudiniAssetInstanceInput * const * FoundHoudiniAssetInstanceInput =
-            InstanceInputs.Find( HoudiniGeoPartObject.ObjectId );
-        UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = nullptr;
-
-        if ( FoundHoudiniAssetInstanceInput )
+        if ( UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create( this, *Iter ) )
         {
-            // Input already exists, we can reuse it.
-            HoudiniAssetInstanceInput = *FoundHoudiniAssetInstanceInput;
+            // Add input
+            InstanceInputs.Add( HoudiniAssetInstanceInput );
 
-            // Remove it from old map.
-            InstanceInputs.Remove( HoudiniGeoPartObject.ObjectId );
+            // Create or re-create this input.
+            HoudiniAssetInstanceInput->CreateInstanceInput();
         }
         else
         {
-            // Otherwise we need to create new instance input.
-            HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create( this, HoudiniGeoPartObject );
-        }
-
-        if ( !HoudiniAssetInstanceInput )
-        {
             // Invalid instance input.
-            continue;
+            HOUDINI_LOG_WARNING( TEXT( "Inavlid Instance Input" ) );
         }
-
-        // Add input to new map.
-        NewInstanceInputs.Add( HoudiniGeoPartObject.ObjectId, HoudiniAssetInstanceInput );
-
-        // Create or re-create this input.
-        HoudiniAssetInstanceInput->CreateInstanceInput();
     }
-
-    ClearInstanceInputs();
-    InstanceInputs = NewInstanceInputs;
 }
 
 void
@@ -3617,21 +3590,17 @@ UHoudiniAssetComponent::DuplicateInputs( UHoudiniAssetComponent * DuplicatedHoud
 void
 UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent )
 {
-    TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * > & InInstanceInputs = DuplicatedHoudiniComponent->InstanceInputs;
+    auto& InInstanceInputs = DuplicatedHoudiniComponent->InstanceInputs;
 
-    for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator
-        IterInstanceInputs( InstanceInputs ); IterInstanceInputs; ++IterInstanceInputs )
+    for ( auto& HoudiniAssetInstanceInput : InstanceInputs )
     {
-        HAPI_ObjectId HoudiniInstanceInputKey = IterInstanceInputs.Key();
-        UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = IterInstanceInputs.Value();
-
         UHoudiniAssetInstanceInput * DuplicatedHoudiniAssetInstanceInput =
             UHoudiniAssetInstanceInput::Create( DuplicatedHoudiniComponent, HoudiniAssetInstanceInput );
 
         // PIE does not like standalone flags.
         DuplicatedHoudiniAssetInstanceInput->ClearFlags( RF_Standalone );
 
-        InInstanceInputs.Add( HoudiniInstanceInputKey, DuplicatedHoudiniAssetInstanceInput );
+        InInstanceInputs.Add( DuplicatedHoudiniAssetInstanceInput );
     }
 }
 
@@ -3640,11 +3609,9 @@ UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * Duplic
 void
 UHoudiniAssetComponent::ClearInstanceInputs()
 {
-    for ( TMap<HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator
-        IterInstanceInputs( InstanceInputs ); IterInstanceInputs; ++IterInstanceInputs )
+    for ( auto& InstanceInput : InstanceInputs )
     {
-        UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = IterInstanceInputs.Value();
-        HoudiniAssetInstanceInput->ConditionalBeginDestroy();
+        InstanceInput->ConditionalBeginDestroy();
     }
 
     InstanceInputs.Empty();
@@ -3742,6 +3709,20 @@ UHoudiniAssetComponent::LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniG
     return StaticMesh;
 }
 
+UStaticMesh * 
+UHoudiniAssetComponent::LocateStaticMesh( HAPI_AssetId AssetId, HAPI_GeoId GeoId, HAPI_PartId PartId ) const
+{
+    for ( const auto& Iter : StaticMeshes )
+    {
+        const FHoudiniGeoPartObject& IterGeoPart = Iter.Key;
+        if ( IterGeoPart.AssetId == AssetId && IterGeoPart.GeoId == GeoId && IterGeoPart.PartId == PartId )
+        {
+            return Iter.Value;
+        }
+    }
+    return nullptr;
+}
+
 UStaticMeshComponent *
 UHoudiniAssetComponent::LocateStaticMeshComponent( UStaticMesh * StaticMesh ) const
 {
@@ -3763,11 +3744,10 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
 
     bool bResult = false;
 
-    for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator Iter( InstanceInputs ); Iter; ++Iter )
+    for ( auto& InstanceInput : InstanceInputs )
     {
-        UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = Iter.Value();
-        if ( HoudiniAssetInstanceInput )
-            bResult |= HoudiniAssetInstanceInput->CollectAllInstancedStaticMeshComponents( Components, StaticMesh );
+        if ( InstanceInput )
+            bResult |= InstanceInput->CollectAllInstancedStaticMeshComponents( Components, StaticMesh );
     }
 
     return bResult;
@@ -3804,49 +3784,40 @@ void
 UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
 {
     if ( Ar.IsLoading() )
+    {
         ClearInstanceInputs();
-
-    // Serialize number of instance inputs.
-    int32 InstanceInputCount = InstanceInputs.Num();
-    Ar << InstanceInputCount;
-
-    if ( Ar.IsSaving() )
-    {
-        for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator
-            IterInstanceInputs( InstanceInputs ); IterInstanceInputs; ++IterInstanceInputs )
+        if ( HoudiniAssetComponentVersion > VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP )
         {
-            HAPI_ObjectId HoudiniInstanceInputKey = IterInstanceInputs.Key();
-            UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = IterInstanceInputs.Value();
-
-            Ar << HoudiniInstanceInputKey;
-            Ar << HoudiniAssetInstanceInput;
+            Ar << InstanceInputs;
         }
-    }
-    else if ( Ar.IsLoading() )
-    {
-        for ( int32 InstanceInputIdx = 0; InstanceInputIdx < InstanceInputCount; ++InstanceInputIdx )
+        else
         {
-            HAPI_ObjectId HoudiniInstanceInputKey = -1;
-            UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = nullptr;
+            int32 InstanceInputCount = 0;
+            Ar << InstanceInputCount;
 
-            Ar << HoudiniInstanceInputKey;
-            Ar << HoudiniAssetInstanceInput;
+            InstanceInputs.SetNumUninitialized( InstanceInputCount );
 
-            HoudiniAssetInstanceInput->SetHoudiniAssetComponent( this );
-            InstanceInputs.Add(HoudiniInstanceInputKey, HoudiniAssetInstanceInput);
+            for ( int32 InstanceInputIdx = 0; InstanceInputIdx < InstanceInputCount; ++InstanceInputIdx )
+            {
+                HAPI_ObjectId HoudiniInstanceInputKey = -1;
+
+                Ar << HoudiniInstanceInputKey;
+                Ar << InstanceInputs[ InstanceInputIdx ];
+            }
         }
+    } 
+    else
+    {
+        Ar << InstanceInputs;
     }
 }
 
 void
 UHoudiniAssetComponent::PostLoadInitializeInstanceInputs()
 {
-    for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator
-        IterInstanceInputs( InstanceInputs ); IterInstanceInputs; ++IterInstanceInputs )
+    for ( auto& InstanceInput : InstanceInputs )
     {
-        UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = IterInstanceInputs.Value();
-        HoudiniAssetInstanceInput->SetHoudiniAssetComponent( this );
-
+        InstanceInput->SetHoudiniAssetComponent( this );
     }
 }
 

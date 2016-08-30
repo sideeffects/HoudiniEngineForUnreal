@@ -156,13 +156,11 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
             IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
         {
             UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
-            for ( TMap< HAPI_ObjectId, UHoudiniAssetInstanceInput * >::TIterator
-                IterInstancedInputs( HoudiniAssetComponent->InstanceInputs ); IterInstancedInputs; ++IterInstancedInputs )
+            for ( auto& InstanceInput : HoudiniAssetComponent->InstanceInputs )
             {
-                UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = IterInstancedInputs.Value();
-                if ( HoudiniAssetInstanceInput )
+                if ( InstanceInput )
                 {
-                    HoudiniAssetInstanceInput->CreateWidget( DetailCategoryBuilder );
+                    InstanceInput->CreateWidget( DetailCategoryBuilder );
                 }
             }
         }
@@ -869,15 +867,7 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
         {
             FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
             UStaticMesh * StaticMesh = Iter.Value();
-
-            UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
-
-            if ( OutStaticMesh )
-            {
-                // Notify asset registry that we have created assets. This should update the content browser.
-                FAssetRegistryModule::AssetCreated( OutStaticMesh );
-            }
+            (void) OnBakeStaticMesh( StaticMesh, HoudiniAssetComponent );
         }
     }
 
