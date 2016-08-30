@@ -3720,12 +3720,12 @@ UHoudiniAssetComponent::LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniG
 }
 
 UStaticMesh * 
-UHoudiniAssetComponent::LocateStaticMesh( HAPI_AssetId AssetId, HAPI_GeoId GeoId, HAPI_PartId PartId ) const
+UHoudiniAssetComponent::LocateStaticMesh( HAPI_AssetId InAssetId, HAPI_GeoId GeoId, HAPI_PartId PartId ) const
 {
     for ( const auto& Iter : StaticMeshes )
     {
         const FHoudiniGeoPartObject& IterGeoPart = Iter.Key;
-        if ( IterGeoPart.AssetId == AssetId && IterGeoPart.GeoId == GeoId && IterGeoPart.PartId == PartId )
+        if ( IterGeoPart.AssetId == InAssetId && IterGeoPart.GeoId == GeoId && IterGeoPart.PartId == PartId )
         {
             return Iter.Value;
         }
