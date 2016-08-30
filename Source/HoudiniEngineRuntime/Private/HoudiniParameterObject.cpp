@@ -15,7 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniParameterObject.h"
-#include "HoudiniParameterObjectVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
 
@@ -47,21 +47,21 @@ FHoudiniParameterObject::FHoudiniParameterObject()
     : ParmId( -1 )
     , NodeId( -1 )
     , HoudiniParameterObjectFlagsPacked( 0u )
-    , HoudiniParameterObjectVersion( VER_HOUDINI_ENGINE_PARAMETEROBJECT_BASE )
+    , HoudiniParameterObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniParameterObject::FHoudiniParameterObject( HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
     : ParmId( ParmInfo.id )
     , NodeId( InNodeId )
     , HoudiniParameterObjectFlagsPacked( 0u )
-    , HoudiniParameterObjectVersion( VER_HOUDINI_ENGINE_PARAMETEROBJECT_BASE )
+    , HoudiniParameterObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniParameterObject::FHoudiniParameterObject( HAPI_NodeId InNodeId, HAPI_ParmId InParmId )
     : ParmId( InParmId )
     , NodeId( InNodeId )
     , HoudiniParameterObjectFlagsPacked( 0u )
-    , HoudiniParameterObjectVersion( VER_HOUDINI_ENGINE_PARAMETEROBJECT_BASE )
+    , HoudiniParameterObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniParameterObject::FHoudiniParameterObject( const FHoudiniParameterObject & HoudiniParameterObject )
@@ -675,7 +675,7 @@ FHoudiniParameterObject::HapiIsChildOfMultiParm() const
 void
 FHoudiniParameterObject::Serialize( FArchive & Ar )
 {
-    HoudiniParameterObjectVersion = VER_HOUDINI_ENGINE_PARAMETEROBJECT_AUTOMATIC_VERSION;
+    HoudiniParameterObjectVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniParameterObjectVersion;
 
     Ar << HoudiniParameterObjectFlagsPacked;

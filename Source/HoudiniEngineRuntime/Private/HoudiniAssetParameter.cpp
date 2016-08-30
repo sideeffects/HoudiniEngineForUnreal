@@ -21,7 +21,7 @@
 #include "HoudiniAssetParameterMultiparm.h"
 #include "HoudiniApi.h"
 #include "HoudiniAssetInstance.h"
-#include "HoudiniAssetParameterVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 
 uint32
@@ -55,7 +55,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter( const FObjectInitializer & Objec
     , bSliderDragged( false )
     , bIsChildOfMultiparm( false )
     , bIsSubstanceParameter( false )
-    , HoudiniAssetParameterVersion( VER_HOUDINI_ENGINE_PARAM_BASE )
+    , HoudiniAssetParameterVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
     ParameterName = TEXT( "" );
     ParameterLabel = TEXT( "" );
@@ -293,7 +293,7 @@ UHoudiniAssetParameter::Serialize( FArchive & Ar )
     // Call base implementation.
     Super::Serialize( Ar );
 
-    HoudiniAssetParameterVersion = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION;
+    HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE;
     Ar << HoudiniAssetParameterVersion;
 
     Ar << HoudiniAssetParameterFlagsPacked;

@@ -15,12 +15,12 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniInputObject.h"
-#include "HoudiniInputObjectVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 
 FHoudiniInputObject::FHoudiniInputObject( int32 InInputIndex )
     : InputIndex( InInputIndex )
     , HoudiniInputObjectFlagsPacked( 0u )
-    , HoudiniInputObjectVersion( VER_HOUDINI_ENGINE_INPUTOBJECT_BASE )
+    , HoudiniInputObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniInputObject::FHoudiniInputObject( const FHoudiniInputObject & HoudiniInputObject )

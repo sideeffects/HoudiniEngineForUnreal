@@ -15,7 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRawMesh.h"
-#include "HoudiniRawMeshVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniGeoPartObject.h"
 
 FHoudiniRawMesh::FHoudiniRawMesh(
@@ -28,7 +28,7 @@ FHoudiniRawMesh::FHoudiniRawMesh(
     , GeoId( InGeoId )
     , PartId( InPartId )
     , HoudiniRawMeshFlagsPacked( 0u )
-    , HoudiniRawMeshVersion( VER_HOUDINI_ENGINE_RAWMESH_BASE )
+    , HoudiniRawMeshVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniRawMesh::FHoudiniRawMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject )
@@ -37,7 +37,7 @@ FHoudiniRawMesh::FHoudiniRawMesh( const FHoudiniGeoPartObject & HoudiniGeoPartOb
     , GeoId( HoudiniGeoPartObject.GeoId )
     , PartId( HoudiniGeoPartObject.PartId )
     , HoudiniRawMeshFlagsPacked( 0u )
-    , HoudiniRawMeshVersion( VER_HOUDINI_ENGINE_RAWMESH_BASE )
+    , HoudiniRawMeshVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniRawMesh::FHoudiniRawMesh( HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject & HoudiniGeoPartObject )
@@ -46,7 +46,7 @@ FHoudiniRawMesh::FHoudiniRawMesh( HAPI_AssetId OtherAssetId, FHoudiniGeoPartObje
     , GeoId( HoudiniGeoPartObject.GeoId )
     , PartId( HoudiniGeoPartObject.PartId )
     , HoudiniRawMeshFlagsPacked( 0u )
-    , HoudiniRawMeshVersion( VER_HOUDINI_ENGINE_RAWMESH_BASE )
+    , HoudiniRawMeshVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 FHoudiniRawMesh::FHoudiniRawMesh( const FHoudiniRawMesh & HoudiniRawMesh )
@@ -67,7 +67,7 @@ FHoudiniRawMesh::BuildRawMesh( FRawMesh & RawMesh, bool bFullRebuild ) const
 bool
 FHoudiniRawMesh::Serialize( FArchive & Ar )
 {
-    HoudiniRawMeshVersion = VER_HOUDINI_ENGINE_RAWMESH_AUTOMATIC_VERSION;
+    HoudiniRawMeshVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniRawMeshVersion;
 
     Ar << HoudiniRawMeshFlagsPacked;

@@ -25,13 +25,13 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniApi.h"
-#include "HoudiniAssetParameterVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 
 void
 FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 {
-    HoudiniAssetParameterVersion = VER_HOUDINI_ENGINE_PARAM_AUTOMATIC_VERSION;
+    HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
 
     Ar << Actor;

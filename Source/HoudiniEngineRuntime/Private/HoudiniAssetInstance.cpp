@@ -15,7 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetInstance.h"
-#include "HoudiniAssetInstanceVersion.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetParameter2.h"
@@ -29,7 +29,7 @@ UHoudiniAssetInstance::UHoudiniAssetInstance( const FObjectInitializer & ObjectI
     , bIsAssetBeingAsyncInstantiatedOrCooked( false )
     , Transform( FTransform::Identity )
     , HoudiniAssetInstanceFlagsPacked( 0u )
-    , HoudiniAssetInstanceVersion( VER_HOUDINI_ENGINE_ASSETINSTANCE_BASE )
+    , HoudiniAssetInstanceVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 UHoudiniAssetInstance::~UHoudiniAssetInstance()
@@ -97,7 +97,7 @@ UHoudiniAssetInstance::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
-    HoudiniAssetInstanceVersion = VER_HOUDINI_ENGINE_ASSETINSTANCE_AUTOMATIC_VERSION;
+    HoudiniAssetInstanceVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetInstanceVersion;
 
     Ar << HoudiniAssetInstanceFlagsPacked;

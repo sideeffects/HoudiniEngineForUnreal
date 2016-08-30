@@ -15,7 +15,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetParameter2.h"
-#include "HoudiniAssetParameter2Version.h"
+#include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniAssetInstance.h"
 
 uint32
@@ -47,7 +47,7 @@ UHoudiniAssetParameter2::UHoudiniAssetParameter2( const FObjectInitializer & Obj
     , bSliderDragged( false )
     , bIsChildOfMultiparm( false )
     , bIsSubstanceParameter( false )
-    , HoudiniAssetParameterVersion( VER_HOUDINI_ENGINE_PARAM2_BASE )
+    , HoudiniAssetParameterVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
 UHoudiniAssetParameter2::~UHoudiniAssetParameter2()
@@ -89,7 +89,7 @@ UHoudiniAssetParameter2::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
-    HoudiniAssetParameterVersion = VER_HOUDINI_ENGINE_PARAM2_AUTOMATIC_VERSION;
+    HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
 
     Ar << HoudiniAssetParameterFlagsPacked;
