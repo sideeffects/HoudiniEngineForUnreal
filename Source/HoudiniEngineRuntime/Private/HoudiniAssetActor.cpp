@@ -99,39 +99,37 @@ AHoudiniAssetActor::Tick( float DeltaSeconds )
 bool
 AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel )
 {
-    if ( ActorPropString )
-    {
-        // Locate actor which is being copied in clipboard string.
-        AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor( *ActorPropString );
+    if (ActorPropString == nullptr)
+        return false;
 
-        // We no longer need clipboard string and can empty it. This seems to avoid occasional crash bug in UE4 which
-        // happens on copy / paste.
-        ActorPropString->Empty();
+    // Locate actor which is being copied in clipboard string.
+    AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor( *ActorPropString );
 
-        if ( CopiedActor )
-        {
-            // Get Houdini component of an actor which is being copied.
-            UHoudiniAssetComponent * CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
-            if ( CopiedActorHoudiniAssetComponent )
-            {
-                HoudiniAssetComponent->OnComponentClipboardCopy( CopiedActorHoudiniAssetComponent );
+    // We no longer need clipboard string and can empty it. This seems to avoid occasional crash bug in UE4 which
+    // happens on copy / paste.
+    ActorPropString->Empty();
 
-                // If actor is copied through moving, we need to copy main transform.
-                const FTransform & ComponentWorldTransform = CopiedActorHoudiniAssetComponent->GetComponentTransform();
-                    HoudiniAssetComponent->SetWorldLocationAndRotation(
-                        ComponentWorldTransform.GetLocation(),
-                        ComponentWorldTransform.GetRotation() );
+    if (CopiedActor == nullptr)
+        return false;
 
-                // We also need to copy actor label.
-                const FString & CopiedActorLabel = CopiedActor->GetActorLabel();
-                FActorLabelUtilities::SetActorLabelUnique( this, CopiedActorLabel );
+    // Get Houdini component of an actor which is being copied.
+    UHoudiniAssetComponent * CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
+    if (CopiedActorHoudiniAssetComponent == nullptr)
+        return false;
 
-                return true;
-            }
-        }
-    }
+    HoudiniAssetComponent->OnComponentClipboardCopy( CopiedActorHoudiniAssetComponent );
 
-    return false;
+    // If actor is copied through moving, we need to copy main transform.
+    const FTransform & ComponentWorldTransform = CopiedActorHoudiniAssetComponent->GetComponentTransform();
+        HoudiniAssetComponent->SetWorldLocationAndRotation(
+            ComponentWorldTransform.GetLocation(),
+            ComponentWorldTransform.GetRotation() );
+
+    // We also need to copy actor label.
+    const FString & CopiedActorLabel = CopiedActor->GetActorLabel();
+    FActorLabelUtilities::SetActorLabelUnique( this, CopiedActorLabel );
+
+    return true;
 }
 
 bool

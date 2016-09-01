@@ -150,6 +150,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Invalidate all connected node ids */
         void InvalidateNodeIds();
 
+        /** Duplicates the data from the input curve properly **/
+        void DuplicateCurves(UHoudiniAssetInput * OriginalInput);
+
     protected:
 
 #if WITH_EDITOR

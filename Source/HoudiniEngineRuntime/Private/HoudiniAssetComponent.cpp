@@ -1932,207 +1932,207 @@ UHoudiniAssetComponent::OnPIEEventEnd( const bool bIsSimulating )
 void
 UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object )
 {
-    if ( bComponentCopyImported && CopiedHoudiniComponent )
+    if (!bComponentCopyImported || (CopiedHoudiniComponent == nullptr))
+        return;
+
+    // Show busy cursor.
+    FScopedBusyCursor ScopedBusyCursor;
+
+    // Get original asset id.
+    HAPI_AssetId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
+
+    // Set Houdini asset.
+    HoudiniAsset = CopiedHoudiniComponent->HoudiniAsset;
+
+    // Copy preset buffer.
+    if ( FHoudiniEngineUtils::IsValidAssetId( CopiedHoudiniComponentAssetId ) )
+        FHoudiniEngineUtils::GetAssetPreset( CopiedHoudiniComponentAssetId, PresetBuffer );
+    else
+        PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
+
+    // Copy default preset buffer.
+    DefaultPresetBuffer = CopiedHoudiniComponent->DefaultPresetBuffer;
+
+    // Clean up all generated and auto-attached components.
+    RemoveAllAttachedComponents();
+
+    // Release static mesh related resources.
+    ReleaseObjectGeoPartResources( StaticMeshes );
+    StaticMeshes.Empty();
+    StaticMeshComponents.Empty();
+
+    // Copy parameters.
     {
-        // Show busy cursor.
-        FScopedBusyCursor ScopedBusyCursor;
-
-        // Get original asset id.
-        HAPI_AssetId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
-
-        // Set Houdini asset.
-        HoudiniAsset = CopiedHoudiniComponent->HoudiniAsset;
-
-        // Copy preset buffer.
-        if ( FHoudiniEngineUtils::IsValidAssetId( CopiedHoudiniComponentAssetId ) )
-            FHoudiniEngineUtils::GetAssetPreset( CopiedHoudiniComponentAssetId, PresetBuffer );
-        else
-            PresetBuffer = CopiedHoudiniComponent->PresetBuffer;
-
-        // Copy default preset buffer.
-        DefaultPresetBuffer = CopiedHoudiniComponent->DefaultPresetBuffer;
-
-        // Clean up all generated and auto-attached components.
-        RemoveAllAttachedComponents();
-
-        // Release static mesh related resources.
-        ReleaseObjectGeoPartResources( StaticMeshes );
-        StaticMeshes.Empty();
-        StaticMeshComponents.Empty();
-
-        // Copy parameters.
-        {
-            ClearParameters();
-            CopiedHoudiniComponent->DuplicateParameters( this );
-        }
-
-        // Copy inputs.
-        {
-            ClearInputs();
-            CopiedHoudiniComponent->DuplicateInputs( this );
-        }
-
-        // Copy instance inputs.
-        {
-            ClearInstanceInputs();
-            CopiedHoudiniComponent->DuplicateInstanceInputs( this );
-        }
-
-        // We need to reconstruct geometry from copied actor.
-        for( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CopiedHoudiniComponent->StaticMeshes );
-            Iter; ++Iter )
-        {
-            FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-            UStaticMesh * StaticMesh = Iter.Value();
-
-            // Duplicate static mesh and all related generated Houdini materials and textures.
-            UStaticMesh * DuplicatedStaticMesh = 
-                FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject );
-
-            if ( DuplicatedStaticMesh )
-            {
-                // Store this duplicated mesh.
-                StaticMeshes.Add( FHoudiniGeoPartObject(HoudiniGeoPartObject, true ), DuplicatedStaticMesh );
-            }
-        }
-
-        // We need to reconstruct splines.
-        for( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator
-            Iter( CopiedHoudiniComponent->SplineComponents ); Iter; ++Iter )
-        {
-            FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-            UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
-            
-            // Duplicate spline component.
-            UHoudiniSplineComponent * DuplicatedSplineComponent = 
-                DuplicateObject< UHoudiniSplineComponent >( HoudiniSplineComponent, this );
-
-            if ( DuplicatedSplineComponent )
-            {
-                DuplicatedSplineComponent->SetFlags( RF_Transactional | RF_Public );
-                SplineComponents.Add( HoudiniGeoPartObject, DuplicatedSplineComponent );
-            }
-        }
-
-        // Copy material information.
-        HoudiniAssetComponentMaterials = 
-            DuplicateObject< UHoudiniAssetComponentMaterials >(
-                CopiedHoudiniComponent->HoudiniAssetComponentMaterials, this );
-
-        // Perform any necessary post loading.
-        PostLoad();
-
-        DuplicateHandles( CopiedHoudiniComponent );
-
-        // Mark this component as no longer copy imported and reset copied component.
-        bComponentCopyImported = false;
-        CopiedHoudiniComponent = nullptr;
+        ClearParameters();
+        CopiedHoudiniComponent->DuplicateParameters( this );
     }
+
+    // Copy inputs.
+    {
+        ClearInputs();
+        CopiedHoudiniComponent->DuplicateInputs( this );
+    }
+
+    // Copy instance inputs.
+    {
+        ClearInstanceInputs();
+        CopiedHoudiniComponent->DuplicateInstanceInputs( this );
+    }
+
+    // We need to reconstruct geometry from copied actor.
+    for( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CopiedHoudiniComponent->StaticMeshes );
+        Iter; ++Iter )
+    {
+        FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+        UStaticMesh * StaticMesh = Iter.Value();
+
+        // Duplicate static mesh and all related generated Houdini materials and textures.
+        UStaticMesh * DuplicatedStaticMesh = 
+            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject );
+
+        if ( DuplicatedStaticMesh )
+        {
+            // Store this duplicated mesh.
+            StaticMeshes.Add( FHoudiniGeoPartObject(HoudiniGeoPartObject, true ), DuplicatedStaticMesh );
+        }
+    }
+
+    // We need to reconstruct splines.
+    for( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator
+        Iter( CopiedHoudiniComponent->SplineComponents ); Iter; ++Iter )
+    {
+        FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+        UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+            
+        // Duplicate spline component.
+        UHoudiniSplineComponent * DuplicatedSplineComponent = 
+            DuplicateObject< UHoudiniSplineComponent >( HoudiniSplineComponent, this );
+
+        if ( DuplicatedSplineComponent )
+        {
+            DuplicatedSplineComponent->SetFlags( RF_Transactional | RF_Public );
+            SplineComponents.Add( HoudiniGeoPartObject, DuplicatedSplineComponent );
+        }
+    }
+
+    // Copy material information.
+    HoudiniAssetComponentMaterials = 
+        DuplicateObject< UHoudiniAssetComponentMaterials >(
+            CopiedHoudiniComponent->HoudiniAssetComponentMaterials, this );
+
+    // Perform any necessary post loading.
+    PostLoad();
+
+    DuplicateHandles( CopiedHoudiniComponent );
+
+    // Mark this component as no longer copy imported and reset copied component.
+    bComponentCopyImported = false;
+    CopiedHoudiniComponent = nullptr;
 }
 
 void
 UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * ActorToApplyTo )
 {
-    if ( GetHoudiniAssetActorOwner() == ActorToApplyTo )
+    if ( GetHoudiniAssetActorOwner() != ActorToApplyTo )
+        return;
+
+    // We want to handle material replacements.
+    UMaterial * Material = Cast< UMaterial >( ObjectToApply );
+    if (!Material)
+        return;
+
+    bool bMaterialReplaced = false;
+
+    TMap< UStaticMesh*, int32 > MaterialReplacementsMap;
+
+    // We need to detect which components have material overriden, and replace it on their corresponding
+    // generated static meshes.
+    for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
     {
-        // We want to handle material replacements.
-        UMaterial * Material = Cast< UMaterial >( ObjectToApply );
-        if ( Material )
+        UStaticMesh * StaticMesh = Iter.Key();
+        UStaticMeshComponent * StaticMeshComponent = Iter.Value();
+
+        if ( !StaticMeshComponent || !StaticMesh )
+            continue;
+
+        const TArray< class UMaterialInterface * > & OverrideMaterials = StaticMeshComponent->OverrideMaterials;
+        for ( int32 MaterialIdx = 0; MaterialIdx < OverrideMaterials.Num(); ++MaterialIdx )
         {
-            bool bMaterialReplaced = false;
-
-            TMap< UStaticMesh*, int32 > MaterialReplacementsMap;
-
-            // We need to detect which components have material overriden, and replace it on their corresponding
-            // generated static meshes.
-            for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
+            UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
+            if ( OverridenMaterial && OverridenMaterial == Material )
             {
-                UStaticMesh * StaticMesh = Iter.Key();
-                UStaticMeshComponent * StaticMeshComponent = Iter.Value();
-
-                if ( StaticMeshComponent && StaticMesh )
-                {
-                    const TArray< class UMaterialInterface * > & OverrideMaterials = StaticMeshComponent->OverrideMaterials;
-                    for ( int32 MaterialIdx = 0; MaterialIdx < OverrideMaterials.Num(); ++MaterialIdx )
-                    {
-                        UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
-                        if ( OverridenMaterial && OverridenMaterial == Material )
-                        {
-                            if ( MaterialIdx < StaticMesh->Materials.Num() )
-                                MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
-                        }
-                    }
-                }
-            }
-
-            for ( auto& InstanceInput : InstanceInputs )
-            {
-                if ( InstanceInput )
-                    InstanceInput->GetMaterialReplacementMeshes( Material, MaterialReplacementsMap );
-            }
-
-            if ( MaterialReplacementsMap.Num() > 0 )
-            {
-                FScopedTransaction Transaction(
-                    TEXT( HOUDINI_MODULE_RUNTIME ),
-                    LOCTEXT( "HoudiniMaterialReplacement", "Houdini Material Replacement" ), this );
-
-                for ( TMap< UStaticMesh *, int32 >::TIterator Iter( MaterialReplacementsMap ); Iter; ++Iter )
-                {
-                    UStaticMesh * StaticMesh = Iter.Key();
-                    int32 MaterialIdx = Iter.Value();
-
-                    // Get old material.
-                    UMaterialInterface * OldMaterial = StaticMesh->Materials[ MaterialIdx ];
-
-                    // Locate geo part object.
-                    FHoudiniGeoPartObject HoudiniGeoPartObject = LocateGeoPartObject( StaticMesh );
-                    if ( HoudiniGeoPartObject.IsValid() )
-                    {
-                        if ( ReplaceMaterial( HoudiniGeoPartObject, Material, OldMaterial, MaterialIdx ) )
-                        {
-                            StaticMesh->Modify();
-                            StaticMesh->Materials[ MaterialIdx ] = Material;
-
-                            StaticMesh->PreEditChange( nullptr );
-                            StaticMesh->PostEditChange();
-                            StaticMesh->MarkPackageDirty();
-
-                            UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
-                            if ( StaticMeshComponent )
-                            {
-                                StaticMeshComponent->Modify();
-                                StaticMeshComponent->SetMaterial( MaterialIdx, Material );
-
-                                bMaterialReplaced = true;
-                            }
-
-                            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
-                            if ( LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
-                            {
-                                for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
-                                {
-                                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
-                                        InstancedStaticMeshComponents[ Idx ];
-
-                                    if ( InstancedStaticMeshComponent )
-                                    {
-                                        InstancedStaticMeshComponent->Modify();
-                                        InstancedStaticMeshComponent->SetMaterial( MaterialIdx, Material );
-
-                                        bMaterialReplaced = true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if ( bMaterialReplaced )
-                    UpdateEditorProperties( false );
+                if ( MaterialIdx < StaticMesh->Materials.Num() )
+                    MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
             }
         }
     }
+
+    for ( auto& InstanceInput : InstanceInputs )
+    {
+        if ( InstanceInput )
+            InstanceInput->GetMaterialReplacementMeshes( Material, MaterialReplacementsMap );
+    }
+
+    if (MaterialReplacementsMap.Num() <= 0)
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniMaterialReplacement", "Houdini Material Replacement" ), this );
+
+    for ( TMap< UStaticMesh *, int32 >::TIterator Iter( MaterialReplacementsMap ); Iter; ++Iter )
+    {
+        UStaticMesh * StaticMesh = Iter.Key();
+        int32 MaterialIdx = Iter.Value();
+
+        // Get old material.
+        UMaterialInterface * OldMaterial = StaticMesh->Materials[ MaterialIdx ];
+
+        // Locate geo part object.
+        FHoudiniGeoPartObject HoudiniGeoPartObject = LocateGeoPartObject( StaticMesh );
+        if ( !HoudiniGeoPartObject.IsValid() )
+            continue;
+
+        if ( ReplaceMaterial( HoudiniGeoPartObject, Material, OldMaterial, MaterialIdx ) )
+        {
+            StaticMesh->Modify();
+            StaticMesh->Materials[ MaterialIdx ] = Material;
+
+            StaticMesh->PreEditChange( nullptr );
+            StaticMesh->PostEditChange();
+            StaticMesh->MarkPackageDirty();
+
+            UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
+            if ( StaticMeshComponent )
+            {
+                StaticMeshComponent->Modify();
+                StaticMeshComponent->SetMaterial( MaterialIdx, Material );
+
+                bMaterialReplaced = true;
+            }
+
+            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+            if ( LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+            {
+                for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
+                {
+                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
+                        InstancedStaticMeshComponents[ Idx ];
+
+                    if ( InstancedStaticMeshComponent )
+                    {
+                        InstancedStaticMeshComponent->Modify();
+                        InstancedStaticMeshComponent->SetMaterial( MaterialIdx, Material );
+
+                        bMaterialReplaced = true;
+                    }
+                }
+            }
+        }
+    }
+
+    if ( bMaterialReplaced )
+        UpdateEditorProperties( false );
 }
 
 void
@@ -3589,12 +3589,21 @@ UHoudiniAssetComponent::DuplicateInputs( UHoudiniAssetComponent * DuplicatedHoud
     {
         // Retrieve input at this index.
         UHoudiniAssetInput * AssetInput = Inputs[ InputIdx ];
+        if (AssetInput == nullptr)
+            continue;
 
         // Duplicate input.
         UHoudiniAssetInput * DuplicateAssetInput = DuplicateObject( AssetInput, DuplicatedHoudiniComponent );
+        if (DuplicateAssetInput == nullptr)
+            continue;
+
         DuplicateAssetInput->SetHoudiniAssetComponent( DuplicatedHoudiniComponent );
+
         // Invalidate the node ids on the duplicate so that new inputs will be created.
         DuplicateAssetInput->InvalidateNodeIds();
+
+        // We also need to duplicate the attached curves properly
+        DuplicateAssetInput->DuplicateCurves(AssetInput);
 
         // PIE does not like standalone flags.
         DuplicateAssetInput->ClearFlags( RF_Standalone );

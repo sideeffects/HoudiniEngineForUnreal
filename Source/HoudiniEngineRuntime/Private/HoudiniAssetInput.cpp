@@ -1292,143 +1292,144 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
         }
     }
 
-    if ( bChanged )
+    if ( !bChanged )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Type Change" ),
+        HoudiniAssetComponent );
+    Modify();
+
+    switch ( ChoiceIndex )
     {
-        FScopedTransaction Transaction(
-            TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniInputChange", "Houdini Input Type Change" ),
-            HoudiniAssetComponent );
-        Modify();
-
-        switch ( ChoiceIndex )
+        case EHoudiniAssetInputType::GeometryInput:
         {
-            case EHoudiniAssetInputType::GeometryInput:
-            {
-                // We are switching away from geometry input.
+            // We are switching away from geometry input.
 
-                // Reset assigned object.
-                InputObject = nullptr;
-                break;
-            }
-
-            case EHoudiniAssetInputType::AssetInput:
-            {
-                // We are switching away from asset input.
-                DisconnectInputAssetActor();
-                break;
-            }
-
-            case EHoudiniAssetInputType::CurveInput:
-            {
-                // We are switching away from curve input.
-                DisconnectInputCurve();
-                break;
-            }
-
-            case EHoudiniAssetInputType::LandscapeInput:
-            {
-                // We are switching away from landscape input.
-
-                // Reset selected landscape.
-                InputLandscapeProxy = nullptr;
-                break;
-            }
-
-            case EHoudiniAssetInputType::WorldInput:
-            {
-                // We are switching away from World Outliner input.
-
-                // Stop monitoring the Actors for transform changes.
-                StopWorldOutlinerTicking();
-
-                break;
-            }
-
-            default:
-            {
-                // Unhandled new input type?
-                check( 0 );
-                break;
-            }
+            // Reset assigned object.
+            InputObject = nullptr;
+            break;
         }
 
-        // Disconnect currently connected asset.
-        DisconnectAndDestroyInputAsset();
-
-        // Switch mode.
-        ChoiceIndex = static_cast< EHoudiniAssetInputType::Enum >( ActiveLabel );
-
-        switch ( ChoiceIndex )
+        case EHoudiniAssetInputType::AssetInput:
         {
-            case EHoudiniAssetInputType::GeometryInput:
-            {
-                // We are switching to geometry input.
-                break;
-            }
-
-            case EHoudiniAssetInputType::AssetInput:
-            {
-                // We are switching to asset input.
-                ConnectInputAssetActor();
-                break;
-            }
-
-            case EHoudiniAssetInputType::CurveInput:
-            {
-                // We are switching to curve input.
-
-                // Create new spline component if necessary.
-                if ( !InputCurve )
-                    InputCurve = NewObject< UHoudiniSplineComponent >(
-                        HoudiniAssetComponent->GetOwner(), UHoudiniSplineComponent::StaticClass(),
-                        NAME_None, RF_Public | RF_Transactional );
-
-                // Attach or re-attach curve component to asset.
-                InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
-                InputCurve->RegisterComponent();
-                InputCurve->SetVisibility( true );
-                InputCurve->SetHoudiniAssetInput( this );
-
-                bSwitchedToCurve = true;
-                break;
-            }
-
-            case EHoudiniAssetInputType::LandscapeInput:
-            {
-                // We are switching to Landscape input.
-                break;
-            }
-
-            case EHoudiniAssetInputType::WorldInput:
-            {
-                // We are switching to World Outliner input.
-
-                // Start monitoring the Actors for transform changes.
-                StartWorldOutlinerTicking();
-
-                // Force recook and reconnect of the input assets.
-                HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-                if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
-                    HostAssetId, InputOutlinerMeshArray, ConnectedAssetId))
-                {
-                    ConnectInputNode();
-                }
-
-                break;
-            }
-
-            default:
-            {
-                // Unhandled new input type?
-                check( 0 );
-                break;
-            }
+            // We are switching away from asset input.
+            DisconnectInputAssetActor();
+            break;
         }
 
-        // If we have input object and geometry asset, we need to connect it back.
-        MarkPreChanged();
-        MarkChanged();
+        case EHoudiniAssetInputType::CurveInput:
+        {
+            // We are switching away from curve input.
+            DisconnectInputCurve();
+            break;
+        }
+
+        case EHoudiniAssetInputType::LandscapeInput:
+        {
+            // We are switching away from landscape input.
+
+            // Reset selected landscape.
+            InputLandscapeProxy = nullptr;
+            break;
+        }
+
+        case EHoudiniAssetInputType::WorldInput:
+        {
+            // We are switching away from World Outliner input.
+
+            // Stop monitoring the Actors for transform changes.
+            StopWorldOutlinerTicking();
+
+            break;
+        }
+
+        default:
+        {
+            // Unhandled new input type?
+            check( 0 );
+            break;
+        }
     }
+
+    // Disconnect currently connected asset.
+    DisconnectAndDestroyInputAsset();
+
+    // Switch mode.
+    ChoiceIndex = static_cast< EHoudiniAssetInputType::Enum >( ActiveLabel );
+
+    switch ( ChoiceIndex )
+    {
+        case EHoudiniAssetInputType::GeometryInput:
+        {
+            // We are switching to geometry input.
+            break;
+        }
+
+        case EHoudiniAssetInputType::AssetInput:
+        {
+            // We are switching to asset input.
+            ConnectInputAssetActor();
+            break;
+        }
+
+        case EHoudiniAssetInputType::CurveInput:
+        {
+            // We are switching to curve input.
+
+            // Create new spline component if necessary.
+            if ( !InputCurve )
+                InputCurve = NewObject< UHoudiniSplineComponent >(
+                    HoudiniAssetComponent->GetOwner(), UHoudiniSplineComponent::StaticClass(),
+                    NAME_None, RF_Public | RF_Transactional );
+
+            // Attach or re-attach curve component to asset.
+            InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
+            InputCurve->RegisterComponent();
+            InputCurve->SetVisibility( true );
+            InputCurve->SetHoudiniAssetInput( this );
+
+            bSwitchedToCurve = true;
+            break;
+        }
+
+        case EHoudiniAssetInputType::LandscapeInput:
+        {
+            // We are switching to Landscape input.
+            break;
+        }
+
+        case EHoudiniAssetInputType::WorldInput:
+        {
+            // We are switching to World Outliner input.
+
+            // Start monitoring the Actors for transform changes.
+            StartWorldOutlinerTicking();
+
+            // Force recook and reconnect of the input assets.
+            HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+            if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
+                HostAssetId, InputOutlinerMeshArray, ConnectedAssetId))
+            {
+                ConnectInputNode();
+            }
+
+            break;
+        }
+
+        default:
+        {
+            // Unhandled new input type?
+            check( 0 );
+            break;
+        }
+    }
+
+    // If we have input object and geometry asset, we need to connect it back.
+    MarkPreChanged();
+    MarkChanged();
+    
 }
 
 bool
@@ -1472,8 +1473,8 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
     else
     {
         AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *) Actor;
-    if (HoudiniAssetActor == nullptr)
-        return;
+	if (HoudiniAssetActor == nullptr)
+	    return;
 
         UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 
@@ -1835,7 +1836,7 @@ UHoudiniAssetInput::UpdateInputCurve()
     }
     else
     {
-    InputCurve = nullptr;
+	InputCurve = nullptr;
     }
 
     // We also need to construct curve parameters we care about.
@@ -2374,6 +2375,42 @@ void UHoudiniAssetInput::InvalidateNodeIds()
     {
         OutlinerInputMesh.AssetId = -1;
     }
+}
+
+void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
+{
+    if (!InputCurve || !OriginalInput)
+        return;
+
+    // The previous call to DuplicateObject did not duplicate the curves properly
+    // Both the original and duplicated Inputs now share the same InputCurve, so we 
+    // need to create a proper copy of that curve
+
+    // Keep the original pointer to the curve, as we need to duplicate its data
+    UHoudiniSplineComponent* pOriginalCurve = InputCurve;
+
+    // Creates a new Curve
+    InputCurve = NewObject< UHoudiniSplineComponent >(
+        HoudiniAssetComponent->GetOwner(), UHoudiniSplineComponent::StaticClass(),
+        NAME_None, RF_Public | RF_Transactional);
+
+    // Attach curve component to asset.
+    InputCurve->AttachToComponent(HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform);
+    InputCurve->RegisterComponent();
+    InputCurve->SetVisibility(true);
+
+    // The new curve need do know that it is connected to this Input
+    InputCurve->SetHoudiniAssetInput(this);
+    
+    // The call to DuplicateObject has actually modified the original object's Input
+    // so we need to fix that as well.
+    pOriginalCurve->SetHoudiniAssetInput(OriginalInput);
+
+    // "Copy" the old curves parameters to the new one
+    InputCurve->CopyFrom(pOriginalCurve);
+
+    // to force rebuild...
+    bSwitchedToCurve = true;
 }
 
 #endif
