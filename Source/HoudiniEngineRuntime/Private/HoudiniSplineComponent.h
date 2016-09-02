@@ -77,6 +77,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
             EHoudiniSplineComponentMethod::Enum InCurveMethod,
             bool bInClosedCurve = false );
 
+        /** Copies data from an another curve. Resets any existing state **/
+        bool CopyFrom( UHoudiniSplineComponent* InSplineComponent );
+
         /** Return the type of this curve. **/
         EHoudiniSplineComponentType::Enum GetCurveType() const;
 

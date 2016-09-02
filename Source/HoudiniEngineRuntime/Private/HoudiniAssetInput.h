@@ -144,6 +144,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Invalidate all connected node ids */
         void InvalidateNodeIds();
 
+        /** Duplicates the data from the input curve properly **/
+        void DuplicateCurves(UHoudiniAssetInput * OriginalInput);
+
     protected:
 
 #if WITH_EDITOR
@@ -236,6 +239,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Create necessary resources for this input. **/
         void CreateWidgetResources();
         
+
         /** Updates the input's Object Merge Transform type  **/
         bool UpdateObjectMergeTransformType();
 
