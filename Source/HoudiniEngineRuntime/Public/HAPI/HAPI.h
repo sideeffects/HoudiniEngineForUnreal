@@ -4250,6 +4250,9 @@ HAPI_DECL HAPI_GetVolumeTileIntData( const HAPI_Session * session,
 /// @param[in]      node_id
 ///                 The node id.
 ///
+/// @param[in]      part_id
+///                 The part id.
+///
 /// @param[in]      volume_info
 ///                 All volume information that can be specified per
 ///                 volume. This includes the position, orientation, scale,
@@ -4258,6 +4261,7 @@ HAPI_DECL HAPI_GetVolumeTileIntData( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_SetVolumeInfo( const HAPI_Session * session,
                               HAPI_NodeId node_id,
+                              HAPI_PartId part_id,
                               const HAPI_VolumeInfo * volume_info );
 
 /// @brief  Set the values of a float tile: this is an 8x8x8 subsection of
@@ -4270,6 +4274,9 @@ HAPI_DECL HAPI_SetVolumeInfo( const HAPI_Session * session,
 ///
 /// @param[in]      node_id
 ///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
 ///
 /// @param[in]      tile
 ///                 The tile that the volume will be input into.
@@ -4284,6 +4291,7 @@ HAPI_DECL HAPI_SetVolumeInfo( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_SetVolumeTileFloatData( const HAPI_Session * session,
                                        HAPI_NodeId node_id,
+                                       HAPI_PartId part_id,
                                        const HAPI_VolumeTileInfo * tile,
                                        const float * values_array,
                                        int length );
@@ -4299,6 +4307,9 @@ HAPI_DECL HAPI_SetVolumeTileFloatData( const HAPI_Session * session,
 /// @param[in]      node_id
 ///                 The node id.
 ///
+/// @param[in]      part_id
+///                 The part id.
+///
 /// @param[in]      tile
 ///                 The tile that the volume will be input into.
 ///
@@ -4312,6 +4323,7 @@ HAPI_DECL HAPI_SetVolumeTileFloatData( const HAPI_Session * session,
 ///
 HAPI_DECL HAPI_SetVolumeTileIntData( const HAPI_Session * session,
                                      HAPI_NodeId node_id,
+                                     HAPI_PartId part_id,
                                      const HAPI_VolumeTileInfo * tile,
                                      const int * values_array,
                                      int length );
