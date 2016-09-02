@@ -95,6 +95,29 @@ UHoudiniSplineComponent::Construct(
     return true;
 }
 
+
+bool
+UHoudiniSplineComponent::CopyFrom( UHoudiniSplineComponent* InSplineComponent )
+{
+    if (!InSplineComponent)
+        return false;
+
+    HoudiniGeoPartObject = FHoudiniGeoPartObject(InSplineComponent->HoudiniGeoPartObject);
+
+    ResetCurvePoints();   
+    AddPoints(InSplineComponent->GetCurvePoints());
+
+    ResetCurveDisplayPoints();
+    AddDisplayPoints(InSplineComponent->CurveDisplayPoints);
+
+    CurveType = InSplineComponent->GetCurveType();
+    CurveMethod = InSplineComponent->GetCurveMethod();
+    bClosedCurve = InSplineComponent->IsClosedCurve();
+
+    return true;
+}
+
+
 EHoudiniSplineComponentType::Enum
 UHoudiniSplineComponent::GetCurveType() const
 {
@@ -169,7 +192,6 @@ void
 UHoudiniSplineComponent::UploadControlPoints()
 {
     HAPI_NodeId NodeId = -1;
-
     if ( IsInputCurve() )
     {
         if ( HoudiniGeoPartObject.IsValid() )
@@ -183,27 +205,28 @@ UHoudiniSplineComponent::UploadControlPoints()
             NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId( AttachComponent->GetAssetId() );
     }
 
-    if ( NodeId >= 0 )
+    if ( NodeId < 0 )
+        return;
+
+    FString PositionString = TEXT( "" );
+    FHoudiniEngineUtils::CreatePositionsString( CurvePoints, PositionString );
+
+    // Get param id.
+    HAPI_ParmId ParmId = -1;
+    if ( FHoudiniApi::GetParmIdFromName(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId ) != HAPI_RESULT_SUCCESS )
     {
-        FString PositionString = TEXT( "" );
-        FHoudiniEngineUtils::CreatePositionsString( CurvePoints, PositionString );
+        return;
+    }
 
-        // Get param id.
-        HAPI_ParmId ParmId = -1;
-        if ( FHoudiniApi::GetParmIdFromName(
-            FHoudiniEngine::Get().GetSession(), NodeId,
-            HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId ) != HAPI_RESULT_SUCCESS )
-        {
-            return;
-        }
-
-        std::string ConvertedString = TCHAR_TO_UTF8( *PositionString );
-        if ( FHoudiniApi::SetParmStringValue(
-            FHoudiniEngine::Get().GetSession(), NodeId,
-            ConvertedString.c_str(), ParmId, 0 ) != HAPI_RESULT_SUCCESS )
-        {
-            return;
-        }
+    // Set the position string
+    std::string ConvertedString = TCHAR_TO_UTF8( *PositionString );
+    if ( FHoudiniApi::SetParmStringValue(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        ConvertedString.c_str(), ParmId, 0 ) != HAPI_RESULT_SUCCESS )
+    {
+        return;
     }
 }
 

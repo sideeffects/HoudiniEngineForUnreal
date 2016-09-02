@@ -647,6 +647,7 @@ UHoudiniAssetInput::PostEditUndo()
 
 #endif
 
+
 bool
 UHoudiniAssetInput::UploadParameterValue()
 {
@@ -861,30 +862,35 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
     if (HoudiniAssetComponent == nullptr)
         return false;
 
+    // We need the host asset info to get the host node id
+    HAPI_AssetInfo HostAssetInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
+        FHoudiniEngine::Get().GetSession(), 
+        HoudiniAssetComponent->GetAssetId(), 
+        &HostAssetInfo ), false );
+    
+    // Get the Input node ID from the host ID
+    HAPI_NodeId InputNodeId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::QueryNodeInput(
+        FHoudiniEngine::Get().GetSession(), HostAssetInfo.nodeId,
+        InputIndex, &InputNodeId ), false );
+
     // Curves and Geometry inputs need their objectMerge's TransformType set to NONE
     // or the results of the asset will have an offset
     int nTransformType = -1;
     switch (ChoiceIndex)
     {
-        case EHoudiniAssetInputType::CurveInput:
-        case EHoudiniAssetInputType::GeometryInput:
-            nTransformType = 0;	// NONE
-            break;
+    case EHoudiniAssetInputType::CurveInput:
+    case EHoudiniAssetInputType::GeometryInput:
+	nTransformType = 0;	// NONE
+	break;
 
-        case EHoudiniAssetInputType::AssetInput:
-        case EHoudiniAssetInputType::LandscapeInput:
-        case EHoudiniAssetInputType::WorldInput:
-            nTransformType = 1;	// INTO THIS OBJECT
-            break;
+    case EHoudiniAssetInputType::AssetInput:
+    case EHoudiniAssetInputType::LandscapeInput:
+    case EHoudiniAssetInputType::WorldInput:
+	nTransformType = 1;	// INTO THIS OBJECT
+	break;
     }
-
-    // Get the Input node ID from the host ID
-    HAPI_NodeId InputNodeId = -1;
-    HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::QueryNodeInput(
-        FHoudiniEngine::Get().GetSession(), HostAssetId,
-        InputIndex, &InputNodeId ), false );
 
     // Change Parameter xformtype
     std::string sParam = "xformtype";
@@ -1222,8 +1228,9 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
         }
     }
 
-    if ( bChanged )
-    {
+    if ( !bChanged )
+        return;
+
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Input Type Change" ),
@@ -1355,8 +1362,8 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
         // If we have input object and geometry asset, we need to connect it back.
         MarkPreChanged();
         MarkChanged();
+    
     }
-}
 
 bool
 UHoudiniAssetInput::OnInputActorFilter( const AActor * const Actor ) const
@@ -2289,6 +2296,42 @@ void UHoudiniAssetInput::InvalidateNodeIds()
     {
         OutlinerInputMesh.AssetId = -1;
     }
+}
+
+void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
+{
+    if (!InputCurve || !OriginalInput)
+        return;
+
+    // The previous call to DuplicateObject did not duplicate the curves properly
+    // Both the original and duplicated Inputs now share the same InputCurve, so we 
+    // need to create a proper copy of that curve
+
+    // Keep the original pointer to the curve, as we need to duplicate its data
+    UHoudiniSplineComponent* pOriginalCurve = InputCurve;
+
+    // Creates a new Curve
+    InputCurve = NewObject< UHoudiniSplineComponent >(
+        HoudiniAssetComponent->GetOwner(), UHoudiniSplineComponent::StaticClass(),
+        NAME_None, RF_Public | RF_Transactional);
+
+    // Attach curve component to asset.
+    InputCurve->AttachTo(HoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+    InputCurve->RegisterComponent();
+    InputCurve->SetVisibility(true);
+
+    // The new curve need do know that it is connected to this Input
+    InputCurve->SetHoudiniAssetInput(this);
+    
+    // The call to DuplicateObject has actually modified the original object's Input
+    // so we need to fix that as well.
+    pOriginalCurve->SetHoudiniAssetInput(OriginalInput);
+
+    // "Copy" the old curves parameters to the new one
+    InputCurve->CopyFrom(pOriginalCurve);
+
+    // to force rebuild...
+    bSwitchedToCurve = true;
 }
 
 #endif
