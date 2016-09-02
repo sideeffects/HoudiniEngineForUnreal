@@ -4005,11 +4005,11 @@ HAPI_DECL HAPI_SetTransformAnimCurve(
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      asset_id
-///                 The asset id.
+/// @param[in]      node_id
+///                 The asset node id.
 ///
 HAPI_DECL HAPI_ResetSimulation( const HAPI_Session * session,
-                                HAPI_AssetId asset_id );
+                                HAPI_NodeId node_id );
 
 // VOLUMES ------------------------------------------------------------------
 
