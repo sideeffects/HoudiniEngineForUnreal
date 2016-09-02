@@ -234,14 +234,8 @@ FHoudiniApi::GetMaterialNodeIdsOnFaces = &FHoudiniApi::GetMaterialNodeIdsOnFaces
 FHoudiniApi::GetMaterialOnGroupFuncPtr
 FHoudiniApi::GetMaterialOnGroup = &FHoudiniApi::GetMaterialOnGroupEmptyStub;
 
-FHoudiniApi::GetMaterialOnGroupOnAssetFuncPtr
-FHoudiniApi::GetMaterialOnGroupOnAsset = &FHoudiniApi::GetMaterialOnGroupOnAssetEmptyStub;
-
 FHoudiniApi::GetMaterialOnPartFuncPtr
 FHoudiniApi::GetMaterialOnPart = &FHoudiniApi::GetMaterialOnPartEmptyStub;
-
-FHoudiniApi::GetMaterialOnPartOnAssetFuncPtr
-FHoudiniApi::GetMaterialOnPartOnAsset = &FHoudiniApi::GetMaterialOnPartOnAssetEmptyStub;
 
 FHoudiniApi::GetNextVolumeTileFuncPtr
 FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
@@ -606,9 +600,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetMaterialInfo = (GetMaterialInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialInfo"));
 	FHoudiniApi::GetMaterialNodeIdsOnFaces = (GetMaterialNodeIdsOnFacesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialNodeIdsOnFaces"));
 	FHoudiniApi::GetMaterialOnGroup = (GetMaterialOnGroupFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroup"));
-	FHoudiniApi::GetMaterialOnGroupOnAsset = (GetMaterialOnGroupOnAssetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnGroupOnAsset"));
 	FHoudiniApi::GetMaterialOnPart = (GetMaterialOnPartFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPart"));
-	FHoudiniApi::GetMaterialOnPartOnAsset = (GetMaterialOnPartOnAssetFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetMaterialOnPartOnAsset"));
 	FHoudiniApi::GetNextVolumeTile = (GetNextVolumeTileFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNextVolumeTile"));
 	FHoudiniApi::GetNodeInfo = (GetNodeInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInfo"));
 	FHoudiniApi::GetNodeInputName = (GetNodeInputNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetNodeInputName"));
@@ -782,9 +774,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetMaterialInfo = &FHoudiniApi::GetMaterialInfoEmptyStub;
 	FHoudiniApi::GetMaterialNodeIdsOnFaces = &FHoudiniApi::GetMaterialNodeIdsOnFacesEmptyStub;
 	FHoudiniApi::GetMaterialOnGroup = &FHoudiniApi::GetMaterialOnGroupEmptyStub;
-	FHoudiniApi::GetMaterialOnGroupOnAsset = &FHoudiniApi::GetMaterialOnGroupOnAssetEmptyStub;
 	FHoudiniApi::GetMaterialOnPart = &FHoudiniApi::GetMaterialOnPartEmptyStub;
-	FHoudiniApi::GetMaterialOnPartOnAsset = &FHoudiniApi::GetMaterialOnPartOnAssetEmptyStub;
 	FHoudiniApi::GetNextVolumeTile = &FHoudiniApi::GetNextVolumeTileEmptyStub;
 	FHoudiniApi::GetNodeInfo = &FHoudiniApi::GetNodeInfoEmptyStub;
 	FHoudiniApi::GetNodeInputName = &FHoudiniApi::GetNodeInputNameEmptyStub;
@@ -1395,21 +1385,7 @@ FHoudiniApi::GetMaterialOnGroupEmptyStub(const HAPI_Session * session, HAPI_Node
 
 
 HAPI_Result
-FHoudiniApi::GetMaterialOnGroupOnAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
 FHoudiniApi::GetMaterialOnPartEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info)
-{
-	return HAPI_RESULT_FAILURE;
-}
-
-
-HAPI_Result
-FHoudiniApi::GetMaterialOnPartOnAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -2046,21 +2022,21 @@ FHoudiniApi::SetVertexListEmptyStub(const HAPI_Session * session, HAPI_NodeId no
 
 
 HAPI_Result
-FHoudiniApi::SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeInfo * volume_info)
+FHoudiniApi::SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeInfo * volume_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
+FHoudiniApi::SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
+FHoudiniApi::SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }

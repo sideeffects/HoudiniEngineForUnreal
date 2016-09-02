@@ -100,9 +100,7 @@ public:
 	typedef HAPI_Result (*GetMaterialInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_MaterialInfo * material_info);
 	typedef HAPI_Result (*GetMaterialNodeIdsOnFacesFuncPtr)(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_NodeId * material_ids_array, int start, int length);
 	typedef HAPI_Result (*GetMaterialOnGroupFuncPtr)(const HAPI_Session * session, HAPI_NodeId geometry_node_id, const char * group_name, HAPI_MaterialInfo * material_info);
-	typedef HAPI_Result (*GetMaterialOnGroupOnAssetFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info);
 	typedef HAPI_Result (*GetMaterialOnPartFuncPtr)(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
-	typedef HAPI_Result (*GetMaterialOnPartOnAssetFuncPtr)(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
 	typedef HAPI_Result (*GetNextVolumeTileFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	typedef HAPI_Result (*GetNodeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
 	typedef HAPI_Result (*GetNodeInputNameFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_idx, HAPI_StringHandle * name);
@@ -193,9 +191,9 @@ public:
 	typedef HAPI_Result (*SetTimelineOptionsFuncPtr)(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	typedef HAPI_Result (*SetTransformAnimCurveFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	typedef HAPI_Result (*SetVertexListFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * vertex_list_array, int start, int length);
-	typedef HAPI_Result (*SetVolumeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeInfo * volume_info);
-	typedef HAPI_Result (*SetVolumeTileFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length);
-	typedef HAPI_Result (*SetVolumeTileIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length);
+	typedef HAPI_Result (*SetVolumeInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeInfo * volume_info);
+	typedef HAPI_Result (*SetVolumeTileFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length);
+	typedef HAPI_Result (*SetVolumeTileIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length);
 	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(const HAPI_ThriftServerOptions * options, const char * pipe_name, HAPI_ProcessId * process_id);
 	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id);
 
@@ -273,9 +271,7 @@ public:
 	static GetMaterialInfoFuncPtr GetMaterialInfo;
 	static GetMaterialNodeIdsOnFacesFuncPtr GetMaterialNodeIdsOnFaces;
 	static GetMaterialOnGroupFuncPtr GetMaterialOnGroup;
-	static GetMaterialOnGroupOnAssetFuncPtr GetMaterialOnGroupOnAsset;
 	static GetMaterialOnPartFuncPtr GetMaterialOnPart;
-	static GetMaterialOnPartOnAssetFuncPtr GetMaterialOnPartOnAsset;
 	static GetNextVolumeTileFuncPtr GetNextVolumeTile;
 	static GetNodeInfoFuncPtr GetNodeInfo;
 	static GetNodeInputNameFuncPtr GetNodeInputName;
@@ -446,9 +442,7 @@ public:
 	static HAPI_Result GetMaterialInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_MaterialInfo * material_info);
 	static HAPI_Result GetMaterialNodeIdsOnFacesEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_Bool * are_all_the_same, HAPI_NodeId * material_ids_array, int start, int length);
 	static HAPI_Result GetMaterialOnGroupEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, const char * group_name, HAPI_MaterialInfo * material_info);
-	static HAPI_Result GetMaterialOnGroupOnAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, const char * group_name, HAPI_MaterialInfo * material_info);
 	static HAPI_Result GetMaterialOnPartEmptyStub(const HAPI_Session * session, HAPI_NodeId geometry_node_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
-	static HAPI_Result GetMaterialOnPartOnAssetEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id, HAPI_ObjectId object_id, HAPI_GeoId geo_id, HAPI_PartId part_id, HAPI_MaterialInfo * material_info);
 	static HAPI_Result GetNextVolumeTileEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_VolumeTileInfo * tile);
 	static HAPI_Result GetNodeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeInfo * node_info);
 	static HAPI_Result GetNodeInputNameEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_idx, HAPI_StringHandle * name);
@@ -539,9 +533,9 @@ public:
 	static HAPI_Result SetTimelineOptionsEmptyStub(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	static HAPI_Result SetTransformAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	static HAPI_Result SetVertexListEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const int * vertex_list_array, int start, int length);
-	static HAPI_Result SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeInfo * volume_info);
-	static HAPI_Result SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length);
-	static HAPI_Result SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length);
+	static HAPI_Result SetVolumeInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeInfo * volume_info);
+	static HAPI_Result SetVolumeTileFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const float * values_array, int length);
+	static HAPI_Result SetVolumeTileIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const HAPI_VolumeTileInfo * tile, const int * values_array, int length);
 	static HAPI_Result StartThriftNamedPipeServerEmptyStub(const HAPI_ThriftServerOptions * options, const char * pipe_name, HAPI_ProcessId * process_id);
 	static HAPI_Result StartThriftSocketServerEmptyStub(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id);
 };
