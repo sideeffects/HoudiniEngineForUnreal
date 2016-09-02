@@ -781,6 +781,7 @@ UHoudiniAssetInput::UploadParameterValue()
         case EHoudiniAssetInputType::CurveInput:
         {
             // If we have no curve node, create it.
+            bool bCreated = false;
             if (!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) )
             {
                 if (!FHoudiniEngineUtils::HapiCreateCurveNode(ConnectedAssetId) )
@@ -792,14 +793,16 @@ UHoudiniAssetInput::UploadParameterValue()
 
                 // Connect asset.
                 ConnectInputNode();
+
+                bCreated = true;
             }
 
-            if (bLoadedParameter)
+            if ( bLoadedParameter || bCreated)
             {
                 HAPI_AssetInfo CurveAssetInfo;
                 FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo);
 
-                // If we just loaded our curve, we need to set parameters.
+                // If we just loaded or created our curve, we need to set parameters.
                 for (TMap< FString, UHoudiniAssetParameter * >::TIterator
                 IterParams(InputCurveParameters); IterParams; ++IterParams)
                 {
@@ -807,7 +810,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     if (Parameter == nullptr)
                         continue;
 
-                    // We need to update node id for loaded parameters.
+                    // We need to update the node id for the parameters.
                     Parameter->SetNodeId(CurveAssetInfo.nodeId);
 
                     // Upload parameter value.
@@ -815,7 +818,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 }
             }
 
-            // Also upload points.
+            // Also upload points
             HAPI_NodeId NodeId = ConnectedAssetId;
             if (ConnectedAssetId != -1 && InputCurve)
             {
@@ -824,7 +827,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 FString PositionString = TEXT("");
                 FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
 
-                // Get param id.
+                // Get param id for the PositionString and modify it
                 HAPI_ParmId ParmId = -1;
                 if (FHoudiniApi::GetParmIdFromName(
                     FHoudiniEngine::Get().GetSession(), NodeId,
@@ -835,6 +838,15 @@ UHoudiniAssetInput::UploadParameterValue()
                         FHoudiniEngine::Get().GetSession(), NodeId,
                         ConvertedString.c_str(), ParmId, 0);
                 }
+            }
+            
+            if (bCreated && InputCurve)
+            {
+                // We need to check that the SplineComponent has no offset as the input
+                // was set to WorldOutliner before, it might have one
+                FTransform CurveTransform = InputCurve->GetRelativeTransform();	
+                if (!CurveTransform.GetLocation().IsZero())
+                    InputCurve->SetRelativeLocation(FVector::ZeroVector);
             }
 
             UpdateObjectMergeTransformType();
