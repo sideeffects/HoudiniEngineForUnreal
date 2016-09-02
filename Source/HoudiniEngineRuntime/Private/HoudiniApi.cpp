@@ -1784,7 +1784,7 @@ FHoudiniApi::RenderTextureToImageEmptyStub(const HAPI_Session * session, HAPI_No
 
 
 HAPI_Result
-FHoudiniApi::ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_AssetId asset_id)
+FHoudiniApi::ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id)
 {
 	return HAPI_RESULT_FAILURE;
 }
