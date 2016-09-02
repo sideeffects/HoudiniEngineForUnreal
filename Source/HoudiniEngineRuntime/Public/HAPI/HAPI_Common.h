@@ -46,6 +46,7 @@
 #define HAPI_ATTRIB_TANGENT2                "tangentv"
 #define HAPI_ATTRIB_COLOR                   "Cd"
 #define HAPI_ATTRIB_NAME                    "name"
+#define HAPI_ATTRIB_INSTANCE                "instance"
 /// @}
 
 /// This is the name of the primitive group created from all the primitives

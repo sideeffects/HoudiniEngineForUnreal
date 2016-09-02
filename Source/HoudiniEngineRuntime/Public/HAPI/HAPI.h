@@ -2432,6 +2432,35 @@ HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
                                             HAPI_Transform * transform_array,
                                             int start, int length );
 
+/// @brief  Get the node ids for the objects being instanced by an
+///         Instance OBJ node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The object node id.
+///
+/// @param[out]     instanced_node_id_array
+///                 Array of ::HAPI_NodeId at least the size of length.
+///
+/// @param[in]      start
+///                 First index of range. Must be at least 0 and at
+///                 most ::HAPI_PartInfo::pointCount - 1. This is the 0th
+///                 part of the display geo of the instancer object node.
+///
+/// @param[in]      length
+///                 Must be at least 0 and at most
+///                 ::HAPI_PartInfo::pointCount - @p start. This is the 0th
+///                 part of the display geo of the instancer object node.
+///
+HAPI_DECL HAPI_GetInstancedObjectIds( const HAPI_Session * session,
+                                      HAPI_NodeId object_node_id,
+                                      HAPI_NodeId * instanced_node_id_array,
+                                      int start, int length );
+
 /// @brief  Fill an array of ::HAPI_Transform structs with the transforms
 ///         of each instance of this instancer object.
 ///
@@ -2440,8 +2469,8 @@ HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      node_id
-///                 The node id.
+/// @param[in]      object_node_id
+///                 The object node id.
 ///
 /// @param[in]      rst_order
 ///                 The order of application of translation, rotation and
@@ -2452,14 +2481,16 @@ HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
 ///
 /// @param[in]      start
 ///                 First index of range. Must be at least 0 and at
-///                 most ::HAPI_PartInfo::pointCount - 1.
+///                 most ::HAPI_PartInfo::pointCount - 1. This is the 0th
+///                 part of the display geo of the instancer object node.
 ///
 /// @param[in]      length
 ///                 Must be at least 0 and at most
-///                 ::HAPI_PartInfo::pointCount - @p start.
+///                 ::HAPI_PartInfo::pointCount - @p start. This is the 0th
+///                 part of the display geo of the instancer object node.
 ///
 HAPI_DECL HAPI_GetInstanceTransforms( const HAPI_Session * session,
-                                      HAPI_NodeId node_id,
+                                      HAPI_NodeId object_node_id,
                                       HAPI_RSTOrder rst_order,
                                       HAPI_Transform * transforms_array,
                                       int start, int length );
