@@ -7471,7 +7471,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
-    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() || !HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
+    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
     {
         // Create package for this duplicated mesh.
         FString MeshName;
