@@ -1204,6 +1204,12 @@ struct HAPI_API HAPI_ObjectInfo
     /// See @ref HAPI_Instancing.
     HAPI_Bool isInstancer;
 
+    /// Determine if this object is being instanced. Normally, this implies
+    /// that while this object may not be visible, it should still be
+    /// brought into the host application because it is needed by an instancer.
+    /// See @ref HAPI_Instancing.
+    HAPI_Bool isInstanced;
+
     /// The number of geometries under this object. For those familiar with
     /// Houdini, this number will always include the one visible SOP and any
     /// SOPs that were exposed as "editable" or "templated".
