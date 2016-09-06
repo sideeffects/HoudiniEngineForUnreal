@@ -81,6 +81,16 @@ UHoudiniAssetInstanceInputField::Create(
     InputField->InstancedTransforms = OtherInputField->InstancedTransforms;
     InputField->StaticMeshes = OtherInputField->StaticMeshes;
     InputField->OriginalStaticMesh = OtherInputField->OriginalStaticMesh;
+    InputField->InstancedStaticMeshComponents.Empty();
+
+    // Duplicate the given field's InstancedStaticMesh components
+    for ( const UInstancedStaticMeshComponent* OtherISMC : OtherInputField->InstancedStaticMeshComponents )
+    {
+        UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, InHoudiniAssetComponent );
+        NewISMC->RegisterComponent();
+        NewISMC->AttachToComponent( InHoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
+        InputField->InstancedStaticMeshComponents.Add( NewISMC );
+    }
 
     return InputField;
 }
