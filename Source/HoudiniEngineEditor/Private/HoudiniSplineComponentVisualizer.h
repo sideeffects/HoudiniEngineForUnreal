@@ -49,6 +49,9 @@ class FHoudiniSplineComponentVisualizerCommands : public TCommands< FHoudiniSpli
         /** Command for adding a control point. **/
         TSharedPtr< FUICommandInfo > CommandAddControlPoint;
 
+        /** Command for duplicating a control point. **/
+        TSharedPtr< FUICommandInfo > CommandDuplicateControlPoint;
+
         /** Command for deleting a control point. **/
         TSharedPtr< FUICommandInfo > CommandDeleteControlPoint;
 };
@@ -112,9 +115,11 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
         void OnDeleteControlPoint();
         bool IsDeleteControlPointValid() const;
 
-        int32 AddControlPoint( const FVector & NewPoint );
+	/** Callbacks for Duplicate control point action. **/
+	void OnDuplicateControlPoint();
+	bool IsDuplicateControlPointValid() const;
 
-        void OnDuplicateControlPoint();
+        int32 AddControlPoint( const FVector & NewPoint );
 
     protected:
 
