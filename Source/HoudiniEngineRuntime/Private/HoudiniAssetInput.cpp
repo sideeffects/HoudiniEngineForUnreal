@@ -766,6 +766,7 @@ UHoudiniAssetInput::UploadParameterValue()
 
                 FString PositionString = TEXT( "" );
                 FHoudiniEngineUtils::CreatePositionsString( CurvePoints, PositionString );
+                
                 // Get param id for the PositionString and modify it
                 HAPI_ParmId ParmId = -1;
                 if ( FHoudiniApi::GetParmIdFromName(
