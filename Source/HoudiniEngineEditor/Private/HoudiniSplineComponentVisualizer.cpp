@@ -47,6 +47,10 @@ FHoudiniSplineComponentVisualizerCommands::RegisterCommands()
         EUserInterfaceActionType::Button, FInputGesture() );
 
     UI_COMMAND(
+        CommandDuplicateControlPoint, "Duplicate Control Point", "Duplicate Control Point.",
+        EUserInterfaceActionType::Button, FInputGesture());
+
+    UI_COMMAND(
         CommandDeleteControlPoint, "Delete Control Point", "Delete Control Point.",
         EUserInterfaceActionType::Button, FInputGesture() );
 }
@@ -76,6 +80,11 @@ FHoudiniSplineComponentVisualizer::OnRegister()
         Commands.CommandAddControlPoint,
         FExecuteAction::CreateSP( this, &FHoudiniSplineComponentVisualizer::OnAddControlPoint ),
         FCanExecuteAction::CreateSP( this, &FHoudiniSplineComponentVisualizer::IsAddControlPointValid ) );
+
+    VisualizerActions->MapAction(
+        Commands.CommandDuplicateControlPoint,
+        FExecuteAction::CreateSP(this, &FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint),
+        FCanExecuteAction::CreateSP(this, &FHoudiniSplineComponentVisualizer::IsDuplicateControlPointValid));
 
     VisualizerActions->MapAction(
         Commands.CommandDeleteControlPoint,
@@ -193,6 +202,16 @@ FHoudiniSplineComponentVisualizer::HandleInputKey(
         bAllowDuplication = true;
     }
 
+    if (Key == EKeys::Delete && Event == IE_Pressed) 
+    {
+        if (IsDeleteControlPointValid())
+        {
+            OnDeleteControlPoint();
+            return true;
+        }    
+    }
+
+
     if ( Event == IE_Pressed )
         bHandled = VisualizerActions->ProcessCommandBindings( Key, FSlateApplication::Get().GetModifierKeys(), false );
 
@@ -293,6 +312,11 @@ FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
                     FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ) );
 
                 MenuBuilder.AddMenuEntry(
+                    FHoudiniSplineComponentVisualizerCommands::Get().CommandDuplicateControlPoint,
+                    NAME_None, TAttribute< FText >(), TAttribute< FText >(),
+                    FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"));
+
+                MenuBuilder.AddMenuEntry(
                     FHoudiniSplineComponentVisualizerCommands::Get().CommandDeleteControlPoint,
                     NAME_None, TAttribute< FText >(), TAttribute< FText >(),
                     FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ) );
@@ -375,6 +399,7 @@ FHoudiniSplineComponentVisualizer::OnAddControlPoint()
         else
         {
             OtherPoint = CurvePoints[ EditedControlPointIndex - 1 ];
+            EditedControlPointIndex--;
         }
     }
 
@@ -391,7 +416,6 @@ bool
 FHoudiniSplineComponentVisualizer::IsAddControlPointValid() const
 {
     // We can always add points.
-
     return true;
 }
 
@@ -413,7 +437,11 @@ FHoudiniSplineComponentVisualizer::OnDeleteControlPoint()
         EditedHoudiniSplineComponent->UploadControlPoints();
 
         UpdateHoudiniComponents();
-        EditedControlPointIndex = INDEX_NONE;
+
+        // Select previous point
+        EditedControlPointIndex--;
+        if(EditedControlPointIndex < 0)
+            EditedControlPointIndex = INDEX_NONE;
     }
 }
 
@@ -421,7 +449,6 @@ bool
 FHoudiniSplineComponentVisualizer::IsDeleteControlPointValid() const
 {
     // We can only delete points if we have more than two points.
-
     if ( EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE )
     {
         if ( EditedHoudiniSplineComponent->GetCurvePointCount() > 2 )
@@ -477,4 +504,14 @@ FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint()
 
     // Add the new point and select it.
     EditedControlPointIndex = AddControlPoint( NewPoint );
+}
+
+bool
+FHoudiniSplineComponentVisualizer::IsDuplicateControlPointValid() const
+{
+    // We can only duplicate points if we have selected a point.
+    if (EditedHoudiniSplineComponent && EditedControlPointIndex != INDEX_NONE)
+        return true;
+
+    return false;
 }
