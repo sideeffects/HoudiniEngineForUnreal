@@ -379,7 +379,7 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UStaticMesh * InStati
 }
 
 void
-UHoudiniAssetInstanceInputField::FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int > & Indices )
+UHoudiniAssetInstanceInputField::FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int32 > & Indices )
 {
     for ( int32 Idx = 0; Idx < StaticMeshes.Num(); ++Idx )
     {

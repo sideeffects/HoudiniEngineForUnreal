@@ -207,67 +207,38 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
     }
     else if ( bIsAttributeInstancer )
     {
-        HAPI_AttributeInfo ResultAttributeInfo;
-        TArray< FString > PointInstanceValues;
+        int32 NumPoints = HoudiniGeoPartObject.HapiPartGetPointCount();
+        TArray< HAPI_NodeId > InstancedObjectIds;
+        InstancedObjectIds.SetNumUninitialized( NumPoints );
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetInstancedObjectIds(
+            FHoudiniEngine::Get().GetSession(), HoudiniGeoPartObject.GeoId, 
+            InstancedObjectIds.GetData(), 
+            0, NumPoints), false );
 
-        if( !HoudiniGeoPartObject.HapiGetAttributeDataAsString(
-            AssetId, HAPI_UNREAL_ATTRIB_INSTANCE,
-            HAPI_ATTROWNER_POINT, ResultAttributeInfo,
-            PointInstanceValues ) )
+        // Find the set of instanced object ids and locate the corresponding parts
+        TSet< int32 > UniqueInstancedObjectIds( InstancedObjectIds );
+        TArray< FTransform > InstanceTransforms;
+        for ( int32 InstancedObjectId : UniqueInstancedObjectIds )
         {
-            // This should not happen - attribute exists, but there was an error retrieving it.
-            return false;
-        }
-
-        // Instance attribute exists on points.
-
-        // Number of points must match number of transforms.
-        if ( PointInstanceValues.Num() != AllTransforms.Num() )
-        {
-            // This should not happen, we have mismatch between number of instance values and transforms.
-            return false;
-        }
-
-        // Get unique names.
-        TSet< FString > UniquePointInstanceValues( PointInstanceValues );
-        
-        // If instance attribute exists on points, we need to get all unique values.
-        TMap< FString, TArray< FHoudiniGeoPartObject > > ObjectsToInstance;
-
-        // For each name, we need to retrieve corresponding geo object parts as well as sequence of geo object parts.
-        for ( TSet< FString >::TIterator IterString( UniquePointInstanceValues ); IterString; ++IterString )
-        {
-            const FString & UniqueName = *IterString;
-            HoudiniAssetComponent->LocateStaticMeshes( UniqueName, ObjectsToInstance );
-        }
-
-        if ( ObjectsToInstance.Num() == 0 )
-        {
-            // We have no objects to instance.
-            return false;
-        }
-
-        for ( TMap< FString, TArray< FHoudiniGeoPartObject > >::TIterator IterInstanceObjects( ObjectsToInstance );
-            IterInstanceObjects; ++IterInstanceObjects )
-        {
-            const FString & InstancePath = IterInstanceObjects.Key();
-            TArray< FHoudiniGeoPartObject > & InstanceGeoPartObjects = IterInstanceObjects.Value();
-
-            // Retrieve all applicable transforms for this object.
-            TArray< FTransform > ObjectTransforms;
-            GetPathInstaceTransforms( InstancePath, PointInstanceValues, AllTransforms, ObjectTransforms );
-            check( ObjectTransforms.Num() );
-
-            for ( int32 InstanceGeoPartObjectIdx = 0; InstanceGeoPartObjectIdx < InstanceGeoPartObjects.Num();
-                ++InstanceGeoPartObjectIdx )
+            TArray< FHoudiniGeoPartObject > PartsToInstance;
+            if ( HoudiniAssetComponent->LocateStaticMeshes( InstancedObjectId, PartsToInstance ) )
             {
-                const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject =
-                    InstanceGeoPartObjects[ InstanceGeoPartObjectIdx ];
+                // copy out the transforms for this instance id
+                InstanceTransforms.Empty();
+                for ( int32 Ix = 0; Ix < InstancedObjectIds.Num(); ++Ix )
+                {
+                    if ( InstancedObjectIds[Ix] == InstancedObjectId )
+                    {
+                        InstanceTransforms.Add( AllTransforms[Ix] );
+                    }
+                }
 
-                // Locate or create an input field.
-                CreateInstanceInputField(
-                    ItemHoudiniGeoPartObject, ObjectTransforms, InstancePath, InstanceInputFields,
-                    NewInstanceInputFields );
+                // Locate or create an instance input field for each part for this instanced object id
+                for ( FHoudiniGeoPartObject& Part : PartsToInstance )
+                {
+                    // TODO: InstancePathName not used, can be removed
+                    CreateInstanceInputField( Part, InstanceTransforms, TEXT(""), InstanceInputFields, NewInstanceInputFields );
+                }
             }
         }
     }

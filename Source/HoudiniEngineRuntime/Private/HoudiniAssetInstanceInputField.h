@@ -78,7 +78,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         void AddInstanceVariation( UStaticMesh * InstaticMesh, int32 VariationIdx );
 
         /** Replace the instance variation in a particular slot. **/
-        void ReplaceInstanceVariation( UStaticMesh * InStaticMesh, int Index );
+        void ReplaceInstanceVariation( UStaticMesh * InStaticMesh, int32 Index );
 
         /** Remove a variation from instancing **/
         void RemoveInstanceVariation( int32 VariationIdx );
@@ -87,7 +87,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         int32 InstanceVariationCount();
 
         /** Given a static mesh, find which slot(s) it occupies in the instance variations. **/
-        void FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int > & Indices );
+        void FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int32 > & Indices );
 
         /** Get material replacements. **/
         bool GetMaterialReplacementMeshes(
