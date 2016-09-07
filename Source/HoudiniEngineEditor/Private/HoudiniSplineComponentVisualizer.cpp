@@ -440,15 +440,6 @@ FHoudiniSplineComponentVisualizer::AddControlPoint( const FVector & NewPoint )
     const TArray< FVector > & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
     check( EditedControlPointIndex >= 0 && EditedControlPointIndex < CurvePoints.Num() );
 
-    int32 ControlPointIndex = EditedControlPointIndex + 1;
-    if ( ControlPointIndex == CurvePoints.Num() )
-    {
-        if ( EditedHoudiniSplineComponent->bClosedCurve )
-            ControlPointIndex = 0;
-        else
-            ControlPointIndex = EditedControlPointIndex;
-    }
-
     UHoudiniAssetComponent * HoudiniAssetComponent =
         Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->GetAttachParent() );
 
@@ -458,7 +449,12 @@ FHoudiniSplineComponentVisualizer::AddControlPoint( const FVector & NewPoint )
         HoudiniAssetComponent );
     EditedHoudiniSplineComponent->Modify();
 
-    EditedHoudiniSplineComponent->AddPoint( ControlPointIndex, NewPoint );
+    int32 ControlPointIndex = EditedControlPointIndex + 1;
+    if (ControlPointIndex == CurvePoints.Num())
+        EditedHoudiniSplineComponent->AddPoint( NewPoint );
+    else
+        EditedHoudiniSplineComponent->AddPoint( ControlPointIndex, NewPoint);
+
     EditedHoudiniSplineComponent->UploadControlPoints();
 
     UpdateHoudiniComponents();
@@ -479,8 +475,6 @@ FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint()
     // We just add the new point on top of the existing point.
     FVector NewPoint = CurvePoints[ EditedControlPointIndex ];
 
-    // Add the point. We actually don't select the new point, instead allow the existing
-    // point to become the "new" point. This is because we cannot add points at the end
-    // of the curve.
-    AddControlPoint( NewPoint );
+    // Add the new point and select it.
+    EditedControlPointIndex = AddControlPoint( NewPoint );
 }
