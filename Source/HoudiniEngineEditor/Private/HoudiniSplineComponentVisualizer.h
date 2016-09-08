@@ -119,7 +119,7 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 	void OnDuplicateControlPoint();
 	bool IsDuplicateControlPointValid() const;
 
-        int32 AddControlPoint( const FVector & NewPoint );
+        int32 AddControlPointAfter( const FVector & NewPoint, const int32& nIndex );
 
     protected:
 
@@ -135,6 +135,9 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
         /** Whether we currently allow duplication when dragging. */
         bool bAllowDuplication;
 
-        /** Keeps index of currently selected control point, if editing is being performed. **/
-        int32 EditedControlPointIndex;
+        /** Wether we are currently multi-selecting points **/
+        bool bIsMultiSelecting;
+
+        /** Keeps index of currently selected control points, if editing is being performed. **/
+        TArray<int32> EditedControlPointsIndexes;
 };
