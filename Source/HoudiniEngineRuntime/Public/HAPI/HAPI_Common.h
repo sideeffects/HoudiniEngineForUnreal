@@ -924,6 +924,9 @@ struct HAPI_API HAPI_CookOptions
     /// part types will just be refined to ::HAPI_PARTTYPE_MESH.
     HAPI_Bool handleBoxPartTypes;
     HAPI_Bool handleSpherePartTypes;
+
+    /// For internal use only. :)
+    int extraFlags;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_CookOptions )
 
