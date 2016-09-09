@@ -89,7 +89,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
         bool IsRenderCollidable() const;
 
         /** Return true if this geo part object corresponds to a packed primitive instancer **/
-        bool IsPackedPrimativeInstancer() const;
+        bool IsPackedPrimitiveInstancer() const;
 
         /** Return true if corresponding geometry has changed. **/
         bool HasGeoChanged() const;

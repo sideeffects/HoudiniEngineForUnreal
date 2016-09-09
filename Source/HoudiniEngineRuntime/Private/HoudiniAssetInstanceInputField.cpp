@@ -44,7 +44,7 @@ UHoudiniAssetInstanceInputField::Create(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-    const FString & InstancePathName )
+    const HAPI_ObjectId & InstanceObjectId )
 {
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
         NewObject< UHoudiniAssetInstanceInputField >(
@@ -55,7 +55,7 @@ UHoudiniAssetInstanceInputField::Create(
 
     HoudiniAssetInstanceInputField->HoudiniGeoPartObject = HoudiniGeoPartObject;
     HoudiniAssetInstanceInputField->HoudiniAssetComponent = HoudiniAssetComponent;
-    HoudiniAssetInstanceInputField->InstancePathName = InstancePathName;
+    HoudiniAssetInstanceInputField->InstancePathName = FString::FromInt( InstanceObjectId );
     HoudiniAssetInstanceInputField->HoudiniAssetInstanceInput = InHoudiniAssetInstanceInput;
 
     return HoudiniAssetInstanceInputField;
@@ -86,7 +86,8 @@ UHoudiniAssetInstanceInputField::Create(
     // Duplicate the given field's InstancedStaticMesh components
     for ( const UInstancedStaticMeshComponent* OtherISMC : OtherInputField->InstancedStaticMeshComponents )
     {
-        UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, InHoudiniAssetComponent );
+        FName NewName = MakeUniqueObjectName( InHoudiniAssetComponent, UInstancedStaticMeshComponent::StaticClass() );
+        UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, InHoudiniAssetComponent, NewName );
         NewISMC->RegisterComponent();
         NewISMC->AttachToComponent( InHoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
         InputField->InstancedStaticMeshComponents.Add( NewISMC );

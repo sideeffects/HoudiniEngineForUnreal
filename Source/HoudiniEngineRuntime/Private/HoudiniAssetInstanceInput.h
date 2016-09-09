@@ -130,7 +130,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Locate field which matches given criteria. Return null if not found. **/
         UHoudiniAssetInstanceInputField * LocateInputField(
             const FHoudiniGeoPartObject & GeoPartObject,
-            const FString & InstancePathName );
+            const HAPI_ObjectId & InstanceObjectId );
 
         /** Locate fields which have specified static mesh set as their original mesh. **/
         void LocateInputFieldsWithOriginalStaticMesh(
@@ -140,7 +140,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Locate or create (if it does not exist) an input field. **/
         void CreateInstanceInputField(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            const TArray< FTransform > & ObjectTransforms, const FString & InstancePathName,
+            const TArray< FTransform > & ObjectTransforms, const HAPI_ObjectId & InstanceObjectId,
             const TArray< UHoudiniAssetInstanceInputField * > & OldInstanceInputFields,
             TArray< UHoudiniAssetInstanceInputField * > & NewInstanceInputFields );
 

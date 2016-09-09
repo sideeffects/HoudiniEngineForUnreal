@@ -43,7 +43,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
             UHoudiniAssetComponent * InHoudiniAssetComponent,
             UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            const FString & InstancePathName );
+            const HAPI_ObjectId & InstancePathName );
 
         /** Create an instance of input field from another input field. **/
         static UHoudiniAssetInstanceInputField * Create(
@@ -136,6 +136,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
         /** Return transformations of all instances used by the variation **/
         const TArray< FTransform > & GetInstancedTransforms( int32 VariationIdx ) const;
+
+        /** Return the array of transforms for all variations **/
+        FORCEINLINE const TArray< FTransform > & GetInstancedTransforms() { return InstancedTransforms; }
 
         /** Recreates render states for instanced static mesh component. **/
         void RecreateRenderState();

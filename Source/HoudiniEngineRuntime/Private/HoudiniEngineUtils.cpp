@@ -3408,7 +3408,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     FHoudiniGeoPartObject HoudiniGeoPartObject(
                         TransformMatrix, ObjectName, PartName, AssetId,
                         ObjectInfo.id, GeoInfo.id, PartInfo.id );
-                    HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
+                    HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
                     HoudiniGeoPartObject.bIsInstancer = false;
                     HoudiniGeoPartObject.bIsCurve = false;
                     HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
@@ -3796,8 +3796,8 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         {
                             // No mesh located, this is an error.
                             bGeoError = true;
-                            HOUDINI_LOG_MESSAGE(
-                                TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has changed " )
+                            HOUDINI_LOG_ERROR(
+                                TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has not changed " )
                                 TEXT( "but static mesh does not exist - skipping." ),
                                 ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                             continue;
@@ -7619,7 +7619,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
-    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
+    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() )
     {
         // Create package for this duplicated mesh.
         FString MeshName;

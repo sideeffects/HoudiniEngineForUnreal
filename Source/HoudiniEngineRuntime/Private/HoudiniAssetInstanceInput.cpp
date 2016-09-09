@@ -51,7 +51,7 @@ UHoudiniAssetInstanceInput::Create(
     // Get object to be instanced.
     HAPI_ObjectId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
-    bool bIsPackedPrimitiveInstancer = InHoudiniGeoPartObject.IsPackedPrimativeInstancer();
+    bool bIsPackedPrimitiveInstancer = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
 
     // If this is an attribute instancer, see if attribute exists.
     bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
@@ -157,8 +157,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         FHoudiniEngineString HoudiniEngineStringPartName( PartInfo.nameSH );
         HoudiniEngineStringPartName.ToFString( PartName );
 
-        HOUDINI_LOG_MESSAGE(
-            TEXT( "Part Instancer (%s): IPC=%d, IC=%d" ), *PartName, PartInfo.instancedPartCount, PartInfo.instanceCount );
+        //HOUDINI_LOG_MESSAGE( TEXT( "Part Instancer (%s): IPC=%d, IC=%d" ), *PartName, PartInfo.instancedPartCount, PartInfo.instanceCount );
 
         // Get transforms for each instance
         TArray<HAPI_Transform> InstancerPartTransforms;
@@ -191,18 +190,10 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                 //HOUDINI_LOG_MESSAGE( TEXT( "Instance %d:%d Transform: %s for Part Id %d" ), HoudiniGeoPartObject.PartId, InstanceIdx, *ObjectTransforms[ InstanceIdx ].ToString(), InstancedPartId );
             }
 
-            // find static mesh for this instancer
-            if (UStaticMesh* FoundStaticMesh = HoudiniAssetComponent->LocateStaticMesh( 
-                HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.GeoId, InstancedPartId ))
-            {
-                CreateInstanceInputField( FoundStaticMesh, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
-            }
-            else
-            {
-                // TODO: No static mesh for this part id
-                HOUDINI_LOG_WARNING(
-                    TEXT( "Could not find static mesh for part id %d" ), InstancedPartId );
-            }
+            // Create this instanced input field for this instanced part
+            //
+            FHoudiniGeoPartObject InstancedPart( HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, InstancedPartId );
+            CreateInstanceInputField( InstancedPart, ObjectTransforms, HoudiniGeoPartObject.ObjectId, InstanceInputFields, NewInstanceInputFields );
         }
     }
     else if ( bIsAttributeInstancer )
@@ -237,7 +228,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                 for ( FHoudiniGeoPartObject& Part : PartsToInstance )
                 {
                     // TODO: InstancePathName not used, can be removed
-                    CreateInstanceInputField( Part, InstanceTransforms, TEXT(""), InstanceInputFields, NewInstanceInputFields );
+                    CreateInstanceInputField( Part, InstanceTransforms, InstancedObjectId, InstanceInputFields, NewInstanceInputFields );
                 }
             }
         }
@@ -387,7 +378,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
             // Locate or create an input field.
             CreateInstanceInputField(
-                ItemHoudiniGeoPartObject, AllTransforms, TEXT( "" ), InstanceInputFields,
+                ItemHoudiniGeoPartObject, AllTransforms, ItemHoudiniGeoPartObject.ObjectId, InstanceInputFields,
                 NewInstanceInputFields );
         }
     }
@@ -403,8 +394,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 UHoudiniAssetInstanceInputField *
 UHoudiniAssetInstanceInput::LocateInputField(
     const FHoudiniGeoPartObject & GeoPartObject,
-    const FString & InstancePathName )
+    const HAPI_ObjectId & InstanceObjectId )
 {
+    const FString InstancePathName = FString::FromInt( InstanceObjectId );
     UHoudiniAssetInstanceInputField * FoundHoudiniAssetInstanceInputField = nullptr;
     for ( int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx )
     {
@@ -454,58 +446,129 @@ UHoudiniAssetInstanceInput::CleanInstanceInputFields( TArray< UHoudiniAssetInsta
 void
 UHoudiniAssetInstanceInput::CreateInstanceInputField(
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
-    const TArray< FTransform > & ObjectTransforms, const FString & InstancePathName,
+    const TArray< FTransform > & ObjectTransforms, const HAPI_ObjectId & InstanceObjectId,
     const TArray< UHoudiniAssetInstanceInputField * > & OldInstanceInputFields,
     TArray<UHoudiniAssetInstanceInputField * > & NewInstanceInputFields)
 {
-    // Locate static mesh for this geo part.
-    UStaticMesh * StaticMesh = HoudiniAssetComponent->LocateStaticMesh( InHoudiniGeoPartObject );
-    check( StaticMesh );
-
-    // Locate corresponding input field.
-    UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
-        LocateInputField( InHoudiniGeoPartObject, InstancePathName );
-
-    if ( !HoudiniAssetInstanceInputField )
+    // Locate static mesh for this geo part.  
+    if ( UStaticMesh * StaticMesh = HoudiniAssetComponent->LocateStaticMesh( InHoudiniGeoPartObject ) )
     {
-        // Input field does not exist, we need to create it.
-        HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
-            HoudiniAssetComponent, this,
-            InHoudiniGeoPartObject, InstancePathName );
+        // Locate corresponding input field.
+        UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
+            LocateInputField( InHoudiniGeoPartObject, InstanceObjectId );
 
-        // Assign original and static mesh.
-        HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
-        HoudiniAssetInstanceInputField->AddInstanceVariation( StaticMesh, 0 );
+        if ( !HoudiniAssetInstanceInputField )
+        {
+            // Input field does not exist, we need to create it.
+            HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
+                HoudiniAssetComponent, this,
+                InHoudiniGeoPartObject, InstanceObjectId );
 
+            // Assign original and static mesh.
+            HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+            HoudiniAssetInstanceInputField->AddInstanceVariation( StaticMesh, 0 );
+
+        }
+        else
+        {
+            // Remove item from old list.
+            InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
+
+            TArray< int > MatchingIndices;
+
+            HoudiniAssetInstanceInputField->FindStaticMeshIndices(
+                HoudiniAssetInstanceInputField->OriginalStaticMesh,
+                MatchingIndices );
+
+            for ( int Idx = 0; Idx < MatchingIndices.Num(); Idx++ )
+            {
+                int ReplacementIndex = MatchingIndices[ Idx ];
+                HoudiniAssetInstanceInputField->ReplaceInstanceVariation( StaticMesh, ReplacementIndex );
+            }
+
+            HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+        }
+
+        // Update component transformation.
+        HoudiniAssetInstanceInputField->UpdateRelativeTransform();
+
+        // Set transforms for this input.
+        HoudiniAssetInstanceInputField->SetInstanceTransforms( ObjectTransforms );
+
+        // Add field to list of fields.
+        NewInstanceInputFields.Add( HoudiniAssetInstanceInputField );
+    }
+    else if ( InHoudiniGeoPartObject.IsPackedPrimitiveInstancer() )
+    {
+        HAPI_Result Result = HAPI_RESULT_SUCCESS;
+        // We seem to be instancing a PP instancer, we need to get the transforms 
+
+        HAPI_PartInfo PartInfo;
+        HOUDINI_CHECK_ERROR( &Result, FHoudiniApi::GetPartInfo(
+            FHoudiniEngine::Get().GetSession(), InHoudiniGeoPartObject.GeoId, InHoudiniGeoPartObject.PartId,
+            &PartInfo ) );
+
+        // Get transforms for each instance
+        TArray<HAPI_Transform> InstancerPartTransforms;
+        InstancerPartTransforms.SetNumZeroed( PartInfo.instanceCount );
+        HOUDINI_CHECK_ERROR( &Result, FHoudiniApi::GetInstancerPartTransforms(
+            FHoudiniEngine::Get().GetSession(), InHoudiniGeoPartObject.GeoId, PartInfo.id,
+            HAPI_RSTORDER_DEFAULT, InstancerPartTransforms.GetData(), 0, PartInfo.instanceCount ) );
+
+        // Get the part ids for parts being instanced
+        TArray<HAPI_PartId> InstancedPartIds;
+        InstancedPartIds.SetNumZeroed( PartInfo.instancedPartCount );
+        HOUDINI_CHECK_ERROR( &Result, FHoudiniApi::GetInstancedPartIds(
+            FHoudiniEngine::Get().GetSession(), InHoudiniGeoPartObject.GeoId, PartInfo.id,
+            InstancedPartIds.GetData(), 0, PartInfo.instancedPartCount ) );
+
+        for ( auto InstancedPartId : InstancedPartIds )
+        {
+            HAPI_PartInfo InstancedPartInfo;
+            HOUDINI_CHECK_ERROR( &Result,
+                FHoudiniApi::GetPartInfo(
+                    FHoudiniEngine::Get().GetSession(), InHoudiniGeoPartObject.GeoId, InstancedPartId,
+                    &InstancedPartInfo ) );
+
+            TArray<FTransform> PPObjectTransforms;
+            PPObjectTransforms.SetNumUninitialized( InstancerPartTransforms.Num() );
+            for ( int32 InstanceIdx = 0; InstanceIdx < InstancerPartTransforms.Num(); ++InstanceIdx )
+            {
+                const auto& InstanceTransform = InstancerPartTransforms[InstanceIdx];
+                FHoudiniEngineUtils::TranslateHapiTransform( InstanceTransform, PPObjectTransforms[InstanceIdx] );
+            }
+
+            // Create this instanced input field for this instanced part
+            
+            // find static mesh for this instancer
+            FHoudiniGeoPartObject TempInstancedPart( InHoudiniGeoPartObject.AssetId, InHoudiniGeoPartObject.ObjectId, InHoudiniGeoPartObject.GeoId, InstancedPartId );
+            if ( UStaticMesh* FoundStaticMesh = HoudiniAssetComponent->LocateStaticMesh( TempInstancedPart ) )
+            {
+                // Build the list of transforms for this instancer
+                TArray< FTransform > AllTransforms;
+                AllTransforms.Empty( PPObjectTransforms.Num() * ObjectTransforms.Num() );
+                for ( const FTransform& ObjectTransform : ObjectTransforms )
+                {
+                    for ( const FTransform& PPTransform : PPObjectTransforms )
+                    {
+                        AllTransforms.Add( PPTransform * ObjectTransform );
+                    }
+                }
+
+                CreateInstanceInputField( FoundStaticMesh, AllTransforms, InstanceInputFields, NewInstanceInputFields );
+            }
+            else
+            {
+                HOUDINI_LOG_WARNING(
+                    TEXT( "CreateInstanceInputField for Packed Primitive: Could not find static mesh for object [%d %s], geo %d, part %d]" ), InHoudiniGeoPartObject.ObjectId, *InHoudiniGeoPartObject.ObjectName, InHoudiniGeoPartObject.GeoId, InstancedPartId );
+            }
+        }
     }
     else
     {
-        // Remove item from old list.
-        InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
-
-        TArray< int > MatchingIndices;
-
-        HoudiniAssetInstanceInputField->FindStaticMeshIndices(
-            HoudiniAssetInstanceInputField->OriginalStaticMesh,
-            MatchingIndices );
-
-        for ( int Idx = 0; Idx < MatchingIndices.Num(); Idx++ )
-        {
-            int ReplacementIndex = MatchingIndices[ Idx ];
-            HoudiniAssetInstanceInputField->ReplaceInstanceVariation( StaticMesh, ReplacementIndex );
-        }
-
-        HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+        HOUDINI_LOG_WARNING(
+            TEXT( "CreateInstanceInputField: Could not find static mesh for object [%d %s], geo %d, part %d]" ), InHoudiniGeoPartObject.ObjectId, *InHoudiniGeoPartObject.ObjectName, InHoudiniGeoPartObject.GeoId, InHoudiniGeoPartObject.PartId );
     }
-
-    // Update component transformation.
-    HoudiniAssetInstanceInputField->UpdateRelativeTransform();
-
-    // Set transforms for this input.
-    HoudiniAssetInstanceInputField->SetInstanceTransforms( ObjectTransforms );
-
-    // Add field to list of fields.
-    NewInstanceInputFields.Add( HoudiniAssetInstanceInputField );
 }
 
 void
@@ -545,7 +608,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         FHoudiniGeoPartObject TempHoudiniGeoPartObject;
         HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
             HoudiniAssetComponent, this,
-            TempHoudiniGeoPartObject, TEXT( "" ) );
+            TempHoudiniGeoPartObject, -1 );
 
         // Assign original and static mesh.
         HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;

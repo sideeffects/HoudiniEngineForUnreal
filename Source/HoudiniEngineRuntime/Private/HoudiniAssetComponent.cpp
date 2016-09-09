@@ -648,14 +648,14 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
         UStaticMesh * StaticMesh = Iter.Value();
 
-        if ( HoudiniGeoPartObject.IsInstancer() || HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
+        if ( HoudiniGeoPartObject.IsInstancer() )
         {
-            // This geo part is an instancer and has no mesh assigned.
-            if ( StaticMesh != nullptr )
-            {
-                // We are loading an old map that has static mesh - next cook will remove the static mesh from this part
-            }
             FoundInstancers.Add( HoudiniGeoPartObject );
+        }
+        else if ( HoudiniGeoPartObject.IsPackedPrimitiveInstancer() )
+        {
+            // Packed Primitives should be processed before other instancer in case they are instanced by the same
+            FoundInstancers.Insert( HoudiniGeoPartObject, 0 );
         }
         else if ( HoudiniGeoPartObject.IsCurve() )
         {
@@ -2859,8 +2859,12 @@ UHoudiniAssetComponent::LocateStaticMeshes(
         const FHoudiniGeoPartObject& HoudiniGeoPartObject = Iter.Key();
         UStaticMesh * StaticMesh = Iter.Value();
 
-        if ( StaticMesh && HoudiniGeoPartObject.ObjectId == ObjectToInstanceId )
-            InOutObjectsToInstance.Add( HoudiniGeoPartObject );
+        if ( HoudiniGeoPartObject.ObjectId == ObjectToInstanceId )
+        {
+            // Check that this part isn't being instanced at the part level
+            if ( !HoudiniGeoPartObject.HapiPartIsInstanced() )
+                InOutObjectsToInstance.Add( HoudiniGeoPartObject );
+        }
     }
 
     // Sort array.
@@ -3514,20 +3518,23 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
 {
     ClearInstanceInputs();
 
-    for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter( Instancers ); Iter; ++Iter )
+    for ( const FHoudiniGeoPartObject& GeoPart : Instancers )
     {
-        if ( UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create( this, *Iter ) )
+        if ( GeoPart.IsVisible () )
         {
-            // Add input
-            InstanceInputs.Add( HoudiniAssetInstanceInput );
+            if ( UHoudiniAssetInstanceInput* HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create( this, GeoPart ) )
+            {
+                // Add input
+                InstanceInputs.Add( HoudiniAssetInstanceInput );
 
-            // Create or re-create this input.
-            HoudiniAssetInstanceInput->CreateInstanceInput();
-        }
-        else
-        {
-            // Invalid instance input.
-            HOUDINI_LOG_WARNING( TEXT( "Inavlid Instance Input" ) );
+                // Create or re-create this input.
+                HoudiniAssetInstanceInput->CreateInstanceInput();
+            }
+            else
+            {
+                // Invalid instance input.
+                HOUDINI_LOG_WARNING( TEXT( "Inavlid Instance Input" ) );
+            }
         }
     }
 }
@@ -3726,20 +3733,6 @@ UHoudiniAssetComponent::LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniG
         StaticMesh = *FoundStaticMesh;
 
     return StaticMesh;
-}
-
-UStaticMesh * 
-UHoudiniAssetComponent::LocateStaticMesh( HAPI_AssetId InAssetId, HAPI_GeoId GeoId, HAPI_PartId PartId ) const
-{
-    for ( const auto& Iter : StaticMeshes )
-    {
-        const FHoudiniGeoPartObject& IterGeoPart = Iter.Key;
-        if ( IterGeoPart.AssetId == InAssetId && IterGeoPart.GeoId == GeoId && IterGeoPart.PartId == PartId )
-        {
-            return Iter.Value;
-        }
-    }
-    return nullptr;
 }
 
 UStaticMeshComponent *

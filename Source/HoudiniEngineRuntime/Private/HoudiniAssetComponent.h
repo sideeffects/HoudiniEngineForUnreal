@@ -251,9 +251,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** Locate static mesh for a given geo part. **/
         UStaticMesh * LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject ) const;
 
-        /** Locate static mesh for a given PartId */
-        UStaticMesh * LocateStaticMesh( HAPI_AssetId InAssetId, HAPI_GeoId GeoId, HAPI_PartId PartId ) const;
-
         /** Locate static mesh component for given static mesh. **/
         UStaticMeshComponent * LocateStaticMeshComponent( UStaticMesh * StaticMesh ) const;
 

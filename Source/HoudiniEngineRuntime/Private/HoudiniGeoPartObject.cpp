@@ -391,7 +391,7 @@ FHoudiniGeoPartObject::HasParameters( HAPI_AssetId InAssetId ) const
     return NodeInfo.parmCount > 0;
 }
 
-bool FHoudiniGeoPartObject::IsPackedPrimativeInstancer() const
+bool FHoudiniGeoPartObject::IsPackedPrimitiveInstancer() const
 {
     return bIsPackedPrimitiveInstancer;
 }
