@@ -64,23 +64,11 @@ UHoudiniAssetInstanceInputField::Create(
 UHoudiniAssetInstanceInputField *
 UHoudiniAssetInstanceInputField::Create(
     UHoudiniAssetComponent * InHoudiniAssetComponent,
-    UHoudiniAssetInstanceInputField * OtherInputField )
+    const UHoudiniAssetInstanceInputField * OtherInputField )
 {
-    UHoudiniAssetInstanceInputField * InputField = NewObject< UHoudiniAssetInstanceInputField >(
-        InHoudiniAssetComponent,
-        UHoudiniAssetInstanceInputField::StaticClass(),
-        NAME_None,
-        RF_Public | RF_Transactional );
+    UHoudiniAssetInstanceInputField * InputField = DuplicateObject< UHoudiniAssetInstanceInputField >( OtherInputField, InHoudiniAssetComponent );
 
-    InputField->HoudiniGeoPartObject = OtherInputField->HoudiniGeoPartObject;
     InputField->HoudiniAssetComponent = InHoudiniAssetComponent;
-    InputField->InstancePathName = OtherInputField->InstancePathName;
-    InputField->RotationOffsets = OtherInputField->RotationOffsets;
-    InputField->ScaleOffsets = OtherInputField->ScaleOffsets;
-    InputField->bScaleOffsetsLinearlyArray = OtherInputField->bScaleOffsetsLinearlyArray;
-    InputField->InstancedTransforms = OtherInputField->InstancedTransforms;
-    InputField->StaticMeshes = OtherInputField->StaticMeshes;
-    InputField->OriginalStaticMesh = OtherInputField->OriginalStaticMesh;
     InputField->InstancedStaticMeshComponents.Empty();
 
     // Duplicate the given field's InstancedStaticMesh components
