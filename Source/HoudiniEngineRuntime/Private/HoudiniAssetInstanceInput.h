@@ -46,7 +46,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Create instance from another input. **/
         static UHoudiniAssetInstanceInput * Create(
             UHoudiniAssetComponent * InHoudiniAssetComponent,
-            UHoudiniAssetInstanceInput * InstanceInput );
+            const UHoudiniAssetInstanceInput * OtherInstanceInput );
 
     public:
 
