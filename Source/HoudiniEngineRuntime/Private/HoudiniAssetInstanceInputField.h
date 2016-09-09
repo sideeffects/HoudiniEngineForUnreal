@@ -48,7 +48,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         /** Create an instance of input field from another input field. **/
         static UHoudiniAssetInstanceInputField * Create(
             UHoudiniAssetComponent * InHoudiniAssetComponent,
-            UHoudiniAssetInstanceInputField * OtherInputField );
+            const UHoudiniAssetInstanceInputField * OtherInputField );
 
     /** UObject methods. **/
     public:

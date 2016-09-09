@@ -95,36 +95,22 @@ UHoudiniAssetInstanceInput::Create(
 UHoudiniAssetInstanceInput *
 UHoudiniAssetInstanceInput::Create(
     UHoudiniAssetComponent * InHoudiniAssetComponent,
-    UHoudiniAssetInstanceInput * InstanceInput )
+    const UHoudiniAssetInstanceInput * OtherInstanceInput )
 {
     UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = 
-        DuplicateObject( InstanceInput, InHoudiniAssetComponent );
+        DuplicateObject( OtherInstanceInput, InHoudiniAssetComponent );
 
-    // We need to duplicate fields.
-    TArray< UHoudiniAssetInstanceInputField * > DuplicatedFields;
-
-    for ( int32 FieldIdx = 0; FieldIdx < HoudiniAssetInstanceInput->InstanceInputFields.Num(); ++FieldIdx )
+    // We need to duplicate field objects manually
+    HoudiniAssetInstanceInput->InstanceInputFields.Empty();
+    for ( const auto& OtherField : OtherInstanceInput->InstanceInputFields )
     {
-        // Get field at this index.
-        UHoudiniAssetInstanceInputField * OriginalField = HoudiniAssetInstanceInput->InstanceInputFields[ FieldIdx ];
-        UHoudiniAssetInstanceInputField * DuplicatedField =
-            UHoudiniAssetInstanceInputField::Create( InHoudiniAssetComponent, OriginalField );
+        UHoudiniAssetInstanceInputField * NewField =
+            UHoudiniAssetInstanceInputField::Create( InHoudiniAssetComponent, OtherField );
 
-        DuplicatedFields.Add( DuplicatedField );
+        HoudiniAssetInstanceInput->InstanceInputFields.Add( NewField );
     }
-
-    // Set duplicated fields.
-    HoudiniAssetInstanceInput->InstanceInputFields = DuplicatedFields;
-
+    // Fix the back-reference to the component
     HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
-    HoudiniAssetInstanceInput->ParameterLabel = InstanceInput->ParameterLabel;
-    HoudiniAssetInstanceInput->ParameterName = InstanceInput->ParameterName;
-    HoudiniAssetInstanceInput->HoudiniGeoPartObject = InstanceInput->HoudiniGeoPartObject;
-    HoudiniAssetInstanceInput->ObjectToInstanceId = InstanceInput->ObjectToInstanceId;
-    HoudiniAssetInstanceInput->bIsAttributeInstancer = InstanceInput->bIsAttributeInstancer;
-    HoudiniAssetInstanceInput->bAttributeInstancerOverride = InstanceInput->bAttributeInstancerOverride;
-    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = InstanceInput->bIsPackedPrimitiveInstancer;
-
     return HoudiniAssetInstanceInput;
 }
 
