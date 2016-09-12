@@ -1139,6 +1139,29 @@ HAPI_DECL HAPI_GetNodeInfo( const HAPI_Session * session,
                             HAPI_NodeId node_id,
                             HAPI_NodeInfo * node_info );
 
+/// @brief  Fill an ::HAPI_NodeInfo struct.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      relative_to_node_id
+///                 Set this to -1 to get the absolute path of the node_id.
+///                 Otherwise, the path will be relative to this node id.
+///
+/// @param[out]     path
+///                 The returned path string, valid until the next call to
+///                 this function.
+///
+HAPI_DECL HAPI_GetNodePath( const HAPI_Session * session,
+                            HAPI_NodeId node_id,
+                            HAPI_NodeId relative_to_node_id,
+                            HAPI_StringHandle * path );
+
 /// @brief  Get the root node of a particular network type (ie. OBJ).
 ///
 /// @param[in]      session
