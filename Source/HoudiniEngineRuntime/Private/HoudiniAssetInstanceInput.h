@@ -62,7 +62,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Retrieve all instanced mesh components used by this input. **/
         bool CollectAllInstancedStaticMeshComponents(
             TArray< UInstancedStaticMeshComponent * > & Components,
-            UStaticMesh * StaticMesh );
+            const UStaticMesh * StaticMesh );
 
         /** Get material replacement meshes for a given input. **/
         bool GetMaterialReplacementMeshes(

@@ -257,7 +257,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         UStaticMeshComponent * LocateStaticMeshComponent( const UStaticMesh * StaticMesh ) const;
 
         /** Locate instanced static mesh components for given static mesh. **/
-        bool LocateInstancedStaticMeshComponents( UStaticMesh * StaticMesh, TArray< UInstancedStaticMeshComponent * > & Components );
+        bool LocateInstancedStaticMeshComponents( const UStaticMesh * StaticMesh, TArray< UInstancedStaticMeshComponent * > & Components ) const;
 
         /** Locate geo part object for given static mesh. Reverse map search. **/
         FHoudiniGeoPartObject LocateGeoPartObject( UStaticMesh * StaticMesh ) const;
