@@ -172,7 +172,7 @@ HAPI_DECL HAPI_CloseSession( const HAPI_Session * session );
 
 /// @brief  Check whether the runtime has been initialized yet using
 ///         ::HAPI_Initialize(). Function will return ::HAPI_RESULT_SUCCESS
-///         if the runtime has been initialized and ::HAPI_RESULT_FAILURE
+///         if the runtime has been initialized and ::HAPI_RESULT_NOT_INITIALIZED
 ///         otherwise.
 ///
 /// @param[in]      session
