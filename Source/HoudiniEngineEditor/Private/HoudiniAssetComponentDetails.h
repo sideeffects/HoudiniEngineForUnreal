@@ -89,6 +89,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Handler for bake blueprint replace action. **/
         FReply OnBakeBlueprintReplace();
 
+        /** Handler for bake to actors action **/
+        FReply OnBakeToActors();
+
         /** Handler for fetch asset help action. **/
         FReply OnFetchAssetHelp( UHoudiniAssetComponent * HoudiniAssetComponent );
 

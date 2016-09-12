@@ -7824,4 +7824,65 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
     return DuplicatedTexture;
 }
 
+void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
+{
+    TArray< AActor* > NewActors;
+
+    for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator Iter( HoudiniAssetComponent->GetStaticMeshes() ); Iter; ++Iter )
+    {
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+        const UStaticMesh * StaticMesh = Iter.Value();
+
+        // Retrieve referenced static mesh component.
+        if ( const UStaticMeshComponent * StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh ) )
+        {
+            ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+            const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
+
+            if ( StaticMeshComponent->IsA< UInstancedStaticMeshComponent >() )
+            {
+                // TODOs
+            }
+            else
+            {
+                UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
+
+                // Bake the referenced static mesh.
+                if ( UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+                    StaticMeshComponent->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true ) )
+                {
+                    FAssetRegistryModule::AssetCreated( OutStaticMesh );
+
+                    if ( AActor* NewActor = Factory->CreateActor( OutStaticMesh, DesiredLevel, StaticMeshComponent->GetComponentTransform(), RF_Transactional ) )
+                    {
+                        // The default name will be based on the static mesh package, we would prefer it to be based on the houdini asset
+                        FName BaseName( *HoudiniAssetComponent->GetOwner()->GetName() );
+                        FName NewName = MakeUniqueObjectName( HoudiniAssetComponent, Factory->NewActorClass, BaseName );
+                        FString NewNameStr = NewName.ToString();
+                        NewActor->Rename( *NewNameStr );
+                        NewActor->SetActorLabel( NewNameStr );
+
+                        // select the new 
+                        NewActors.Add( NewActor );
+                        
+                        NewActor->InvalidateLightingCache();
+                        NewActor->PostEditMove( true );
+                        NewActor->MarkPackageDirty();
+                    }
+                }
+            }
+        }
+    }
+    
+    if ( NewActors.Num() )
+    {
+        GEditor->SelectNone( false, true );
+        for ( AActor* NewActor : NewActors )
+        {
+            GEditor->SelectActor( NewActor, true, false );
+        }
+        GEditor->NoteSelectionChange();
+    }
+}
+
 #endif

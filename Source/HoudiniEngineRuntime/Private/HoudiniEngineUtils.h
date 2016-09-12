@@ -386,6 +386,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, bool bBake = false );
 
+        /** Bake output meshes and materials to packages and create corresponding actors in the scene */
+        static void BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors );
 #endif
 
     protected:
