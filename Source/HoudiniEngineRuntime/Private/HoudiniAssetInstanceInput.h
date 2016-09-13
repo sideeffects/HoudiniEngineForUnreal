@@ -69,6 +69,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
             UMaterialInterface * Material,
             TMap< UStaticMesh *, int32 > & MaterialReplacementsMap );
 
+        FORCEINLINE const TArray< UHoudiniAssetInstanceInputField * >& GetInstanceInputFields() const { return InstanceInputFields; }
+
     /** UHoudiniAssetParameter methods. **/
     public:
 
