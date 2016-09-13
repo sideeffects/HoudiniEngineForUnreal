@@ -23,6 +23,7 @@
 #include "HoudiniAssetComponentMaterials.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "Components/SplineComponent.h"
 
 const FString kResultStringSuccess( TEXT( "Success" ) );
 const FString kResultStringFailure( TEXT( "Generic Failure" ) );
@@ -2251,9 +2252,104 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     return true;
 }
 
+
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_AssetId HostAssetId, UStaticMesh * StaticMesh,
+    HAPI_AssetId HostAssetId, 
+    USplineComponent * SplineComponent,
+    HAPI_AssetId & ConnectedAssetId,
+    FHoudiniAssetInputOutlinerMesh& OutlinerMesh )
+{
+#if WITH_EDITOR
+
+    // If we don't have a spline component, or host asset is invalid, there's nothing to do.
+    if (!SplineComponent || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
+	return false;
+
+    // Check if connected asset id is valid, if it is not, we need to create an input curve.
+    if (ConnectedAssetId < 0)
+    {
+	HAPI_AssetId AssetId = -1;
+	if(!FHoudiniEngineUtils::HapiCreateCurveNode( AssetId ) )
+	    return false;
+
+	// Check if we have a valid id for this new input asset.
+	if (!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
+	    return false;
+
+	// We now have a valid id.
+	ConnectedAssetId = AssetId;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+	    FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
+    }
+
+    
+    // Get runtime settings and extract the spline resolution from it
+    float fSplineResolution = -1.0f;
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (HoudiniRuntimeSettings)
+	fSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
+
+    OutlinerMesh.SplineResolution = fSplineResolution;
+
+    // Get the length and the number of CVs of the unreal spline
+    OutlinerMesh.SplineLength = SplineComponent->GetSplineLength();
+    OutlinerMesh.NumberOfSplineControlPoints = SplineComponent->GetNumberOfSplinePoints();
+
+    // Calculate the number of refined point we want
+    int32 nNumberOfRefinedSplinePoints = fSplineResolution > 0.0f ? ceil(OutlinerMesh.SplineLength / fSplineResolution) + 1 : OutlinerMesh.NumberOfSplineControlPoints;
+    
+    TArray<FVector> tRefinedSplinePoints;
+    if ( (nNumberOfRefinedSplinePoints < OutlinerMesh.NumberOfSplineControlPoints) || (fSplineResolution <= 0.0f) )
+    {
+	// There's not enough refined points, so we'll use the Spline CVs instead
+	tRefinedSplinePoints.SetNumZeroed(OutlinerMesh.NumberOfSplineControlPoints);
+	for (int32 n = 0; n < OutlinerMesh.NumberOfSplineControlPoints; n++)
+	    tRefinedSplinePoints[n] = SplineComponent->GetLocationAtSplinePoint(n, ESplineCoordinateSpace::Local);
+    }
+    else
+    {
+	// Calculating the refined spline points
+	tRefinedSplinePoints.SetNumZeroed(nNumberOfRefinedSplinePoints);
+	float fCurrentDistance = 0.0f;
+	for (int32 n = 0; n < nNumberOfRefinedSplinePoints; n++)
+	{    
+	    tRefinedSplinePoints[n] = SplineComponent->GetLocationAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::Local);
+	    fCurrentDistance += fSplineResolution;
+	}
+    }
+
+
+    // ... then create the position string from the CVs
+    FString PositionString = TEXT("");
+    FHoudiniEngineUtils::CreatePositionsString(tRefinedSplinePoints, PositionString);
+
+    // Get param id for the PositionString and modify it
+    HAPI_ParmId ParmId = -1;
+    if (FHoudiniApi::GetParmIdFromName(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) == HAPI_RESULT_SUCCESS)
+    {
+	// .. then feed the string to the curve
+	std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+	FHoudiniApi::SetParmStringValue(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	    ConvertedString.c_str(), ParmId, 0);
+    }
+
+    // Cook the spline node.
+    FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
+
+#endif
+
+    return true;
+}
+
+bool
+FHoudiniEngineUtils::HapiCreateInputNodeForData(
+    HAPI_AssetId HostAssetId, 
+    UStaticMesh * StaticMesh,
     HAPI_AssetId & ConnectedAssetId)
 {
 #if WITH_EDITOR
@@ -2706,24 +2802,41 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     for ( int32 InputIdx = 0; InputIdx < OutlinerMeshArray.Num(); ++InputIdx )
     {
         auto & OutlinerMesh = OutlinerMeshArray[ InputIdx ];
-        if ( !HapiCreateInputNodeForData(
-            ConnectedAssetId,
-            OutlinerMesh.StaticMesh,
-            OutlinerMesh.AssetId ) )
+
+	bool bInputCreated = false;
+
+	if (OutlinerMesh.StaticMesh != nullptr)
+	{
+	    // Creating an Input Node for Mesh Data
+	    bInputCreated = HapiCreateInputNodeForData(
+		ConnectedAssetId,
+		OutlinerMesh.StaticMesh,
+		OutlinerMesh.AssetId );
+	}
+	else if (OutlinerMesh.SplineComponent != nullptr)
+	{
+	    // Creating an input node for spline data
+	    bInputCreated = HapiCreateInputNodeForData(
+		ConnectedAssetId,
+		OutlinerMesh.SplineComponent,
+		OutlinerMesh.AssetId,
+		OutlinerMesh );
+	}
+
+        if ( !bInputCreated )
         {
             OutlinerMesh.AssetId = -1;
             continue;
         }
-        else
-        {
-            // Now we can connect input node to the asset node.
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-                FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
-                OutlinerMesh.AssetId), false);
-        }
 
+        // Now we can connect the input node to the asset node.
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
+            OutlinerMesh.AssetId), false);
+        
+	// Updating the Transform
         HAPI_TransformEuler HapiTransform;
-        FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ActorTransform, HapiTransform );
+        FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
 
         HAPI_NodeInfo LocalAssetNodeInfo;
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
