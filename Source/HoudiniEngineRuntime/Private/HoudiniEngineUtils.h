@@ -445,6 +445,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             UMaterialExpression * MaterialExpression,
             const UHoudiniAssetComponent * Component, bool bBake );
 
+        /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
+        static bool StaticMeshRequiresBake( const UStaticMesh * StaticMesh );
+
 #endif
 
         /** Add Houdini meta information to package for a given object. **/

@@ -7612,6 +7612,25 @@ FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(
 
 #if WITH_EDITOR
 
+bool
+FHoudiniEngineUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh )
+{
+    check( StaticMesh );
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
+    
+    FAssetData BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *StaticMesh->GetPathName() );
+    if ( ! BackingAssetData.IsUAsset() )
+        return true;
+
+    for ( const UMaterialInterface* MaterialInterface : StaticMesh->Materials )
+    {
+        FAssetData BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *MaterialInterface->GetPathName() );
+        if ( ! BackingAssetData.IsUAsset() )
+            return true;
+    }
+    return false;
+}
+
 UStaticMesh *
 FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
     const UStaticMesh * StaticMesh, const UHoudiniAssetComponent * Component,
@@ -7851,15 +7870,23 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
         }
         else
         {
-            // Bake the found mesh into the project
-            BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
-
-            if ( BakedSM )
+            if ( FHoudiniEngineUtils::StaticMeshRequiresBake( OtherSMC->StaticMesh) )
             {
-                OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
-                FAssetRegistryModule::AssetCreated( BakedSM );
+                // Bake the found mesh into the project
+                BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+                    OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
+
+                if ( ensure( BakedSM ) )
+                {
+                    FAssetRegistryModule::AssetCreated( BakedSM );
+                }
             }
+            else
+            {
+                // We didn't bake this mesh, but it's already baked so we will just use it as is
+                BakedSM = OtherSMC->StaticMesh;
+            }
+            OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
         }
 
         if ( ensure( BakedSM ) )
