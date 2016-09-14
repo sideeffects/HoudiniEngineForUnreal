@@ -198,6 +198,8 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
         // Add to multi-selection
         if ( !EditedControlPointsIndexes.Contains(ControlPointProxy->ControlPointIndex) )
             EditedControlPointsIndexes.Add(ControlPointProxy->ControlPointIndex);
+	else
+	    EditedControlPointsIndexes.Remove(ControlPointProxy->ControlPointIndex);
     }
     else
     {
