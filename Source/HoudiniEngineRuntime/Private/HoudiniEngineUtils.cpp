@@ -7560,24 +7560,21 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
         HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialName );
 
     // Retrieve and check various sampling expressions. If they contain textures, duplicate (and bake) them.
-    FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-        DuplicatedMaterial->BaseColor.Expression, Component, bBake );
-    FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-        DuplicatedMaterial->Normal.Expression, Component, bBake);
-    FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-        DuplicatedMaterial->Metallic.Expression, Component, bBake);
-    FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-        DuplicatedMaterial->Specular.Expression, Component, bBake);
-    FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-        DuplicatedMaterial->Roughness.Expression, Component, bBake);
-    FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-        DuplicatedMaterial->EmissiveColor.Expression, Component, bBake);
+    
+    for ( auto& Expression : DuplicatedMaterial->Expressions )
+    {
+        FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
+            Expression, Component, bBake );
+    }
 
     // Notify registry that we have created a new duplicate material.
     FAssetRegistryModule::AssetCreated( DuplicatedMaterial );
 
     // Dirty the material package.
     DuplicatedMaterial->MarkPackageDirty();
+
+    // Reset any derived state
+    DuplicatedMaterial->ForceRecompileForRendering();
 
     return DuplicatedMaterial;
 }
