@@ -856,14 +856,8 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoud
         // We need to locate corresponding geo part object in component.
         const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( StaticMesh );
 
-        UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+        (void) FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
             StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
-
-        if ( OutStaticMesh )
-        {
-            // Notify asset registry that we have created assets. This should update the content browser.
-            FAssetRegistryModule::AssetCreated( OutStaticMesh );
-        }
     }
 
     return FReply::Handled();
