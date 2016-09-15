@@ -69,6 +69,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
             UMaterialInterface * Material,
             TMap< UStaticMesh *, int32 > & MaterialReplacementsMap );
 
+        FORCEINLINE const FHoudiniGeoPartObject& GetGeoPartObject() const { return HoudiniGeoPartObject; }
+
     /** UHoudiniAssetParameter methods. **/
     public:
 
