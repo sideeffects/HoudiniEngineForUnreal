@@ -43,7 +43,7 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 
     Ar << AssetId;
 
-    if (HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE)
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE )
     {
 	Ar << SplineComponent;
 	Ar << NumberOfSplineControlPoints;
@@ -51,6 +51,9 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 	Ar << SplineResolution;
 	Ar << ComponentTransform;
     }
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
+	Ar << KeepWorldTransform;
 }
 
 bool
@@ -126,7 +129,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , bLandscapeExportNormalizedUVs( false )
     , bLandscapeExportTileUVs( false )
     , bIsObjectPathParameter( false )
-    , bIsObjectTransformTypeSetToNone( 2 )
+    , bKeepWorldTransform( 2 )
 {
     ChoiceStringValue = TEXT( "" );
 }
@@ -357,7 +360,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
         ];
     }
 
-    // Checkbox : Input Transform Type
+    // Checkbox : Keep World Transform
     {	
 	TSharedPtr< SCheckBox > CheckBoxTranformType;
 	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
@@ -366,15 +369,15 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
 	    .Content()
 	    [
 		SNew(STextBlock)
-		.Text(LOCTEXT("TranformTypeCheckbox", "Set Input Transform Type to NONE"))
-		.ToolTipText(LOCTEXT("TranformTypeCheckbox", "Set Input Transform Type to NONE. If unchecked, it will be set to INTO_THIS_OBJECT."))
+		.Text(LOCTEXT("KeepWorldTransformCheckbox", "Keep World Transform"))
+		.ToolTipText(LOCTEXT("KeepWorldTransformCheckboxTip", "Set this Input's object_merge Transform Type to INTO_THIS_OBJECT. If unchecked, it will be set to NONE."))
 		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 	    ]
 	    .IsChecked(TAttribute< ECheckBoxState >::Create(
 		TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-		this, &UHoudiniAssetInput::IsCheckedTransformType)))
+		this, &UHoudiniAssetInput::IsCheckedKeepWorldTransform)))
 	    .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
-		this, &UHoudiniAssetInput::CheckStateChangedTransformType))
+		this, &UHoudiniAssetInput::CheckStateChangedKeepWorldTransform))
 	];
 
 	// Checkbox is read only if the input is an object-path parameter
@@ -720,22 +723,6 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
 		    .Text(ButtonLabel)
 		    .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickSelectActors))		    
 		]
-		+ SHorizontalBox::Slot()
-		    .AutoWidth()
-		    .Padding(2.0f, 0.0f)
-		    .VAlign(VAlign_Center)
-		    [
-			SNew(SButton)
-			.ToolTipText(LOCTEXT("Refresh", "Refresh the input"))
-			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-			.ContentPadding(0)
-			.Visibility(EVisibility::Visible)
-			.OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnRefreshStaticMeshClicked))
-			[
-			    SNew(SImage)
-			    .Image(FEditorStyle::GetBrush("Icons.Refresh"))
-			]
-		    ]
 	    ];
 	}
 
@@ -1088,12 +1075,12 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
         return false;
 
     uint32 nTransformType = -1;
-    if (bIsObjectTransformTypeSetToNone == 2)
+    if (bKeepWorldTransform == 2)
 	nTransformType = GetDefaultTranformTypeValue();
-    else if (bIsObjectTransformTypeSetToNone)
-	nTransformType = 0;
+    else if (bKeepWorldTransform)
+	nTransformType = 1; 
     else
-	nTransformType = 1;
+	nTransformType = 0;
 
     // Get the Input node ID from the host ID
     HAPI_NodeId InputNodeId = -1;
@@ -1109,21 +1096,18 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
             FHoudiniEngine::Get().GetSession(), InputNodeId,
             sParam.c_str(), 0, nTransformType), false);
 
-/*
-    // If the input is a merge node too, we need to modify it too
-    HAPI_NodeInfo NodeInfo;
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-	FHoudiniEngine::Get().GetSession(),
-	ConnectedAssetId,
-	&NodeInfo), false);
-
-    for (int n = 0; n < NodeInfo.inputCount; n++)
+    // If the input is a world outliner, we also need to modify
+    // the transform types of the merge node's inputs
+    for (int n = 0; n < InputOutlinerMeshArray.Num(); n++)
     {
 	// Get the Input node ID from the host ID
 	InputNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
 	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-	    InputIndex, &InputNodeId), false);
+	    n, &InputNodeId), false);
+
+	if (InputNodeId == -1)
+	    continue;
 
 	// Change Parameter xformtype
 	std::string sParam = "xformtype";
@@ -1131,7 +1115,6 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
 	    FHoudiniEngine::Get().GetSession(), InputNodeId,
 	    sParam.c_str(), 0, nTransformType), false);
     }
-*/
     
     return true;
 }
@@ -1437,18 +1420,6 @@ UHoudiniAssetInput::OnResetStaticMeshClicked()
     return FReply::Handled();
 }
 
-FReply 
-UHoudiniAssetInput::OnRefreshStaticMeshClicked()
-{
-	// Force rebuilding the input + cooking
-    bStaticMeshChanged = true;
-    UploadParameterValue();
-
-    if(HoudiniAssetComponent)
-	HoudiniAssetComponent->StartTaskAssetCookingManual();
-
-    return FReply::Handled();
-}
 
 void
 UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType )
@@ -1763,71 +1734,52 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             // Mark mesh for deletion.
             InputOutlinerMeshArrayPendingKill.Add( OutlinerMesh.StaticMeshComponent );
         }
-	else if ( OutlinerMesh.HasActorTransformChanged() && OutlinerMesh.AssetId >= 0 )
-        {
-            if ( !bChanged )
-            {
-                Modify();
-                MarkPreChanged();
-                bChanged = true;
-            }
-
-	    // Update to the new Transforms
-	    OutlinerMesh.ActorTransform = OutlinerMesh.Actor->GetTransform();
-
-	    if (OutlinerMesh.StaticMeshComponent)
-		OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
-
-	    if (OutlinerMesh.SplineComponent)
-		OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
-	    
-
-            HAPI_TransformEuler HapiTransform;
-            FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform );
-
-            HAPI_NodeInfo LocalAssetNodeInfo;
-            const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
-                FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
-                &LocalAssetNodeInfo );
-
-            if ( LocalResult == HAPI_RESULT_SUCCESS )
-                FHoudiniApi::SetObjectTransform(
-                    FHoudiniEngine::Get().GetSession(),
-                    LocalAssetNodeInfo.parentId, &HapiTransform );
-        }
-	else if (OutlinerMesh.HasComponentTransformChanged() && OutlinerMesh.AssetId >= 0)
+	else if ( OutlinerMesh.AssetId >= 0 )
 	{
-	    // Update to the new Transforms
-	    OutlinerMesh.ActorTransform = OutlinerMesh.Actor->GetTransform();
-
-	    if (OutlinerMesh.StaticMeshComponent)
-		OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
-
-	    if (OutlinerMesh.SplineComponent)
-		OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
-
-	    // The component has been modified so so we need to indicate that the "static mesh" 
-	    // has changed in order to rebuild the asset properly in UploadParameterValue()
-	    if (!bChanged)
+	    if ( OutlinerMesh.HasActorTransformChanged() )
 	    {
-		Modify();
-		MarkPreChanged();
-		bChanged = true;
+		if (!bChanged)
+		{
+		    Modify();
+		    MarkPreChanged();
+		    bChanged = true;
+		}
+
+		// Updates to the new Transform
+		UpdateWorldOutlinerTransforms(OutlinerMesh);
+
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
+
+		HAPI_NodeInfo LocalAssetNodeInfo;
+		const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
+		    FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
+		    &LocalAssetNodeInfo);
+
+		if (LocalResult == HAPI_RESULT_SUCCESS)
+		    FHoudiniApi::SetObjectTransform(
+			FHoudiniEngine::Get().GetSession(),
+			LocalAssetNodeInfo.parentId, &HapiTransform);
 	    }
-	    bStaticMeshChanged = true;
-	}
-	else if (OutlinerMesh.HasSplineComponentChanged())
-	{
-	    // The spline has been modified so so we need to indicate that the "static mesh" 
-	    // has changed in order to rebuild the asset properly in UploadParameterValue()
-	    if (!bChanged)
+	    else if ( OutlinerMesh.HasComponentTransformChanged() 
+		    || OutlinerMesh.HasSplineComponentChanged()
+		    || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
 	    {
-		Modify();
-		MarkPreChanged();
-		bChanged = true;
+		if ( !bChanged )
+		{
+		    Modify();
+		    MarkPreChanged();
+		    bChanged = true;
+		}
+
+		// Update to the new Transforms
+		UpdateWorldOutlinerTransforms(OutlinerMesh);
+
+		// The component or spline has been modified so so we need to indicate that the "static mesh" 
+		// has changed in order to rebuild the asset properly in UploadParameterValue()
+		bStaticMeshChanged = true;
 	    }
-	    bStaticMeshChanged = true;
-	}
+	}	
     }
 
     if ( bChanged )
@@ -2422,11 +2374,11 @@ UHoudiniAssetInput::IsCheckedExportTileUVs() const
 
 
 void
-UHoudiniAssetInput::CheckStateChangedTransformType(ECheckBoxState NewState)
+UHoudiniAssetInput::CheckStateChangedKeepWorldTransform(ECheckBoxState NewState)
 { 
     int32 bState = (NewState == ECheckBoxState::Checked);
 
-    if (bIsObjectTransformTypeSetToNone == bState)
+    if (bKeepWorldTransform == bState)
 	return;
 
     // Record undo information.
@@ -2438,7 +2390,7 @@ UHoudiniAssetInput::CheckStateChangedTransformType(ECheckBoxState NewState)
 
     MarkPreChanged();
 
-    bIsObjectTransformTypeSetToNone = bState;
+    bKeepWorldTransform = bState;
 
     // Mark this parameter as changed.
     MarkChanged();
@@ -2446,16 +2398,16 @@ UHoudiniAssetInput::CheckStateChangedTransformType(ECheckBoxState NewState)
 
 
 ECheckBoxState
-UHoudiniAssetInput::IsCheckedTransformType() const
+UHoudiniAssetInput::IsCheckedKeepWorldTransform() const
 {
-    if (bIsObjectTransformTypeSetToNone == 2)
+    if (bKeepWorldTransform == 2)
     {
 	if (GetDefaultTranformTypeValue())
-	    return ECheckBoxState::Unchecked;
-	else
 	    return ECheckBoxState::Checked;
+	else
+	    return ECheckBoxState::Unchecked;
     }
-    else if (bIsObjectTransformTypeSetToNone)
+    else if (bKeepWorldTransform)
 	return ECheckBoxState::Checked;
     
     return ECheckBoxState::Unchecked;
@@ -2567,9 +2519,9 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
 	    OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
 	    OutlinerMesh.StaticMesh = StaticMesh;
 	    OutlinerMesh.SplineComponent = nullptr;
-	    OutlinerMesh.ActorTransform = Actor->GetTransform();
-	    OutlinerMesh.ComponentTransform = StaticMeshComponent->GetComponentTransform();
 	    OutlinerMesh.AssetId = -1;
+
+	    UpdateWorldOutlinerTransforms(OutlinerMesh);
 
 	    InputOutlinerMeshArray.Add(OutlinerMesh);
         }
@@ -2588,9 +2540,9 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
 	    OutlinerMesh.StaticMeshComponent = nullptr;
 	    OutlinerMesh.StaticMesh = nullptr;
 	    OutlinerMesh.SplineComponent = SplineComponent;
-	    OutlinerMesh.ActorTransform = Actor->GetTransform();
-	    OutlinerMesh.ComponentTransform = SplineComponent->GetComponentTransform();
 	    OutlinerMesh.AssetId = -1;
+
+	    UpdateWorldOutlinerTransforms(OutlinerMesh);
 
 	    InputOutlinerMeshArray.Add(OutlinerMesh);
 	}
@@ -2696,6 +2648,21 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
 
     // to force rebuild...
     bSwitchedToCurve = true;
+}
+
+void
+UHoudiniAssetInput::UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh)
+{
+    // Update to the new Transforms
+    OutlinerMesh.ActorTransform = OutlinerMesh.Actor->GetTransform();
+
+    if (OutlinerMesh.StaticMeshComponent)
+	OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
+
+    if (OutlinerMesh.SplineComponent)
+	OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
+
+    OutlinerMesh.KeepWorldTransform = bKeepWorldTransform;
 }
 
 #endif

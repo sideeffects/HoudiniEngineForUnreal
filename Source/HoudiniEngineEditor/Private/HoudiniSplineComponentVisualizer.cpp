@@ -99,9 +99,10 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 {
     const UHoudiniSplineComponent * HoudiniSplineComponent = Cast< const UHoudiniSplineComponent >( Component );
     if ( HoudiniSplineComponent && HoudiniSplineComponent->IsValidCurve() )
-    {
-        static const FColor ColorNormal( 255, 255, 255 );
-        static const FColor ColorSelected( 255, 0, 0 );
+    {	
+	static const FColor ColorNormal = FColor(255, 255, 255);
+	static const FColor ColorNone = FColor(224, 224, 224);
+	static const FColor ColorSelected(255, 0, 0);
 
         static const float GrabHandleSize = 12.0f;
 
@@ -116,6 +117,9 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
         FVector DisplayPointFirst;
         FVector DisplayPointPrevious;
 
+	bool bNoPointSelected = EditedControlPointsIndexes.Num() <= 0;
+	FColor ColorUnselected = bNoPointSelected ? ColorNone : ColorNormal;
+
         int32 NumDisplayPoints = CurveDisplayPoints.Num();
         for ( int32 DisplayPointIdx = 0; DisplayPointIdx < NumDisplayPoints; ++DisplayPointIdx )
         {
@@ -126,7 +130,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             if ( DisplayPointIdx > 0 )
             {
                 // Draw line from previous point to current one.
-                PDI->DrawLine( DisplayPointPrevious, DisplayPoint, ColorNormal, SDPG_Foreground );
+                PDI->DrawLine( DisplayPointPrevious, DisplayPoint, ColorUnselected, SDPG_Foreground );
             }
             else
             {
@@ -137,7 +141,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             if ( HoudiniSplineComponent->IsClosedCurve() && NumDisplayPoints > 1 &&
                 DisplayPointIdx + 1 == NumDisplayPoints )
             {
-                PDI->DrawLine( DisplayPointFirst, DisplayPoint, ColorNormal, SDPG_Foreground );
+                PDI->DrawLine( DisplayPointFirst, DisplayPoint, ColorUnselected, SDPG_Foreground );
             }
 
             DisplayPointPrevious = DisplayPoint;
@@ -150,9 +154,9 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             const FVector & DisplayPoint = HoudiniSplineComponentTransform.TransformPosition( CurvePoints[ PointIdx ] );
 
             // If we are editing this control point, change color.
-            FColor ColorCurrent = ColorNormal;
-            if ( bCurveEditing &&  EditedControlPointsIndexes.Contains(PointIdx) )
-                ColorCurrent = ColorSelected;
+            FColor ColorCurrent = ColorUnselected;
+	    if ((bCurveEditing) && (EditedControlPointsIndexes.Contains(PointIdx)))
+		ColorCurrent = ColorSelected;
 
             // Draw point and set hit box for it.
             PDI->SetHitProxy( new HHoudiniSplineControlPointVisProxy( HoudiniSplineComponent, PointIdx ) );
