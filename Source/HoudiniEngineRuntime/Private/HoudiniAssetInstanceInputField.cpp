@@ -250,6 +250,8 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
     int32 NumInstancTransforms = InstancedTransforms.Num();
     int32 VariationCount = InstanceVariationCount();
 
+    FRandomStream RandomStream( 1234 );
+
     if ( RecomputeVariationAssignments )
     {
         //clear the previous cached transform assignments.
@@ -269,7 +271,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
         for ( int32 Idx = 0; Idx < NumInstancTransforms; Idx++ )
         {
             FTransform Xform = InstancedTransforms[ Idx ];
-            int32 VariationIndex = rand() % VariationCount;
+            int32 VariationIndex = RandomStream.GetUnsignedInt() % VariationCount;
             VariationTransformsArray[ VariationIndex ].Add( Xform );
         }
     }
