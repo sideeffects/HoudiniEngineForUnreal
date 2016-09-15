@@ -432,7 +432,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         void UploadLoadedCurves();
 
         /** Find an instance input for the given geo part */
-        UHoudiniAssetInstanceInput* FindInstanceInput( const FHoudiniGeoPartObject& GeoPart ) const;
+        UHoudiniAssetInstanceInput* LocateInstanceInput( const FHoudiniGeoPartObject& GeoPart ) const;
 
         /** Create instance inputs. **/
         void CreateInstanceInputs( const TArray< FHoudiniGeoPartObject > & Instancers );

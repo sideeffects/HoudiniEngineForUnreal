@@ -3546,7 +3546,8 @@ UHoudiniAssetComponent::UploadLoadedCurves()
     }
 }
 
-UHoudiniAssetInstanceInput* UHoudiniAssetComponent::FindInstanceInput( const FHoudiniGeoPartObject& GeoPart ) const
+UHoudiniAssetInstanceInput* 
+UHoudiniAssetComponent::LocateInstanceInput( const FHoudiniGeoPartObject& GeoPart ) const
 {
     for ( UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
@@ -3565,35 +3566,37 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
 
     for ( const FHoudiniGeoPartObject& GeoPart : Instancers )
     {
-        // Check if this instance input already exists.
-        
-        UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = nullptr;
+        if ( GeoPart.IsVisible() )
+        {
+            // Check if this instance input already exists.
+            UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = nullptr;
 
-        if ( UHoudiniAssetInstanceInput * FoundHoudiniAssetInstanceInput = FindInstanceInput( GeoPart ) )
-        {
-            // Input already exists, we can reuse it.
-            HoudiniAssetInstanceInput = FoundHoudiniAssetInstanceInput;
+            if ( UHoudiniAssetInstanceInput * FoundHoudiniAssetInstanceInput = LocateInstanceInput( GeoPart ) )
+            {
+                // Input already exists, we can reuse it.
+                HoudiniAssetInstanceInput = FoundHoudiniAssetInstanceInput;
 
-            // Remove it from old map.
-            InstanceInputs.Remove( FoundHoudiniAssetInstanceInput );
-        }
-        else
-        {
-            // Otherwise we need to create new instance input.
-            HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create( this, GeoPart );
-        }
+                // Remove it from old map.
+                InstanceInputs.Remove( FoundHoudiniAssetInstanceInput );
+            }
+            else
+            {
+                // Otherwise we need to create new instance input.
+                HoudiniAssetInstanceInput = UHoudiniAssetInstanceInput::Create( this, GeoPart );
+            }
 
-        if ( !HoudiniAssetInstanceInput )
-        {
-            // Invalid instance input.
-            HOUDINI_LOG_WARNING( TEXT( "Inavlid Instance Input" ) );
-        }
-        else
-        {
-            // Add input to new map.
-            NewInstanceInputs.Add( HoudiniAssetInstanceInput );
-            // Create or re-create this input.
-            HoudiniAssetInstanceInput->CreateInstanceInput();
+            if ( !HoudiniAssetInstanceInput )
+            {
+                // Invalid instance input.
+                HOUDINI_LOG_WARNING( TEXT( "Inavlid Instance Input" ) );
+            }
+            else
+            {
+                // Add input to new map.
+                NewInstanceInputs.Add( HoudiniAssetInstanceInput );
+                // Create or re-create this input.
+                HoudiniAssetInstanceInput->CreateInstanceInput();
+            }
         }
     }
 
