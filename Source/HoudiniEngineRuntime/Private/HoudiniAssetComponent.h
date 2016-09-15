@@ -97,7 +97,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** If true, the physics triangle mesh will use double sided faces when doing scene queries. */
         UPROPERTY( EditAnywhere,
             Category = HoudiniGeneratedStaticMeshSettings,
-            meta = ( DisplayName = "Double Sidedd Geometry" ) )
+            meta = ( DisplayName = "Double Sided Geometry" ) )
         uint32 bGeneratedDoubleSidedGeometry : 1;
 
         /** Physical material to use for simple collision on this body. Encodes information about density, friction etc. */
@@ -193,7 +193,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         void NotifyHoudiniSplineChanged( UHoudiniSplineComponent * HoudiniSplineComponent );
 
         /** Assign generation parameters to static mesh. **/
-        void SetStaticMeshGenerationParameters( UStaticMesh * StaticMesh );
+        void SetStaticMeshGenerationParameters( UStaticMesh * StaticMesh ) const;
 
         /** Used by Blueprint baking; create temporary actor and necessary components to bake a blueprint. **/
         AActor * CloneComponentsAndCreateActor();
@@ -430,6 +430,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
 
         /** If curves were loaded, their points need to be uploaded. **/
         void UploadLoadedCurves();
+
+        /** Find an instance input for the given geo part */
+        UHoudiniAssetInstanceInput* FindInstanceInput( const FHoudiniGeoPartObject& GeoPart ) const;
 
         /** Create instance inputs. **/
         void CreateInstanceInputs( const TArray< FHoudiniGeoPartObject > & Instancers );

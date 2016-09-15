@@ -71,6 +71,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         FORCEINLINE const TArray< UHoudiniAssetInstanceInputField * >& GetInstanceInputFields() const { return InstanceInputFields; }
 
+        FORCEINLINE const FHoudiniGeoPartObject& GetGeoPartObject() const { return HoudiniGeoPartObject; }
+
     /** UHoudiniAssetParameter methods. **/
     public:
 
