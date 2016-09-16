@@ -53,6 +53,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     , MarshallingAttributeFaceSmoothingMask( TEXT( HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK ) )
     , MarshallingAttributeLightmapResolution( TEXT( HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION ) )
     , MarshallingAttributeGeneratedMeshName( TEXT( HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME ) )
+    , MarshallingSplineResolution( 50.0f )
 
     /** Geometry scaling. **/
     , GeneratedGeometryScaleFactor( HAPI_UNREAL_SCALE_FACTOR_POSITION )
@@ -179,6 +180,8 @@ UHoudiniRuntimeSettings::PostEditChangeProperty( struct FPropertyChangedEvent & 
             CustomHoudiniLocationPath = TEXT( "" );
         }
     }
+    else if (Property->GetName() == TEXT("MarshallingSplineResolution"))
+	MarshallingSplineResolution = FMath::Clamp(MarshallingSplineResolution, 0.0f, 10000.0f);
 
     /*
     if ( Property->GetName() == TEXT( "bEnableCooking" ) )

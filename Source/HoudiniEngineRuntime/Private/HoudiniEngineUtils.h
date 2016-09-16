@@ -32,6 +32,7 @@ class UHoudiniAssetMaterial;
 class UHoudiniAssetComponent;
 class FHoudiniAssetObjectGeo;
 class UInstancedStaticMeshComponent;
+class USplineComponent;
 
 struct FRawMesh;
 
@@ -180,6 +181,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             int32 InputIndex,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
             HAPI_AssetId & ConnectedAssetId );
+
+	/** HAPI : Marshaling, extract points from the Unreal Spline and create an input curve for it - return true on success **/
+	static bool HapiCreateAndConnectAsset(
+	    HAPI_AssetId HostAssetId,
+	    int32 InputIndex,
+	    USplineComponent * SplineComponent,
+	    HAPI_AssetId & ConnectedAssetId,
+	    FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
 
         /** HAPI : Marshaling, disconnect input asset from a given slot. **/
         static bool HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex );

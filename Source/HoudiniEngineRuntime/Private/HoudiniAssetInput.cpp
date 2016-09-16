@@ -27,6 +27,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
+#include "Components/SplineComponent.h"
 
 void
 FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
@@ -41,6 +42,70 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     Ar << ActorTransform;
 
     Ar << AssetId;
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE )
+    {
+	Ar << SplineComponent;
+	Ar << NumberOfSplineControlPoints;
+	Ar << SplineLength;
+	Ar << SplineResolution;
+	Ar << ComponentTransform;
+    }
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
+	Ar << KeepWorldTransform;
+}
+
+bool
+FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged() const
+{
+    if (!SplineComponent)
+	return false;
+
+    // Total length of the spline has changed ?
+    if (SplineComponent->GetSplineLength() != SplineLength)
+	return true;
+
+    // Number of CVs has changed ?
+    if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
+	return true;
+
+    // Current Spline resolution has changed?
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( (HoudiniRuntimeSettings) && (SplineResolution != HoudiniRuntimeSettings->MarshallingSplineResolution) )
+	return true;
+
+    return false;
+}
+
+
+bool 
+FHoudiniAssetInputOutlinerMesh::HasActorTransformChanged() const
+{
+    if (!Actor)
+	return false;
+
+    if (!ActorTransform.Equals(Actor->GetTransform()))
+	return true;
+
+    return false;
+}
+
+
+bool
+FHoudiniAssetInputOutlinerMesh::HasComponentTransformChanged() const
+{
+    if (!SplineComponent && !StaticMeshComponent)
+	return false;
+
+    if (SplineComponent)
+	return !ComponentTransform.Equals(SplineComponent->GetComponentTransform());
+
+    if (StaticMeshComponent)
+	return !ComponentTransform.Equals(StaticMeshComponent->GetComponentTransform());
+
+    return false;
+
 }
 
 UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitializer )
@@ -63,6 +128,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , bLandscapeExportLighting( false )
     , bLandscapeExportNormalizedUVs( false )
     , bLandscapeExportTileUVs( false )
+    , bKeepWorldTransform( 2 )
 {
     ChoiceStringValue = TEXT( "" );
 }
@@ -141,7 +207,6 @@ UHoudiniAssetInput::CreateWidgetResources()
             ChoiceStringValue = *ChoiceLabel;
     }
     {
-        // Temporarily disabled. Work in progress.
         FString * ChoiceLabel = new FString( TEXT( "World Outliner Input" ) );
         StringChoiceLabels.Add( TSharedPtr< FString >( ChoiceLabel ) );
 
@@ -236,6 +301,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
 
     if ( StringChoiceLabels.Num() > 0 )
     {
+	// ComboBox :  Input Type
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
         [
             SAssignNew( InputTypeComboBox, SComboBox<TSharedPtr< FString > > )
@@ -254,8 +320,31 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
         ];
     }
 
+    // Checkbox : Keep World Transform
+    {	
+	TSharedPtr< SCheckBox > CheckBoxTranformType;
+	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+	[
+	    SAssignNew(CheckBoxTranformType, SCheckBox)
+	    .Content()
+	    [
+		SNew(STextBlock)
+		.Text(LOCTEXT("KeepWorldTransformCheckbox", "Keep World Transform"))
+		.ToolTipText(LOCTEXT("KeepWorldTransformCheckboxTip", "Set this Input's object_merge Transform Type to INTO_THIS_OBJECT. If unchecked, it will be set to NONE."))
+		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+	    ]
+	    .IsChecked(TAttribute< ECheckBoxState >::Create(
+		TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+		this, &UHoudiniAssetInput::IsCheckedKeepWorldTransform)))
+	    .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
+		this, &UHoudiniAssetInput::CheckStateChangedKeepWorldTransform))
+	];
+    }
+
+
     if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
     {
+	// Drop Target: Static Mesh
         VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
         [
             SNew( SAssetDropTarget )
@@ -268,6 +357,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
             ]
         ];
 
+	// Thumbnail : Static Mesh
         HorizontalBox->AddSlot().Padding( 0.0f, 0.0f, 2.0f, 0.0f ).AutoWidth()
         [
             SAssignNew( StaticMeshThumbnailBorder, SBorder )
@@ -291,6 +381,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
         if ( InputObject )
             MeshNameText = FText::FromString( InputObject->GetName() );
 
+	// ComboBox : Static Mesh
         HorizontalBox->AddSlot()
         .FillWidth( 1.0f )
         .Padding( 0.0f, 4.0f, 4.0f, 4.0f )
@@ -327,6 +418,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
             LOCTEXT( "BrowseToSpecificAssetInContentBrowser",
             "Browse to '{Asset}' in Content Browser" ), Args );
 
+	// Button : Browse Static Mesh
         ButtonBox->AddSlot()
         .AutoWidth()
         .Padding( 2.0f, 0.0f )
@@ -337,6 +429,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 TAttribute< FText >( StaticMeshTooltip ) )
         ];
 
+	// ButtonBox : Reset
         ButtonBox->AddSlot()
         .AutoWidth()
         .Padding( 2.0f, 0.0f )
@@ -356,6 +449,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
+	// ActorPicker : Houdini Asset
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             PropertyCustomizationHelpers::MakeActorPickerWithMenu(
@@ -380,6 +474,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
     {
+	// ActorPicker : Landscape
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             PropertyCustomizationHelpers::MakeActorPickerWithMenu(
@@ -391,9 +486,9 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorUse ) )
         ];
 
+	// CheckBox : Export Selected Only
         {
             TSharedPtr< SCheckBox > CheckBoxExportSelected;
-
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 SAssignNew( CheckBoxExportSelected, SCheckBox )
@@ -412,9 +507,9 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
             ];
         }
 
+	// Checkbox : Export full geometry
         {
             TSharedPtr< SCheckBox > CheckBoxExportFullGeometry;
-
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 SAssignNew( CheckBoxExportFullGeometry, SCheckBox )
@@ -433,9 +528,9 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
             ];
         }
 
+	// Checkbox : Export materials
         {
             TSharedPtr< SCheckBox > CheckBoxExportMaterials;
-
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 SAssignNew( CheckBoxExportMaterials, SCheckBox )
@@ -448,15 +543,15 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
                     TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        this, &UHoudiniAssetInput::IsCheckedExportMaterials ) ) )
+                    this, &UHoudiniAssetInput::IsCheckedExportMaterials ) ) )
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportMaterials ) )
             ];
         }
 
+	// Checkbox : Export Tile UVs
         {
             TSharedPtr< SCheckBox > CheckBoxExportTileUVs;
-
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 SAssignNew( CheckBoxExportTileUVs, SCheckBox )
@@ -469,15 +564,15 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 ]
                 .IsChecked(TAttribute< ECheckBoxState >::Create(
                     TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        this, &UHoudiniAssetInput::IsCheckedExportTileUVs ) ) )
+                    this, &UHoudiniAssetInput::IsCheckedExportTileUVs ) ) )
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportTileUVs ) )
             ];
         }
 
+	// Checkbox : Export normalized UVs
         {
             TSharedPtr< SCheckBox > CheckBoxExportNormalizedUVs;
-
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 SAssignNew( CheckBoxExportNormalizedUVs, SCheckBox )
@@ -496,9 +591,9 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
             ];
         }
 
+	// Checkbox : Export lighting
         {
             TSharedPtr< SCheckBox > CheckBoxExportLighting;
-
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 SAssignNew( CheckBoxExportLighting, SCheckBox )
@@ -511,15 +606,15 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
                     TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        this, &UHoudiniAssetInput::IsCheckedExportLighting ) ) )
+                    this, &UHoudiniAssetInput::IsCheckedExportLighting ) ) )
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportLighting ) )
             ];
         }
 
+	// Checkbox : Export landscape curves
         {
             TSharedPtr< SCheckBox > CheckBoxExportCurves;
-
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 SAssignNew( CheckBoxExportCurves, SCheckBox )
@@ -532,7 +627,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
                     TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        this, &UHoudiniAssetInput::IsCheckedExportCurves ) ) )
+                    this, &UHoudiniAssetInput::IsCheckedExportCurves ) ) )
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportCurves ) )
             ];
@@ -542,6 +637,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
                 CheckBoxExportCurves->SetEnabled( false );
         }
 
+	// Button : Recommit
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             SNew( SHorizontalBox )
@@ -559,72 +655,80 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
-        FPropertyEditorModule & PropertyModule =
-            FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
+	// Button : Start Selection / Use current selection + refresh
+	{
+	    FPropertyEditorModule & PropertyModule =
+		FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
 
-        // Locate the details panel.
-        FName DetailsPanelName = "LevelEditorSelectionDetails";
-        TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
+	    // Locate the details panel.
+	    FName DetailsPanelName = "LevelEditorSelectionDetails";
+	    TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView(DetailsPanelName);
 
-        auto ButtonLabel = LOCTEXT( "WorldInputStartSelection", "Start Selection (Lock Details Panel)" );
-        if ( DetailsView->IsLocked() )
-            ButtonLabel = LOCTEXT( "WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)" );
+	    auto ButtonLabel = LOCTEXT("WorldInputStartSelection", "Start Selection (Lock Details Panel)");
+	    if (DetailsView->IsLocked())
+		ButtonLabel = LOCTEXT("WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)");
 
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .Text( ButtonLabel )
-            .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetInput::OnButtonClickSelectActors ) )
-        ];
+	    VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+	    [
+		SAssignNew(HorizontalBox, SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+		    SNew(SButton)
+		    .VAlign(VAlign_Center)
+		    .HAlign(HAlign_Center)
+		    .Text(ButtonLabel)
+		    .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickSelectActors))		    
+		]
+	    ];
+	}
 
-        // Actor Picker just showing all Actors currently selected as World inputs.
-        // Note: Code stolen from SPropertyMenuActorPicker.cpp
+	// ActorPicker : World Outliner
+	{
+	    // Actor Picker just showing all Actors currently selected as World inputs.
+	    // Note: Code stolen from SPropertyMenuActorPicker.cpp
+	    FOnShouldFilterActor ActorFilter = FOnShouldFilterActor::CreateUObject(this, &UHoudiniAssetInput::OnInputActorFilter);
+	    FOnActorSelected OnSet = FOnActorSelected::CreateUObject(this, &UHoudiniAssetInput::OnWorldOutlinerActorSelected);
+	    FSimpleDelegate OnClose = FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorCloseComboButton);
+	    FSimpleDelegate OnUseSelected = FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorUse);
 
-        FOnShouldFilterActor ActorFilter = FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnInputActorFilter );
-        FOnActorSelected OnSet = FOnActorSelected::CreateUObject( this, &UHoudiniAssetInput::OnWorldOutlinerActorSelected );
-        FSimpleDelegate OnClose = FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorCloseComboButton );
-        FSimpleDelegate OnUseSelected = FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorUse );
+	    FMenuBuilder MenuBuilder(true, NULL);
 
-        FMenuBuilder MenuBuilder( true, NULL );
+	    MenuBuilder.BeginSection(NAME_None, LOCTEXT("WorldInputSelectedActors", "Currently Selected Actors"));
+	    {
+		TSharedPtr< SWidget > MenuContent;
 
-        MenuBuilder.BeginSection( NAME_None, LOCTEXT( "WorldInputSelectedActors", "Currently Selected Actors" ) );
-        {
-            TSharedPtr< SWidget > MenuContent;
+		FSceneOutlinerModule & SceneOutlinerModule =
+		    FModuleManager::Get().LoadModuleChecked< FSceneOutlinerModule >(TEXT("SceneOutliner"));
 
-            FSceneOutlinerModule & SceneOutlinerModule =
-                FModuleManager::Get().LoadModuleChecked< FSceneOutlinerModule >( TEXT( "SceneOutliner" ) );
+		SceneOutliner::FInitializationOptions InitOptions;
+		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
+		InitOptions.Filters->AddFilterPredicate(ActorFilter);
+		InitOptions.bFocusSearchBoxWhenOpened = true;
 
-            SceneOutliner::FInitializationOptions InitOptions;
-            InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-            InitOptions.Filters->AddFilterPredicate( ActorFilter );
-            InitOptions.bFocusSearchBoxWhenOpened = true;
+		static const FVector2D SceneOutlinerWindowSize(350.0f, 200.0f);
+		MenuContent =
+		    SNew(SBox)
+		    .WidthOverride(SceneOutlinerWindowSize.X)
+		    .HeightOverride(SceneOutlinerWindowSize.Y)
+		    [
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			[
+			    SceneOutlinerModule.CreateSceneOutliner(
+				InitOptions, FOnActorPicked::CreateUObject(
+				this, &UHoudiniAssetInput::OnWorldOutlinerActorSelected))
+			]
+		    ];
 
-            static const FVector2D SceneOutlinerWindowSize( 350.0f, 300.0f );
+		MenuBuilder.AddWidget(MenuContent.ToSharedRef(), FText::GetEmpty(), true);
+	    }
+	    MenuBuilder.EndSection();
 
-            MenuContent =
-                SNew( SBox )
-                .WidthOverride( SceneOutlinerWindowSize.X )
-                .HeightOverride( SceneOutlinerWindowSize.Y )
-                [
-                    SNew( SBorder )
-                    .BorderImage( FEditorStyle::GetBrush("Menu.Background") )
-                    [
-                        SceneOutlinerModule.CreateSceneOutliner(
-                            InitOptions, FOnActorPicked::CreateUObject(
-                                this, &UHoudiniAssetInput::OnWorldOutlinerActorSelected ) )
-                    ]
-                ];
-
-            MenuBuilder.AddWidget( MenuContent.ToSharedRef(), FText::GetEmpty(), true );
-        }
-        MenuBuilder.EndSection();
-
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
-        [
-            MenuBuilder.MakeWidget()
-        ];
+	    VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+	    [
+		MenuBuilder.MakeWidget()
+	    ];
+	}
     }
 
     Row.ValueWidget.Widget = VerticalBox;
@@ -878,47 +982,79 @@ UHoudiniAssetInput::UploadParameterValue()
     return Super::UploadParameterValue();
 }
 
+uint32
+UHoudiniAssetInput::GetDefaultTranformTypeValue() const
+{
+    switch (ChoiceIndex)
+    {
+	// NONE
+	case EHoudiniAssetInputType::CurveInput:
+	case EHoudiniAssetInputType::GeometryInput:	
+	    return 0;	
+	
+	// INTO THIS OBJECT
+	case EHoudiniAssetInputType::AssetInput:
+	case EHoudiniAssetInputType::LandscapeInput:
+	case EHoudiniAssetInputType::WorldInput:
+	    return 1;
+    }
+
+    return 0;
+}
+
+
 bool
 UHoudiniAssetInput::UpdateObjectMergeTransformType()
 {
     if (HoudiniAssetComponent == nullptr)
         return false;
 
+    uint32 nTransformType = -1;
+    if (bKeepWorldTransform == 2)
+	nTransformType = GetDefaultTranformTypeValue();
+    else if (bKeepWorldTransform)
+	nTransformType = 1; 
+    else
+	nTransformType = 0;
+
     // We need the host asset info to get the host node id
     HAPI_AssetInfo HostAssetInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
-        FHoudiniEngine::Get().GetSession(), 
-        HoudiniAssetComponent->GetAssetId(), 
-        &HostAssetInfo ), false );
-    
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
+	FHoudiniEngine::Get().GetSession(),
+	HoudiniAssetComponent->GetAssetId(),
+	&HostAssetInfo), false);
+
     // Get the Input node ID from the host ID
     HAPI_NodeId InputNodeId = -1;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::QueryNodeInput(
-        FHoudiniEngine::Get().GetSession(), HostAssetInfo.nodeId,
-        InputIndex, &InputNodeId ), false );
-
-    // Curves and Geometry inputs need their objectMerge's TransformType set to NONE
-    // or the results of the asset will have an offset
-    int nTransformType = -1;
-    switch (ChoiceIndex)
-    {
-    case EHoudiniAssetInputType::CurveInput:
-    case EHoudiniAssetInputType::GeometryInput:
-	nTransformType = 0;	// NONE
-	break;
-
-    case EHoudiniAssetInputType::AssetInput:
-    case EHoudiniAssetInputType::LandscapeInput:
-    case EHoudiniAssetInputType::WorldInput:
-	nTransformType = 1;	// INTO THIS OBJECT
-	break;
-    }
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
+	FHoudiniEngine::Get().GetSession(), HostAssetInfo.nodeId,
+	InputIndex, &InputNodeId), false);
 
     // Change Parameter xformtype
     std::string sParam = "xformtype";
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValue(
             FHoudiniEngine::Get().GetSession(), InputNodeId,
             sParam.c_str(), 0, nTransformType), false);
+
+    // If the input is a world outliner, we also need to modify
+    // the transform types of the merge node's inputs
+    for (int n = 0; n < InputOutlinerMeshArray.Num(); n++)
+    {
+	// Get the Input node ID from the host ID
+	InputNodeId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	    n, &InputNodeId), false);
+
+	if (InputNodeId == -1)
+	    continue;
+
+	// Change Parameter xformtype
+	std::string sParam = "xformtype";
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
+	    FHoudiniEngine::Get().GetSession(), InputNodeId,
+	    sParam.c_str(), 0, nTransformType), false);
+    }
     
     return true;
 }
@@ -1223,6 +1359,7 @@ UHoudiniAssetInput::OnResetStaticMeshClicked()
     OnStaticMeshDropped( nullptr );
     return FReply::Handled();
 }
+
 
 void
 UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType )
@@ -1534,24 +1671,47 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             // Mark mesh for deletion.
             InputOutlinerMeshArrayPendingKill.Add( OutlinerMesh.StaticMeshComponent );
         }
-        else if ( !OutlinerMesh.ActorTransform.Equals( OutlinerMesh.Actor->GetTransform() ) && OutlinerMesh.AssetId >= 0 )
-        {
-            if ( !bChanged )
-            {
-                Modify();
-                MarkPreChanged();
-                bChanged = true;
-            }
+	else if ( OutlinerMesh.AssetId >= 0 )
+	{
+	    if ( OutlinerMesh.HasActorTransformChanged() )
+	    {
+		if (!bChanged)
+		{
+		    Modify();
+		    MarkPreChanged();
+		    bChanged = true;
+		}
 
-            OutlinerMesh.ActorTransform = OutlinerMesh.Actor->GetTransform();
+		// Updates to the new Transform
+		UpdateWorldOutlinerTransforms(OutlinerMesh);
 
-            HAPI_TransformEuler HapiTransform;
-            FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ActorTransform, HapiTransform );
+		// Apply it to the asset
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
 
-            FHoudiniApi::SetAssetTransform(
-                FHoudiniEngine::Get().GetSession(),
-                OutlinerMesh.AssetId, &HapiTransform );
-        }
+		FHoudiniApi::SetAssetTransform(
+		    FHoudiniEngine::Get().GetSession(),
+		    OutlinerMesh.AssetId, &HapiTransform);
+	    }
+	    else if ( OutlinerMesh.HasComponentTransformChanged() 
+		    || OutlinerMesh.HasSplineComponentChanged()
+		    || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
+	    {
+		if ( !bChanged )
+		{
+		    Modify();
+		    MarkPreChanged();
+		    bChanged = true;
+		}
+
+		// Update to the new Transforms
+		UpdateWorldOutlinerTransforms(OutlinerMesh);
+
+		// The component or spline has been modified so so we need to indicate that the "static mesh" 
+		// has changed in order to rebuild the asset properly in UploadParameterValue()
+		bStaticMeshChanged = true;
+	    }
+	}	
     }
 
     if ( bChanged )
@@ -2142,6 +2302,47 @@ UHoudiniAssetInput::IsCheckedExportTileUVs() const
 }
 
 
+void
+UHoudiniAssetInput::CheckStateChangedKeepWorldTransform(ECheckBoxState NewState)
+{ 
+    int32 bState = (NewState == ECheckBoxState::Checked);
+
+    if (bKeepWorldTransform == bState)
+	return;
+
+    // Record undo information.
+    FScopedTransaction Transaction(
+	TEXT(HOUDINI_MODULE_RUNTIME),
+	LOCTEXT("HoudiniInputChange", "Houdini Input Transform Type change."),
+	HoudiniAssetComponent);
+    Modify();
+
+    MarkPreChanged();
+
+    bKeepWorldTransform = bState;
+
+    // Mark this parameter as changed.
+    MarkChanged();
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedKeepWorldTransform() const
+{
+    if (bKeepWorldTransform == 2)
+    {
+	if (GetDefaultTranformTypeValue())
+	    return ECheckBoxState::Checked;
+	else
+	    return ECheckBoxState::Unchecked;
+    }
+    else if (bKeepWorldTransform)
+	return ECheckBoxState::Checked;
+    
+    return ECheckBoxState::Unchecked;
+}
+
+
 FReply
 UHoudiniAssetInput::OnButtonClickRecommit()
 {
@@ -2152,6 +2353,8 @@ UHoudiniAssetInput::OnButtonClickRecommit()
 
     return FReply::Handled();
 }
+
+
 
 FReply
 UHoudiniAssetInput::OnButtonClickSelectActors()
@@ -2227,6 +2430,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
         if ( Actor == HoudiniAssetComponent->GetOwner() )
             continue;
 
+	// Looking for StaticMeshes
         for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
         {
             UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
@@ -2237,22 +2441,40 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
             if ( !StaticMesh )
                 continue;
 
-            bool bFound = false;
+	    // Add the mesh to the array
+	    FHoudiniAssetInputOutlinerMesh OutlinerMesh;
 
-            // If mesh not found, add it.
-            if ( !bFound )
-            {
-                FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+	    OutlinerMesh.Actor = Actor;
+	    OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
+	    OutlinerMesh.StaticMesh = StaticMesh;
+	    OutlinerMesh.SplineComponent = nullptr;
+	    OutlinerMesh.AssetId = -1;
 
-                OutlinerMesh.Actor = Actor;
-                OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
-                OutlinerMesh.StaticMesh = StaticMesh;
-                OutlinerMesh.ActorTransform = Actor->GetTransform();
-                OutlinerMesh.AssetId = -1;
+	    UpdateWorldOutlinerTransforms(OutlinerMesh);
 
-                InputOutlinerMeshArray.Add( OutlinerMesh );
-            }
+	    InputOutlinerMeshArray.Add(OutlinerMesh);
         }
+
+	// Looking for Splines
+	for (UActorComponent * Component : Actor->GetComponentsByClass(USplineComponent::StaticClass()))
+	{
+	    USplineComponent * SplineComponent = CastChecked< USplineComponent >(Component);
+	    if (!SplineComponent)
+		continue;
+
+	    // Add the spline to the array
+	    FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+
+	    OutlinerMesh.Actor = Actor;
+	    OutlinerMesh.StaticMeshComponent = nullptr;
+	    OutlinerMesh.StaticMesh = nullptr;
+	    OutlinerMesh.SplineComponent = SplineComponent;
+	    OutlinerMesh.AssetId = -1;
+
+	    UpdateWorldOutlinerTransforms(OutlinerMesh);
+
+	    InputOutlinerMeshArray.Add(OutlinerMesh);
+	}
     }
 
     MarkChanged();
@@ -2355,6 +2577,21 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
 
     // to force rebuild...
     bSwitchedToCurve = true;
+}
+
+void
+UHoudiniAssetInput::UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh)
+{
+    // Update to the new Transforms
+    OutlinerMesh.ActorTransform = OutlinerMesh.Actor->GetTransform();
+
+    if (OutlinerMesh.StaticMeshComponent)
+	OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
+
+    if (OutlinerMesh.SplineComponent)
+	OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
+
+    OutlinerMesh.KeepWorldTransform = bKeepWorldTransform;
 }
 
 #endif
