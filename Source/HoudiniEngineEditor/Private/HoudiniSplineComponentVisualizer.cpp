@@ -101,10 +101,12 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
     if ( HoudiniSplineComponent && HoudiniSplineComponent->IsValidCurve() )
     {	
 	static const FColor ColorNormal = FColor(255, 255, 255);
-	static const FColor ColorNone = FColor(224, 224, 224);
+	static const FColor ColorNone = FColor(172, 172, 172);
 	static const FColor ColorSelected(255, 0, 0);
 
-        static const float GrabHandleSize = 12.0f;
+	static const float GrabHandleSize = 12.0f;
+	static const float GrabHandleSizeNone = 8.0f;
+	static const float GrabHandleSizeSelected = 13.0f;
 
         // Get component transformation.
         const FTransform & HoudiniSplineComponentTransform = HoudiniSplineComponent->ComponentToWorld;
@@ -119,6 +121,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 
 	bool bNoPointSelected = EditedControlPointsIndexes.Num() <= 0;
 	FColor ColorUnselected = bNoPointSelected ? ColorNone : ColorNormal;
+	float GrabHandleCurrentSize = bNoPointSelected ? GrabHandleSizeNone : GrabHandleSize;
 
         int32 NumDisplayPoints = CurveDisplayPoints.Num();
         for ( int32 DisplayPointIdx = 0; DisplayPointIdx < NumDisplayPoints; ++DisplayPointIdx )
@@ -153,15 +156,16 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             // Get point at this index.
             const FVector & DisplayPoint = HoudiniSplineComponentTransform.TransformPosition( CurvePoints[ PointIdx ] );
 
-            // If we are editing this control point, change color.
-            FColor ColorCurrent = ColorUnselected;
-	    if ((bCurveEditing) && (EditedControlPointsIndexes.Contains(PointIdx)))
-		ColorCurrent = ColorSelected;
+	    // Draw point and set hit box for it.
+	    PDI->SetHitProxy(new HHoudiniSplineControlPointVisProxy(HoudiniSplineComponent, PointIdx));
 
-            // Draw point and set hit box for it.
-            PDI->SetHitProxy( new HHoudiniSplineControlPointVisProxy( HoudiniSplineComponent, PointIdx ) );
-            PDI->DrawPoint( DisplayPoint, ColorCurrent, GrabHandleSize, SDPG_Foreground );
-            PDI->SetHitProxy( nullptr );
+	    // If we are editing this control point, change its color
+	    if ((bCurveEditing) && (EditedControlPointsIndexes.Contains(PointIdx)))
+		PDI->DrawPoint(DisplayPoint, ColorSelected, GrabHandleSizeSelected, SDPG_Foreground);
+	    else
+		PDI->DrawPoint(DisplayPoint, ColorUnselected, GrabHandleCurrentSize, SDPG_Foreground);
+
+	    PDI->SetHitProxy(nullptr);
         }
     }
 }
