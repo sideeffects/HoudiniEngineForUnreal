@@ -33,6 +33,8 @@
 enum EHoudiniPluginSerializationVersion
 {
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE = 5,
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE = 6,
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM = 7,
 
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)

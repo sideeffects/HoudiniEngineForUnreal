@@ -22,6 +22,7 @@
 
 class ALandscapeProxy;
 class UHoudiniSplineComponent;
+class USplineComponent;
 
 namespace EHoudiniAssetInputType
 {
@@ -40,24 +41,52 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     /** Serialization. **/
     void Serialize( FArchive & Ar );
 
+    /** return true if the attached spline component has been modified **/
+    bool HasSplineComponentChanged() const;
+
+    /** return true if the attached actor's transform has been modified **/
+    bool HasActorTransformChanged() const;
+
+    /** return true if the attached component's transform has been modified **/
+    bool HasComponentTransformChanged() const;
+
     /** Selected mesh's Actor, for reference. **/
-    AActor * Actor;
+    AActor * Actor = nullptr;
 
     /** Selected mesh's component, for reference. **/
-    UStaticMeshComponent * StaticMeshComponent;
+    UStaticMeshComponent * StaticMeshComponent = nullptr;
 
     /** The selected mesh. **/
-    UStaticMesh * StaticMesh;
+    UStaticMesh * StaticMesh = nullptr;
+
+    /** Spline Component **/
+    USplineComponent * SplineComponent = nullptr;
+
+    /** Number of CVs used by the spline component, used to detect modification **/
+    int32 NumberOfSplineControlPoints = -1;
+
+    /** Spline Length, used to detect modification of the spline.. **/
+    float SplineLength = -1.0f;
+
+    /** Spline resolution used to generate the asset, used to detect setting modification **/
+    float SplineResolution = -1.0f;
 
     /** Actor transform used to see if the transfrom changed since last marshal into Houdini. **/
     FTransform ActorTransform;
 
+    /** Component transform used to see if the transform has changed since last marshalling **/
+    FTransform ComponentTransform;
+
     /** Mesh's input asset id. **/
-    HAPI_AssetId AssetId;
+    HAPI_AssetId AssetId = -1;
+    
+    /** TranformType used to generate the asset **/
+    int32 KeepWorldTransform = 2;
 
     /** Temporary variable holding serialization version. **/
     uint32 HoudiniAssetParameterVersion;
 };
+
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParameter
@@ -205,6 +234,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Check if input Actors have had their Transforms changed. **/
         void TickWorldOutlinerInputs();
 
+	/** Update WorldOutliners Transform after they changed **/
+	void UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
+
 #endif
 
         /** Called to retrieve the name of selected item. **/
@@ -307,6 +339,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Return checked state of landscape tile uv checkbox. **/
         ECheckBoxState IsCheckedExportTileUVs() const;
 
+	/** Check if state of the transform type checkbox has changed. **/
+	void CheckStateChangedKeepWorldTransform(ECheckBoxState NewState);
+
+	/** Return checked state of transform type checkbox. **/
+	ECheckBoxState IsCheckedKeepWorldTransform() const;
+
         /** Handler for landscape recommit button. **/
         FReply OnButtonClickRecommit();
 
@@ -318,6 +356,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Stop world outliner Actor transform monitor ticking. **/
         void StopWorldOutlinerTicking();
+
+	/** Returns the default value for this input Transform Type, 0 = none / 1 = IntoThisObject **/
+	uint32 GetDefaultTranformTypeValue() const;
 
 #endif
 
@@ -391,6 +432,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
                 /** Is set to true when uvs should be exported for each tile separately. **/
                 uint32 bLandscapeExportTileUVs : 1;
+
+		/** Is set to true when this input's Transform Type is set to NONE, 2 will use the input's default value **/
+		uint32 bKeepWorldTransform : 2;
             };
 
             uint32 HoudiniAssetInputFlagsPacked;
