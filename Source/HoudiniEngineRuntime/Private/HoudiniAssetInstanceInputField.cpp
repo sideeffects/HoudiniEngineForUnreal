@@ -18,6 +18,15 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineUtils.h"
 
+
+// Fastrand is a faster alternative to std::rand()
+// and doesn't oscillate when looking for 2 values like Unreal's.
+inline int fastrand(int& nSeed)
+{
+    nSeed = (214013 * nSeed + 2531011);
+    return (nSeed >> 16) & 0x7FFF;
+}
+
 bool
 FHoudiniAssetInstanceInputFieldSortPredicate::operator()(
     const UHoudiniAssetInstanceInputField & A,
@@ -249,8 +258,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
     int32 NumInstancTransforms = InstancedTransforms.Num();
     int32 VariationCount = InstanceVariationCount();
 
-    FRandomStream RandomStream( 1234 );
-
+    int nSeed = 1234;
     if ( RecomputeVariationAssignments )
     {
         //clear the previous cached transform assignments.
@@ -270,7 +278,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
         for ( int32 Idx = 0; Idx < NumInstancTransforms; Idx++ )
         {
             FTransform Xform = InstancedTransforms[ Idx ];
-            int32 VariationIndex = RandomStream.GetUnsignedInt() % VariationCount;
+            int32 VariationIndex = fastrand(nSeed) % VariationCount;
             VariationTransformsArray[ VariationIndex ].Add( Xform );
         }
     }
