@@ -1393,8 +1393,11 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 // Create asset cooking task object and submit it for processing.
                 StartTaskAssetCooking();
             }
-            else if ( bEnableCooking )
+            else if ( bEnableCooking || bComponentTransformHasChanged)
             {
+                // Uploads parameters and cooks the asset if cook on parameter
+                // changed or cook on transform changed is enabled
+
                 // Upload changed parameters back to HAPI.
                 UploadChangedParameters();
 
@@ -1404,7 +1407,16 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 // Create asset cooking task object and submit it for processing.
                 StartTaskAssetCooking();
             }
-            else
+            else if (bParametersChanged && !bEnableCooking)
+            {
+                // Cooking is disabled, but we still need to upload the parameters
+                // and update the editor properties
+                UploadChangedParameters();
+
+                // Update properties panel.
+                UpdateEditorProperties(true);
+            }
+            else 
             {
                 // This will only happen if cooking is disabled.
                 bStopTicking = true;
