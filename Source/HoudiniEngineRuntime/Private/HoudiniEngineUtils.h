@@ -188,6 +188,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
             HAPI_AssetId HostAssetId,
+            TArray<UObject *>& InputObjects,
+            HAPI_AssetId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
+
+        /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
+        static bool HapiCreateInputNodeForData(
+            HAPI_AssetId HostAssetId,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
             HAPI_AssetId & ConnectedAssetId );
 

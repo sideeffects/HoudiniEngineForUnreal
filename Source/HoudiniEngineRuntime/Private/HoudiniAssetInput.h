@@ -122,6 +122,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Create widget for this parameter and add it to a given category. **/
         virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
+        /** Create a single geometry widget for the given input object */
+        void CreateGeometryWidget( int32 AtIndex, UObject* InputObject, TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox );
 
         virtual void PostEditUndo() override;
 
@@ -187,31 +189,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 #if WITH_EDITOR
 
         /** Delegate used when static mesh has been drag and dropped. **/
-        void OnStaticMeshDropped( UObject * InObject );
-
-        /** Delegate used to detect if valid object has been dragged and dropped. **/
-        bool OnStaticMeshDraggedOver( const UObject * InObject ) const;
-
-        /** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
-        const FSlateBrush * GetStaticMeshThumbnailBorder() const;
+        void OnStaticMeshDropped( UObject * InObject, int32 AtIndex );
 
         /** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
-        FReply OnThumbnailDoubleClick( const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent );
-
-        /** Construct drop down menu content for static mesh. **/
-        TSharedRef< SWidget > OnGetStaticMeshMenuContent();
-
-        /** Delegate for handling selection in content browser. **/
-        void OnStaticMeshSelected( const FAssetData & AssetData );
-
-        /** Closes the combo button. **/
-        void CloseStaticMeshComboButton();
+        FReply OnThumbnailDoubleClick( const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent, int32 AtIndex );
 
         /** Browse to static mesh. **/
-        void OnStaticMeshBrowse();
+        void OnStaticMeshBrowse( int32 AtIndex );
 
         /** Handler for reset static mesh button. **/
-        FReply OnResetStaticMeshClicked();
+        FReply OnResetStaticMeshClicked( int32 AtIndex );
 
         /** Helper method used to generate choice entry widget. **/
         TSharedRef< SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
@@ -242,6 +229,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
 	/** Update WorldOutliners Transform after they changed **/
 	void UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
+
+        /** Called to append a slot to the list of input objects */
+        void OnAddToInputObjects();
+        /** Called to empty the list of input objects */
+        void OnEmptyInputObjects();
 
 #endif
 
@@ -292,12 +284,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         TArray< TSharedPtr< FString > > StringChoiceLabels;
 
 #if WITH_EDITOR
-
-        /** Thumbnail border used by static mesh. **/
-        TSharedPtr< SBorder > StaticMeshThumbnailBorder;
-
-        /** Combo element used by static mesh. **/
-        TSharedPtr< SComboButton > StaticMeshComboButton;
 
         /** Combo element used for input type selection. **/
         TSharedPtr< SComboBox< TSharedPtr< FString> > > InputTypeComboBox;
@@ -368,13 +354,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 	/** Returns the default value for this input Transform Type, 0 = none / 1 = IntoThisObject **/
 	uint32 GetDefaultTranformTypeValue() const;
 
+        /** Returns the input object at index or nullptr */
+        UObject* GetInputObject( int32 AtIndex ) const;
+
 #endif
 
         /** Value of choice option. **/
         FString ChoiceStringValue;
 
-        /** Object which is used for geometry input. **/
-        UObject * InputObject;
+        /** Objects used for geometry input. **/
+        TArray<UObject *> InputObjects;
 
         /** Houdini spline component which is used for curve input. **/
         UHoudiniSplineComponent * InputCurve;
@@ -390,6 +379,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Id of currently connected asset. **/
         HAPI_AssetId ConnectedAssetId;
+
+        /** The ids of the assets connected to the input for GeometryInput mode */
+        TArray< HAPI_NodeId > GeometryInputAssetIds;
 
         /** Index of this input. **/
         int32 InputIndex;
