@@ -7871,6 +7871,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                         NewISMC->SetWorldTransform( OtherISMC->GetComponentTransform() );
                         NewISMC->RegisterComponent();
 
+                        NewActor->SetFolderPath( BaseName );
                         NewActor->FinishSpawning( OtherISMC->GetComponentTransform() );
 
                         NewActors.Add( NewActor );
@@ -7892,6 +7893,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                     FString NewNameStr = NewName.ToString();
                     NewActor->Rename( *NewNameStr );
                     NewActor->SetActorLabel( NewNameStr );
+                    NewActor->SetFolderPath( BaseName );
 
                     NewActors.Add( NewActor );
 
