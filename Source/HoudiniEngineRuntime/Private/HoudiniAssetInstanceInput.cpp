@@ -1388,7 +1388,7 @@ UHoudiniAssetInstanceInput::IsChecked(
 
 bool
 UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(
-    TArray< UInstancedStaticMeshComponent * > & Components, UStaticMesh * StaticMesh )
+    TArray< UInstancedStaticMeshComponent * > & Components, const UStaticMesh * StaticMesh )
 {
     bool bCollected = false;
 
