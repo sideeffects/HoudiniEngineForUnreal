@@ -698,7 +698,11 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 
             // If this is a collision geo, we need to make it invisible.
             if ( HoudiniGeoPartObject.IsCollidable() )
+            { 
                 StaticMeshComponent->SetVisibility( false );
+                StaticMeshComponent->SetHiddenInGame( true );
+                StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
+            }
 
             // Transform the component by transformation provided by HAPI.
             StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );
@@ -2767,7 +2771,11 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 
             // If this is a collision geo, we need to make it invisible.
             if ( HoudiniGeoPartObject.IsCollidable() )
+            {
                 DuplicatedComponent->SetVisibility( false );
+                DuplicatedComponent->SetHiddenInGame( true );
+                DuplicatedComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
+            }
 
             DuplicatedComponent->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepRelativeTransform );
             DuplicatedComponent->RegisterComponent();
