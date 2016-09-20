@@ -3781,7 +3781,7 @@ UHoudiniAssetComponent::LocateStaticMesh( HAPI_AssetId InAssetId, HAPI_GeoId Geo
 }
 
 UStaticMeshComponent *
-UHoudiniAssetComponent::LocateStaticMeshComponent( UStaticMesh * StaticMesh ) const
+UHoudiniAssetComponent::LocateStaticMeshComponent( const UStaticMesh * StaticMesh ) const
 {
     UStaticMeshComponent * const * FoundStaticMeshComponent = StaticMeshComponents.Find( StaticMesh );
     UStaticMeshComponent * StaticMeshComponent = nullptr;

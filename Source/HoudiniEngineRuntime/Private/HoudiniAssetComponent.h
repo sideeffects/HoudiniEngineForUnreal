@@ -254,8 +254,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** Locate static mesh for a given PartId */
         UStaticMesh * LocateStaticMesh( HAPI_AssetId InAssetId, HAPI_GeoId GeoId, HAPI_PartId PartId ) const;
 
+        FORCEINLINE const TMap< FHoudiniGeoPartObject, UStaticMesh * >& GetStaticMeshes() const { return StaticMeshes; }
+
         /** Locate static mesh component for given static mesh. **/
-        UStaticMeshComponent * LocateStaticMeshComponent( UStaticMesh * StaticMesh ) const;
+        UStaticMeshComponent * LocateStaticMeshComponent( const UStaticMesh * StaticMesh ) const;
 
         /** Locate instanced static mesh components for given static mesh. **/
         bool LocateInstancedStaticMeshComponents( UStaticMesh * StaticMesh, TArray< UInstancedStaticMeshComponent * > & Components );
