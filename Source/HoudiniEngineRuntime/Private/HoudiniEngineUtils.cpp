@@ -8087,6 +8087,8 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                 if ( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>( SpawnInfo ) )
                 {
                     NewActor->SetActorLabel( NewActor->GetName() );
+                    NewActor->SetActorHiddenInGame( OtherISMC->bHiddenInGame );
+
                     if ( UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) )
                     {
                         NewISMC->SetupAttachment( nullptr );
@@ -8133,7 +8135,8 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                             SMC->SetMobility( OtherSMC->Mobility );
                             if ( OtherSMC_NonConst->GetBodySetup() )
                                 SMC->SetPhysMaterialOverride( OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() );
-                            SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame || !OtherSMC->IsVisible() );
+                            SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame );
+                            SMC->SetVisibility( OtherSMC->IsVisible() );
                         }
                     }
 
