@@ -2794,7 +2794,7 @@ FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_AssetId AssetId, const FTransfo
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    const UHoudiniAssetComponent * HoudiniAssetComponent,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject,
     FString & MeshName, FGuid & BakeGUID, bool bBake )
 {
@@ -2949,7 +2949,7 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    const UHoudiniAssetComponent * HoudiniAssetComponent,
     const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, bool bBake )
 {
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
@@ -2967,7 +2967,7 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    const UHoudiniAssetComponent * HoudiniAssetComponent,
     const FString & MaterialInfoDescriptor,
     FString & MaterialName, bool bBake )
 {
@@ -3050,7 +3050,7 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    const UHoudiniAssetComponent * HoudiniAssetComponent,
     const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
     FString & TextureName, bool bBake )
 {
@@ -3075,7 +3075,7 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    const UHoudiniAssetComponent * HoudiniAssetComponent,
     const FString & TextureInfoDescriptor, const FString & TextureType,
     FString & TextureName, bool bBake )
 {
@@ -7599,7 +7599,7 @@ FHoudiniEngineUtils::GetHoudiniGeneratedNameFromMetaInformation(
 
 UStaticMesh *
 FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-    UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
+    const UStaticMesh * StaticMesh, const UHoudiniAssetComponent * Component,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject, bool bBake )
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
@@ -7677,7 +7677,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 
 UMaterial *
 FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-    UMaterial * Material, UHoudiniAssetComponent * Component,
+    UMaterial * Material, const UHoudiniAssetComponent * Component,
     const FString & SubMaterialName, bool bBake )
 {
     UMaterial * DuplicatedMaterial = nullptr;
@@ -7724,7 +7724,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
 void
 FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
     UMaterialExpression * MaterialExpression,
-    UHoudiniAssetComponent * Component, bool bBake )
+    const UHoudiniAssetComponent * Component, bool bBake )
 {
     UMaterialExpressionTextureSample * TextureSample = Cast< UMaterialExpressionTextureSample >( MaterialExpression );
     if ( TextureSample )
@@ -7753,7 +7753,7 @@ FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
 
 UTexture2D *
 FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
-    UTexture2D * Texture, UHoudiniAssetComponent * Component,
+    UTexture2D * Texture, const UHoudiniAssetComponent * Component,
     const FString & SubTextureName, bool bBake )
 {
     UTexture2D* DuplicatedTexture = nullptr;
@@ -7809,44 +7809,95 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
 void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
 {
     TArray< AActor* > NewActors;
+    TArray< const UStaticMesh* > BakedMeshes;
+
+    const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
 
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator Iter( HoudiniAssetComponent->GetStaticMeshes() ); Iter; ++Iter )
     {
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
         const UStaticMesh * StaticMesh = Iter.Value();
 
-        // Retrieve referenced static mesh component.
-        if ( const UStaticMeshComponent * StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh ) )
-        {
-            ULevel* DesiredLevel = GWorld->GetCurrentLevel();
-            const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
+        if ( !StaticMesh || BakedMeshes.Contains( StaticMesh ) )
+            continue;
 
-            if ( StaticMeshComponent->IsA< UInstancedStaticMeshComponent >() )
+        if ( UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+            StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true ) )
+        {
+            BakedMeshes.Add( StaticMesh );
+            FAssetRegistryModule::AssetCreated( OutStaticMesh );
+
+            // Retrieve referenced static mesh component(s)
+
+            TArray< UStaticMeshComponent* > OtherSMCs;
+            if ( UStaticMeshComponent * OtherSMC = HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh ) )
             {
-                // TODOs
+                OtherSMCs.Add( OtherSMC );
             }
             else
             {
-                UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
-
-                // Bake the referenced static mesh.
-                if ( UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                    StaticMeshComponent->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true ) )
+                // Might be used by Instancers
+                TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+                if ( HoudiniAssetComponent->LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
                 {
+                    OtherSMCs.Append( InstancedStaticMeshComponents );
+                }
+            }
+
+            // create an actor for each component we have turned up
+            for ( UStaticMeshComponent* OtherSMC : OtherSMCs )
+            {
+                check( OtherSMC );
+
+                ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+                FName BaseName( *HoudiniAssetComponent->GetOwner()->GetName() );
+
+                if ( const UInstancedStaticMeshComponent* OtherISMC = Cast< const UInstancedStaticMeshComponent>( OtherSMC ) )
+                {
+                    FActorSpawnParameters SpawnInfo;
+                    SpawnInfo.OverrideLevel = DesiredLevel;
+                    SpawnInfo.ObjectFlags = RF_Transactional;
+                    SpawnInfo.Name = MakeUniqueObjectName( DesiredLevel, UInstancedStaticMeshComponent::StaticClass(), BaseName );
+                    SpawnInfo.bDeferConstruction = true;
+
+                    if ( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>( SpawnInfo ) )
+                    {
+                        NewActor->SetActorLabel( NewActor->GetName() );
+                        if ( UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) )
+                        {
+                            NewISMC->SetupAttachment( nullptr );
+                            NewISMC->SetStaticMesh( OutStaticMesh );
+                            NewActor->AddInstanceComponent( NewISMC );
+                            NewActor->SetRootComponent( NewISMC );
+                            NewISMC->SetWorldTransform( OtherISMC->GetComponentTransform() );
+                            NewISMC->RegisterComponent();
+
+                            NewActor->FinishSpawning( OtherISMC->GetComponentTransform() );
+
+                            NewActors.Add( NewActor );
+                            NewActor->InvalidateLightingCache();
+                            NewActor->PostEditMove( true );
+                            NewActor->MarkPackageDirty();
+                        }
+                    }
+                }
+                else
+                {
+                    UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
+
                     FAssetRegistryModule::AssetCreated( OutStaticMesh );
 
-                    if ( AActor* NewActor = Factory->CreateActor( OutStaticMesh, DesiredLevel, StaticMeshComponent->GetComponentTransform(), RF_Transactional ) )
+                    if ( AActor* NewActor = Factory->CreateActor( OutStaticMesh, DesiredLevel, OtherSMC->GetComponentTransform(), RF_Transactional ) )
                     {
-                        // The default name will be based on the static mesh package, we would prefer it to be based on the houdini asset
-                        FName BaseName( *HoudiniAssetComponent->GetOwner()->GetName() );
-                        FName NewName = MakeUniqueObjectName( HoudiniAssetComponent, Factory->NewActorClass, BaseName );
+                        // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
+
+                        FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
                         FString NewNameStr = NewName.ToString();
                         NewActor->Rename( *NewNameStr );
                         NewActor->SetActorLabel( NewNameStr );
 
-                        // select the new 
                         NewActors.Add( NewActor );
-                        
+
                         NewActor->InvalidateLightingCache();
                         NewActor->PostEditMove( true );
                         NewActor->MarkPackageDirty();
@@ -7856,7 +7907,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
         }
     }
     
-    if ( NewActors.Num() )
+    if ( SelectNewActors && NewActors.Num() )
     {
         GEditor->SelectNone( false, true );
         for ( AActor* NewActor : NewActors )

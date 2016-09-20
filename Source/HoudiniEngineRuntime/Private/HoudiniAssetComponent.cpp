@@ -3794,8 +3794,8 @@ UHoudiniAssetComponent::LocateStaticMeshComponent( const UStaticMesh * StaticMes
 
 bool
 UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
-    UStaticMesh * StaticMesh,
-    TArray< UInstancedStaticMeshComponent * > & Components )
+    const UStaticMesh * StaticMesh,
+    TArray< UInstancedStaticMeshComponent * > & Components ) const
 {
     Components.Empty();
 

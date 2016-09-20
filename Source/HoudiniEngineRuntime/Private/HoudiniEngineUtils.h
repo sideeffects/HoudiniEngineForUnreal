@@ -375,7 +375,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create a package for given component for static mesh baking. **/
         static UPackage * BakeCreateStaticMeshPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const UHoudiniAssetComponent * HoudiniAssetComponent,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
             FString & MeshName, FGuid & BakeGUID, bool bBake = false );
 
@@ -384,7 +384,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
         /** materials and textures and their corresponding packages. **/
         static UStaticMesh * DuplicateStaticMeshAndCreatePackage(
-            UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
+            const UStaticMesh * StaticMesh, const UHoudiniAssetComponent * Component,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, bool bBake = false );
 
         /** Bake output meshes and materials to packages and create corresponding actors in the scene */
@@ -407,19 +407,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create a package for a given component for material. **/
         static UPackage * BakeCreateMaterialPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const UHoudiniAssetComponent * HoudiniAssetComponent,
             const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, bool bBake = false );
         static UPackage * BakeCreateMaterialPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const UHoudiniAssetComponent * HoudiniAssetComponent,
             const FString & MaterialInfoDescriptor, FString & MaterialName, bool bBake = false );
 
         /** Create a package for a given component for texture. **/
         static UPackage * BakeCreateTexturePackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const UHoudiniAssetComponent * HoudiniAssetComponent,
             const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
             FString & TextureName, bool bBake = false );
         static UPackage * BakeCreateTexturePackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const UHoudiniAssetComponent * HoudiniAssetComponent,
             const FString & TextureInfoDescriptor, const FString & TextureType,
             FString & TextureName, bool bBake = false );
 
@@ -433,18 +433,18 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
         /** and their corresponding packages. **/
         static UMaterial * DuplicateMaterialAndCreatePackage(
-            UMaterial * Material, UHoudiniAssetComponent * Component,
+            UMaterial * Material, const UHoudiniAssetComponent * Component,
             const FString & SubMaterialName, bool bBake = false );
 
         /** Duplicate a given texture. This will create a new package for it. **/
         static UTexture2D * DuplicateTextureAndCreatePackage(
-            UTexture2D * Texture, UHoudiniAssetComponent * Component,
+            UTexture2D * Texture, const UHoudiniAssetComponent * Component,
             const FString & SubTextureName, bool bBake = false );
 
         /** Replace duplicated texture with a new copy within a given sampling expression. **/
         static void ReplaceDuplicatedMaterialTextureSample(
             UMaterialExpression * MaterialExpression,
-            UHoudiniAssetComponent * Component, bool bBake );
+            const UHoudiniAssetComponent * Component, bool bBake );
 
 #endif
 
