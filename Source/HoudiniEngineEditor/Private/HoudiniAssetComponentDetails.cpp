@@ -681,6 +681,20 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             .Text( LOCTEXT( "BakeReplaceBlueprintHoudiniActor", "Replace With Blueprint" ) )
             .ToolTipText( LOCTEXT( "BakeReplaceBlueprintHoudiniActorToolTip", "Replace With Blueprint" ) )
         ];
+
+        HorizontalButtonBox->AddSlot()
+        .AutoWidth()
+        .Padding( 2.0f, 0.0f )
+        .VAlign( VAlign_Center )
+        .HAlign( HAlign_Center )
+        [
+            SAssignNew( ButtonReset, SButton )
+            .VAlign( VAlign_Center )
+            .HAlign( HAlign_Center )
+            .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeToActors)
+            .Text( LOCTEXT( "BakeToActors", "Bake to Actors" ) )
+            .ToolTipText( LOCTEXT( "BakeToActorsTooltip", "Bake output components to individual actors" ) )
+        ];
     }
 
     {
@@ -929,6 +943,23 @@ FHoudiniAssetComponentDetails::OnBakeBlueprintReplace()
         // If component is not cooking or instancing, we can bake blueprint.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
             FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent );
+    }
+
+    return FReply::Handled();
+}
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeToActors()
+{
+    if ( HoudiniAssetComponents.Num() > 0 )
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
+
+        // If component is not cooking or instancing, we can bake.
+        if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
+        {
+            FHoudiniEngineUtils::BakeHoudiniActorToActors( HoudiniAssetComponent, true );
+        }
     }
 
     return FReply::Handled();
