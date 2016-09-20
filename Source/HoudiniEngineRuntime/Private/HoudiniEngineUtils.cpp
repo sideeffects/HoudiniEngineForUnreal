@@ -7857,7 +7857,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
 
                     if ( UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) )
                     {
-                        NewISMC->SetupAttachment( nullptr );
+                        NewISMC->AttachParent = nullptr;
                         NewISMC->SetStaticMesh( BakedSM );
                         NewActor->AddInstanceComponent( NewISMC );
                         NewActor->SetRootComponent( NewISMC );
