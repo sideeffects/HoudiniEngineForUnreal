@@ -393,7 +393,7 @@ UHoudiniAssetInstanceInputField::FindStaticMeshIndices( UStaticMesh * InStaticMe
 }
 
 int32
-UHoudiniAssetInstanceInputField::InstanceVariationCount()
+UHoudiniAssetInstanceInputField::InstanceVariationCount() const
 {
     return StaticMeshes.Num();
 }

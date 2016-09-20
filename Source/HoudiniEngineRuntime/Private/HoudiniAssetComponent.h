@@ -234,6 +234,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** Return all static meshes used by this component. For both instanced and uinstanced components. **/
         void GetAllUsedStaticMeshes( TArray< UStaticMesh * > & UsedStaticMeshes );
 
+        /** Return all the UStaticMeshComponent & UInstancedStataicMeshComponent owned by the actor, along with their associated parts */
+        TMap<const UStaticMeshComponent *, FHoudiniGeoPartObject> CollectAllStaticMeshComponents() const;
+       
         /** Return true if global setting scale factors are different from the ones used for this component. **/
         bool CheckGlobalSettingScaleFactors() const;
 

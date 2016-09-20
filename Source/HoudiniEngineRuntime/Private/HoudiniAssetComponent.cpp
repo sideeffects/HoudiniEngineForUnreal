@@ -44,6 +44,7 @@
 #include "HoudiniAssetComponentMaterials.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniAssetInstanceInputField.h"
 
 #if WITH_EDITOR
 
@@ -876,6 +877,38 @@ UHoudiniAssetComponent::GetAllUsedStaticMeshes( TArray< UStaticMesh * > & UsedSt
         if ( StaticMesh )
             UsedStaticMeshes.Add( StaticMesh );
     }
+}
+
+TMap<const UStaticMeshComponent *, FHoudiniGeoPartObject>
+UHoudiniAssetComponent::CollectAllStaticMeshComponents() const
+{
+    TMap<const UStaticMeshComponent *, FHoudiniGeoPartObject> OutSMComponentToPart;
+
+    // Add all the instance meshes, including the variations
+    for ( const UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
+    {
+        for ( const UHoudiniAssetInstanceInputField* InputField : InstanceInput->GetInstanceInputFields() )
+        {
+            for ( int32 VarIndex = 0; VarIndex < InputField->InstanceVariationCount(); ++VarIndex )
+            {
+                if ( UStaticMesh* Mesh = InputField->GetInstanceVariation( VarIndex ) )
+                {
+                    OutSMComponentToPart.Add( InputField->GetInstancedStaticMeshComponent( VarIndex ), InputField->GetHoudiniGeoPartObject() );
+                }
+            }
+        }
+    }
+
+    // add all the plain UStaticMeshComponent
+    for ( const auto& MeshPart : GetStaticMeshes() )
+    {
+        if ( UStaticMeshComponent * SMC = LocateStaticMeshComponent( MeshPart.Value ) )
+        {
+            OutSMComponentToPart.Add( SMC, MeshPart.Key );
+        }
+    }
+
+    return OutSMComponentToPart;
 }
 
 bool
