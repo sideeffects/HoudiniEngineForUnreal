@@ -2776,6 +2776,38 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             (const int32 *) LightMapResolutions.GetData(), 0, LightMapResolutions.Num() ), false );
     }
 
+    {
+        // Create primitive attribute with mesh asset path
+
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
+        const FString MeshAssetPath = StaticMesh->GetPathName();
+        std::string MeshAssetPathCStr = TCHAR_TO_ANSI( *MeshAssetPath );
+        const char* MeshAssetPathRaw = MeshAssetPathCStr.c_str();
+        TArray<const char*> PrimitiveAttrs;
+        PrimitiveAttrs.AddUninitialized( Part.faceCount );
+        for ( int32 Ix = 0; Ix < Part.faceCount; ++Ix )
+        {
+            PrimitiveAttrs[ Ix ] = MeshAssetPathRaw;
+        }
+
+        HAPI_AttributeInfo AttributeInfo {};
+        AttributeInfo.count = Part.faceCount;
+        AttributeInfo.tupleSize = 1;
+        AttributeInfo.exists = true;
+        AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+        AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+        AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+            0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo ), false );
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+            FHoudiniEngine::Get().GetSession(),
+            DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo,
+            PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
+    }
+
     // Commit the geo.
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );

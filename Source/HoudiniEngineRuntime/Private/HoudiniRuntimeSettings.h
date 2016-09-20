@@ -223,6 +223,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
 	float MarshallingSplineResolution;
 
+        // Name of attribute set to the path of mesh asset inputs when marshalled to Houdini.
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = GeometryMarshalling )
+        FString MarshallingAttributeInputMeshName;
+
     /** Geometry scaling. **/
     public:
 
