@@ -8120,6 +8120,23 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                     NewActor->SetActorLabel( NewNameStr );
                     NewActor->SetFolderPath( BaseName );
 
+                    // Copy properties to new actor
+                    if ( AStaticMeshActor* SMActor = Cast< AStaticMeshActor>( NewActor ) )
+                    {
+                        if ( UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent() )
+                        {
+                            UStaticMeshComponent* OtherSMC_NonConst = const_cast<UStaticMeshComponent*>( OtherSMC );
+                            SMC->SetCollisionProfileName( OtherSMC_NonConst->GetCollisionProfileName() );
+                            SMC->SetCollisionEnabled( OtherSMC->GetCollisionEnabled() );
+                            SMC->LightmassSettings = OtherSMC->LightmassSettings;
+                            SMC->CastShadow = OtherSMC->CastShadow;
+                            SMC->SetMobility( OtherSMC->Mobility );
+                            if ( OtherSMC_NonConst->GetBodySetup() )
+                                SMC->SetPhysMaterialOverride( OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() );
+                            SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame || !OtherSMC->IsVisible() );
+                        }
+                    }
+
                     NewActors.Add( NewActor );
 
                     NewActor->InvalidateLightingCache();
