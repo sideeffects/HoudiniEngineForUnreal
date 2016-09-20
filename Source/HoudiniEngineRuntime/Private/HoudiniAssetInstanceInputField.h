@@ -84,7 +84,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         void RemoveInstanceVariation( int32 VariationIdx );
 
         /** Returns the number of instance variations. **/
-        int32 InstanceVariationCount();
+        int32 InstanceVariationCount() const;
 
         /** Given a static mesh, find which slot(s) it occupies in the instance variations. **/
         void FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int > & Indices );

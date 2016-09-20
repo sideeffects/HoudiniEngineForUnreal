@@ -7808,100 +7808,96 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
 
 void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
 {
-    TArray< AActor* > NewActors;
-    TArray< const UStaticMesh* > BakedMeshes;
-
     const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
 
-    for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator Iter( HoudiniAssetComponent->GetStaticMeshes() ); Iter; ++Iter )
-    {
-        const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-        const UStaticMesh * StaticMesh = Iter.Value();
+    TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
 
-        if ( !StaticMesh || BakedMeshes.Contains( StaticMesh ) )
+    TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject > SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
+
+    // Loop over all comps, bake static mesh if not already baked, and create an actor for every one of them
+    TArray< AActor* > NewActors;
+
+    for ( const auto& Iter : SMComponentToPart )
+    {
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
+        const UStaticMeshComponent * OtherSMC = Iter.Key;
+
+        if ( ! ensure( OtherSMC->StaticMesh ) )
             continue;
 
-        if ( UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-            StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true ) )
+        UStaticMesh* BakedSM = nullptr;
+        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->StaticMesh ) )
         {
-            BakedMeshes.Add( StaticMesh );
-            FAssetRegistryModule::AssetCreated( OutStaticMesh );
+            // We've already baked this mesh, use it
+            BakedSM = *FoundMeshPtr;
+        }
+        else
+        {
+            // Bake the found mesh into the project
+            BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+                OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
 
-            // Retrieve referenced static mesh component(s)
-
-            TArray< UStaticMeshComponent* > OtherSMCs;
-            if ( UStaticMeshComponent * OtherSMC = HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh ) )
+            if ( BakedSM )
             {
-                OtherSMCs.Add( OtherSMC );
+                OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
+                FAssetRegistryModule::AssetCreated( BakedSM );
             }
-            else
+        }
+
+        if ( ensure( BakedSM ) )
+        {
+            ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+            FName BaseName( *(HoudiniAssetComponent->GetOwner()->GetName() + TEXT("_Baked")) );
+
+            if ( const UInstancedStaticMeshComponent* OtherISMC = Cast< const UInstancedStaticMeshComponent>( OtherSMC ) )
             {
-                // Might be used by Instancers
-                TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
-                if ( HoudiniAssetComponent->LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+                // This is an instanced static mesh component - we will create a generic AActor with a UInstancedStaticMeshComponent root
+
+                FActorSpawnParameters SpawnInfo;
+                SpawnInfo.OverrideLevel = DesiredLevel;
+                SpawnInfo.ObjectFlags = RF_Transactional;
+                SpawnInfo.Name = MakeUniqueObjectName( DesiredLevel, AActor::StaticClass(), BaseName );
+                SpawnInfo.bDeferConstruction = true;
+
+                if ( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>( SpawnInfo ) )
                 {
-                    OtherSMCs.Append( InstancedStaticMeshComponents );
-                }
-            }
-
-            // create an actor for each component we have turned up
-            for ( UStaticMeshComponent* OtherSMC : OtherSMCs )
-            {
-                check( OtherSMC );
-
-                ULevel* DesiredLevel = GWorld->GetCurrentLevel();
-                FName BaseName( *HoudiniAssetComponent->GetOwner()->GetName() );
-
-                if ( const UInstancedStaticMeshComponent* OtherISMC = Cast< const UInstancedStaticMeshComponent>( OtherSMC ) )
-                {
-                    FActorSpawnParameters SpawnInfo;
-                    SpawnInfo.OverrideLevel = DesiredLevel;
-                    SpawnInfo.ObjectFlags = RF_Transactional;
-                    SpawnInfo.Name = MakeUniqueObjectName( DesiredLevel, UInstancedStaticMeshComponent::StaticClass(), BaseName );
-                    SpawnInfo.bDeferConstruction = true;
-
-                    if ( AActor* NewActor = DesiredLevel->OwningWorld->SpawnActor<AActor>( SpawnInfo ) )
+                    NewActor->SetActorLabel( NewActor->GetName() );
+                    if ( UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) )
                     {
-                        NewActor->SetActorLabel( NewActor->GetName() );
-                        if ( UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, NewActor, *OtherISMC->GetName() ) )
-                        {
-                            NewISMC->SetupAttachment( nullptr );
-                            NewISMC->SetStaticMesh( OutStaticMesh );
-                            NewActor->AddInstanceComponent( NewISMC );
-                            NewActor->SetRootComponent( NewISMC );
-                            NewISMC->SetWorldTransform( OtherISMC->GetComponentTransform() );
-                            NewISMC->RegisterComponent();
+                        NewISMC->SetupAttachment( nullptr );
+                        NewISMC->SetStaticMesh( BakedSM );
+                        NewActor->AddInstanceComponent( NewISMC );
+                        NewActor->SetRootComponent( NewISMC );
+                        NewISMC->SetWorldTransform( OtherISMC->GetComponentTransform() );
+                        NewISMC->RegisterComponent();
 
-                            NewActor->FinishSpawning( OtherISMC->GetComponentTransform() );
-
-                            NewActors.Add( NewActor );
-                            NewActor->InvalidateLightingCache();
-                            NewActor->PostEditMove( true );
-                            NewActor->MarkPackageDirty();
-                        }
-                    }
-                }
-                else
-                {
-                    UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
-
-                    FAssetRegistryModule::AssetCreated( OutStaticMesh );
-
-                    if ( AActor* NewActor = Factory->CreateActor( OutStaticMesh, DesiredLevel, OtherSMC->GetComponentTransform(), RF_Transactional ) )
-                    {
-                        // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
-
-                        FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
-                        FString NewNameStr = NewName.ToString();
-                        NewActor->Rename( *NewNameStr );
-                        NewActor->SetActorLabel( NewNameStr );
+                        NewActor->FinishSpawning( OtherISMC->GetComponentTransform() );
 
                         NewActors.Add( NewActor );
-
                         NewActor->InvalidateLightingCache();
                         NewActor->PostEditMove( true );
                         NewActor->MarkPackageDirty();
                     }
+                }
+            }
+            else
+            {
+                UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
+
+                if ( AActor* NewActor = Factory->CreateActor( BakedSM, DesiredLevel, OtherSMC->GetComponentTransform(), RF_Transactional ) )
+                {
+                    // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
+
+                    FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
+                    FString NewNameStr = NewName.ToString();
+                    NewActor->Rename( *NewNameStr );
+                    NewActor->SetActorLabel( NewNameStr );
+
+                    NewActors.Add( NewActor );
+
+                    NewActor->InvalidateLightingCache();
+                    NewActor->PostEditMove( true );
+                    NewActor->MarkPackageDirty();
                 }
             }
         }
