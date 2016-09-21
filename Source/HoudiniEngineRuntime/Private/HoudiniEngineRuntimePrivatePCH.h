@@ -255,6 +255,9 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #define HAPI_UNREAL_ATTRIB_INSTANCE_SCALE               "scale"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_POSITION            HAPI_ATTRIB_POSITION
 #define HAPI_UNREAL_ATTRIB_POSITION                     HAPI_ATTRIB_POSITION
+#define HAPI_UNREAL_ATTRIB_ROTATION                     "rot"
+#define HAPI_UNREAL_ATTRIB_SCALE                        "scale"
+#define HAPI_UNREAL_ATTRIB_UNIFORM_SCALE                "pscale"
 #define HAPI_UNREAL_ATTRIB_COLOR                        HAPI_ATTRIB_COLOR
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR               "unreal_lightmap_color"
 #define HAPI_UNREAL_ATTRIB_NORMAL                       HAPI_ATTRIB_NORMAL

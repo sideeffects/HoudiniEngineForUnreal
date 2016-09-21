@@ -56,6 +56,29 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 	Ar << KeepWorldTransform;
 }
 
+void 
+FHoudiniAssetInputOutlinerMesh::RebuildSplineTransformsArrayIfNeeded()
+{
+    // Rebuilding the SplineTransform array after reloading the asset
+    // This is required to properly detect Transform changes after loading the asset.
+
+    // We need an Unreal spline
+    if (!SplineComponent)
+        return;
+
+    // If those are different, the input component has changed
+    if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
+        return;
+
+    // If those are equals, there's no need to rebuild the array
+    if (SplineControlPointsTransform.Num() == SplineComponent->GetNumberOfSplinePoints())
+        return;
+
+    SplineControlPointsTransform.SetNumUninitialized(SplineComponent->GetNumberOfSplinePoints());
+    for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
+        SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
+}
+
 bool
 FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged() const
 {
@@ -69,11 +92,21 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged() const
     // Number of CVs has changed ?
     if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
 	return true;
-
+    
+    if (SplineControlPointsTransform.Num() != SplineComponent->GetNumberOfSplinePoints())
+        return true;
+    
     // Current Spline resolution has changed?
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if ( (HoudiniRuntimeSettings) && (SplineResolution != HoudiniRuntimeSettings->MarshallingSplineResolution) )
 	return true;
+    
+    // Has any of the CV's transform been modified?
+    for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
+    {
+        if ( !SplineControlPointsTransform[n].Equals(SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true)) )
+            return true;
+    }
 
     return false;
 }
@@ -1299,6 +1332,16 @@ UHoudiniAssetInput::PostLoad()
         InputCurve->SetHoudiniAssetInput( this );
         InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
     }
+
+    if (InputOutlinerMeshArray.Num() > 0)
+    {
+        // The spline Transform array might need to be rebuilt after loading
+        for (auto & OutlinerMesh : InputOutlinerMeshArray)
+            OutlinerMesh.RebuildSplineTransformsArrayIfNeeded();
+
+        StartWorldOutlinerTicking();
+    }
+	
 }
 
 void
@@ -1348,10 +1391,6 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT )
     {
         Ar << InputOutlinerMeshArray;
-#if WITH_EDITOR
-        if ( InputOutlinerMeshArray.Num() > 0 )
-            StartWorldOutlinerTicking();
-#endif
     }
 
     // Create necessary widget resources.

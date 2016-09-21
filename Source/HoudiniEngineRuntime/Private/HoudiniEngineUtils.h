@@ -182,7 +182,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
             HAPI_AssetId HostAssetId, 
-	    UStaticMesh * Mesh,
+            UStaticMesh * Mesh,
             HAPI_AssetId & ConnectedAssetId);
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
@@ -197,12 +197,20 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
             HAPI_AssetId & ConnectedAssetId );
 
-	/** HAPI : Marshaling, extract points from the Unreal Spline and create an input curve for it - return true on success **/
-	static bool HapiCreateInputNodeForData(
-	    HAPI_AssetId HostAssetId,
-	    USplineComponent * SplineComponent,
-	    HAPI_AssetId & ConnectedAssetId,
-	    FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
+        /** HAPI : Marshaling, extract points from the Unreal Spline and create an input curve for it - return true on success **/
+        static bool HapiCreateInputNodeForData(
+            HAPI_AssetId HostAssetId,
+            USplineComponent * SplineComponent,
+            HAPI_AssetId & ConnectedAssetId,
+            FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
+
+        static bool HapiCreateCurveInputNodeForData(
+            HAPI_AssetId HostAssetId,
+            HAPI_AssetId & ConnectedAssetId,
+            const TArray<FVector>* Positions,
+            TArray<FQuat>* Rotations = nullptr,
+            TArray<FVector>* Scales3d = nullptr,
+            TArray<float>* UniformScales = nullptr);
 
         /** HAPI : Marshaling, disconnect input asset from a given slot. **/
         static bool HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex );

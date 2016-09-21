@@ -49,6 +49,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
 
     /** return true if the attached component's transform has been modified **/
     bool HasComponentTransformChanged() const;
+    
+    /** rebuilds the SplineTransform array after reloading the asset **/
+    void RebuildSplineTransformsArrayIfNeeded();
 
     /** Selected mesh's Actor, for reference. **/
     AActor * Actor = nullptr;
@@ -64,6 +67,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
 
     /** Number of CVs used by the spline component, used to detect modification **/
     int32 NumberOfSplineControlPoints = -1;
+
+    /** Transform of the UnrealSpline CVs, used to detect modification of the spline (Rotation/Scale) **/
+    TArray<FTransform> SplineControlPointsTransform;
 
     /** Spline Length, used to detect modification of the spline.. **/
     float SplineLength = -1.0f;
