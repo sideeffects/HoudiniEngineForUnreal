@@ -1102,6 +1102,12 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             DownstreamAsset->NotifyParameterChanged( nullptr );
         }
     }
+#if WITH_EDITOR
+    if ( GUnrealEd )
+    {
+        GUnrealEd->UpdateFloatingPropertyWindows();
+    }
+#endif
 }
 
 void
