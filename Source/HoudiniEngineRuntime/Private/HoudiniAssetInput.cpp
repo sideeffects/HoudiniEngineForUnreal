@@ -1065,10 +1065,10 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
         InputIndex, &InputNodeId), false);
 
     // Change Parameter xformtype
-    std::string sParam = "xformtype";
+    const std::string sXformType = "xformtype";
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValue(
             FHoudiniEngine::Get().GetSession(), InputNodeId,
-            sParam.c_str(), 0, nTransformType), false);
+        sXformType.c_str(), 0, nTransformType), false);
 
     // We need the asset info to get the node id
     HAPI_AssetInfo AssetInfo;
@@ -1091,10 +1091,9 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
             continue;
 
         // Change Parameter xformtype
-        std::string sParam = "xformtype";
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
             FHoudiniEngine::Get().GetSession(), InputNodeId,
-            sParam.c_str(), 0, nTransformType), false);
+            sXformType.c_str(), 0, nTransformType), false);
     }
     
     return true;
@@ -2621,6 +2620,22 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
 
     // to force rebuild...
     bSwitchedToCurve = true;
+}
+
+
+void 
+UHoudiniAssetInput::RemoveWorldOutlinerInput( int32 AtIndex )
+{
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini World Outliner Input Change" ),
+        HoudiniAssetComponent );
+    Modify();
+
+    MarkPreChanged();
+    bStaticMeshChanged = true;
+    InputOutlinerMeshArray.RemoveAt( AtIndex );
+    MarkChanged();
 }
 
 void

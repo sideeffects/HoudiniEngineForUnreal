@@ -304,6 +304,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** Locate parameter by name. **/
         UHoudiniAssetParameter * FindParameter( const FString & ParameterName ) const;
 
+        FORCEINLINE const TArray< UHoudiniAssetInput* >& GetInputs() const { return Inputs; }
+
     /** UObject methods. **/
     public:
 

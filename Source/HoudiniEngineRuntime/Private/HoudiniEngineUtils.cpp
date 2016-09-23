@@ -8247,4 +8247,94 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
     }
 }
 
+bool 
+FHoudiniEngineUtils::GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent )
+{
+    auto SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
+    if ( SMComponentToPart.Num() == 1 )
+    {
+        if ( HoudiniAssetComponent->GetInputs().Num() )
+        {
+            if ( UHoudiniAssetInput* FirstInput = HoudiniAssetComponent->GetInputs()[ 0 ] )
+            {
+                if ( FirstInput->GetChoiceIndex() == EHoudiniAssetInputType::WorldInput && FirstInput->GetWorldOutlinerInputs().Num() == 1 )
+                {
+                    const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
+                    if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void 
+FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent )
+{
+    const FScopedTransaction Transaction( LOCTEXT( "BakeToInput", "Bake To Input" ) );
+
+    TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
+    TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject > SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
+
+    for ( const auto& Iter : SMComponentToPart )
+    {
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
+        const UStaticMeshComponent * OtherSMC = Iter.Key;
+
+        if ( ! ensure( OtherSMC->StaticMesh ) )
+            continue;
+
+        UStaticMesh* BakedSM = nullptr;
+        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->StaticMesh ) )
+        {
+            // We've already baked this mesh, use it
+            BakedSM = *FoundMeshPtr;
+        }
+        else
+        {
+            // Bake the found mesh into the project
+            BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+                OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
+
+            if ( BakedSM )
+            {
+                OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
+                FAssetRegistryModule::AssetCreated( BakedSM );
+            }
+        }
+    }
+
+    for ( auto Iter : OriginalToBakedMesh )
+    {
+        // Get the first outliner input
+        if ( HoudiniAssetComponent->GetInputs().Num() )
+        {
+            if ( UHoudiniAssetInput* FirstInput = HoudiniAssetComponent->GetInputs()[ 0 ] )
+            {
+                if ( FirstInput->GetChoiceIndex() == EHoudiniAssetInputType::WorldInput && FirstInput->GetWorldOutlinerInputs().Num() )
+                {
+                    const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
+                    if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
+                    {
+                        UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
+                        InputOutlinerMesh.Actor->Modify();
+                        InOutSMC->StaticMesh = Iter.Value;
+                        InOutSMC->InvalidateLightingCache();
+                        InOutSMC->MarkPackageDirty();
+
+                        // Disconnect the input from the asset - InputOutlinerMesh now garbage
+                        FirstInput->RemoveWorldOutlinerInput( 0 );
+                    }
+                }
+            }
+        }
+        // Only handle the first Baked Mesh
+        break;
+    }
+
+}
+
 #endif

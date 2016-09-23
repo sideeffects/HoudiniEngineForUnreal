@@ -484,9 +484,6 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
     TSharedPtr< SHorizontalBox > HorizontalBox = nullptr;
     TSharedPtr< SHorizontalBox > ButtonBox = nullptr;
 
-    TSharedRef< SButton > ButtonRecook = SNew( SButton );
-    TSharedRef< SButton > ButtonReset = SNew( SButton );
-
     VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
     [
         SNew( SAssetDropTarget )
@@ -603,12 +600,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonRecook, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnRecookAsset )
             .Text( LOCTEXT( "RecookHoudiniActor", "Recook Asset" ) )
-            .ToolTipText( LOCTEXT( "RecookHoudiniActorToolTip", "Recook Houdini asset" ) )
+            .ToolTipText( LOCTEXT( "RecookHoudiniActorToolTip", "Recooks the outputs of the Houdini asset" ) )
         ];
 
         HorizontalButtonBox->AddSlot()
@@ -617,12 +614,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonRecook, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnRebuildAsset )
             .Text( LOCTEXT( "RebuildHoudiniActor", "Rebuild Asset" ) )
-            .ToolTipText( LOCTEXT( "RebuildHoudiniActorToolTip", "Rebuild Houdini asset" ) )
+            .ToolTipText( LOCTEXT( "RebuildHoudiniActorToolTip", "Deletes and then re-creates and re-cooks the Houdini asset" ) )
         ];
 
         HorizontalButtonBox->AddSlot()
@@ -631,12 +628,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonReset, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnResetAsset )
             .Text( LOCTEXT( "ResetHoudiniActor", "Reset Parameters" ) )
-            .ToolTipText( LOCTEXT( "ResetHoudiniActorToolTip", "Reset Parameters" ) )
+            .ToolTipText( LOCTEXT( "ResetHoudiniActorToolTip", "Resets parameters to their default values" ) )
         ];
     }
 
@@ -660,12 +657,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonReset, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeBlueprint )
             .Text( LOCTEXT( "BakeBlueprintHoudiniActor", "Bake Blueprint" ) )
-            .ToolTipText( LOCTEXT( "BakeBlueprintHoudiniActorToolTip", "Bake Blueprint" ) )
+            .ToolTipText( LOCTEXT( "BakeBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint" ) )
         ];
 
         HorizontalButtonBox->AddSlot()
@@ -674,12 +671,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonReset, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeBlueprintReplace )
             .Text( LOCTEXT( "BakeReplaceBlueprintHoudiniActor", "Replace With Blueprint" ) )
-            .ToolTipText( LOCTEXT( "BakeReplaceBlueprintHoudiniActorToolTip", "Replace With Blueprint" ) )
+            .ToolTipText( LOCTEXT( "BakeReplaceBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint and replaces this Actor" ) )
         ];
 
         HorizontalButtonBox->AddSlot()
@@ -688,13 +685,32 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonReset, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeToActors)
             .Text( LOCTEXT( "BakeToActors", "Bake to Actors" ) )
-            .ToolTipText( LOCTEXT( "BakeToActorsTooltip", "Bake output components to individual actors" ) )
+            .ToolTipText( LOCTEXT( "BakeToActorsTooltip", "Bakes each output and creates new individual Actors" ) )
         ];
+
+        TSharedPtr< SButton > BakeToInputButton;
+        HorizontalButtonBox->AddSlot()
+            .AutoWidth()
+            .Padding( 2.0f, 0.0f )
+            .VAlign( VAlign_Center )
+            .HAlign( HAlign_Center )
+        [
+            SAssignNew( BakeToInputButton, SButton )
+            .VAlign( VAlign_Center )
+            .HAlign( HAlign_Center )
+            .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeToInput )
+            .Text( LOCTEXT( "BakeToInput", "Bake to Outliner Input" ) )
+            .ToolTipText( LOCTEXT( "BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it" ) )
+        ];
+
+        BakeToInputButton->SetEnabled( TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateLambda( [=] { 
+            return FHoudiniEngineUtils::GetCanComponentBakeToOutlinerInput( HoudiniAssetComponent ); 
+        } ) ) );
     }
 
     {
@@ -717,12 +733,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonReset, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnFetchCookLog )
             .Text( LOCTEXT( "FetchCookLogHoudiniActor", "Fetch Cook Log" ) )
-            .ToolTipText( LOCTEXT( "FetchCookLogHoudiniActorToolTip", "Fetch Cook Log" ) )
+            .ToolTipText( LOCTEXT( "FetchCookLogHoudiniActorToolTip", "Fetches the cook log from Houdini" ) )
         ];
 
         HorizontalButtonBox->AddSlot()
@@ -731,12 +747,12 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         [
-            SAssignNew( ButtonReset, SButton )
+            SNew( SButton )
             .VAlign( VAlign_Center )
             .HAlign( HAlign_Center )
             .OnClicked( this, &FHoudiniAssetComponentDetails::OnFetchAssetHelp, HoudiniAssetComponent )
             .Text( LOCTEXT( "FetchAssetHelpHoudiniActor", "Asset Help" ) )
-            .ToolTipText( LOCTEXT( "FetchAssetHelpHoudiniActorToolTip", "Asset Help" ) )
+            .ToolTipText( LOCTEXT( "FetchAssetHelpHoudiniActorToolTip", "Displays the asset's Help text" ) )
         ];
     }
 
@@ -959,6 +975,23 @@ FHoudiniAssetComponentDetails::OnBakeToActors()
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
         {
             FHoudiniEngineUtils::BakeHoudiniActorToActors( HoudiniAssetComponent, true );
+        }
+    }
+
+    return FReply::Handled();
+}
+
+FReply 
+FHoudiniAssetComponentDetails::OnBakeToInput()
+{
+    if ( HoudiniAssetComponents.Num() > 0 )
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetComponents[ 0 ];
+
+        // If component is not cooking or instancing, we can bake.
+        if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
+        {
+            FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( HoudiniAssetComponent );
         }
     }
 
