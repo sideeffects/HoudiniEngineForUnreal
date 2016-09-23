@@ -179,7 +179,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
             // find static mesh for this instancer
             if (UStaticMesh* FoundStaticMesh = HoudiniAssetComponent->LocateStaticMesh( 
-                HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.GeoId, InstancedPartId ))
+                AssetId, HoudiniGeoPartObject.GeoId, InstancedPartId ))
             {
                 CreateInstanceInputField( FoundStaticMesh, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
             }
