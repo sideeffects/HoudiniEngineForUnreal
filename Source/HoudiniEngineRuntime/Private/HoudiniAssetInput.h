@@ -190,6 +190,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Duplicates the data from the input curve properly **/
         void DuplicateCurves(UHoudiniAssetInput * OriginalInput);
 
+        FORCEINLINE const TArray< FHoudiniAssetInputOutlinerMesh >& GetWorldOutlinerInputs() const { return InputOutlinerMeshArray; }
+        
+        /** Remove a specific element of the world outliner input selection */
+        void RemoveWorldOutlinerInput( int32 AtIndex );
+
+        EHoudiniAssetInputType::Enum GetChoiceIndex() const { return ChoiceIndex; }
+
     protected:
 
 #if WITH_EDITOR
