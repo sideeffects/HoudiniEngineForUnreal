@@ -42,6 +42,8 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     Ar << ActorTransform;
 
     Ar << AssetId;
+    if (Ar.IsLoading() && !Ar.IsTransacting())
+        AssetId = -1;
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE )
     {
@@ -54,6 +56,29 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
 	Ar << KeepWorldTransform;
+}
+
+void 
+FHoudiniAssetInputOutlinerMesh::RebuildSplineTransformsArrayIfNeeded()
+{
+    // Rebuilding the SplineTransform array after reloading the asset
+    // This is required to properly detect Transform changes after loading the asset.
+
+    // We need an Unreal spline
+    if (!SplineComponent)
+        return;
+
+    // If those are different, the input component has changed
+    if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
+        return;
+
+    // If those are equals, there's no need to rebuild the array
+    if (SplineControlPointsTransform.Num() == SplineComponent->GetNumberOfSplinePoints())
+        return;
+
+    SplineControlPointsTransform.SetNumUninitialized(SplineComponent->GetNumberOfSplinePoints());
+    for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
+        SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
 }
 
 bool
@@ -69,11 +94,21 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged() const
     // Number of CVs has changed ?
     if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
 	return true;
-
+    
+    if (SplineControlPointsTransform.Num() != SplineComponent->GetNumberOfSplinePoints())
+        return true;
+    
     // Current Spline resolution has changed?
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if ( (HoudiniRuntimeSettings) && (SplineResolution != HoudiniRuntimeSettings->MarshallingSplineResolution) )
 	return true;
+    
+    // Has any of the CV's transform been modified?
+    for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
+    {
+        if ( !SplineControlPointsTransform[n].Equals(SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true)) )
+            return true;
+    }
 
     return false;
 }
@@ -232,29 +267,28 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         {
             HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
             if (FHoudiniEngineUtils::IsValidAssetId(HostAssetId))
-                FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);
-
-                
-        }
-
-        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
-        {
-            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
-            ConnectedAssetId = -1;
+                FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);                
         }
 
         // World Input Actors' Meshes need to have their corresponding Input Assets destroyed too.
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
         {
-            for ( auto & OutlinerMesh : InputOutlinerMeshArray )
+            for ( int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
             {
-                if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerMesh.AssetId ) )
+                if ( FHoudiniEngineUtils::IsValidAssetId(InputOutlinerMeshArray[n].AssetId ) )
                 {
-                    FHoudiniEngineUtils::DestroyHoudiniAsset( OutlinerMesh.AssetId );
-                    OutlinerMesh.AssetId = -1;
+                    FHoudiniEngineUtils::HapiDisconnectAsset(ConnectedAssetId, InputOutlinerMeshArray[n].AssetId);
+                    FHoudiniEngineUtils::DestroyHoudiniAsset(InputOutlinerMeshArray[n].AssetId );
+                    InputOutlinerMeshArray[n].AssetId = -1;
                 }
             }
         }
+
+        if (FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+        {
+            FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
+            ConnectedAssetId = -1;
+	}
     }
 }
 
@@ -1011,24 +1045,24 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
 
     uint32 nTransformType = -1;
     if (bKeepWorldTransform == 2)
-	nTransformType = GetDefaultTranformTypeValue();
+        nTransformType = GetDefaultTranformTypeValue();
     else if (bKeepWorldTransform)
-	nTransformType = 1; 
+        nTransformType = 1; 
     else
-	nTransformType = 0;
+        nTransformType = 0;
 
     // We need the host asset info to get the host node id
     HAPI_AssetInfo HostAssetInfo;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-	FHoudiniEngine::Get().GetSession(),
-	HoudiniAssetComponent->GetAssetId(),
-	&HostAssetInfo), false);
+        FHoudiniEngine::Get().GetSession(),
+        HoudiniAssetComponent->GetAssetId(),
+        &HostAssetInfo), false);
 
     // Get the Input node ID from the host ID
     HAPI_NodeId InputNodeId = -1;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
-	FHoudiniEngine::Get().GetSession(), HostAssetInfo.nodeId,
-	InputIndex, &InputNodeId), false);
+        FHoudiniEngine::Get().GetSession(), HostAssetInfo.nodeId,
+        InputIndex, &InputNodeId), false);
 
     // Change Parameter xformtype
     std::string sParam = "xformtype";
@@ -1036,24 +1070,31 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
             FHoudiniEngine::Get().GetSession(), InputNodeId,
             sParam.c_str(), 0, nTransformType), false);
 
+    // We need the asset info to get the node id
+    HAPI_AssetInfo AssetInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
+        FHoudiniEngine::Get().GetSession(),
+        ConnectedAssetId,
+        &AssetInfo), false);
+
     // If the input is a world outliner, we also need to modify
     // the transform types of the merge node's inputs
     for (int n = 0; n < InputOutlinerMeshArray.Num(); n++)
     {
-	// Get the Input node ID from the host ID
-	InputNodeId = -1;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
-	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-	    n, &InputNodeId), false);
+        // Get the Input node ID from the host ID
+        InputNodeId = -1;
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
+            FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId,
+            n, &InputNodeId), false);
 
-	if (InputNodeId == -1)
-	    continue;
+        if (InputNodeId == -1)
+            continue;
 
-	// Change Parameter xformtype
-	std::string sParam = "xformtype";
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
-	    FHoudiniEngine::Get().GetSession(), InputNodeId,
-	    sParam.c_str(), 0, nTransformType), false);
+        // Change Parameter xformtype
+        std::string sParam = "xformtype";
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), InputNodeId,
+            sParam.c_str(), 0, nTransformType), false);
     }
     
     return true;
@@ -1099,6 +1140,16 @@ UHoudiniAssetInput::PostLoad()
         InputCurve->SetHoudiniAssetInput( this );
         InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
     }
+
+    if (InputOutlinerMeshArray.Num() > 0)
+    {
+        // The spline Transform array might need to be rebuilt after loading
+        for (auto & OutlinerMesh : InputOutlinerMeshArray)
+            OutlinerMesh.RebuildSplineTransformsArrayIfNeeded();
+
+        StartWorldOutlinerTicking();
+    }
+	
 }
 
 void
@@ -1138,10 +1189,6 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_WORLD_OUTLINER_INPUT )
     {
         Ar << InputOutlinerMeshArray;
-#if WITH_EDITOR
-        if ( InputOutlinerMeshArray.Num() > 0 )
-            StartWorldOutlinerTicking();
-#endif
     }
 
     // Create necessary widget resources.
@@ -1671,46 +1718,43 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             // Mark mesh for deletion.
             InputOutlinerMeshArrayPendingKill.Add( OutlinerMesh.StaticMeshComponent );
         }
-	else if ( OutlinerMesh.AssetId >= 0 )
+	else if ( OutlinerMesh.HasActorTransformChanged() && OutlinerMesh.AssetId >= 0)
 	{
-	    if ( OutlinerMesh.HasActorTransformChanged() )
+	    if (!bChanged)
 	    {
-		if (!bChanged)
-		{
-		    Modify();
-		    MarkPreChanged();
-		    bChanged = true;
-		}
-
-		// Updates to the new Transform
-		UpdateWorldOutlinerTransforms(OutlinerMesh);
-
-		// Apply it to the asset
-		HAPI_TransformEuler HapiTransform;
-		FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
-
-		FHoudiniApi::SetAssetTransform(
-		    FHoudiniEngine::Get().GetSession(),
-		    OutlinerMesh.AssetId, &HapiTransform);
+		Modify();
+		MarkPreChanged();
+		bChanged = true;
 	    }
-	    else if ( OutlinerMesh.HasComponentTransformChanged() 
-		    || OutlinerMesh.HasSplineComponentChanged()
-		    || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
+
+	    // Updates to the new Transform
+	    UpdateWorldOutlinerTransforms(OutlinerMesh);
+
+	    // Apply it to the asset
+	    HAPI_TransformEuler HapiTransform;
+	    FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
+
+	    FHoudiniApi::SetAssetTransform(
+		FHoudiniEngine::Get().GetSession(),
+		OutlinerMesh.AssetId, &HapiTransform);
+	}
+	else if ( OutlinerMesh.HasComponentTransformChanged() 
+		|| OutlinerMesh.HasSplineComponentChanged()
+		|| (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
+	{
+	    if ( !bChanged )
 	    {
-		if ( !bChanged )
-		{
-		    Modify();
-		    MarkPreChanged();
-		    bChanged = true;
-		}
-
-		// Update to the new Transforms
-		UpdateWorldOutlinerTransforms(OutlinerMesh);
-
-		// The component or spline has been modified so so we need to indicate that the "static mesh" 
-		// has changed in order to rebuild the asset properly in UploadParameterValue()
-		bStaticMeshChanged = true;
+		Modify();
+		MarkPreChanged();
+		bChanged = true;
 	    }
+
+	    // Update to the new Transforms
+	    UpdateWorldOutlinerTransforms(OutlinerMesh);
+
+	    // The component or spline has been modified so so we need to indicate that the "static mesh" 
+	    // has changed in order to rebuild the asset properly in UploadParameterValue()
+	    bStaticMeshChanged = true;
 	}	
     }
 
@@ -1727,7 +1771,7 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             } );
         }
 
-        MarkChanged();
+	MarkChanged();
     }
 }
 

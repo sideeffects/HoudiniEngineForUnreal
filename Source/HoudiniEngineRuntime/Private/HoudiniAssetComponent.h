@@ -623,6 +623,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
         /** Number of times this asset has been cooked. **/
         int32 AssetCookCount;
 
+        /** Indicates the asset is being istantiated to avoid instantiating it twice on load **/
+        bool bAssetIsBeingInstantiated;
+
         /** Flags used by Houdini component. **/
         union
         {

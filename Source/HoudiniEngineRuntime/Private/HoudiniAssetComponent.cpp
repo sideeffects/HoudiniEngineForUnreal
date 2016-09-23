@@ -285,6 +285,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     , bComponentTransformHasChanged( false )
     , bLoadedComponentRequiresInstantiation( false )
     , bIsSharingAssetId( false )
+    , bAssetIsBeingInstantiated ( false )
     , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
     UObject * Object = ObjectInitializer.GetObj();
@@ -1372,6 +1373,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
         }
     }
 
+    if (bFinishedLoadedInstantiation)
+	bAssetIsBeingInstantiated = false;
+
     if ( !IsInstantiatingOrCooking() )
     {
         if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged )
@@ -1540,6 +1544,8 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 void
 UHoudiniAssetComponent::StartTaskAssetInstantiation( bool bLoadedComponent, bool bStartTicking )
 {
+    bAssetIsBeingInstantiated = true;
+
     // We first need to make sure all our asset inputs have been instantiated and reconnected.
     for ( auto LocalInput : Inputs )
     {
@@ -3330,7 +3336,7 @@ UHoudiniAssetComponent::NotifyParameterWillChange( UHoudiniAssetParameter * Houd
 void
 UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
-    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated)
         bLoadedComponentRequiresInstantiation = true;
 
     bParametersChanged = true;
@@ -3340,7 +3346,7 @@ UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * Houdini
 void
 UHoudiniAssetComponent::NotifyHoudiniSplineChanged( UHoudiniSplineComponent * HoudiniSplineComponent )
 {
-    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated)
         bLoadedComponentRequiresInstantiation = true;
 
     bParametersChanged = true;
