@@ -346,6 +346,11 @@ FHoudiniGeoPartObject::Serialize( FArchive & Ar )
         Ar << InstancerAttributeMaterialName;
 
     Ar << AssetId;
+
+    // AssetId value can change between saving and loading a level
+    if ( Ar.IsLoading() && !Ar.IsTransacting() )
+        AssetId = -1;
+
     Ar << ObjectId;
     Ar << GeoId;
     Ar << PartId;
