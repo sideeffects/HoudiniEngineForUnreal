@@ -2145,83 +2145,92 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     if (!SplineComponent || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
 	return false;
 
-    // Check if connected asset id is valid, if it is not, we need to create an input curve.
-    if (ConnectedAssetId < 0)
-    {
-	HAPI_AssetId AssetId = -1;
-	if(!FHoudiniEngineUtils::HapiCreateCurve( AssetId ) )
-	    return false;
-
-	// Check if we have a valid id for this new input asset.
-	if (!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
-	    return false;
-
-	// We now have a valid id.
-	ConnectedAssetId = AssetId;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(
-	    FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
-    }
-
-    
     // Get runtime settings and extract the spline resolution from it
     float fSplineResolution = -1.0f;
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if (HoudiniRuntimeSettings)
 	fSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
 
-    OutlinerMesh.SplineResolution = fSplineResolution;
-
-    // Get the length and the number of CVs of the unreal spline
-    OutlinerMesh.SplineLength = SplineComponent->GetSplineLength();
-    OutlinerMesh.NumberOfSplineControlPoints = SplineComponent->GetNumberOfSplinePoints();
+    int32 nNumberOfControlPoints = SplineComponent->GetNumberOfSplinePoints();
+    float fSplineLength = SplineComponent->GetSplineLength();
 
     // Calculate the number of refined point we want
-    int32 nNumberOfRefinedSplinePoints = fSplineResolution > 0.0f ? ceil(OutlinerMesh.SplineLength / fSplineResolution) + 1 : OutlinerMesh.NumberOfSplineControlPoints;
-    
-    TArray<FVector> tRefinedSplinePoints;
-    if ( (nNumberOfRefinedSplinePoints < OutlinerMesh.NumberOfSplineControlPoints) || (fSplineResolution <= 0.0f) )
+    int32 nNumberOfRefinedSplinePoints = fSplineResolution > 0.0f ? ceil(fSplineLength / fSplineResolution) + 1 : nNumberOfControlPoints;
+
+    // Array that will store the attributes we want to add to the curves
+    TArray<FVector> tRefinedSplinePositions;
+    TArray<FQuat> tRefinedSplineRotations;
+    // Scale on Unreal's spline will require some tweaking, as the XScale is always 1
+    //TArray<FVector> tRefinedSplineScales;
+    TArray<float> tRefinedSplinePScales;
+
+    if ((nNumberOfRefinedSplinePoints < nNumberOfControlPoints) || (fSplineResolution <= 0.0f))
     {
-	// There's not enough refined points, so we'll use the Spline CVs instead
-	tRefinedSplinePoints.SetNumZeroed(OutlinerMesh.NumberOfSplineControlPoints);
-	for (int32 n = 0; n < OutlinerMesh.NumberOfSplineControlPoints; n++)
-	    tRefinedSplinePoints[n] = SplineComponent->GetLocationAtSplinePoint(n, ESplineCoordinateSpace::Local);
+        // There's not enough refined points, so we'll use the Spline CVs instead
+        tRefinedSplinePositions.SetNumZeroed(nNumberOfControlPoints);
+        tRefinedSplineRotations.SetNumZeroed(nNumberOfControlPoints);
+        //tRefinedSplineScales.SetNumZeroed(nNumberOfControlPoints);
+        tRefinedSplinePScales.SetNumZeroed(nNumberOfControlPoints);
+
+        FVector Scale;
+        for (int32 n = 0; n < nNumberOfControlPoints; n++)
+        {
+            tRefinedSplinePositions[n] = SplineComponent->GetLocationAtSplinePoint(n, ESplineCoordinateSpace::Local);
+            tRefinedSplineRotations[n] = SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World);
+
+            Scale = SplineComponent->GetScaleAtSplinePoint(n);
+            //Scale.X = FMath::Min(Scale.Y, Scale.Z);
+            //tRefinedSplineScales[n] = Scale;
+            tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
+        }
     }
     else
     {
-	// Calculating the refined spline points
-	tRefinedSplinePoints.SetNumZeroed(nNumberOfRefinedSplinePoints);
-	float fCurrentDistance = 0.0f;
-	for (int32 n = 0; n < nNumberOfRefinedSplinePoints; n++)
-	{    
-	    tRefinedSplinePoints[n] = SplineComponent->GetLocationAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::Local);
-	    fCurrentDistance += fSplineResolution;
-	}
+        // Calculating the refined spline points
+        tRefinedSplinePositions.SetNumZeroed(nNumberOfRefinedSplinePoints);
+        tRefinedSplineRotations.SetNumZeroed(nNumberOfRefinedSplinePoints);
+        //tRefinedSplineScales.SetNumZeroed(nNumberOfRefinedSplinePoints);
+        tRefinedSplinePScales.SetNumZeroed(nNumberOfRefinedSplinePoints);
+
+        FVector Scale;
+        float fCurrentDistance = 0.0f;
+        for (int32 n = 0; n < nNumberOfRefinedSplinePoints; n++)
+        {
+            tRefinedSplinePositions[n] = SplineComponent->GetLocationAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::Local);
+            tRefinedSplineRotations[n] = SplineComponent->GetQuaternionAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::World);
+
+            Scale = SplineComponent->GetScaleAtDistanceAlongSpline(fCurrentDistance);
+            //Scale.X = FMath::Min(Scale.Y, Scale.Z);
+            //tRefinedSplineScales[n] = Scale;
+            tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
+
+            fCurrentDistance += fSplineResolution;
+        }
     }
 
+    if (!HapiCreateAndConnectAsset(
+        HostAssetId,
+        InputIndex,
+        ConnectedAssetId,
+        &tRefinedSplinePositions,
+        &tRefinedSplineRotations,
+        nullptr,//&tRefinedSplineScales,
+        &tRefinedSplinePScales))
+        return false;
 
-    // ... then create the position string from the CVs
-    FString PositionString = TEXT("");
-    FHoudiniEngineUtils::CreatePositionsString(tRefinedSplinePoints, PositionString);
+    // Updating the OutlinerMesh's struct infos
+    OutlinerMesh.SplineResolution = fSplineResolution;
+    OutlinerMesh.SplineLength = fSplineLength;
+    OutlinerMesh.NumberOfSplineControlPoints = nNumberOfControlPoints;
 
-    // Also upload points
-    HAPI_NodeId NodeId = -1;
-    if ( !FHoudiniEngineUtils::HapiGetNodeId(ConnectedAssetId, 0, 0, NodeId) )
-	return false;
-
-    // Get param id for the PositionString and modify it
-    HAPI_ParmId ParmId = -1;
-    if (FHoudiniApi::GetParmIdFromName(
-	    FHoudiniEngine::Get().GetSession(), NodeId,
-	    HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) == HAPI_RESULT_SUCCESS)
+    // We also need to extract all the CV's Transform to check for modifications
+    OutlinerMesh.SplineControlPointsTransform.SetNum(nNumberOfControlPoints);
+    for (int32 n = 0; n < nNumberOfControlPoints; n++)
     {
-	// .. then feed the string to the curve
-	std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-	FHoudiniApi::SetParmStringValue(
-	    FHoudiniEngine::Get().GetSession(), NodeId,
-	    ConvertedString.c_str(), ParmId, 0);
+        OutlinerMesh.SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
     }
 
+/*
     // Cook the spline node.
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(
 	FHoudiniEngine::Get().GetSession(),
@@ -2234,6 +2243,308 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 	ConnectedAssetId = -1;
 	return false;
     }
+*/
+
+#endif
+
+    return true;
+}
+
+
+bool
+FHoudiniEngineUtils::HapiCreateAndConnectAsset(
+    HAPI_AssetId HostAssetId,
+    int32 InputIndex,
+    HAPI_AssetId & ConnectedAssetId,
+    const TArray<FVector>* Positions,
+    TArray<FQuat>* Rotations /*= nullptr*/,
+    TArray<FVector>* Scales3d /*= nullptr*/,
+    TArray<float>* UniformScales /*= nullptr*/)
+{
+#if WITH_EDITOR
+
+    // Positions are required
+    if (!Positions)
+        return false;
+
+    // We also need a valid host asset and 2 points to make a curve
+    int32 NumberOfCVs = Positions->Num();
+    if ((NumberOfCVs < 2) || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
+        return false;
+
+    // Check if connected asset id is invalid, if it is not, we need to create an input asset.
+    if (ConnectedAssetId < 0)
+    {
+        HAPI_AssetId AssetId = -1;
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputAsset(
+            FHoudiniEngine::Get().GetSession(), &AssetId, nullptr), false);
+
+        // Check if we have a valid id for this new input asset.
+        if (!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
+            return false;
+
+        // We now have a valid id.
+        ConnectedAssetId = AssetId;
+
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(
+            FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
+    }
+
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+    int32 GeneratedLightMapResolution = 32;
+
+    if (HoudiniRuntimeSettings)
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+        GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
+    }
+
+
+    // Create part infos
+    HAPI_PartInfo Part;
+    FMemory::Memzero< HAPI_PartInfo >(Part);
+    Part.id = 0;
+    Part.nameSH = 0;
+    Part.pointAttributeCount = 0;
+    Part.faceAttributeCount = 0;
+    Part.vertexAttributeCount = 0;
+    Part.detailAttributeCount = 0;
+    Part.vertexCount = NumberOfCVs;
+    Part.pointCount = NumberOfCVs;
+    Part.type = HAPI_PARTTYPE_CURVE;
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
+        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0, &Part), false);
+
+
+    // Create POSITION attribute info.
+    HAPI_AttributeInfo AttributeInfoPositions;
+    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPositions);
+    AttributeInfoPositions.count = NumberOfCVs;
+    AttributeInfoPositions.tupleSize = 3;
+    AttributeInfoPositions.exists = true;
+    AttributeInfoPositions.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPositions.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoPositions.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+        HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPositions), false);
+
+    // Convert the vertices from the curve.
+    TArray< float > CurveVertices;
+    CurveVertices.SetNumZeroed(NumberOfCVs * 3);
+    for (int32 VertexIdx = 0; VertexIdx < NumberOfCVs; ++VertexIdx)
+    {
+        // Grab vertex at this index.
+        const FVector & PositionVector = (*Positions)[VertexIdx];
+
+        if (ImportAxis == HRSAI_Unreal)
+        {
+            CurveVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
+            CurveVertices[VertexIdx * 3 + 1] = PositionVector.Z / GeneratedGeometryScaleFactor;
+            CurveVertices[VertexIdx * 3 + 2] = PositionVector.Y / GeneratedGeometryScaleFactor;
+        }
+        else if (ImportAxis == HRSAI_Houdini)
+        {
+            CurveVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
+            CurveVertices[VertexIdx * 3 + 1] = PositionVector.Y / GeneratedGeometryScaleFactor;
+            CurveVertices[VertexIdx * 3 + 2] = PositionVector.Z / GeneratedGeometryScaleFactor;
+        }
+        else
+        {
+            // Not valid enum value.
+            check(0);
+        }
+    }
+
+    // Upload the position attribute
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+        0, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPositions,
+        CurveVertices.GetData(), 0,
+        AttributeInfoPositions.count), false);
+
+
+    if (Rotations && (Rotations->Num() == NumberOfCVs))
+    {
+        // Create ROTATION attribute info
+        HAPI_AttributeInfo AttributeInfoRotation;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoRotation);
+        AttributeInfoRotation.count = NumberOfCVs;
+        AttributeInfoRotation.tupleSize = 4;
+        AttributeInfoRotation.exists = true;
+        AttributeInfoRotation.owner = HAPI_ATTROWNER_POINT;
+        AttributeInfoRotation.storage = HAPI_STORAGETYPE_FLOAT;
+        AttributeInfoRotation.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+            HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation), false);
+
+        // Convert the rotation from the curve.
+        TArray< float > CurveRotations;
+        CurveRotations.SetNumZeroed(NumberOfCVs * 4);
+        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+        {
+            // Grab vertex at this index.
+            const FQuat& RotationQuaternion = (*Rotations)[Idx];
+
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
+                CurveRotations[Idx * 4 + 1] = RotationQuaternion.Z;
+                CurveRotations[Idx * 4 + 2] = RotationQuaternion.Y;
+                CurveRotations[Idx * 4 + 3] = -RotationQuaternion.W;
+            }
+            else if (ImportAxis == HRSAI_Houdini)
+            {
+                CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
+                CurveRotations[Idx * 4 + 1] = RotationQuaternion.Y;
+                CurveRotations[Idx * 4 + 2] = RotationQuaternion.Z;
+                CurveRotations[Idx * 4 + 3] = RotationQuaternion.W;
+            }
+            else
+            {
+                // Not valid enum value.
+                check(0);
+            }
+        }
+
+        // Now that we have raw positions, we can upload them for our attribute.
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+            0, 0, HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation,
+            CurveRotations.GetData(), 0,
+            AttributeInfoRotation.count), false);
+    }
+
+
+    // Create SCALE attribute info.
+    if (Scales3d && (Scales3d->Num() == NumberOfCVs))
+    {
+        HAPI_AttributeInfo AttributeInfoScale;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoScale);
+        AttributeInfoScale.count = NumberOfCVs;
+        AttributeInfoScale.tupleSize = 3;
+        AttributeInfoScale.exists = true;
+        AttributeInfoScale.owner = HAPI_ATTROWNER_POINT;
+        AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
+        AttributeInfoScale.originalOwner = HAPI_ATTROWNER_INVALID;
+
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+            HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale), false);
+
+        // Extract vertices from the curve.
+        TArray< float > CurveScales;
+        CurveScales.SetNumZeroed(NumberOfCVs * 3);
+        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+        {
+            // Grab vertex at this index.
+            FVector ScaleVector = (*Scales3d)[Idx];
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                CurveScales[Idx * 3 + 0] = ScaleVector.X;
+                CurveScales[Idx * 3 + 1] = ScaleVector.Z;
+                CurveScales[Idx * 3 + 2] = ScaleVector.Y;
+            }
+            else if (ImportAxis == HRSAI_Houdini)
+            {
+                CurveScales[Idx * 3 + 0] = ScaleVector.X;
+                CurveScales[Idx * 3 + 1] = ScaleVector.Y;
+                CurveScales[Idx * 3 + 2] = ScaleVector.Z;
+            }
+            else
+            {
+                // Not valid enum value.
+                check(0);
+            }
+        }
+
+	// Now that we have raw positions, we can upload them for our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	    0, 0, HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale,
+	    CurveScales.GetData(), 0,
+	    AttributeInfoScale.count), false);
+    }
+
+    // Create PSCALE attribute info.
+    if (UniformScales && (UniformScales->Num() == NumberOfCVs))
+    {
+	HAPI_AttributeInfo AttributeInfoPScale;
+	FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPScale);
+	AttributeInfoPScale.count = NumberOfCVs;
+	AttributeInfoPScale.tupleSize = 1;
+	AttributeInfoPScale.exists = true;
+	AttributeInfoPScale.owner = HAPI_ATTROWNER_POINT;
+	AttributeInfoPScale.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoPScale.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0,
+	    HAPI_UNREAL_ATTRIB_UNIFORM_SCALE, &AttributeInfoPScale), false);
+
+	// Extract vertices from the curve.
+	TArray<float> CurvePScales;
+	CurvePScales.SetNumZeroed(NumberOfCVs);
+	for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+	{
+	    CurvePScales[Idx] = (*UniformScales)[Idx];
+	}
+
+	// Now that we have raw positions, we can upload them for our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	    0, 0, HAPI_UNREAL_ATTRIB_UNIFORM_SCALE, &AttributeInfoPScale,
+	    CurvePScales.GetData(), 0,
+	    AttributeInfoPScale.count), false);
+    }
+
+    // Create curve infos
+    HAPI_CurveInfo curveInfo;
+    curveInfo.curveCount = 1;
+    curveInfo.curveType = HAPI_CURVETYPE_LINEAR;
+    curveInfo.vertexCount = Positions->Num();
+    curveInfo.knotCount = 0;
+    curveInfo.isPeriodic = false;
+    curveInfo.isRational = false;
+    curveInfo.order = 2;
+    curveInfo.hasKnots = false;
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveInfo(
+	FHoudiniEngine::Get().GetSession(),
+	ConnectedAssetId,
+	0,
+	0,
+	0,
+	&curveInfo), false);
+
+    // We also need to update the curve counts!
+    const int NumberOfPoints = Positions->Num();
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveCounts(
+	FHoudiniEngine::Get().GetSession(),
+	ConnectedAssetId,
+	0,
+	0,
+	0,
+	&NumberOfPoints,
+	0, 1), false);
+
+    // Commit the geo.
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, 0), false);
+
+    // Now we can connect assets together.
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectAssetGeometry(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	0, HostAssetId, InputIndex), false);
 
 #endif
 

@@ -190,6 +190,15 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 	    HAPI_AssetId & ConnectedAssetId,
 	    FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
 
+	static bool HapiCreateAndConnectAsset(
+	    HAPI_AssetId HostAssetId,
+	    int32 InputIndex,
+	    HAPI_AssetId & ConnectedAssetId,
+	    const TArray<FVector>* Positions,
+	    TArray<FQuat>* Rotations = nullptr,
+	    TArray<FVector>* Scales3d = nullptr,
+	    TArray<float>* UniformScales = nullptr);
+
         /** HAPI : Marshaling, disconnect input asset from a given slot. **/
         static bool HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex );
 
