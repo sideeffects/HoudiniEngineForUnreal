@@ -1106,6 +1106,12 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             DownstreamAsset->NotifyParameterChanged( nullptr );
         }
     }
+#if WITH_EDITOR
+    if ( GUnrealEd )
+    {
+        GUnrealEd->UpdateFloatingPropertyWindows();
+    }
+#endif
 }
 
 void
@@ -1562,6 +1568,11 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 
         // Reset selected actor to itself, force refresh and override the lock.
         DetailsView->SetObjects( SelectedActors, true, true );
+
+        if ( GUnrealEd )
+        {
+            GUnrealEd->UpdateFloatingPropertyWindows();
+        }
     }
 
     StopHoudiniUIUpdateTicking();
