@@ -92,6 +92,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Handler for bake to actors action **/
         FReply OnBakeToActors();
 
+        /** Handler for bake to outliner input action **/
+        FReply OnBakeToInput();
+
         /** Handler for fetch asset help action. **/
         FReply OnFetchAssetHelp( UHoudiniAssetComponent * HoudiniAssetComponent );
 
