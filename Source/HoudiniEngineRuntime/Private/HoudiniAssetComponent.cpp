@@ -1561,6 +1561,11 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 
         // Reset selected actor to itself, force refresh and override the lock.
         DetailsView->SetObjects( SelectedActors, true, true );
+
+        if ( GUnrealEd )
+        {
+            GUnrealEd->UpdateFloatingPropertyWindows();
+        }
     }
 
     StopHoudiniUIUpdateTicking();
