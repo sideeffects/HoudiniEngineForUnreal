@@ -644,6 +644,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
     // We need to store instancers as they need to be processed after all other meshes.
     TArray< FHoudiniGeoPartObject > FoundInstancers;
     TArray< FHoudiniGeoPartObject > FoundCurves;
+    TMap< FHoudiniGeoPartObject, UStaticMesh* > StaleParts;
 
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
     {
@@ -665,11 +666,14 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
             check( !StaticMesh );
             FoundCurves.Add( HoudiniGeoPartObject );
         }
-        else if ( HoudiniGeoPartObject.IsVisible() )
+        else
         {
             // This geo part is visible and not an instancer and must have static mesh assigned.
-            if ( !StaticMesh )
+            if ( HoudiniGeoPartObject.IsVisible() && !StaticMesh )
+            {
+                HOUDINI_LOG_WARNING( TEXT( "No static mesh generated for visible part %d,%d,%d" ), HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.PartId );
                 continue;
+            }
 
             UStaticMeshComponent * StaticMeshComponent = nullptr;
             UStaticMeshComponent * const* FoundStaticMeshComponent = StaticMeshComponents.Find( StaticMesh );
@@ -677,8 +681,15 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
             if ( FoundStaticMeshComponent )
             {
                 StaticMeshComponent = *FoundStaticMeshComponent;
+                if ( ! HoudiniGeoPartObject.IsVisible() )
+                {
+                    // We have a mesh and component for a part which is invisible.
+                    // Visibility may have changed since last cook
+                    StaleParts.Add( HoudiniGeoPartObject, StaticMesh );
+                    continue;
+                }
             }
-            else
+            else if ( HoudiniGeoPartObject.IsVisible() )
             {
                 // Create necessary component.
                 StaticMeshComponent = NewObject< UStaticMeshComponent >(
@@ -697,17 +708,29 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 StaticMeshComponent->RegisterComponent();
             }
 
-            // If this is a collision geo, we need to make it invisible.
-            if ( HoudiniGeoPartObject.IsCollidable() )
+            if ( StaticMeshComponent )
             { 
-                StaticMeshComponent->SetVisibility( false );
-                StaticMeshComponent->SetHiddenInGame( true );
-                StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
-            }
+                // If this is a collision geo, we need to make it invisible.
+                if ( HoudiniGeoPartObject.IsCollidable() )
+                {
+                    StaticMeshComponent->SetVisibility( false );
+                    StaticMeshComponent->SetHiddenInGame( true );
+                    StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
+                }
 
-            // Transform the component by transformation provided by HAPI.
-            StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );
+                // Transform the component by transformation provided by HAPI.
+                StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );
+            }
         }
+    }
+
+    if ( StaleParts.Num() )
+    {
+        for ( auto Iter : StaleParts )
+        {
+            StaticMeshMap.Remove( Iter.Key );
+        }
+        ReleaseObjectGeoPartResources( StaleParts, true );
     }
 
     // Skip self assignment.
