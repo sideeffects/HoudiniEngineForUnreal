@@ -37,8 +37,6 @@ namespace EHoudiniSplineComponentMethod
     };
 }
 
-class UHoudiniAssetInput;
-
 UCLASS( config = Engine )
 class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
 {
@@ -126,7 +124,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         bool IsInputCurve() const;
 
         /** Assign input parameter to this spline, if it is an input curve. **/
-        void SetHoudiniAssetInput( UHoudiniAssetInput * InHoudiniAssetInput );
+        void SetHoudiniAssetInput( class UHoudiniAssetInput * InHoudiniAssetInput );
 
         /** Used by visualizer to notify about input spline update. **/
         void NotifyHoudiniInputCurveChanged();
@@ -146,7 +144,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         TArray< FVector > CurveDisplayPoints;
 
         /** Corresponding asset input parameter if this is an input curve. **/
-        UHoudiniAssetInput * HoudiniAssetInput;
+        class UHoudiniAssetInput * HoudiniAssetInput;
 
         /** Type of this curve. **/
         EHoudiniSplineComponentType::Enum CurveType;
