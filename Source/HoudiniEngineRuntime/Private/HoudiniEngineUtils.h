@@ -177,6 +177,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_AssetId & ConnectedAssetId );
 
         static bool HapiCreateAndConnectAsset(
+            HAPI_AssetId HostAssetId, int32 InputIndex,
+            TArray<UObject *>& InputObjects,
+            HAPI_AssetId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
+
+        /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
+        static bool HapiCreateAndConnectAsset(
             HAPI_AssetId HostAssetId,
             int32 InputIndex,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
