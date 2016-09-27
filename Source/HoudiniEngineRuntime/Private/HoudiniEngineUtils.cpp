@@ -1125,7 +1125,7 @@ FHoudiniEngineUtils::CreateUnrealTexture(
         // Create new texture object.
         Texture = NewObject< UTexture2D >(
             Package, UTexture2D::StaticClass(), *TextureName,
-            RF_Public | RF_Standalone | RF_Transactional );
+            RF_Transactional );
 
         // Add meta information to package.
         FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -5400,7 +5400,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
                 // Create new material.
                 Material = (UMaterial *) MaterialFactory->FactoryCreateNew(
                     UMaterial::StaticClass(), MaterialPackage,
-                    *MaterialName, RF_Public | RF_Standalone | RF_Transactional, NULL, GWarn );
+                    *MaterialName, RF_Transactional, NULL, GWarn );
 
                 // Add meta information to this package.
                 FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -8002,7 +8002,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
         DuplicatedStaticMesh = DuplicateObject< UStaticMesh >( StaticMesh, MeshPackage, *MeshName );
 
         if ( bBake )
-            DuplicatedStaticMesh->SetFlags( RF_Public );
+            DuplicatedStaticMesh->SetFlags( RF_Public | RF_Standalone );
 
         // Add meta information.
         FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -8076,7 +8076,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
     DuplicatedMaterial = DuplicateObject< UMaterial >( Material, MaterialPackage, *MaterialName );
 
     if ( bBake )
-        DuplicatedMaterial->SetFlags( RF_Public );
+        DuplicatedMaterial->SetFlags( RF_Public | RF_Standalone );
 
     // Add meta information.
     FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -8166,7 +8166,7 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
                 DuplicatedTexture = DuplicateObject< UTexture2D >( Texture, NewTexturePackage, *TextureName );
 
                 if ( bBake )
-                    DuplicatedTexture->SetFlags( RF_Public );
+                    DuplicatedTexture->SetFlags( RF_Public | RF_Standalone );
 
                 // Add meta information.
                 FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
