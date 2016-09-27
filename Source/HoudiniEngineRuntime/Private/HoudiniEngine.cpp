@@ -226,6 +226,15 @@ FHoudiniEngine::StartupModule()
             {
                 if ( HoudiniRuntimeSettings->bStartAutomaticServer )
                 {
+                    // Modify our PATH so that HARC will find HARS.exe
+                    const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
+                    const int32 MaxPathVarLen = 32768;
+                    TCHAR OrigPathVarMem[ MaxPathVarLen ];
+                    FPlatformMisc::GetEnvironmentVariable( TEXT( "PATH" ), OrigPathVarMem, MaxPathVarLen );
+                    FString OrigPathVar( OrigPathVarMem );
+                    FString ModifiedPath = LibHAPILocation + PathDelimiter + OrigPathVar;
+                    FPlatformMisc::SetEnvironmentVar( TEXT( "PATH" ), *ModifiedPath );
+
                     FHoudiniApi::StartThriftSocketServer(
                         true, HoudiniRuntimeSettings->ServerPort,
                         HoudiniRuntimeSettings->AutomaticServerTimeout, nullptr );
