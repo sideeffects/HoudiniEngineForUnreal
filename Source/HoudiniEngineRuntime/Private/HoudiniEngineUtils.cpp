@@ -3055,6 +3055,41 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     return true;
 }
 
+bool 
+FHoudiniEngineUtils::HapiCreateAndConnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex, TArray<UObject *>& InputObjects, HAPI_AssetId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
+{
+    if ( ensure( InputObjects.Num() ) )
+    {
+        // TODO: No need to merge if there is only one input object if ( InputObjects.Num() == 1 )
+        // Create the merge SOP asset. This will be our "ConnectedAssetId".
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::InstantiateAsset(
+            FHoudiniEngine::Get().GetSession(),
+            "SOP/merge", true, &ConnectedAssetId ), false );
+
+        for ( int32 InputIdx = 0; InputIdx < InputObjects.Num(); ++InputIdx )
+        {
+            if ( UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[ InputIdx ] ) )
+            {
+                HAPI_AssetId MeshAssetNodeId = -1;
+                // Creating an Input Node for Mesh Data
+                bool bInputCreated = HapiCreateAndConnectAsset( ConnectedAssetId, InputIdx, InputStaticMesh, MeshAssetNodeId );
+                if ( !bInputCreated )
+                {
+                    HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
+                }
+                if ( MeshAssetNodeId >= 0 )
+                {
+                    OutCreatedNodeIds.Add( MeshAssetNodeId );
+                }
+            }
+        }
+        // Now we can connect assets together.
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectAssetGeometry(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, HostAssetId, InputIndex ), false );
+    }
+    return true;
+}
+
 bool
 FHoudiniEngineUtils::HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex )
 {

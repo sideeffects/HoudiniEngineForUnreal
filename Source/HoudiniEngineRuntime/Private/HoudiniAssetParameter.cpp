@@ -293,7 +293,7 @@ UHoudiniAssetParameter::Serialize( FArchive & Ar )
     // Call base implementation.
     Super::Serialize( Ar );
 
-    HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE;
+    HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
 
     Ar << HoudiniAssetParameterFlagsPacked;
