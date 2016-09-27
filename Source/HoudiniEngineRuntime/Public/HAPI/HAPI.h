@@ -3535,8 +3535,9 @@ HAPI_DECL HAPI_CommitGeo( const HAPI_Session * session,
                           HAPI_NodeId node_id );
 
 /// @brief  Remove all changes that have been committed to this
-///         geometry.  Only applies to geometry nodes that are
-///         exposed edit nodes.
+///         geometry. If this is an intermediate result node (Edit SOP), all
+///         deltas will be removed. If it's any other type of node, the node
+///         will be unlocked if it is locked.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
