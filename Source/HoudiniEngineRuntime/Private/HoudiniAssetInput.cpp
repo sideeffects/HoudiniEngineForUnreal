@@ -1285,8 +1285,9 @@ UHoudiniAssetInput::PostLoad()
         // The spline Transform array might need to be rebuilt after loading
         for (auto & OutlinerMesh : InputOutlinerMeshArray)
             OutlinerMesh.RebuildSplineTransformsArrayIfNeeded();
-
+#if WITH_EDITOR
         StartWorldOutlinerTicking();
+#endif
     }
 	
 }

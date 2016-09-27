@@ -280,6 +280,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Updates the input's Object Merge Transform type  **/
         bool UpdateObjectMergeTransformType();
 
+        /** Returns the default value for this input Transform Type, 0 = none / 1 = IntoThisObject **/
+        uint32 GetDefaultTranformTypeValue() const;
+
+        /** Returns the input object at index or nullptr */
+        UObject* GetInputObject( int32 AtIndex ) const;
+
     protected:
 
         /** Parameters used by a curve input asset. **/
@@ -355,12 +361,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Stop world outliner Actor transform monitor ticking. **/
         void StopWorldOutlinerTicking();
-
-	/** Returns the default value for this input Transform Type, 0 = none / 1 = IntoThisObject **/
-	uint32 GetDefaultTranformTypeValue() const;
-
-        /** Returns the input object at index or nullptr */
-        UObject* GetInputObject( int32 AtIndex ) const;
 
 #endif
 
