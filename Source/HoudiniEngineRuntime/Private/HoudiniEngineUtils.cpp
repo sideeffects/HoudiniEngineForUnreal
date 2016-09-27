@@ -2584,6 +2584,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 
     // Get runtime settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    check( HoudiniRuntimeSettings );
 
     float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
     EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
@@ -2978,6 +2979,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             (const int32 *) LightMapResolutions.GetData(), 0, LightMapResolutions.Num() ), false );
     }
 
+    if ( !HoudiniRuntimeSettings->MarshallingAttributeInputMeshName.IsEmpty() )
     {
         // Create primitive attribute with mesh asset path
 
@@ -2992,6 +2994,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
             PrimitiveAttrs[ Ix ] = MeshAssetPathRaw;
         }
 
+        std::string MarshallingAttributeName;
+        FHoudiniEngineUtils::ConvertUnrealString(
+            HoudiniRuntimeSettings->MarshallingAttributeInputMeshName,
+            MarshallingAttributeName );
+        
         HAPI_AttributeInfo AttributeInfo {};
         AttributeInfo.count = Part.faceCount;
         AttributeInfo.tupleSize = 1;
@@ -3002,11 +3009,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
             FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-            0, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo ), false );
+            0, 0, MarshallingAttributeName.c_str(), &AttributeInfo ), false );
 
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
             FHoudiniEngine::Get().GetSession(),
-            ConnectedAssetId, 0, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo,
+            ConnectedAssetId, 0, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
             PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
     }
 
@@ -4181,7 +4188,7 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         StaticMesh = NewObject< UStaticMesh >(
                             MeshPackage, FName( *MeshName ),
-                            RF_Standalone | RF_Transactional );
+                            RF_Transactional );
 
                         // Add meta information to this package.
                         FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -5074,7 +5081,7 @@ FHoudiniEngineUtils::BakeStaticMesh(
         HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, BakeGUID, true );
 
     // Create static mesh.
-    StaticMesh = NewObject< UStaticMesh >( Package, FName( *MeshName ), RF_Standalone | RF_Public | RF_Transactional );
+    StaticMesh = NewObject< UStaticMesh >( Package, FName( *MeshName ), RF_Public | RF_Transactional );
 
     // Add meta information to this package.
     FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
