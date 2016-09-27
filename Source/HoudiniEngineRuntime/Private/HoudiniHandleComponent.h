@@ -18,8 +18,6 @@
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniHandleComponent.generated.h"
 
-class UHoudiniAssetInput;
-
 UCLASS( config = Engine )
 class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
 {
