@@ -122,6 +122,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
     /** Session options. **/
     public:
 
+        /** Session Type: Change requires editor restart */
         UPROPERTY( GlobalConfig, EditAnywhere, Category = Session )
         TEnumAsByte< enum EHoudiniRuntimeSettingsSessionType > SessionType;
 
@@ -134,6 +135,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = Session )
         FString ServerPipeName;
 
+        /** Whether to automatically start a HARS process */
         UPROPERTY( GlobalConfig, EditAnywhere, Category = Session )
         bool bStartAutomaticServer;
 
