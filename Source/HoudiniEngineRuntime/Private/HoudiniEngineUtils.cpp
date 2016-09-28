@@ -1720,6 +1720,23 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId
 }
 
 bool
+FHoudiniEngineUtils::HapiGetNodePath( HAPI_NodeId NodeId, HAPI_NodeId RelativeToNodeId, FString & OutPath )
+{
+    HAPI_StringHandle StringHandle;
+    if ( FHoudiniApi::GetNodePath(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, RelativeToNodeId, &StringHandle ) == HAPI_RESULT_SUCCESS )
+    {
+        FHoudiniEngineString HoudiniEngineString( StringHandle );
+        if ( HoudiniEngineString.ToFString( OutPath ) )
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
 FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;

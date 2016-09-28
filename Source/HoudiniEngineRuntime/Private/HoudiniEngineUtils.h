@@ -166,6 +166,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Retrieve Node id from given parameters. **/
         static bool HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId & NodeId );
 
+        /** HAPI: Retrieve Path to the given Node, relative to the given Node */
+        static bool HapiGetNodePath( HAPI_NodeId NodeId, HAPI_NodeId RelativeToNodeId, FString & OutPath );
+
         /** HAPI : Retrieve HAPI_ObjectInfo's from given asset node id. **/
         static bool HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos );
 
