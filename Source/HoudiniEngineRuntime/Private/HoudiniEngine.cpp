@@ -219,6 +219,17 @@ FHoudiniEngine::StartupModule()
         ServerOptions.autoClose = true;
         ServerOptions.timeoutMs = HoudiniRuntimeSettings->AutomaticServerTimeout;
 
+        auto UpdatePathForServer = [&] {
+            // Modify our PATH so that HARC will find HARS.exe
+            const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
+            const int32 MaxPathVarLen = 32768;
+            TCHAR OrigPathVarMem[ MaxPathVarLen ];
+            FPlatformMisc::GetEnvironmentVariable( TEXT( "PATH" ), OrigPathVarMem, MaxPathVarLen );
+            FString OrigPathVar( OrigPathVarMem );
+            FString ModifiedPath = LibHAPILocation + PathDelimiter + OrigPathVar;
+            FPlatformMisc::SetEnvironmentVar( TEXT( "PATH" ), *ModifiedPath );
+        };
+
         switch ( HoudiniRuntimeSettings->SessionType.GetValue() )
         {
             case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
@@ -231,14 +242,7 @@ FHoudiniEngine::StartupModule()
             {
                 if ( HoudiniRuntimeSettings->bStartAutomaticServer )
                 {
-                    // Modify our PATH so that HARC will find HARS.exe
-                    const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
-                    const int32 MaxPathVarLen = 32768;
-                    TCHAR OrigPathVarMem[ MaxPathVarLen ];
-                    FPlatformMisc::GetEnvironmentVariable( TEXT( "PATH" ), OrigPathVarMem, MaxPathVarLen );
-                    FString OrigPathVar( OrigPathVarMem );
-                    FString ModifiedPath = LibHAPILocation + PathDelimiter + OrigPathVar;
-                    FPlatformMisc::SetEnvironmentVar( TEXT( "PATH" ), *ModifiedPath );
+                    UpdatePathForServer();
 
                     FHoudiniApi::StartThriftSocketServer( &ServerOptions, HoudiniRuntimeSettings->ServerPort, nullptr );
                 }
@@ -255,6 +259,8 @@ FHoudiniEngine::StartupModule()
             {
                 if ( HoudiniRuntimeSettings->bStartAutomaticServer )
                 {
+                    UpdatePathForServer();
+
                     FHoudiniApi::StartThriftNamedPipeServer(
                         &ServerOptions,
                         TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ServerPipeName ),
@@ -279,7 +285,18 @@ FHoudiniEngine::StartupModule()
 #ifdef HAPI_UNREAL_ENABLE_LOADER
 
         if ( SessionResult != HAPI_RESULT_SUCCESS || !SessionPtr )
-            HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session" ) );
+        {
+            if ( ( HoudiniRuntimeSettings->SessionType.GetValue() == EHoudiniRuntimeSettingsSessionType::HRSST_Socket ||
+                HoudiniRuntimeSettings->SessionType.GetValue() == EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe ) &&
+                ! HoudiniRuntimeSettings->bStartAutomaticServer )
+            {
+                HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session.  Check that a Houdini Engine Debugger session or HARS server is running" ) );
+            }
+            else
+            {
+                HOUDINI_LOG_ERROR( TEXT( "Failed to create a Houdini Engine session" ) );
+            }
+        }
 
 #endif
 
