@@ -91,6 +91,10 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
         virtual bool GetWidgetLocation(
             const FEditorViewportClient * ViewportClient, FVector & OutLocation ) const override;
 
+        /** Returns Coordinate System of a gizmo widget. **/
+        virtual bool GetCustomInputCoordinateSystem(
+            const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const override;
+
         /** Handle input change. **/
         virtual bool HandleInputDelta(
             FEditorViewportClient * ViewportClient, FViewport * Viewport, FVector & DeltaTranslate,
@@ -105,7 +109,7 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
         void UpdateHoudiniComponents();
 
         /** Perform internal component update. **/
-        void NotifyComponentModified( int32 PointIndex, const FVector & Point );
+        void NotifyComponentModified( int32 PointIndex, const FTransform & Point );
 
         /** Callbacks for Add control point action. **/
         void OnAddControlPoint();
@@ -119,7 +123,7 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 	void OnDuplicateControlPoint();
 	bool IsDuplicateControlPointValid() const;
 
-        int32 AddControlPointAfter( const FVector & NewPoint, const int32& nIndex );
+        int32 AddControlPointAfter( const FTransform & NewPoint, const int32& nIndex );
 
     protected:
 
@@ -135,9 +139,9 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
         /** Whether we currently allow duplication when dragging. */
         bool bAllowDuplication;
 
-        /** Wether we are currently multi-selecting points **/
-        bool bIsMultiSelecting;
-
         /** Keeps index of currently selected control points, if editing is being performed. **/
         TArray<int32> EditedControlPointsIndexes;
+
+        /** Rotation used for the gizmo widgets **/
+        FQuat CachedRotation;
 };

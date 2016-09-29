@@ -42,14 +42,16 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     Ar << ActorTransform;
 
     Ar << AssetId;
+    if (Ar.IsLoading() && !Ar.IsTransacting())
+        AssetId = -1;
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE )
     {
-	Ar << SplineComponent;
-	Ar << NumberOfSplineControlPoints;
-	Ar << SplineLength;
-	Ar << SplineResolution;
-	Ar << ComponentTransform;
+        Ar << SplineComponent;
+        Ar << NumberOfSplineControlPoints;
+        Ar << SplineLength;
+        Ar << SplineResolution;
+        Ar << ComponentTransform;
     }
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
@@ -92,15 +94,15 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged() const
     // Number of CVs has changed ?
     if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
 	return true;
-    
+
     if (SplineControlPointsTransform.Num() != SplineComponent->GetNumberOfSplinePoints())
         return true;
-    
-    // Current Spline resolution has changed?
+
+        // Current Spline resolution has changed?
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if ( (HoudiniRuntimeSettings) && (SplineResolution != HoudiniRuntimeSettings->MarshallingSplineResolution) )
 	return true;
-    
+
     // Has any of the CV's transform been modified?
     for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
     {
@@ -301,32 +303,33 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
                 FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
         }
 
-        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+        if (ChoiceIndex == EHoudiniAssetInputType::WorldInput)
         {
-            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
-            ConnectedAssetId = -1;
-        }
-
-        // World Input Actors' Meshes need to have their corresponding Input Assets destroyed too.
-        if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
-        {
-            for ( auto & OutlinerMesh : InputOutlinerMeshArray )
+            // World Input Actors' Meshes need to have their corresponding Input Assets destroyed too.
+            for (int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
             {
-                if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerMesh.AssetId ) )
+                if (FHoudiniEngineUtils::IsValidAssetId(InputOutlinerMeshArray[n].AssetId))
                 {
-                    FHoudiniEngineUtils::DestroyHoudiniAsset( OutlinerMesh.AssetId );
-                    OutlinerMesh.AssetId = -1;
+                    FHoudiniEngineUtils::HapiDisconnectAsset(ConnectedAssetId, InputOutlinerMeshArray[n].AssetId);
+                    FHoudiniEngineUtils::DestroyHoudiniAsset(InputOutlinerMeshArray[n].AssetId);
+                    InputOutlinerMeshArray[n].AssetId = -1;
                 }
             }
         }
-        // Destroy all the geo input assets
         else if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
         {
+            // Destroy all the geo input assets
             for ( HAPI_NodeId AssetNodeId : GeometryInputAssetIds )
             {
                 FHoudiniEngineUtils::DestroyHoudiniAsset( AssetNodeId );
             }
             GeometryInputAssetIds.Empty();
+        }
+
+        if (FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+        {
+            FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
+            ConnectedAssetId = -1;
         }
     }
 }
@@ -1055,18 +1058,18 @@ UHoudiniAssetInput::UploadParameterValue()
 
         case EHoudiniAssetInputType::CurveInput:
         {
-            // If we have no curve node, create it.
+	    // If we have no curve node, create it.
             bool bCreated = false;
-            if (!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) )
+            if (!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
             {
-                if (!FHoudiniEngineUtils::HapiCreateCurveNode(ConnectedAssetId) )
+                if (!FHoudiniEngineUtils::HapiCreateCurveNode(ConnectedAssetId))
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
                     return false;
                 }
 
-                // Connect asset.
+                // Connect the node to the asset.
                 ConnectInputNode();
 
                 bCreated = true;
@@ -1074,9 +1077,6 @@ UHoudiniAssetInput::UploadParameterValue()
 
             if ( bLoadedParameter || bCreated)
             {
-                HAPI_AssetInfo CurveAssetInfo;
-                FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo);
-
                 // If we just loaded or created our curve, we need to set parameters.
                 for (TMap< FString, UHoudiniAssetParameter * >::TIterator
                 IterParams(InputCurveParameters); IterParams; ++IterParams)
@@ -1086,39 +1086,44 @@ UHoudiniAssetInput::UploadParameterValue()
                         continue;
 
                     // We need to update the node id for the parameters.
-                    Parameter->SetNodeId(CurveAssetInfo.nodeId);
+                    Parameter->SetNodeId(ConnectedAssetId);
 
                     // Upload parameter value.
                     Parameter->UploadParameterValue();
                 }
             }
 
-            // Also upload points
-            HAPI_NodeId NodeId = ConnectedAssetId;
             if (ConnectedAssetId != -1 && InputCurve)
             {
-                const TArray< FVector > & CurvePoints = InputCurve->GetCurvePoints();
+                // The curve node has now been created and set up, we can upload points and rotation/scale attributes
+                const TArray< FTransform > & CurvePoints = InputCurve->GetCurvePoints();
+                TArray<FVector> Positions;
+                InputCurve->GetCurvePositions(Positions);
 
-                FString PositionString = TEXT("");
-                FHoudiniEngineUtils::CreatePositionsString(CurvePoints, PositionString);
+                TArray<FQuat> Rotations;
+                InputCurve->GetCurveRotations(Rotations);
 
-                // Get param id for the PositionString and modify it
-                HAPI_ParmId ParmId = -1;
-                if (FHoudiniApi::GetParmIdFromName(
-                    FHoudiniEngine::Get().GetSession(), NodeId,
-                    HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) == HAPI_RESULT_SUCCESS)
+                TArray<FVector> Scales;
+                InputCurve->GetCurveScales(Scales);
+
+                if(!FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
+                        HostAssetId,
+                        ConnectedAssetId,
+                        &Positions,
+                        &Rotations,
+                        &Scales,
+                        nullptr))
                 {
-                    std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
-                    FHoudiniApi::SetParmStringValue(
-                        FHoudiniEngine::Get().GetSession(), NodeId,
-                        ConvertedString.c_str(), ParmId, 0);
+                    bChanged = false;
+                    ConnectedAssetId = -1;
+                    return false;
                 }
             }
             
             if (bCreated && InputCurve)
             {
-                // We need to check that the SplineComponent has no offset as the input
-                // was set to WorldOutliner before, it might have one
+                // We need to check that the SplineComponent has no offset.
+                // if the input was set to WorldOutliner before, it might have one
                 FTransform CurveTransform = InputCurve->GetRelativeTransform();	
                 if (!CurveTransform.GetLocation().IsZero())
                     InputCurve->SetRelativeLocation(FVector::ZeroVector);
@@ -1364,7 +1369,7 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
     Ar << InputIndex;
 
     // Serialize input objects (if it's assigned).
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_MULTI_GEO_INPUT )
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_MULTI_GEO_INPUT)
     {
         Ar << InputObjects;
     }
@@ -1879,52 +1884,49 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             // Mark mesh for deletion.
             InputOutlinerMeshArrayPendingKill.Add( OutlinerMesh.StaticMeshComponent );
         }
-	else if ( OutlinerMesh.AssetId >= 0 )
-	{
-	    if ( OutlinerMesh.HasActorTransformChanged() )
-	    {
-		if (!bChanged)
-		{
-		    Modify();
-		    MarkPreChanged();
-		    bChanged = true;
-		}
+        else if ( OutlinerMesh.HasActorTransformChanged() && (OutlinerMesh.AssetId >= 0))
+        {
+            if (!bChanged)
+            {
+                Modify();
+                MarkPreChanged();
+                bChanged = true;
+            }
 
-		// Updates to the new Transform
-		UpdateWorldOutlinerTransforms(OutlinerMesh);
+            // Updates to the new Transform
+            UpdateWorldOutlinerTransforms(OutlinerMesh);
 
-		HAPI_TransformEuler HapiTransform;
-		FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
+            HAPI_TransformEuler HapiTransform;
+            FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
 
-		HAPI_NodeInfo LocalAssetNodeInfo;
-		const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
-		    FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
-		    &LocalAssetNodeInfo);
+            HAPI_NodeInfo LocalAssetNodeInfo;
+            const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
+                FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
+                &LocalAssetNodeInfo);
 
-		if (LocalResult == HAPI_RESULT_SUCCESS)
-		    FHoudiniApi::SetObjectTransform(
-			FHoudiniEngine::Get().GetSession(),
-			LocalAssetNodeInfo.parentId, &HapiTransform);
-	    }
-	    else if ( OutlinerMesh.HasComponentTransformChanged() 
-		    || OutlinerMesh.HasSplineComponentChanged()
-		    || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
-	    {
-		if ( !bChanged )
-		{
-		    Modify();
-		    MarkPreChanged();
-		    bChanged = true;
-		}
+            if (LocalResult == HAPI_RESULT_SUCCESS)
+                FHoudiniApi::SetObjectTransform(
+                FHoudiniEngine::Get().GetSession(),
+                LocalAssetNodeInfo.parentId, &HapiTransform);
+        }
+        else if ( OutlinerMesh.HasComponentTransformChanged() 
+                || OutlinerMesh.HasSplineComponentChanged()
+                || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
+        {
+            if ( !bChanged )
+            {
+                Modify();
+                MarkPreChanged();
+                bChanged = true;
+            }
 
-		// Update to the new Transforms
-		UpdateWorldOutlinerTransforms(OutlinerMesh);
+            // Update to the new Transforms
+            UpdateWorldOutlinerTransforms(OutlinerMesh);
 
-		// The component or spline has been modified so so we need to indicate that the "static mesh" 
-		// has changed in order to rebuild the asset properly in UploadParameterValue()
-		bStaticMeshChanged = true;
-	    }
-	}	
+            // The component or spline has been modified so so we need to indicate that the "static mesh" 
+            // has changed in order to rebuild the asset properly in UploadParameterValue()
+            bStaticMeshChanged = true;
+        }
     }
 
     if ( bChanged )
@@ -2154,7 +2156,7 @@ UHoudiniAssetInput::UpdateInputCurve()
     if (InputCurve != nullptr)
     {
         InputCurve->Construct(
-            HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
+            HoudiniGeoPartObject, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
             (CurveClosed == 1));
     }
     else

@@ -1348,7 +1348,7 @@ FHoudiniEngineUtils::IsValidAssetId( HAPI_AssetId AssetId )
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & CurveNodeId )
+FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & ConnectedAssetId )
 {
 #if WITH_EDITOR
 
@@ -1358,7 +1358,7 @@ FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & CurveNodeId )
         FHoudiniEngine::Get().GetSession(), -1,
         "SOP/curve", nullptr, false, &NodeId), false);
     
-    CurveNodeId = NodeId;
+    ConnectedAssetId = NodeId;
 
     // Submit default points to curve.
     HAPI_ParmId ParmId = -1;
@@ -1378,7 +1378,6 @@ FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & CurveNodeId )
     return true;
 }
 
-
 bool
 FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     HAPI_AssetId HostAssetId,
@@ -1392,283 +1391,688 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
 
     // Positions are required
     if (!Positions)
-        return false;
+	return false;
 
     // We also need a valid host asset and 2 points to make a curve
     int32 NumberOfCVs = Positions->Num();
     if ((NumberOfCVs < 2) || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
-        return false;
+	return false;
 
     // Check if connected asset id is valid, if it is not, we need to create an input asset.
     if (ConnectedAssetId < 0)
     {
-        HAPI_AssetId AssetId = -1;
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-            FHoudiniEngine::Get().GetSession(), &AssetId, nullptr), false);
+	HAPI_AssetId NodeId = -1;
 
-        // Check if we have a valid id for this new input asset.
-        if (!FHoudiniEngineUtils::IsHoudiniAssetValid(AssetId))
-            return false;
+	// Create the curve SOP Node
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+	    FHoudiniEngine::Get().GetSession(), -1,
+	    "SOP/curve", nullptr, false, &NodeId), false);
 
-        // We now have a valid id.
-        ConnectedAssetId = AssetId;
+	// Check if we have a valid id for this new input asset.
+	if (!FHoudiniEngineUtils::IsHoudiniAssetValid(NodeId))
+	    return false;
 
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-            FHoudiniEngine::Get().GetSession(), AssetId, nullptr), false);
+	// We now have a valid id.
+	ConnectedAssetId = NodeId;
+    }
+    else
+    {
+	// We have to revert the Geo to its original state so we can use the Curve SOP:
+	// adding parameters to the Curve SOP locked it, preventing its parameters (type, method, isClosed) from working
+	FHoudiniApi::RevertGeo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId);
+    }
+
+    //
+    // In order to be able to add rotations and scale attributes to the curve SOP, we need to cook it twice:
+    // 
+    // - First, we send the positions string to it, and cook it without refinement.
+    //   this will allow us to get the proper curve CVs, part attributes and curve info to create the desired curve.
+    //
+    // - We then need to send back all the info extracted from the curve SOP to it, and add the rotation 
+    //   and scale attributes to it. This will lock the curve SOP, and prevent the curve type and method 
+    //   parameters from functioning properly (hence why we needed the first cook to set that up)
+    //
+
+    // Creating the position string
+    FString PositionString = TEXT("");
+    FHoudiniEngineUtils::CreatePositionsString(*Positions, PositionString);
+
+    // Get param id for the PositionString and modify it
+    HAPI_ParmId ParmId = -1;
+    if (FHoudiniApi::GetParmIdFromName(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) != HAPI_RESULT_SUCCESS)
+    {
+	return false;
+    }
+
+    std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	ConvertedString.c_str(), ParmId, 0), false);
+    
+    // If we don't want to add rotations or scale attributes to the curve, 
+    // we can just cook the node normally and stop here.
+    bool bAddRotations = (Rotations != nullptr);
+    bool bAddScales3d = (Scales3d != nullptr);
+    bool bAddUniformScales = (UniformScales != nullptr);
+
+    if (!bAddRotations && !bAddScales3d && !bAddUniformScales)
+    {
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr), false);
+
+	return true;
+    }
+
+    // Setting up the first cook, without the curve refinement
+    HAPI_CookOptions CookOptions;
+    FMemory::Memzero< HAPI_CookOptions >(CookOptions);
+    CookOptions.curveRefineLOD = 8.0f;
+    CookOptions.clearErrorsAndWarnings = false;
+    CookOptions.maxVerticesPerPrimitive = -1;
+    CookOptions.splitGeosByGroup = false;
+    CookOptions.handleBoxPartTypes = false;
+    CookOptions.handleSpherePartTypes = false;
+    CookOptions.packedPrimInstancingMode = HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT;
+    CookOptions.refineCurveToLinear = false;
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CookOptions), false);
+
+    //  We can now read back the Part infos from the cooked curve ...
+    HAPI_PartInfo PartInfos;
+    FMemory::Memzero< HAPI_PartInfo >(PartInfos);
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, &PartInfos), false);
+
+    // .. and its parameters.
+    int32 CurveTypeValue, CurveMethodValue, CurveClosed;
+    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+	ConnectedAssetId, HAPI_UNREAL_PARAM_CURVE_TYPE,
+	0, CurveTypeValue);
+    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+	ConnectedAssetId, HAPI_UNREAL_PARAM_CURVE_METHOD,
+	0, CurveMethodValue);
+    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+	ConnectedAssetId, HAPI_UNREAL_PARAM_CURVE_CLOSED,
+	1, CurveClosed);
+
+    //
+    // Depending on the curve type and method, additionnal control points might have been created.
+    // We now have to interpolate the rotations and scale attributes for these.
+    //
+
+    // Lambda function that interpolates rotation, scale and uniform scales values
+    // between two points using fCoeff as a weight, and inserta the interpolated value at nInsertIndex
+    auto InterpolateRotScaleUScale = [&](const int32& nIndex1, const int32& nIndex2, const float& fCoeff, const int32& nInsertIndex)
+    {
+	if ( Rotations )
+	{
+	    FQuat interpolation = FQuat::Slerp((*Rotations)[nIndex1], (*Rotations)[nIndex2], fCoeff);
+	    Rotations->Insert( interpolation, nInsertIndex);
+	}
+
+	if ( Scales3d )
+	{
+	    FVector interpolation = fCoeff * (*Scales3d)[nIndex1] + (1.0f - fCoeff) * (*Scales3d)[nIndex2];
+	    Scales3d->Insert( interpolation, nInsertIndex);
+	}
+
+	if ( UniformScales )
+	{ 
+	    float interpolation = fCoeff * (*UniformScales)[nIndex1] + (1.0f - fCoeff) * (*UniformScales)[nIndex2];
+	    UniformScales->Insert(interpolation, nInsertIndex);
+	}
+
+	// Modifying the indexes because of the insertion
+	//(nIndex1 < nIndex2) ? nIndex2++ : nIndex1++;
+    };
+
+
+    // INTERPOLATION
+    if ((CurveTypeValue == 1) && (CurveClosed))
+    {
+	// Closed NURBS have additional points reproducing the first ones
+	// 1 for freehand, 3 for CVs / Breakpoints
+	InterpolateRotScaleUScale(0, 0, 1.0f, NumberOfCVs);
+	NumberOfCVs++;
+
+	if (CurveMethodValue != 2)
+	{
+	    InterpolateRotScaleUScale(1, 1, 1.0f, NumberOfCVs);
+	    NumberOfCVs++;
+
+	    InterpolateRotScaleUScale(2, 2, 1.0f, NumberOfCVs);
+	    NumberOfCVs++;
+	}
+	/*
+	// NURBS + BREAKPOINTS
+	// 2 New Points: after the first and before the last one
+	InterpolateRotScaleUScale(0, 1, 0.5f, 1);
+	InterpolateRotScaleUScale(NumberOfCVs, NumberOfCVs - 1, 0.5f, NumberOfCVs - 1);
+
+	NumberOfCVs += 2;
+	*/
+    }
+    else if (CurveTypeValue == 2)
+    {
+	// BEZIER CURVES
+	if (CurveMethodValue == 1)
+	{
+	    // For breakpoints, 2 additional control points are added per cv
+	    int32 nOffset = 0;
+	    for (int32 n = 0; n < NumberOfCVs - 1; n++)
+	    {
+		int nIndex1 = n + nOffset;
+		int nIndex2 = n + nOffset + 1;
+
+		InterpolateRotScaleUScale(nIndex1, nIndex2, 0.33f, nIndex2);
+		InterpolateRotScaleUScale(nIndex1, nIndex2 + 1, 0.66f, nIndex2 + 1);
+
+		nOffset += 2;
+	    }
+	    NumberOfCVs += nOffset;
+	    	    
+	    if (CurveClosed)
+	    {
+		// if the curve is closed, we need to add 2 points between last and first
+		InterpolateRotScaleUScale(NumberOfCVs-1, 0, 0.33f, NumberOfCVs);
+		InterpolateRotScaleUScale(NumberOfCVs-1, 0, 0.66f, NumberOfCVs + 1);
+
+		// and finally, the last point is the first..
+		InterpolateRotScaleUScale(0, 0, 1.0f, NumberOfCVs + 2);
+		NumberOfCVs += 3;
+	    }
+	}
+	else if (CurveClosed)
+	{
+	    // if the curve is closed, the last point should be the first one
+	    InterpolateRotScaleUScale(0, 0, 1.0f, NumberOfCVs);
+	    NumberOfCVs++;
+	}
+
+	/*
+	// BEZIER + BREAKPOINTS
+	// 2 new points after the first one
+	// then the regular cvs
+	// then 2 new points per CVs backward...
+
+	// Adding the first two new points
+	InterpolateRotScaleUScale(0, 1, 0.33f, 1);
+	InterpolateRotScaleUScale(0, 2, 0.66f, 2);
+	NumberOfCVs += 2;
+
+	// Inserting new values backward from the end
+	int32 nLast = NumberOfCVs - 1;
+	int32 nOffset = 0;
+	for (int n = nLast; n > 3; n--)
+	{
+	    InterpolateRotScaleUScale(n, n-1, 0.33f, nLast + nOffset);
+	    InterpolateRotScaleUScale(n, n-1, 0.66f, nLast + nOffset + 1);
+	    nOffset += 2;
+	}
+
+	NumberOfCVs += nOffset;
+	*/
+    }
+
+    // Even after interpolation, sometimes additional points are still missing
+    // (bezier curves require a certain number of points regarding their order,
+    // if points are lacking then the last one is duplicated)
+    if (NumberOfCVs < PartInfos.pointCount)
+    {
+	int nToAdd = PartInfos.pointCount - NumberOfCVs;
+	for (int n = 0; n < nToAdd; n++)
+	{
+	    if (Rotations)
+	    {
+		FQuat rot = (*Rotations)[NumberOfCVs - 1];
+		Rotations->Add(rot);
+	    }		
+
+	    if (Scales3d)
+	    {
+		FVector scale3d = (*Scales3d)[NumberOfCVs - 1];
+		Scales3d->Add(scale3d);
+	    }
+		
+
+	    if (UniformScales)
+	    {
+		float uscale = (*UniformScales)[NumberOfCVs - 1];
+		UniformScales->Add(uscale);
+	    }		
+	}
+	NumberOfCVs += nToAdd;
+    }
+
+    // To avoid crashes, attributes will only be added if we now have the correct number of them
+    bAddRotations = bAddRotations && (Rotations->Num() == PartInfos.pointCount);
+    bAddScales3d = bAddScales3d && (Scales3d->Num() == PartInfos.pointCount);
+    bAddUniformScales = bAddUniformScales && (UniformScales->Num() == PartInfos.pointCount);
+
+    // We need to increase the point attributes count for points in the Part Infos
+    HAPI_AttributeOwner NewAttributesOwner = HAPI_ATTROWNER_POINT;//(PartInfos.type == HAPI_PARTTYPE_CURVE) ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_VERTEX;
+    HAPI_AttributeOwner OriginalAttributesOwner = HAPI_ATTROWNER_POINT;// (PartInfos.type == HAPI_PARTTYPE_CURVE) ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_VERTEX;
+
+    int OriginalPointParametersCount = PartInfos.attributeCounts[NewAttributesOwner];
+    if (bAddRotations)
+	PartInfos.attributeCounts[NewAttributesOwner] += 1;
+    if (bAddScales3d)
+	PartInfos.attributeCounts[NewAttributesOwner] += 1;
+    if (bAddUniformScales)
+	PartInfos.attributeCounts[NewAttributesOwner] += 1;
+
+    // Sending the updated PartInfos
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, &PartInfos), false);
+    
+    // We need now to reproduce ALL the curves attributes for ALL the Owners..
+    for (int nOwner = 0; nOwner < HAPI_ATTROWNER_MAX; nOwner++)
+    {
+	int nOwnerAttributeCount = nOwner == NewAttributesOwner ? OriginalPointParametersCount : PartInfos.attributeCounts[nOwner];
+	if (nOwnerAttributeCount == 0)
+	    continue;
+
+	std::vector< HAPI_StringHandle > sh_attributes(nOwnerAttributeCount);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeNames(
+	    FHoudiniEngine::Get().GetSession(),
+	    ConnectedAssetId, 0, (HAPI_AttributeOwner)nOwner,
+	    &sh_attributes.front(), sh_attributes.size()), false);
+
+	for (int nAttribute = 0; nAttribute < sh_attributes.size(); nAttribute++)
+	{
+	    const HAPI_StringHandle sh = sh_attributes[nAttribute];
+	    if (sh == 0)
+		continue;
+
+	    // Get the attribute name
+	    FHoudiniEngineString sName(sh);
+	    std::string attr_name;
+	    sName.ToStdString(attr_name);
+
+	    if (strcmp(attr_name.c_str(), "__topology") == 0)
+		continue;
+
+	    // and the attribute infos
+	    HAPI_AttributeInfo attr_info;
+	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		ConnectedAssetId, 0,
+		attr_name.c_str(), (HAPI_AttributeOwner)nOwner,
+		&attr_info), false);
+
+	    switch (attr_info.storage)
+	    {
+		case HAPI_STORAGETYPE_INT:
+		{
+		    // Storing IntData
+		    TArray< int > IntData;
+		    IntData.SetNumUninitialized(attr_info.count * attr_info.tupleSize);
+
+		    // GET
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeIntData(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info, -1,
+			IntData.GetData(), 0, attr_info.count), false);
+
+		    // ADD
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info), false);
+
+		    // SET
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntData(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info, IntData.GetData(),
+			0, attr_info.count), false);
+		}
+		break;
+
+		case HAPI_STORAGETYPE_FLOAT:
+		{
+		    // Storing Float Data
+		    TArray< float > FloatData;
+		    FloatData.SetNumUninitialized(attr_info.count * attr_info.tupleSize);
+
+		    // GET
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info, -1,
+			FloatData.GetData(), 0, attr_info.count), false);
+
+		    // ADD
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info), false);
+
+		    // SET
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info, FloatData.GetData(),
+			0, attr_info.count), false);
+		}
+		break;
+
+		case HAPI_STORAGETYPE_STRING:
+		{
+		    // Storing String Data
+		    TArray<HAPI_StringHandle> StringHandleData;
+		    StringHandleData.SetNumUninitialized(attr_info.count * attr_info.tupleSize);
+
+		    // GET
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeStringData(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info,
+			StringHandleData.GetData(), 0, attr_info.count), false);
+
+		    // Convert the SH to const char *
+		    TArray<const char *> StringData;
+		    StringData.SetNumUninitialized(attr_info.count);
+		    for (int n = 0; n < StringHandleData.Num(); n++)
+		    {
+			// Converting the string
+			FHoudiniEngineString strHE(sh);
+			std::string strSTD;
+			strHE.ToStdString(strSTD);
+
+			StringData[n] = strSTD.c_str();
+		    }
+
+		    // ADD
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info), false);
+
+		    // SET
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
+			FHoudiniEngine::Get().GetSession(),
+			ConnectedAssetId, 0,
+			attr_name.c_str(), &attr_info,
+			StringData.GetData(), 0, attr_info.count), false);
+		}
+		break;
+
+		default:
+		    continue;
+	    }
+	}
+    }
+
+    // Only GET/SET curve infos if the part is a curve...
+    // (Closed linear curves are actually not considered as curves...)
+    if (PartInfos.type == HAPI_PARTTYPE_CURVE)
+    {
+	// We need to read the curve infos ...
+	HAPI_CurveInfo CurveInfo;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetCurveInfo(
+	    FHoudiniEngine::Get().GetSession(),
+	    ConnectedAssetId,
+	    0,
+	    &CurveInfo), false);
+
+	// ... the curve counts
+	TArray< int > CurveCounts;
+	CurveCounts.SetNumUninitialized(CurveInfo.curveCount);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetCurveCounts(
+	    FHoudiniEngine::Get().GetSession(),
+	    ConnectedAssetId, 0,
+	    CurveCounts.GetData(), 0, CurveInfo.curveCount), false);
+
+	// .. the curve orders
+	TArray< int > CurveOrders;
+	CurveOrders.SetNumUninitialized(CurveInfo.curveCount);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetCurveOrders(
+	    FHoudiniEngine::Get().GetSession(),
+	    ConnectedAssetId, 0,
+	    CurveOrders.GetData(), 0, CurveInfo.curveCount), false);
+
+	// .. And the Knots if they exist.
+	TArray< float > KnotsArray;
+	if (CurveInfo.hasKnots)
+	{
+	    KnotsArray.SetNumUninitialized(CurveInfo.knotCount);
+	    HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::GetCurveKnots(
+		    FHoudiniEngine::Get().GetSession(),
+		    ConnectedAssetId, 0,
+		    KnotsArray.GetData(), 0, CurveInfo.knotCount), false);
+	}
+
+	// To set them back in HAPI
+	// CurveInfo
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveInfo(
+	    FHoudiniEngine::Get().GetSession(),
+	    ConnectedAssetId,
+	    0,
+	    &CurveInfo), false);
+
+	// CurveCounts
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveCounts(
+	    FHoudiniEngine::Get().GetSession(),
+	    ConnectedAssetId, 0,
+	    CurveCounts.GetData(), 0, CurveInfo.curveCount), false);
+
+	// CurveOrders
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveOrders(
+	    FHoudiniEngine::Get().GetSession(),
+	    ConnectedAssetId, 0,
+	    CurveOrders.GetData(), 0, CurveInfo.curveCount), false);
+
+	// And Knots if they exist
+	if (CurveInfo.hasKnots)
+	{
+	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveKnots(
+		FHoudiniEngine::Get().GetSession(),
+		ConnectedAssetId, 0,
+		KnotsArray.GetData(), 0, CurveInfo.knotCount), false);
+	}
+    }
+
+    if (PartInfos.faceCount > 0)
+    {
+	// getting the face counts
+	TArray< int > FaceCounts;
+	FaceCounts.SetNumUninitialized(PartInfos.faceCount);
+
+	if (FHoudiniApi::GetFaceCounts(
+		FHoudiniEngine::Get().GetSession(),
+		ConnectedAssetId, 0,
+		FaceCounts.GetData(), 0, 
+		PartInfos.faceCount) == HAPI_RESULT_SUCCESS)
+	{
+	    // Set the face count
+	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
+		FHoudiniEngine::Get().GetSession(),
+		ConnectedAssetId, 0,
+		FaceCounts.GetData(), 0, PartInfos.faceCount), false);
+	}
+    }
+
+    if (PartInfos.vertexCount > 0)
+    {
+	// the vertex list
+	TArray< int > VertexList;
+	VertexList.SetNumUninitialized(PartInfos.vertexCount);
+
+	if (FHoudiniApi::GetVertexList(
+		FHoudiniEngine::Get().GetSession(),
+		ConnectedAssetId, 0,
+		VertexList.GetData(), 0,
+		PartInfos.vertexCount) == HAPI_RESULT_SUCCESS)
+	{
+	    // setting the vertex list
+	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
+		FHoudiniEngine::Get().GetSession(),
+		ConnectedAssetId, 0,
+		VertexList.GetData(), 0, PartInfos.vertexCount), false);
+	}
     }
 
     // Get runtime settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-
-    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
     EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
-    int32 GeneratedLightMapResolution = 32;
-
     if (HoudiniRuntimeSettings)
+	ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+
+    // We can add attributes to the curve now that all the curves attributes
+    // and properties have been reset.
+    if (bAddRotations)
     {
-        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
-        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
-        GeneratedLightMapResolution = HoudiniRuntimeSettings->LightMapResolution;
-    }
+	// Create ROTATION attribute info
+	HAPI_AttributeInfo AttributeInfoRotation;
+	FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoRotation);
+	AttributeInfoRotation.count = NumberOfCVs;
+	AttributeInfoRotation.tupleSize = 4;
+	AttributeInfoRotation.exists = true;
+	AttributeInfoRotation.owner = NewAttributesOwner;
+	AttributeInfoRotation.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoRotation.originalOwner = OriginalAttributesOwner;
 
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+	    HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation), false);
 
-    // Create part infos
-    HAPI_PartInfo Part;
-    FMemory::Memzero< HAPI_PartInfo >(Part);
-    Part.id = 0;
-    Part.nameSH = 0;
-    Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
-    Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
-    Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
-    Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
-    Part.vertexCount = NumberOfCVs;
-    Part.pointCount = NumberOfCVs;
-    Part.type = HAPI_PARTTYPE_CURVE;
+	// Convert the rotation infos
+	TArray< float > CurveRotations;
+	CurveRotations.SetNumZeroed(NumberOfCVs * 4);
+	for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+	{
+	    // Get current quaternion
+	    const FQuat& RotationQuaternion = (*Rotations)[Idx];
 
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
-        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, &Part), false);
-
-
-    // Create POSITION attribute info.
-    HAPI_AttributeInfo AttributeInfoPositions;
-    FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPositions);
-    AttributeInfoPositions.count = NumberOfCVs;
-    AttributeInfoPositions.tupleSize = 3;
-    AttributeInfoPositions.exists = true;
-    AttributeInfoPositions.owner = HAPI_ATTROWNER_POINT;
-    AttributeInfoPositions.storage = HAPI_STORAGETYPE_FLOAT;
-    AttributeInfoPositions.originalOwner = HAPI_ATTROWNER_INVALID;
-
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-        HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPositions), false);
-
-    // Convert the vertices from the curve.
-    TArray< float > CurveVertices;
-    CurveVertices.SetNumZeroed(NumberOfCVs * 3);
-    for (int32 VertexIdx = 0; VertexIdx < NumberOfCVs; ++VertexIdx)
-    {
-        // Grab vertex at this index.
-        const FVector & PositionVector = (*Positions)[VertexIdx];
-
-        if (ImportAxis == HRSAI_Unreal)
-        {
-            CurveVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
-            CurveVertices[VertexIdx * 3 + 1] = PositionVector.Z / GeneratedGeometryScaleFactor;
-            CurveVertices[VertexIdx * 3 + 2] = PositionVector.Y / GeneratedGeometryScaleFactor;
-        }
-        else if (ImportAxis == HRSAI_Houdini)
-        {
-            CurveVertices[VertexIdx * 3 + 0] = PositionVector.X / GeneratedGeometryScaleFactor;
-            CurveVertices[VertexIdx * 3 + 1] = PositionVector.Y / GeneratedGeometryScaleFactor;
-            CurveVertices[VertexIdx * 3 + 2] = PositionVector.Z / GeneratedGeometryScaleFactor;
-        }
-        else
-        {
-            // Not valid enum value.
-            check(0);
-        }
-    }
-
-    // Upload the position attribute
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-        FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-        0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPositions,
-        CurveVertices.GetData(), 0,
-        AttributeInfoPositions.count), false);
-
-    
-    if( Rotations && (Rotations->Num() == NumberOfCVs) )
-    {
-        // Create ROTATION attribute info
-        HAPI_AttributeInfo AttributeInfoRotation;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoRotation);
-        AttributeInfoRotation.count = NumberOfCVs;
-        AttributeInfoRotation.tupleSize = 4;
-        AttributeInfoRotation.exists = true;
-        AttributeInfoRotation.owner = HAPI_ATTROWNER_POINT;
-        AttributeInfoRotation.storage = HAPI_STORAGETYPE_FLOAT;
-        AttributeInfoRotation.originalOwner = HAPI_ATTROWNER_INVALID;
-
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-            HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation), false);
-
-        // Convert the rotation from the curve.
-        TArray< float > CurveRotations;
-        CurveRotations.SetNumZeroed(NumberOfCVs * 4);
-        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
-        {
-            // Grab vertex at this index.
-            const FQuat& RotationQuaternion = (*Rotations)[Idx];
-
-            if (ImportAxis == HRSAI_Unreal)
-            {	
+	    if (ImportAxis == HRSAI_Unreal)
+	    {
 		CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
 		CurveRotations[Idx * 4 + 1] = RotationQuaternion.Z;
 		CurveRotations[Idx * 4 + 2] = RotationQuaternion.Y;
 		CurveRotations[Idx * 4 + 3] = -RotationQuaternion.W;
-            }
-            else if (ImportAxis == HRSAI_Houdini)
-            {
-                CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
-                CurveRotations[Idx * 4 + 1] = RotationQuaternion.Y;
-                CurveRotations[Idx * 4 + 2] = RotationQuaternion.Z;
-                CurveRotations[Idx * 4 + 3] = RotationQuaternion.W;
-            }
-            else
-            {
-                // Not valid enum value.
-                check(0);
-            }
-        }
+	    }
+	    else if (ImportAxis == HRSAI_Houdini)
+	    {
+		CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
+		CurveRotations[Idx * 4 + 1] = RotationQuaternion.Y;
+		CurveRotations[Idx * 4 + 2] = RotationQuaternion.Z;
+		CurveRotations[Idx * 4 + 3] = RotationQuaternion.W;
+	    }
+	    else
+	    {
+		// Not valid enum value.
+		check(0);
+	    }
+	}
 
-        // Now that we have raw positions, we can upload them for our attribute.
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-            0, HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation,
-            CurveRotations.GetData(), 0,
-            AttributeInfoRotation.count), false);
+	//we can now upload them to our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	    0, HAPI_UNREAL_ATTRIB_ROTATION, &AttributeInfoRotation,
+	    CurveRotations.GetData(), 0,
+	    AttributeInfoRotation.count), false);
     }
 
-
     // Create SCALE attribute info.
-    if(Scales3d && ( Scales3d->Num() == NumberOfCVs ) )
+    if (bAddScales3d)
     {
-        HAPI_AttributeInfo AttributeInfoScale;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoScale);
-        AttributeInfoScale.count = NumberOfCVs;
-        AttributeInfoScale.tupleSize = 3;
-        AttributeInfoScale.exists = true;
-        AttributeInfoScale.owner = HAPI_ATTROWNER_POINT;
-        AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
-        AttributeInfoScale.originalOwner = HAPI_ATTROWNER_INVALID;
+	HAPI_AttributeInfo AttributeInfoScale;
+	FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoScale);
+	AttributeInfoScale.count = NumberOfCVs;
+	AttributeInfoScale.tupleSize = 3;
+	AttributeInfoScale.exists = true;
+	AttributeInfoScale.owner = NewAttributesOwner;
+	AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoScale.originalOwner = OriginalAttributesOwner;
 
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-            HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+	    HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale), false);
 
-        // Extract vertices from the curve.
-        TArray< float > CurveScales;
-        CurveScales.SetNumZeroed(NumberOfCVs * 3);
-        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
-        {
-            // Grab vertex at this index.
-            FVector ScaleVector = (*Scales3d)[Idx];
-            if (ImportAxis == HRSAI_Unreal)
-            {
-                CurveScales[Idx * 3 + 0] = ScaleVector.X;
-                CurveScales[Idx * 3 + 1] = ScaleVector.Z;
-                CurveScales[Idx * 3 + 2] = ScaleVector.Y;
-            }
-            else if (ImportAxis == HRSAI_Houdini)
-            {
-                CurveScales[Idx * 3 + 0] = ScaleVector.X;
-                CurveScales[Idx * 3 + 1] = ScaleVector.Y;
-                CurveScales[Idx * 3 + 2] = ScaleVector.Z;
-            }
-            else
-            {
-                // Not valid enum value.
-                check(0);
-            }
-        }
+	// Convert the scale
+	TArray< float > CurveScales;
+	CurveScales.SetNumZeroed(NumberOfCVs * 3);
+	for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+	{
+	    // Get current scale
+	    FVector ScaleVector = (*Scales3d)[Idx];
+	    if (ImportAxis == HRSAI_Unreal)
+	    {
+		CurveScales[Idx * 3 + 0] = ScaleVector.X;
+		CurveScales[Idx * 3 + 1] = ScaleVector.Z;
+		CurveScales[Idx * 3 + 2] = ScaleVector.Y;
+	    }
+	    else if (ImportAxis == HRSAI_Houdini)
+	    {
+		CurveScales[Idx * 3 + 0] = ScaleVector.X;
+		CurveScales[Idx * 3 + 1] = ScaleVector.Y;
+		CurveScales[Idx * 3 + 2] = ScaleVector.Z;
+	    }
+	    else
+	    {
+		// Not valid enum value.
+		check(0);
+	    }
+	}
 
-        // Now that we have raw positions, we can upload them for our attribute.
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-            0, HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale,
-            CurveScales.GetData(), 0,
-            AttributeInfoScale.count), false);
+	// We can now upload them to our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	    0, HAPI_UNREAL_ATTRIB_SCALE, &AttributeInfoScale,
+	    CurveScales.GetData(), 0,
+	    AttributeInfoScale.count), false);
     }
 
     // Create PSCALE attribute info.
-    if (UniformScales && (UniformScales->Num() == NumberOfCVs))
+    if (bAddUniformScales)
     {
-        HAPI_AttributeInfo AttributeInfoPScale;
-        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPScale);
-        AttributeInfoPScale.count = NumberOfCVs;
-        AttributeInfoPScale.tupleSize = 1;
-        AttributeInfoPScale.exists = true;
-        AttributeInfoPScale.owner = HAPI_ATTROWNER_POINT;
-        AttributeInfoPScale.storage = HAPI_STORAGETYPE_FLOAT;
-        AttributeInfoPScale.originalOwner = HAPI_ATTROWNER_INVALID;
+	HAPI_AttributeInfo AttributeInfoPScale;
+	FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPScale);
+	AttributeInfoPScale.count = NumberOfCVs;
+	AttributeInfoPScale.tupleSize = 1;
+	AttributeInfoPScale.exists = true;
+	AttributeInfoPScale.owner = NewAttributesOwner;
+	AttributeInfoPScale.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoPScale.originalOwner = OriginalAttributesOwner;
 
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
-            HAPI_UNREAL_ATTRIB_UNIFORM_SCALE, &AttributeInfoPScale), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0,
+	    HAPI_UNREAL_ATTRIB_UNIFORM_SCALE, &AttributeInfoPScale), false);
 
-        // Extract vertices from the curve.
-        TArray<float> CurvePScales;
-        CurvePScales.SetNumZeroed(NumberOfCVs);
-        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
-        {
-            CurvePScales[Idx] = (*UniformScales)[Idx];
-        }
+	// Get the current uniform scale.
+	TArray<float> CurvePScales;
+	CurvePScales.SetNumZeroed(NumberOfCVs);
+	for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+	{
+	    CurvePScales[Idx] = (*UniformScales)[Idx];
+	}
 
-        // Now that we have raw positions, we can upload them for our attribute.
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-            0, HAPI_UNREAL_ATTRIB_UNIFORM_SCALE, &AttributeInfoPScale,
-            CurvePScales.GetData(), 0,
-            AttributeInfoPScale.count), false);
+	// We can now upload them to our attribute.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
+	    0, HAPI_UNREAL_ATTRIB_UNIFORM_SCALE, &AttributeInfoPScale,
+	    CurvePScales.GetData(), 0,
+	    AttributeInfoPScale.count), false);
     }
 
-    // Create curve infos
-    HAPI_CurveInfo curveInfo;
-    curveInfo.curveCount = 1;
-    curveInfo.curveType = HAPI_CURVETYPE_LINEAR;
-    curveInfo.vertexCount = Positions->Num();
-    curveInfo.knotCount = 0;
-    curveInfo.isPeriodic = false;
-    curveInfo.isRational = false;
-    curveInfo.order = 2;
-    curveInfo.hasKnots = false;
-
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveInfo(
-        FHoudiniEngine::Get().GetSession(),
-        ConnectedAssetId,
-        0,
-        &curveInfo), false);
-
-    // We also need to update the curve counts!
-    const int NumberOfPoints = Positions->Num();
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveCounts(
-        FHoudiniEngine::Get().GetSession(),
-        ConnectedAssetId,
-        0,
-        &NumberOfPoints,
-        0, 1), false);
-
-    // Commit the geo.
+    // Finally, commit the geo ...
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-        FHoudiniEngine::Get().GetSession(), ConnectedAssetId), false);
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId), false);
 
+    // ... and cook the node with curve refinement
+    /*CookOptions.refineCurveToLinear = true;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+	FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CookOptions), false);*/
 #endif
 
     return true;
 }
-
 
 bool
 FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_AssetId AssetId, FTransform & InTransform )
@@ -2660,7 +3064,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     }
 
     // Cook the spline node.
-    FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
+    //FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr);
 
 #endif
 

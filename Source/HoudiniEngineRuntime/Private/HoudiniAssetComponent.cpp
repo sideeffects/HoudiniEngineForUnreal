@@ -285,6 +285,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     , bComponentTransformHasChanged( false )
     , bLoadedComponentRequiresInstantiation( false )
     , bIsSharingAssetId( false )
+    , bAssetIsBeingInstantiated(false)
     , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
     UObject * Object = ObjectInitializer.GetObj();
@@ -1401,6 +1402,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
         }
     }
 
+    if (bFinishedLoadedInstantiation)
+        bAssetIsBeingInstantiated = false;
+
     if ( !IsInstantiatingOrCooking() )
     {
         if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged )
@@ -1574,6 +1578,9 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 void
 UHoudiniAssetComponent::StartTaskAssetInstantiation( bool bLoadedComponent, bool bStartTicking )
 {
+    // We do not want to be instantiated twice
+    bAssetIsBeingInstantiated = true;
+
     // We first need to make sure all our asset inputs have been instantiated and reconnected.
     for ( auto LocalInput : Inputs )
     {
@@ -3037,8 +3044,8 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
         }
 
         // Process coords string and extract positions.
-        TArray< FVector > CurvePoints;
-        FHoudiniEngineUtils::ExtractStringPositions( CurvePointsString, CurvePoints );
+        TArray< FVector > CurvePositions;
+        FHoudiniEngineUtils::ExtractStringPositions( CurvePointsString, CurvePositions );
 
         // Check if this curve already exists.
         UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find( HoudiniGeoPartObject );
@@ -3075,6 +3082,15 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
 
         // Transform the component by transformation provided by HAPI.
         HoudiniSplineComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );
+
+        // Create Transform for the HoudiniSplineComponents
+        TArray< FTransform > CurvePoints;
+        CurvePoints.SetNumUninitialized(CurvePositions.Num());
+        for (int32 n = 0; n < CurvePoints.Num(); n++)
+        {
+            FTransform trans = FTransform::Identity;
+            trans.SetLocation(CurvePositions[n]);
+        }
 
         // Construct curve from available data.
         HoudiniSplineComponent->Construct(
@@ -3378,7 +3394,7 @@ UHoudiniAssetComponent::NotifyParameterWillChange( UHoudiniAssetParameter * Houd
 void
 UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
-    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated )
         bLoadedComponentRequiresInstantiation = true;
 
     bParametersChanged = true;
@@ -3388,7 +3404,7 @@ UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * Houdini
 void
 UHoudiniAssetComponent::NotifyHoudiniSplineChanged( UHoudiniSplineComponent * HoudiniSplineComponent )
 {
-    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+    if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated )
         bLoadedComponentRequiresInstantiation = true;
 
     bParametersChanged = true;
