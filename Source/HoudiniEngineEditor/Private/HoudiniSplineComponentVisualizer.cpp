@@ -202,8 +202,10 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
         return bCurveEditing;
 
     bool bIsMultiSelecting = false;
+#if PLATFORM_WINDOWS
     if (GetKeyState(VK_CONTROL) & 0x8000)
 	bIsMultiSelecting = true;
+#endif
 
     if ( bIsMultiSelecting )
     {
