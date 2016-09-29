@@ -3605,7 +3605,7 @@ UHoudiniAssetComponent::LocateInstanceInput( const FHoudiniGeoPartObject& GeoPar
 {
     for ( UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
     {
-        if ( InstanceInput->GetGeoPartObject().ObjectId == GeoPart.ObjectId )
+        if ( InstanceInput->GetGeoPartObject().GetNodePath() == GeoPart.GetNodePath() )
         {
             return InstanceInput;
         }
@@ -3629,6 +3629,9 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
             {
                 // Input already exists, we can reuse it.
                 HoudiniAssetInstanceInput = FoundHoudiniAssetInstanceInput;
+
+                // Since this is the corresponding part, we will refresh the InstanceInput's GeoPart
+                HoudiniAssetInstanceInput->SetGeoPartObject( GeoPart );
 
                 // Remove it from old map.
                 InstanceInputs.Remove( FoundHoudiniAssetInstanceInput );

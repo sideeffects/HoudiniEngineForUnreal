@@ -42,8 +42,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         static UHoudiniAssetInstanceInputField * Create(
             UHoudiniAssetComponent * InHoudiniAssetComponent,
             UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            const HAPI_ObjectId & InstancePathName );
+            const FHoudiniGeoPartObject & HoudiniGeoPartObject );
 
         /** Create an instance of input field from another input field. **/
         static UHoudiniAssetInstanceInputField * Create(
@@ -67,6 +66,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
         /** Return geo part object associated with this field. **/
         const FHoudiniGeoPartObject & GetHoudiniGeoPartObject() const;
+
+        /** Refresh state based on the given geo part object */
+        void SetGeoPartObject( const FHoudiniGeoPartObject & InHoudiniGeoPartObject );
 
         /** Return original static mesh. **/
         UStaticMesh * GetOriginalStaticMesh() const;
@@ -195,9 +197,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
         /** Corresponding geo part object. **/
         FHoudiniGeoPartObject HoudiniGeoPartObject;
-
-        /** Instance path name. **/
-        FString InstancePathName;
 
         /** Rotation offset for instanced component. **/
         TArray< FRotator > RotationOffsets;

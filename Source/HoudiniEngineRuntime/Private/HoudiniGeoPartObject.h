@@ -111,6 +111,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
         /** Return part id. **/
         HAPI_PartId GetPartId() const;
 
+        /** Return the unique path to this part's node */
+        const FString& GetNodePath() const;
+
     public:
 
         /** Return attribute objects associated with this geo part object. **/
@@ -562,6 +565,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 
         /** Id of a split. In most cases this will be 0. **/
         int32 SplitId;
+
+        /** Path to the corresponding node */
+        mutable FString NodePath;
 
         /** Flags used by geo part object. **/
         union

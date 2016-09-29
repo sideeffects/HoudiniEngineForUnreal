@@ -308,6 +308,17 @@ FHoudiniGeoPartObject::GetPartId() const
     return PartId;
 }
 
+const FString&
+FHoudiniGeoPartObject::GetNodePath() const
+{
+    // query on first-use
+    if ( NodePath.IsEmpty() )
+    {
+        FHoudiniEngineUtils::HapiGetNodePath( AssetId, GeoId, NodePath );
+    }
+    return NodePath;
+}
+
 bool
 FHoudiniGeoPartObject::operator==( const FHoudiniGeoPartObject & GeoPartObject ) const
 {
@@ -346,17 +357,35 @@ FHoudiniGeoPartObject::Serialize( FArchive & Ar )
         Ar << InstancerAttributeMaterialName;
 
     Ar << AssetId;
-
-    // AssetId value can change between saving and loading a level
-    if ( Ar.IsLoading() && !Ar.IsTransacting() )
-        AssetId = -1;
-
     Ar << ObjectId;
     Ar << GeoId;
+
+    // Node id values can change between saving and loading a level
+    if ( Ar.IsLoading() && !Ar.IsTransacting() )
+    {
+        AssetId = -1;
+        ObjectId = -1;
+        GeoId = -1;
+    }
+
     Ar << PartId;
     Ar << SplitId;
 
     Ar << HoudiniGeoPartObjectFlagsPacked;
+
+    if ( HoudiniGeoPartObjectVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_GEO_PART_NODE_PATH )
+    {
+        if ( Ar.IsSaving() && !Ar.IsTransacting() )
+        {
+            // If we are saving to level - make sure node path is present
+            (void) GetNodePath();
+            Ar << NodePath;
+        }
+        else
+        {
+            Ar << NodePath;
+        }
+    }
 
     if ( Ar.IsLoading() )
         bIsLoaded = true;

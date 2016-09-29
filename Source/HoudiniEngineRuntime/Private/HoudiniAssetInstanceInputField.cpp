@@ -41,7 +41,6 @@ UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField( const FObjectI
     , OriginalStaticMesh( nullptr )
     , HoudiniAssetComponent( nullptr )
     , HoudiniAssetInstanceInput( nullptr )
-    , InstancePathName( TEXT( "" ) )
     , HoudiniAssetInstanceInputFieldFlagsPacked( 0 )
 {}
 
@@ -52,8 +51,7 @@ UHoudiniAssetInstanceInputField *
 UHoudiniAssetInstanceInputField::Create(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
-    const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-    const HAPI_ObjectId & InstanceObjectId )
+    const FHoudiniGeoPartObject & HoudiniGeoPartObject )
 {
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
         NewObject< UHoudiniAssetInstanceInputField >(
@@ -64,7 +62,6 @@ UHoudiniAssetInstanceInputField::Create(
 
     HoudiniAssetInstanceInputField->HoudiniGeoPartObject = HoudiniGeoPartObject;
     HoudiniAssetInstanceInputField->HoudiniAssetComponent = HoudiniAssetComponent;
-    HoudiniAssetInstanceInputField->InstancePathName = FString::FromInt( InstanceObjectId );
     HoudiniAssetInstanceInputField->HoudiniAssetInstanceInput = InHoudiniAssetInstanceInput;
 
     return HoudiniAssetInstanceInputField;
@@ -102,7 +99,8 @@ UHoudiniAssetInstanceInputField::Serialize( FArchive & Ar )
     Ar << HoudiniAssetInstanceInputFieldFlagsPacked;
     Ar << HoudiniGeoPartObject;
 
-    Ar << InstancePathName;
+    FString UnusedInstancePathName;
+    Ar << UnusedInstancePathName;
     Ar << RotationOffsets;
     Ar << ScaleOffsets;
     Ar << bScaleOffsetsLinearlyArray;
@@ -307,6 +305,11 @@ const FHoudiniGeoPartObject &
 UHoudiniAssetInstanceInputField::GetHoudiniGeoPartObject() const
 {
     return HoudiniGeoPartObject;
+}
+
+void UHoudiniAssetInstanceInputField::SetGeoPartObject( const FHoudiniGeoPartObject & InHoudiniGeoPartObject )
+{
+    HoudiniGeoPartObject = InHoudiniGeoPartObject;
 }
 
 UStaticMesh *

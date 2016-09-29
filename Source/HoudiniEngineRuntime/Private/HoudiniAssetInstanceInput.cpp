@@ -179,7 +179,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             // Create this instanced input field for this instanced part
             //
             FHoudiniGeoPartObject InstancedPart( HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, InstancedPartId );
-            CreateInstanceInputField( InstancedPart, ObjectTransforms, HoudiniGeoPartObject.ObjectId, InstanceInputFields, NewInstanceInputFields );
+            CreateInstanceInputField( InstancedPart, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
         }
     }
     else if ( bIsAttributeInstancer )
@@ -213,8 +213,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                 // Locate or create an instance input field for each part for this instanced object id
                 for ( FHoudiniGeoPartObject& Part : PartsToInstance )
                 {
-                    // TODO: InstancePathName not used, can be removed
-                    CreateInstanceInputField( Part, InstanceTransforms, InstancedObjectId, InstanceInputFields, NewInstanceInputFields );
+                    CreateInstanceInputField( Part, InstanceTransforms, InstanceInputFields, NewInstanceInputFields );
                 }
             }
         }
@@ -364,8 +363,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
             // Locate or create an input field.
             CreateInstanceInputField(
-                ItemHoudiniGeoPartObject, AllTransforms, ItemHoudiniGeoPartObject.ObjectId, InstanceInputFields,
-                NewInstanceInputFields );
+                ItemHoudiniGeoPartObject, AllTransforms, InstanceInputFields, NewInstanceInputFields );
         }
     }
 
@@ -379,17 +377,14 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
 UHoudiniAssetInstanceInputField *
 UHoudiniAssetInstanceInput::LocateInputField(
-    const FHoudiniGeoPartObject & GeoPartObject,
-    const HAPI_ObjectId & InstanceObjectId )
+    const FHoudiniGeoPartObject & GeoPartObject)
 {
-    const FString InstancePathName = FString::FromInt( InstanceObjectId );
     UHoudiniAssetInstanceInputField * FoundHoudiniAssetInstanceInputField = nullptr;
     for ( int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx )
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ FieldIdx ];
 
-        if ( HoudiniAssetInstanceInputField->InstancePathName == InstancePathName &&
-            HoudiniAssetInstanceInputField->HoudiniGeoPartObject == GeoPartObject )
+        if ( HoudiniAssetInstanceInputField->GetHoudiniGeoPartObject().GetNodePath() == GeoPartObject.GetNodePath() )
         {
             FoundHoudiniAssetInstanceInputField = HoudiniAssetInstanceInputField;
             break;
@@ -432,7 +427,7 @@ UHoudiniAssetInstanceInput::CleanInstanceInputFields( TArray< UHoudiniAssetInsta
 void
 UHoudiniAssetInstanceInput::CreateInstanceInputField(
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
-    const TArray< FTransform > & ObjectTransforms, const HAPI_ObjectId & InstanceObjectId,
+    const TArray< FTransform > & ObjectTransforms,
     const TArray< UHoudiniAssetInstanceInputField * > & OldInstanceInputFields,
     TArray<UHoudiniAssetInstanceInputField * > & NewInstanceInputFields)
 {
@@ -441,14 +436,13 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
     {
         // Locate corresponding input field.
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
-            LocateInputField( InHoudiniGeoPartObject, InstanceObjectId );
+            LocateInputField( InHoudiniGeoPartObject );
 
         if ( !HoudiniAssetInstanceInputField )
         {
             // Input field does not exist, we need to create it.
             HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
-                HoudiniAssetComponent, this,
-                InHoudiniGeoPartObject, InstanceObjectId );
+                HoudiniAssetComponent, this, InHoudiniGeoPartObject );
 
             // Assign original and static mesh.
             HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
@@ -457,6 +451,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         }
         else
         {
+            // refresh the geo part
+            HoudiniAssetInstanceInputField->SetGeoPartObject( InHoudiniGeoPartObject );
+
             // Remove item from old list.
             InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
 
@@ -593,8 +590,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
     {
         FHoudiniGeoPartObject TempHoudiniGeoPartObject;
         HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
-            HoudiniAssetComponent, this,
-            TempHoudiniGeoPartObject, -1 );
+            HoudiniAssetComponent, this, TempHoudiniGeoPartObject );
 
         // Assign original and static mesh.
         HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
@@ -628,6 +624,15 @@ UHoudiniAssetInstanceInput::RecreatePhysicsStates()
     {
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
         HoudiniAssetInstanceInputField->RecreatePhysicsState();
+    }
+}
+
+void UHoudiniAssetInstanceInput::SetGeoPartObject( const FHoudiniGeoPartObject& InGeoPartObject )
+{
+    HoudiniGeoPartObject = InGeoPartObject;
+    if ( ObjectToInstanceId == -1 )
+    {
+        ObjectToInstanceId = InGeoPartObject.HapiObjectGetToInstanceId();
     }
 }
 
@@ -684,6 +689,11 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
             VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++ )
         {
             UStaticMesh * StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
+            if ( !StaticMesh )
+            {
+                HOUDINI_LOG_WARNING( TEXT("Null StaticMesh found for instance variation %d"), VariationIdx );
+                continue;
+            }
 
             FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
             FText LabelText =
@@ -978,6 +988,9 @@ UHoudiniAssetInstanceInput::Serialize( FArchive & Ar )
     Ar << HoudiniGeoPartObject;
 
     Ar << ObjectToInstanceId;
+    // Object id is transient
+    if ( Ar.IsLoading() && !Ar.IsTransacting() )
+        ObjectToInstanceId = -1;
 
     // Serialize fields.
     Ar << InstanceInputFields;
