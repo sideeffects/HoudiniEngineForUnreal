@@ -1139,7 +1139,8 @@ HAPI_DECL HAPI_GetNodeInfo( const HAPI_Session * session,
                             HAPI_NodeId node_id,
                             HAPI_NodeInfo * node_info );
 
-/// @brief  Fill an ::HAPI_NodeInfo struct.
+/// @brief  Get the node absolute path in the Houdini node network or a
+///         relative path any other node.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
