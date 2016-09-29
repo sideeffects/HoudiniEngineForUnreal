@@ -1397,6 +1397,35 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId
 }
 
 bool
+FHoudiniEngineUtils::GetNodePathToAsset( HAPI_NodeId NodeId, HAPI_NodeId AssetId, FString & OutPath )
+{
+    HAPI_NodeInfo NodeInfo;
+    if ( FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ) == HAPI_RESULT_SUCCESS )
+    {
+        HAPI_NodeInfo AssetInfo;
+        if ( FHoudiniApi::GetNodeInfo(
+            FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
+        {
+            FString AssetPath;
+            FHoudiniEngineString AssetPathHEString( NodeInfo.internalNodePathSH );
+            if ( AssetPathHEString.ToFString( AssetPath ) )
+            {
+                AssetPathHEString = FHoudiniEngineString( NodeInfo.internalNodePathSH );
+                if ( AssetPathHEString.ToFString( OutPath ) )
+                {
+                    if ( OutPath.RemoveFromStart( AssetPath ) )
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HAPI_AssetId HostAssetId, int32 InputIndex,
     ALandscapeProxy * LandscapeProxy, HAPI_AssetId & ConnectedAssetId,
@@ -7989,7 +8018,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
-    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
+    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() )
     {
         // Create package for this duplicated mesh.
         FString MeshName;

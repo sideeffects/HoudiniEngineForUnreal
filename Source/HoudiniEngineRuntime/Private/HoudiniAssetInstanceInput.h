@@ -69,9 +69,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
             UMaterialInterface * Material,
             TMap< UStaticMesh *, int32 > & MaterialReplacementsMap );
 
-        FORCEINLINE const FHoudiniGeoPartObject& GetGeoPartObject() const { return HoudiniGeoPartObject; }
-
         FORCEINLINE const TArray< UHoudiniAssetInstanceInputField * >& GetInstanceInputFields() const { return InstanceInputFields; }
+
+        FORCEINLINE const FHoudiniGeoPartObject& GetGeoPartObject() const { return HoudiniGeoPartObject; }
+        
+        /** Refresh state based on the given geo part object */
+        void SetGeoPartObject( const FHoudiniGeoPartObject& InGeoPartObject );
 
     /** UHoudiniAssetParameter methods. **/
     public:
@@ -133,8 +136,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Locate field which matches given criteria. Return null if not found. **/
         UHoudiniAssetInstanceInputField * LocateInputField(
-            const FHoudiniGeoPartObject & GeoPartObject,
-            const FString & InstancePathName );
+            const FHoudiniGeoPartObject & GeoPartObject );
 
         /** Locate fields which have specified static mesh set as their original mesh. **/
         void LocateInputFieldsWithOriginalStaticMesh(
@@ -144,7 +146,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Locate or create (if it does not exist) an input field. **/
         void CreateInstanceInputField(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            const TArray< FTransform > & ObjectTransforms, const FString & InstancePathName,
+            const TArray< FTransform > & ObjectTransforms,
             const TArray< UHoudiniAssetInstanceInputField * > & OldInstanceInputFields,
             TArray< UHoudiniAssetInstanceInputField * > & NewInstanceInputFields );
 

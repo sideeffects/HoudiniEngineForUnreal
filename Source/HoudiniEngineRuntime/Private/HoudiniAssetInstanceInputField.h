@@ -42,8 +42,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         static UHoudiniAssetInstanceInputField * Create(
             UHoudiniAssetComponent * InHoudiniAssetComponent,
             UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            const FString & InstancePathName );
+            const FHoudiniGeoPartObject & HoudiniGeoPartObject );
 
         /** Create an instance of input field from another input field. **/
         static UHoudiniAssetInstanceInputField * Create(
@@ -68,6 +67,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         /** Return geo part object associated with this field. **/
         const FHoudiniGeoPartObject & GetHoudiniGeoPartObject() const;
 
+        /** Refresh state based on the given geo part object */
+        void SetGeoPartObject( const FHoudiniGeoPartObject & InHoudiniGeoPartObject );
+
         /** Return original static mesh. **/
         UStaticMesh * GetOriginalStaticMesh() const;
 
@@ -78,7 +80,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         void AddInstanceVariation( UStaticMesh * InstaticMesh, int32 VariationIdx );
 
         /** Replace the instance variation in a particular slot. **/
-        void ReplaceInstanceVariation( UStaticMesh * InStaticMesh, int Index );
+        void ReplaceInstanceVariation( UStaticMesh * InStaticMesh, int32 Index );
 
         /** Remove a variation from instancing **/
         void RemoveInstanceVariation( int32 VariationIdx );
@@ -87,7 +89,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         int32 InstanceVariationCount() const;
 
         /** Given a static mesh, find which slot(s) it occupies in the instance variations. **/
-        void FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int > & Indices );
+        void FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int32 > & Indices );
 
         /** Get material replacements. **/
         bool GetMaterialReplacementMeshes(
@@ -136,6 +138,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
         /** Return transformations of all instances used by the variation **/
         const TArray< FTransform > & GetInstancedTransforms( int32 VariationIdx ) const;
+
+        /** Return the array of transforms for all variations **/
+        FORCEINLINE const TArray< FTransform > & GetInstancedTransforms() { return InstancedTransforms; }
 
         /** Recreates render states for instanced static mesh component. **/
         void RecreateRenderState();
@@ -192,9 +197,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
         /** Corresponding geo part object. **/
         FHoudiniGeoPartObject HoudiniGeoPartObject;
-
-        /** Instance path name. **/
-        FString InstancePathName;
 
         /** Rotation offset for instanced component. **/
         TArray< FRotator > RotationOffsets;
