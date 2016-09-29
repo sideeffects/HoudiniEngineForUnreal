@@ -89,7 +89,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
         bool IsRenderCollidable() const;
 
         /** Return true if this geo part object corresponds to a packed primitive instancer **/
-        bool IsPackedPrimativeInstancer() const;
+        bool IsPackedPrimitiveInstancer() const;
 
         /** Return true if corresponding geometry has changed. **/
         bool HasGeoChanged() const;
@@ -110,6 +110,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 
         /** Return part id. **/
         HAPI_PartId GetPartId() const;
+
+        /** Return the unique path to this part's node */
+        const FString& GetNodePath() const;
 
     public:
 
@@ -562,6 +565,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 
         /** Id of a split. In most cases this will be 0. **/
         int32 SplitId;
+
+        /** Path to the corresponding node */
+        mutable FString NodePath;
 
         /** Flags used by geo part object. **/
         union

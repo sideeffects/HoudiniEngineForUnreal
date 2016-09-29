@@ -162,6 +162,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Retrieve Node id from given parameters. **/
         static bool HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId & NodeId );
+        
+        /** HAPI: Retrieve Path to the given part relative to it's asset */
+        static bool GetNodePathToAsset( const FHoudiniGeoPartObject& GeoPart, FString & OutPath );
 
         /** HAPI : Marshalling, extract landscape geometry and upload it. Return new asset id. **/
         static bool HapiCreateAndConnectAsset(

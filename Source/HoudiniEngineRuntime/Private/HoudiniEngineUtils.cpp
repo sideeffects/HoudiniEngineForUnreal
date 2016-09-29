@@ -1397,6 +1397,47 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId
 }
 
 bool
+FHoudiniEngineUtils::GetNodePathToAsset( const FHoudiniGeoPartObject& GeoPart, FString & OutPath )
+{
+    HAPI_GeoInfo GeoInfo;
+    if ( FHoudiniApi::GetGeoInfo( 
+        FHoudiniEngine::Get().GetSession(), GeoPart.AssetId, GeoPart.ObjectId, GeoPart.GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
+    {
+        HAPI_NodeInfo GeoNodeInfo;
+        if ( FHoudiniApi::GetNodeInfo(
+            FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, &GeoNodeInfo ) == HAPI_RESULT_SUCCESS )
+        {
+            HAPI_AssetInfo AssetInfo;
+            if ( FHoudiniApi::GetAssetInfo(
+                FHoudiniEngine::Get().GetSession(), GeoPart.AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
+            {
+                HAPI_NodeInfo AssetNodeInfo;
+                if ( FHoudiniApi::GetNodeInfo(
+                    FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo ) == HAPI_RESULT_SUCCESS )
+                {
+                    FString AssetPath;
+                    FHoudiniEngineString AssetPathHEString( AssetNodeInfo.internalNodePathSH );
+                    if ( AssetPathHEString.ToFString( AssetPath ) )
+                    {
+                        AssetPathHEString = FHoudiniEngineString( GeoNodeInfo.internalNodePathSH );
+                        if ( AssetPathHEString.ToFString( OutPath ) )
+                        {
+                            if ( OutPath.RemoveFromStart( AssetPath ) )
+                            {
+                                if ( OutPath.IsEmpty() )
+                                    OutPath = TEXT( "." );
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool
 FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     HAPI_AssetId HostAssetId, int32 InputIndex,
     ALandscapeProxy * LandscapeProxy, HAPI_AssetId & ConnectedAssetId,
@@ -7980,7 +8021,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
-    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimativeInstancer() )
+    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() )
     {
         // Create package for this duplicated mesh.
         FString MeshName;

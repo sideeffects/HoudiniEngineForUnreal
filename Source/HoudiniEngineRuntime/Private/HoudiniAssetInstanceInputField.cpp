@@ -41,7 +41,6 @@ UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField( const FObjectI
     , OriginalStaticMesh( nullptr )
     , HoudiniAssetComponent( nullptr )
     , HoudiniAssetInstanceInput( nullptr )
-    , InstancePathName( TEXT( "" ) )
     , HoudiniAssetInstanceInputFieldFlagsPacked( 0 )
 {}
 
@@ -52,8 +51,7 @@ UHoudiniAssetInstanceInputField *
 UHoudiniAssetInstanceInputField::Create(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
-    const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-    const FString & InstancePathName )
+    const FHoudiniGeoPartObject & HoudiniGeoPartObject )
 {
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
         NewObject< UHoudiniAssetInstanceInputField >(
@@ -64,7 +62,6 @@ UHoudiniAssetInstanceInputField::Create(
 
     HoudiniAssetInstanceInputField->HoudiniGeoPartObject = HoudiniGeoPartObject;
     HoudiniAssetInstanceInputField->HoudiniAssetComponent = HoudiniAssetComponent;
-    HoudiniAssetInstanceInputField->InstancePathName = InstancePathName;
     HoudiniAssetInstanceInputField->HoudiniAssetInstanceInput = InHoudiniAssetInstanceInput;
 
     return HoudiniAssetInstanceInputField;
@@ -83,7 +80,8 @@ UHoudiniAssetInstanceInputField::Create(
     // Duplicate the given field's InstancedStaticMesh components
     for ( const UInstancedStaticMeshComponent* OtherISMC : OtherInputField->InstancedStaticMeshComponents )
     {
-        UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, InHoudiniAssetComponent );
+        FName NewName = MakeUniqueObjectName( InHoudiniAssetComponent, UInstancedStaticMeshComponent::StaticClass() );
+        UInstancedStaticMeshComponent* NewISMC = DuplicateObject< UInstancedStaticMeshComponent >( OtherISMC, InHoudiniAssetComponent, NewName );
         NewISMC->RegisterComponent();
         NewISMC->AttachTo( InHoudiniAssetComponent, NAME_None, EAttachLocation::KeepRelativeOffset );
         InputField->InstancedStaticMeshComponents.Add( NewISMC );
@@ -101,7 +99,8 @@ UHoudiniAssetInstanceInputField::Serialize( FArchive & Ar )
     Ar << HoudiniAssetInstanceInputFieldFlagsPacked;
     Ar << HoudiniGeoPartObject;
 
-    Ar << InstancePathName;
+    FString UnusedInstancePathName;
+    Ar << UnusedInstancePathName;
     Ar << RotationOffsets;
     Ar << ScaleOffsets;
     Ar << bScaleOffsetsLinearlyArray;
@@ -310,6 +309,11 @@ UHoudiniAssetInstanceInputField::GetHoudiniGeoPartObject() const
     return HoudiniGeoPartObject;
 }
 
+void UHoudiniAssetInstanceInputField::SetGeoPartObject( const FHoudiniGeoPartObject & InHoudiniGeoPartObject )
+{
+    HoudiniGeoPartObject = InHoudiniGeoPartObject;
+}
+
 UStaticMesh *
 UHoudiniAssetInstanceInputField::GetOriginalStaticMesh() const
 {
@@ -382,7 +386,7 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UStaticMesh * InStati
 }
 
 void
-UHoudiniAssetInstanceInputField::FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int > & Indices )
+UHoudiniAssetInstanceInputField::FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int32 > & Indices )
 {
     for ( int32 Idx = 0; Idx < StaticMeshes.Num(); ++Idx )
     {
