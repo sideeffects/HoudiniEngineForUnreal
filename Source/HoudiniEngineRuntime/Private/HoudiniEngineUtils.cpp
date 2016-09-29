@@ -1397,26 +1397,38 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId
 }
 
 bool
-FHoudiniEngineUtils::GetNodePathToAsset( HAPI_NodeId NodeId, HAPI_NodeId AssetId, FString & OutPath )
+FHoudiniEngineUtils::GetNodePathToAsset( const FHoudiniGeoPartObject& GeoPart, FString & OutPath )
 {
-    HAPI_NodeInfo NodeInfo;
-    if ( FHoudiniApi::GetNodeInfo(
-        FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo ) == HAPI_RESULT_SUCCESS )
+    HAPI_GeoInfo GeoInfo;
+    if ( FHoudiniApi::GetGeoInfo( 
+        FHoudiniEngine::Get().GetSession(), GeoPart.AssetId, GeoPart.ObjectId, GeoPart.GeoId, &GeoInfo ) == HAPI_RESULT_SUCCESS )
     {
-        HAPI_NodeInfo AssetInfo;
+        HAPI_NodeInfo GeoNodeInfo;
         if ( FHoudiniApi::GetNodeInfo(
-            FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
+            FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, &GeoNodeInfo ) == HAPI_RESULT_SUCCESS )
         {
-            FString AssetPath;
-            FHoudiniEngineString AssetPathHEString( NodeInfo.internalNodePathSH );
-            if ( AssetPathHEString.ToFString( AssetPath ) )
+            HAPI_AssetInfo AssetInfo;
+            if ( FHoudiniApi::GetAssetInfo(
+                FHoudiniEngine::Get().GetSession(), GeoPart.AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
             {
-                AssetPathHEString = FHoudiniEngineString( NodeInfo.internalNodePathSH );
-                if ( AssetPathHEString.ToFString( OutPath ) )
+                HAPI_NodeInfo AssetNodeInfo;
+                if ( FHoudiniApi::GetNodeInfo(
+                    FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo ) == HAPI_RESULT_SUCCESS )
                 {
-                    if ( OutPath.RemoveFromStart( AssetPath ) )
+                    FString AssetPath;
+                    FHoudiniEngineString AssetPathHEString( AssetNodeInfo.internalNodePathSH );
+                    if ( AssetPathHEString.ToFString( AssetPath ) )
                     {
-                        return true;
+                        AssetPathHEString = FHoudiniEngineString( GeoNodeInfo.internalNodePathSH );
+                        if ( AssetPathHEString.ToFString( OutPath ) )
+                        {
+                            if ( OutPath.RemoveFromStart( AssetPath ) )
+                            {
+                                if ( OutPath.IsEmpty() )
+                                    OutPath = TEXT( "." );
+                                return true;
+                            }
+                        }
                     }
                 }
             }

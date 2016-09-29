@@ -304,7 +304,7 @@ FHoudiniGeoPartObject::GetNodePath() const
     // query on first-use
     if ( NodePath.IsEmpty() )
     {
-        FHoudiniEngineUtils::GetNodePathToAsset( GeoId, AssetId, NodePath );
+        FHoudiniEngineUtils::GetNodePathToAsset( *this, NodePath );
     }
     return NodePath;
 }
