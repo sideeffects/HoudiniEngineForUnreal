@@ -314,7 +314,7 @@ FHoudiniGeoPartObject::GetNodePath() const
     // query on first-use
     if ( NodePath.IsEmpty() )
     {
-        FHoudiniEngineUtils::HapiGetNodePath( AssetId, GeoId, NodePath );
+        FHoudiniEngineUtils::HapiGetNodePath( GeoId, AssetId, NodePath );
     }
     return NodePath;
 }

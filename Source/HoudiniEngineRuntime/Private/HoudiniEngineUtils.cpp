@@ -8464,14 +8464,14 @@ FHoudiniEngineUtils::GetAssetNames(
 
         if ( Result != HAPI_RESULT_SUCCESS )
         {
-            HOUDINI_LOG_MESSAGE( TEXT( "Error loading asset library for %s" ), *AssetFileName );
+            HOUDINI_LOG_MESSAGE( TEXT( "Error loading asset library for %s: %s" ), *AssetFileName, *FHoudiniEngineUtils::GetErrorDescription() );
             return false;
         }
 
         Result = FHoudiniApi::GetAvailableAssetCount( FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetCount );
         if ( Result != HAPI_RESULT_SUCCESS )
         {
-            HOUDINI_LOG_MESSAGE( TEXT( "Error getting asset count for %s" ), *AssetFileName );
+            HOUDINI_LOG_MESSAGE( TEXT( "Error getting asset count for %s: %s" ), *AssetFileName, *FHoudiniEngineUtils::GetErrorDescription() );
             return false;
         }
 
@@ -8480,7 +8480,7 @@ FHoudiniEngineUtils::GetAssetNames(
         Result = FHoudiniApi::GetAvailableAssets( FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetNames[ 0 ], AssetCount );
         if ( Result != HAPI_RESULT_SUCCESS )
         {
-            HOUDINI_LOG_MESSAGE( TEXT( "Unable to retrieve asset names for %s" ), *AssetFileName );
+            HOUDINI_LOG_MESSAGE( TEXT( "Unable to retrieve asset names for %s: %s" ), *AssetFileName, *FHoudiniEngineUtils::GetErrorDescription() );
             return false;
         }
 
