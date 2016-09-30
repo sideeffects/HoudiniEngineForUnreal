@@ -1013,7 +1013,7 @@ UHoudiniAssetInput::UploadParameterValue()
 
             if (bLoadedParameter || bCreated){
                 HAPI_AssetInfo CurveAssetInfo;
-                FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo );
+                FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &CurveAssetInfo ); 
 
                 // If we just loaded or created our curve, we need to set parameters.
                 for ( TMap< FString, UHoudiniAssetParameter * >::TIterator
@@ -1024,38 +1024,51 @@ UHoudiniAssetInput::UploadParameterValue()
                     {
                         // We need to update node id for loaded parameters.
                         Parameter->SetNodeId( CurveAssetInfo.nodeId );
-
                         // Upload parameter value.
                         Parameter->UploadParameterValue();
                     }
                 }
             }
 
-            // Also upload points
-            HAPI_NodeId NodeId = -1;
-            if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) && InputCurve )
-            {
-                const TArray< FVector > & CurvePoints = InputCurve->GetCurvePoints();
 
-                FString PositionString = TEXT( "" );
-                FHoudiniEngineUtils::CreatePositionsString( CurvePoints, PositionString );
+            HAPI_NodeId NodeId = -1;
+            if ( FHoudiniEngineUtils::HapiGetNodeId( ConnectedAssetId, 0, 0, NodeId ) && InputCurve )            
+            {
+                // The curve node has now been created and set up, we can upload points and rotation/scale attributes
+                const TArray< FTransform > & CurvePoints = InputCurve->GetCurvePoints();
+                TArray<FVector> Positions;
+                InputCurve->GetCurvePositions(Positions);
+
+                TArray<FQuat> Rotations;
+                InputCurve->GetCurveRotations(Rotations);
                 
-                // Get param id for the PositionString and modify it
-                HAPI_ParmId ParmId = -1;
-                if ( FHoudiniApi::GetParmIdFromName(
-                    FHoudiniEngine::Get().GetSession(), NodeId,
-                    HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId ) == HAPI_RESULT_SUCCESS )
+                TArray<FVector> Scales;
+                InputCurve->GetCurveScales(Scales);
+
+                if(!FHoudiniEngineUtils::HapiCreateCurveAsset(
+                        HostAssetId,
+                        ConnectedAssetId,
+                        &Positions,
+                        &Rotations,
+                        &Scales,
+                        nullptr))
                 {
-                    std::string ConvertedString = TCHAR_TO_UTF8( *PositionString );
-                    FHoudiniApi::SetParmStringValue(
-                        FHoudiniEngine::Get().GetSession(), NodeId,
-                        ConvertedString.c_str(), ParmId, 0 );
+                    bChanged = false;
+                    ConnectedAssetId = -1;
+                    return false;
+                }
+
+                if (!FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex))
+                {
+                    bChanged = false;
+                    ConnectedAssetId = -1;
+                    return false;
                 }
             }
             
             if (bCreated && InputCurve)
             {
-                // We need to check that the SplineComponent has no Position offset:
+                // We need to check that the SplineComponent has no offset.
                 // if the input was set to WorldOutliner before, it might have one
                 FTransform CurveTransform = InputCurve->GetRelativeTransform();	
                 if (!CurveTransform.GetLocation().IsZero())
@@ -1824,44 +1837,44 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             // Mark mesh for deletion.
             InputOutlinerMeshArrayPendingKill.Add( OutlinerMesh.StaticMeshComponent );
         }
-	else if ( OutlinerMesh.HasActorTransformChanged() && OutlinerMesh.AssetId >= 0)
-	{
-	    if (!bChanged)
-	    {
-		Modify();
-		MarkPreChanged();
-		bChanged = true;
-	    }
+        else if ( OutlinerMesh.HasActorTransformChanged() && (OutlinerMesh.AssetId >= 0))
+        {
+            if (!bChanged)
+            {
+                Modify();
+                MarkPreChanged();
+                bChanged = true;
+            }
 
-	    // Updates to the new Transform
-	    UpdateWorldOutlinerTransforms(OutlinerMesh);
+            // Updates to the new Transform
+            UpdateWorldOutlinerTransforms(OutlinerMesh);
 
 	    // Apply it to the asset
-	    HAPI_TransformEuler HapiTransform;
-	    FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
+            HAPI_TransformEuler HapiTransform;
+            FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
 
 	    FHoudiniApi::SetAssetTransform(
-		FHoudiniEngine::Get().GetSession(),
+                FHoudiniEngine::Get().GetSession(),
 		OutlinerMesh.AssetId, &HapiTransform);
-	}
-	else if ( OutlinerMesh.HasComponentTransformChanged() 
-		|| OutlinerMesh.HasSplineComponentChanged()
-		|| (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
-	{
-	    if ( !bChanged )
-	    {
-		Modify();
-		MarkPreChanged();
-		bChanged = true;
-	    }
+        }
+        else if ( OutlinerMesh.HasComponentTransformChanged() 
+                || OutlinerMesh.HasSplineComponentChanged()
+                || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
+        {
+            if ( !bChanged )
+            {
+                Modify();
+                MarkPreChanged();
+                bChanged = true;
+            }
 
-	    // Update to the new Transforms
-	    UpdateWorldOutlinerTransforms(OutlinerMesh);
+            // Update to the new Transforms
+            UpdateWorldOutlinerTransforms(OutlinerMesh);
 
-	    // The component or spline has been modified so so we need to indicate that the "static mesh" 
-	    // has changed in order to rebuild the asset properly in UploadParameterValue()
-	    bStaticMeshChanged = true;
-	}	
+            // The component or spline has been modified so so we need to indicate that the "static mesh" 
+            // has changed in order to rebuild the asset properly in UploadParameterValue()
+            bStaticMeshChanged = true;
+        }
     }
 
     if ( bChanged )
@@ -2082,10 +2095,13 @@ UHoudiniAssetInput::UpdateInputCurve()
     TArray< FVector > CurveDisplayPoints;
     FHoudiniEngineUtils::ConvertScaleAndFlipVectorData( RefinedCurvePositions, CurveDisplayPoints );
 
-    InputCurve->Construct(
-        HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
-        ( CurveClosed == 1 ) );
-
+    if (InputCurve != nullptr)
+    {
+        InputCurve->Construct(
+            HoudiniGeoPartObject, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
+            ( CurveClosed == 1 ) );
+    }
+    
     // We also need to construct curve parameters we care about.
     TMap< FString, UHoudiniAssetParameter * > NewInputCurveParameters;
 
