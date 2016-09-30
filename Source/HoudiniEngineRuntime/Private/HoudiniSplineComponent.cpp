@@ -55,8 +55,8 @@ UHoudiniSplineComponent::Serialize( FArchive & Ar )
         Ar << OldCurvePoints;
 
         CurvePoints.SetNumUninitialized(OldCurvePoints.Num());
-	
-	FTransform trans = FTransform::Identity;
+        
+        FTransform trans = FTransform::Identity;
         for (int32 n = 0; n < CurvePoints.Num(); n++)
         {
             trans.SetLocation(OldCurvePoints[n]);
