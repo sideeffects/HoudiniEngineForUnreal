@@ -314,7 +314,39 @@ FHoudiniGeoPartObject::GetNodePath() const
     // query on first-use
     if ( NodePath.IsEmpty() )
     {
-        FHoudiniEngineUtils::HapiGetNodePath( GeoId, AssetId, NodePath );
+        FString NodePathTemp;
+        if ( AssetId == GeoId )
+        {
+            // This is a SOP asset, just return the asset name in this case
+            HAPI_AssetInfo AssetInfo;
+            if ( FHoudiniApi::GetAssetInfo(
+                FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
+            {
+                HAPI_NodeInfo AssetNodeInfo;
+                if ( FHoudiniApi::GetNodeInfo(
+                    FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo ) == HAPI_RESULT_SUCCESS )
+                {
+                    FHoudiniEngineString AssetPathHEString( AssetNodeInfo.nameSH );
+                    if ( AssetPathHEString.ToFString( NodePathTemp ) )
+                    {
+                        NodePath = FString::Printf( TEXT( "%s_%d" ), *NodePathTemp, PartId );
+                    }
+                }
+            }
+        }
+        else
+        {
+            // This is an OBJ asset, return the path to this geo relative to the asset
+            if ( FHoudiniEngineUtils::HapiGetNodePath( GeoId, AssetId, NodePathTemp ) )
+            {
+                NodePath = FString::Printf( TEXT( "%s_%d" ), *NodePathTemp, PartId );
+            }
+        }
+
+        if ( NodePath.IsEmpty() )
+        {
+            NodePath = TEXT( "Empty" );
+        }
     }
     return NodePath;
 }
