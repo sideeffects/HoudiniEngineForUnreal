@@ -211,6 +211,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Handler for removing instance variation **/
         void OnRemoveInstanceVariation( UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index );
 
+        /** Helper for field label */
+        FString GetFieldLabel( int32 FieldIdx, int32 VariationIdx ) const;
+
         /** Get rotation components for given index. **/
         TOptional< float > GetRotationRoll(
             UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,

@@ -304,7 +304,37 @@ FHoudiniGeoPartObject::GetNodePath() const
     // query on first-use
     if ( NodePath.IsEmpty() )
     {
-        FHoudiniEngineUtils::GetNodePathToAsset( *this, NodePath );
+        FString NodePathTemp;
+        HAPI_AssetInfo AssetInfo;
+        if ( FHoudiniApi::GetAssetInfo(
+            FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS )
+        {
+            if ( AssetInfo.type == HAPI_ASSETTYPE_SOP )
+            {
+                HAPI_NodeInfo AssetNodeInfo;
+                if ( FHoudiniApi::GetNodeInfo(
+                    FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo ) == HAPI_RESULT_SUCCESS )
+                {
+                    FHoudiniEngineString AssetPathHEString( AssetNodeInfo.nameSH );
+                    if ( AssetPathHEString.ToFString( NodePathTemp ) )
+                    {
+                        NodePath = FString::Printf( TEXT( "%s_%d" ), *NodePathTemp, PartId );
+                    }
+                }
+            }
+            else
+            {
+                // This is probably an OBJ asset, return the path to this geo relative to the asset
+                FHoudiniEngineUtils::GetNodePathToAsset( *this, NodePathTemp );
+                NodePath = FString::Printf( TEXT( "%s_%d" ), *NodePathTemp, PartId );
+            }
+        }
+
+        if ( NodePath.IsEmpty() )
+        {
+            NodePath = TEXT( "Empty" );
+        }
+
     }
     return NodePath;
 }

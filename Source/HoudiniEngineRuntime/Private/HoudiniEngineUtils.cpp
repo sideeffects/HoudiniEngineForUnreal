@@ -2150,6 +2150,7 @@ FHoudiniEngineUtils::GetNodePathToAsset( const FHoudiniGeoPartObject& GeoPart, F
                         {
                             if ( OutPath.RemoveFromStart( AssetPath ) )
                             {
+                                OutPath.RemoveFromStart( TEXT( "/" ) );
                                 if ( OutPath.IsEmpty() )
                                     OutPath = TEXT( "." );
                                 return true;

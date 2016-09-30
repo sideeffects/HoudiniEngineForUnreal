@@ -627,6 +627,30 @@ UHoudiniAssetInstanceInput::OnRemoveInstanceVariation( UHoudiniAssetInstanceInpu
         HoudiniAssetComponent->UpdateEditorProperties( false );
 }
 
+FString UHoudiniAssetInstanceInput::GetFieldLabel( int32 FieldIdx, int32 VariationIdx ) const
+{
+    FString FieldNameText;
+    UHoudiniAssetInstanceInputField * Field = InstanceInputFields[ FieldIdx ];
+    if ( bIsPackedPrimitiveInstancer )
+    {
+        FieldNameText = Field->GetHoudiniGeoPartObject().GetNodePath();
+    }
+    else if ( bAttributeInstancerOverride )
+    {
+        FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/Override_" ) + FString::FromInt( FieldIdx );
+    }
+    else
+    {
+        // For object-instancers we use the instancer's name as well
+        FieldNameText = HoudiniGeoPartObject.GetNodePath() + TEXT( "/" ) + Field->GetHoudiniGeoPartObject().ObjectName;
+    }
+
+    if ( Field->InstanceVariationCount() > 1 )
+        FieldNameText += FString::Printf( TEXT( " [%d]" ), VariationIdx );
+
+    return FieldNameText;
+}
+
 void
 UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
 {
@@ -640,12 +664,13 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
     TArray< const UClass * > AllowedClasses;
     AllowedClasses.Add( UStaticMesh::StaticClass() );
 
-    for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
+    const int32 FieldCount = InstanceInputFields.Num();
+    for ( int32 FieldIdx = 0; FieldIdx < FieldCount; ++FieldIdx )
     {
-        UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
+        UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ FieldIdx ];
+        const int32 VariationCount = HoudiniAssetInstanceInputField->InstanceVariationCount();
 
-        for( int32 VariationIdx = 0;
-            VariationIdx < HoudiniAssetInstanceInputField->InstanceVariationCount(); VariationIdx++ )
+        for( int32 VariationIdx = 0; VariationIdx < VariationCount; VariationIdx++ )
         {
             UStaticMesh * StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
             if ( !StaticMesh )
@@ -655,9 +680,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
             }
 
             FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-            FText LabelText =
-                FText::Format( LOCTEXT( "HoudiniStaticMeshInstanceInput", "Static Mesh Instance {0}" ),
-                FText::AsNumber( Idx ) );
+            FText LabelText = FText::FromString( GetFieldLabel( FieldIdx, VariationIdx ) );
 
             Row.NameWidget.Widget = SNew( STextBlock )
                 .Text( LabelText )
@@ -677,7 +700,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
                 .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(
                     this, &UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver ) )
                 .OnAssetDropped( SAssetDropTarget::FOnAssetDropped::CreateUObject(
-                    this, &UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, Idx, VariationIdx ) )
+                    this, &UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) )
                 [
                     SAssignNew( HorizontalBox, SHorizontalBox )
                 ]
@@ -689,7 +712,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
                 .Padding( 5.0f )
                 .BorderImage( TAttribute< const FSlateBrush * >::Create(
                 TAttribute< const FSlateBrush * >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, Idx, VariationIdx ) ) )
+                    this, &UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) ) )
                 .OnMouseDoubleClick( FPointerEventHandler::CreateUObject(
                     this, &UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*) StaticMesh ) )
                 [
@@ -745,7 +768,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
                             .ForegroundColor( FEditorStyle::GetColor( "PropertyEditor.AssetName.ColorAndOpacity" ) )
                             .OnMenuOpenChanged( FOnIsOpenChanged::CreateUObject(
                                 this, &UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton,
-                                HoudiniAssetInstanceInputField, Idx, VariationIdx ) )
+                                HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) )
                             .ContentPadding( 2.0f )
                             .ButtonContent()
                             [
@@ -767,10 +790,10 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
                         AllowedClasses, NewAssetFactories, OnShouldFilterStaticMesh,
                         FOnAssetSelected::CreateUObject(
                             this, &UHoudiniAssetInstanceInput::OnStaticMeshSelected,
-                            HoudiniAssetInstanceInputField, Idx, VariationIdx ),
+                            HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ),
                         FSimpleDelegate::CreateUObject(
                             this, &UHoudiniAssetInstanceInput::CloseStaticMeshComboButton,
-                            HoudiniAssetInstanceInputField, Idx, VariationIdx ) );
+                            HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) );
 
                 AssetComboButton->SetMenuContent( PropertyMenuAssetPicker );
             }
@@ -806,7 +829,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
                 .Visibility( EVisibility::Visible )
                 .OnClicked( FOnClicked::CreateUObject(
                     this, &UHoudiniAssetInstanceInput::OnResetStaticMeshClicked,
-                    HoudiniAssetInstanceInputField, Idx, VariationIdx ) )
+                    HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) )
                 [
                     SNew( SImage )
                     .Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
