@@ -1904,7 +1904,7 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
                 CurveAssetId, 0, 0, 0,
                 FaceCounts.GetData(),
                 0, PartInfos.faceCount) == HAPI_RESULT_SUCCESS)
-
+            {
             // Set the face count
             HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetFaceCounts(
                 FHoudiniEngine::Get().GetSession(),
