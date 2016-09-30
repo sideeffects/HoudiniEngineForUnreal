@@ -200,12 +200,11 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
     bool bRightClick = Click.GetKey() == EKeys::RightMouseButton;
     if (bRightClick && EditedControlPointsIndexes.Num() > 1)
         return bCurveEditing;
-
+    
     bool bIsMultiSelecting = false;
-#if PLATFORM_WINDOWS
-    if (GetKeyState(VK_CONTROL) & 0x8000)
-	bIsMultiSelecting = true;
-#endif
+    FModifierKeysState ModifierKeys = FSlateApplication::Get().GetModifierKeys();
+    if(ModifierKeys.IsControlDown())
+        bIsMultiSelecting = true;
 
     if ( bIsMultiSelecting )
     {
