@@ -1258,7 +1258,7 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
 
     HAPI_NodeInfo NodeInfo;
     FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
-
+    
     TArray<HAPI_ParmInfo> NodeParams;
     NodeParams.SetNumUninitialized( NodeInfo.parmCount );
     FHoudiniApi::GetParameters(
@@ -1401,13 +1401,6 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
     // Check if connected asset id is valid, if it is not, we need to create an input asset.
     if (CurveAssetId < 0)
     {
-        /*
-        HAPI_AssetId AssetId = -1;
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateCurve(
-            FHoudiniEngine::Get().GetSession(), &AssetId), false);
-
-        CurveAssetId = AssetId;
-        */
         if (!HapiCreateCurve(CurveAssetId))
             CurveAssetId = -1;
     }
@@ -1491,9 +1484,9 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
     FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
         NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, 0, CurveTypeValue);
     FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
-        NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD,	0, CurveMethodValue);
+        NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, 0, CurveMethodValue);
     FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
-        NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED,	1, CurveClosed);
+        NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed);
 
     //
     // Depending on the curve type and method, additionnal control points might have been created.
@@ -1501,63 +1494,103 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
     //
 
     // Lambda function that interpolates rotation, scale and uniform scales values
-    // between two points using fCoeff as a weight, and inserta the interpolated value at nInsertIndex
+    // between two points using fCoeff as a weight, and inserts the interpolated value at nInsertIndex
     auto InterpolateRotScaleUScale = [&](const int32& nIndex1, const int32& nIndex2, const float& fCoeff, const int32& nInsertIndex)
     {
-        if ( Rotations )
-        {
+        if ( Rotations && Rotations->IsValidIndex(nIndex1) && Rotations->IsValidIndex(nIndex2) )
+        {           
             FQuat interpolation = FQuat::Slerp((*Rotations)[nIndex1], (*Rotations)[nIndex2], fCoeff);
-            Rotations->Insert( interpolation, nInsertIndex);
+            if (Rotations->IsValidIndex( nInsertIndex ))
+                Rotations->Insert(interpolation, nInsertIndex);
+            else
+                Rotations->Add(interpolation);
         }
 
-        if ( Scales3d )
+        if ( Scales3d && Scales3d->IsValidIndex(nIndex1) && Scales3d->IsValidIndex(nIndex2) )
         {
             FVector interpolation = fCoeff * (*Scales3d)[nIndex1] + (1.0f - fCoeff) * (*Scales3d)[nIndex2];
-            Scales3d->Insert( interpolation, nInsertIndex);
+            if (Scales3d->IsValidIndex(nInsertIndex))
+                Scales3d->Insert(interpolation, nInsertIndex);
+            else
+                Scales3d->Add(interpolation);
         }
 
-        if ( UniformScales )
+
+        if ( UniformScales  && UniformScales->IsValidIndex(nIndex1) && UniformScales->IsValidIndex(nIndex2) )
         { 
             float interpolation = fCoeff * (*UniformScales)[nIndex1] + (1.0f - fCoeff) * (*UniformScales)[nIndex2];
-            UniformScales->Insert(interpolation, nInsertIndex);
+            if (UniformScales->IsValidIndex(nInsertIndex))
+                UniformScales->Insert(interpolation, nInsertIndex);
+            else
+                UniformScales->Add(interpolation);
         }
-
-        // Modifying the indexes because of the insertion
-        //(nIndex1 < nIndex2) ? nIndex2++ : nIndex1++;
     };
 
+    // Lambda function that duplicates rotation, scale and uniform scales values
+    // at nIndex and insert/adds it at nInsertIndex
+    auto DuplicateRotScaleUScale = [&](const int32& nIndex, const int32& nInsertIndex)
+    {
+        if ( Rotations && Rotations->IsValidIndex(nIndex) )
+        {
+            FQuat value = (*Rotations)[nIndex];
+            if ( Rotations->IsValidIndex(nInsertIndex) )
+                Rotations->Insert(value, nInsertIndex);
+            else
+                Rotations->Add(value);
+        }
 
+        if ( Scales3d && Scales3d->IsValidIndex(nIndex) )
+        {
+            FVector value = (*Scales3d)[nIndex];
+            if ( Scales3d->IsValidIndex(nInsertIndex) )
+                Scales3d->Insert(value, nInsertIndex);
+            else
+                Scales3d->Add(value);
+        }
+
+        if ( UniformScales  && UniformScales->IsValidIndex(nIndex) )
+        {
+            float value = (*UniformScales)[nIndex];
+            if ( UniformScales->IsValidIndex(nInsertIndex) )
+                UniformScales->Insert(value, nInsertIndex);
+            else
+                UniformScales->Add(value);
+        }
+    };
+    
     // INTERPOLATION
-    if ((CurveTypeValue == 1) && (CurveClosed))
+    if (CurveTypeValue == HAPI_CURVETYPE_NURBS)
     {
         // Closed NURBS have additional points reproducing the first ones
-        // 1 for freehand, 3 for CVs / Breakpoints
-        InterpolateRotScaleUScale(0, 0, 1.0f, NumberOfCVs);
-        NumberOfCVs++;
-
-        if (CurveMethodValue != 2)
+        if (CurveClosed)
         {
-            InterpolateRotScaleUScale(1, 1, 1.0f, NumberOfCVs);
-            NumberOfCVs++;
+            // Only the first one if the method is freehand ... 
+            DuplicateRotScaleUScale(0, NumberOfCVs++);
 
-            InterpolateRotScaleUScale(2, 2, 1.0f, NumberOfCVs);
-            NumberOfCVs++;
+            if (CurveMethodValue != 2)
+            {
+                // ... but also the 2nd and 3rd if the method is CVs or Breakpoints.
+                DuplicateRotScaleUScale(1, NumberOfCVs++);
+                DuplicateRotScaleUScale(2, NumberOfCVs++);
+            }
         }
-        /*
-        // NURBS + BREAKPOINTS
-        // 2 New Points: after the first and before the last one
-        InterpolateRotScaleUScale(0, 1, 0.5f, 1);
-        InterpolateRotScaleUScale(NumberOfCVs, NumberOfCVs - 1, 0.5f, NumberOfCVs - 1);
+        else if (CurveMethodValue == 1)
+        {
+            // Open NURBS have 2 new points if the method is breakpoint:
+            // One between the 1st and 2nd ...
+            InterpolateRotScaleUScale(0, 1, 0.5f, 1);
 
-        NumberOfCVs += 2;
-        */
+            // ... and one before the last one.
+            InterpolateRotScaleUScale(NumberOfCVs, NumberOfCVs - 1, 0.5f, NumberOfCVs);
+            NumberOfCVs += 2;
+        }
     }
-    else if (CurveTypeValue == 2)
+    else if (CurveTypeValue == HAPI_CURVETYPE_BEZIER)
     {
-        // BEZIER CURVES
+        // Bezier curves requires additional point if the method is Breakpoints
         if (CurveMethodValue == 1)
         {
-            // For breakpoints, 2 additional control points are added per cv
+            // 2 interpolated control points are added per points (except the last one)
             int32 nOffset = 0;
             for (int32 n = 0; n < NumberOfCVs - 1; n++)
             {
@@ -1565,7 +1598,8 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
                 int nIndex2 = n + nOffset + 1;
 
                 InterpolateRotScaleUScale(nIndex1, nIndex2, 0.33f, nIndex2);
-                InterpolateRotScaleUScale(nIndex1, nIndex2 + 1, 0.66f, nIndex2 + 1);
+                nIndex2++;
+                InterpolateRotScaleUScale(nIndex1, nIndex2, 0.66f, nIndex2);
 
                 nOffset += 2;
             }
@@ -1573,75 +1607,34 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
 
             if (CurveClosed)
             {
-                // if the curve is closed, we need to add 2 points between last and first
-                InterpolateRotScaleUScale(NumberOfCVs-1, 0, 0.33f, NumberOfCVs);
-                InterpolateRotScaleUScale(NumberOfCVs-1, 0, 0.66f, NumberOfCVs + 1);
+                // If the curve is closed, we need to add 2 points after the last,
+                // interpolated between the last and the first one
+                int nIndex = NumberOfCVs - 1;
+                InterpolateRotScaleUScale(nIndex, 0, 0.33f, NumberOfCVs++);
+                InterpolateRotScaleUScale(nIndex, 0, 0.66f, NumberOfCVs++);
 
                 // and finally, the last point is the first..
-                InterpolateRotScaleUScale(0, 0, 1.0f, NumberOfCVs + 2);
-                NumberOfCVs += 3;
+                DuplicateRotScaleUScale(0, NumberOfCVs++);
             }
         }
         else if (CurveClosed)
         {
-            // if the curve is closed, the last point should be the first one
-            InterpolateRotScaleUScale(0, 0, 1.0f, NumberOfCVs);
-            NumberOfCVs++;
+            // For the other methods, if the bezier curve is closed, the last point is the 1st
+            DuplicateRotScaleUScale(0, NumberOfCVs++);
         }
-
-	/*
-	// BEZIER + BREAKPOINTS
-	// 2 new points after the first one
-	// then the regular cvs
-	// then 2 new points per CVs backward...
-
-	// Adding the first two new points
-	InterpolateRotScaleUScale(0, 1, 0.33f, 1);
-	InterpolateRotScaleUScale(0, 2, 0.66f, 2);
-	NumberOfCVs += 2;
-
-	// Inserting new values backward from the end
-	int32 nLast = NumberOfCVs - 1;
-	int32 nOffset = 0;
-	for (int n = nLast; n > 3; n--)
-	{
-	    InterpolateRotScaleUScale(n, n-1, 0.33f, nLast + nOffset);
-	    InterpolateRotScaleUScale(n, n-1, 0.66f, nLast + nOffset + 1);
-	    nOffset += 2;
-	}
-
-	NumberOfCVs += nOffset;
-	*/
     }
 
-    // Even after interpolation, sometimes additional points are still missing
-    // (bezier curves require a certain number of points regarding their order,
-    // if points are lacking then the last one is duplicated)
+    // Even after interpolation, additional points might still be missing:
+    // Bezier curves require a certain number of points regarding their order,
+    // if points are lacking then HAPI duplicates the last one.
     if (NumberOfCVs < PartInfos.pointCount)
     {
         int nToAdd = PartInfos.pointCount - NumberOfCVs;
         for (int n = 0; n < nToAdd; n++)
         {
-            if (Rotations)
-            {
-                FQuat rot = (*Rotations)[NumberOfCVs - 1];
-                Rotations->Add(rot);
-            }
-
-            if (Scales3d)
-            {
-                FVector scale3d = (*Scales3d)[NumberOfCVs - 1];
-                Scales3d->Add(scale3d);
-            }
-
-
-            if (UniformScales)
-            {
-                float uscale = (*UniformScales)[NumberOfCVs - 1];
-                UniformScales->Add(uscale);
-            }
+            DuplicateRotScaleUScale(NumberOfCVs - 1, NumberOfCVs);
+            NumberOfCVs++;
         }
-        NumberOfCVs += nToAdd;
     }
 
     // To avoid crashes, attributes will only be added if we now have the correct number of them
@@ -1650,8 +1643,8 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
     bAddUniformScales = bAddUniformScales && (UniformScales->Num() == PartInfos.pointCount);
 
     // We need to increase the point attributes count for points in the Part Infos
-    HAPI_AttributeOwner NewAttributesOwner = HAPI_ATTROWNER_POINT;//(PartInfos.type == HAPI_PARTTYPE_CURVE) ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_VERTEX;
-    HAPI_AttributeOwner OriginalAttributesOwner = HAPI_ATTROWNER_POINT;// (PartInfos.type == HAPI_PARTTYPE_CURVE) ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_VERTEX;
+    HAPI_AttributeOwner NewAttributesOwner = HAPI_ATTROWNER_POINT;
+    HAPI_AttributeOwner OriginalAttributesOwner = HAPI_ATTROWNER_POINT;
 
     int OriginalPointParametersCount = PartInfos.pointAttributeCount;
     if (bAddRotations)
@@ -1945,139 +1938,139 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
     // and properties have been reset.
     if (bAddRotations)
     {
-	// Create ROTATION attribute info
-	HAPI_AttributeInfo AttributeInfoRotation;
-	FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoRotation);
-	AttributeInfoRotation.count = NumberOfCVs;
-	AttributeInfoRotation.tupleSize = 4;
-	AttributeInfoRotation.exists = true;
-	AttributeInfoRotation.owner = NewAttributesOwner;
-	AttributeInfoRotation.storage = HAPI_STORAGETYPE_FLOAT;
-	AttributeInfoRotation.originalOwner = OriginalAttributesOwner;
+        // Create ROTATION attribute info
+        HAPI_AttributeInfo AttributeInfoRotation;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoRotation);
+        AttributeInfoRotation.count = NumberOfCVs;
+        AttributeInfoRotation.tupleSize = 4;
+        AttributeInfoRotation.exists = true;
+        AttributeInfoRotation.owner = NewAttributesOwner;
+        AttributeInfoRotation.storage = HAPI_STORAGETYPE_FLOAT;
+        AttributeInfoRotation.originalOwner = OriginalAttributesOwner;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-	    FHoudiniEngine::Get().GetSession(), 
-	    CurveAssetId, 0, 0,
-	    HAPI_UNREAL_ATTRIB_ROTATION,
-	    &AttributeInfoRotation), false);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), 
+            CurveAssetId, 0, 0,
+            HAPI_UNREAL_ATTRIB_ROTATION,
+            &AttributeInfoRotation), false);
 
-	// Convert the rotation infos
-	TArray< float > CurveRotations;
-	CurveRotations.SetNumZeroed(NumberOfCVs * 4);
-	for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
-	{
-	    // Get current quaternion
-	    const FQuat& RotationQuaternion = (*Rotations)[Idx];
+        // Convert the rotation infos
+        TArray< float > CurveRotations;
+        CurveRotations.SetNumZeroed(NumberOfCVs * 4);
+        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+        {
+            // Get current quaternion
+            const FQuat& RotationQuaternion = (*Rotations)[Idx];
 
-	    if (ImportAxis == HRSAI_Unreal)
-	    {
-		CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
-		CurveRotations[Idx * 4 + 1] = RotationQuaternion.Z;
-		CurveRotations[Idx * 4 + 2] = RotationQuaternion.Y;
-		CurveRotations[Idx * 4 + 3] = -RotationQuaternion.W;
-	    }
-	    else if (ImportAxis == HRSAI_Houdini)
-	    {
-		CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
-		CurveRotations[Idx * 4 + 1] = RotationQuaternion.Y;
-		CurveRotations[Idx * 4 + 2] = RotationQuaternion.Z;
-		CurveRotations[Idx * 4 + 3] = RotationQuaternion.W;
-	    }
-	    else
-	    {
-		// Not valid enum value.
-		check(0);
-	    }
-	}
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
+                CurveRotations[Idx * 4 + 1] = RotationQuaternion.Z;
+                CurveRotations[Idx * 4 + 2] = RotationQuaternion.Y;
+                CurveRotations[Idx * 4 + 3] = -RotationQuaternion.W;
+            }
+            else if (ImportAxis == HRSAI_Houdini)
+            {
+                CurveRotations[Idx * 4 + 0] = RotationQuaternion.X;
+                CurveRotations[Idx * 4 + 1] = RotationQuaternion.Y;
+                CurveRotations[Idx * 4 + 2] = RotationQuaternion.Z;
+                CurveRotations[Idx * 4 + 3] = RotationQuaternion.W;
+            }
+            else
+            {
+                // Not valid enum value.
+                check(0);
+            }
+        }
 
-	//we can now upload them to our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-	    FHoudiniEngine::Get().GetSession(),
-	    CurveAssetId, 0, 0,
-	    HAPI_UNREAL_ATTRIB_ROTATION,
-	    &AttributeInfoRotation,
-	    CurveRotations.GetData(),
-	    0, AttributeInfoRotation.count), false);
+        //we can now upload them to our attribute.
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+            FHoudiniEngine::Get().GetSession(),
+            CurveAssetId, 0, 0,
+            HAPI_UNREAL_ATTRIB_ROTATION,
+            &AttributeInfoRotation,
+            CurveRotations.GetData(),
+            0, AttributeInfoRotation.count), false);
     }
 
     // Create SCALE attribute info.
     if (bAddScales3d)
     {
-	HAPI_AttributeInfo AttributeInfoScale;
-	FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoScale);
-	AttributeInfoScale.count = NumberOfCVs;
-	AttributeInfoScale.tupleSize = 3;
-	AttributeInfoScale.exists = true;
-	AttributeInfoScale.owner = NewAttributesOwner;
-	AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
-	AttributeInfoScale.originalOwner = OriginalAttributesOwner;
+        HAPI_AttributeInfo AttributeInfoScale;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoScale);
+        AttributeInfoScale.count = NumberOfCVs;
+        AttributeInfoScale.tupleSize = 3;
+        AttributeInfoScale.exists = true;
+        AttributeInfoScale.owner = NewAttributesOwner;
+        AttributeInfoScale.storage = HAPI_STORAGETYPE_FLOAT;
+        AttributeInfoScale.originalOwner = OriginalAttributesOwner;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-	    FHoudiniEngine::Get().GetSession(), 
-	    CurveAssetId, 0, 0,
-	    HAPI_UNREAL_ATTRIB_SCALE,
-	    &AttributeInfoScale), false);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), 
+            CurveAssetId, 0, 0,
+            HAPI_UNREAL_ATTRIB_SCALE,
+            &AttributeInfoScale), false);
 
-	// Convert the scale
-	TArray< float > CurveScales;
-	CurveScales.SetNumZeroed(NumberOfCVs * 3);
-	for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
-	{
-	    // Get current scale
-	    FVector ScaleVector = (*Scales3d)[Idx];
-	    if (ImportAxis == HRSAI_Unreal)
-	    {
-		CurveScales[Idx * 3 + 0] = ScaleVector.X;
-		CurveScales[Idx * 3 + 1] = ScaleVector.Z;
-		CurveScales[Idx * 3 + 2] = ScaleVector.Y;
-	    }
-	    else if (ImportAxis == HRSAI_Houdini)
-	    {
-		CurveScales[Idx * 3 + 0] = ScaleVector.X;
-		CurveScales[Idx * 3 + 1] = ScaleVector.Y;
-		CurveScales[Idx * 3 + 2] = ScaleVector.Z;
-	    }
-	    else
-	    {
-		// Not valid enum value.
-		check(0);
-	    }
-	}
+        // Convert the scale
+        TArray< float > CurveScales;
+        CurveScales.SetNumZeroed(NumberOfCVs * 3);
+        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+        {
+            // Get current scale
+            FVector ScaleVector = (*Scales3d)[Idx];
+            if (ImportAxis == HRSAI_Unreal)
+            {
+                CurveScales[Idx * 3 + 0] = ScaleVector.X;
+                CurveScales[Idx * 3 + 1] = ScaleVector.Z;
+                CurveScales[Idx * 3 + 2] = ScaleVector.Y;
+            }
+            else if (ImportAxis == HRSAI_Houdini)
+            {
+                CurveScales[Idx * 3 + 0] = ScaleVector.X;
+                CurveScales[Idx * 3 + 1] = ScaleVector.Y;
+                CurveScales[Idx * 3 + 2] = ScaleVector.Z;
+            }
+            else
+            {
+                // Not valid enum value.
+                check(0);
+            }
+        }
 
-	// We can now upload them to our attribute.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-	    FHoudiniEngine::Get().GetSession(), 
-	    CurveAssetId, 0, 0,
-	    HAPI_UNREAL_ATTRIB_SCALE,
-	    &AttributeInfoScale, CurveScales.GetData(),
-	    0, AttributeInfoScale.count), false);
+        // We can now upload them to our attribute.
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
+            FHoudiniEngine::Get().GetSession(), 
+            CurveAssetId, 0, 0,
+            HAPI_UNREAL_ATTRIB_SCALE,
+            &AttributeInfoScale, CurveScales.GetData(),
+            0, AttributeInfoScale.count), false);
     }
 
     // Create PSCALE attribute info.
     if (bAddUniformScales)
     {
-	HAPI_AttributeInfo AttributeInfoPScale;
-	FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPScale);
-	AttributeInfoPScale.count = NumberOfCVs;
-	AttributeInfoPScale.tupleSize = 1;
-	AttributeInfoPScale.exists = true;
-	AttributeInfoPScale.owner = NewAttributesOwner;
-	AttributeInfoPScale.storage = HAPI_STORAGETYPE_FLOAT;
-	AttributeInfoPScale.originalOwner = OriginalAttributesOwner;
+        HAPI_AttributeInfo AttributeInfoPScale;
+        FMemory::Memzero< HAPI_AttributeInfo >(AttributeInfoPScale);
+        AttributeInfoPScale.count = NumberOfCVs;
+        AttributeInfoPScale.tupleSize = 1;
+        AttributeInfoPScale.exists = true;
+        AttributeInfoPScale.owner = NewAttributesOwner;
+        AttributeInfoPScale.storage = HAPI_STORAGETYPE_FLOAT;
+        AttributeInfoPScale.originalOwner = OriginalAttributesOwner;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-	    FHoudiniEngine::Get().GetSession(), 
-	    CurveAssetId, 0, 0,
-	    HAPI_UNREAL_ATTRIB_UNIFORM_SCALE,
-	    &AttributeInfoPScale), false);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+            FHoudiniEngine::Get().GetSession(), 
+            CurveAssetId, 0, 0,
+            HAPI_UNREAL_ATTRIB_UNIFORM_SCALE,
+            &AttributeInfoPScale), false);
 
-	// Get the current uniform scale.
-	TArray<float> CurvePScales;
-	CurvePScales.SetNumZeroed(NumberOfCVs);
-	for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
-	{
-	    CurvePScales[Idx] = (*UniformScales)[Idx];
-	}
+        // Get the current uniform scale.
+        TArray<float> CurvePScales;
+        CurvePScales.SetNumZeroed(NumberOfCVs);
+        for (int32 Idx = 0; Idx < NumberOfCVs; ++Idx)
+        {
+            CurvePScales[Idx] = (*UniformScales)[Idx];
+        }
 
         // We can now upload them to our attribute.
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
@@ -2911,13 +2904,13 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 
     // If we don't have a spline component, or host asset is invalid, there's nothing to do.
     if (!SplineComponent || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
-	return false;
+        return false;
 
     // Get runtime settings and extract the spline resolution from it
     float fSplineResolution = -1.0f;
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     if (HoudiniRuntimeSettings)
-	fSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
+        fSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
 
     int32 nNumberOfControlPoints = SplineComponent->GetNumberOfSplinePoints();
     float fSplineLength = SplineComponent->GetSplineLength();
@@ -2998,15 +2991,15 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
 
     // Cook the spline node.
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(
-	FHoudiniEngine::Get().GetSession(),
-	ConnectedAssetId,
-	nullptr), false);
+        FHoudiniEngine::Get().GetSession(),
+        ConnectedAssetId,
+        nullptr), false);
 
     // Connect asset.
     if (!FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex))
     {
-	ConnectedAssetId = -1;
-	return false;
+        ConnectedAssetId = -1;
+        return false;
     }
 
 #endif
@@ -3515,27 +3508,27 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     for ( int32 InputIdx = 0; InputIdx < OutlinerMeshArray.Num(); ++InputIdx )
     {
         auto & OutlinerMesh = OutlinerMeshArray[ InputIdx ];
-	
-	bool bInputCreated = false;
-	if (OutlinerMesh.StaticMesh != nullptr)
-	{
-	    // Creating an Input Node for Mesh Data
-	    bInputCreated = HapiCreateAndConnectAsset(
-		ConnectedAssetId,
-		InputIdx,
-		OutlinerMesh.StaticMesh,
-		OutlinerMesh.AssetId );
-	}
-	else if (OutlinerMesh.SplineComponent != nullptr)
-	{
-	    // Creating an input node for spline data
-	    bInputCreated = HapiCreateAndConnectAsset(
-		ConnectedAssetId,
-		InputIdx,
-		OutlinerMesh.SplineComponent,
-		OutlinerMesh.AssetId,
-		OutlinerMesh );
-	}
+        
+        bool bInputCreated = false;
+        if (OutlinerMesh.StaticMesh != nullptr)
+        {
+            // Creating an Input Node for Mesh Data
+            bInputCreated = HapiCreateAndConnectAsset(
+                ConnectedAssetId,
+                InputIdx,
+                OutlinerMesh.StaticMesh,
+                OutlinerMesh.AssetId );
+        }
+        else if (OutlinerMesh.SplineComponent != nullptr)
+        {
+            // Creating an input node for spline data
+            bInputCreated = HapiCreateAndConnectAsset(
+                ConnectedAssetId,
+                InputIdx,
+                OutlinerMesh.SplineComponent,
+                OutlinerMesh.AssetId,
+                OutlinerMesh );
+        }
 
         if ( !bInputCreated )
         {
@@ -3544,7 +3537,7 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
         }
 
         
-	// Updating the Transform
+        // Updating the Transform
         HAPI_TransformEuler HapiTransform;
         FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
 

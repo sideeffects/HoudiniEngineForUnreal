@@ -1000,7 +1000,8 @@ UHoudiniAssetInput::UploadParameterValue()
                     return false;
                 }          
 
-                // Connect asset.                if ( !FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex) )
+                // Connect asset.
+                if ( !FHoudiniEngineUtils::HapiConnectAsset(ConnectedAssetId, 0, HostAssetId, InputIndex) )
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
