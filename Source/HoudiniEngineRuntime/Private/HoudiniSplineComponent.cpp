@@ -29,8 +29,10 @@ UHoudiniSplineComponent::UHoudiniSplineComponent( const FObjectInitializer & Obj
     , bClosedCurve( false )
 {
     // By default we will create two points.
-    CurvePoints.Add( FVector( 0.0f, 0.0f, 0.0f ) );
-    CurvePoints.Add( FVector( 100.0f, 0.0f, 0.0f ) );
+    FTransform transf = FTransform::Identity;
+    CurvePoints.Add( transf );
+    transf.SetTranslation( FVector(200.0f, 0.0f, 0.0f) );
+    CurvePoints.Add( transf );
 }
 
 UHoudiniSplineComponent::~UHoudiniSplineComponent()
@@ -41,12 +43,31 @@ UHoudiniSplineComponent::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
-    int32 Version = 0; // Placeholder until we need to use it.
+    int32 Version = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << Version;
 
     Ar << HoudiniGeoPartObject;
 
-    Ar << CurvePoints;
+    if (Version < VER_HOUDINI_PLUGIN_SERIALIZATION_HOUDINI_SPLINE_TO_TRANSFORM)
+    {
+        // Before, curve points where stored as Vectors, not Transforms
+        TArray<FVector> OldCurvePoints;
+        Ar << OldCurvePoints;
+
+        CurvePoints.SetNumUninitialized(OldCurvePoints.Num());
+
+        FTransform trans = FTransform::Identity;
+        for (int32 n = 0; n < CurvePoints.Num(); n++)
+        {
+            trans.SetLocation(OldCurvePoints[n]);
+            CurvePoints[n] = trans;
+        }
+    }
+    else
+    {
+        Ar << CurvePoints;
+    }
+
     Ar << CurveDisplayPoints;
 
     SerializeEnumeration< EHoudiniSplineComponentType::Enum >( Ar, CurveType );
@@ -74,7 +95,7 @@ UHoudiniSplineComponent::PostEditUndo()
 bool
 UHoudiniSplineComponent::Construct(
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
-    const TArray< FVector > & InCurvePoints,
+    const TArray< FTransform > & InCurvePoints,
     const TArray< FVector > & InCurveDisplayPoints,
     EHoudiniSplineComponentType::Enum InCurveType,
     EHoudiniSplineComponentMethod::Enum InCurveMethod,
@@ -87,6 +108,27 @@ UHoudiniSplineComponent::Construct(
 
     ResetCurveDisplayPoints();
     AddDisplayPoints( InCurveDisplayPoints );
+
+    CurveType = InCurveType;
+    CurveMethod = InCurveMethod;
+    bClosedCurve = bInClosedCurve;
+
+    return true;
+}
+
+
+bool
+UHoudiniSplineComponent::Construct(
+    const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
+    const TArray< FVector > & InCurveDisplayPoints,
+    EHoudiniSplineComponentType::Enum InCurveType,
+    EHoudiniSplineComponentMethod::Enum InCurveMethod,
+    bool bInClosedCurve)
+{
+    HoudiniGeoPartObject = InHoudiniGeoPartObject;
+
+    ResetCurveDisplayPoints();
+    AddDisplayPoints(InCurveDisplayPoints);
 
     CurveType = InCurveType;
     CurveMethod = InCurveMethod;
@@ -155,13 +197,13 @@ UHoudiniSplineComponent::ResetCurveDisplayPoints()
 }
 
 void
-UHoudiniSplineComponent::AddPoint( const FVector & Point )
+UHoudiniSplineComponent::AddPoint( const FTransform & Point )
 {
     CurvePoints.Add( Point );
 }
 
 void
-UHoudiniSplineComponent::AddPoints( const TArray< FVector > & Points )
+UHoudiniSplineComponent::AddPoints( const TArray< FTransform > & Points )
 {
     CurvePoints.Append( Points );
 }
@@ -182,7 +224,7 @@ UHoudiniSplineComponent::IsValidCurve() const
 }
 
 void
-UHoudiniSplineComponent::UpdatePoint( int32 PointIndex, const FVector & Point )
+UHoudiniSplineComponent::UpdatePoint( int32 PointIndex, const FTransform & Point )
 {
     check( PointIndex >= 0 && PointIndex < CurvePoints.Num() );
     CurvePoints[ PointIndex ] = Point;
@@ -190,44 +232,53 @@ UHoudiniSplineComponent::UpdatePoint( int32 PointIndex, const FVector & Point )
 
 void
 UHoudiniSplineComponent::UploadControlPoints()
-{
+{    
+    // No neeed to uploadPoints anymore as they are read back 
+    // directly from the curve!
+    return;
+
+    /*
+    // Grab component we are attached to.
+    HAPI_AssetId HostAssetId = -1;
+    UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
+    if (AttachComponent)
+        HostAssetId = AttachComponent->GetAssetId();
+
     HAPI_NodeId NodeId = -1;
-    if ( IsInputCurve() )
+    if (IsInputCurve())
     {
-        if ( HoudiniGeoPartObject.IsValid() )
-            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId( HoudiniAssetInput->GetConnectedAssetId() );
+	if (HoudiniGeoPartObject.IsValid())
+	    NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(HoudiniAssetInput->GetConnectedAssetId());
     }
     else
     {
-        // Grab component we are attached to.
-        UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >( GetAttachParent() );
-        if ( HoudiniGeoPartObject.IsValid() && AttachComponent )
-            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId( AttachComponent->GetAssetId() );
+	// Grab component we are attached to.
+	UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
+	if (HoudiniGeoPartObject.IsValid() && AttachComponent)
+	    NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(AttachComponent->GetAssetId());
     }
-
-    if ( NodeId < 0 )
+   
+    if ( ( NodeId < 0 ) || ( HostAssetId < 0 ) )
         return;
 
-    FString PositionString = TEXT( "" );
-    FHoudiniEngineUtils::CreatePositionsString( CurvePoints, PositionString );
+    // Extract positions rotations and scales and upload them to the curve node
+    TArray<FVector> Positions;
+    GetCurvePositions(Positions);
 
-    // Get param id.
-    HAPI_ParmId ParmId = -1;
-    if ( FHoudiniApi::GetParmIdFromName(
-        FHoudiniEngine::Get().GetSession(), NodeId,
-        HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId ) != HAPI_RESULT_SUCCESS )
-    {
-        return;
-    }
+    TArray<FQuat> Rotations;
+    GetCurveRotations(Rotations);
 
-    // Set the position string
-    std::string ConvertedString = TCHAR_TO_UTF8( *PositionString );
-    if ( FHoudiniApi::SetParmStringValue(
-        FHoudiniEngine::Get().GetSession(), NodeId,
-        ConvertedString.c_str(), ParmId, 0 ) != HAPI_RESULT_SUCCESS )
-    {
-        return;
-    }
+    TArray<FVector> Scales;
+    GetCurveScales(Scales);
+
+    FHoudiniEngineUtils::HapiCreateCurveAsset(
+        HostAssetId,
+        NodeId,
+        &Positions,
+        &Rotations,
+        &Scales,
+        nullptr);
+	*/
 }
 
 void
@@ -238,7 +289,7 @@ UHoudiniSplineComponent::RemovePoint( int32 PointIndex )
 }
 
 void
-UHoudiniSplineComponent::AddPoint( int32 PointIndex, const FVector & Point )
+UHoudiniSplineComponent::AddPoint( int32 PointIndex, const FTransform & Point )
 {
     check( PointIndex >= 0 && PointIndex < CurvePoints.Num() );
     CurvePoints.Insert( Point, PointIndex );
@@ -263,8 +314,40 @@ UHoudiniSplineComponent::NotifyHoudiniInputCurveChanged()
         HoudiniAssetInput->OnInputCurveChanged();
 }
 
-const TArray< FVector > &
+const TArray< FTransform > &
 UHoudiniSplineComponent::GetCurvePoints() const
 {
     return CurvePoints;
+}
+
+
+void
+UHoudiniSplineComponent::GetCurvePositions(TArray<FVector>& Positions) const
+{
+    Positions.SetNumUninitialized(CurvePoints.Num());
+    for (int32 n = 0; n < CurvePoints.Num(); n++)
+    {
+        Positions[n] = CurvePoints[n].GetLocation();
+    }
+}
+
+
+void 
+UHoudiniSplineComponent::GetCurveRotations(TArray<FQuat>& Rotations) const
+{
+    Rotations.SetNumUninitialized(CurvePoints.Num());
+    for (int32 n = 0; n < CurvePoints.Num(); n++)
+    {
+        Rotations[n] = CurvePoints[n].GetRotation();
+    }
+}
+
+void 
+UHoudiniSplineComponent::GetCurveScales(TArray<FVector>& Scales) const
+{
+    Scales.SetNumUninitialized(CurvePoints.Num());
+    for (int32 n = 0; n < CurvePoints.Num(); n++)
+    {
+        Scales[n] = CurvePoints[n].GetScale3D();
+    }
 }

@@ -69,11 +69,21 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         /** Construct spline from given information. Resets any existing state. **/
         bool Construct(
             const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
-            const TArray< FVector > & InCurvePoints,
+            const TArray< FTransform > & InCurvePoints,
             const TArray< FVector > & InCurveDisplayPoints,
             EHoudiniSplineComponentType::Enum InCurveType,
             EHoudiniSplineComponentMethod::Enum InCurveMethod,
             bool bInClosedCurve = false );
+
+
+        /** Construct spline from given information. Resets any existing state. **/
+        bool Construct(
+            const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
+            const TArray< FVector > & InCurveDisplayPoints,
+            EHoudiniSplineComponentType::Enum InCurveType,
+            EHoudiniSplineComponentMethod::Enum InCurveMethod,
+            bool bInClosedCurve = false);
+
 
         /** Copies data from an another curve. Resets any existing state **/
         bool CopyFrom( UHoudiniSplineComponent* InSplineComponent );
@@ -97,10 +107,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         void ResetCurveDisplayPoints();
 
         /** Add a point to this curve. **/
-        void AddPoint( const FVector & Point );
+        void AddPoint( const FTransform & Point );
 
         /** Add points to this curve. **/
-        void AddPoints( const TArray< FVector > & Points );
+        void AddPoints( const TArray< FTransform > & Points );
 
         /** Add display points to this curve. **/
         void AddDisplayPoints( const TArray< FVector > & Points );
@@ -109,7 +119,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         bool IsValidCurve() const;
 
         /** Update point at given index with new information. **/
-        void UpdatePoint( int32 PointIndex, const FVector & Point );
+        void UpdatePoint( int32 PointIndex, const FTransform & Point );
 
         /** Upload changed control points to HAPI. **/
         void UploadControlPoints();
@@ -118,7 +128,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         void RemovePoint( int32 PointIndex );
 
         /** Add a point to this curve at given point index. **/
-        void AddPoint( int32 PointIndex, const FVector & Point );
+        void AddPoint( int32 PointIndex, const FTransform & Point );
 
         /** Return true if this is an input curve. **/
         bool IsInputCurve() const;
@@ -130,7 +140,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         void NotifyHoudiniInputCurveChanged();
 
         /** Return curve points. **/
-        const TArray< FVector > & GetCurvePoints() const;
+        const TArray< FTransform > & GetCurvePoints() const;
+
+        /** Extract Positions from the Transform Array **/
+        void GetCurvePositions(TArray<FVector>& Positions) const;
+
+        /** Extract Rotations from the Transform Array **/
+        void GetCurveRotations(TArray<FQuat>& Roatations) const;
+
+        /** Extract Scales from the Transform Array **/
+        void GetCurveScales(TArray<FVector>& Scales) const;
 
     protected:
 
@@ -138,7 +157,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         FHoudiniGeoPartObject HoudiniGeoPartObject;
 
         /** List of points composing this curve. **/
-        TArray< FVector > CurvePoints;
+        TArray< FTransform > CurvePoints;
 
         /** List of refined points used for drawing. **/
         TArray< FVector > CurveDisplayPoints;
