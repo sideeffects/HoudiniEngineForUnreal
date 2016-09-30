@@ -233,29 +233,29 @@ UHoudiniSplineComponent::UpdatePoint( int32 PointIndex, const FTransform & Point
 void
 UHoudiniSplineComponent::UploadControlPoints()
 {    
-    // No neeed to uploadPoints anymore as they are read back 
-    // directly from the curve!
-    return;
-
-    /*
     // Grab component we are attached to.
     HAPI_AssetId HostAssetId = -1;
     UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
     if (AttachComponent)
         HostAssetId = AttachComponent->GetAssetId();
 
-    HAPI_NodeId NodeId = -1;
+    HAPI_AssetId CurveAssetId = -1;
+    HAPI_NodeId NodeId = -1;    
     if (IsInputCurve())
     {
-	if (HoudiniGeoPartObject.IsValid())
-	    NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(HoudiniAssetInput->GetConnectedAssetId());
+        CurveAssetId = HoudiniAssetInput->GetConnectedAssetId();
+        if (HoudiniGeoPartObject.IsValid())
+            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(CurveAssetId);
     }
     else
     {
         // Grab component we are attached to.
-        UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >( AttachParent );
-        if ( HoudiniGeoPartObject.IsValid() && AttachComponent )
-            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId( AttachComponent->GetAssetId() );
+        UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
+        if (HoudiniGeoPartObject.IsValid() && AttachComponent)
+        {
+            CurveAssetId = AttachComponent->GetAssetId();
+            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(CurveAssetId);
+        }
     }
    
     if ( ( NodeId < 0 ) || ( HostAssetId < 0 ) )
@@ -273,12 +273,14 @@ UHoudiniSplineComponent::UploadControlPoints()
 
     FHoudiniEngineUtils::HapiCreateCurveAsset(
         HostAssetId,
-        NodeId,
+        CurveAssetId,
         &Positions,
         &Rotations,
         &Scales,
         nullptr);
-    */
+
+    // We need to cook the spline node.
+    FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), HostAssetId, nullptr);
 }
 
 void
