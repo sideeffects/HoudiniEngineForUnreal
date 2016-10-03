@@ -8725,11 +8725,39 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
         {
             ULevel* DesiredLevel = GWorld->GetCurrentLevel();
             FName BaseName( *(HoudiniAssetComponent->GetOwner()->GetName() + TEXT("_Baked")) );
+            UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
+
+            auto PrepNewStaticMeshActor= [&]( AActor* NewActor ) {
+                // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
+                FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
+                FString NewNameStr = NewName.ToString();
+                NewActor->Rename( *NewNameStr );
+                NewActor->SetActorLabel( NewNameStr );
+                NewActor->SetFolderPath( BaseName );
+
+                // Copy properties to new actor
+                if ( AStaticMeshActor* SMActor = Cast< AStaticMeshActor>( NewActor ) )
+                {
+                    if ( UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent() )
+                    {
+                        UStaticMeshComponent* OtherSMC_NonConst = const_cast<UStaticMeshComponent*>( OtherSMC );
+                        SMC->SetCollisionProfileName( OtherSMC_NonConst->GetCollisionProfileName() );
+                        SMC->SetCollisionEnabled( OtherSMC->GetCollisionEnabled() );
+                        SMC->LightmassSettings = OtherSMC->LightmassSettings;
+                        SMC->CastShadow = OtherSMC->CastShadow;
+                        SMC->SetMobility( OtherSMC->Mobility );
+                        if ( OtherSMC_NonConst->GetBodySetup() )
+                            SMC->SetPhysMaterialOverride( OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() );
+                        SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame );
+                        SMC->SetVisibility( OtherSMC->IsVisible() );
+                    }
+                }
+            };
 
             if ( const UInstancedStaticMeshComponent* OtherISMC = Cast< const UInstancedStaticMeshComponent>( OtherSMC ) )
             {
+#ifdef BAKE_TO_INSTANCEDSTATICMESHCOMPONENT_ACTORS
                 // This is an instanced static mesh component - we will create a generic AActor with a UInstancedStaticMeshComponent root
-
                 FActorSpawnParameters SpawnInfo;
                 SpawnInfo.OverrideLevel = DesiredLevel;
                 SpawnInfo.ObjectFlags = RF_Transactional;
@@ -8759,44 +8787,24 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                         NewActor->MarkPackageDirty();
                     }
                 }
+#else
+                // This is an instanced static mesh component - we will split it up into StaticMeshActors
+                for ( int32 InstanceIx = 0; InstanceIx < OtherISMC->GetInstanceCount(); ++InstanceIx )
+                {
+                    FTransform InstanceTransform;
+                    OtherISMC->GetInstanceTransform( InstanceIx, InstanceTransform, true );
+                    if ( AActor* NewActor = Factory->CreateActor( BakedSM, DesiredLevel, InstanceTransform, RF_Transactional ) )
+                    {
+                        PrepNewStaticMeshActor( NewActor );
+                    }
+                }
+#endif
             }
             else
             {
-                UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
-
                 if ( AActor* NewActor = Factory->CreateActor( BakedSM, DesiredLevel, OtherSMC->GetComponentTransform(), RF_Transactional ) )
                 {
-                    // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
-
-                    FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
-                    FString NewNameStr = NewName.ToString();
-                    NewActor->Rename( *NewNameStr );
-                    NewActor->SetActorLabel( NewNameStr );
-                    NewActor->SetFolderPath( BaseName );
-
-                    // Copy properties to new actor
-                    if ( AStaticMeshActor* SMActor = Cast< AStaticMeshActor>( NewActor ) )
-                    {
-                        if ( UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent() )
-                        {
-                            UStaticMeshComponent* OtherSMC_NonConst = const_cast<UStaticMeshComponent*>( OtherSMC );
-                            SMC->SetCollisionProfileName( OtherSMC_NonConst->GetCollisionProfileName() );
-                            SMC->SetCollisionEnabled( OtherSMC->GetCollisionEnabled() );
-                            SMC->LightmassSettings = OtherSMC->LightmassSettings;
-                            SMC->CastShadow = OtherSMC->CastShadow;
-                            SMC->SetMobility( OtherSMC->Mobility );
-                            if ( OtherSMC_NonConst->GetBodySetup() )
-                                SMC->SetPhysMaterialOverride( OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() );
-                            SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame );
-                            SMC->SetVisibility( OtherSMC->IsVisible() );
-                        }
-                    }
-
-                    NewActors.Add( NewActor );
-
-                    NewActor->InvalidateLightingCache();
-                    NewActor->PostEditMove( true );
-                    NewActor->MarkPackageDirty();
+                    PrepNewStaticMeshActor( NewActor );
                 }
             }
         }
