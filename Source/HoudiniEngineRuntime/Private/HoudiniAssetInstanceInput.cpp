@@ -549,6 +549,11 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         }
 
         HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+
+        // refresh the geo part
+        FHoudiniGeoPartObject RefreshedGeoPart = HoudiniAssetInstanceInputField->GetHoudiniGeoPartObject();
+        RefreshedGeoPart.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
+        HoudiniAssetInstanceInputField->SetGeoPartObject( RefreshedGeoPart );
     }
     else
     {
