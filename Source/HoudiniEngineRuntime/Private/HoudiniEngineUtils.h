@@ -210,7 +210,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 	static bool HapiCreateCurveInputNodeForData(
 	    HAPI_AssetId HostAssetId,
 	    HAPI_AssetId & ConnectedAssetId,
-	    const TArray<FVector>* Positions,
+	    TArray<FVector>* Positions,
 	    TArray<FQuat>* Rotations = nullptr,
 	    TArray<FVector>* Scales3d = nullptr,
 	    TArray<float>* UniformScales = nullptr);
