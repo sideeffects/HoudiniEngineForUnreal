@@ -179,6 +179,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             // Create this instanced input field for this instanced part
             //
             FHoudiniGeoPartObject InstancedPart( HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId, HoudiniGeoPartObject.GeoId, InstancedPartId );
+            InstancedPart.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
             CreateInstanceInputField( InstancedPart, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
         }
     }
@@ -238,8 +239,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             for ( int32 InstanceGeoPartObjectIdx = 0; InstanceGeoPartObjectIdx < InstanceGeoPartObjects.Num();
                 ++InstanceGeoPartObjectIdx )
             {
-                const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject =
-                    InstanceGeoPartObjects[ InstanceGeoPartObjectIdx ];
+                FHoudiniGeoPartObject & ItemHoudiniGeoPartObject = InstanceGeoPartObjects[ InstanceGeoPartObjectIdx ];
+                // Change the transform of the part being instanced to match the instancer
+                ItemHoudiniGeoPartObject.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
 
                 // Locate or create an input field.
                 CreateInstanceInputField(
@@ -389,7 +391,10 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         // Process each existing detected object that needs to be instanced.
         for ( int32 GeoIdx = 0; GeoIdx < ObjectsToInstance.Num(); ++GeoIdx )
         {
-            const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject = ObjectsToInstance[ GeoIdx ];
+            FHoudiniGeoPartObject & ItemHoudiniGeoPartObject = ObjectsToInstance[ GeoIdx ];
+
+            // Change the transform of the part being instanced to match the instancer
+            ItemHoudiniGeoPartObject.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
 
             // Locate or create an input field.
             CreateInstanceInputField(
@@ -547,9 +552,12 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
     }
     else
     {
-        FHoudiniGeoPartObject TempHoudiniGeoPartObject;
+        // Create a dummy part for this field
+        FHoudiniGeoPartObject InstancedPart;
+        InstancedPart.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
+
         HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
-            HoudiniAssetComponent, this, TempHoudiniGeoPartObject );
+            HoudiniAssetComponent, this, InstancedPart );
 
         // Assign original and static mesh.
         HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
