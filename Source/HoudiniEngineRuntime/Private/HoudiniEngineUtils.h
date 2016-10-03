@@ -408,6 +408,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Bake output meshes and materials to packages and create corresponding actors in the scene */
         static void BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors );
 
+        /** Get a candidate for baking to outliner input workflow */
+        static class UHoudiniAssetInput* GetInputForBakeHoudiniActorToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
+
         /** Returns true if the conditions are met for Bake to Input action ( 1 static mesh output and first input is world outliner with a static mesh) */
         static bool GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
 
