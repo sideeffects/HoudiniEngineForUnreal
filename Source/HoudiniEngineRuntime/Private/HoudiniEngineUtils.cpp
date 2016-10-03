@@ -1382,7 +1382,7 @@ bool
 FHoudiniEngineUtils::HapiCreateCurveAsset(
     HAPI_AssetId HostAssetId,
     HAPI_AssetId& CurveAssetId,
-    const TArray<FVector>* Positions,
+    TArray<FVector>* Positions,
     TArray<FQuat>* Rotations /*= nullptr*/,
     TArray<FVector>* Scales3d /*= nullptr*/,
     TArray<float>* UniformScales /*= nullptr*/)
@@ -1425,6 +1425,36 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
     //   and scale attributes to it. This will lock the curve SOP, and prevent the curve type and method 
     //   parameters from functioning properly (hence why we needed the first cook to set that up)
     //
+
+    // Reading the curve parameters
+    int32 CurveTypeValue, CurveMethodValue, CurveClosed;
+    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+        NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, 0, CurveTypeValue);
+    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+        NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, 0, CurveMethodValue);
+    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+        NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed);
+
+    // For closed NURBS (CVs and Breakpoints), we have to close the curve manually, by duplicating its last point
+    // in order to be able to set the rotations and scales attributes properly.
+    bool bCloseCurveManually = false;
+    if ( CurveClosed && (CurveTypeValue == HAPI_CURVETYPE_NURBS) && (CurveMethodValue != 2) )
+    {
+        // The curve is not closed anymore
+        if (HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), NodeId,
+            HAPI_UNREAL_PARAM_CURVE_CLOSED, 0, 0))
+        {
+            bCloseCurveManually = true;
+
+            // Duplicating the first point to the end of the curve
+            // This needs to be done before sending the position string
+            FVector pos = (*Positions)[0];
+            Positions->Add(pos);
+
+            CurveClosed = false;
+        }
+    }
 
     // Creating the position string
     FString PositionString = TEXT("");
@@ -1471,22 +1501,13 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookAsset(
         FHoudiniEngine::Get().GetSession(), CurveAssetId, &CookOptions), false);
 
-    //  We can now read back the Part infos from the cooked curve ...
+    //  We can now read back the Part infos from the cooked curve.
     HAPI_PartInfo PartInfos;
     FMemory::Memzero< HAPI_PartInfo >(PartInfos);
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(
         FHoudiniEngine::Get().GetSession(), 
         CurveAssetId, 0, 0, 0,
         &PartInfos), false);
-
-    // .. and its parameters.
-    int32 CurveTypeValue, CurveMethodValue, CurveClosed;
-    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
-        NodeId, HAPI_UNREAL_PARAM_CURVE_TYPE, 0, CurveTypeValue);
-    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
-        NodeId, HAPI_UNREAL_PARAM_CURVE_METHOD, 0, CurveMethodValue);
-    FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
-        NodeId, HAPI_UNREAL_PARAM_CURVE_CLOSED, 1, CurveClosed);
 
     //
     // Depending on the curve type and method, additionnal control points might have been created.
@@ -1557,7 +1578,19 @@ FHoudiniEngineUtils::HapiCreateCurveAsset(
                 UniformScales->Add(value);
         }
     };
-    
+
+    // Do we want to close the curve by ourselves?
+    if (bCloseCurveManually)
+    {
+        // We need to duplicate the info of the first point to the last
+        DuplicateRotScaleUScale(0, NumberOfCVs++);
+
+        // We need to upddate the closed parameter
+        FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), NodeId,
+            HAPI_UNREAL_PARAM_CURVE_CLOSED, 0, 1);
+    }
+
     // INTERPOLATION
     if (CurveTypeValue == HAPI_CURVETYPE_NURBS)
     {
