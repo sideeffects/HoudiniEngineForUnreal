@@ -8813,26 +8813,48 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
     }
 }
 
+UHoudiniAssetInput* 
+FHoudiniEngineUtils::GetInputForBakeHoudiniActorToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent )
+{
+    UHoudiniAssetInput *FirstInput = nullptr, *Result = nullptr;
+    if ( HoudiniAssetComponent->GetInputs().Num() && HoudiniAssetComponent->GetInputs()[ 0 ] )
+    {
+        FirstInput = HoudiniAssetComponent->GetInputs()[ 0 ];
+    }
+    else
+    {
+        TMap< FString, UHoudiniAssetParameter* > InputParams;
+        HoudiniAssetComponent->CollectAllParametersOfType( UHoudiniAssetInput::StaticClass(), InputParams );
+        TArray< UHoudiniAssetParameter* > InputParamsArray;
+        InputParams.GenerateValueArray( InputParamsArray );
+        if ( InputParamsArray.Num() > 0 )
+        {
+            FirstInput = Cast<UHoudiniAssetInput>(InputParamsArray[ 0 ]);
+        }
+    }
+
+    if ( FirstInput )
+    {
+        if ( FirstInput->GetChoiceIndex() == EHoudiniAssetInputType::WorldInput && FirstInput->GetWorldOutlinerInputs().Num() == 1 )
+        {
+            const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
+            if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
+            {
+                Result = FirstInput;
+            }
+        }
+    }
+    return Result;
+}
+
 bool 
 FHoudiniEngineUtils::GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent )
 {
+    // TODO: Cache this
     auto SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
     if ( SMComponentToPart.Num() == 1 )
     {
-        if ( HoudiniAssetComponent->GetInputs().Num() )
-        {
-            if ( UHoudiniAssetInput* FirstInput = HoudiniAssetComponent->GetInputs()[ 0 ] )
-            {
-                if ( FirstInput->GetChoiceIndex() == EHoudiniAssetInputType::WorldInput && FirstInput->GetWorldOutlinerInputs().Num() == 1 )
-                {
-                    const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
-                    if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
+        return nullptr != GetInputForBakeHoudiniActorToOutlinerInput( HoudiniAssetComponent );
     }
     return false;
 }
@@ -8876,31 +8898,24 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
     for ( auto Iter : OriginalToBakedMesh )
     {
         // Get the first outliner input
-        if ( HoudiniAssetComponent->GetInputs().Num() )
+        if ( UHoudiniAssetInput* FirstInput = GetInputForBakeHoudiniActorToOutlinerInput( HoudiniAssetComponent ) )
         {
-            if ( UHoudiniAssetInput* FirstInput = HoudiniAssetComponent->GetInputs()[ 0 ] )
+            const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
+            if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
             {
-                if ( FirstInput->GetChoiceIndex() == EHoudiniAssetInputType::WorldInput && FirstInput->GetWorldOutlinerInputs().Num() )
-                {
-                    const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
-                    if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
-                    {
-                        UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
-                        InputOutlinerMesh.Actor->Modify();
-                        InOutSMC->StaticMesh = Iter.Value;
-                        InOutSMC->InvalidateLightingCache();
-                        InOutSMC->MarkPackageDirty();
+                UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
+                InputOutlinerMesh.Actor->Modify();
+                InOutSMC->StaticMesh = Iter.Value;
+                InOutSMC->InvalidateLightingCache();
+                InOutSMC->MarkPackageDirty();
 
-                        // Disconnect the input from the asset - InputOutlinerMesh now garbage
-                        FirstInput->RemoveWorldOutlinerInput( 0 );
-                    }
-                }
+                // Disconnect the input from the asset - InputOutlinerMesh now garbage
+                FirstInput->RemoveWorldOutlinerInput( 0 );
             }
         }
         // Only handle the first Baked Mesh
         break;
     }
-
 }
 
 #endif
