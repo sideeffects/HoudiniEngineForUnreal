@@ -73,10 +73,10 @@ UHoudiniAssetParameterFolder::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFolder::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterFolder::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
     if ( ParentParameter && ParentParameter->IsActiveChildParameter( this ) )
-        Super::CreateWidget( DetailCategoryBuilder );
+        Super::CreateWidget( LocalDetailCategoryBuilder );
 }
 
 #endif

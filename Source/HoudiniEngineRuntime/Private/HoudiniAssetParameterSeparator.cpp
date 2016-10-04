@@ -70,13 +70,13 @@ UHoudiniAssetParameterSeparator::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterSeparator::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterSeparator::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
     TSharedPtr< SSeparator > Separator;
 
-    DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
     [
         SNew( SVerticalBox )
         +SVerticalBox::Slot()

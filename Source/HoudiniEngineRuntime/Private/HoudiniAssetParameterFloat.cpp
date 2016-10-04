@@ -153,25 +153,25 @@ UHoudiniAssetParameterFloat::CreateParameter(
     {
         // If we are using defaults, we can detect some most common parameter names and alter defaults.
 
-        FString ParameterName = TEXT( "" );
+        FString LocalParameterName = TEXT( "" );
         FHoudiniEngineString HoudiniEngineString( ParmInfo.nameSH );
-        HoudiniEngineString.ToFString( ParameterName );
+        HoudiniEngineString.ToFString( LocalParameterName );
 
         static const FString ParameterNameTranslate( TEXT( HAPI_UNREAL_PARAM_TRANSLATE ) );
         static const FString ParameterNameRotate( TEXT( HAPI_UNREAL_PARAM_ROTATE ) );
         static const FString ParameterNameScale( TEXT( HAPI_UNREAL_PARAM_SCALE ) );
         static const FString ParameterNamePivot( TEXT( HAPI_UNREAL_PARAM_PIVOT ) );
 
-        if ( !ParameterName.IsEmpty() )
+        if ( !LocalParameterName.IsEmpty() )
         {
-            if ( ParameterName.Equals( ParameterNameTranslate )
-                || ParameterName.Equals( ParameterNameScale )
-                || ParameterName.Equals( ParameterNamePivot ) )
+            if ( LocalParameterName.Equals( ParameterNameTranslate )
+                || LocalParameterName.Equals( ParameterNameScale )
+                || LocalParameterName.Equals( ParameterNamePivot ) )
             {
                 ValueUIMin = -1.0f;
                 ValueUIMax = 1.0f;
             }
-            else if ( ParameterName.Equals( ParameterNameRotate ) )
+            else if ( LocalParameterName.Equals( ParameterNameRotate ) )
             {
                 ValueUIMin = 0.0f;
                 ValueUIMax = 360.0f;
@@ -185,11 +185,11 @@ UHoudiniAssetParameterFloat::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
-    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.
     CreateNameWidget( Row, true );

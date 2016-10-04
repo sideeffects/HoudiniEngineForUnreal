@@ -8602,7 +8602,7 @@ FHoudiniEngineUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh )
 
     for ( const UMaterialInterface* MaterialInterface : StaticMesh->Materials )
     {
-        FAssetData BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *MaterialInterface->GetPathName() );
+        BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *MaterialInterface->GetPathName() );
         if ( ! BackingAssetData.IsUAsset() )
             return true;
     }

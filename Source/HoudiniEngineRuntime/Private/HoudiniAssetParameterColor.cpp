@@ -100,13 +100,13 @@ UHoudiniAssetParameterColor::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterColor::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterColor::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
     ColorBlock.Reset();
 
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
-    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.
     CreateNameWidget( Row, true );
