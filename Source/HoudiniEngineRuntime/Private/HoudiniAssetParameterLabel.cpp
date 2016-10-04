@@ -70,14 +70,14 @@ UHoudiniAssetParameterLabel::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterLabel::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterLabel::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
     TSharedPtr< STextBlock > TextBlock;
     FText ParameterLabelText = FText::FromString( GetParameterLabel() );
 
-    DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
     [
         SAssignNew( TextBlock, STextBlock )
         .Text( ParameterLabelText )

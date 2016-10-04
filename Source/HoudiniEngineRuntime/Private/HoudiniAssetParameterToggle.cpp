@@ -85,11 +85,11 @@ UHoudiniAssetParameterToggle::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterToggle::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterToggle::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
-    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
     FText ParameterLabelText = FText::FromString( GetParameterLabel() );
 
     // Create the standard parameter name widget.

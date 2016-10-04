@@ -76,11 +76,11 @@ UHoudiniAssetParameterFolderList::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFolderList::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterFolderList::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
     TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
 
-    DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
     [
         SAssignNew(HorizontalBox, SHorizontalBox)
     ];
@@ -104,13 +104,13 @@ UHoudiniAssetParameterFolderList::CreateWidget( IDetailCategoryBuilder & DetailC
         }
     }
 
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
     if ( ChildParameters.Num() > 1 )
     {
         TSharedPtr< STextBlock > TextBlock;
 
-        DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+        LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
         [
             SAssignNew( TextBlock, STextBlock )
             .Text( FText::GetEmpty() )
