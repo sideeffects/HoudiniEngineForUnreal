@@ -42,7 +42,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     void Serialize( FArchive & Ar );
 
     /** return true if the attached spline component has been modified **/
-    bool HasSplineComponentChanged() const;
+    bool HasSplineComponentChanged(float fCurrentSplineResolution) const;
 
     /** return true if the attached actor's transform has been modified **/
     bool HasActorTransformChanged() const;
@@ -362,6 +362,18 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Stop world outliner Actor transform monitor ticking. **/
         void StopWorldOutlinerTicking();
 
+        /** Set value of the SplineResolution for world outliners, used by Slate. **/
+        void SetSplineResolutionValue(float InValue);
+
+        /** Return value of the SplineResolution for world outliners. **/
+        TOptional< float > GetSplineResolutionValue() const;
+
+        /** Should the SplineResolution box be enabled?**/
+        bool IsSplineResolutionEnabled() const;
+
+        /** Reset the spline resolution to default **/
+        FReply OnResetSplineResolutionClicked();
+
 #endif
 
         /** Value of choice option. **/
@@ -400,6 +412,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Timer delegate, we use it for ticking to see if input Actors have changed. **/
         FTimerDelegate WorldOutlinerTimerDelegate;
 
+        float UnrealSplineResolution;
 
         /** Flags used by this input. **/
         union

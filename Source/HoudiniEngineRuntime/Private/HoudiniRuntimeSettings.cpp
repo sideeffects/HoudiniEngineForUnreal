@@ -53,7 +53,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     , MarshallingAttributeFaceSmoothingMask( TEXT( HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK ) )
     , MarshallingAttributeLightmapResolution( TEXT( HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION ) )
     , MarshallingAttributeGeneratedMeshName( TEXT( HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME ) )
-    , MarshallingSplineResolution( 50.0f )
+    , MarshallingSplineResolution( HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT )
     , MarshallingAttributeInputMeshName( TEXT( HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME ) )
 
     /** Geometry scaling. **/
