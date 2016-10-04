@@ -428,9 +428,9 @@ UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterRamp::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterRamp::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
-    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
     
     // Create the standard parameter name widget.
     CreateNameWidget( Row, true );
@@ -527,7 +527,7 @@ UHoudiniAssetParameterRamp::CreateWidget( IDetailCategoryBuilder & DetailCategor
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 
     // Bypass multiparm widget creation.
-    UHoudiniAssetParameter::CreateWidget( DetailCategoryBuilder );
+    UHoudiniAssetParameter::CreateWidget( LocalDetailCategoryBuilder );
 }
 
 #endif

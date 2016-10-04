@@ -97,11 +97,11 @@ UHoudiniAssetParameterButton::SetParameterVariantValue(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterButton::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterButton::CreateWidget( IDetailCategoryBuilder & localDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( localDetailCategoryBuilder );
 
-    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FDetailWidgetRow & Row = localDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
     FText ParameterLabelText = FText::FromString( GetParameterLabel() );
 
     // Create the standard parameter name widget.

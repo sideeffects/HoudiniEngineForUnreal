@@ -166,11 +166,11 @@ UHoudiniAssetParameterChoice::CreateParameter(
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterChoice::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterChoice::CreateWidget( IDetailCategoryBuilder & localDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( localDetailCategoryBuilder );
 
-    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FDetailWidgetRow & Row = localDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.
     CreateNameWidget( Row, true );
@@ -467,7 +467,7 @@ UHoudiniAssetParameterChoice::OnChoiceChange( TSharedPtr< FString > NewChoice, E
     if ( !NewChoice.IsValid() )
         return;
 
-    bool bChanged = false;
+    bool bLocalChanged = false;
     StringValue = *( NewChoice.Get() );
 
     // We need to match selection based on label.
@@ -478,12 +478,12 @@ UHoudiniAssetParameterChoice::OnChoiceChange( TSharedPtr< FString > NewChoice, E
 
         if ( ChoiceLabel->Equals( StringValue ) )
         {
-            bChanged = true;
+            bLocalChanged = true;
             break;
         }
     }
 
-    if ( bChanged )
+    if ( bLocalChanged )
     {
         // Record undo information.
         FScopedTransaction Transaction(

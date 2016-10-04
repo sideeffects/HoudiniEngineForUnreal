@@ -145,11 +145,11 @@ UHoudiniAssetParameterFile::Serialize( FArchive & Ar )
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFile::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetParameterFile::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
-    FDetailWidgetRow& Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    FDetailWidgetRow& Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.
     CreateNameWidget( Row, true );
