@@ -82,7 +82,7 @@ FHoudiniAssetInputOutlinerMesh::RebuildSplineTransformsArrayIfNeeded()
 }
 
 bool
-FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged() const
+FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged(float fCurrentSplineResolution) const
 {
     if (!SplineComponent)
 	return false;
@@ -98,10 +98,18 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged() const
     if (SplineControlPointsTransform.Num() != SplineComponent->GetNumberOfSplinePoints())
         return true;
 
-        // Current Spline resolution has changed?
-    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-    if ( (HoudiniRuntimeSettings) && (SplineResolution != HoudiniRuntimeSettings->MarshallingSplineResolution) )
-	return true;
+    // Current Spline resolution has changed?
+    if (fCurrentSplineResolution == -1.0)
+    {
+        const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+        if (HoudiniRuntimeSettings)
+            fCurrentSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
+        else
+            fCurrentSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
+    }
+
+    if ( SplineResolution != fCurrentSplineResolution )
+        return true;
 
     // Has any of the CV's transform been modified?
     for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
@@ -164,6 +172,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , bLandscapeExportTileUVs( false )
     , bIsObjectPathParameter( false )
     , bKeepWorldTransform( 2 )
+    , UnrealSplineResolution (-1.0f)
 {
     ChoiceStringValue = TEXT( "" );
 }
@@ -741,6 +750,63 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder
 		MenuBuilder.MakeWidget()
 	    ];
 	}
+
+        {
+            // Spline Resolution
+            TSharedPtr< SNumericEntryBox< float > > NumericEntryBox;
+            int32 Idx = 0;
+
+            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot()
+                [
+                    SNew(STextBlock)
+                    .Text(LOCTEXT("SplineRes", "Unreal Spline Resolution"))
+                    .ToolTipText(LOCTEXT("SplineResTooltip", "Resolution used when marshalling the Unreal Splines to HoudiniEngine.\n(step in cm betweem control points)\nSet this to 0 to only export the control points."))
+                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                ]
+                + SHorizontalBox::Slot()
+                .Padding(2.0f, 0.0f)
+                .VAlign(VAlign_Center)
+                [
+                    SNew(SNumericEntryBox< float >)
+                    .AllowSpin(true)
+
+                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+                    .MinValue(-1.0f)
+                    .MaxValue(1000.0f)
+                    .MinSliderValue(0.0f)
+                    .MaxSliderValue(1000.0f)
+
+                    .Value(TAttribute< TOptional< float > >::Create(TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetSplineResolutionValue) ) )
+                    .OnValueChanged(SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
+                        this, &UHoudiniAssetInput::SetSplineResolutionValue) )
+                    .IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsSplineResolutionEnabled)))
+
+                    .SliderExponent(1.0f)
+                ]
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .Padding(2.0f, 0.0f)
+                .VAlign(VAlign_Center)
+                [
+                    SNew(SButton)
+                    .ToolTipText(LOCTEXT("SplineResToDefault", "Reset to default value."))
+                    .ButtonStyle(FEditorStyle::Get(), "NoBorder")
+                    .ContentPadding(0)
+                    .Visibility(EVisibility::Visible)
+                    .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnResetSplineResolutionClicked))
+                    [
+                        SNew(SImage)
+                        .Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+                    ]
+                ]
+            ];
+        }
     }
 
     Row.ValueWidget.Widget = VerticalBox;
@@ -1189,7 +1255,8 @@ UHoudiniAssetInput::UploadParameterValue()
 
                     // Connect input and create connected asset. Will return by reference.
                     if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
-                        HostAssetId, InputOutlinerMeshArray, ConnectedAssetId ) )
+                        HostAssetId, InputOutlinerMeshArray,
+                        ConnectedAssetId, UnrealSplineResolution ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -1329,12 +1396,23 @@ UHoudiniAssetInput::PostLoad()
             Parameter->SetParentParameter( this );
         }
     }
-
-    // Set input callback object for this curve.
+  
     if ( InputCurve )
     {
-        InputCurve->SetHoudiniAssetInput( this );
-        InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
+        if (ChoiceIndex == EHoudiniAssetInputType::CurveInput)
+        {
+            // Set input callback object for this curve.
+            InputCurve->SetHoudiniAssetInput(this);
+            InputCurve->AttachToComponent(HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform);
+        }
+        else
+        {
+            // Manually destroying the "ghost" curve
+            InputCurve->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+            InputCurve->UnregisterComponent();
+            InputCurve->DestroyComponent();
+            InputCurve = nullptr;
+        }
     }
 
     if (InputOutlinerMeshArray.Num() > 0)
@@ -1423,6 +1501,9 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
             bInputAssetConnectedInHoudini = false;
         }
     }
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_UNREAL_SPLINE_RESOLUTION_PER_INPUT )
+        Ar << UnrealSplineResolution;
 }
 
 void
@@ -1713,7 +1794,8 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
             // Force recook and reconnect of the input assets.
             HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
             if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
-                HostAssetId, InputOutlinerMeshArray, ConnectedAssetId))
+                HostAssetId, InputOutlinerMeshArray, 
+                ConnectedAssetId, UnrealSplineResolution))
             {
                 ConnectInputNode();
             }
@@ -1910,7 +1992,7 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
                 LocalAssetNodeInfo.parentId, &HapiTransform);
         }
         else if ( OutlinerMesh.HasComponentTransformChanged() 
-                || OutlinerMesh.HasSplineComponentChanged()
+                || OutlinerMesh.HasSplineComponentChanged(UnrealSplineResolution)
                 || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
         {
             if ( !bChanged )
@@ -2866,4 +2948,58 @@ operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOut
 {
     HoudiniAssetInputOutlinerMesh.Serialize( Ar );
     return Ar;
+}
+
+
+
+TOptional< float >
+UHoudiniAssetInput::GetSplineResolutionValue() const
+{
+    if(UnrealSplineResolution != -1.0f)
+        return UnrealSplineResolution;
+
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (HoudiniRuntimeSettings)
+        return HoudiniRuntimeSettings->MarshallingSplineResolution;
+    else
+        return HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
+}
+
+
+void
+UHoudiniAssetInput::SetSplineResolutionValue(float InValue)
+{
+    if (InValue < 0)
+        OnResetSplineResolutionClicked();
+    else
+        UnrealSplineResolution = FMath::Clamp< float >(InValue, 0.0f, 10000.0f);
+}
+
+
+bool
+UHoudiniAssetInput::IsSplineResolutionEnabled() const
+{
+    if (ChoiceIndex != EHoudiniAssetInputType::WorldInput)
+        return false;
+
+    for (int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
+    {
+        if (InputOutlinerMeshArray[n].SplineComponent)
+            return true;
+    }
+
+    return false;
+}
+
+
+FReply
+UHoudiniAssetInput::OnResetSplineResolutionClicked()
+{
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (HoudiniRuntimeSettings)
+        UnrealSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
+    else
+        UnrealSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
+
+    return FReply::Handled();
 }

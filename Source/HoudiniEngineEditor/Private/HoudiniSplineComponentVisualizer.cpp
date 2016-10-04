@@ -60,6 +60,7 @@ FHoudiniSplineComponentVisualizer::FHoudiniSplineComponentVisualizer()
     , EditedHoudiniSplineComponent( nullptr )
     , bCurveEditing( false )
     , bAllowDuplication( true )
+    , CachedRotation( FQuat::Identity )
 {
     FHoudiniSplineComponentVisualizerCommands::Register();
     VisualizerActions = MakeShareable( new FUICommandList );
@@ -104,7 +105,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
         static const FColor ColorSelected(255, 0, 0);
 
         static const float GrabHandleSize = 12.0f;
-        static const float GrabHandleSizeNone = 8.0f;
+        static const float GrabHandleSizeNone = 12.0f;// 8.0f;
         static const float GrabHandleSizeSelected = 13.0f;
 
         // Get component transformation.
@@ -221,10 +222,7 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
         EditedControlPointsIndexes.Add(ControlPointProxy->ControlPointIndex);
     }
 
-    if (EditedControlPointsIndexes.Num() == 1)
-    {
-        CachedRotation = EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]].GetRotation();
-    }
+    CacheRotation();
 
     return bCurveEditing;
 }
@@ -241,10 +239,7 @@ FHoudiniSplineComponentVisualizer::HandleInputKey(
         bAllowDuplication = true;
 
         // Re-cache the rotation
-        if (EditedHoudiniSplineComponent && EditedControlPointsIndexes.Num() == 1)
-        {
-            CachedRotation = EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]].GetRotation();
-        }
+        CacheRotation();
     }
 
     if ( Key == EKeys::Delete && Event == IE_Pressed ) 
@@ -607,14 +602,11 @@ FHoudiniSplineComponentVisualizer::OnDeleteControlPoint()
         EditedControlPointsIndexes.Add(0);
     }
 
+    // cache the rotation
+    CacheRotation();
+
     // Update the spline object
     UpdateHoudiniComponents();
-
-    // Re-cache the rotation
-    if (EditedHoudiniSplineComponent && EditedControlPointsIndexes.Num() == 1)
-    {
-        CachedRotation = EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]].GetRotation();
-    }
 }
 
 bool
@@ -695,6 +687,10 @@ FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint()
         // Add the new point and select it.
         nNewCPIndex = AddControlPointAfter(NewPoint, nCurrentCPIndex);
 
+        // Small hack when extending from the first point
+        if ( (nCurrentCPIndex == 0) && (EditedControlPointsIndexes.Num() == 1) )
+            nNewCPIndex = 0;
+
         tNewSelection.Add(nNewCPIndex);
         nOffset++;
     }
@@ -715,4 +711,19 @@ FHoudiniSplineComponentVisualizer::IsDuplicateControlPointValid() const
         return false;
 
     return true;
+}
+
+
+void
+FHoudiniSplineComponentVisualizer::CacheRotation()
+{
+    // Cache the rotation
+    if (EditedHoudiniSplineComponent && EditedControlPointsIndexes.Num() == 1)
+    {
+        CachedRotation = EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]].GetRotation();
+    }
+    else
+    {
+        CachedRotation = FQuat::Identity;
+    }
 }

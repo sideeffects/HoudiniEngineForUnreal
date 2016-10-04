@@ -38,6 +38,7 @@ enum EHoudiniPluginSerializationVersion
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_MULTI_GEO_INPUT,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_GEO_PART_NODE_PATH, 
     VER_HOUDINI_PLUGIN_SERIALIZATION_HOUDINI_SPLINE_TO_TRANSFORM,
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_UNREAL_SPLINE_RESOLUTION_PER_INPUT,
 
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)

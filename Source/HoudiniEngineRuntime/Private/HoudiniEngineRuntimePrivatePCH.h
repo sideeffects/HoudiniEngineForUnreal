@@ -361,6 +361,7 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 
 /** Default values for new curves. **/
 #define HAPI_UNREAL_PARAM_INPUT_CURVE_COORDS_DEFAULT    "0.0, 0.0, 3.0 3.0, 0.0, 3.0"
+#define HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT	50.0f
 
 /** Default values for certain UI min and max parameter values **/
 #define HAPI_UNREAL_PARAM_INT_UI_MIN                    0

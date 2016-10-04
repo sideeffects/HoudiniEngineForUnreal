@@ -3024,19 +3024,25 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_AssetId HostAssetId, 
     USplineComponent * SplineComponent,
     HAPI_AssetId & ConnectedAssetId,
-    FHoudiniAssetInputOutlinerMesh& OutlinerMesh )
+    FHoudiniAssetInputOutlinerMesh& OutlinerMesh,
+    const float& SplineResolution)
 {
 #if WITH_EDITOR
 
     // If we don't have a spline component, or host asset is invalid, there's nothing to do.
     if (!SplineComponent || !FHoudiniEngineUtils::IsHoudiniAssetValid(HostAssetId))
         return false;
-    
-    // Get runtime settings and extract the spline resolution from it
-    float fSplineResolution = -1.0f;
-    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-    if (HoudiniRuntimeSettings)
-        fSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
+        
+    float fSplineResolution = SplineResolution;
+    if (fSplineResolution == -1.0f)
+    {
+        // Get runtime settings and extract the spline resolution from it
+        const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+        if (HoudiniRuntimeSettings)
+            fSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
+        else
+            fSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
+    }
 
     int32 nNumberOfControlPoints = SplineComponent->GetNumberOfSplinePoints();
     float fSplineLength = SplineComponent->GetSplineLength();  
@@ -3606,7 +3612,8 @@ bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_AssetId HostAssetId,
     TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
-    HAPI_AssetId & ConnectedAssetId )
+    HAPI_AssetId & ConnectedAssetId,
+    const float& SplineResolution)
 {
     if ( OutlinerMeshArray.Num() <= 0 )
         return false;
@@ -3637,7 +3644,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 ConnectedAssetId,
                 OutlinerMesh.SplineComponent,
                 OutlinerMesh.AssetId,
-                OutlinerMesh );
+                OutlinerMesh,
+                SplineResolution);
         }
 
         if ( !bInputCreated )

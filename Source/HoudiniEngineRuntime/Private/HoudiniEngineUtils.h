@@ -198,22 +198,24 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool HapiCreateInputNodeForData(
             HAPI_AssetId HostAssetId,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
-            HAPI_AssetId & ConnectedAssetId );
+            HAPI_AssetId & ConnectedAssetId,
+            const float& SplineResolution = -1.0f);
 
         /** HAPI : Marshaling, extract points from the Unreal Spline and create an input curve for it - return true on success **/
         static bool HapiCreateInputNodeForData(
             HAPI_AssetId HostAssetId,
             USplineComponent * SplineComponent,
             HAPI_AssetId & ConnectedAssetId,
-            FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
+            FHoudiniAssetInputOutlinerMesh& OutlinerMesh,
+            const float& fSplineResolution = -1.0f);
 
-	static bool HapiCreateCurveInputNodeForData(
-	    HAPI_AssetId HostAssetId,
-	    HAPI_AssetId & ConnectedAssetId,
-	    TArray<FVector>* Positions,
-	    TArray<FQuat>* Rotations = nullptr,
-	    TArray<FVector>* Scales3d = nullptr,
-	    TArray<float>* UniformScales = nullptr);
+        static bool HapiCreateCurveInputNodeForData(
+            HAPI_AssetId HostAssetId,
+            HAPI_AssetId & ConnectedAssetId,
+            TArray<FVector>* Positions,
+            TArray<FQuat>* Rotations = nullptr,
+            TArray<FVector>* Scales3d = nullptr,
+            TArray<float>* UniformScales = nullptr);
 
         /** HAPI : Marshaling, disconnect input asset from a given slot. **/
         static bool HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex );

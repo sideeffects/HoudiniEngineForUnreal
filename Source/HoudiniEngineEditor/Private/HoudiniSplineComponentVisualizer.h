@@ -119,11 +119,14 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
         void OnDeleteControlPoint();
         bool IsDeleteControlPointValid() const;
 
-	/** Callbacks for Duplicate control point action. **/
-	void OnDuplicateControlPoint();
-	bool IsDuplicateControlPointValid() const;
+        /** Callbacks for Duplicate control point action. **/
+        void OnDuplicateControlPoint();
+        bool IsDuplicateControlPointValid() const;
 
         int32 AddControlPointAfter( const FTransform & NewPoint, const int32& nIndex );
+
+        /** Store the current rotation to orient the rotation gizmo properly **/
+        void CacheRotation();
 
     protected:
 
