@@ -67,9 +67,8 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
 }
 
 bool
-FHoudiniHandleComponentVisualizer::VisProxyHandleClick(
-    FLevelEditorViewportClient * InViewportClient,
-    HComponentVisProxy * VisProxy, const FViewportClick & Click )
+FHoudiniHandleComponentVisualizer::VisProxyHandleClick( 
+    FEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click )
 {
     bEditing = false;
 

@@ -77,8 +77,7 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 
         /** Handle a click on a registered hit box. **/
         virtual bool VisProxyHandleClick(
-            FLevelEditorViewportClient * InViewportClient, HComponentVisProxy * VisProxy,
-            const FViewportClick & Click ) override;
+            FEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click ) override;
 
         /** Handle modifier key presses and depresses such as Alt for key duplication. **/
         virtual bool HandleInputKey(
