@@ -845,13 +845,13 @@ FHoudiniGeoPartObject::HapiGeoGetNodeId( HAPI_AssetId OtherAssetId ) const
 bool
 FHoudiniGeoPartObject::HapiGeoIsEditable( HAPI_AssetId OtherAssetId ) const
 {
-    bool bIsEditable = false;
+    bool bLocalIsEditable = false;
     HAPI_GeoInfo GeoInfo;
 
     if ( HapiGeoGetInfo( OtherAssetId, GeoInfo ) )
-        bIsEditable = GeoInfo.isEditable;
+        bLocalIsEditable = GeoInfo.isEditable;
 
-    return bIsEditable;
+    return bLocalIsEditable;
 }
 
 bool
