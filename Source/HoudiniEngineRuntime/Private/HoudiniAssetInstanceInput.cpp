@@ -51,7 +51,7 @@ UHoudiniAssetInstanceInput::Create(
     // Get object to be instanced.
     HAPI_ObjectId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
-    bool bIsPackedPrimitiveInstancer = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
+    bool bIsPackedPrimitiveInstancerLocal = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
 
     // If this is an attribute instancer, see if attribute exists.
     bool bAttributeCheck = InHoudiniGeoPartObject.HapiCheckAttributeExistance(
@@ -69,7 +69,7 @@ UHoudiniAssetInstanceInput::Create(
             HAPI_ATTROWNER_POINT );
 
     // This is invalid combination, no object to instance and input is not an attribute instancer.
-    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 && !bIsPackedPrimitiveInstancer )
+    if ( !bAttributeCheck && !bAttributeOverrideCheck && ObjectToInstance == -1 && !bIsPackedPrimitiveInstancerLocal )
         return HoudiniAssetInstanceInput;
 
     HoudiniAssetInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
@@ -87,7 +87,7 @@ UHoudiniAssetInstanceInput::Create(
 
     // Check if this instancer is an attribute override instancer.
     HoudiniAssetInstanceInput->bAttributeInstancerOverride = bAttributeOverrideCheck;
-    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = bIsPackedPrimitiveInstancer;
+    HoudiniAssetInstanceInput->bIsPackedPrimitiveInstancer = bIsPackedPrimitiveInstancerLocal;
 
     return HoudiniAssetInstanceInput;
 }
@@ -665,12 +665,12 @@ FString UHoudiniAssetInstanceInput::GetFieldLabel( int32 FieldIdx, int32 Variati
 }
 
 void
-UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder )
+UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
 {
-    Super::CreateWidget( DetailCategoryBuilder );
+    Super::CreateWidget( LocalDetailCategoryBuilder );
 
     // Get thumbnail pool for this builder.
-    IDetailLayoutBuilder & DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
+    IDetailLayoutBuilder & DetailLayoutBuilder = LocalDetailCategoryBuilder.GetParentLayout();
     TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
     // Classes allowed by instanced inputs.
@@ -692,7 +692,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & DetailCategor
                 continue;
             }
 
-            FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+            FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
             FText LabelText = FText::FromString( GetFieldLabel( FieldIdx, VariationIdx ) );
 
             Row.NameWidget.Widget = SNew( STextBlock )
