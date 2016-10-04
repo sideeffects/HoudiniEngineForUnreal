@@ -114,7 +114,13 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged(float fCurrentSplineRe
     // Has any of the CV's transform been modified?
     for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
     {
-        if ( !SplineControlPointsTransform[n].Equals(SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true)) )
+        if ( !SplineControlPointsTransform[n].GetLocation().Equals(SplineComponent->GetLocationAtSplinePoint(n, ESplineCoordinateSpace::Local) ) )
+            return true;
+
+        if ( !SplineControlPointsTransform[n].GetRotation().Equals(SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World) ) )
+            return true;
+
+        if ( !SplineControlPointsTransform[n].GetScale3D().Equals(SplineComponent->GetScaleAtSplinePoint(n) ) )
             return true;
     }
 
