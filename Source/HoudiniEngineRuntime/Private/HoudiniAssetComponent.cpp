@@ -1104,10 +1104,11 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         }
     }
 #if WITH_EDITOR
-    if ( GUnrealEd )
+    /*if ( GUnrealEd )
     {
         GUnrealEd->UpdateFloatingPropertyWindows();
-    }
+    }*/
+    UpdateEditorProperties(true);
 #endif
 }
 
@@ -1576,7 +1577,7 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 }
 
 void
-UHoudiniAssetComponent::StartTaskAssetInstantiation( bool bLoadedComponent, bool bStartTicking )
+UHoudiniAssetComponent::StartTaskAssetInstantiation( bool bLocalLoadedComponent, bool bStartTicking )
 {
     // We do not want to be instantiated twice
     bAssetIsBeingInstantiated = true;
@@ -1653,7 +1654,7 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation( bool bLoadedComponent, bool
             FHoudiniEngineTask Task( EHoudiniEngineTaskType::AssetInstantiation, HapiGUID );
             Task.Asset = HoudiniAsset;
             Task.ActorName = GetOuter()->GetName();
-            Task.bLoadedComponent = bLoadedComponent;
+            Task.bLoadedComponent = bLocalLoadedComponent;
             Task.AssetLibraryId = AssetLibraryId;
             Task.AssetHapiName = PickedAssetName;
             FHoudiniEngine::Get().AddTask( Task );
@@ -2237,24 +2238,24 @@ UHoudiniAssetComponent::CreateDefaultPreset()
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds( const FTransform & LocalToWorld ) const
 {
-    FBoxSphereBounds Bounds;
+    FBoxSphereBounds LocalBounds;
 
     const auto & LocalAttachedChildren = GetAttachChildren();
 
     if ( LocalAttachedChildren.Num() == 0 )
-        Bounds = FBoxSphereBounds( FBox(
+        LocalBounds = FBoxSphereBounds( FBox(
             -FVector( 1.0f, 1.0f, 1.0f ) * HALF_WORLD_MAX,
             FVector( 1.0f, 1.0f, 1.0f ) * HALF_WORLD_MAX ) );
     else if ( LocalAttachedChildren[ 0 ] )
-        Bounds = LocalAttachedChildren[ 0 ]->CalcBounds( LocalToWorld );
+        LocalBounds = LocalAttachedChildren[ 0 ]->CalcBounds( LocalToWorld );
 
     for ( int32 Idx = 1; Idx < LocalAttachedChildren.Num(); ++Idx )
     {
         if ( LocalAttachedChildren[ Idx ] )
-            Bounds = Bounds + LocalAttachedChildren[ Idx ]->CalcBounds( LocalToWorld );
+            LocalBounds = LocalBounds + LocalAttachedChildren[ Idx ]->CalcBounds( LocalToWorld );
     }
 
-    return Bounds;
+    return LocalBounds;
 }
 
 void
