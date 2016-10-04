@@ -24,6 +24,8 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "Components/SplineComponent.h"
+#include "LandscapeInfo.h"
+#include "LandscapeComponent.h"
 
 const FString kResultStringSuccess( TEXT( "Success" ) );
 const FString kResultStringFailure( TEXT( "Generic Failure" ) );
@@ -2330,7 +2332,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         ImportAxis = HoudiniRuntimeSettings->ImportAxis;
     }
 
-    const ULandscapeInfo * LandscapeInfo = LandscapeProxy->GetLandscapeInfo( false );
+    const ULandscapeInfo * LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
 
     TSet< ULandscapeComponent * > SelectedComponents;
     if ( bExportOnlySelected && LandscapeInfo )
