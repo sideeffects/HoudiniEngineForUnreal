@@ -2941,21 +2941,11 @@ void UHoudiniAssetInput::OnEmptyInputObjects()
     HoudiniAssetComponent->UpdateEditorProperties( false );
 }
 
-#endif
-
-FArchive &
-operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOutlinerMesh )
-{
-    HoudiniAssetInputOutlinerMesh.Serialize( Ar );
-    return Ar;
-}
-
-
 
 TOptional< float >
 UHoudiniAssetInput::GetSplineResolutionValue() const
 {
-    if(UnrealSplineResolution != -1.0f)
+    if (UnrealSplineResolution != -1.0f)
         return UnrealSplineResolution;
 
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
@@ -3002,4 +2992,13 @@ UHoudiniAssetInput::OnResetSplineResolutionClicked()
         UnrealSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
 
     return FReply::Handled();
+}
+
+#endif
+
+FArchive &
+operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOutlinerMesh )
+{
+    HoudiniAssetInputOutlinerMesh.Serialize( Ar );
+    return Ar;
 }
