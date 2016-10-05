@@ -117,7 +117,7 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged(float fCurrentSplineRe
         if ( !SplineControlPointsTransform[n].GetLocation().Equals(SplineComponent->GetLocationAtSplinePoint(n, ESplineCoordinateSpace::Local) ) )
             return true;
 
-        if ( !SplineControlPointsTransform[n].GetRotation().Equals(SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::Local) ) )
+        if ( !SplineControlPointsTransform[n].GetRotation().Equals(SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World) ) )
             return true;
 
         if (!SplineControlPointsTransform[n].GetScale3D().Equals(SplineComponent->GetScaleAtSplinePoint(n) ) )

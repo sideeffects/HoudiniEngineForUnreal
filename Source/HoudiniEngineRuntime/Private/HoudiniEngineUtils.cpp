@@ -3071,12 +3071,11 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         for (int32 n = 0; n < nNumberOfControlPoints; n++)
         {
             tRefinedSplinePositions[n] = SplineComponent->GetLocationAtSplinePoint(n, ESplineCoordinateSpace::Local);
-            tRefinedSplineRotations[n] = SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::Local);
+            tRefinedSplineRotations[n] = SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World);
 
             Scale = SplineComponent->GetScaleAtSplinePoint(n);
-            //Scale.X = FMath::Min(Scale.Y, Scale.Z);
             tRefinedSplineScales[n] = Scale;
-            //tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
+            // tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
         }           
     }
     else
@@ -3085,19 +3084,19 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         tRefinedSplinePositions.SetNumZeroed(nNumberOfRefinedSplinePoints);
         tRefinedSplineRotations.SetNumZeroed(nNumberOfRefinedSplinePoints);
         tRefinedSplineScales.SetNumZeroed(nNumberOfRefinedSplinePoints);
-        //tRefinedSplinePScales.SetNumZeroed(nNumberOfRefinedSplinePoints);
+        // tRefinedSplinePScales.SetNumZeroed(nNumberOfRefinedSplinePoints);
         
         FVector Scale;
         float fCurrentDistance = 0.0f;
         for (int32 n = 0; n < nNumberOfRefinedSplinePoints; n++)
         {    
             tRefinedSplinePositions[n] = SplineComponent->GetLocationAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::Local);
-            tRefinedSplineRotations[n] = SplineComponent->GetQuaternionAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::Local);
+            tRefinedSplineRotations[n] = SplineComponent->GetQuaternionAtDistanceAlongSpline(fCurrentDistance, ESplineCoordinateSpace::World);
             
             Scale = SplineComponent->GetScaleAtDistanceAlongSpline(fCurrentDistance);
-            //Scale.X = FMath::Min(Scale.Y, Scale.Z);
+
             tRefinedSplineScales[n] = Scale;
-            //tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
+            // tRefinedSplinePScales[n] = (Scale.Y + Scale.Z) / 2.0f; //FMath::Max(Scale.Y, Scale.Z);
 
             fCurrentDistance += fSplineResolution;
         }
@@ -3121,7 +3120,11 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     OutlinerMesh.SplineControlPointsTransform.SetNum(nNumberOfControlPoints);
     for ( int32 n = 0; n < nNumberOfControlPoints; n++ )
     {
+        // Getting the Local Transform for positions and scale
         OutlinerMesh.SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
+
+        // ... but we used we used the world rotation
+        OutlinerMesh.SplineControlPointsTransform[n].SetRotation(SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World));
     }
 
     // Cook the spline node.
