@@ -235,9 +235,9 @@ UHoudiniSplineComponent::UploadControlPoints()
 {    
     // Grab component we are attached to.
     HAPI_AssetId HostAssetId = -1;
-    UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
-    if (AttachComponent)
-        HostAssetId = AttachComponent->GetAssetId();
+    UHoudiniAssetComponent * AttachedComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
+    if (AttachedComponent)
+        HostAssetId = AttachedComponent->GetAssetId();
 
     HAPI_NodeId NodeId = -1;
     if (HoudiniGeoPartObject.IsValid())

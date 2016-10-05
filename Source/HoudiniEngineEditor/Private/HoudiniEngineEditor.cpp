@@ -362,9 +362,6 @@ FHoudiniEngineEditor::RegisterStyleSet()
 
         // Register Slate style.
         FSlateStyleRegistry::RegisterSlateStyle( *StyleSet.Get() );
-
-        // Register style set as an icon source.
-        FClassIconFinder::RegisterIconSource( StyleSet.Get() );
     }
 }
 
@@ -374,9 +371,6 @@ FHoudiniEngineEditor::UnregisterStyleSet()
     // Unregister Slate style set.
     if ( StyleSet.IsValid() )
     {
-        // Unregister style set as an icon source.
-        FClassIconFinder::UnregisterIconSource( StyleSet.Get() );
-
         // Unregister Slate style.
         FSlateStyleRegistry::UnRegisterSlateStyle( *StyleSet.Get() );
 
