@@ -9023,8 +9023,6 @@ FHoudiniEngineUtils::GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComp
 void 
 FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent )
 {
-    const FScopedTransaction Transaction( LOCTEXT( "BakeToInput", "Bake To Input" ) );
-
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
     TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject > SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
 
@@ -9056,26 +9054,30 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         }
     }
 
-    for ( auto Iter : OriginalToBakedMesh )
     {
-        // Get the first outliner input
-        if ( UHoudiniAssetInput* FirstInput = GetInputForBakeHoudiniActorToOutlinerInput( HoudiniAssetComponent ) )
-        {
-            const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
-            if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
-            {
-                UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
-                InputOutlinerMesh.Actor->Modify();
-                InOutSMC->StaticMesh = Iter.Value;
-                InOutSMC->InvalidateLightingCache();
-                InOutSMC->MarkPackageDirty();
+        const FScopedTransaction Transaction( LOCTEXT( "BakeToInput", "Bake To Input" ) );
 
-                // Disconnect the input from the asset - InputOutlinerMesh now garbage
-                FirstInput->RemoveWorldOutlinerInput( 0 );
+        for ( auto Iter : OriginalToBakedMesh )
+        {
+            // Get the first outliner input
+            if ( UHoudiniAssetInput* FirstInput = GetInputForBakeHoudiniActorToOutlinerInput( HoudiniAssetComponent ) )
+            {
+                const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[ 0 ];
+                if ( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
+                {
+                    UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
+                    InputOutlinerMesh.Actor->Modify();
+                    InOutSMC->StaticMesh = Iter.Value;
+                    InOutSMC->InvalidateLightingCache();
+                    InOutSMC->MarkPackageDirty();
+
+                    // Disconnect the input from the asset - InputOutlinerMesh now garbage
+                    FirstInput->RemoveWorldOutlinerInput( 0 );
+                }
             }
+            // Only handle the first Baked Mesh
+            break;
         }
-        // Only handle the first Baked Mesh
-        break;
     }
 }
 
