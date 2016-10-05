@@ -235,9 +235,9 @@ UHoudiniSplineComponent::UploadControlPoints()
 {    
     // Grab component we are attached to.
     HAPI_AssetId HostAssetId = -1;
-    UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
-    if (AttachComponent)
-        HostAssetId = AttachComponent->GetAssetId();
+    UHoudiniAssetComponent * AttachedComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
+    if (AttachedComponent)
+        HostAssetId = AttachedComponent->GetAssetId();
 
     HAPI_AssetId CurveAssetId = -1;
     HAPI_NodeId NodeId = -1;    
@@ -249,11 +249,9 @@ UHoudiniSplineComponent::UploadControlPoints()
     }
     else
     {
-        // Grab component we are attached to.
-        UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
-        if (HoudiniGeoPartObject.IsValid() && AttachComponent)
+        if (HoudiniGeoPartObject.IsValid() && AttachedComponent)
         {
-            CurveAssetId = AttachComponent->GetAssetId();
+            CurveAssetId = AttachedComponent->GetAssetId();
             NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(CurveAssetId);
         }
     }
