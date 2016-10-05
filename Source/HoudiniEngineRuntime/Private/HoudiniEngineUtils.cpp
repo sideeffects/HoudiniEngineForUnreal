@@ -3025,7 +3025,11 @@ FHoudiniEngineUtils::HapiCreateAndConnectAsset(
     OutlinerMesh.SplineControlPointsTransform.SetNum(nNumberOfControlPoints);
     for (int32 n = 0; n < nNumberOfControlPoints; n++)
     {
-        OutlinerMesh.SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
+	// Getting the Local Transform for positions and scale
+	OutlinerMesh.SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
+
+	// ... but we used we used the world rotation
+	OutlinerMesh.SplineControlPointsTransform[n].SetRotation(SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World));
     }
 
     // Cook the spline node.
