@@ -8820,8 +8820,6 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
 
 void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
 {
-    const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
-
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
 
     TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject > SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
@@ -8845,7 +8843,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
         }
         else
         {
-            if ( FHoudiniEngineUtils::StaticMeshRequiresBake( OtherSMC->StaticMesh) )
+            if ( FHoudiniEngineUtils::StaticMeshRequiresBake( OtherSMC->StaticMesh ) )
             {
                 // Bake the found mesh into the project
                 BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
@@ -8863,14 +8861,23 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
             }
             OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
         }
+    }
+
+    // Finished baking, now spawn the actors
+    for ( const auto& Iter : SMComponentToPart )
+    {
+        const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
+
+        const UStaticMeshComponent * OtherSMC = Iter.Key;
+        UStaticMesh* BakedSM = OriginalToBakedMesh[ OtherSMC->StaticMesh ];
 
         if ( ensure( BakedSM ) )
         {
             ULevel* DesiredLevel = GWorld->GetCurrentLevel();
-            FName BaseName( *(HoudiniAssetComponent->GetOwner()->GetName() + TEXT("_Baked")) );
+            FName BaseName( *( HoudiniAssetComponent->GetOwner()->GetName() + TEXT( "_Baked" ) ) );
             UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
 
-            auto PrepNewStaticMeshActor= [&]( AActor* NewActor ) {
+            auto PrepNewStaticMeshActor = [&]( AActor* NewActor ) {
                 // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
                 FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
                 FString NewNameStr = NewName.ToString();
@@ -8899,7 +8906,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
 
             if ( const UInstancedStaticMeshComponent* OtherISMC = Cast< const UInstancedStaticMeshComponent>( OtherSMC ) )
             {
-#ifdef BAKE_TO_INSTANCEDSTATICMESHCOMPONENT_ACTORS
+    #ifdef BAKE_TO_INSTANCEDSTATICMESHCOMPONENT_ACTORS
                 // This is an instanced static mesh component - we will create a generic AActor with a UInstancedStaticMeshComponent root
                 FActorSpawnParameters SpawnInfo;
                 SpawnInfo.OverrideLevel = DesiredLevel;
@@ -8930,7 +8937,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                         NewActor->MarkPackageDirty();
                     }
                 }
-#else
+    #else
                 // This is an instanced static mesh component - we will split it up into StaticMeshActors
                 for ( int32 InstanceIx = 0; InstanceIx < OtherISMC->GetInstanceCount(); ++InstanceIx )
                 {
@@ -8941,7 +8948,7 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                         PrepNewStaticMeshActor( NewActor );
                     }
                 }
-#endif
+    #endif
             }
             else
             {
@@ -8951,16 +8958,16 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                 }
             }
         }
-    }
-    
-    if ( SelectNewActors && NewActors.Num() )
-    {
-        GEditor->SelectNone( false, true );
-        for ( AActor* NewActor : NewActors )
+
+        if ( SelectNewActors && NewActors.Num() )
         {
-            GEditor->SelectActor( NewActor, true, false );
+            GEditor->SelectNone( false, true );
+            for ( AActor* NewActor : NewActors )
+            {
+                GEditor->SelectActor( NewActor, true, false );
+            }
+            GEditor->NoteSelectionChange();
         }
-        GEditor->NoteSelectionChange();
     }
 }
 
