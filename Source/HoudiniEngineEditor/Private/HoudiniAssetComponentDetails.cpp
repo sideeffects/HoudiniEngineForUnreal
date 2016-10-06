@@ -1004,7 +1004,7 @@ FHoudiniAssetComponentDetails::OnFetchCookLog()
     TSharedPtr< SWindow > ParentWindow;
 
     // Get fetch cook status.
-    FString CookLogString = FHoudiniEngineUtils::GetCookResult();
+    const FString CookLogString = FHoudiniEngineUtils::GetCookResult();
 
     // Check if the main frame is loaded. When using the old main frame it may not be.
     if ( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
@@ -1022,9 +1022,9 @@ FHoudiniAssetComponentDetails::OnFetchCookLog()
                 .Title( LOCTEXT( "WindowTitle", "Houdini Cook Log" ) )
                 .ClientSize( FVector2D( 640, 480 ) );
 
-        Window->SetContent( SAssignNew( HoudiniAssetCookLog, SHoudiniAssetLogWidget )
-            .LogText( CookLogString )
-            .WidgetWindow( Window ) );
+        Window->SetContent( 
+            SAssignNew( HoudiniAssetCookLog, SHoudiniAssetLogWidget )
+            .LogText( CookLogString ) );
 
         FSlateApplication::Get().AddModalWindow( Window, ParentWindow, false );
     }
@@ -1049,6 +1049,9 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp( UHoudiniAssetComponent * Houdin
                 FHoudiniEngineString HoudiniEngineString( AssetInfo.helpTextSH );
                 if ( HoudiniEngineString.ToFString( HelpLogString ) )
                 {
+                    if ( HelpLogString.IsEmpty() )
+                        HelpLogString = TEXT( "No Asset Help Found" );
+
                     TSharedPtr< SWindow > ParentWindow;
 
                     // Check if the main frame is loaded. When using the old main frame it may not be.
@@ -1067,9 +1070,9 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp( UHoudiniAssetComponent * Houdin
                                 .Title( LOCTEXT( "WindowTitle", "Houdini Asset Help" ) )
                                 .ClientSize( FVector2D( 640, 480 ) );
 
-                        Window->SetContent( SAssignNew( HoudiniAssetHelpLog, SHoudiniAssetLogWidget )
-                            .LogText(HelpLogString )
-                            .WidgetWindow( Window ) );
+                        Window->SetContent( 
+                            SAssignNew( HoudiniAssetHelpLog, SHoudiniAssetLogWidget )
+                            .LogText( HelpLogString ) );
 
                         FSlateApplication::Get().AddModalWindow( Window, ParentWindow, false );
                     }

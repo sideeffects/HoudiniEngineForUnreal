@@ -15,48 +15,17 @@
 
 #pragma once
 
-class SWindow;
-
 class SHoudiniAssetLogWidget : public SCompoundWidget
 {
-    public:
+public:
 
-        SLATE_BEGIN_ARGS( SHoudiniAssetLogWidget )
-            : _WidgetWindow()
-            , _LogText( TEXT( "" ) )
-        {}
+    SLATE_BEGIN_ARGS( SHoudiniAssetLogWidget )
+        : _LogText( TEXT( "" ) )
+    {}
 
-        SLATE_ARGUMENT( TSharedPtr< SWindow >, WidgetWindow )
-        SLATE_ARGUMENT( FString, LogText )
+    SLATE_ARGUMENT( FString, LogText )
         SLATE_END_ARGS()
 
-    public:
-
-        SHoudiniAssetLogWidget();
-
-    public:
-
-        /** Get log text. **/
-        FText GetLogText() const;
-
-    public:
-
-        /** Widget construct. **/
-        void Construct( const FArguments & InArgs );
-
-    public:
-
-        /** Called when Ok button is pressed. **/
-        FReply OnButtonOk();
-
-        /** Called when copy to clipboard button is pressed. **/
-        FReply OnButtonCopyToClipboard();
-
-    public:
-
-        /** Parent widget window. **/
-        TSharedPtr< SWindow > WidgetWindow;
-
-        /** Text of the log. **/
-        FString LogText;
+    /** Widget construct. **/
+    void Construct( const FArguments & InArgs );
 };
