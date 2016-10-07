@@ -190,7 +190,7 @@ FHoudiniSplineComponentVisualizer::VisProxyHandleClick(
     if ( !VisProxy->IsA(HHoudiniSplineControlPointVisProxy::StaticGetType()) )
         return bCurveEditing;
 
-                HHoudiniSplineControlPointVisProxy * ControlPointProxy = (HHoudiniSplineControlPointVisProxy *) VisProxy;
+    HHoudiniSplineControlPointVisProxy * ControlPointProxy = (HHoudiniSplineControlPointVisProxy *) VisProxy;
     if ( !ControlPointProxy )
         return bCurveEditing;
 
@@ -432,6 +432,9 @@ FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
     }
     else
     {
+        // If not an input curve, we need first to upload the new CVs
+        EditedHoudiniSplineComponent->UploadControlPoints();
+
         UHoudiniAssetComponent * HoudiniAssetComponent =
             Cast< UHoudiniAssetComponent >(EditedHoudiniSplineComponent->GetAttachParent());
 
@@ -687,7 +690,7 @@ FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint()
         nNewCPIndex = AddControlPointAfter(NewPoint, nCurrentCPIndex);
 
         // Small hack when extending from the first point
-        if ( (nCurrentCPIndex == 0) && (EditedControlPointsIndexes.Num() == 1) )
+        if (nCurrentCPIndex == 0)
             nNewCPIndex = 0;
 
         tNewSelection.Add(nNewCPIndex);
@@ -716,14 +719,13 @@ FHoudiniSplineComponentVisualizer::IsDuplicateControlPointValid() const
 void
 FHoudiniSplineComponentVisualizer::CacheRotation()
 {
-    // Cache the rotation
+    FQuat NewCachedQuat = FQuat::Identity;
     if (EditedHoudiniSplineComponent && EditedControlPointsIndexes.Num() == 1)
     {
-        CachedRotation = EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]].GetRotation();
+        if( EditedHoudiniSplineComponent->CurvePoints.IsValidIndex(EditedControlPointsIndexes[0]) )
+            NewCachedQuat = (EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]]).GetRotation();
     }
-    else
-    {
-        CachedRotation = FQuat::Identity;
-    }
+    
+    CachedRotation = NewCachedQuat;
 }
 
