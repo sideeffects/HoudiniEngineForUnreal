@@ -15,6 +15,7 @@
 
 #pragma once
 #include "HoudiniAssetParameter.h"
+#include "Tickable.h"
 #include "HoudiniAssetParameterRamp.generated.h"
 
 class UCurveBase;
