@@ -302,21 +302,7 @@ UHoudiniSplineComponent::UploadControlPoints()
         {
             return;
         }
-        
-        /*
-        // Creating a curve using only positions
-        FHoudiniEngineUtils::HapiCreateCurveAsset(
-            HostAssetId,
-            CurveAssetId,
-            &Positions,
-            nullptr,
-            nullptr,
-            nullptr);
-          */  
     }
-
-    // We need to cook the spline node.
-    FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), HostAssetId, nullptr);
 }
 
 void
