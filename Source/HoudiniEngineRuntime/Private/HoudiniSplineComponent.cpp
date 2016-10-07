@@ -1,4 +1,4 @@
-/*
+ /*
 * PROPRIETARY INFORMATION.  This software is proprietary to
 * Side Effects Software Inc., and is not to be reproduced,
 * transmitted, or disclosed in any way without written permission.
@@ -20,6 +20,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniPluginSerializationVersion.h"
 
 UHoudiniSplineComponent::UHoudiniSplineComponent( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
@@ -263,19 +264,56 @@ UHoudiniSplineComponent::UploadControlPoints()
     TArray<FVector> Positions;
     GetCurvePositions(Positions);
 
-    TArray<FQuat> Rotations;
-    GetCurveRotations(Rotations);
+    if (IsInputCurve())
+    {
+        // Only input curves suppot rotation and scale
+        TArray<FQuat> Rotations;
+        GetCurveRotations(Rotations);
 
-    TArray<FVector> Scales;
-    GetCurveScales(Scales);
+        TArray<FVector> Scales;
+        GetCurveScales(Scales);
 
-    FHoudiniEngineUtils::HapiCreateCurveAsset(
-        HostAssetId,
-        CurveAssetId,
-        &Positions,
-        &Rotations,
-        &Scales,
-        nullptr);
+        FHoudiniEngineUtils::HapiCreateCurveAsset(
+            HostAssetId,
+            CurveAssetId,
+            &Positions,
+            &Rotations,
+            &Scales,
+            nullptr);
+    }
+    else
+    {
+        FString PositionString = TEXT("");
+        FHoudiniEngineUtils::CreatePositionsString(Positions, PositionString);
+
+        // Get param id.
+        HAPI_ParmId ParmId = -1;
+        if (FHoudiniApi::GetParmIdFromName(
+            FHoudiniEngine::Get().GetSession(), NodeId,
+            HAPI_UNREAL_PARAM_CURVE_COORDS, &ParmId) != HAPI_RESULT_SUCCESS)
+        {
+            return;
+        }
+
+        std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+        if (FHoudiniApi::SetParmStringValue(
+            FHoudiniEngine::Get().GetSession(), NodeId,
+            ConvertedString.c_str(), ParmId, 0) != HAPI_RESULT_SUCCESS)
+        {
+            return;
+        }
+        
+        /*
+        // Creating a curve using only positions
+        FHoudiniEngineUtils::HapiCreateCurveAsset(
+            HostAssetId,
+            CurveAssetId,
+            &Positions,
+            nullptr,
+            nullptr,
+            nullptr);
+          */  
+    }
 
     // We need to cook the spline node.
     FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), HostAssetId, nullptr);
