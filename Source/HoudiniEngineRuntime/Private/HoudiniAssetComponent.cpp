@@ -640,7 +640,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 {
     // Reset Houdini logo flag.
     bContainsHoudiniLogoGeometry = false;
-
+    
     // We need to store instancers as they need to be processed after all other meshes.
     TArray< FHoudiniGeoPartObject > FoundInstancers;
     TArray< FHoudiniGeoPartObject > FoundCurves;
@@ -3011,6 +3011,9 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
             continue;
         }
 
+        // We need to cook the spline node.
+        FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), NodeId, nullptr);
+
         FString CurvePointsString;
         EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
         EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
@@ -3087,10 +3090,12 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
         // Create Transform for the HoudiniSplineComponents
         TArray< FTransform > CurvePoints;
         CurvePoints.SetNumUninitialized(CurvePositions.Num());
+
+        FTransform trans = FTransform::Identity;
         for (int32 n = 0; n < CurvePoints.Num(); n++)
         {
-            FTransform trans = FTransform::Identity;
             trans.SetLocation(CurvePositions[n]);
+            CurvePoints[n] = trans;
         }
 
         // Construct curve from available data.

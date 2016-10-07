@@ -2199,44 +2199,44 @@ bool
 FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId,
-        &LocalAssetNodeInfo ), false );
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+	FHoudiniEngine::Get().GetSession(), AssetId,
+	&LocalAssetNodeInfo), false);
 
     int32 ObjectCount = 0;
-    if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP )
+    if (LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP)
     {
-        ObjectCount = 1;
-        ObjectInfos.SetNumUninitialized( 1 );
+	ObjectCount = 1;
+	ObjectInfos.SetNumUninitialized(1);
 
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectInfo(
-            FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId,
-            &ObjectInfos[ 0 ] ), false );
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
+	    FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId,
+	    &ObjectInfos[0]), false);
     }
-    else if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ )
+    else if (LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ)
     {
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ComposeObjectList(
-            FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount ), false );
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeObjectList(
+	    FHoudiniEngine::Get().GetSession(), AssetId, nullptr, &ObjectCount), false);
 
-        if ( ObjectCount <= 0 )
-        {
-            ObjectCount = 1;
-            ObjectInfos.SetNumUninitialized( 1 );
+	if (ObjectCount <= 0)
+	{
+	    ObjectCount = 1;
+	    ObjectInfos.SetNumUninitialized(1);
 
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetObjectInfo(
-                FHoudiniEngine::Get().GetSession(), AssetId,
-                &ObjectInfos[ 0 ] ), false );
-        }
-        else
-        {
-            ObjectInfos.SetNumUninitialized( ObjectCount );
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetComposedObjectList(
-                FHoudiniEngine::Get().GetSession(), AssetId,
-                &ObjectInfos[ 0 ], 0, ObjectCount ), false );
-        }
+	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId,
+		&ObjectInfos[0]), false);
+	}
+	else
+	{
+	    ObjectInfos.SetNumUninitialized(ObjectCount);
+	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedObjectList(
+		FHoudiniEngine::Get().GetSession(), AssetId,
+		&ObjectInfos[0], 0, ObjectCount), false);
+	}
     }
     else
-        return false;
+	return false;
 
     return true;
 }
@@ -4282,27 +4282,63 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         FTransform TransformMatrix;
         FHoudiniEngineUtils::TranslateHapiTransform( ObjectTransform, TransformMatrix );
 
-        // This is a loop that goes over once and stops. We use this so we can then
-        // exit out of the scope using break or continue.
-        for ( int32 Idx = 0; Idx < 1; ++Idx )
-        {
-            HAPI_GeoId GeoId = -1;
+        // We need both the display Geos and the editables Geos
+        TArray<HAPI_GeoInfo> GeoInfos;
 
-            // Get Geo information.
-            HAPI_GeoInfo GeoInfo;
-            if ( FHoudiniApi::GetDisplayGeoInfo(
-                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &GeoInfo ) != HAPI_RESULT_SUCCESS )
+        // First, get the Display Geo Infos
+        {
+            HAPI_GeoInfo DisplayGeoInfo;
+            if (FHoudiniApi::GetDisplayGeoInfo(
+                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &DisplayGeoInfo) != HAPI_RESULT_SUCCESS)
             {
                 HOUDINI_LOG_MESSAGE(
-                    TEXT( "Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, " )
-                    TEXT( "- skipping." ),
-                    ObjectInfo.nodeId, *ObjectName );
-                continue;
+                    TEXT("Creating Static Meshes: Object [%d %s] unable to retrieve GeoInfo, ")
+                    TEXT("- skipping."),
+                    ObjectInfo.nodeId, *ObjectName);
             }
             else
             {
-                GeoId = GeoInfo.nodeId;
+                GeoInfos.Add(DisplayGeoInfo);
             }
+        }
+
+        // Then get all the GeoInfos for all the editable nodes
+        {
+            int32 EditableNodeCount = 0;
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
+                FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId,
+                HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+                true, &EditableNodeCount), false);
+
+            if (EditableNodeCount > 0)
+            {
+                TArray< HAPI_NodeId > EditableNodeIds;
+                EditableNodeIds.SetNumUninitialized(EditableNodeCount);
+                HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedChildNodeList(
+                    FHoudiniEngine::Get().GetSession(), AssetId,
+                    EditableNodeIds.GetData(), EditableNodeCount), false);
+
+                for (int nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+                {
+                    HAPI_GeoInfo CurrentEditableGeoInfo;
+
+                    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
+                        FHoudiniEngine::Get().GetSession(), 
+                        EditableNodeIds[nEditable], 
+                        &CurrentEditableGeoInfo), false);
+
+                    GeoInfos.Add(CurrentEditableGeoInfo);
+                }
+
+            }
+        }
+
+        // This is a loop that goes over once and stops. We use this so we can then
+        // exit out of the scope using break or continue.
+        for ( int32 n = 0; n < GeoInfos.Num(); n++ )
+        {
+            HAPI_GeoInfo GeoInfo = GeoInfos[n];
+            HAPI_GeoId GeoId = GeoInfo.nodeId;
 
             if ( GeoInfo.type == HAPI_GEOTYPE_CURVE )
             {
