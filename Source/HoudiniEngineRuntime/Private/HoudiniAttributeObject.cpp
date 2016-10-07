@@ -17,6 +17,8 @@
 #include "HoudiniAttributeObject.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniApi.h"
+#include "HoudiniEngine.h"
 
 FHoudiniAttributeObject::FHoudiniAttributeObject()
     : ValueCount( 0 )

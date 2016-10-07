@@ -21,6 +21,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngine.h"
 
 FHoudiniMaterialObject::FHoudiniMaterialObject()
     : AssetId( -1 )

@@ -19,6 +19,9 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetParameter2.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniApi.h"
+#include "HoudiniEngine.h"
 
 UHoudiniAssetInstance::UHoudiniAssetInstance( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

@@ -18,6 +18,8 @@
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEngineUtils.h"
 
 FArchive &
 operator<<( FArchive & Ar, FHoudiniParameterObject & HoudiniParameterObject )
