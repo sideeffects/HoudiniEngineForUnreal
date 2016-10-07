@@ -18,6 +18,12 @@
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniApi.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniApi.h"
+#include "HoudiniEngine.h"
 
 
 UHoudiniAssetInstance::UHoudiniAssetInstance( const FObjectInitializer & ObjectInitializer )
