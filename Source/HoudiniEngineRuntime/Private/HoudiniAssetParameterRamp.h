@@ -15,6 +15,7 @@
 
 #pragma once
 #include "HoudiniAssetParameter.h"
+#include "HoudiniAssetParameterMultiparm.h"
 #include "Tickable.h"
 #include "HoudiniAssetParameterRamp.generated.h"
 

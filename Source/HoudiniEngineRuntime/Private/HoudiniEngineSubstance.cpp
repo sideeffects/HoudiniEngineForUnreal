@@ -18,6 +18,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniMaterialObject.h"
 #include "HoudiniParameterObject.h"
+#include "HoudiniEngineString.h"
 
 bool
 FHoudiniEngineSubstance::GetSubstanceMaterialName(
