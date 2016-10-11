@@ -6898,7 +6898,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
         // Retrieve color plane.
         if ( FHoudiniEngineUtils::HapiExtractImage(
             NodeParams[ ParmNameNormalIdx ].id, MaterialInfo, ImageBuffer,
-            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true ) )
+            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true ) )
         {
             UMaterialExpressionTextureSampleParameter2D * ExpressionNormal =
                 Cast< UMaterialExpressionTextureSampleParameter2D >( Material->Normal.Expression );
@@ -7155,7 +7155,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
         // Retrieve color plane.
         if ( FHoudiniEngineUtils::HapiExtractImage(
             NodeParams[ ParmNameSpecularIdx ].id, MaterialInfo, ImageBuffer,
-            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true ) )
+            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true ) )
         {
             UMaterialExpressionTextureSampleParameter2D * ExpressionSpecular =
                 Cast< UMaterialExpressionTextureSampleParameter2D >( Material->Specular.Expression );
@@ -7353,7 +7353,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
         // Retrieve color plane.
         if ( FHoudiniEngineUtils::HapiExtractImage(
             NodeParams[ ParmNameRoughnessIdx ].id, MaterialInfo, ImageBuffer,
-            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true ) )
+            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true ) )
         {
             UMaterialExpressionTextureSampleParameter2D* ExpressionRoughness =
                 Cast< UMaterialExpressionTextureSampleParameter2D >( Material->Roughness.Expression );
@@ -7544,7 +7544,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
         // Retrieve color plane.
         if ( FHoudiniEngineUtils::HapiExtractImage(
             NodeParams[ ParmNameMetallicIdx ].id, MaterialInfo, ImageBuffer,
-            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGB, true ) )
+            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true ) )
         {
             UMaterialExpressionTextureSampleParameter2D * ExpressionMetallic =
                 Cast< UMaterialExpressionTextureSampleParameter2D >( Material->Metallic.Expression );
