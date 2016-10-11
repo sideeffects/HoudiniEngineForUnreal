@@ -272,6 +272,9 @@ UHoudiniSplineComponent::UploadControlPoints()
             &Rotations,
             &Scales,
             nullptr);
+
+        // We need to cook the spline node.
+        //FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), NodeId, nullptr);
     }
     else
     {
@@ -295,20 +298,7 @@ UHoudiniSplineComponent::UploadControlPoints()
         {
             return;
         }
-
-        /*
-        FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
-        HostAssetId,
-        NodeId,
-        &Positions,
-        nullptr,
-        nullptr,
-        nullptr);
-        */
     }
-
-    // We need to cook the spline node.
-    FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), NodeId, nullptr);
 }
 
 void
