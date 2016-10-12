@@ -26,9 +26,7 @@
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer& ObjectInitializer )
     : Super( ObjectInitializer )
     , ObjectToInstanceId( -1 )
-    , bIsAttributeInstancer( false )
-    , bAttributeInstancerOverride( false )
-    , bIsPackedPrimitiveInstancer( false )
+    , HoudiniAssetInstanceInputFlagsPacked( 0u )
 {
     TupleSize = 0;
 }
