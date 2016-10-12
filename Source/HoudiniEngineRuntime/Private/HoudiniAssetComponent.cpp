@@ -2016,6 +2016,9 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     // Show busy cursor.
     FScopedBusyCursor ScopedBusyCursor;
 
+    // Copy the original scale - this gets lost sometimes in the copy/paste procedure
+    SetWorldScale3D( CopiedHoudiniComponent->GetComponentScale() );
+
     // Get original asset id.
     HAPI_AssetId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
 
