@@ -165,20 +165,13 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , ConnectedAssetId( -1 )
     , InputIndex( 0 )
     , ChoiceIndex( EHoudiniAssetInputType::GeometryInput )
-    , bStaticMeshChanged( false )
-    , bSwitchedToCurve( false )
-    , bLoadedParameter( false )
-    , bInputAssetConnectedInHoudini( false )
-    , bLandscapeInputSelectionOnly( false )
-    , bLandscapeExportCurves( false )
-    , bLandscapeExportFullGeometry( false )
-    , bLandscapeExportMaterials( true )
-    , bLandscapeExportLighting( false )
-    , bLandscapeExportNormalizedUVs( false )
-    , bLandscapeExportTileUVs( false )
-    , bKeepWorldTransform( 2 )
-    , UnrealSplineResolution (-1.0f)
+    , UnrealSplineResolution( -1.0f )
+    , HoudiniAssetInputFlagsPacked( 0u )
 {
+    // flags
+    bLandscapeExportMaterials = true;
+    bKeepWorldTransform = 2;
+
     ChoiceStringValue = TEXT( "" );
 }
 

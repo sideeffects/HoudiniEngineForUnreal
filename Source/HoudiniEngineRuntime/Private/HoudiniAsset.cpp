@@ -26,9 +26,7 @@ UHoudiniAsset::UHoudiniAsset( const FObjectInitializer & ObjectInitializer )
     , AssetBytes( nullptr )
     , AssetBytesCount( 0 )
     , FileFormatVersion( UHoudiniAsset::PersistenceFormatVersion )
-    , bPreviewHoudiniLogo( false )
-    , bAssetLimitedCommercial( false )
-    , bAssetNonCommercial( false )
+    , HoudiniAssetFlagsPacked ( 0u )
 {}
 
 void
