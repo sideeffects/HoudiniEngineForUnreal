@@ -624,6 +624,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 
                 /** Is set when referenced object contains packed primitive instancing */
                 uint32 bIsPackedPrimitiveInstancer : 1;
+
+                /** unused flag space is zero initialized */
+                uint32 UnusedFlagsSpace : 18;
             };
 
             uint32 HoudiniGeoPartObjectFlagsPacked;

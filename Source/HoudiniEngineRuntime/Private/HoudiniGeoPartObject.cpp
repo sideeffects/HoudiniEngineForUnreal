@@ -87,6 +87,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject()
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
+    , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
@@ -119,6 +120,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
+    , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
@@ -152,6 +154,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( PartInfo.type == HAPI_PARTTYPE_VOLUME )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
+    , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
@@ -187,6 +190,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
+    , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
@@ -218,6 +222,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject( const FHoudiniGeoPartObject & GeoP
     , bIsVolume( GeoPartObject.bIsVolume )
     , bInstancerAttributeMaterialAvailable( GeoPartObject.bInstancerAttributeMaterialAvailable )
     , bIsPackedPrimitiveInstancer( GeoPartObject.bIsPackedPrimitiveInstancer )
+    , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
     if ( bCopyLoaded )
@@ -404,6 +409,13 @@ FHoudiniGeoPartObject::Serialize( FArchive & Ar )
     Ar << SplitId;
 
     Ar << HoudiniGeoPartObjectFlagsPacked;
+
+    if ( HoudiniGeoPartObjectVersion < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
+    {
+        // Prior to this version the unused flags space was not zero-initialized, so 
+        // zero them out now to prevent misinterpreting any 1s
+        HoudiniGeoPartObjectFlagsPacked &= 0x3FFFF;
+    }
 
     if ( HoudiniGeoPartObjectVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_GEO_PART_NODE_PATH )
     {

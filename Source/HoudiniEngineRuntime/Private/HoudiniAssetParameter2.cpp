@@ -40,13 +40,7 @@ UHoudiniAssetParameter2::UHoudiniAssetParameter2( const FObjectInitializer & Obj
     , ParameterSize( 1 )
     , MultiparmInstanceIndex( -1 )
     , ActiveChildParameter( 0 )
-    , bIsSpare( false )
-    , bIsEnabled( true )
-    , bIsVisible( true )
-    , bChanged( false )
-    , bSliderDragged( false )
-    , bIsChildOfMultiparm( false )
-    , bIsSubstanceParameter( false )
+    , HoudiniAssetParameterFlagsPacked( 0u )
     , HoudiniAssetParameterVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 

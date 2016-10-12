@@ -265,29 +265,16 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     , ImportAxis( HRSAI_Unreal )
     , HapiNotificationStarted( 0.0 )
     , AssetCookCount( 0 )
-    /** Component flags. **/
-    , bEnableCooking( true )
-    , bUploadTransformsToHoudiniEngine( true )
-    , bTransformChangeTriggersCooks( false )
-    , bContainsHoudiniLogoGeometry( false )
-    , bIsNativeComponent( false )
-    , bIsPreviewComponent( false )
-    , bLoadedComponent( false )
-    , bIsPlayModeActive( false )
-    , bTimeCookInPlaymode( false )
-    , bUseHoudiniMaterials( true )
-    , bCookingTriggersDownstreamCooks( true )
-    /** Component transient flags. **/
-    , bComponentCopyImported( false )
-    , bTransactionAssetChange( false )
-    , bWaitingForUpstreamAssetsToInstantiate( false )
-    , bParametersChanged( false )
-    , bComponentTransformHasChanged( false )
-    , bLoadedComponentRequiresInstantiation( false )
-    , bIsSharingAssetId( false )
-    , bAssetIsBeingInstantiated(false)
+    , HoudiniAssetComponentFlagsPacked( 0u )
+    , HoudiniAssetComponentTransientFlagsPacked( 0u )
     , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
+    /** Component flags. **/
+    bEnableCooking = true;
+    bUploadTransformsToHoudiniEngine = true;
+    bUseHoudiniMaterials = true;
+    bCookingTriggersDownstreamCooks = true;
+
     UObject * Object = ObjectInitializer.GetObj();
     UObject * ObjectOuter = Object->GetOuter();
 
