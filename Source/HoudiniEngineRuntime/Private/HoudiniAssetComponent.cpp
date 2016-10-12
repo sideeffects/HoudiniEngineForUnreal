@@ -2019,6 +2019,9 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     // Copy the original scale - this gets lost sometimes in the copy/paste procedure
     SetWorldScale3D( CopiedHoudiniComponent->GetComponentScale() );
 
+    // Copy mobility
+    SetMobility( CopiedHoudiniComponent->Mobility );
+
     // Get original asset id.
     HAPI_AssetId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
 
@@ -2326,6 +2329,9 @@ UHoudiniAssetComponent::OnComponentCreated()
 {
     // This event will only be fired for native Actor and native Component.
     Super::OnComponentCreated();
+
+    if ( !GetOwner() || !GetOwner()->GetWorld() )
+        return;
 
     // Create Houdini logo static mesh and component for it.
     CreateStaticMeshHoudiniLogoResource( StaticMeshes );
