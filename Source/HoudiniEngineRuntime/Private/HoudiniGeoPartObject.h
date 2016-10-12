@@ -76,9 +76,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
         /** Return true if this geo part object is a volume. **/
         bool IsVolume() const;
 
-        /** Return true if this geo part object has just been loaded. **/
-        bool IsLoaded() const;
-
         /** Return true if this geo part object is editable. **/
         bool IsEditable() const;
 

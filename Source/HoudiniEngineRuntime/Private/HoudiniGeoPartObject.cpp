@@ -256,12 +256,6 @@ FHoudiniGeoPartObject::IsVolume() const
 }
 
 bool
-FHoudiniGeoPartObject::IsLoaded() const
-{
-    return bIsLoaded;
-}
-
-bool
 FHoudiniGeoPartObject::IsEditable() const
 {
     return bIsEditable;
@@ -389,8 +383,9 @@ FHoudiniGeoPartObject::Serialize( FArchive & Ar )
     if ( Ar.IsLoading() && !Ar.IsTransacting() )
     {
         AssetId = -1;
-        ObjectId = -1;
-        GeoId = -1;
+        // Although Object and Geo ids are invalid, we don't -1 them so that our parts can
+        // still be hashed into a map on the component.  This will be dropped after the next cook
+        // anyway.
     }
 
     Ar << PartId;
