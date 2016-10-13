@@ -189,49 +189,70 @@ UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailC
 {
     Super::CreateWidget( LocalDetailCategoryBuilder );
 
+    /** Should we swap Y and Z fields (only relevant for Vector3) */
+    bool bSwappedAxis3Vector = false;
+    if ( auto Settings = GetDefault< UHoudiniRuntimeSettings >() )
+    {
+        bSwappedAxis3Vector = TupleSize == 3 && Settings->ImportAxis == HRSAI_Unreal;
+    }
+
     FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.
     CreateNameWidget( Row, true );
 
-    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
-
-    for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
+    if ( TupleSize == 3 )
     {
-        TSharedPtr< SNumericEntryBox< float > > NumericEntryBox;
-
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-        [
-            SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
-            .AllowSpin( true )
-
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-
-            .MinValue( ValueMin )
-            .MaxValue( ValueMax )
-
-            .MinSliderValue( ValueUIMin )
-            .MaxSliderValue( ValueUIMax )
-
-            .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
-            .OnValueChanged( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::SetValue, Idx, true, true ) )
-            .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx ) )
-            .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
-            .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
-                this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
-
-            .SliderExponent( 1.0f )
-        ];
-
-        if ( NumericEntryBox.IsValid() )
-            NumericEntryBox->SetEnabled( !bIsDisabled );
+        Row.ValueWidget.Widget = SNew( SVectorInputBox )
+        .bColorAxisLabels( true )
+        .X( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( this, &UHoudiniAssetParameterFloat::GetValue, 0 ) ) )
+        .Y( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( this, &UHoudiniAssetParameterFloat::GetValue, bSwappedAxis3Vector ? 2 : 1 ) ) )
+        .Z( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( this, &UHoudiniAssetParameterFloat::GetValue, bSwappedAxis3Vector ? 1 : 2 ) ) )
+        .OnXChanged( FOnFloatValueChanged::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValue, 0, true, true ) )
+        .OnYChanged( FOnFloatValueChanged::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValue, bSwappedAxis3Vector ? 2 : 1, true, true ) )
+        .OnZChanged( FOnFloatValueChanged::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValue, bSwappedAxis3Vector ? 1 : 2, true, true ) );
     }
+    else
+    {
+        TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
 
-    Row.ValueWidget.Widget = VerticalBox;
+        for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
+        {
+            TSharedPtr< SNumericEntryBox< float > > NumericEntryBox;
+
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
+                [
+                    SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
+                    .AllowSpin( true )
+
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+
+                .MinValue( ValueMin )
+                .MaxValue( ValueMax )
+
+                .MinSliderValue( ValueUIMin )
+                .MaxSliderValue( ValueUIMax )
+
+                .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
+                .OnValueChanged( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
+                    this, &UHoudiniAssetParameterFloat::SetValue, Idx, true, true ) )
+                .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateUObject(
+                    this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx ) )
+                .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
+                    this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
+                .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
+                    this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
+
+                .SliderExponent( 1.0f )
+                ];
+
+            if ( NumericEntryBox.IsValid() )
+                NumericEntryBox->SetEnabled( !bIsDisabled );
+        }
+
+        Row.ValueWidget.Widget = VerticalBox;
+    }
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
