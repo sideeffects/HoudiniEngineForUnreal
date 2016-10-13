@@ -102,7 +102,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Construct static meshes for a given Houdini asset. **/
         static bool CreateStaticMeshesFromHoudiniAsset(
-            UHoudiniAssetComponent * HoudiniAssetComponent, UPackage * Package,
+            UHoudiniAssetComponent * HoudiniAssetComponent,
             const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
             TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform );
 

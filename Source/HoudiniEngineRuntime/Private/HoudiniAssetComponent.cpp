@@ -769,7 +769,10 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
 
                 // Detach and destroy the component.
                 UStaticMeshComponent * StaticMeshComponent = *FoundStaticMeshComponent;
-                StaticMeshComponent->UnregisterComponent();
+                if ( StaticMeshComponent->IsRegistered() )
+                {
+                    StaticMeshComponent->UnregisterComponent();
+                }
                 StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
                 StaticMeshComponent->DestroyComponent();
             }
@@ -1043,8 +1046,7 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
     FTransform ComponentTransform;
     TMap< FHoudiniGeoPartObject, UStaticMesh * > NewStaticMeshes;
     if ( FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
-        this, GetOutermost(),
-        StaticMeshes, NewStaticMeshes, ComponentTransform ) )
+        this, StaticMeshes, NewStaticMeshes, ComponentTransform) )
     {
         // Remove all duplicates. After this operation, old map will have meshes which we need
         // to deallocate.
@@ -2333,8 +2335,11 @@ UHoudiniAssetComponent::OnComponentCreated()
     if ( !GetOwner() || !GetOwner()->GetWorld() )
         return;
 
-    // Create Houdini logo static mesh and component for it.
-    CreateStaticMeshHoudiniLogoResource( StaticMeshes );
+    if ( StaticMeshes.Num() == 0 )
+    {
+        // Create Houdini logo static mesh and component for it.
+        CreateStaticMeshHoudiniLogoResource( StaticMeshes );
+    }
 
     // Create replacement material object.
     if ( !HoudiniAssetComponentMaterials )
