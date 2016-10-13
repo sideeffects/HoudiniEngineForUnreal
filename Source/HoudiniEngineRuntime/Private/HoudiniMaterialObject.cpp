@@ -320,7 +320,7 @@ FHoudiniMaterialObject::CreateMaterialPackage(
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
-            OuterPackage = HoudiniAssetComponent->GetOutermost();
+            OuterPackage = HoudiniAssetComponent->GetComponentLevel();
         }
 
         // See if package exists, if it does, we need to regenerate the name.

@@ -3856,7 +3856,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
-            OuterPackage = HoudiniAssetComponent->GetOutermost();
+            OuterPackage = HoudiniAssetComponent->GetComponentLevel();
         }
 
         // See if package exists, if it does, we need to regenerate the name.
@@ -4013,7 +4013,7 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
-            OuterPackage = HoudiniAssetComponent->GetOutermost();
+            OuterPackage = HoudiniAssetComponent->GetComponentLevel();
         }
 
         // See if package exists, if it does, we need to regenerate the name.
@@ -4115,13 +4115,13 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
         // Sanitize package name.
         PackageName = PackageTools::SanitizePackageName( PackageName );
 
-        UPackage * OuterPackage = nullptr;
+        UObject * OuterPackage = nullptr;
 
         if ( !bBake )
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
-            OuterPackage = HoudiniAssetComponent->GetOutermost();
+            OuterPackage = HoudiniAssetComponent->GetComponentLevel();
         }
 
         // See if package exists, if it does, we need to regenerate the name.
@@ -4148,10 +4148,8 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
     return PackageNew;
 }
 
-bool
-FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
-    UPackage * Package, const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
+bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+    UHoudiniAssetComponent * HoudiniAssetComponent, const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
     TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform )
 {
 #if WITH_EDITOR
@@ -4257,10 +4255,6 @@ FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     // Cache all materials inside the component.
     if ( HoudiniAssetComponent->HoudiniAssetComponentMaterials )
         HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments = Materials;
-
-    // If we have no package, we will use transient package.
-    if ( !Package )
-        Package = GetTransientPackage();
 
     UStaticMesh * StaticMesh = nullptr;
     FString MeshName;

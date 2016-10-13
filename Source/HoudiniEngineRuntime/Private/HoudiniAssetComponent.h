@@ -160,7 +160,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
             meta = ( DisplayName = "Asset User Data" ) )
         TArray<UAssetUserData*> GeneratedAssetUserData;
 
-    public:
+public:
 
         /** Change the Houdini Asset used by this component. **/
         virtual void SetHoudiniAsset( UHoudiniAsset * NewHoudiniAsset );
