@@ -52,6 +52,8 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         virtual void UnregisterThumbnails() override;
         virtual void RegisterForUndo() override;
         virtual void UnregisterForUndo() override;
+        virtual void RegisterModes() override;
+        virtual void UnregisterModes() override;
 
     /** FEditorUndoClient methods. **/
     public:

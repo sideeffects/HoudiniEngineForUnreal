@@ -31,6 +31,7 @@
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetActorFactory.h"
+#include "HoudiniAttributePaintEdMode.h"
 
 const FName
 FHoudiniEngineEditor::HoudiniEngineEditorAppIdentifier = FName( TEXT( "HoudiniEngineEditorApp" ) );
@@ -91,6 +92,9 @@ FHoudiniEngineEditor::StartupModule()
 
     // Register global undo / redo callbacks.
     RegisterForUndo();
+
+    // Register editor modes
+    RegisterModes();
 
     // Store the instance.
     FHoudiniEngineEditor::HoudiniEngineEditorInstance = this;
@@ -391,6 +395,25 @@ FHoudiniEngineEditor::UnregisterForUndo()
 {
     if ( GUnrealEd )
         GUnrealEd->UnregisterForUndo( this );
+}
+
+void 
+FHoudiniEngineEditor::RegisterModes()
+{
+#ifdef WANT_PAINT_MODE
+    FEditorModeRegistry::Get().RegisterMode<FHoudiniAttributePaintEdMode>( 
+        FHoudiniAttributePaintEdMode::EM_HoudiniAttributePaintEdModeId, 
+        LOCTEXT( "HoudiniVertexAttributePainting", "Houdini Vertex Attribute Painting" ), 
+        FSlateIcon(), true );
+#endif
+}
+
+void 
+FHoudiniEngineEditor::UnregisterModes()
+{
+#ifdef WANT_PAINT_MODE
+    FEditorModeRegistry::Get().UnregisterMode( FHoudiniAttributePaintEdMode::EM_HoudiniAttributePaintEdModeId );
+#endif
 }
 
 TSharedPtr<ISlateStyle>

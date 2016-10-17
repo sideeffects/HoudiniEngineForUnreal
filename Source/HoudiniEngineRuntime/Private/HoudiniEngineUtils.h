@@ -186,7 +186,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool HapiCreateInputNodeForData(
             HAPI_AssetId HostAssetId, 
             UStaticMesh * Mesh,
-            HAPI_AssetId & ConnectedAssetId);
+            HAPI_AssetId & ConnectedAssetId,
+            class UStaticMeshComponent* StaticMeshComponent = nullptr );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(

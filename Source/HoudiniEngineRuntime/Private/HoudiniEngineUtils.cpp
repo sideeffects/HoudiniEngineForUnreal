@@ -3139,7 +3139,8 @@ bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_AssetId HostAssetId, 
     UStaticMesh * StaticMesh,
-    HAPI_AssetId & ConnectedAssetId)
+    HAPI_AssetId & ConnectedAssetId,
+    UStaticMeshComponent* StaticMeshComponent /* = nullptr */)
 {
 #if WITH_EDITOR
 
@@ -3604,6 +3605,19 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
     }
 
+    // Check if we have vertex attribute data to add
+    if ( StaticMeshComponent && StaticMeshComponent->GetOwner() )
+    {
+        if ( UHoudiniAttributeDataComponent* DataComponent = StaticMeshComponent->GetOwner()->FindComponentByClass<UHoudiniAttributeDataComponent>() )
+        {
+            bool bSuccess = DataComponent->Upload( DisplayGeoInfo.nodeId, StaticMeshComponent );
+            if ( !bSuccess )
+            {
+                HOUDINI_LOG_ERROR( TEXT( "Upload of attribute data for %s failed" ), *StaticMeshComponent->GetOwner()->GetName() );
+            }
+        }
+    }
+
     // Commit the geo.
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
@@ -3640,7 +3654,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             bInputCreated = HapiCreateInputNodeForData(
                 ConnectedAssetId,
                 OutlinerMesh.StaticMesh,
-                OutlinerMesh.AssetId );
+                OutlinerMesh.AssetId,
+                OutlinerMesh.StaticMeshComponent );
         }
         else if (OutlinerMesh.SplineComponent != nullptr)
         {
@@ -3699,7 +3714,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_AssetId HostAssetId, TArra
             {
                 HAPI_AssetId MeshAssetNodeId = -1;
                 // Creating an Input Node for Mesh Data
-                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId );
+                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr );
                 if ( !bInputCreated )
                 {
                     HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );

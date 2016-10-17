@@ -56,4 +56,8 @@ class IHoudiniEngineEditor : public IModuleInterface
         /** Register and unregister for undo/redo notifications. **/
         virtual void RegisterForUndo() {}
         virtual void UnregisterForUndo() {}
+
+        /** Create custom modes **/
+        virtual void RegisterModes() {}
+        virtual void UnregisterModes() {}
 };
