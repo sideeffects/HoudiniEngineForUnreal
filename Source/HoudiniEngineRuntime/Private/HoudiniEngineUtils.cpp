@@ -372,8 +372,8 @@ FHoudiniEngineUtils::TranslateHapiTransform( const HAPI_Transform & HapiTransfor
     if ( ImportAxis == HRSAI_Unreal )
     {
         FQuat ObjectRotation(
-            -HapiTransform.rotationQuaternion[ 0 ], -HapiTransform.rotationQuaternion[ 1 ],
-            -HapiTransform.rotationQuaternion[ 2 ],  HapiTransform.rotationQuaternion[ 3 ]);
+            HapiTransform.rotationQuaternion[ 0 ], HapiTransform.rotationQuaternion[ 1 ],
+            HapiTransform.rotationQuaternion[ 2 ],  -HapiTransform.rotationQuaternion[ 3 ]);
         Swap( ObjectRotation.Y, ObjectRotation.Z );
 
         FVector ObjectTranslation( HapiTransform.position[ 0 ], HapiTransform.position[ 1 ], HapiTransform.position[ 2 ] );
@@ -503,8 +503,6 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
     HapiTransformEuler.rotationOrder = HAPI_XYZ;
 
     FQuat UnrealRotation = UnrealTransform.GetRotation();
-    FRotator Rotator = UnrealRotation.Rotator();
-
     FVector UnrealTranslation = UnrealTransform.GetTranslation();
     UnrealTranslation /= TransformScaleFactor;
 
@@ -512,9 +510,14 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
 
     if ( ImportAxis == HRSAI_Unreal )
     {
-        HapiTransformEuler.rotationEuler[ 0 ] = Rotator.Roll;
-        HapiTransformEuler.rotationEuler[ 1 ] = -Rotator.Yaw;
-        HapiTransformEuler.rotationEuler[ 2 ] = Rotator.Pitch;
+        // switch quat to Y-up, LHR
+        Swap( UnrealRotation.Y, UnrealRotation.Z );
+        UnrealRotation.W = -UnrealRotation.W;
+        const FRotator Rotator = UnrealRotation.Rotator();
+        // negate roll and pitch since they are actually RHR
+        HapiTransformEuler.rotationEuler[ 0 ] = -Rotator.Roll;
+        HapiTransformEuler.rotationEuler[ 1 ] = -Rotator.Pitch;
+        HapiTransformEuler.rotationEuler[ 2 ] = Rotator.Yaw;
 
         Swap( UnrealTranslation.Y, UnrealTranslation.Z );
         HapiTransformEuler.position[ 0 ] = UnrealTranslation.X;
@@ -528,6 +531,7 @@ FHoudiniEngineUtils::TranslateUnrealTransform(
     }
     else if ( ImportAxis == HRSAI_Houdini )
     {
+        const FRotator Rotator = UnrealRotation.Rotator();
         HapiTransformEuler.rotationEuler[ 0 ] = Rotator.Roll;
         HapiTransformEuler.rotationEuler[ 1 ] = Rotator.Yaw;
         HapiTransformEuler.rotationEuler[ 2 ] = Rotator.Pitch;
