@@ -1845,6 +1845,11 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
     // Add delegate for viewport drag and drop events.
     DelegateHandleApplyObjectToActor =
         FEditorDelegates::OnApplyObjectToActor.AddUObject( this, &UHoudiniAssetComponent::OnApplyObjectToActor );
+
+    if ( GEditor )
+    {
+        GEditor->OnActorMoved().AddUObject( this, &UHoudiniAssetComponent::OnActorMoved );
+    }
 }
 
 void
@@ -1859,6 +1864,11 @@ UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 
     // Remove delegate for viewport drag and drop events.
     FEditorDelegates::OnApplyObjectToActor.Remove( DelegateHandleApplyObjectToActor );
+
+    if ( GEditor )
+    {
+        GEditor->OnActorMoved().RemoveAll( this );
+    }
 }
 
 void
@@ -2221,6 +2231,17 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         UpdateEditorProperties( false );
 }
 
+#if WITH_EDITOR
+void
+UHoudiniAssetComponent::OnActorMoved( AActor* Actor )
+{
+    if ( GetOwner() == Actor )
+    {
+        CheckedUploadTransform();
+    }
+}
+#endif
+
 void
 UHoudiniAssetComponent::CreateDefaultPreset()
 {
@@ -2258,8 +2279,12 @@ UHoudiniAssetComponent::OnUpdateTransform( EUpdateTransformFlags UpdateTransform
 {
     Super::OnUpdateTransform( UpdateTransformFlags, Teleport );
 
-#if WITH_EDITOR
+    CheckedUploadTransform();
+}
 
+void 
+UHoudiniAssetComponent::CheckedUploadTransform()
+{
     // Only if asset has been cooked.
     if ( AssetCookCount > 0 )
     {
@@ -2267,7 +2292,7 @@ UHoudiniAssetComponent::OnUpdateTransform( EUpdateTransformFlags UpdateTransform
         if ( bUploadTransformsToHoudiniEngine )
         {
             // Retrieve the current component-to-world transform for this component.
-            if ( !FHoudiniEngineUtils::HapiSetAssetTransform(AssetId, GetComponentTransform() ) )
+            if ( !FHoudiniEngineUtils::HapiSetAssetTransform( AssetId, GetComponentTransform() ) )
                 HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Transformation change back to HAPI." ) );
         }
 
@@ -2278,8 +2303,6 @@ UHoudiniAssetComponent::OnUpdateTransform( EUpdateTransformFlags UpdateTransform
             StartHoudiniTicking();
         }
     }
-
-#endif
 }
 
 void
