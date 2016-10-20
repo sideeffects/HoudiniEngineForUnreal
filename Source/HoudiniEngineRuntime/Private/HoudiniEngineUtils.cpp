@@ -4945,6 +4945,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     PartInfo.id, MarshallingAttributeNameMaterialFallback.c_str(),
                                     AttribFaceMaterials, FaceMaterials );
                             }
+
+                            if ( AttribFaceMaterials.exists && AttribFaceMaterials.owner != HAPI_ATTROWNER_PRIM && AttribFaceMaterials.owner != HAPI_ATTROWNER_DETAIL )
+                            {
+                                HOUDINI_LOG_WARNING( TEXT( "Static Mesh [%d %s], Geo [%d], Part [%d %s]: unreal_material must be a primitive or detail attribute, ignoring attribute." ),
+                                    ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName);
+                                AttribFaceMaterials.exists = false;
+                                FaceMaterials.Empty();
+                            }
                         }
 
                         // Retrieve color data.
