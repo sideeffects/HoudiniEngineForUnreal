@@ -370,6 +370,9 @@ public:
         /** Delegate to handle drag and drop events. **/
         void OnApplyObjectToActor( UObject * ObjectToApply, AActor * ActorToApplyTo );
 
+        /** Delegate to handle asset actor movement */
+        void OnActorMoved( AActor* Actor );
+
         /** Subscribe to Editor events. **/
         void SubscribeEditorDelegates();
 
@@ -481,6 +484,9 @@ public:
 
         /** Return true if given object is referenced locally only, by objects generated and owned by this component. **/
         bool IsObjectReferencedLocally( UStaticMesh * StaticMesh, FReferencerInformationList & Referencers ) const;
+
+        /** Helper called when world transform changes */
+        void CheckedUploadTransform();
 
     public:
 
