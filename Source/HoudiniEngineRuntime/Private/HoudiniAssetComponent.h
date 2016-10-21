@@ -333,7 +333,9 @@ public:
     private:
 
         virtual FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const override;
+#if WITH_EDITOR
         virtual void OnUpdateTransform( EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport ) override;
+#endif
 
     private:
 
@@ -454,6 +456,9 @@ public:
         /** Duplicate instance inputs. Used during copying. **/
         void DuplicateInstanceInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent );
 
+        /** Helper called when world transform changes */
+        void CheckedUploadTransform();
+
 #endif
 
         /** Clear all spline related resources. **/
@@ -481,9 +486,6 @@ public:
 
         /** Return true if given object is referenced locally only, by objects generated and owned by this component. **/
         bool IsObjectReferencedLocally( UStaticMesh * StaticMesh, FReferencerInformationList & Referencers ) const;
-
-        /** Helper called when world transform changes */
-        void CheckedUploadTransform();
 
     public:
 
