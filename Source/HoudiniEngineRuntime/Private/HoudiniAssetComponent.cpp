@@ -2231,7 +2231,6 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         UpdateEditorProperties( false );
 }
 
-#if WITH_EDITOR
 void
 UHoudiniAssetComponent::OnActorMoved( AActor* Actor )
 {
@@ -2240,7 +2239,6 @@ UHoudiniAssetComponent::OnActorMoved( AActor* Actor )
         CheckedUploadTransform();
     }
 }
-#endif
 
 void
 UHoudiniAssetComponent::CreateDefaultPreset()
@@ -2249,7 +2247,38 @@ UHoudiniAssetComponent::CreateDefaultPreset()
         DefaultPresetBuffer.Empty();
 }
 
-#endif
+void
+UHoudiniAssetComponent::OnUpdateTransform( EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport )
+{
+    Super::OnUpdateTransform( UpdateTransformFlags, Teleport );
+
+    CheckedUploadTransform();
+}
+
+void
+UHoudiniAssetComponent::CheckedUploadTransform()
+{
+    // Only if asset has been cooked.
+    if ( AssetCookCount > 0 )
+    {
+        // If we have to upload transforms.
+        if ( bUploadTransformsToHoudiniEngine )
+        {
+            // Retrieve the current component-to-world transform for this component.
+            if ( !FHoudiniEngineUtils::HapiSetAssetTransform( AssetId, GetComponentTransform() ) )
+                HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Transformation change back to HAPI." ) );
+        }
+
+        // If transforms trigger cooks, we need to schedule one.
+        if ( bTransformChangeTriggersCooks )
+        {
+            bComponentTransformHasChanged = true;
+            StartHoudiniTicking();
+        }
+    }
+}
+
+#endif  // WITH_EDITOR
 
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds( const FTransform & LocalToWorld ) const
@@ -2272,37 +2301,6 @@ UHoudiniAssetComponent::CalcBounds( const FTransform & LocalToWorld ) const
     }
 
     return LocalBounds;
-}
-
-void
-UHoudiniAssetComponent::OnUpdateTransform( EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport )
-{
-    Super::OnUpdateTransform( UpdateTransformFlags, Teleport );
-
-    CheckedUploadTransform();
-}
-
-void 
-UHoudiniAssetComponent::CheckedUploadTransform()
-{
-    // Only if asset has been cooked.
-    if ( AssetCookCount > 0 )
-    {
-        // If we have to upload transforms.
-        if ( bUploadTransformsToHoudiniEngine )
-        {
-            // Retrieve the current component-to-world transform for this component.
-            if ( !FHoudiniEngineUtils::HapiSetAssetTransform( AssetId, GetComponentTransform() ) )
-                HOUDINI_LOG_MESSAGE( TEXT( "Failed Uploading Transformation change back to HAPI." ) );
-        }
-
-        // If transforms trigger cooks, we need to schedule one.
-        if ( bTransformChangeTriggersCooks )
-        {
-            bComponentTransformHasChanged = true;
-            StartHoudiniTicking();
-        }
-    }
 }
 
 void
