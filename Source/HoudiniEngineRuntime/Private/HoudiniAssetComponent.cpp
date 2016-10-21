@@ -3961,7 +3961,10 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
 {
     if ( Ar.IsLoading() )
     {
-        ClearInstanceInputs();
+        // When loading for undo, we want to call Serialize on each InstanceInput
+        if ( !Ar.IsTransacting() )
+            ClearInstanceInputs();
+        
         if ( HoudiniAssetComponentVersion > VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP )
         {
             Ar << InstanceInputs;
@@ -3985,6 +3988,14 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
     else
     {
         Ar << InstanceInputs;
+    }
+
+    if ( Ar.IsTransacting() )
+    {
+        for ( UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
+        {
+            InstanceInput->Serialize( Ar );
+        }
     }
 }
 
