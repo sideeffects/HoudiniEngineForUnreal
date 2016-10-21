@@ -2646,10 +2646,13 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     {
         bool bPresetSaved = false;
 
-        if ( Ar.IsSaving() && FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+        if ( Ar.IsSaving() )
         {
-            if ( FHoudiniEngineUtils::GetAssetPreset( AssetId, PresetBuffer ) )
-                bPresetSaved = true;
+            bPresetSaved = true;
+            if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+            {
+                FHoudiniEngineUtils::GetAssetPreset( AssetId, PresetBuffer );
+            }
         }
 
         Ar << bPresetSaved;
@@ -2657,12 +2660,6 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         if ( bPresetSaved )
         {
             Ar << PresetBuffer;
-
-            if ( Ar.IsSaving() )
-            {
-                // We no longer need preset buffer.
-                PresetBuffer.Empty();
-            }
         }
     }
 
