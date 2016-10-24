@@ -3269,12 +3269,12 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         if ( StaticMeshUVCount > 0 )
         {
             const TArray< FVector2D > & RawMeshUVs = RawMesh.WedgeTexCoords[ MeshTexCoordIdx ];
-            TArray< FVector2D > StaticMeshUVs;
-            StaticMeshUVs.SetNumZeroed( RawMeshUVs.Num() );
+            TArray< FVector > StaticMeshUVs;
+            StaticMeshUVs.Reserve( StaticMeshUVCount );
 
             // Transfer UV data.
             for ( int32 UVIdx = 0; UVIdx < StaticMeshUVCount; ++UVIdx )
-                StaticMeshUVs[ UVIdx ] = FVector2D( RawMeshUVs[ UVIdx ].X, 1.0 - RawMeshUVs[ UVIdx ].Y );
+                StaticMeshUVs.Emplace( RawMeshUVs[ UVIdx ].X, 1.0 - RawMeshUVs[ UVIdx ].Y, 0 );
 
             if ( ImportAxis == HRSAI_Unreal )
             {
@@ -3282,12 +3282,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3 )
                 {
                     // We do not touch wedge 0 of this triangle.
-
-                    FVector2D WedgeUV1 = StaticMeshUVs[ WedgeIdx + 1 ];
-                    FVector2D WedgeUV2 = StaticMeshUVs[ WedgeIdx + 2 ];
-
-                    StaticMeshUVs[ WedgeIdx + 1 ] = WedgeUV2;
-                    StaticMeshUVs[ WedgeIdx + 2 ] = WedgeUV1;
+                    StaticMeshUVs.SwapMemory( WedgeIdx + 1, WedgeIdx + 2 );
                 }
             }
             else if ( ImportAxis == HRSAI_Houdini )
@@ -3312,7 +3307,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             HAPI_AttributeInfo AttributeInfoVertex;
             FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
             AttributeInfoVertex.count = StaticMeshUVCount;
-            AttributeInfoVertex.tupleSize = 2;
+            AttributeInfoVertex.tupleSize = 3;
             AttributeInfoVertex.exists = true;
             AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
             AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
