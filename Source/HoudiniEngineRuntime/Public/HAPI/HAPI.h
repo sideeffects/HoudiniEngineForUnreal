@@ -3666,6 +3666,23 @@ HAPI_GetMaterialOnGroup( const HAPI_Session * session,
                          const char * group_name,
                          HAPI_MaterialInfo * material_info );
 
+/// @brief  Render a single texture from a COP to an image for
+///         later extraction.
+///
+///         Note that you must call this first for any of the other material
+///         APIs to work.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      cop_node_id
+///                 The COP node id.
+///
+HAPI_DECL HAPI_RenderCOPToImage( const HAPI_Session * session,
+                                 HAPI_NodeId cop_node_id );
+
 /// @brief  Render only a single texture to an image for later extraction.
 ///         An example use of this method might be to render the diffuse,
 ///         normal, and bump texture maps of a material to individual
