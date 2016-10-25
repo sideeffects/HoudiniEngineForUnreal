@@ -403,6 +403,8 @@ UHoudiniAssetParameterChoice::Serialize( FArchive & Ar )
     // Call base implementation.
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     if ( Ar.IsLoading() )
     {
         StringChoiceValues.Empty();

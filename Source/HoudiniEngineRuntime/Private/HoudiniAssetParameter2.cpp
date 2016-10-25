@@ -83,6 +83,8 @@ UHoudiniAssetParameter2::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
 

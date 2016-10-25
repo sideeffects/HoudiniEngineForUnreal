@@ -370,6 +370,8 @@ FHoudiniGeoPartObject::GetTypeHash() const
 void
 FHoudiniGeoPartObject::Serialize( FArchive & Ar )
 {
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     HoudiniGeoPartObjectVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniGeoPartObjectVersion;
 

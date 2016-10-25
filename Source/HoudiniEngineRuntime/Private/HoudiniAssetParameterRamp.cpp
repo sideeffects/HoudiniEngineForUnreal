@@ -706,6 +706,8 @@ UHoudiniAssetParameterRamp::Serialize( FArchive & Ar )
     // Call base implementation.
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     Ar << HoudiniAssetParameterRampCurveFloat;
     Ar << HoudiniAssetParameterRampCurveColor;
 

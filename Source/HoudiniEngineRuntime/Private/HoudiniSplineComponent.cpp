@@ -44,6 +44,8 @@ UHoudiniSplineComponent::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     int32 Version = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << Version;
 

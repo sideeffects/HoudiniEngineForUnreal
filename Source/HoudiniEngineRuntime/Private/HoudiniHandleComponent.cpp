@@ -186,7 +186,9 @@ UHoudiniHandleComponent::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
-    for ( size_t i = 0; i < EXformParameter::COUNT; ++i )
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
+    for ( int32 i = 0; i < EXformParameter::COUNT; ++i )
         Ar << XformParms[ i ];
 
     Ar << RSTParm;

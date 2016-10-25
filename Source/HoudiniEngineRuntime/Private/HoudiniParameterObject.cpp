@@ -677,6 +677,8 @@ FHoudiniParameterObject::HapiIsChildOfMultiParm() const
 void
 FHoudiniParameterObject::Serialize( FArchive & Ar )
 {
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     HoudiniParameterObjectVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniParameterObjectVersion;
 
