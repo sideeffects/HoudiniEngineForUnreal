@@ -41,10 +41,8 @@ public:
     /** Spawn a single instance */
     AActor* SpawnInstancedActor( const FTransform& InstancedTransform ) const;
 
-    UPROPERTY( SkipSerialization, VisibleAnywhere, Category = Instances )
     UObject* InstancedAsset;
 
-    UPROPERTY( SkipSerialization, VisibleInstanceOnly, Category = Instances )
     TArray< AActor* > Instances;
 
 };
