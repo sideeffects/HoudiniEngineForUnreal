@@ -22,7 +22,6 @@ class UStaticMesh;
 class UMaterialInterface;
 class UHoudiniAssetComponent;
 struct FHoudiniGeoPartObject;
-class UInstancedStaticMeshComponent;
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
@@ -30,11 +29,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
     friend class UHoudiniAssetInstanceInput;
 
     GENERATED_UCLASS_BODY()
-
-    public:
-
-        /** Destructor. **/
-        virtual ~UHoudiniAssetInstanceInputField();
 
     public:
 
@@ -71,16 +65,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         void SetGeoPartObject( const FHoudiniGeoPartObject & InHoudiniGeoPartObject );
 
         /** Return original static mesh. **/
-        UStaticMesh * GetOriginalStaticMesh() const;
+        UObject* GetOriginalObject() const;
 
         /** Return the static mesh associated with an instance variation. **/
-        UStaticMesh * GetInstanceVariation( int32 VariationIndex ) const;  
+        UObject * GetInstanceVariation( int32 VariationIndex ) const;  
 
         /** Add a variation to the instancing. **/
-        void AddInstanceVariation( UStaticMesh * InstaticMesh, int32 VariationIdx );
+        void AddInstanceVariation( UObject * InstancedObject, int32 VariationIdx );
 
         /** Replace the instance variation in a particular slot. **/
-        void ReplaceInstanceVariation( UStaticMesh * InStaticMesh, int32 Index );
+        void ReplaceInstanceVariation( UObject * InObject, int32 Index );
 
         /** Remove a variation from instancing **/
         void RemoveInstanceVariation( int32 VariationIdx );
@@ -89,7 +83,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         int32 InstanceVariationCount() const;
 
         /** Given a static mesh, find which slot(s) it occupies in the instance variations. **/
-        void FindStaticMeshIndices( UStaticMesh * InStaticMesh, TArray< int32 > & Indices );
+        void FindObjectIndices( UObject * InStaticMesh, TArray< int32 > & Indices );
 
         /** Get material replacements. **/
         bool GetMaterialReplacementMeshes(
@@ -131,10 +125,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         void SetLinearOffsetScale( bool bEnabled, int32 VariationIdx );
 
         /** Return true if original static mesh is used. **/
-        bool IsOriginalStaticMeshUsed( int32 VariationIdx ) const;
+        bool IsOriginalObjectUsed( int32 VariationIdx ) const;
 
         /** Return corresponding instanced static mesh component. **/
-        UInstancedStaticMeshComponent * GetInstancedStaticMeshComponent( int32 VariationIdx ) const;
+        class USceneComponent * GetInstancedComponent( int32 VariationIdx ) const;
 
         /** Return transformations of all instances used by the variation **/
         const TArray< FTransform > & GetInstancedTransforms( int32 VariationIdx ) const;
@@ -151,7 +145,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
     protected:
 
         /** Create instanced component for this field. **/
-        void CreateInstancedComponent( int32 VariationIdx );
+        void AddInstanceComponent( int32 VariationIdx );
 
         /** Set transforms for this field. **/
         void SetInstanceTransforms( const TArray< FTransform > & ObjectTransforms );
@@ -174,14 +168,14 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
 #endif
 
-        /** Original static mesh used by the instancer. **/
-        UStaticMesh * OriginalStaticMesh;
-
-        /** Currently used static meshes. **/
-        TArray< UStaticMesh * > StaticMeshes;
-
-        /** Used instanced static mesh component. **/
-        TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+        /** Original object used by the instancer. **/
+        UObject* OriginalObject;
+        
+        /** Currently used Objects */
+        TArray< UObject* > InstancedObjects;
+        
+        /** Used instanced actor component. **/
+        TArray< USceneComponent * > InstancerComponents;
 
         /** Parent Houdini asset component. **/
         UHoudiniAssetComponent * HoudiniAssetComponent;
