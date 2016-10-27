@@ -32,6 +32,8 @@
 void
 FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 {
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
 
@@ -1386,6 +1388,8 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
 {
     // Call base implementation.
     Super::Serialize( Ar );
+
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
 
     // Serialize current choice selection.
     SerializeEnumeration< EHoudiniAssetInputType::Enum >( Ar, ChoiceIndex );

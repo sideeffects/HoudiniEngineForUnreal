@@ -67,6 +67,8 @@ FHoudiniRawMesh::BuildRawMesh( FRawMesh & RawMesh, bool bFullRebuild ) const
 bool
 FHoudiniRawMesh::Serialize( FArchive & Ar )
 {
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     HoudiniRawMeshVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniRawMeshVersion;
 

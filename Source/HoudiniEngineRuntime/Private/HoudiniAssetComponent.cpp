@@ -2548,6 +2548,8 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     if ( !Ar.IsSaving() && !Ar.IsLoading() )
         return;
 

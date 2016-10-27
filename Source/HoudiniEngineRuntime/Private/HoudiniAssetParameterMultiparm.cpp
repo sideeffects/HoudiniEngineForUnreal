@@ -336,6 +336,8 @@ UHoudiniAssetParameterMultiparm::Serialize( FArchive & Ar )
     // Call base implementation.
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     if ( Ar.IsTransacting() )
     {
         SerializeEnumeration( Ar, LastModificationType );
