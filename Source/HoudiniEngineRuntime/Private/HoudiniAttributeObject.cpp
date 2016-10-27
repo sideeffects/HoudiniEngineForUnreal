@@ -592,6 +592,8 @@ FHoudiniAttributeObject::HapiGetTupleSize() const
 bool
 FHoudiniAttributeObject::Serialize( FArchive & Ar )
 {
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     HoudiniAttributeObjectVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAttributeObjectVersion;
 

@@ -106,6 +106,8 @@ UHoudiniAsset::Serialize( FArchive & Ar )
 {
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     // Properties will get serialized.
 
     // Serialize persistence format version.

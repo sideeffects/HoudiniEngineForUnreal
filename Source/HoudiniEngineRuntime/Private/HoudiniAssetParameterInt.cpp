@@ -326,6 +326,8 @@ UHoudiniAssetParameterInt::Serialize( FArchive & Ar )
     // Call base implementation.
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     Ar << Values;
 
     Ar << ValueMin;

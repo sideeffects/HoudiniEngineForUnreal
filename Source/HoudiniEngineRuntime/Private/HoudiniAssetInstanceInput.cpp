@@ -977,6 +977,8 @@ UHoudiniAssetInstanceInput::Serialize( FArchive & Ar )
     // Call base implementation.
     Super::Serialize( Ar );
 
+    Ar.UsingCustomVersion( FHoudiniCustomSerializationVersion::GUID );
+
     Ar << HoudiniAssetInstanceInputFlagsPacked;
     Ar << HoudiniGeoPartObject;
 
