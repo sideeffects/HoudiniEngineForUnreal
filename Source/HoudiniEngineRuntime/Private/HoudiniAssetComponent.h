@@ -236,6 +236,9 @@ public:
 
         /** Return all the UStaticMeshComponent & UInstancedStataicMeshComponent owned by the actor, along with their associated parts */
         TMap<const UStaticMeshComponent *, FHoudiniGeoPartObject> CollectAllStaticMeshComponents() const;
+
+        /** Return all the UHoudiniInstancedActorComponents that have content */
+        TMap<const class UHoudiniInstancedActorComponent *, FHoudiniGeoPartObject> UHoudiniAssetComponent::CollectAllInstancedActorComponents() const;
        
         /** Return true if global setting scale factors are different from the ones used for this component. **/
         bool CheckGlobalSettingScaleFactors() const;

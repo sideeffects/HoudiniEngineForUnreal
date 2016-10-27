@@ -138,11 +138,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         UHoudiniAssetInstanceInputField * LocateInputField(
             const FHoudiniGeoPartObject & GeoPartObject );
 
-        /** Locate fields which have specified static mesh set as their original mesh. **/
-        void LocateInputFieldsWithOriginalStaticMesh(
-            TArray< UHoudiniAssetInstanceInputField * > & Fields,
-            UStaticMesh * OriginalStaticMesh );
-
         /** Locate or create (if it does not exist) an input field. **/
         void CreateInstanceInputField(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
@@ -152,7 +147,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Locate or create (if it does not exist) an input field. This version is used with override attribute. **/
         void CreateInstanceInputField(
-            UStaticMesh * StaticMesh, const TArray< FTransform > & ObjectTransforms,
+            UObject * InstancedObject, const TArray< FTransform > & ObjectTransforms,
             const TArray< UHoudiniAssetInstanceInputField * > & OldInstanceInputFields,
             TArray< UHoudiniAssetInstanceInputField * > & NewInstanceInputFields );
 
@@ -168,9 +163,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
             UObject * InObject,
             UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
             int32 Idx, int32 VariationIdx );
-
-        /** Delegate used to detect if valid object has been dragged and dropped. **/
-        bool OnStaticMeshDraggedOver( const UObject * InObject ) const;
 
         /** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
         const FSlateBrush * GetStaticMeshThumbnailBorder(
@@ -198,7 +190,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
             int32 Idx, int32 VariationIdx );
 
         /** Browse to static mesh. **/
-        void OnStaticMeshBrowse( UStaticMesh * StaticMesh );
+        void OnInstancedObjectBrowse( UObject* InstancedObject );
 
         /** Handler for reset static mesh button. **/
         FReply OnResetStaticMeshClicked(

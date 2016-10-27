@@ -26,6 +26,7 @@
 #include "Components/SplineComponent.h"
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
+#include "HoudiniInstancedActorComponent.h"
 
 const FString kResultStringSuccess( TEXT( "Success" ) );
 const FString kResultStringFailure( TEXT( "Generic Failure" ) );
@@ -8514,35 +8515,57 @@ FHoudiniEngineUtils::LocateClipboardActor( const FString & ClipboardText )
 
 void
 FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(
-    UInstancedStaticMeshComponent * Component,
+    USceneComponent * Component,
     const TArray< FTransform > & InstancedTransforms,
     const FRotator & RotationOffset, const FVector & ScaleOffset )
 {
-    Component->ClearInstances();
+    UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Component );
+    UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( Component );
+    
+    check( ISMC || IAC );
 
-    for ( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
+    auto ProcessOffsets = [&]() {
+        TArray<FTransform> ProcessedTransforms;
+        ProcessedTransforms.Reserve( InstancedTransforms.Num() );
+
+        for ( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
+        {
+            FTransform Transform = InstancedTransforms[ InstanceIdx ];
+
+            // Compute new rotation and scale.
+            FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
+            FVector TransformScale3D = Transform.GetScale3D() * ScaleOffset;
+
+            // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
+            // Happens in blueprint as well.
+            if ( TransformScale3D.X < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.X = HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+            if ( TransformScale3D.Y < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Y = HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+            if ( TransformScale3D.Z < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Z = HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+            Transform.SetRotation( TransformRotation );
+            Transform.SetScale3D( TransformScale3D );
+
+            ProcessedTransforms.Add( Transform );
+        }
+        return ProcessedTransforms;
+    };
+
+    if ( ISMC )
     {
-        FTransform Transform = InstancedTransforms[ InstanceIdx ];
-
-        // Compute new rotation and scale.
-        FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
-        FVector TransformScale3D = Transform.GetScale3D() * ScaleOffset;
-
-        // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
-        // Happens in blueprint as well.
-        if ( TransformScale3D.X < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.X = HAPI_UNREAL_SCALE_SMALL_VALUE;
-
-        if ( TransformScale3D.Y < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.Y = HAPI_UNREAL_SCALE_SMALL_VALUE;
-
-        if ( TransformScale3D.Z < HAPI_UNREAL_SCALE_SMALL_VALUE )
-            TransformScale3D.Z = HAPI_UNREAL_SCALE_SMALL_VALUE;
-
-        Transform.SetRotation( TransformRotation );
-        Transform.SetScale3D( TransformScale3D );
-
-        Component->AddInstance( Transform );
+        ISMC->ClearInstances();
+        for ( const auto& Transform : ProcessOffsets() )
+        {
+            ISMC->AddInstance( Transform );
+        }
+    }
+    else if ( IAC )
+    {
+        IAC->SetInstances( ProcessOffsets() );
     }
 }
 
@@ -8873,11 +8896,62 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
     return DuplicatedTexture;
 }
 
-void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
+void 
+FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors )
+{
+    const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
+
+    auto SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();    
+    TArray< AActor* > NewActors = BakeHoudiniActorToActors_StaticMeshes( HoudiniAssetComponent, SMComponentToPart );
+
+    auto IAComponentToPart = HoudiniAssetComponent->CollectAllInstancedActorComponents();
+    NewActors.Append( BakeHoudiniActorToActors_InstancedActors( HoudiniAssetComponent, IAComponentToPart ) );
+    
+    if ( SelectNewActors && NewActors.Num() )
+    {
+        GEditor->SelectNone( false, true );
+        for ( AActor* NewActor : NewActors )
+        {
+            GEditor->SelectActor( NewActor, true, false );
+        }
+        GEditor->NoteSelectionChange();
+    }
+}
+
+TArray< AActor* >
+FHoudiniEngineUtils::BakeHoudiniActorToActors_InstancedActors(
+    UHoudiniAssetComponent * HoudiniAssetComponent,
+    TMap< const UHoudiniInstancedActorComponent*, FHoudiniGeoPartObject >& ComponentToPart )
+{
+    TArray< AActor* > NewActors;
+
+    ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+    FName BaseName( *( HoudiniAssetComponent->GetOwner()->GetName() + TEXT( "_Baked" ) ) );
+
+    for ( const auto& Iter : ComponentToPart )
+    {
+        const UHoudiniInstancedActorComponent * OtherSMC = Iter.Key;
+        for ( AActor* InstActor : OtherSMC->Instances )
+        {
+            FName NewName = MakeUniqueObjectName( DesiredLevel, OtherSMC->InstancedAsset->StaticClass(), BaseName );
+            FString NewNameStr = NewName.ToString();
+
+            if ( AActor* NewActor = OtherSMC->SpawnInstancedActor( InstActor->GetTransform() ) )
+            {
+                NewActor->SetActorLabel( NewNameStr );
+                NewActor->SetFolderPath( BaseName );
+            }
+        }
+    }
+    return NewActors;
+}
+
+TArray< AActor* > 
+FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
+    UHoudiniAssetComponent * HoudiniAssetComponent, 
+    TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject >& SMComponentToPart )
 {
     TMap< const UStaticMesh*, UStaticMesh* > OriginalToBakedMesh;
-
-    TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject > SMComponentToPart = HoudiniAssetComponent->CollectAllStaticMeshComponents();
 
     // Loop over all comps, bake static mesh if not already baked, and create an actor for every one of them
     TArray< AActor* > NewActors;
@@ -8921,8 +8995,6 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
     // Finished baking, now spawn the actors
     for ( const auto& Iter : SMComponentToPart )
     {
-        const FScopedTransaction Transaction( LOCTEXT( "BakeToActors", "Bake To Actors" ) );
-
         const UStaticMeshComponent * OtherSMC = Iter.Key;
         UStaticMesh* BakedSM = OriginalToBakedMesh[ OtherSMC->StaticMesh ];
 
@@ -9013,17 +9085,8 @@ void FHoudiniEngineUtils::BakeHoudiniActorToActors( UHoudiniAssetComponent * Hou
                 }
             }
         }
-
-        if ( SelectNewActors && NewActors.Num() )
-        {
-            GEditor->SelectNone( false, true );
-            for ( AActor* NewActor : NewActors )
-            {
-                GEditor->SelectActor( NewActor, true, false );
-            }
-            GEditor->NoteSelectionChange();
-        }
     }
+    return NewActors;
 }
 
 UHoudiniAssetInput* 

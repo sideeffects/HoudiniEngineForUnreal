@@ -45,6 +45,7 @@
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetInstanceInputField.h"
+#include "HoudiniInstancedActorComponent.h"
 
 #if WITH_EDITOR
 
@@ -906,9 +907,10 @@ UHoudiniAssetComponent::CollectAllStaticMeshComponents() const
         {
             for ( int32 VarIndex = 0; VarIndex < InputField->InstanceVariationCount(); ++VarIndex )
             {
-                if ( UStaticMesh* Mesh = InputField->GetInstanceVariation( VarIndex ) )
+                UObject* Comp = InputField->GetInstancedComponent( VarIndex );
+                if ( InputField->GetInstanceVariation( VarIndex ) && Comp->IsA<UInstancedStaticMeshComponent>() )
                 {
-                    OutSMComponentToPart.Add( InputField->GetInstancedStaticMeshComponent( VarIndex ), InputField->GetHoudiniGeoPartObject() );
+                    OutSMComponentToPart.Add( Cast<UInstancedStaticMeshComponent>( Comp ), InputField->GetHoudiniGeoPartObject() );
                 }
             }
         }
@@ -923,6 +925,27 @@ UHoudiniAssetComponent::CollectAllStaticMeshComponents() const
         }
     }
 
+    return OutSMComponentToPart;
+}
+
+TMap<const UHoudiniInstancedActorComponent *, FHoudiniGeoPartObject>
+UHoudiniAssetComponent::CollectAllInstancedActorComponents() const
+{
+    TMap<const UHoudiniInstancedActorComponent *, FHoudiniGeoPartObject> OutSMComponentToPart;
+    for ( const UHoudiniAssetInstanceInput* InstanceInput : InstanceInputs )
+    {
+        for ( const UHoudiniAssetInstanceInputField* InputField : InstanceInput->GetInstanceInputFields() )
+        {
+            for ( int32 VarIndex = 0; VarIndex < InputField->InstanceVariationCount(); ++VarIndex )
+            {
+                UObject* Comp = InputField->GetInstancedComponent( VarIndex );
+                if ( InputField->GetInstanceVariation( VarIndex ) && Comp->IsA<UHoudiniInstancedActorComponent>() )
+                {
+                    OutSMComponentToPart.Add( Cast<UHoudiniInstancedActorComponent>( Comp ), InputField->GetHoudiniGeoPartObject() );
+                }
+            }
+        }
+    }
     return OutSMComponentToPart;
 }
 
@@ -2504,9 +2527,18 @@ UHoudiniAssetComponent::PostLoad()
 #endif
 
     if ( StaticMeshes.Num() > 0 )
+    {
         CreateObjectGeoPartResources( StaticMeshes );
+    }
     else
-        CreateStaticMeshHoudiniLogoResource( StaticMeshes );
+    {
+        // Iff the only component our owner has is us, then we should show the logo mesh
+        auto SceneComponents = GetOwner()->GetComponentsByClass( USceneComponent::StaticClass() );
+        if ( SceneComponents.Num() == 1 )
+        {
+            CreateStaticMeshHoudiniLogoResource( StaticMeshes );
+        }
+    }
 
     // Perform post load initialization on parameters.
     PostLoadInitializeParameters();

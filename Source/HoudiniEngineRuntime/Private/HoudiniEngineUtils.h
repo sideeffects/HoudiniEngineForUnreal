@@ -142,7 +142,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Update instances of a given instanced static mesh component. **/
         static void UpdateInstancedStaticMeshComponentInstances(
-            UInstancedStaticMeshComponent * Component,
+            USceneComponent * Component,
             const TArray< FTransform > & InstancedTransforms,
             const FRotator & RotationOffset,
             const FVector & ScaleOffset );
@@ -486,6 +486,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
         static bool StaticMeshRequiresBake( const UStaticMesh * StaticMesh );
 
+        /** Helper for baking to actors */
+        static TArray< AActor* > BakeHoudiniActorToActors_StaticMeshes( UHoudiniAssetComponent * HoudiniAssetComponent, 
+            TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject >& SMComponentToPart );
+        /** Helper for baking to actors */
+        static TArray< AActor* > BakeHoudiniActorToActors_InstancedActors( UHoudiniAssetComponent * HoudiniAssetComponent,
+            TMap< const class UHoudiniInstancedActorComponent*, FHoudiniGeoPartObject >& ComponentToPart );
 #endif
 
         /** Add Houdini meta information to package for a given object. **/

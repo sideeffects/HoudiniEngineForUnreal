@@ -263,17 +263,16 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                 return false;
             }
 
-            // Attempt to load specified mesh.
-            const FString & StaticMeshName = DetailInstanceValues[ 0 ];
-            UStaticMesh * AttributeStaticMesh =
-                Cast< UStaticMesh >( StaticLoadObject(
-                    UStaticMesh::StaticClass(), nullptr, *StaticMeshName, nullptr,
-                    LOAD_NoWarn, nullptr ) );
+            // Attempt to load specified asset.
+            const FString & AssetName = DetailInstanceValues[ 0 ];
+            UObject * AttributeObject =
+                StaticLoadObject( 
+                    UObject::StaticClass(), nullptr, *AssetName, nullptr, LOAD_None, nullptr );
 
-            if ( AttributeStaticMesh )
+            if ( AttributeObject )
             {
                 CreateInstanceInputField(
-                    AttributeStaticMesh, AllTransforms, InstanceInputFields,
+                    AttributeObject, AllTransforms, InstanceInputFields,
                     NewInstanceInputFields );
             }
             else
@@ -294,54 +293,45 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
             }
 
             // Attribute is on points, number of points must match number of transforms.
-            if ( PointInstanceValues.Num() != AllTransforms.Num() )
+            if ( !ensure(PointInstanceValues.Num() == AllTransforms.Num()) )
             {
                 // This should not happen, we have mismatch between number of instance values and transforms.
                 return false;
             }
 
-            // Get unique names.
-            TSet< FString > UniquePointInstanceValues( PointInstanceValues );
-
             // If instance attribute exists on points, we need to get all unique values.
-            TMap< FString, UStaticMesh * > ObjectsToInstance;
+            TMap< FString, UObject * > ObjectsToInstance;
 
-            for ( TSet< FString >::TIterator IterString( UniquePointInstanceValues ); IterString; ++IterString )
+            for ( auto Iter : PointInstanceValues )
             {
-                const FString & UniqueName = *IterString;
+                const FString & UniqueName = *Iter;
 
                 if ( !ObjectsToInstance.Contains( UniqueName ) )
                 {
-                    UStaticMesh * AttributeStaticMesh =
-                        Cast< UStaticMesh >( StaticLoadObject(
-                            UStaticMesh::StaticClass(), nullptr, *UniqueName,
-                            nullptr, LOAD_NoWarn, nullptr ) );
-                    ObjectsToInstance.Add( UniqueName, AttributeStaticMesh );
+                    UObject * AttributeObject = StaticLoadObject( 
+                        UObject::StaticClass(), nullptr, *UniqueName, nullptr, LOAD_None, nullptr );
+
+                    ObjectsToInstance.Add( UniqueName, AttributeObject );
                 }
             }
 
-            if ( ObjectsToInstance.Num() == 0 )
-            {
-                // We have no objects to instance.
-                return false;
-            }
+            bool Success = false;
 
-            for( TMap< FString, UStaticMesh * >::TIterator IterInstanceObjects( ObjectsToInstance );
-                IterInstanceObjects; ++IterInstanceObjects )
+            for( auto Iter : ObjectsToInstance )
             {
-                const FString & InstancePath = IterInstanceObjects.Key();
-                UStaticMesh * AttributeStaticMesh = IterInstanceObjects.Value();
+                const FString & InstancePath = Iter.Key;
+                UObject * AttributeObject = Iter.Value;
 
-                if ( AttributeStaticMesh )
+                if ( AttributeObject )
                 {
                     TArray< FTransform > ObjectTransforms;
                     GetPathInstaceTransforms( InstancePath, PointInstanceValues, AllTransforms, ObjectTransforms );
-
-                    CreateInstanceInputField(
-                        AttributeStaticMesh, ObjectTransforms, InstanceInputFields,
-                        NewInstanceInputFields );
+                    CreateInstanceInputField( AttributeObject, ObjectTransforms, InstanceInputFields, NewInstanceInputFields );
+                    Success = true;
                 }
             }
+            if ( !Success )
+                return false;
         }
         else
         {
@@ -399,22 +389,6 @@ UHoudiniAssetInstanceInput::LocateInputField(
 }
 
 void
-UHoudiniAssetInstanceInput::LocateInputFieldsWithOriginalStaticMesh(
-    TArray< UHoudiniAssetInstanceInputField * > & Fields,
-    UStaticMesh * OriginalStaticMesh )
-{
-    Fields.Empty();
-
-    UHoudiniAssetInstanceInputField * FoundHoudiniAssetInstanceInputField = nullptr;
-    for ( int32 FieldIdx = 0; FieldIdx < InstanceInputFields.Num(); ++FieldIdx )
-    {
-        UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ FieldIdx ];
-        if ( HoudiniAssetInstanceInputField && HoudiniAssetInstanceInputField->OriginalStaticMesh == OriginalStaticMesh )
-            Fields.Add( HoudiniAssetInstanceInputField );
-    }
-}
-
-void
 UHoudiniAssetInstanceInput::CleanInstanceInputFields( TArray< UHoudiniAssetInstanceInputField * > & InInstanceInputFields )
 {
     UHoudiniAssetInstanceInputField * FoundHoudiniAssetInstanceInputField = nullptr;
@@ -449,9 +423,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
                 HoudiniAssetComponent, this, InHoudiniGeoPartObject );
 
             // Assign original and static mesh.
-            HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+            HoudiniAssetInstanceInputField->OriginalObject = StaticMesh;
             HoudiniAssetInstanceInputField->AddInstanceVariation( StaticMesh, 0 );
-
         }
         else
         {
@@ -463,8 +436,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
 
             TArray< int > MatchingIndices;
 
-            HoudiniAssetInstanceInputField->FindStaticMeshIndices(
-                HoudiniAssetInstanceInputField->OriginalStaticMesh,
+            HoudiniAssetInstanceInputField->FindObjectIndices(
+                HoudiniAssetInstanceInputField->GetOriginalObject(),
                 MatchingIndices );
 
             for ( int Idx = 0; Idx < MatchingIndices.Num(); Idx++ )
@@ -473,11 +446,8 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
                 HoudiniAssetInstanceInputField->ReplaceInstanceVariation( StaticMesh, ReplacementIndex );
             }
 
-            HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+            HoudiniAssetInstanceInputField->OriginalObject = StaticMesh;
         }
-
-        // Update component transformation.
-        HoudiniAssetInstanceInputField->UpdateRelativeTransform();
 
         // Set transforms for this input.
         HoudiniAssetInstanceInputField->SetInstanceTransforms( ObjectTransforms );
@@ -560,40 +530,43 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
 
 void
 UHoudiniAssetInstanceInput::CreateInstanceInputField(
-    UStaticMesh * StaticMesh,
+    UObject * InstancedObject,
     const TArray< FTransform > & ObjectTransforms,
     const TArray< UHoudiniAssetInstanceInputField * > & OldInstanceInputFields,
     TArray< UHoudiniAssetInstanceInputField * > & NewInstanceInputFields )
 {
-    // Locate all fields which have this static mesh set as original mesh.
-    TArray< UHoudiniAssetInstanceInputField * > CandidateFields;
-    LocateInputFieldsWithOriginalStaticMesh( CandidateFields, StaticMesh );
-
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = nullptr;
+
+    // Locate all fields which have this static mesh set as original mesh.
+    TArray< UHoudiniAssetInstanceInputField * > CandidateFields = InstanceInputFields;
+    CandidateFields.FilterByPredicate( [&]( auto Field ) {
+        return Field->GetOriginalObject() == InstancedObject;
+    } );
 
     if ( CandidateFields.Num() > 0 )
     {
         HoudiniAssetInstanceInputField = CandidateFields[ 0 ];
         InstanceInputFields.RemoveSingleSwap( HoudiniAssetInstanceInputField, false );
 
-        TArray< int > MatchingIndices;
+        TArray< int32 > MatchingIndices;
 
-        HoudiniAssetInstanceInputField->FindStaticMeshIndices(
-            HoudiniAssetInstanceInputField->OriginalStaticMesh,
+        HoudiniAssetInstanceInputField->FindObjectIndices(
+            HoudiniAssetInstanceInputField->GetOriginalObject(),
             MatchingIndices );
 
-        for ( int Idx = 0; Idx < MatchingIndices.Num(); Idx++ )
+        for ( int32 ReplacementIndex : MatchingIndices )
         {
-            int ReplacementIndex = MatchingIndices[ Idx ];
-            HoudiniAssetInstanceInputField->ReplaceInstanceVariation( StaticMesh, ReplacementIndex );
+            HoudiniAssetInstanceInputField->ReplaceInstanceVariation( InstancedObject, ReplacementIndex );
         }
 
-        HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
+        HoudiniAssetInstanceInputField->OriginalObject = InstancedObject;
 
         // refresh the geo part
         FHoudiniGeoPartObject RefreshedGeoPart = HoudiniAssetInstanceInputField->GetHoudiniGeoPartObject();
         RefreshedGeoPart.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
         HoudiniAssetInstanceInputField->SetGeoPartObject( RefreshedGeoPart );
+        // Update component transformation.
+        HoudiniAssetInstanceInputField->UpdateRelativeTransform();
     }
     else
     {
@@ -605,12 +578,9 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
             HoudiniAssetComponent, this, InstancedPart );
 
         // Assign original and static mesh.
-        HoudiniAssetInstanceInputField->OriginalStaticMesh = StaticMesh;
-        HoudiniAssetInstanceInputField->AddInstanceVariation( StaticMesh, 0 );
+        HoudiniAssetInstanceInputField->OriginalObject = InstancedObject;
+        HoudiniAssetInstanceInputField->AddInstanceVariation( InstancedObject, 0 );
     }
-
-    // Update component transformation.
-    HoudiniAssetInstanceInputField->UpdateRelativeTransform();
 
     // Set transforms for this input.
     HoudiniAssetInstanceInputField->SetInstanceTransforms( ObjectTransforms );
@@ -664,8 +634,7 @@ UHoudiniAssetInstanceInput::CreateParameter(
 void
 UHoudiniAssetInstanceInput::OnAddInstanceVariation( UHoudiniAssetInstanceInputField * InstanceInputField, int32 Index )
 {
-    UStaticMesh * StaticMesh =  InstanceInputField->GetInstanceVariation( Index );
-    InstanceInputField->AddInstanceVariation( StaticMesh, Index );
+    InstanceInputField->AddInstanceVariation( InstanceInputField->GetInstanceVariation( Index ), Index );
 
     if ( HoudiniAssetComponent )
         HoudiniAssetComponent->UpdateEditorProperties( false );
@@ -714,8 +683,9 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
     TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
     // Classes allowed by instanced inputs.
-    TArray< const UClass * > AllowedClasses;
-    AllowedClasses.Add( UStaticMesh::StaticClass() );
+    const TArray< const UClass * > AllowedClasses = { 
+        UStaticMesh::StaticClass(), AActor::StaticClass(), UBlueprint::StaticClass(), 
+        USoundBase::StaticClass(), UParticleSystem::StaticClass(),  USkeletalMesh::StaticClass() };
 
     const int32 FieldCount = InstanceInputFields.Num();
     for ( int32 FieldIdx = 0; FieldIdx < FieldCount; ++FieldIdx )
@@ -725,10 +695,10 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
 
         for( int32 VariationIdx = 0; VariationIdx < VariationCount; VariationIdx++ )
         {
-            UStaticMesh * StaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
-            if ( !StaticMesh )
+            UObject * InstancedObject = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
+            if ( !InstancedObject )
             {
-                HOUDINI_LOG_WARNING( TEXT("Null StaticMesh found for instance variation %d"), VariationIdx );
+                HOUDINI_LOG_WARNING( TEXT("Null Object found for instance variation %d"), VariationIdx );
                 continue;
             }
 
@@ -740,9 +710,9 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
                 .ToolTipText( LabelText )
                 .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
 
-            // Create thumbnail for this mesh.
+            // Create thumbnail for this object.
             TSharedPtr< FAssetThumbnail > StaticMeshThumbnail =
-                MakeShareable( new FAssetThumbnail( StaticMesh, 64, 64, AssetThumbnailPool ) );
+                MakeShareable( new FAssetThumbnail( InstancedObject, 64, 64, AssetThumbnailPool ) );
             TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
             TSharedPtr< SHorizontalBox > HorizontalBox = nullptr;
             TSharedPtr< SBorder > StaticMeshThumbnailBorder;
@@ -750,8 +720,16 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
             VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
             [
                 SNew( SAssetDropTarget )
-                .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateUObject(
-                    this, &UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver ) )
+                .OnIsAssetAcceptableForDrop( SAssetDropTarget::FIsAssetAcceptableForDrop::CreateLambda( 
+                    [=]( const UObject* Obj ) {
+                        for ( auto Klass : AllowedClasses )
+                        {
+                            if ( Obj && Obj->IsA( Klass ) )
+                                return true;
+                        }
+                        return false;
+                    })
+                )
                 .OnAssetDropped( SAssetDropTarget::FOnAssetDropped::CreateUObject(
                     this, &UHoudiniAssetInstanceInput::OnStaticMeshDropped, HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) )
                 [
@@ -767,12 +745,12 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
                 TAttribute< const FSlateBrush * >::FGetter::CreateUObject(
                     this, &UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder, HoudiniAssetInstanceInputField, FieldIdx, VariationIdx ) ) )
                 .OnMouseDoubleClick( FPointerEventHandler::CreateUObject(
-                    this, &UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, (UObject*) StaticMesh ) )
+                    this, &UHoudiniAssetInstanceInput::OnThumbnailDoubleClick, InstancedObject ) )
                 [
                     SNew( SBox )
                     .WidthOverride( 64 )
                     .HeightOverride( 64 )
-                    .ToolTipText( FText::FromString( StaticMesh->GetPathName() ) )
+                    .ToolTipText( FText::FromString( InstancedObject->GetPathName() ) )
                     [
                         StaticMeshThumbnail->MakeThumbnailWidget()
                     ]
@@ -828,7 +806,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
                                 SNew( STextBlock )
                                 .TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
                                 .Font( FEditorStyle::GetFontStyle( FName( TEXT( "PropertyWindow.NormalFont" ) ) ) )
-                                .Text( FText::FromString(StaticMesh->GetName() ) )
+                                .Text( FText::FromString(InstancedObject->GetName() ) )
                             ]
                         ]
                     ]
@@ -839,7 +817,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
                 TArray< UFactory * > NewAssetFactories;
                 TSharedRef< SWidget > PropertyMenuAssetPicker =
                     PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
-                        FAssetData( StaticMesh ), true,
+                        FAssetData( InstancedObject ), true,
                         AllowedClasses, NewAssetFactories, OnShouldFilterStaticMesh,
                         FOnAssetSelected::CreateUObject(
                             this, &UHoudiniAssetInstanceInput::OnStaticMeshSelected,
@@ -856,7 +834,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
 
             // Create tooltip.
             FFormatNamedArguments Args;
-            Args.Add( TEXT( "Asset" ), FText::FromString( StaticMesh->GetName() ) );
+            Args.Add( TEXT( "Asset" ), FText::FromString( InstancedObject->GetName() ) );
             FText StaticMeshTooltip =
                 FText::Format( LOCTEXT( "BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser" ), Args );
 
@@ -866,7 +844,7 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
             .VAlign( VAlign_Center )
             [
                 PropertyCustomizationHelpers::MakeBrowseButton(
-                    FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInstanceInput::OnStaticMeshBrowse, StaticMesh ),
+                    FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInstanceInput::OnInstancedObjectBrowse, InstancedObject ),
                     TAttribute< FText >( StaticMeshTooltip ) )
             ];
 
@@ -1092,19 +1070,25 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
             UStaticMesh * OutStaticMesh = nullptr;
 
             UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
-                HoudiniAssetInstanceInputField->GetInstancedStaticMeshComponent( VariationIdx );
+                Cast<UInstancedStaticMeshComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx ) );
+
+            if ( ! InstancedStaticMeshComponent )
+            {
+                HOUDINI_LOG_WARNING( TEXT( "Instanced Actor overrides cannot be Baked to Blueprint." ) );
+                continue;
+            }
 
             // If original static mesh is used, then we need to bake it.
-            if ( HoudiniAssetInstanceInputField->IsOriginalStaticMeshUsed( VariationIdx ) && !HasBakedOriginalStaticMesh )
+            if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) && !HasBakedOriginalStaticMesh )
             {
                 const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject =
                     HoudiniAssetComponent->LocateGeoPartObject(
-                        HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) );
+                        Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) ));
 
                 // Bake the referenced static mesh.
                 OutStaticMesh =
                     FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                        HoudiniAssetInstanceInputField->GetOriginalStaticMesh(),
+                        Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject()),
                             HoudiniAssetComponent, ItemHoudiniGeoPartObject, true );
 
                 HasBakedOriginalStaticMesh = true;
@@ -1115,7 +1099,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
             }
             else
             {
-                OutStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
+                OutStaticMesh = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ));
             }
 
             UInstancedStaticMeshComponent* DuplicatedComponent = NewObject< UInstancedStaticMeshComponent >(
@@ -1173,10 +1157,9 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
     int32 Idx, int32 VariationIdx )
 {
-    UStaticMesh * InputStaticMesh = Cast< UStaticMesh >( InObject );
-    UStaticMesh * UsedStaticMesh = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
+    UObject * UsedObj = HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx );
 
-    if ( InputStaticMesh && UsedStaticMesh != InputStaticMesh )
+    if ( InObject && UsedObj != InObject )
     {
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
@@ -1184,7 +1167,7 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(
             HoudiniAssetComponent );
         HoudiniAssetInstanceInputField->Modify();
 
-        HoudiniAssetInstanceInputField->ReplaceInstanceVariation( InputStaticMesh, VariationIdx );
+        HoudiniAssetInstanceInputField->ReplaceInstanceVariation( InObject, VariationIdx );
 
         if ( HoudiniAssetComponent )
             HoudiniAssetComponent->UpdateEditorProperties( false );
@@ -1202,16 +1185,6 @@ UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder(
         return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
 }
 
-bool
-UHoudiniAssetInstanceInput::OnStaticMeshDraggedOver( const UObject * Object ) const
-{
-    // We will accept only static meshes as inputs to instancers.
-    if( Object && Object->IsA( UStaticMesh::StaticClass() ) )
-        return true;
-
-    return false;
-}
-
 FReply
 UHoudiniAssetInstanceInput::OnThumbnailDoubleClick(
     const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent, UObject * Object )
@@ -1222,13 +1195,12 @@ UHoudiniAssetInstanceInput::OnThumbnailDoubleClick(
     return FReply::Handled();
 }
 
-void
-UHoudiniAssetInstanceInput::OnStaticMeshBrowse( UStaticMesh * StaticMesh )
+void UHoudiniAssetInstanceInput::OnInstancedObjectBrowse( UObject* InstancedObject )
 {
     if ( GEditor )
     {
         TArray< UObject * > Objects;
-        Objects.Add( StaticMesh );
+        Objects.Add( InstancedObject );
         GEditor->SyncBrowserToObjects( Objects );
     }
 }
@@ -1238,8 +1210,8 @@ UHoudiniAssetInstanceInput::OnResetStaticMeshClicked(
     UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
     int32 Idx, int32 VariationIdx )
 {
-    UStaticMesh * OriginalStaticMesh = HoudiniAssetInstanceInputField->GetOriginalStaticMesh();
-    OnStaticMeshDropped( OriginalStaticMesh, HoudiniAssetInstanceInputField, Idx, VariationIdx );
+    UObject * Obj = HoudiniAssetInstanceInputField->GetOriginalObject();
+    OnStaticMeshDropped( Obj, HoudiniAssetInstanceInputField, Idx, VariationIdx );
 
     return FReply::Handled();
 }
@@ -1481,15 +1453,16 @@ UHoudiniAssetInstanceInput::CollectAllInstancedStaticMeshComponents(
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField = InstanceInputFields[ Idx ];
         if ( HoudiniAssetInstanceInputField )
         {
-            UStaticMesh * OriginalStaticMesh = HoudiniAssetInstanceInputField->GetOriginalStaticMesh();
+            UStaticMesh * OriginalStaticMesh = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject());
             if ( OriginalStaticMesh == StaticMesh )
             {
-                for ( int32 IdxMesh = 0; IdxMesh < HoudiniAssetInstanceInputField->StaticMeshes.Num(); ++IdxMesh )
+                for ( int32 IdxMesh = 0; IdxMesh < HoudiniAssetInstanceInputField->InstancedObjects.Num(); ++IdxMesh )
                 {
-                    UStaticMesh * UsedStaticMesh = HoudiniAssetInstanceInputField->StaticMeshes[ IdxMesh ];
+                    UStaticMesh * UsedStaticMesh = Cast<UStaticMesh>(HoudiniAssetInstanceInputField->InstancedObjects[ IdxMesh ]);
                     if ( UsedStaticMesh == StaticMesh )
                     {
-                        Components.Add( HoudiniAssetInstanceInputField->InstancedStaticMeshComponents[ IdxMesh ] );
+                        UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( HoudiniAssetInstanceInputField->InstancerComponents[ IdxMesh ] );
+                        Components.Add( ISMC );
                         bCollected = true;
                     }
                 }

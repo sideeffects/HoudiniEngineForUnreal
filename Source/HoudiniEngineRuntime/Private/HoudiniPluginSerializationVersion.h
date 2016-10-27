@@ -40,6 +40,7 @@ enum EHoudiniPluginSerializationVersion
     VER_HOUDINI_PLUGIN_SERIALIZATION_HOUDINI_SPLINE_TO_TRANSFORM = 10,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_UNREAL_SPLINE_RESOLUTION_PER_INPUT = 11,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_CUSTOM_LINKER = 12,  // added custom linker version to archives
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ACTOR_INSTANCING = 13,
 
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)
