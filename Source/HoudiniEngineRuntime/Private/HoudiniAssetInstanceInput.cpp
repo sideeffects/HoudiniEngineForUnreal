@@ -641,9 +641,14 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
     TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
     // Classes allowed by instanced inputs.
-    const TArray< const UClass * > AllowedClasses = { 
-        UStaticMesh::StaticClass(), AActor::StaticClass(), UBlueprint::StaticClass(), 
-        USoundBase::StaticClass(), UParticleSystem::StaticClass(),  USkeletalMesh::StaticClass() };
+
+    TArray< const UClass * > AllowedClasses;
+    AllowedClasses.Add( UStaticMesh::StaticClass() );
+    AllowedClasses.Add( AActor::StaticClass() );
+    AllowedClasses.Add( UBlueprint::StaticClass() );
+    AllowedClasses.Add( USoundBase::StaticClass() );
+    AllowedClasses.Add( UParticleSystem::StaticClass() );
+    AllowedClasses.Add( USkeletalMesh::StaticClass() );
 
     const int32 FieldCount = InstanceInputFields.Num();
     for ( int32 FieldIdx = 0; FieldIdx < FieldCount; ++FieldIdx )
