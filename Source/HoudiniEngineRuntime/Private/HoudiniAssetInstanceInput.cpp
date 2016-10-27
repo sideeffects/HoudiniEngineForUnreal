@@ -497,7 +497,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
 
     // Locate all fields which have this static mesh set as original mesh.
     TArray< UHoudiniAssetInstanceInputField * > CandidateFields = InstanceInputFields;
-    CandidateFields.FilterByPredicate( [&]( auto Field ) {
+    CandidateFields.FilterByPredicate( [&]( const UHoudiniAssetInstanceInputField* Field ) {
         return Field->GetOriginalObject() == InstancedObject;
     } );
 
