@@ -102,6 +102,9 @@
 /** Houdini Engine Runtime Module Localization. **/
 #include "HoudiniEngineRuntimeLocalization.h"
 
+/** Plugin version enum and CustomVersionRegistration */
+#include "HoudiniPluginSerializationVersion.h"
+
 /** Houdini Engine headers. **/
 #include <vector>
 #include <string>
