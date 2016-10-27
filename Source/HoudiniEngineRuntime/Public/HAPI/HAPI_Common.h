@@ -411,8 +411,7 @@ enum HAPI_NodeFlags
     HAPI_NODEFLAGS_OBJ_SUBNET   = 1 << 10,
 
     /// SOP Node Specific Flags
-    HAPI_NODEFLAGS_SOP_CURVE    = 1 << 11, ///< Looks for "curve".
-    HAPI_NODEFLAGS_SOP_TERRAIN  = 1 << 12  ///< Looks for "heightfield_output".
+    HAPI_NODEFLAGS_SOP_CURVE    = 1 << 11 ///< Looks for "curve".
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
 typedef int HAPI_NodeFlagsBits;
