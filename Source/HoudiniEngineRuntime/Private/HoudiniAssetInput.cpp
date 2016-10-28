@@ -906,9 +906,8 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
             AllowedClasses.Add( UStaticMesh::StaticClass() );
 
             TArray< UFactory * > NewAssetFactories;
-            UObject* InputObject = GetInputObject( AtIndex );
             return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
-                FAssetData( InputObject ),
+                FAssetData( GetInputObject( AtIndex ) ),
                 true,
                 AllowedClasses,
                 NewAssetFactories,
