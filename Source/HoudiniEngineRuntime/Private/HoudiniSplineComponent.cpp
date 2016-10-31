@@ -276,7 +276,7 @@ UHoudiniSplineComponent::UploadControlPoints()
             nullptr);
 
         // We need to cook the spline node.
-        //FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), NodeId, nullptr);
+        FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), NodeId, nullptr);
     }
     else
     {
