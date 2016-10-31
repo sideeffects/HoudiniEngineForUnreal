@@ -23,6 +23,7 @@
 #include "HoudiniAssetComponentMaterials.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniAttributeDataComponent.h"
 #include "Components/SplineComponent.h"
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"

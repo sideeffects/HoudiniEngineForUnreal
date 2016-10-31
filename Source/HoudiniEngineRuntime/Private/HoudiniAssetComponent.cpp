@@ -3748,22 +3748,34 @@ UHoudiniAssetComponent::DuplicateParameters( UHoudiniAssetComponent * Duplicated
         HAPI_ParmId HoudiniAssetParameterKey = IterParams.Key();
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
 
-        if ( HoudiniAssetParameterKey != -1 )
+        if (HoudiniAssetParameterKey == -1)
+            continue;
+
+        // Duplicate parameter.
+        UHoudiniAssetParameter * DuplicatedHoudiniAssetParameter =
+            DuplicateObject( HoudiniAssetParameter, DuplicatedHoudiniComponent );
+
+        // PIE does not like standalone flags.
+        DuplicatedHoudiniAssetParameter->ClearFlags( RF_Standalone );
+
+        DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent( DuplicatedHoudiniComponent );
+
+        // For Input Parameters
+        UHoudiniAssetInput* HoudiniAssetInputParameter = Cast< UHoudiniAssetInput >(HoudiniAssetParameter);
+        UHoudiniAssetInput* DuplicatedHoudiniAssetInputParameter = Cast< UHoudiniAssetInput >(DuplicatedHoudiniAssetParameter);
+        if(HoudiniAssetInputParameter && DuplicatedHoudiniAssetInputParameter)
         {
-            // Duplicate parameter.
-            UHoudiniAssetParameter * DuplicatedHoudiniAssetParameter =
-                DuplicateObject( HoudiniAssetParameter, DuplicatedHoudiniComponent );
+            // Invalidate the node ids on the duplicate so that new inputs will be created.
+            DuplicatedHoudiniAssetInputParameter->InvalidateNodeIds();
 
-            // PIE does not like standalone flags.
-            DuplicatedHoudiniAssetParameter->ClearFlags( RF_Standalone );
-
-            DuplicatedHoudiniAssetParameter->SetHoudiniAssetComponent( DuplicatedHoudiniComponent );
-
-            InParameters.Add( HoudiniAssetParameterKey, DuplicatedHoudiniAssetParameter );
-            InParametersByName.Add(
-                DuplicatedHoudiniAssetParameter->GetParameterName(),
-                DuplicatedHoudiniAssetParameter );
+            // We also need to duplicate the attached curves properly
+            DuplicatedHoudiniAssetInputParameter->DuplicateCurves(HoudiniAssetInputParameter);
         }
+
+        InParameters.Add( HoudiniAssetParameterKey, DuplicatedHoudiniAssetParameter );
+        InParametersByName.Add(
+            DuplicatedHoudiniAssetParameter->GetParameterName(),
+            DuplicatedHoudiniAssetParameter );
     }
 }
 
