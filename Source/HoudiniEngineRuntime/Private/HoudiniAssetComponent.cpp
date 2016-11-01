@@ -3661,6 +3661,10 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
+	if (!HoudiniAssetInput)
+	    continue;
+
+	HoudiniAssetInput->ChangeInputType(HoudiniAssetInput->GetChoiceIndex());
         HoudiniAssetInput->UploadParameterValue();
     }
 }
