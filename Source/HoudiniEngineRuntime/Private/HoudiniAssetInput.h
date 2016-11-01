@@ -169,6 +169,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Called by attached spline component whenever its state changes. **/
         void OnInputCurveChanged();
 
+        /** Changes the input type to the new one **/
+        bool ChangeInputType(const EHoudiniAssetInputType::Enum& newType);
+
         /** Forces a disconnect of the input asset actor. This is used by external actors, usually when they die. **/
         void ExternalDisconnectInputAssetActor();
 
