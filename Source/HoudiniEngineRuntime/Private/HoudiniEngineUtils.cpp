@@ -8479,8 +8479,9 @@ FHoudiniEngineUtils::LocateClipboardActor( const FString & ClipboardText )
     }
 
     AHoudiniAssetActor * HoudiniAssetActor = nullptr;
+    
+    // Extract the Name/Label of the from the clipboard string ...
     FString ActorName = TEXT( "" );
-
     FString StrLine;
     while ( FParse::Line( &Paste, StrLine ) )
     {
@@ -8488,27 +8489,28 @@ FHoudiniEngineUtils::LocateClipboardActor( const FString & ClipboardText )
 
         const TCHAR * Str = *StrLine;
         FString ClassName;
+	if (StrLine.StartsWith(TEXT("Begin Actor")) && FParse::Value(Str, TEXT("Class="), ClassName))
+	{
+	    if (ClassName == *AHoudiniAssetActor::StaticClass()->GetFName().ToString())
+	    {
+		if (FParse::Value(Str, TEXT("Name="), ActorName))
+		    break;
+	    }
+	}
+	else if (StrLine.StartsWith(TEXT("ActorLabel")))
+	{
+	    if (FParse::Value(Str, TEXT("ActorLabel="), ActorName))
+		break;
+	}
+    }
 
-        if ( StrLine.StartsWith( TEXT( "Begin Actor" ) ) && FParse::Value( Str, TEXT( "Class=" ), ClassName ) )
-        {
-            if ( ClassName == *AHoudiniAssetActor::StaticClass()->GetFName().ToString() )
-            {
-                if ( FParse::Value( Str, TEXT( "Name=" ), ActorName ) )
-                {
-                    HoudiniAssetActor = Cast< AHoudiniAssetActor >( StaticFindObject(
-                        AHoudiniAssetActor::StaticClass(), ANY_PACKAGE, *ActorName ) );
-
-                    break;
-                }
-            }
-        }
-        else if ( StrLine.StartsWith( TEXT( "ActorLabel" ) ) && FParse::Value( Str, TEXT( "ActorLabel=" ), ActorName ) )
-        {
-            HoudiniAssetActor = Cast< AHoudiniAssetActor >( StaticFindObject(
-                AHoudiniAssetActor::StaticClass(), ANY_PACKAGE, *ActorName ) );
-
-            break;
-        }
+    // And try to find the corresponding HoudiniAssetActor in the editor world
+    // to avoid finding "deleted" assets with the same name
+    UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
+    for (TActorIterator<AHoudiniAssetActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
+    {
+	if ((ActorItr->GetActorLabel() == ActorName) || (ActorItr->GetName() == ActorName))
+	    HoudiniAssetActor = *ActorItr;
     }
 
     return HoudiniAssetActor;
