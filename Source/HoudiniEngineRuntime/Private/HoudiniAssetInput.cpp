@@ -1688,8 +1688,8 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
     Modify();
 
     // Switch mode.
-    ChoiceIndex = static_cast< EHoudiniAssetInputType::Enum >( ActiveLabel );
-    ChangeInputType(ChoiceIndex);
+    EHoudiniAssetInputType::Enum newChoice = static_cast<EHoudiniAssetInputType::Enum>(ActiveLabel);
+    ChangeInputType(newChoice);
 }
 
 
@@ -1747,6 +1747,9 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 
     // Disconnect currently connected asset.
     DisconnectAndDestroyInputAsset();
+
+    // Switch mode.
+    ChoiceIndex = newType;
 
     // Switch mode.
     switch (newType)
