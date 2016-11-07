@@ -29,6 +29,8 @@
 #include "LandscapeComponent.h"
 #include "HoudiniInstancedActorComponent.h"
 
+#include "AI/Navigation/NavCollision.h"
+
 const FString kResultStringSuccess( TEXT( "Success" ) );
 const FString kResultStringFailure( TEXT( "Generic Failure" ) );
 const FString kResultStringAlreadyInitialized( TEXT( "Already Initialized" ) );
@@ -4839,7 +4841,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     // If static mesh was not located, we need to create one.
                     bool bStaticMeshCreated = false;
-                    if ( !FoundStaticMesh || *FoundStaticMesh == nullptr )
+		    if ( !FoundStaticMesh || *FoundStaticMesh == nullptr )
                     {
                         MeshGuid.Invalidate();
 
@@ -4862,10 +4864,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         FAssetRegistryModule::AssetCreated( StaticMesh );
 
                         bStaticMeshCreated = true;
-                    }
-                    else
+                    }                    
+		    else
                     {
-                        // If it was located, we will just reuse it.
+			// If it was located, we will just reuse it.
                         StaticMesh = *FoundStaticMesh;
                     }
 
@@ -5557,7 +5559,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         // Enable collisions for this static mesh.
                         BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
-                    }
+		    }
 
                     // Free any RHI resources.
                     StaticMesh->PreEditChange( nullptr );
@@ -5576,8 +5578,23 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
                     }
 
+                    // Now that the mesh is built, we need to update its pre-built navigation collision
+                    if (HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
+                    {
+                        UBodySetup * BodySetup = StaticMesh->BodySetup;
+                        check(BodySetup);
+
+                        // Unreal caches the Navigation Collision and never updates it for StaticMeshes,
+                        // so we need to manually flush and recreate the data to have proper navigation collision
+                        if (StaticMesh->NavCollision)
+                        {
+                            StaticMesh->NavCollision->CookedFormatData.FlushData();
+                            StaticMesh->NavCollision->GatherCollision();
+                            StaticMesh->NavCollision->Setup(BodySetup);
+                        }
+                    }
+
                     StaticMesh->MarkPackageDirty();
-                    //StaticMesh->PostEditChange();
 
                     StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
                 }
