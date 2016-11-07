@@ -241,7 +241,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         float TransformScaleFactor;
 
         // Which coordinate system to use.
-        UPROPERTY( EditAnywhere, Category = GeometryScalingAndImport )
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryScalingAndImport )
         TEnumAsByte< enum EHoudiniRuntimeSettingsAxisImport > ImportAxis;
 
     /** Generated StaticMesh settings. **/
@@ -255,7 +255,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
 
         // Physical material to use for simple collision of new Houdini Assets. Encodes information about density, friction etc.
         UPROPERTY(
-            EditAnywhere, Category = GeneratedStaticMeshSettings,
+	    EditAnywhere, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Simple Collision Physical Material" ) )
         UPhysicalMaterial * PhysMaterial;
 
@@ -303,13 +303,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
 
         // Default settings when using new Houdini Asset mesh for instanced foliage.
         UPROPERTY(
-            EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
+	    EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Foliage Default Settings" ) )
         UFoliageType_InstancedStaticMesh * FoliageDefaultSettings;
 
         // Array of user data stored with the new Houdini Asset.
         UPROPERTY(
-            EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
+	    EditAnywhere, AdvancedDisplay, Instanced, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Asset User Data" ) )
         TArray< UAssetUserData * > AssetUserData;
 
@@ -317,35 +317,35 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
     public:
 
         // If true, UVs will be stored at full floating point precision.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
         bool bUseFullPrecisionUVs;
 
         // Source UV set for lightmaps.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Source Lightmap Index" ) )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Source Lightmap Index" ) )
         int32 SrcLightmapIndex;
 
         // Destination UV set for lightmap.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Destination Lightmap Index" ) )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Destination Lightmap Index" ) )
         int32 DstLightmapIndex;
 
         // Min lightmap resolution value.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
         int32 MinLightmapResolution;
 
         // If true, degenerate triangles will be removed.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
         bool bRemoveDegenerates;
 
         // Action to take when lightmaps are missing.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Generate Lightmap UVs" ) )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Generate Lightmap UVs" ) )
         TEnumAsByte< enum EHoudiniRuntimeSettingsRecomputeFlag > GenerateLightmapUVsFlag;
 
         // Action to take when normals are missing.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Recompute Normals" ) )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Recompute Normals" ) )
         TEnumAsByte< enum EHoudiniRuntimeSettingsRecomputeFlag > RecomputeNormalsFlag;
 
         // Action to take when tangents are missing.
-        UPROPERTY( EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Recompute Tangents" ) )
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Recompute Tangents" ) )
         TEnumAsByte< enum EHoudiniRuntimeSettingsRecomputeFlag > RecomputeTangentsFlag;
 
     /** Custom Houdini location. **/
