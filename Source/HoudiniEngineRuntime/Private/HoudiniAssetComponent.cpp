@@ -315,6 +315,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     bGeneratedUseMaximumStreamingTexelRatio = false;
     GeneratedStreamingDistanceMultiplier = 1.0f;
 
+    bNeedToUpdateNavigationSystem = false;
+
     // Make an invalid GUID, since we do not have any cooking requests.
     HapiGUID.Invalidate();
 
@@ -677,7 +679,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                     continue;
                 }
             }
-            else if ( HoudiniGeoPartObject.IsVisible() )
+	    else if ( HoudiniGeoPartObject.IsVisible() )
             {
                 // Create necessary component.
                 StaticMeshComponent = NewObject< UStaticMeshComponent >(
@@ -704,10 +706,13 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                     StaticMeshComponent->SetVisibility( false );
                     StaticMeshComponent->SetHiddenInGame( true );
                     StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
+
+                    // And we ll need to update the navmesh later
+                    bNeedToUpdateNavigationSystem = true;
                 }
 
                 // Transform the component by transformation provided by HAPI.
-                StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );
+                StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );		
             }
         }
     }
@@ -775,7 +780,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
                     StaticMeshComponent->UnregisterComponent();
                 }
                 StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-                StaticMeshComponent->DestroyComponent();
+		StaticMeshComponent->DestroyComponent();
             }
         }
 
@@ -1097,11 +1102,11 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         // Free meshes and components that are no longer used.
         ReleaseObjectGeoPartResources( StaticMeshes, true );
 
-        // Set meshes and create new components for those meshes that do not have them.
-        if ( NewStaticMeshes.Num() > 0 )
-            CreateObjectGeoPartResources( NewStaticMeshes );
-        else
-            CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
+	// Set meshes and create new components for those meshes that do not have them.
+	if ( NewStaticMeshes.Num() > 0 )
+	    CreateObjectGeoPartResources( NewStaticMeshes );
+	else
+	    CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
     }
 
     // Invoke cooks of downstream assets.
@@ -1116,10 +1121,6 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         }
     }
 #if WITH_EDITOR
-    /*if ( GUnrealEd )
-    {
-        GUnrealEd->UpdateFloatingPropertyWindows();
-    }*/
     UpdateEditorProperties(true);
 #endif
 }
@@ -1510,6 +1511,21 @@ UHoudiniAssetComponent::TickHoudiniComponent()
             // Nothing has changed, we can terminate ticking.
             bStopTicking = true;
         }
+    }
+
+    if (bNeedToUpdateNavigationSystem)
+    {
+#ifdef WITH_EDITOR
+        // We need to update the navigation system manually with the Actor or the NavMesh will not update properly
+        UWorld* World = GEditor->GetEditorWorldContext().World();
+        if (World && World->GetNavigationSystem())
+        {
+            AHoudiniAssetActor* HoudiniActor = GetHoudiniAssetActorOwner();
+            if(HoudiniActor)
+                World->GetNavigationSystem()->UpdateActorAndComponentsInNavOctree(*HoudiniActor);
+        }
+#endif
+        bNeedToUpdateNavigationSystem = false;
     }
 
     if ( bStopTicking )

@@ -639,6 +639,9 @@ public:
         /** Indicates the asset is being istantiated to avoid instantiating it twice on load **/
         bool bAssetIsBeingInstantiated;
 
+	/** Indicates that new asset's mesh must rebuild the Navigation System to update the NavMesh properly **/
+	bool bNeedToUpdateNavigationSystem;
+
         /** Flags used by Houdini component. **/
         union
         {
