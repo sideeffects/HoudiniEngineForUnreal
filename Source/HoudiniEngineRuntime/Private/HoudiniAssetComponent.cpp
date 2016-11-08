@@ -2527,6 +2527,12 @@ UHoudiniAssetComponent::PostLoad()
 {
     Super::PostLoad();
 
+#if WITH_EDITOR
+    // Only do PostLoad stuff if we are in the editor world
+    if(GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
+        return;
+#endif
+
     // We loaded a component which has no asset associated with it.
     if ( !HoudiniAsset )
     {
