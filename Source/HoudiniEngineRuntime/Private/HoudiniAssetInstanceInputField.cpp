@@ -197,7 +197,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
             NewObject< UInstancedStaticMeshComponent >(
                 HoudiniAssetComponent->GetOwner(),
                 UInstancedStaticMeshComponent::StaticClass(),
-                NAME_None );
+                NAME_None, RF_Transactional );
 
         InstancerComponents.Insert( InstancedStaticMeshComponent, VariationIdx );
 
@@ -246,7 +246,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
             NewObject< UHoudiniInstancedActorComponent >(
                 HoudiniAssetComponent->GetOwner(),
                 UHoudiniInstancedActorComponent::StaticClass(),
-                NAME_None );
+                NAME_None, RF_Transactional );
 
         InstancerComponents.Insert( InstancedObjectComponent, VariationIdx );
         InstancedObjectComponent->InstancedAsset = InstancedObjects[ VariationIdx ];
