@@ -76,13 +76,13 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
     private:
 
         /** Static mesh used for Houdini logo rendering. **/
-        UStaticMesh * HoudiniLogoStaticMesh;
+        TWeakObjectPtr<UStaticMesh> HoudiniLogoStaticMesh;
 
         /** Material used as default material. **/
-        UMaterial * HoudiniDefaultMaterial;
+        TWeakObjectPtr<UMaterial> HoudiniDefaultMaterial;
 
         /** Houdini digital asset used for loading the bgeo files. **/
-        UHoudiniAsset * HoudiniBgeoAsset;
+        TWeakObjectPtr<UHoudiniAsset> HoudiniBgeoAsset;
 
 #if WITH_EDITOR
 
