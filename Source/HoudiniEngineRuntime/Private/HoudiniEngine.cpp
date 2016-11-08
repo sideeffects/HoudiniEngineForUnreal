@@ -54,19 +54,19 @@ FHoudiniEngine::GetHoudiniLogoBrush() const
 UStaticMesh *
 FHoudiniEngine::GetHoudiniLogoStaticMesh() const
 {
-    return HoudiniLogoStaticMesh;
+    return HoudiniLogoStaticMesh.Get();
 }
 
 UMaterial *
 FHoudiniEngine::GetHoudiniDefaultMaterial() const
 {
-    return HoudiniDefaultMaterial;
+    return HoudiniDefaultMaterial.Get();
 }
 
 UHoudiniAsset *
 FHoudiniEngine::GetHoudiniBgeoAsset() const
 {
-    return HoudiniBgeoAsset;
+    return HoudiniBgeoAsset.Get();
 }
 
 bool
@@ -154,19 +154,19 @@ FHoudiniEngine::StartupModule()
     // Create static mesh Houdini logo.
     HoudiniLogoStaticMesh = LoadObject< UStaticMesh >(
         nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_LOGO, nullptr, LOAD_None, nullptr );
-    if ( HoudiniLogoStaticMesh )
+    if ( HoudiniLogoStaticMesh.IsValid() )
         HoudiniLogoStaticMesh->AddToRoot();
 
     // Create default material.
     HoudiniDefaultMaterial = LoadObject< UMaterial >(
         nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL, nullptr, LOAD_None, nullptr );
-    if ( HoudiniDefaultMaterial )
+    if ( HoudiniDefaultMaterial.IsValid() )
         HoudiniDefaultMaterial->AddToRoot();
 
     // Create Houdini digital asset which is used for loading the bgeo files.
     HoudiniBgeoAsset = LoadObject< UHoudiniAsset >(
         nullptr, HAPI_UNREAL_RESOURCE_BGEO_IMPORT, nullptr, LOAD_None, nullptr );
-    if ( HoudiniBgeoAsset )
+    if ( HoudiniBgeoAsset.IsValid() )
         HoudiniBgeoAsset->AddToRoot();
 
 #if WITH_EDITOR
@@ -363,28 +363,21 @@ FHoudiniEngine::ShutdownModule()
     HOUDINI_LOG_MESSAGE( TEXT( "Shutting down the Houdini Engine module." ) );
 
     // We no longer need Houdini logo static mesh.
-    if ( HoudiniLogoStaticMesh && HoudiniLogoStaticMesh->IsValidLowLevel() )
+    if ( HoudiniLogoStaticMesh.IsValid() )
     {
         HoudiniLogoStaticMesh->RemoveFromRoot();
         HoudiniLogoStaticMesh = nullptr;
     }
 
     // We no longer need Houdini default material.
-    if ( HoudiniDefaultMaterial && HoudiniDefaultMaterial->IsValidLowLevel() )
+    if ( HoudiniDefaultMaterial.IsValid() )
     {
         HoudiniDefaultMaterial->RemoveFromRoot();
         HoudiniDefaultMaterial = nullptr;
     }
 
     // We no longer need Houdini digital asset used for loading bgeo files.
-    if ( HoudiniBgeoAsset && HoudiniBgeoAsset->IsValidLowLevel() )
-    {
-        HoudiniBgeoAsset->RemoveFromRoot();
-        HoudiniBgeoAsset = nullptr;
-    }
-
-    // We no longer need Houdini digital asset used for loading bgeo files.
-    if ( HoudiniBgeoAsset && HoudiniBgeoAsset->IsValidLowLevel() )
+    if ( HoudiniBgeoAsset.IsValid() )
     {
         HoudiniBgeoAsset->RemoveFromRoot();
         HoudiniBgeoAsset = nullptr;
