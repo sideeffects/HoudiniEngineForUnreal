@@ -706,10 +706,11 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                     StaticMeshComponent->SetVisibility( false );
                     StaticMeshComponent->SetHiddenInGame( true );
                     StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
-
-                    // And we ll need to update the navmesh later
-                    bNeedToUpdateNavigationSystem = true;
                 }
+
+                // And we will need to update the navmesh later
+                if(HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
+                    bNeedToUpdateNavigationSystem = true;
 
                 // Transform the component by transformation provided by HAPI.
                 StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );		
@@ -731,7 +732,6 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         StaticMeshes = StaticMeshMap;
 
 #if WITH_EDITOR
-
     if ( FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
     {
         // Create necessary instance inputs.
