@@ -82,6 +82,7 @@ UHoudiniHandleComponent::Construct(
     }
 
     HAPI_TransformEuler HapiEulerXform;
+    FMemory::Memzero< HAPI_TransformEuler >(HapiEulerXform);
     HapiEulerXform.position[ 0 ] = HapiEulerXform.position[ 1 ] = HapiEulerXform.position[ 2 ] = 0.0f;
     HapiEulerXform.rotationEuler[ 0 ] = HapiEulerXform.rotationEuler[ 1 ] = HapiEulerXform.rotationEuler[ 2 ] = 0.0f;
     HapiEulerXform.scale[ 0 ] = HapiEulerXform.scale[ 1 ] = HapiEulerXform.scale[ 2 ] = 1.0f;
@@ -145,6 +146,7 @@ UHoudiniHandleComponent::UpdateTransformParameters()
     FHoudiniApi::ConvertTransformQuatToMatrix( Session, &HapiXform, HapiMatrix );
 
     HAPI_TransformEuler HapiEulerXform;
+    FMemory::Memzero< HAPI_TransformEuler >(HapiEulerXform);
     FHoudiniApi::ConvertMatrixToEuler(
         Session,
         HapiMatrix,
