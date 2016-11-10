@@ -4804,9 +4804,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Flag whether we need to rebuild the mesh.
                     bool bRebuildStaticMesh = false;
 
-                    // See if geometry and scaling factor has not changed. Then we can reuse the corresponding
-                    // static mesh.
-                    if ( !GeoInfo.hasGeoChanged && HoudiniAssetComponent->CheckGlobalSettingScaleFactors() )
+                    // See if the geometry and scaling factor have changed. 
+                    // If not, then we can reuse the corresponding static mesh.
+                    if ( GeoInfo.hasGeoChanged || !HoudiniAssetComponent->CheckGlobalSettingScaleFactors() )
+                        bRebuildStaticMesh = true;
+
+                    // If the user asked for a cook manually, we will need to rebuild the static mesh
+                    if ( HoudiniAssetComponent->bManualRecook )
+                        bRebuildStaticMesh = true;
+
+                    if ( !bRebuildStaticMesh )
                     {
                         // If geometry has not changed.
                         if ( FoundStaticMesh )
@@ -4832,14 +4839,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             continue;
                         }
                     }
-                    else
-                    {
-                        bRebuildStaticMesh = true;
-                    }
 
                     // If static mesh was not located, we need to create one.
                     bool bStaticMeshCreated = false;
-		    if ( !FoundStaticMesh || *FoundStaticMesh == nullptr )
+                    if ( !FoundStaticMesh || *FoundStaticMesh == nullptr )
                     {
                         MeshGuid.Invalidate();
 
