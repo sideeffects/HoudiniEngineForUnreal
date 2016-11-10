@@ -42,8 +42,6 @@ const FString kResultStringCannotLoadGeo( TEXT( "Uneable to Load Geometry" ) );
 const FString kResultStringCannotGeneratePreset( TEXT( "Uneable to Generate Preset" ) );
 const FString kResultStringCannotLoadPreset( TEXT( "Uneable to Load Preset" ) );
 
-const float kDefaultDistanceFieldResolutionScale = 2.0f;
-
 const int32
 FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
 
@@ -4237,13 +4235,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
     // Retrieve information about each object contained within our asset.
     TArray< HAPI_ObjectInfo > ObjectInfos;
-    if ( !HapiGetObjectInfos( AssetId, ObjectInfos ) )
+    if ( !FHoudiniEngineUtils::HapiGetObjectInfos( AssetId, ObjectInfos ) )
         return false;
     const int32 ObjectCount = ObjectInfos.Num();
 
     // Retrieve transforms for each object in this asset.
     TArray< HAPI_Transform > ObjectTransforms;
-    if ( !HapiGetObjectTransforms( AssetId, ObjectTransforms ) )
+    if ( !FHoudiniEngineUtils::HapiGetObjectTransforms( AssetId, ObjectTransforms ) )
         return false;
 
     // Containers used for raw data extraction.
@@ -5501,7 +5499,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
 
                     // By default the distance field resolution should be set to 2.0
-                    SrcModel->BuildSettings.DistanceFieldResolutionScale = kDefaultDistanceFieldResolutionScale;
+                    SrcModel->BuildSettings.DistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 
                     // We need to check light map uv set for correctness. Unreal seems to have occasional issues with
                     // zero UV sets when building lightmaps.
@@ -5798,8 +5796,9 @@ FHoudiniEngineUtils::BakeStaticMesh(
 
     // Some mesh generation settings.
     HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
-    // By default the distance field resolution should be set to 2.0
-    SrcModel->BuildSettings.DistanceFieldResolutionScale = kDefaultDistanceFieldResolutionScale;
+
+    // Setting the DistanceField resolution
+    SrcModel->BuildSettings.DistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 
     // We need to check light map uv set for correctness. Unreal seems to have occasional issues with
     // zero UV sets when building lightmaps.

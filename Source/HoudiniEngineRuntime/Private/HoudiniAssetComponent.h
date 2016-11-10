@@ -117,12 +117,18 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
             Category = HoudiniGeneratedStaticMeshSettings,
             meta = ( DisplayName = "Light Map Resolution", FixedIncrement = "4.0" ) )
         int32 GeneratedLightMapResolution;
-
+	
         /** Bias multiplier for Light Propagation Volume lighting. */
         UPROPERTY( EditAnywhere, BlueprintReadOnly,
             Category = HoudiniGeneratedStaticMeshSettings,
             meta = ( DisplayName = "Lpv Bias Multiplier", UIMin = "0.0", UIMax = "3.0" ) )
         float GeneratedLpvBiasMultiplier;
+
+        /** Mesh distance field resolution, setting it to 0 will prevent the mesh distance field generation while editing the asset **/
+        UPROPERTY(EditAnywhere,
+            Category = HoudiniGeneratedStaticMeshSettings,
+            meta = (DisplayName = "Distance Field Resolution Scale", UIMin = "0.0", UIMax = "100.0"))
+            float GeneratedDistanceFieldResolutionScale;
 
         /** Custom walkable slope setting for generated mesh's body. */
         UPROPERTY( EditAnywhere, AdvancedDisplay,
@@ -440,6 +446,8 @@ public:
 
         /** If curves were loaded, their points need to be uploaded. **/
         void UploadLoadedCurves();
+
+        //bool RefreshEditableNodesAfterLoad();
 
         /** Find an instance input for the given geo part */
         UHoudiniAssetInstanceInput* LocateInstanceInput( const FHoudiniGeoPartObject& GeoPart ) const;

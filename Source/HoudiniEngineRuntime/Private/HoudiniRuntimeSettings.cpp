@@ -36,6 +36,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     , bUploadTransformsToHoudiniEngine( true )
     , bTransformChangeTriggersCooks( false )
     , bDisplaySlateCookingNotifications( true )
+    , bCookCurvesOnMouseRelease( false )
 
     /** Parameter options. **/
     , bTreatRampParametersAsMultiparms( false )
@@ -70,6 +71,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     , LightMapCoordinateIndex( 1 )
     , bUseMaximumStreamingTexelRatio( false )
     , StreamingDistanceMultiplier( 1.0f )
+    , GeneratedDistanceFieldResolutionScale( 0.0f )
 
     /** Static Mesh build settings. **/
     , bUseFullPrecisionUVs( false )

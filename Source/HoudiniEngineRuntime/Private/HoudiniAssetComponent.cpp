@@ -314,6 +314,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     GeneratedLightMapCoordinateIndex = 1;
     bGeneratedUseMaximumStreamingTexelRatio = false;
     GeneratedStreamingDistanceMultiplier = 1.0f;
+    GeneratedDistanceFieldResolutionScale = 0.0f;
 
     bNeedToUpdateNavigationSystem = false;
 
@@ -1451,6 +1452,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
             else if ( bFinishedLoadedInstantiation )
             {
                 // If we are doing first cook after instantiation.
+                // RefreshEditableNodesAfterLoad();
 
                 // Update parameter node id for all loaded parameters.
                 UpdateLoadedParameters();
@@ -2967,6 +2969,7 @@ UHoudiniAssetComponent::PostInitProperties()
         GeneratedWalkableSlopeOverride = HoudiniRuntimeSettings->WalkableSlopeOverride;
         GeneratedFoliageDefaultSettings = HoudiniRuntimeSettings->FoliageDefaultSettings;
         GeneratedAssetUserData = HoudiniRuntimeSettings->AssetUserData;
+        GeneratedDistanceFieldResolutionScale = HoudiniRuntimeSettings->GeneratedDistanceFieldResolutionScale;
     }
 }
 
@@ -3088,8 +3091,18 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
 
         /*
         // Check if this curve already exists.
-        UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
-        if (FoundHoudiniSplineComponent)
+        UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = nullptr;
+        for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TConstIterator SplineIter(SplineComponents); SplineIter; ++SplineIter )
+        {
+            const FHoudiniGeoPartObject & SplineGeoPartObject = SplineIter.Key();
+            if ( SplineGeoPartObject.GetNodePath() == HoudiniGeoPartObject.GetNodePath() )
+            {
+                FoundHoudiniSplineComponent = &(SplineIter.Value());
+            }
+        }
+
+        //UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
+        if ( FoundHoudiniSplineComponent )
             (*FoundHoudiniSplineComponent)->UploadControlPoints();
         */
 
@@ -3697,6 +3710,74 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
         HoudiniAssetInput->UploadParameterValue();
     }
 }
+/*
+bool
+UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
+{
+    // For some reason, we need to go through all the editable nodes once
+    // To "Activate" them...
+    HAPI_AssetInfo AssetInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
+	FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
+
+    // Retrieve information about each object contained within our asset.
+    TArray< HAPI_ObjectInfo > ObjectInfos;
+    if (!FHoudiniEngineUtils::HapiGetObjectInfos(AssetId, ObjectInfos))
+	return false;
+
+    // Iterate through all objects.
+    for (int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx)
+    {
+	// Retrieve object at this index.
+	const HAPI_ObjectInfo & ObjectInfo = ObjectInfos[ObjectIdx];
+
+	// We need both the display Geos and the editables Geos
+	TArray<HAPI_GeoInfo> GeoInfos;
+
+	// First, get the Display Geo Infos
+	{
+	    HAPI_GeoInfo DisplayGeoInfo;
+	    if (FHoudiniApi::GetDisplayGeoInfo(
+		FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &DisplayGeoInfo) == HAPI_RESULT_SUCCESS)
+	    {
+		GeoInfos.Add(DisplayGeoInfo);
+	    }
+	}
+
+	// Then get all the GeoInfos for all the editable nodes
+	{
+	    int32 EditableNodeCount = 0;
+	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
+		FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId,
+		HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+		true, &EditableNodeCount), false);
+
+	    if (EditableNodeCount > 0)
+	    {
+		TArray< HAPI_NodeId > EditableNodeIds;
+		EditableNodeIds.SetNumUninitialized(EditableNodeCount);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedChildNodeList(
+		    FHoudiniEngine::Get().GetSession(), AssetId,
+		    EditableNodeIds.GetData(), EditableNodeCount), false);
+
+		for (int nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+		{
+		    HAPI_GeoInfo CurrentEditableGeoInfo;
+
+		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
+			FHoudiniEngine::Get().GetSession(),
+			EditableNodeIds[nEditable],
+			&CurrentEditableGeoInfo), false);
+
+		    GeoInfos.Add(CurrentEditableGeoInfo);
+		}
+	    }
+	}
+    }
+
+    return true;
+}
+*/
 
 void
 UHoudiniAssetComponent::UploadLoadedCurves()
@@ -3704,6 +3785,9 @@ UHoudiniAssetComponent::UploadLoadedCurves()
     for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
         UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        if ( !HoudiniSplineComponent )
+            continue;
+
         HoudiniSplineComponent->UploadControlPoints();
     }
 }
