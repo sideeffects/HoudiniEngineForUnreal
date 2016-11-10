@@ -544,6 +544,9 @@ public:
         /** Houdini Asset associated with this component. **/
         UHoudiniAsset * HoudiniAsset;
 
+        /** Indicates a manual recook has been asked by the user **/
+        bool bManualRecook;
+
     protected:
 
         /** Previous asset, if it has been changed through transaction. **/
