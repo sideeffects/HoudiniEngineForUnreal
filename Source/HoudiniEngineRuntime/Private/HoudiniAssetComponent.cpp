@@ -314,6 +314,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     GeneratedLightMapCoordinateIndex = 1;
     bGeneratedUseMaximumStreamingTexelRatio = false;
     GeneratedStreamingDistanceMultiplier = 1.0f;
+    GeneratedDistanceFieldResolutionScale = 0.0f;
 
     bNeedToUpdateNavigationSystem = false;
 
@@ -2967,6 +2968,7 @@ UHoudiniAssetComponent::PostInitProperties()
         GeneratedWalkableSlopeOverride = HoudiniRuntimeSettings->WalkableSlopeOverride;
         GeneratedFoliageDefaultSettings = HoudiniRuntimeSettings->FoliageDefaultSettings;
         GeneratedAssetUserData = HoudiniRuntimeSettings->AssetUserData;
+        GeneratedDistanceFieldResolutionScale = HoudiniRuntimeSettings->GeneratedDistanceFieldResolutionScale;
     }
 }
 
@@ -3680,6 +3682,9 @@ UHoudiniAssetComponent::UploadLoadedCurves()
     for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
     {
         UHoudiniSplineComponent * HoudiniSplineComponent = Iter.Value();
+        if ( !HoudiniSplineComponent )
+            continue;
+
         HoudiniSplineComponent->UploadControlPoints();
     }
 }
