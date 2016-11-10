@@ -269,6 +269,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     , HoudiniAssetComponentFlagsPacked( 0u )
     , HoudiniAssetComponentTransientFlagsPacked( 0u )
     , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
+    , bManualRecook( false )
 {
     /** Component flags. **/
     bEnableCooking = true;
@@ -1121,6 +1122,10 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             DownstreamAsset->NotifyParameterChanged( nullptr );
         }
     }
+
+    if ( bManualRecook )
+        bManualRecook = false;
+
 #if WITH_EDITOR
     UpdateEditorProperties(true);
 #endif
@@ -1705,6 +1710,7 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
 {
     if ( !IsInstantiatingOrCooking() )
     {
+        bManualRecook = true;
         if ( FHoudiniEngineUtils::IsValidAssetId( GetAssetId() ) )
         {
             StartTaskAssetCooking( true );
