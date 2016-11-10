@@ -122,6 +122,7 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
         void OnDuplicateControlPoint();
         bool IsDuplicateControlPointValid() const;
 
+        void DuplicateControlPoint();
         int32 AddControlPointAfter( const FTransform & NewPoint, const int32& nIndex );
 
         /** Store the current rotation to orient the rotation gizmo properly **/
@@ -146,4 +147,10 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 
         /** Rotation used for the gizmo widgets **/
         FQuat CachedRotation;
+
+        /** Indicates the current selection has been modified and the parent component must be updated **/
+        bool bComponentNeedUpdate;
+
+        /** Indicates if the curves should only cook on mouse release **/
+        bool bCookOnlyOnMouseRelease;
 };

@@ -61,6 +61,8 @@ FHoudiniSplineComponentVisualizer::FHoudiniSplineComponentVisualizer()
     , bCurveEditing( false )
     , bAllowDuplication( true )
     , CachedRotation( FQuat::Identity )
+    , bComponentNeedUpdate( false )
+    , bCookOnlyOnMouseRelease( false )
 {
     FHoudiniSplineComponentVisualizerCommands::Register();
     VisualizerActions = MakeShareable( new FUICommandList );
@@ -231,8 +233,15 @@ FHoudiniSplineComponentVisualizer::HandleInputKey(
 {
     bool bHandled = false;
 
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    bCookOnlyOnMouseRelease = HoudiniRuntimeSettings->bCookCurvesOnMouseRelease;
+
     if ( Key == EKeys::LeftMouseButton && Event == IE_Released )
     {
+        // Updates the spline
+        if ( bComponentNeedUpdate )
+            UpdateHoudiniComponents();
+
         // Reset duplication flag on LMB release.
         bAllowDuplication = true;
 
@@ -325,7 +334,8 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(
 
     if ( ViewportClient->IsAltPressed() && bAllowDuplication )
     {
-        OnDuplicateControlPoint();
+        DuplicateControlPoint();
+
         // Don't duplicate again until we release LMB
         bAllowDuplication = false;
     }
@@ -359,9 +369,6 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(
         // Handle change in rotation.
         if ( !DeltaRotate.IsZero() )
         {
-            /*
-            CurrentPoint.ConcatenateRotation(DeltaRotate.Quaternion());
-            */
             FQuat NewRot = HoudiniSplineComponentTransform.GetRotation() * CurrentPoint.GetRotation();  // convert local-space rotation to world-space
             NewRot = DeltaRotate.Quaternion() * NewRot;                                                 // apply world-space rotation
             NewRot = HoudiniSplineComponentTransform.GetRotation().Inverse() * NewRot;                  // convert world-space rotation to local-space
@@ -371,12 +378,17 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(
         // Handle change in scale
         if (!DeltaScale.IsZero())
         {
-            //FVector NewScale = CurrentPoint.GetScale3D() + DeltaScale;
             FVector NewScale = CurrentPoint.GetScale3D() * (FVector(1,1,1) + DeltaScale);
             CurrentPoint.SetScale3D( NewScale );
         }
 
         NotifyComponentModified(nCurrentCPIndex, CurrentPoint);
+    }
+
+    if ( ( bComponentNeedUpdate ) &&  ( !bCookOnlyOnMouseRelease ) )
+    {
+        // Update and cook the asset
+        UpdateHoudiniComponents();
     }
 
     return true;
@@ -443,6 +455,8 @@ FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
 
     if (GEditor)
         GEditor->RedrawLevelEditingViewports(true);
+
+    bComponentNeedUpdate = false;
 }
 
 void
@@ -462,7 +476,7 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified( int32 PointIndex, co
     // Update given control point.
     EditedHoudiniSplineComponent->UpdatePoint( PointIndex, Point );
 
-    UpdateHoudiniComponents();
+    bComponentNeedUpdate = true;
 }
 
 void
@@ -648,6 +662,16 @@ int32 FHoudiniSplineComponentVisualizer::AddControlPointAfter( const FTransform 
 void
 FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint()
 {
+    // Duplicate the selected points
+    DuplicateControlPoint();
+
+    // Update the spline component
+    UpdateHoudiniComponents();
+}
+
+void
+FHoudiniSplineComponentVisualizer::DuplicateControlPoint()
+{
     if ( !EditedHoudiniSplineComponent || EditedControlPointsIndexes.Num() <= 0 )
         return;
 
@@ -696,9 +720,6 @@ FHoudiniSplineComponentVisualizer::OnDuplicateControlPoint()
         nOffset++;
     }
 
-    // Update the spline component
-    UpdateHoudiniComponents();
-
     // Select the new points.
     EditedControlPointsIndexes.Empty();
     EditedControlPointsIndexes = tNewSelection;
@@ -721,10 +742,10 @@ FHoudiniSplineComponentVisualizer::CacheRotation()
     FQuat NewCachedQuat = FQuat::Identity;
     if (EditedHoudiniSplineComponent && EditedControlPointsIndexes.Num() == 1)
     {
-        if( EditedHoudiniSplineComponent->CurvePoints.IsValidIndex(EditedControlPointsIndexes[0]) )
-            NewCachedQuat = (EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]]).GetRotation();
+	if (EditedHoudiniSplineComponent->CurvePoints.IsValidIndex(EditedControlPointsIndexes[0]))
+	    NewCachedQuat = (EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]]).GetRotation();
     }
-    
+
     CachedRotation = NewCachedQuat;
 }
 

@@ -166,6 +166,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = Cooking )
         bool bDisplaySlateCookingNotifications;
 
+        // Curves will only cook on mouse release.
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
+        bool bCookCurvesOnMouseRelease;
+
     /** Parameter options. **/
     public:
 
@@ -274,6 +278,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
             GlobalConfig, EditAnywhere, BlueprintReadOnly, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Lpv Bias Multiplier", UIMin = "0.0", UIMax = "3.0" ) )
         float LpvBiasMultiplier;
+
+        /** Default Mesh distance field resolution, setting it to 0 will prevent the mesh distance field generation while editing the asset **/
+        UPROPERTY(
+            GlobalConfig, EditAnywhere, Category = GeneratedStaticMeshSettings,
+            Meta = (DisplayName = "Distance Field Resolution Scale", UIMin = "0.0", UIMax = "100.0"))
+            float GeneratedDistanceFieldResolutionScale;
 
         // Custom walkable slope setting for bodies of new Houdini Assets.
         UPROPERTY(
