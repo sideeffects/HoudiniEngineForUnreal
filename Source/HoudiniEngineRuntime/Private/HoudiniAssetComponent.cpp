@@ -713,7 +713,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 {
                     // Visibility may have changed so we still need to update it
                     StaticMeshComponent->SetVisibility( HoudiniGeoPartObject.IsVisible() );
-                    StaticMeshComponent->SetHiddenInGame( !HoudiniGeoPartObject.IsVisible() )
+                    StaticMeshComponent->SetHiddenInGame( !HoudiniGeoPartObject.IsVisible() );
                 }
 
                 // And we will need to update the navmesh later
