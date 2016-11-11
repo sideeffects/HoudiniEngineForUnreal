@@ -4570,7 +4570,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         if ( FaceIndex == 0 )
                         {
                             // This is unused face, we need to add it to unused faces list.
-                            GroupSplitFaceIndicesRemaining.Add( FaceIndex );
+                            GroupSplitFaceIndicesRemaining.Add( CollisionFaceIdx );
                         }
                     }
 
@@ -5275,8 +5275,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                                 for ( int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx )
                                 {
+                                    int32 SplitFaceIndex = SplitGroupFaceIndices[FaceIdx];
+
                                     // Get material id for this face.
-                                    HAPI_MaterialId MaterialId = FaceMaterialIds[ FaceIdx ];
+                                    HAPI_MaterialId MaterialId = -1; 
+                                    if( SplitFaceIndex >= 0 && SplitFaceIndex < FaceMaterialIds.Num() )
+                                        MaterialId = FaceMaterialIds[ SplitFaceIndex ];
+
                                     UMaterialInterface * Material = MaterialDefault;
 
                                     FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
