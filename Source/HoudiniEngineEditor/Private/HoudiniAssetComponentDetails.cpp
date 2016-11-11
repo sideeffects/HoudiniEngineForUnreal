@@ -286,6 +286,13 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                 TSharedPtr< SBorder > MaterialThumbnailBorder;
                 TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
 
+                FString MaterialName, MaterialPathName;
+                if (MaterialInterface)
+                {
+                    MaterialName = MaterialInterface->GetName();
+                    MaterialPathName = MaterialInterface->GetPathName();
+                }
+
                 // Create thumbnail for this material.
                 TSharedPtr< FAssetThumbnail > MaterialInterfaceThumbnail =
                     MakeShareable( new FAssetThumbnail( MaterialInterface, 64, 64, AssetThumbnailPool ) );
@@ -314,7 +321,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                         SNew( SBox )
                         .WidthOverride( 64 )
                         .HeightOverride( 64 )
-                        .ToolTipText( FText::FromString( MaterialInterface->GetPathName() ) )
+                        .ToolTipText( FText::FromString( MaterialPathName ) )
                         [
                             MaterialInterfaceThumbnail->MakeThumbnailWidget()
                         ]
@@ -354,7 +361,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                                 SNew( STextBlock )
                                 .TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
                                 .Font( FEditorStyle::GetFontStyle( FName( TEXT( "PropertyWindow.NormalFont" ) ) ) )
-                                .Text( FText::FromString(MaterialInterface->GetName() ) )
+                                .Text( FText::FromString( MaterialName ) )
                             ]
                         ]
                     ]
@@ -362,7 +369,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
 
                 // Create tooltip.
                 FFormatNamedArguments Args;
-                Args.Add( TEXT( "Asset" ), FText::FromString( MaterialInterface->GetName() ) );
+                Args.Add( TEXT( "Asset" ), FText::FromString( MaterialName ) );
                 FText MaterialTooltip = FText::Format(
                     LOCTEXT( "BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser" ), Args );
 

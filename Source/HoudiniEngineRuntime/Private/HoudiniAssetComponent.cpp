@@ -681,7 +681,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                     continue;
                 }
             }
-	    else if ( HoudiniGeoPartObject.IsVisible() )
+            else if ( HoudiniGeoPartObject.IsVisible() )
             {
                 // Create necessary component.
                 StaticMeshComponent = NewObject< UStaticMeshComponent >(
@@ -703,15 +703,21 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
             if ( StaticMeshComponent )
             {
                 // If this is a collision geo, we need to make it invisible.
-                if ( HoudiniGeoPartObject.IsCollidable() )
+                if (HoudiniGeoPartObject.IsCollidable())
                 {
                     StaticMeshComponent->SetVisibility( false );
                     StaticMeshComponent->SetHiddenInGame( true );
                     StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
                 }
+                else
+                {
+                    // Visibility may have changed so we still need to update it
+                    StaticMeshComponent->SetVisibility( HoudiniGeoPartObject.IsVisible() );
+                    StaticMeshComponent->SetHiddenInGame( !HoudiniGeoPartObject.IsVisible() )
+                }
 
                 // And we will need to update the navmesh later
-                if(HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
+                if( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
                     bNeedToUpdateNavigationSystem = true;
 
                 // Transform the component by transformation provided by HAPI.
