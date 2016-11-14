@@ -40,10 +40,10 @@ UHoudiniAssetComponentMaterials::AddReferencedObjects( UObject * InThis, FRefere
     if ( HoudiniAssetComponentMaterials )
     {
         // Add references to all cached materials.
-        for ( TMap< FString, UMaterial * >::TIterator
+        for ( TMap< FString, UMaterialInterface * >::TIterator
             Iter( HoudiniAssetComponentMaterials->Assignments ); Iter; ++Iter )
         {
-            UMaterial * Material = Iter.Value();
+            UMaterialInterface * Material = Iter.Value();
             Collector.AddReferencedObject( Material, InThis );
         }
 

@@ -22,7 +22,7 @@
 
 class UClass;
 class UProperty;
-class UMaterial;
+class UMaterialInterface;
 class UBlueprint;
 class UStaticMesh;
 class UHoudiniAsset;
@@ -294,7 +294,10 @@ public:
             UMaterialInterface * MaterialInterface, FString & MaterialName);
 
         /** Given a shop name return material assignment. **/
-        UMaterial * GetAssignmentMaterial( const FString & MaterialName );
+        UMaterialInterface * GetAssignmentMaterial( const FString & MaterialName );
+
+        /** Material Change **/
+        virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material) override;
 
         /** Perform material replacement. **/
         bool ReplaceMaterial(

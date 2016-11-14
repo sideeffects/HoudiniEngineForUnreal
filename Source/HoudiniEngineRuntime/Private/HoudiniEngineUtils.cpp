@@ -4150,7 +4150,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         InstancerMaterialMap );
 
     // Map to hold materials.
-    TMap< FString, UMaterial * > Materials;
+    TMap< FString, UMaterialInterface * > Materials;
 
     // Create materials.
     FHoudiniEngineUtils::HapiCreateMaterials(
@@ -5194,7 +5194,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                                 FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
                                 FHoudiniEngineUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
-                                UMaterial * const * FoundMaterial = Materials.Find( MaterialShopName );
+                                UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
 
                                 if ( FoundMaterial )
                                     Material = *FoundMaterial;
@@ -5245,7 +5245,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 // Get id of this single material.
                                 FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
                                 FHoudiniEngineUtils::GetUniqueMaterialShopName( AssetId, FaceMaterialIds[ 0 ], MaterialShopName );
-                                UMaterial * const * FoundMaterial = Materials.Find( MaterialShopName );
+                                UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
 
                                 if ( FoundMaterial )
                                     Material = *FoundMaterial;
@@ -5286,7 +5286,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                                     FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
                                     FHoudiniEngineUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName );
-                                    UMaterial * const * FoundMaterial = Materials.Find( MaterialShopName );
+                                    UMaterialInterface * const * FoundMaterial = Materials.Find( MaterialShopName );
 
                                     if ( FoundMaterial )
                                         Material = *FoundMaterial;
@@ -5853,7 +5853,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
     const HAPI_AssetInfo & AssetInfo,
     const TSet< HAPI_MaterialId > & UniqueMaterialIds,
     const TSet< HAPI_MaterialId > & UniqueInstancerMaterialIds,
-    TMap< FString, UMaterial * > & Materials )
+    TMap< FString, UMaterialInterface * > & Materials )
 {
 #if WITH_EDITOR
 
@@ -5865,7 +5865,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
     HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
 
-    const TMap< FString, UMaterial * > & CachedMaterials =
+    const TMap< FString, UMaterialInterface * > & CachedMaterials =
         HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments;
 
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
@@ -5908,13 +5908,17 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             if ( !FHoudiniEngineUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName ) )
                 continue;
 
-            UMaterial * const * FoundMaterial = CachedMaterials.Find( MaterialShopName );
-            UMaterial * Material = nullptr;
+            UMaterialInterface * const * FoundMaterialInterface = CachedMaterials.Find( MaterialShopName );
+            UMaterial * FoundMaterial = nullptr;
+            if(FoundMaterialInterface)
+                FoundMaterial = Cast< UMaterial >(*FoundMaterialInterface);
+
+	    UMaterial * Material = nullptr;
             bool bCreatedNewMaterial = false;
 
             if ( FoundMaterial )
             {
-                Material = *FoundMaterial;
+                Material = FoundMaterial;
 
                 // If cached material exists and has not changed, we can reuse it.
                 if ( !MaterialInfo.hasChanged )

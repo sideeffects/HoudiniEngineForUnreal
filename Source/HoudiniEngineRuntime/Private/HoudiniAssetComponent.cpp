@@ -706,7 +706,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 if (HoudiniGeoPartObject.IsCollidable() )
                 {
                     StaticMeshComponent->SetVisibility( false );
-                    StaticMeshComponent->SetHiddenInGame( true );
+                    StaticMeshComponent->SetHiddenInGame( true );                                                                     
                     StaticMeshComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
                 }
                 else
@@ -2185,7 +2185,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         return;
 
     // We want to handle material replacements.
-    UMaterial * Material = Cast< UMaterial >( ObjectToApply );
+    UMaterialInterface * Material = Cast< UMaterialInterface >( ObjectToApply );
     if (!Material)
         return;
 
@@ -4183,16 +4183,16 @@ UHoudiniAssetComponent::GetReplacementMaterialShopName(
     return false;
 }
 
-UMaterial *
+UMaterialInterface *
 UHoudiniAssetComponent::GetAssignmentMaterial( const FString & MaterialName )
 {
-    UMaterial * Material = nullptr;
+    UMaterialInterface * Material = nullptr;
 
     if ( HoudiniAssetComponentMaterials )
     {
-        TMap< FString, UMaterial * > & MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
+        TMap< FString, UMaterialInterface * > & MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
 
-        UMaterial * const * FoundMaterial = MaterialAssignments.Find( MaterialName );
+        UMaterialInterface * const * FoundMaterial = MaterialAssignments.Find( MaterialName );
         if ( FoundMaterial )
             Material = *FoundMaterial;
     }
@@ -4225,9 +4225,9 @@ UHoudiniAssetComponent::ReplaceMaterial(
     TMap< FHoudiniGeoPartObject, TMap< FString, UMaterialInterface * > > & MaterialReplacements =
         HoudiniAssetComponentMaterials->Replacements;
 
-    TMap< FString, UMaterial * > & MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
+    TMap< FString, UMaterialInterface * > & MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
 
-    UMaterial * DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+    UMaterialInterface * DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
     if ( !MaterialReplacements.Contains( HoudiniGeoPartObject ) )
     {
@@ -4247,7 +4247,7 @@ UHoudiniAssetComponent::ReplaceMaterial(
     }
     else
     {
-        UMaterial * OldMaterial = Cast< UMaterial >( OldMaterialInterface );
+        UMaterialInterface * OldMaterial = Cast< UMaterialInterface >( OldMaterialInterface );
         if ( OldMaterial )
         {
             // We have no previous replacement for this material, see if we have it in list of material assignments.
@@ -4266,7 +4266,8 @@ UHoudiniAssetComponent::ReplaceMaterial(
             }
             else
             {
-                return false;
+                // External Material?
+                MaterialReplacementsValues.Add(OldMaterial->GetName(), NewMaterialInterface);
             }
         }
         else
@@ -4276,6 +4277,13 @@ UHoudiniAssetComponent::ReplaceMaterial(
     }
 
     return true;
+}
+
+void UHoudiniAssetComponent::SetMaterial(int32 ElementIndex, class UMaterialInterface* Material)
+{
+    Super::SetMaterial(ElementIndex, Material);
+
+    UpdateEditorProperties(false);
 }
 
 void
