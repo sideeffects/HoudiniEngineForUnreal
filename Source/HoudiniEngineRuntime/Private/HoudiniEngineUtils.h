@@ -329,7 +329,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static void HapiCreateMaterials(
             UHoudiniAssetComponent * HoudiniAssetComponent, const HAPI_AssetInfo & AssetInfo,
             const TSet< HAPI_MaterialId > & UniqueMaterialIds, const TSet< HAPI_MaterialId > & UniqueInstancerMaterialIds,
-            TMap< FString, UMaterial * > & Materials );
+            TMap< FString, UMaterialInterface * > & Materials );
 
 #if WITH_EDITOR
 

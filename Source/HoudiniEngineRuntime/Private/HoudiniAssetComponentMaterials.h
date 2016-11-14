@@ -46,7 +46,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponentMaterials : public UObject
     protected:
 
         /** Material assignments. **/
-        TMap< FString, UMaterial * > Assignments;
+        TMap< FString, UMaterialInterface * > Assignments;
 
         /** Material replacements. **/
         TMap< FHoudiniGeoPartObject, TMap< FString, UMaterialInterface * > > Replacements;
