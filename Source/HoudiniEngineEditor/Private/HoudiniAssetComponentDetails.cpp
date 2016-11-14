@@ -1252,7 +1252,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
             {
                 HoudiniAssetComponent->RemoveReplacementMaterial( *HoudiniGeoPartObject, MaterialShopName );
 
-                UMaterial * AssignedMaterial = HoudiniAssetComponent->GetAssignmentMaterial( MaterialShopName );
+                UMaterialInterface * AssignedMaterial = HoudiniAssetComponent->GetAssignmentMaterial( MaterialShopName );
                 if ( AssignedMaterial )
                     MaterialInterfaceReplacement = AssignedMaterial;
             }

@@ -215,7 +215,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
         if ( StaticMesh )
         {
-            UMaterial * InstancerMaterial = nullptr;
+            UMaterialInterface * InstancerMaterial = nullptr;
 
             // We check attribute material first.
             if ( InstancerHoudiniGeoPartObject.bInstancerAttributeMaterialAvailable )
