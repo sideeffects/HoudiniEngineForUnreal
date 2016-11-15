@@ -210,20 +210,11 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             if ( !StaticMesh )
                 continue;
 
-            FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
             FString Label = TEXT( "" );
             if ( HoudiniGeoPartObject.HasCustomName() )
                 Label = HoudiniGeoPartObject.PartName;
             else
                 Label = FString::Printf( TEXT( "Static Mesh %d" ), MeshIdx );
-
-            FText LabelText = FText::FromString( Label );
-            Row.NameWidget.Widget =
-                SNew( STextBlock )
-                    .Text( LabelText )
-                    .ToolTipText( LabelText )
-                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
 
             // Create thumbnail for this mesh.
             TSharedPtr< FAssetThumbnail > StaticMeshThumbnail =
@@ -231,6 +222,20 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
 
             TSharedPtr< SBorder > StaticMeshThumbnailBorder;
             TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
+            
+            IDetailGroup& StaticMeshGrp = DetailCategoryBuilder.AddGroup(FName(*Label), FText::FromString(Label));
+            StaticMeshGrp.AddWidgetRow()
+            .NameContent()
+            [
+                SNew(SSpacer)
+                .Size(FVector2D(250, 64))
+            ]
+            .ValueContent()
+            .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+            [
+                VerticalBox
+            ];
+            
             VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
             [
                 SNew( SHorizontalBox )
@@ -409,9 +414,6 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                     MaterialInterfaceComboButtons.Add( Pair, AssetComboButton );
                 }
             }
-
-            Row.ValueWidget.Widget = VerticalBox;
-            Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 
             MeshIdx++;
         }
