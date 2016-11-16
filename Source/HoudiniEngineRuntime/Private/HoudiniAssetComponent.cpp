@@ -254,24 +254,25 @@ UHoudiniAssetComponent::bDisplayEngineHapiVersionMismatch = true;
 
 UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
-    , HoudiniAsset( nullptr )
-    , PreviousTransactionHoudiniAsset( nullptr )
-    , HoudiniAssetComponentMaterials( nullptr )
-#if WITH_EDITOR
-    , CopiedHoudiniComponent( nullptr )
-#endif
-    , AssetId( -1 )
-    , GeneratedGeometryScaleFactor( HAPI_UNREAL_SCALE_FACTOR_POSITION )
-    , TransformScaleFactor( HAPI_UNREAL_SCALE_FACTOR_TRANSLATION )
-    , ImportAxis( HRSAI_Unreal )
-    , HapiNotificationStarted( 0.0 )
-    , AssetCookCount( 0 )
-    , HoudiniAssetComponentFlagsPacked( 0u )
-    , HoudiniAssetComponentTransientFlagsPacked( 0u )
-    , HoudiniAssetComponentVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
-    , bManualRecook( false )
 {
+    HoudiniAsset = nullptr;
+    bManualRecook = false;
+    PreviousTransactionHoudiniAsset = nullptr;
+    HoudiniAssetComponentMaterials = nullptr;
+#if WITH_EDITOR
+    CopiedHoudiniComponent = nullptr;
+#endif
+    AssetId = -1;
+    GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    TransformScaleFactor = HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+    ImportAxis = HRSAI_Unreal;
+    HapiNotificationStarted = 0.0;
+    AssetCookCount = 0;
+    HoudiniAssetComponentTransientFlagsPacked = 0u;
+    HoudiniAssetComponentVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE;
+
     /** Component flags. **/
+    HoudiniAssetComponentFlagsPacked = 0u;
     bEnableCooking = true;
     bUploadTransformsToHoudiniEngine = true;
     bUseHoudiniMaterials = true;
