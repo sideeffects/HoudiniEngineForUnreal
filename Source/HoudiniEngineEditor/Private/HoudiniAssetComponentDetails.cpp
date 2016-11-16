@@ -456,16 +456,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
     IDetailLayoutBuilder& DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
     TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
-    FDetailWidgetRow & Row = DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
-    FString Label = TEXT( "Houdini Asset" );
-    FText LabelText = FText::FromString( Label );
-    Row.NameWidget.Widget =
-        SNew( STextBlock )
-            .Text( LabelText )
-            .ToolTipText( LabelText )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
-
+    FSlateFontInfo NormalFont = FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
     UHoudiniAsset * HoudiniAsset = nullptr;
     UHoudiniAssetComponent * HoudiniAssetComponent = nullptr;
     FString HoudiniAssetPathName = TEXT( "" );
@@ -485,357 +476,225 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
 
     // Create thumbnail for this Houdini asset.
     TSharedPtr< FAssetThumbnail > HoudiniAssetThumbnail =
-        MakeShareable( new FAssetThumbnail( HoudiniAsset, 64, 64, AssetThumbnailPool ) );
+        MakeShareable(new FAssetThumbnail(HoudiniAsset, 64, 64, AssetThumbnailPool));
 
-    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
-    TSharedPtr< SHorizontalBox > HorizontalBox = nullptr;
-    TSharedPtr< SHorizontalBox > ButtonBox = nullptr;
-
-    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+    IDetailGroup& OptionsGroup = DetailCategoryBuilder.AddGroup(TEXT("Options"), LOCTEXT("Options", "Asset Options"));
+    OptionsGroup.AddWidgetRow()
+    .NameContent()
+    [
+        SNew(STextBlock)
+        .Text(LOCTEXT("HoudiniDigitalAsset", "Houdini Digital Asset"))
+        .Font(NormalFont)
+    ]
+    .ValueContent()
+    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
     [
         SNew( SAssetDropTarget )
         .OnIsAssetAcceptableForDrop( this, &FHoudiniAssetComponentDetails::OnHoudiniAssetDraggedOver )
         .OnAssetDropped( this, &FHoudiniAssetComponentDetails::OnHoudiniAssetDropped )
         [
-            SAssignNew( HorizontalBox, SHorizontalBox )
-        ]
-    ];
-
-    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SNew( SCheckBox )
-        .OnCheckStateChanged( this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking,
-            HoudiniAssetComponent )
-        .IsChecked( this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCooking, HoudiniAssetComponent )
-        .Content()
-        [
-            SNew( STextBlock )
-            .Text( LOCTEXT( "HoudiniEnableCookingOnParamChange", "Enable Cooking on Parameter Change" ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-    ];
-
-    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SNew( SCheckBox )
-        .OnCheckStateChanged(
-            this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform, HoudiniAssetComponent )
-        .IsChecked(
-            this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUploadTransform, HoudiniAssetComponent )
-        .Content()
-        [
-            SNew( STextBlock )
-            .Text( LOCTEXT( "HoudiniUploadTransformsToHoudiniEngine", "Upload Transforms to Houdini Engine" ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-    ];
-
-    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SNew( SCheckBox )
-        .OnCheckStateChanged(
-            this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking, HoudiniAssetComponent )
-        .IsChecked( this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking, HoudiniAssetComponent )
-        .Content()
-        [
-            SNew( STextBlock )
-            .Text( LOCTEXT( "HoudiniTransformChangeTriggersCooks", "Transform Change Triggers Cooks" ) )
-            .Font(FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-    ];
-
-    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SNew( SCheckBox )
-        .OnCheckStateChanged(
-            this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookInPlaymode, HoudiniAssetComponent )
-        .IsChecked( this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookInPlaymode, HoudiniAssetComponent )
-        .Content()
-        [
-            SNew( STextBlock )
-            .Text( LOCTEXT( "HoudiniSetTimeAndCookInPlaymode", "Set Time and Cook when in Playmode" ) )
-            .Font(FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-    ];
-
-    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SNew( SCheckBox )
-        .OnCheckStateChanged(
-            this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUseHoudiniMaterials, HoudiniAssetComponent )
-        .IsChecked( this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUseHoudiniMaterials, HoudiniAssetComponent )
-        .Content()
-        [
-            SNew( STextBlock )
-            .Text( LOCTEXT( "HoudiniUseHoudiniMaterials", "Use Native Houdini Materials" ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-    ];
-
-    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SNew( SCheckBox )
-        .OnCheckStateChanged(
-            this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookingTriggersDownstreamCooks, HoudiniAssetComponent )
-        .IsChecked(
-            this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookingTriggersDownstreamCooks, HoudiniAssetComponent )
-        .Content()
-        [
-            SNew( STextBlock )
-            .Text( LOCTEXT( "HoudiniCookingTriggersDownstreamCooks", "Cooking Triggers Downstream Cooks" ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-    ];
-
-    {
-        TSharedRef< SHorizontalBox > HorizontalButtonBox = SNew( SHorizontalBox );
-        DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-        [
-            SNew( SVerticalBox )
-            +SVerticalBox::Slot()
-            .Padding( 0, 2.0f, 0, 0 )
-            .FillHeight( 1.0f )
-            .VAlign( VAlign_Center )
-            [
-                SAssignNew( HorizontalButtonBox, SHorizontalBox )
-            ]
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnRecookAsset )
-            .Text( LOCTEXT( "RecookHoudiniActor", "Recook Asset" ) )
-            .ToolTipText( LOCTEXT( "RecookHoudiniActorToolTip", "Recooks the outputs of the Houdini asset" ) )
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnRebuildAsset )
-            .Text( LOCTEXT( "RebuildHoudiniActor", "Rebuild Asset" ) )
-            .ToolTipText( LOCTEXT( "RebuildHoudiniActorToolTip", "Deletes and then re-creates and re-cooks the Houdini asset" ) )
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnResetAsset )
-            .Text( LOCTEXT( "ResetHoudiniActor", "Reset Parameters" ) )
-            .ToolTipText( LOCTEXT( "ResetHoudiniActorToolTip", "Resets parameters to their default values" ) )
-        ];
-    }
-
-    {
-        TSharedRef<SHorizontalBox> HorizontalButtonBox = SNew( SHorizontalBox );
-        DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-        [
-            SNew( SVerticalBox )
-            +SVerticalBox::Slot()
-            .Padding( 0, 2.0f, 0, 0 )
-            .FillHeight( 1.0f )
-            .VAlign( VAlign_Center )
-            [
-                SAssignNew( HorizontalButtonBox, SHorizontalBox )
-            ]
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeBlueprint )
-            .Text( LOCTEXT( "BakeBlueprintHoudiniActor", "Bake Blueprint" ) )
-            .ToolTipText( LOCTEXT( "BakeBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint" ) )
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeBlueprintReplace )
-            .Text( LOCTEXT( "BakeReplaceBlueprintHoudiniActor", "Replace With Blueprint" ) )
-            .ToolTipText( LOCTEXT( "BakeReplaceBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint and replaces this Actor" ) )
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeToActors)
-            .Text( LOCTEXT( "BakeToActors", "Bake to Actors" ) )
-            .ToolTipText( LOCTEXT( "BakeToActorsTooltip", "Bakes each output and creates new individual Actors" ) )
-        ];
-
-        TSharedPtr< SButton > BakeToInputButton;
-        HorizontalButtonBox->AddSlot()
-            .AutoWidth()
-            .Padding( 2.0f, 0.0f )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-        [
-            SAssignNew( BakeToInputButton, SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeToInput )
-            .Text( LOCTEXT( "BakeToInput", "Bake to Outliner Input" ) )
-            .ToolTipText( LOCTEXT( "BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it" ) )
-        ];
-
-        BakeToInputButton->SetEnabled( TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateLambda( [=] { 
-            return FHoudiniEngineUtils::GetCanComponentBakeToOutlinerInput( HoudiniAssetComponent ); 
-        } ) ) );
-    }
-
-    {
-        TSharedRef< SHorizontalBox > HorizontalButtonBox = SNew( SHorizontalBox );
-        DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-        [
-            SNew( SVerticalBox )
-            +SVerticalBox::Slot()
-            .Padding( 0, 2.0f, 0, 0 )
-            .FillHeight( 1.0f )
-            .VAlign( VAlign_Center )
-            [
-                SAssignNew( HorizontalButtonBox, SHorizontalBox )
-            ]
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnFetchCookLog )
-            .Text( LOCTEXT( "FetchCookLogHoudiniActor", "Fetch Cook Log" ) )
-            .ToolTipText( LOCTEXT( "FetchCookLogHoudiniActorToolTip", "Fetches the cook log from Houdini" ) )
-        ];
-
-        HorizontalButtonBox->AddSlot()
-        .AutoWidth()
-        .Padding( 2.0f, 0.0f )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        [
-            SNew( SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .OnClicked( this, &FHoudiniAssetComponentDetails::OnFetchAssetHelp, HoudiniAssetComponent )
-            .Text( LOCTEXT( "FetchAssetHelpHoudiniActor", "Asset Help" ) )
-            .ToolTipText( LOCTEXT( "FetchAssetHelpHoudiniActorToolTip", "Displays the asset's Help text" ) )
-        ];
-    }
-
-    HorizontalBox->AddSlot().Padding( 0.0f, 0.0f, 2.0f, 0.0f ).AutoWidth()
-    [
-        SAssignNew( HoudiniAssetThumbnailBorder, SBorder )
-        .Padding( 5.0f )
-        .BorderImage( this, &FHoudiniAssetComponentDetails::GetHoudiniAssetThumbnailBorder )
-        [
-            SNew( SBox )
-            .WidthOverride( 64 )
-            .HeightOverride( 64 )
-            .ToolTipText( FText::FromString( HoudiniAssetPathName ) )
-            [
-                HoudiniAssetThumbnail->MakeThumbnailWidget()
-            ]
-        ]
-    ];
-
-    HorizontalBox->AddSlot()
-    .FillWidth( 1.0f )
-    .Padding( 0.0f, 4.0f, 4.0f, 4.0f )
-    .VAlign( VAlign_Center )
-    [
-        SNew( SVerticalBox )
-        +SVerticalBox::Slot()
-        .HAlign( HAlign_Fill )
-        [
-            SAssignNew( ButtonBox, SHorizontalBox )
+            SNew( SHorizontalBox )
             +SHorizontalBox::Slot()
+            .Padding( 0.0f, 0.0f, 2.0f, 0.0f )
+            .AutoWidth()
             [
-                SAssignNew( HoudiniAssetComboButton, SComboButton )
-                .ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
-                .ForegroundColor( FEditorStyle::GetColor( "PropertyEditor.AssetName.ColorAndOpacity" ) )
-                .OnGetMenuContent( this, &FHoudiniAssetComponentDetails::OnGetHoudiniAssetMenuContent )
-                .ContentPadding( 2.0f )
-                .ButtonContent()
+                SAssignNew( HoudiniAssetThumbnailBorder, SBorder )
+                .Padding( 5.0f )
+                .BorderImage( this, &FHoudiniAssetComponentDetails::GetHoudiniAssetThumbnailBorder )
                 [
-                    SNew( STextBlock )
-                    .TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
-                    .Font( FEditorStyle::GetFontStyle( FName( TEXT( "PropertyWindow.NormalFont" ) ) ) )
-                    .Text( FText::FromString( HoudiniAssetName ) )
+                    SNew( SBox )
+                    .WidthOverride( 64 )
+                    .HeightOverride( 64 )
+                    .ToolTipText( FText::FromString( HoudiniAssetPathName ) )
+                    [
+                        HoudiniAssetThumbnail->MakeThumbnailWidget()
+                    ]
                 ]
             ]
+            +SHorizontalBox::Slot()
+            .FillWidth(1.f)
+            .Padding( 0.0f, 4.0f, 4.0f, 4.0f )
+            .VAlign( VAlign_Center )
+            [
+                SNew( SVerticalBox )
+                +SVerticalBox::Slot()
+                .HAlign( HAlign_Fill )
+                [
+                    SNew( SHorizontalBox )
+                    +SHorizontalBox::Slot()
+                    [
+                        SAssignNew( HoudiniAssetComboButton, SComboButton )
+                        .ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
+                        .ForegroundColor( FEditorStyle::GetColor( "PropertyEditor.AssetName.ColorAndOpacity" ) )
+                        .OnGetMenuContent( this, &FHoudiniAssetComponentDetails::OnGetHoudiniAssetMenuContent )
+                        .ContentPadding( 2.0f )
+                        .ButtonContent()
+                        [
+                            SNew( STextBlock )
+                            .TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
+                            .Font(NormalFont)
+                            .Text( FText::FromString( HoudiniAssetName ) )
+                        ]
+                    ]
+                    +SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .Padding( 2.0f, 0.0f )
+                    .VAlign( VAlign_Center )
+                    [
+                        PropertyCustomizationHelpers::MakeBrowseButton(
+                            FSimpleDelegate::CreateSP( this, &FHoudiniAssetComponentDetails::OnHoudiniAssetBrowse ),
+                            TAttribute< FText >( FText::FromString( HoudiniAssetName ) ) )
+                    ]
+                    +SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .Padding( 2.0f, 0.0f )
+                    .VAlign( VAlign_Center )
+                    [
+                        SNew( SButton )
+                        .ToolTipText( LOCTEXT( "ResetToBaseHoudiniAsset", "Reset Houdini Asset" ) )
+                        .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+                        .ContentPadding( 0 )
+                        .Visibility( EVisibility::Visible )
+                        .OnClicked( this, &FHoudiniAssetComponentDetails::OnResetHoudiniAssetClicked )
+                        [
+                            SNew( SImage )
+                            .Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+                        ]
+                    ]  // horizontal buttons next to thumbnail box
+                ]
+            ]  // horizontal asset chooser box
         ]
     ];
 
-    ButtonBox->AddSlot()
-    .AutoWidth()
-    .Padding( 2.0f, 0.0f )
-    .VAlign( VAlign_Center )
-    [
-        PropertyCustomizationHelpers::MakeBrowseButton(
-            FSimpleDelegate::CreateSP( this, &FHoudiniAssetComponentDetails::OnHoudiniAssetBrowse ),
-            TAttribute< FText >( FText::FromString( HoudiniAssetName ) ) )
-    ];
-
-    ButtonBox->AddSlot()
-    .AutoWidth()
-    .Padding( 2.0f, 0.0f )
-    .VAlign( VAlign_Center )
-    [
-        SNew( SButton )
-        .ToolTipText( LOCTEXT( "ResetToBaseHoudiniAsset", "Reset Houdini Asset" ) )
-        .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-        .ContentPadding( 0 )
-        .Visibility( EVisibility::Visible )
-        .OnClicked( this, &FHoudiniAssetComponentDetails::OnResetHoudiniAssetClicked )
+    auto AddOptionRow = [&](const FText& NameText, FOnCheckStateChanged OnCheckStateChanged, TAttribute<ECheckBoxState> IsCheckedAttr)
+    {
+        OptionsGroup.AddWidgetRow()
+        .NameContent()
         [
-            SNew( SImage )
-            .Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+            SNew(STextBlock)
+            .Text(NameText)
+            .Font(NormalFont)
+        ]
+        .ValueContent()
+        [
+            SNew( SCheckBox )
+            .OnCheckStateChanged( OnCheckStateChanged )
+            .IsChecked( IsCheckedAttr )
+        ];
+    };
+
+    AddOptionRow(
+        LOCTEXT("HoudiniEnableCookingOnParamChange", "Enable Cooking on Parameter Change"), 
+        FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCooking, HoudiniAssetComponent),
+        TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCooking, HoudiniAssetComponent)));
+    AddOptionRow(
+        LOCTEXT("HoudiniUploadTransformsToHoudiniEngine", "Upload Transforms to Houdini Engine"),
+        FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUploadTransform, HoudiniAssetComponent),
+        TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUploadTransform, HoudiniAssetComponent)));
+    AddOptionRow(
+        LOCTEXT("HoudiniTransformChangeTriggersCooks", "Transform Change Triggers Cooks"),
+        FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking, HoudiniAssetComponent),
+        TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking, HoudiniAssetComponent)));
+    AddOptionRow(
+        LOCTEXT("HoudiniSetTimeAndCookInPlaymode", "Set Time and Cook when in Playmode"),
+        FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookInPlaymode, HoudiniAssetComponent),
+        TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookInPlaymode, HoudiniAssetComponent)));
+    AddOptionRow(
+        LOCTEXT("HoudiniUseHoudiniMaterials", "Use Native Houdini Materials"),
+        FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUseHoudiniMaterials, HoudiniAssetComponent),
+        TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUseHoudiniMaterials, HoudiniAssetComponent)));
+    AddOptionRow(
+        LOCTEXT("HoudiniCookingTriggersDownstreamCooks", "Cooking Triggers Downstream Cooks"),
+        FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookingTriggersDownstreamCooks, HoudiniAssetComponent),
+        TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookingTriggersDownstreamCooks, HoudiniAssetComponent)));
+
+    auto ActionButtonSlot = [&](const FText& InText, const FText& InToolTipText, FOnClicked InOnClicked) -> SHorizontalBox::FSlot&
+    {
+        return SHorizontalBox::Slot()
+        .AutoWidth()
+        .Padding( 2.0f, 0.0f )
+        .VAlign( VAlign_Center )
+        .HAlign( HAlign_Center )
+        [
+            SNew( SButton )
+            .VAlign( VAlign_Center )
+            .HAlign( HAlign_Center )
+            .OnClicked(InOnClicked)
+            .Text(InText)
+            .ToolTipText(InToolTipText)
+        ];
+    };
+
+    IDetailGroup& CookGroup = DetailCategoryBuilder.AddGroup(TEXT("Cooking"), LOCTEXT("CookingActions", "Cooking Actions"));
+    CookGroup.AddWidgetRow()
+    .WholeRowContent()
+    [
+        SNew(SHorizontalBox)
+        +ActionButtonSlot(
+            LOCTEXT("RecookHoudiniActor", "Recook Asset"), 
+            LOCTEXT("RecookHoudiniActorToolTip", "Recooks the outputs of the Houdini asset"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnRecookAsset))
+        +ActionButtonSlot(
+            LOCTEXT("RebuildHoudiniActor", "Rebuild Asset"),
+            LOCTEXT("RebuildHoudiniActorToolTip", "Deletes and then re-creates and re-cooks the Houdini asset"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnRebuildAsset))
+        +ActionButtonSlot(
+            LOCTEXT("ResetHoudiniActor", "Reset Parameters"),
+            LOCTEXT("ResetHoudiniActorToolTip", "Resets parameters to their default values"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnResetAsset))
+    ];
+
+    IDetailGroup& BakeGroup = DetailCategoryBuilder.AddGroup(TEXT("Baking"), LOCTEXT("BakingActions", "Baking Actions"));
+    TSharedPtr< SButton > BakeToInputButton;
+    BakeGroup.AddWidgetRow()
+    .WholeRowContent()
+    [
+        SNew(SHorizontalBox)
+        +ActionButtonSlot(
+            LOCTEXT("BakeBlueprintHoudiniActor", "Bake Blueprint"),
+            LOCTEXT("BakeBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeBlueprint))
+        +ActionButtonSlot(
+            LOCTEXT("BakeReplaceBlueprintHoudiniActor", "Replace With Blueprint"),
+            LOCTEXT("BakeReplaceBlueprintHoudiniActorToolTip", "Bakes to a new Blueprint and replaces this Actor"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeBlueprintReplace))
+        +ActionButtonSlot(
+            LOCTEXT("BakeToActors", "Bake to Actors"),
+            LOCTEXT("BakeToActorsTooltip", "Bakes each output and creates new individual Actors"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnBakeToActors))
+        +SHorizontalBox::Slot()
+        .AutoWidth()
+        .Padding( 2.0f, 0.0f )
+        .VAlign( VAlign_Center )
+        .HAlign( HAlign_Center )
+        [
+            SAssignNew(BakeToInputButton, SButton)
+            .VAlign( VAlign_Center )
+            .HAlign( HAlign_Center )
+            .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToInput)
+            .Text(LOCTEXT("BakeToInput", "Bake to Outliner Input"))
+            .ToolTipText(LOCTEXT("BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it.\nNote: There must be one static mesh outliner input and one output."))
         ]
     ];
 
-    Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+    BakeToInputButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
+        return FHoudiniEngineUtils::GetCanComponentBakeToOutlinerInput(HoudiniAssetComponent);
+    })));
+
+    IDetailGroup& HelpGroup = DetailCategoryBuilder.AddGroup(TEXT("Help"), LOCTEXT("Help", "Help and Debugging"));
+    HelpGroup.AddWidgetRow()
+    .WholeRowContent()
+    [
+        SNew(SHorizontalBox)
+        +ActionButtonSlot(
+            LOCTEXT("FetchCookLogHoudiniActor", "Fetch Cook Log"),
+            LOCTEXT("FetchCookLogHoudiniActorToolTip", "Fetches the cook log from Houdini"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnFetchCookLog))
+        +ActionButtonSlot(
+            LOCTEXT("FetchAssetHelpHoudiniActor", "Asset Help"),
+            LOCTEXT("FetchAssetHelpHoudiniActorToolTip", "Displays the asset's Help text"),
+            FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnFetchAssetHelp, HoudiniAssetComponent))
+    ];
 }
 
 const FSlateBrush *
