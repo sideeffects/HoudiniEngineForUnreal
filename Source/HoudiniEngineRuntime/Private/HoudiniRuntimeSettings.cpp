@@ -18,74 +18,74 @@
 #include "HoudiniEngineUtils.h"
 
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & ObjectInitializer )
-    : Super( ObjectInitializer )
-
+: Super( ObjectInitializer )
+{
     /** Session options. **/
-    , SessionType( HRSST_InProcess )
-    , ServerHost( HAPI_UNREAL_SESSION_SERVER_HOST )
-    , ServerPort( HAPI_UNREAL_SESSION_SERVER_PORT )
-    , ServerPipeName( HAPI_UNREAL_SESSION_SERVER_PIPENAME )
-    , bStartAutomaticServer( HAPI_UNREAL_SESSION_SERVER_AUTOSTART )
-    , AutomaticServerTimeout( HAPI_UNREAL_SESSION_SERVER_TIMEOUT )
+    SessionType = HRSST_InProcess;
+    ServerHost = HAPI_UNREAL_SESSION_SERVER_HOST;
+    ServerPort = HAPI_UNREAL_SESSION_SERVER_PORT;
+    ServerPipeName = HAPI_UNREAL_SESSION_SERVER_PIPENAME;
+    bStartAutomaticServer = HAPI_UNREAL_SESSION_SERVER_AUTOSTART;
+    AutomaticServerTimeout = HAPI_UNREAL_SESSION_SERVER_TIMEOUT;
 
     /** Instantiation options. **/
-    , bShowMultiAssetDialog( true )
+    bShowMultiAssetDialog = true;
 
     /** Cooking options. **/
-    , bEnableCooking( true )
-    , bUploadTransformsToHoudiniEngine( true )
-    , bTransformChangeTriggersCooks( false )
-    , bDisplaySlateCookingNotifications( true )
-    , bCookCurvesOnMouseRelease( false )
+    bEnableCooking = true;
+    bUploadTransformsToHoudiniEngine = true;
+    bTransformChangeTriggersCooks = false;
+    bDisplaySlateCookingNotifications = true;
+    bCookCurvesOnMouseRelease = false;
 
     /** Parameter options. **/
-    , bTreatRampParametersAsMultiparms( false )
+    bTreatRampParametersAsMultiparms = false;
 
     /** Collision generation. **/
-    , CollisionGroupNamePrefix( TEXT( HAPI_UNREAL_GROUP_GEOMETRY_COLLISION ) )
-    , RenderedCollisionGroupNamePrefix( TEXT( HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION ) )
+    CollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_COLLISION );
+    RenderedCollisionGroupNamePrefix = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION );
 
     /** Geometry marshalling. **/
-    , MarshallingAttributeTangent( TEXT( HAPI_UNREAL_ATTRIB_TANGENT ) )
-    , MarshallingAttributeBinormal( TEXT( HAPI_UNREAL_ATTRIB_BINORMAL ) )
-    , MarshallingAttributeMaterial( TEXT( HAPI_UNREAL_ATTRIB_MATERIAL ) )
-    , MarshallingAttributeMaterialHole( TEXT( HAPI_UNREAL_ATTRIB_MATERIAL_HOLE ) )
-    , MarshallingAttributeInstanceOverride( TEXT( HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE ) )
-    , MarshallingAttributeFaceSmoothingMask( TEXT( HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK ) )
-    , MarshallingAttributeLightmapResolution( TEXT( HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION ) )
-    , MarshallingAttributeGeneratedMeshName( TEXT( HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME ) )
-    , MarshallingAttributeInputMeshName( TEXT( HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME ) )
-    , MarshallingSplineResolution( HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT )
+    MarshallingAttributeTangent = TEXT( HAPI_UNREAL_ATTRIB_TANGENT );
+    MarshallingAttributeBinormal = TEXT( HAPI_UNREAL_ATTRIB_BINORMAL );
+    MarshallingAttributeMaterial = TEXT( HAPI_UNREAL_ATTRIB_MATERIAL );
+    MarshallingAttributeMaterialHole = TEXT( HAPI_UNREAL_ATTRIB_MATERIAL_HOLE );
+    MarshallingAttributeInstanceOverride = TEXT( HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE );
+    MarshallingAttributeFaceSmoothingMask = TEXT( HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK );
+    MarshallingAttributeLightmapResolution = TEXT( HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION );
+    MarshallingAttributeGeneratedMeshName = TEXT( HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME );
+    MarshallingAttributeInputMeshName = TEXT( HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME );
+    MarshallingSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
 
     /** Geometry scaling. **/
-    , GeneratedGeometryScaleFactor( HAPI_UNREAL_SCALE_FACTOR_POSITION )
-    , TransformScaleFactor( HAPI_UNREAL_SCALE_FACTOR_TRANSLATION )
-    , ImportAxis( HRSAI_Unreal )
+    GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    TransformScaleFactor = HAPI_UNREAL_SCALE_FACTOR_TRANSLATION;
+    ImportAxis = HRSAI_Unreal;
 
     /** Generated StaticMesh settings. **/
-    , bDoubleSidedGeometry( false )
-    , PhysMaterial( nullptr )
-    , CollisionTraceFlag( CTF_UseDefault )
-    , LightMapResolution( 32 )
-    , LpvBiasMultiplier( 1.0f )
-    , LightMapCoordinateIndex( 1 )
-    , bUseMaximumStreamingTexelRatio( false )
-    , StreamingDistanceMultiplier( 1.0f )
-    , GeneratedDistanceFieldResolutionScale( 0.0f )
+    bDoubleSidedGeometry = false;
+    PhysMaterial = nullptr;
+    CollisionTraceFlag = CTF_UseDefault;
+    LightMapResolution = 32;
+    LpvBiasMultiplier = 1.0f;
+    LightMapCoordinateIndex = 1;
+    bUseMaximumStreamingTexelRatio = false;
+    StreamingDistanceMultiplier = 1.0f;
+    GeneratedDistanceFieldResolutionScale = 0.0f;
 
     /** Static Mesh build settings. **/
-    , bUseFullPrecisionUVs( false )
-    , SrcLightmapIndex( 0 )
-    , DstLightmapIndex( 1 )
-    , MinLightmapResolution( 64 )
-    , bRemoveDegenerates( true )
-    , GenerateLightmapUVsFlag( HRSRF_OnlyIfMissing )
-    , RecomputeNormalsFlag( HRSRF_OnlyIfMissing )
-    , RecomputeTangentsFlag( HRSRF_OnlyIfMissing )
+    bUseFullPrecisionUVs = false;
+    SrcLightmapIndex = 0;
+    DstLightmapIndex = 1;
+    MinLightmapResolution = 64;
+    bRemoveDegenerates = true;
+    GenerateLightmapUVsFlag = HRSRF_OnlyIfMissing;
+    RecomputeNormalsFlag = HRSRF_OnlyIfMissing;
+    RecomputeTangentsFlag = HRSRF_OnlyIfMissing;
 
     /** Custom Houdini location. **/
-    , bUseCustomHoudiniLocation(false)
-{
+    bUseCustomHoudiniLocation = false;
+
     CustomHoudiniLocation.Path = TEXT( "" );
 }
 
