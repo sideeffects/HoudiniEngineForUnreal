@@ -665,20 +665,27 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
                 continue;
             }
 
-            FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-            FText LabelText = FText::FromString( GetFieldLabel( FieldIdx, VariationIdx ) );
-
-            Row.NameWidget.Widget = SNew( STextBlock )
-                .Text( LabelText )
-                .ToolTipText( LabelText )
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
-
             // Create thumbnail for this object.
             TSharedPtr< FAssetThumbnail > StaticMeshThumbnail =
                 MakeShareable( new FAssetThumbnail( InstancedObject, 64, 64, AssetThumbnailPool ) );
             TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
             TSharedPtr< SHorizontalBox > HorizontalBox = nullptr;
             TSharedPtr< SBorder > StaticMeshThumbnailBorder;
+
+            FString FieldLabel = GetFieldLabel(FieldIdx, VariationIdx);
+            
+            IDetailGroup& DetailGroup = LocalDetailCategoryBuilder.AddGroup(FName(*FieldLabel), FText::FromString(FieldLabel));
+            DetailGroup.AddWidgetRow()
+            .NameContent()
+            [
+                SNew(SSpacer)
+                .Size(FVector2D(250, 64))
+            ]
+            .ValueContent()
+            .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+            [
+                VerticalBox
+            ];
 
             VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
             [
@@ -916,9 +923,6 @@ UHoudiniAssetInstanceInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
             ];
-
-            Row.ValueWidget.Widget = VerticalBox;
-            Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
         }
     }
 }
