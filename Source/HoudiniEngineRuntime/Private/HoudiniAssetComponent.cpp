@@ -3264,7 +3264,24 @@ UHoudiniAssetComponent::CreateParameters()
             if ( ParmInfo.invisible )
                 continue;
 
+            // See if this parameter has already been created.
+            UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = Parameters.Find( ParmInfo.id );
             UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
+
+            // If parameter exists, we can reuse it.
+            if ( FoundHoudiniAssetParameter )
+            {
+                HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+
+                // Remove parameter from current map.
+                Parameters.Remove( ParmInfo.id );
+
+                // Reinitialize parameter and add it to map.
+                HoudiniAssetParameter->CreateParameter( this, nullptr, AssetInfo.nodeId, ParmInfo );
+                NewParameters.Add( ParmInfo.id, HoudiniAssetParameter );
+                continue;
+            }
+
             switch ( ParmInfo.type )
             {
                 case HAPI_PARMTYPE_STRING:
