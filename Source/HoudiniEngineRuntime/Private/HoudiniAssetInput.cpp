@@ -275,7 +275,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         if ( HoudiniAssetComponent )
         {
             HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
-            if (FHoudiniEngineUtils::IsValidAssetId(HostAssetId))
+            if( FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && FHoudiniEngineUtils::IsValidAssetId(HostAssetId) )
                 FHoudiniEngineUtils::HapiDisconnectAsset(HostAssetId, InputIndex);                
         }
 
