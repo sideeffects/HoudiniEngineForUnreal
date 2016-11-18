@@ -3383,6 +3383,7 @@ UHoudiniAssetComponent::CreateParameters()
                 default:
                 {
                     // Just ignore unsupported types for now.
+                    HOUDINI_LOG_WARNING(TEXT("Parameter Type (%d) is unsupported"), static_cast<int32>(ParmInfo.type));
                     continue;
                 }
             }
@@ -3517,6 +3518,8 @@ UHoudiniAssetComponent::UnmarkChangedParameters()
 void
 UHoudiniAssetComponent::UploadChangedParameters()
 {
+    bool Success = true;
+
     if ( bParametersChanged )
     {
         // Upload inputs.
@@ -3526,7 +3529,9 @@ UHoudiniAssetComponent::UploadChangedParameters()
 
             // If input has changed, upload it to HAPI.
             if ( HoudiniAssetInput->HasChanged() )
-                HoudiniAssetInput->UploadParameterValue();
+            {
+                Success &= HoudiniAssetInput->UploadParameterValue();
+            }
         }
 
         // Upload parameters.
@@ -3536,8 +3541,15 @@ UHoudiniAssetComponent::UploadChangedParameters()
 
             // If parameter has changed, upload it to HAPI.
             if ( HoudiniAssetParameter->HasChanged() )
-                HoudiniAssetParameter->UploadParameterValue();
+            {
+                Success &= HoudiniAssetParameter->UploadParameterValue();
+            }
         }
+    }
+
+    if( !Success )
+    {
+        HOUDINI_LOG_ERROR(TEXT("%s UploadChangedParameters failed"), *GetOwner()->GetName());
     }
 
     // We no longer have changed parameters.
@@ -3686,14 +3698,20 @@ UHoudiniAssetComponent::CreateInputs()
 void
 UHoudiniAssetComponent::UpdateLoadedInputs()
 {
+    bool Success = true;
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
         UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
         if (!HoudiniAssetInput)
             continue;
 
-        HoudiniAssetInput->ChangeInputType(HoudiniAssetInput->GetChoiceIndex());
-        HoudiniAssetInput->UploadParameterValue();
+        Success &= HoudiniAssetInput->ChangeInputType(HoudiniAssetInput->GetChoiceIndex());
+        Success &= HoudiniAssetInput->UploadParameterValue();
+    }
+
+    if( !Success )
+    {
+        HOUDINI_LOG_ERROR(TEXT("%s UpdateLoadedInputs failed"), *GetOwner()->GetName());
     }
 }
 
@@ -4309,7 +4327,9 @@ void UHoudiniAssetComponent::SetMaterial(int32 ElementIndex, class UMaterialInte
 {
     Super::SetMaterial(ElementIndex, Material);
 
+#if WITH_EDITOR
     UpdateEditorProperties(false);
+#endif
 }
 
 void

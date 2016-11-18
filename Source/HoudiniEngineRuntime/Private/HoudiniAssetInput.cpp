@@ -993,6 +993,8 @@ UHoudiniAssetInput::PostEditUndo()
 bool
 UHoudiniAssetInput::UploadParameterValue()
 {
+    bool Success = true;
+
     if(HoudiniAssetComponent == nullptr)
         return false;
 
@@ -1025,7 +1027,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     bStaticMeshChanged = false;
                 }
                 
-                UpdateObjectMergeTransformType();
+                Success &= UpdateObjectMergeTransformType();
             }
 
             break;
@@ -1038,7 +1040,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 && !bInputAssetConnectedInHoudini )
             {
                 ConnectInputAssetActor();
-                UpdateObjectMergeTransformType();
+                Success &= UpdateObjectMergeTransformType();
             }
             else if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
             {
@@ -1092,7 +1094,7 @@ UHoudiniAssetInput::UploadParameterValue()
                         // We need to update node id for loaded parameters.
                         Parameter->SetNodeId( CurveAssetInfo.nodeId );
                         // Upload parameter value.
-                        Parameter->UploadParameterValue();
+                        Success &= Parameter->UploadParameterValue();
                     }
                 }
             }
@@ -1142,10 +1144,13 @@ UHoudiniAssetInput::UploadParameterValue()
                     InputCurve->SetRelativeLocation(FVector::ZeroVector);
             }
 
-            UpdateObjectMergeTransformType();
+            Success &= UpdateObjectMergeTransformType();
 
             // Cook the spline asset.
-            FHoudiniApi::CookAsset( FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr );
+            if( HAPI_RESULT_SUCCESS != FHoudiniApi::CookAsset(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr) )
+            {
+                Success = false;
+            }
 
             // We need to update the curve.
             UpdateInputCurve();
@@ -1174,7 +1179,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     return false;
                 }
 
-                UpdateObjectMergeTransformType();
+                Success &= UpdateObjectMergeTransformType();
             }
             else
             {
@@ -1206,7 +1211,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     bStaticMeshChanged = false;
                 }
 
-                UpdateObjectMergeTransformType();
+                Success &= UpdateObjectMergeTransformType();
 
             }
             else
@@ -1224,10 +1229,8 @@ UHoudiniAssetInput::UploadParameterValue()
         }
     }
     
-
-
     bLoadedParameter = false;
-    return Super::UploadParameterValue();
+    return Success & Super::UploadParameterValue();
 }
 
 uint32
@@ -2139,7 +2142,10 @@ UHoudiniAssetInput::NotifyChildParameterChanged( UHoudiniAssetParameter * Houdin
         if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
         {
             // We need to upload changed param back to HAPI.
-            HoudiniAssetParameter->UploadParameterValue();
+            if(! HoudiniAssetParameter->UploadParameterValue())
+            {
+                HOUDINI_LOG_ERROR(TEXT("%s UploadParameterValue failed"), InputAssetComponent ? *InputAssetComponent->GetOwner()->GetName() : TEXT("unknown"));
+            }
         }
 
         MarkChanged();
