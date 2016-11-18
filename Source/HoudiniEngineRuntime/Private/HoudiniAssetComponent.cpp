@@ -2703,9 +2703,17 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     }
 
     // If we are going into playmode, save asset id.
-    if ( bIsPlayModeActive )
+    // NOTE: bIsPlayModeActive_Unused is known to have been mistakenly saved to disk as ON,
+    // the following fixes that case - should only happen once when first loading
+    if( Ar.IsLoading() && bIsPlayModeActive_Unused )
     {
-        // Store or restore asset id.
+        HAPI_AssetId TempId;
+        Ar << TempId;
+        bIsPlayModeActive_Unused = false;
+    }
+    else if ( IsPlayModeActive() )
+    {
+        // Store or restore asset id only when playing/simulating
         Ar << AssetId;
     }
 
@@ -2785,7 +2793,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         bLoadedComponent = true;
 
         // If we are in PIE and asset id is valid, set asset id sharing flag.
-        if ( bIsPlayModeActive && FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+        if ( IsPlayModeActive() && FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
             bIsSharingAssetId = true;
     }
 }
