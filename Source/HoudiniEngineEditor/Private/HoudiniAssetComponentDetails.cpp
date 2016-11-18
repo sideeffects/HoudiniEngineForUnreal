@@ -675,7 +675,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             .HAlign( HAlign_Center )
             .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToInput)
             .Text(LOCTEXT("BakeToInput", "Bake to Outliner Input"))
-            .ToolTipText(LOCTEXT("BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it.\nNote: There must be one static mesh outliner input and one output."))
+            .ToolTipText(LOCTEXT("BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it.\nNote: There must be one static mesh outliner input and one generated mesh."))
         ]
     ];
 
