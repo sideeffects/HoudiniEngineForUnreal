@@ -153,7 +153,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< HAPI_StringHandle > & AssetNames );
 
         /** Resizes the HeightData so that it fits to UE4's size reauirements **/
-        static bool FHoudiniEngineUtils::ResizeHeightDataForLandscape(
+        static bool ResizeHeightDataForLandscape(
             int32& SizeX, int32& SizeY,
             int32& NumberOfSectionsPerComponent,
             int32& NumberOfQuadsPerSection,
