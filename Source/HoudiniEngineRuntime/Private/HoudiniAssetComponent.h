@@ -680,8 +680,8 @@ public:
                 /** Is set to true if this component has been loaded. **/
                 uint32 bLoadedComponent : 1;
 
-                /** Is set to true when PIE mode is on (either play or simulate.) **/
-                uint32 bIsPlayModeActive : 1;
+                /** Unused **/
+                uint32 bIsPlayModeActive_Unused : 1;
 
                 /** Is set to true when component should set time and cook in play mode. **/
                 uint32 bTimeCookInPlaymode : 1;
@@ -721,6 +721,9 @@ public:
 
                 /** Is set to true when component shares instantiated asset id. Used in PIE. */
                 uint32 bIsSharingAssetId : 1;
+
+                /** Is set to true when PIE mode is on (either play or simulate.) **/
+                uint32 bIsPlayModeActive : 1;
             };
 
             uint32 HoudiniAssetComponentTransientFlagsPacked;
