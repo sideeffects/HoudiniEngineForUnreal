@@ -46,6 +46,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "Landscape.h"
 
 #if WITH_EDITOR
 
@@ -395,6 +396,14 @@ UHoudiniAssetComponent::AddReferencedObjects( UObject * InThis, FReferenceCollec
             Collector.AddReferencedObject( HoudiniSplineComponent, InThis );
         }
 
+        // Add references to all Landscape
+        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+            Iter(HoudiniAssetComponent->LandscapeComponents); Iter; ++Iter)
+        {
+            ALandscape * HoudiniLandscape = Iter.Value();
+            Collector.AddReferencedObject( HoudiniLandscape, InThis );
+        }
+
         // Retrieve asset associated with this component and add reference to it.
         // Also do not add reference if it is being referenced by preview component.
         UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
@@ -490,6 +499,9 @@ UHoudiniAssetComponent::SetHoudiniAsset( UHoudiniAsset * InHoudiniAsset )
 
     // Clear all handles.
     ClearHandles();
+
+    // Clear all landscapes.
+    ClearLandscapes();
 
     // Set Houdini logo to be default geometry.
     ReleaseObjectGeoPartResources( StaticMeshes );
@@ -637,6 +649,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
     // We need to store instancers as they need to be processed after all other meshes.
     TArray< FHoudiniGeoPartObject > FoundInstancers;
     TArray< FHoudiniGeoPartObject > FoundCurves;
+    TArray< FHoudiniGeoPartObject > FoundVolumes;
     TMap< FHoudiniGeoPartObject, UStaticMesh* > StaleParts;
 
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
@@ -658,6 +671,10 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
             // This geo part is a curve and has no mesh assigned.
             check( !StaticMesh );
             FoundCurves.Add( HoudiniGeoPartObject );
+        }
+        else if ( HoudiniGeoPartObject.IsVolume() )
+        {
+            FoundVolumes.Add( HoudiniGeoPartObject );
         }
         else
         {
@@ -748,6 +765,9 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 
         // Create necessary curves.
         CreateCurves( FoundCurves );
+
+        // Create Volumes
+        CreateLandscapesFromVolumes( FoundVolumes );
     }
 
 #endif
@@ -2165,6 +2185,24 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
         }
     }
 
+    // We need to duplicate landscapes.
+    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+        Iter(CopiedHoudiniComponent->LandscapeComponents); Iter; ++Iter)
+    {
+        FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+        ALandscape * HoudiniLandscape = Iter.Value();
+
+        // Duplicate spline component.
+        ALandscape * DuplicatedLandscape =
+            DuplicateObject< ALandscape >( HoudiniLandscape, this );
+
+        if ( DuplicatedLandscape )
+        {
+            DuplicatedLandscape->SetFlags(RF_Transactional | RF_Public);
+            LandscapeComponents.Add(HoudiniGeoPartObject, DuplicatedLandscape);
+        }
+    }
+
     // Copy material information.
     HoudiniAssetComponentMaterials = 
         DuplicateObject< UHoudiniAssetComponentMaterials >(
@@ -2399,6 +2437,13 @@ UHoudiniAssetComponent::PostLoadReattachComponents()
         if ( HoudiniHandleComponent )
             HoudiniHandleComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     }
+
+    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    {
+        ALandscape * HoudiniLandscape = Iter.Value();
+        if ( HoudiniLandscape )
+            HoudiniLandscape->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+    }
 }
 
 void
@@ -2461,6 +2506,9 @@ UHoudiniAssetComponent::OnComponentDestroyed( bool bDestroyingHierarchy )
 
     // Destroy all handles.
     ClearHandles();
+
+    // Destroy all landscapes.
+    ClearLandscapes();
 
     // Inform downstream assets that we are dieing.
     ClearDownstreamAssets();
@@ -3273,22 +3321,7 @@ UHoudiniAssetComponent::CreateParameters()
                 continue;
 
             // See if this parameter has already been created.
-            UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = Parameters.Find( ParmInfo.id );
             UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
-
-            // If parameter exists, we can reuse it.
-            if ( FoundHoudiniAssetParameter )
-            {
-                HoudiniAssetParameter = *FoundHoudiniAssetParameter;
-
-                // Remove parameter from current map.
-                Parameters.Remove( ParmInfo.id );
-
-                // Reinitialize parameter and add it to map.
-                HoudiniAssetParameter->CreateParameter( this, nullptr, AssetInfo.nodeId, ParmInfo );
-                NewParameters.Add( ParmInfo.id, HoudiniAssetParameter );
-                continue;
-            }
 
             switch ( ParmInfo.type )
             {
@@ -3404,8 +3437,23 @@ UHoudiniAssetComponent::CreateParameters()
                         ParmInfo.inputNodeType == HAPI_NODETYPE_SOP || 
                         ParmInfo.inputNodeType == HAPI_NODETYPE_OBJ)
                     {
-                        HoudiniAssetParameter = UHoudiniAssetInput::Create(
-                            this, nullptr, AssetInfo.nodeId, ParmInfo);
+                        // This parameter is an Input, if it exists, we can reuse it.
+                        UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = Parameters.Find(ParmInfo.id);
+                        if ( FoundHoudiniAssetParameter )
+                        {
+                            HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+
+                            // Remove parameter from current map.
+                            Parameters.Remove(ParmInfo.id);
+
+                            // Reinitialize parameter and add it to map.
+                            HoudiniAssetParameter->CreateParameter(this, nullptr, AssetInfo.nodeId, ParmInfo);
+                        }
+                        else
+                        {
+                            HoudiniAssetParameter = UHoudiniAssetInput::Create(
+                                this, nullptr, AssetInfo.nodeId, ParmInfo);
+                        }
                     }
                     else
                     {
@@ -3984,6 +4032,231 @@ UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * Duplic
     }
 }
 
+bool
+UHoudiniAssetComponent::CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPartObject > & FoundVolumes )
+{
+    if ( !GEditor )
+        return false;
+
+    FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
+    UWorld* MyWorld = EditorWorldContext.World();
+
+    if ( !MyWorld )
+        return false;
+
+    TMap< FHoudiniGeoPartObject, ALandscape * > NewLandscapes;
+    for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter(FoundVolumes); Iter; ++Iter )
+    {
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject = *Iter;
+
+        // Retrieve node id from geo part.
+        HAPI_NodeId NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(AssetId);
+        if ( NodeId == -1 )
+            continue;
+
+        // Retrieve the VolumeInfo
+        HAPI_VolumeInfo CurrentVolumeInfo;
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetVolumeInfo(
+            FHoudiniEngine::Get().GetSession(),
+            NodeId, HoudiniGeoPartObject.PartId,
+            &CurrentVolumeInfo ), false);
+
+        // We're only interested in heightfields
+        FString CurrentVolumeName;
+        FHoudiniEngineString( CurrentVolumeInfo.nameSH ).ToFString( CurrentVolumeName );
+        if ( !CurrentVolumeName.Contains( "height" ) )
+            continue;
+
+        // We're only handling single values for now
+        if ( CurrentVolumeInfo.tupleSize != 1 )
+            continue;
+
+        // Terrains always have a ZSize of 1.
+        if ( CurrentVolumeInfo.zLength != 1 )
+            continue;
+
+        // Values should be float
+        if ( CurrentVolumeInfo.storage != HAPI_STORAGETYPE_FLOAT )
+            continue;
+
+        int32 XSize = CurrentVolumeInfo.xLength;
+        int32 YSize = CurrentVolumeInfo.yLength;
+        int32 SizeInPoints = XSize * YSize;
+        int32 TotalSize = SizeInPoints * CurrentVolumeInfo.tupleSize;
+
+        if ( ( XSize < 2 ) || ( YSize < 2 ) )
+            continue;
+
+        int32 XOffset = CurrentVolumeInfo.minX;
+        int32 YOffset = CurrentVolumeInfo.minY;
+        //int32 nZOffset = CurrentVolumeInfo.minZ;
+
+        FTransform CurrentVolumeTransform;
+        FHoudiniEngineUtils::TranslateHapiTransform( CurrentVolumeInfo.transform, CurrentVolumeTransform );
+
+        //--------------------------------------------------------------------------------------------------
+        // 1. Reading values from HAPI
+        //--------------------------------------------------------------------------------------------------
+
+        // We will need the min and max value for the conversion to uint16
+        float FloatMin, FloatMax;
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetVolumeVoxelFloatData(
+            FHoudiniEngine::Get().GetSession(),
+            NodeId, HoudiniGeoPartObject.PartId,
+            0, 0, 0, &FloatMin,
+            CurrentVolumeInfo.tupleSize ), false );
+
+        FloatMax = FloatMin;
+
+        TArray<float> FloatHeightData;
+        FloatHeightData.SetNumUninitialized( TotalSize );
+
+        int32 n = 0;
+        for ( int32 nY = 0; nY < YSize; nY++ )
+        {
+            for ( int32 nX = 0; nX < XSize; nX++ )
+            {
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetVolumeVoxelFloatData(
+                    FHoudiniEngine::Get().GetSession(),
+                    NodeId, HoudiniGeoPartObject.PartId,
+                    nX, nY, 0, &( FloatHeightData[n] ),
+                    CurrentVolumeInfo.tupleSize ), false);
+
+                if ( FloatHeightData[n] > FloatMax )
+                    FloatMax = FloatHeightData[n];
+                else if ( FloatHeightData[n] < FloatMin )
+                    FloatMin = FloatHeightData[n];
+
+                n += CurrentVolumeInfo.tupleSize;
+            }
+        }
+
+        // We don't want to create a flat landscape
+        if ( FloatMin == FloatMax )
+            continue;
+
+        //--------------------------------------------------------------------------------------------------
+        // 2. Convert values to uint16 using doubles to get the maximum precision during the conversion
+        //--------------------------------------------------------------------------------------------------
+        TArray<uint16> IntHeightData;
+        IntHeightData.SetNumUninitialized( SizeInPoints );
+        //uint16 nFinalMin = 0, nFinalMax = 0;
+
+        // The ZRange in Houdini (in m)
+        double ZRange = (double)( FloatMax - FloatMin );
+        // The corresponding unreal digit range (as unreal uses uint16, max is 65535)
+        double DigitRange = 32767.0;
+        bool bFullRange = false;
+        if ( bFullRange )
+            DigitRange = 65535.0;
+
+        // The Offset in Digit used to center the values so that the terrain can be edited up/down
+        double ZCenterOffset = FMath::FloorToDouble( ( 65535.0 - DigitRange ) / 2.0 );
+        // The factor used to convert from Houdini's ZRange to the desired digit range
+        double ZSpacing = ( DigitRange / ZRange );
+
+        double DoubleValue = 0.0f;
+        for ( int nCurrent = 0; nCurrent < SizeInPoints; nCurrent++ )
+        {
+            // Get the double values in [0 - ZRange]
+            DoubleValue = (double)FloatHeightData[nCurrent] - (double)FloatMin;
+
+            // Then convert it to [0 - DesiredRange] and center them 
+            DoubleValue = DoubleValue * ZSpacing + ZCenterOffset;
+
+            //dValue = FMath::Clamp(dValue, 0.0, 65535.0);
+            IntHeightData[nCurrent] = FMath::RoundToInt( DoubleValue );
+            /*
+            if ( nCurrent == 0 )
+            {
+                nFinalMin = IntHeightData[nCurrent];
+                nFinalMax = nFinalMin;
+            }
+            else if ( IntHeightData[nCurrent] < nFinalMin )
+                nFinalMin = IntHeightData[nCurrent];
+            else if ( IntHeightData[nCurrent] > nFinalMax )
+                nFinalMax = IntHeightData[nCurrent];
+            */
+        }
+
+        //--------------------------------------------------------------------------------------------------
+        // 3. Creating a new landscape object from the heightfield
+        //--------------------------------------------------------------------------------------------------
+        ALandscape* Landscape = MyWorld->SpawnActor<ALandscape>();
+        if (!Landscape)
+            continue;
+
+        TArray<FLandscapeImportLayerInfo> ImportLayerInfos;
+        ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
+        FGuid currentGUID = FGuid::NewGuid();
+
+        // Calculating the final size, number of component, sections...
+        // UE expects special values for these, so we might need to pad/resample the data
+        int32 NumSectionPerLandscapeComponent = 1;
+        int32 NumQuadsPerLandscapeSection = XSize - 1;
+        if ( !FHoudiniEngineUtils::ResizeHeightDataForLandscape(
+            XSize, YSize,
+            NumSectionPerLandscapeComponent,
+            NumQuadsPerLandscapeSection,
+            IntHeightData))
+            continue;
+
+        // Calculating the equivalent scale to match Houdini's Terrain Size in Unreal
+        FVector LandscapeScale;
+        // For some reason, XY scale from Houdini needs to be multiplied by 2 ...
+        LandscapeScale.X = 100.0f * CurrentVolumeTransform.GetScale3D().X * 2.0f;
+        LandscapeScale.Y = 100.0f * CurrentVolumeTransform.GetScale3D().Y * 2.0f;
+        
+        // Calculating the Z Scale so that the Z values in Unreal are the same as in Houdini
+        // Unreal's default Z range is 512m for a scale of a 100%
+        LandscapeScale.Z = (100.0 * (65535.0 / DigitRange) * ZRange / 512.0);
+        Landscape->SetActorRelativeScale3D(LandscapeScale);
+
+        // Using the position from Houdini, but we will need to offset the Z Position to center the 
+        // values properly as the data has been offset by the conversion to uint16
+        FVector LandscapePosition;
+        LandscapePosition = CurrentVolumeTransform.GetLocation();
+
+        // We need to calculate the position offset so that Houdini and Unreal have the same Zero position
+        // In Unreal, zero has a height value of 32768.
+        // These values are then divided by 128 internally, and then multiplied by the Landscape's Z scale
+        // ( DIGIT - 32768 ) / 128 * ZScale = ZOffset
+
+        // Get the Digit (Unreal) value of Houdini's zero
+        uint16 HoudiniZeroValueInDigit = FMath::RoundToInt(-(double)FloatMin * ZSpacing + ZCenterOffset );
+
+        float ZOffset = - ( (float)HoudiniZeroValueInDigit - 32768.0f ) / 128.0f * LandscapeScale.Z;
+        LandscapePosition.Z = ZOffset;
+        
+        // We can now set the Landscape position
+        Landscape->SetActorRelativeLocation( LandscapePosition );
+
+        Landscape->Import( currentGUID,
+            XOffset, YOffset, XOffset + XSize - 1, YOffset + YSize - 1,
+            NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
+            &(IntHeightData[0]), NULL, ImportLayerInfos, ImportLayerType);
+
+        // FROM UE:
+        // automatically calculate a lighting LOD that won't crash lightmass (hopefully)
+        // < 2048x2048 -> LOD0,  >=2048x2048 -> LOD1,  >= 4096x4096 -> LOD2,  >= 8192x8192 -> LOD3
+        Landscape->StaticLightingLOD = FMath::DivideAndRoundUp( FMath::CeilLogTwo( ( XSize * YSize ) / ( 2048 * 2048 ) + 1 ), (uint32) 2 );
+
+        ULandscapeInfo* LandscapeInfo = Landscape->CreateLandscapeInfo();
+        LandscapeInfo->UpdateLayerInfoMap( Landscape );
+
+        Landscape->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
+        Landscape->RegisterAllComponents();
+
+        // Add the new landscape to the map
+        NewLandscapes.Add( HoudiniGeoPartObject, Landscape );
+    }
+
+    // Replace the old landscapes with the new ones
+    ClearLandscapes();
+    LandscapeComponents = NewLandscapes;
+
+    return true;
+}
 #endif
 
 void
@@ -4010,6 +4283,21 @@ UHoudiniAssetComponent::ClearCurves()
     }
 
     SplineComponents.Empty();
+}
+
+void
+UHoudiniAssetComponent::ClearLandscapes()
+{
+    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
+    {
+        ALandscape * HoudiniLandscape = Iter.Value();
+
+        //HoudiniLandscape->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+        HoudiniLandscape->UnregisterAllComponents();
+        HoudiniLandscape->Destroy();
+    }
+
+    LandscapeComponents.Empty();
 }
 
 void
@@ -4394,11 +4682,14 @@ UHoudiniAssetComponent::ReplaceMaterial(
     return true;
 }
 
-void UHoudiniAssetComponent::SetMaterial(int32 ElementIndex, class UMaterialInterface* Material)
+void
+UHoudiniAssetComponent::SetMaterial( int32 ElementIndex, class UMaterialInterface* Material )
 {
     Super::SetMaterial(ElementIndex, Material);
 
+#if WITH_EDITOR
     UpdateEditorProperties(false);
+#endif
 }
 
 void
@@ -4420,3 +4711,4 @@ UHoudiniAssetComponent::RemoveReplacementMaterial(
         }
     }
 }
+

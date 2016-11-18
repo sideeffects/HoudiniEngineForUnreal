@@ -432,6 +432,16 @@ public:
         /** Create handles.**/
         bool CreateHandles();
 
+        /** Create Volumes **/
+        bool CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPartObject > & FoundCurves );
+
+        /** Resizes the HeightData so that it matches Unreal's requirement for Landscape import **/
+        void ResizeHeightDataForLandscape(
+            int32& SizeX, int32& SizeY,
+            int32& NumberOfSectionsPerComponent,
+            int32& NumberOfQuadsPerSection,
+            TArray<uint16>& HeightData );
+
         /** Unmark all changed parameters. **/
         void UnmarkChangedParameters();
 
@@ -492,6 +502,9 @@ public:
 
         /** Inform downstream assets that we are dieing. **/
         void ClearDownstreamAssets();
+
+        /** Clear all landscapes **/
+        void ClearLandscapes();
 
         /** Delete Static mesh resources. This will free static meshes and corresponding components. **/
         void ReleaseObjectGeoPartResources(
@@ -579,6 +592,9 @@ public:
 
         /** Map of curve / spline components. **/
         TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * > SplineComponents;
+
+        /** Map of Landscape / Heightfield components. **/
+        TMap< FHoudiniGeoPartObject, ALandscape * > LandscapeComponents;
 
         /** Material assignments. **/
         UHoudiniAssetComponentMaterials * HoudiniAssetComponentMaterials;

@@ -152,7 +152,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             UHoudiniAsset * HoudiniAsset, HAPI_AssetLibraryId & AssetLibraryId,
             TArray< HAPI_StringHandle > & AssetNames );
 
-    public:
+        /** Resizes the HeightData so that it fits to UE4's size reauirements **/
+        static bool FHoudiniEngineUtils::ResizeHeightDataForLandscape(
+            int32& SizeX, int32& SizeY,
+            int32& NumberOfSectionsPerComponent,
+            int32& NumberOfQuadsPerSection,
+            TArray<uint16>& HeightData);
 
         /** HAPI : Return true if given asset id is valid. **/
         static bool IsValidAssetId( HAPI_AssetId AssetId );

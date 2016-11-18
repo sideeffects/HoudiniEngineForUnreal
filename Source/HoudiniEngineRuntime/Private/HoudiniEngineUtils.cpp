@@ -4446,7 +4446,24 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
                     continue;
                 }
+                else if ( PartInfo.type == HAPI_PARTTYPE_VOLUME )
+                {
+                    // Volume Data, this is a Terrain?
+                    FHoudiniGeoPartObject HoudiniGeoPartObject(
+                        TransformMatrix, ObjectName, PartName, AssetId,
+                        ObjectInfo.id, GeoInfo.id, PartInfo.id );
 
+                    HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
+                    HoudiniGeoPartObject.bIsInstancer = false;
+                    HoudiniGeoPartObject.bIsCurve = false;
+                    HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
+                    HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
+                    HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = false;
+                    HoudiniGeoPartObject.bIsVolume = true;
+                    StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
+
+                    continue;
+                }
 
                 // Get name of attribute used for marshalling generated mesh name.
                 HAPI_AttributeInfo AttribGeneratedMeshName;
@@ -9235,5 +9252,252 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         }
     }
 }
-
 #endif
+
+//-------------------------------------------------------------------------------------------------------------------
+// From LandscapeEditorUtils.h
+//
+//	Helpers function for FHoudiniEngineUtils::ResizeHeightDataForLandscape
+//-------------------------------------------------------------------------------------------------------------------
+template<typename T>
+void ExpandData( T* OutData, const T* InData,
+    int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
+    int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY )
+{
+    const int32 OldWidth = OldMaxX - OldMinX + 1;
+    const int32 OldHeight = OldMaxY - OldMinY + 1;
+    const int32 NewWidth = NewMaxX - NewMinX + 1;
+    const int32 NewHeight = NewMaxY - NewMinY + 1;
+    const int32 OffsetX = NewMinX - OldMinX;
+    const int32 OffsetY = NewMinY - OldMinY;
+
+    for ( int32 Y = 0; Y < NewHeight; ++Y )
+    {
+        const int32 OldY = FMath::Clamp<int32>( Y + OffsetY, 0, OldHeight - 1 );
+
+        // Pad anything to the left
+        const T PadLeft = InData[OldY * OldWidth + 0];
+        for ( int32 X = 0; X < -OffsetX; ++X )
+        {
+            OutData[Y * NewWidth + X] = PadLeft;
+        }
+
+        // Copy one row of the old data
+        {
+            const int32 X = FMath::Max(0, -OffsetX);
+            const int32 OldX = FMath::Clamp<int32>(X + OffsetX, 0, OldWidth - 1);
+            FMemory::Memcpy(&OutData[Y * NewWidth + X], &InData[OldY * OldWidth + OldX], FMath::Min<int32>(OldWidth, NewWidth) * sizeof(T));
+        }
+
+        const T PadRight = InData[OldY * OldWidth + OldWidth - 1];
+        for (int32 X = -OffsetX + OldWidth; X < NewWidth; ++X)
+        {
+            OutData[Y * NewWidth + X] = PadRight;
+        }
+    }
+}
+
+template<typename T>
+TArray<T> ExpandData(const TArray<T>& Data,
+    int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
+    int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
+{
+    const int32 NewWidth = NewMaxX - NewMinX + 1;
+    const int32 NewHeight = NewMaxY - NewMinY + 1;
+
+    TArray<T> Result;
+    Result.Empty(NewWidth * NewHeight);
+    Result.AddUninitialized(NewWidth * NewHeight);
+
+    ExpandData(Result.GetData(), Data.GetData(),
+        OldMinX, OldMinY, OldMaxX, OldMaxY,
+        NewMinX, NewMinY, NewMaxX, NewMaxY);
+
+    return Result;
+}
+
+template<typename T>
+TArray<T> ResampleData(const TArray<T>& Data, int32 OldWidth, int32 OldHeight, int32 NewWidth, int32 NewHeight)
+{
+    TArray<T> Result;
+    Result.Empty(NewWidth * NewHeight);
+    Result.AddUninitialized(NewWidth * NewHeight);
+
+    const float XScale = (float)(OldWidth - 1) / (NewWidth - 1);
+    const float YScale = (float)(OldHeight - 1) / (NewHeight - 1);
+    for (int32 Y = 0; Y < NewHeight; ++Y)
+    {
+        for (int32 X = 0; X < NewWidth; ++X)
+        {
+            const float OldY = Y * YScale;
+            const float OldX = X * XScale;
+            const int32 X0 = FMath::FloorToInt(OldX);
+            const int32 X1 = FMath::Min(FMath::FloorToInt(OldX) + 1, OldWidth - 1);
+            const int32 Y0 = FMath::FloorToInt(OldY);
+            const int32 Y1 = FMath::Min(FMath::FloorToInt(OldY) + 1, OldHeight - 1);
+            const T& Original00 = Data[Y0 * OldWidth + X0];
+            const T& Original10 = Data[Y0 * OldWidth + X1];
+            const T& Original01 = Data[Y1 * OldWidth + X0];
+            const T& Original11 = Data[Y1 * OldWidth + X1];
+            Result[Y * NewWidth + X] = FMath::BiLerp(Original00, Original10, Original01, Original11, FMath::Fractional(OldX), FMath::Fractional(OldY));
+        }
+    }
+
+    return Result;
+}
+//-------------------------------------------------------------------------------------------------------------------
+
+bool
+FHoudiniEngineUtils::ResizeHeightDataForLandscape(
+    int32& SizeX, int32& SizeY,
+    int32& NumberOfSectionsPerComponent,
+    int32& NumberOfQuadsPerSection,
+    TArray<uint16>& HeightData)
+{
+    if ( HeightData.Num() <= 4 )
+        return false;
+
+    if ( ( SizeX < 2 ) || ( SizeY < 2 ) )
+        return false;
+
+    NumberOfSectionsPerComponent = 1;
+    NumberOfQuadsPerSection = 1;
+
+    // Unreal's default sizes
+    int32 SectionSizes[] = { 7, 15, 31, 63, 127, 255 };
+    int32 NumSections[] = { 1, 2 };
+
+    // Component count used to calculate the final size of the landscape
+    int32 ComponentsCountX = 1;
+    int32 ComponentsCountY = 1;
+    int32 NewSizeX = -1;
+    int32 NewSizeY = -1;
+
+    // Lambda for clamping the number of component in X/Y
+    auto ClampLandscapeSize = [&]()
+    {
+        // Max size is either whole components below 8192 verts, or 32 components
+        ComponentsCountX = FMath::Clamp( ComponentsCountX, 1, FMath::Min( 32, FMath::FloorToInt( 8191 / ( NumberOfSectionsPerComponent * NumberOfQuadsPerSection ) ) ) );
+        ComponentsCountY = FMath::Clamp( ComponentsCountY, 1, FMath::Min( 32, FMath::FloorToInt( 8191 / ( NumberOfSectionsPerComponent * NumberOfQuadsPerSection ) ) ) );
+    };
+
+    // Try to find a section size and number of sections that exactly matches the dimensions of the heightfield
+    bool bFoundMatch = false;
+    for ( int32 SectionSizesIdx = ARRAY_COUNT(SectionSizes) - 1; SectionSizesIdx >= 0; SectionSizesIdx-- )
+    {
+        for ( int32 NumSectionsIdx = ARRAY_COUNT(NumSections) - 1; NumSectionsIdx >= 0; NumSectionsIdx-- )
+        {
+            int32 ss = SectionSizes[SectionSizesIdx];
+            int32 ns = NumSections[NumSectionsIdx];
+
+            if ( ( (SizeX - 1 ) % ( ss * ns ) ) == 0 && ( ( SizeX - 1 ) / ( ss * ns ) ) <= 32 &&
+                 ( (SizeY - 1 ) % ( ss * ns ) ) == 0 && ( ( SizeY - 1 ) / ( ss * ns ) ) <= 32 )
+            {
+                bFoundMatch = true;
+                NumberOfQuadsPerSection = ss;
+                NumberOfSectionsPerComponent = ns;
+                ComponentsCountX = ( SizeX - 1 ) / ( ss * ns );
+                ComponentsCountY = ( SizeY - 1 ) / ( ss * ns );
+                ClampLandscapeSize();
+                break;
+            }
+        }
+        if ( bFoundMatch )
+        {
+            break;
+        }
+    }
+
+    if ( !bFoundMatch )
+    {
+        // if there was no exact match, try increasing the section size until we encompass the whole heightmap
+        const int32 CurrentSectionSize = NumberOfQuadsPerSection;
+        const int32 CurrentNumSections = NumberOfSectionsPerComponent;
+        for ( int32 SectionSizesIdx = 0; SectionSizesIdx < ARRAY_COUNT( SectionSizes ); SectionSizesIdx++ )
+        {
+            if ( SectionSizes[SectionSizesIdx] < CurrentSectionSize )
+            {
+                continue;
+            }
+
+            const int32 ComponentsX = FMath::DivideAndRoundUp( ( SizeX - 1 ), SectionSizes[SectionSizesIdx] * CurrentNumSections );
+            const int32 ComponentsY = FMath::DivideAndRoundUp( ( SizeY - 1 ), SectionSizes[SectionSizesIdx] * CurrentNumSections );
+            if ( ComponentsX <= 32 && ComponentsY <= 32 )
+            {
+                bFoundMatch = true;
+                NumberOfQuadsPerSection = SectionSizes[SectionSizesIdx];
+                // NumberOfSectionsPerComponent = ;
+                ComponentsCountX = ComponentsX;
+                ComponentsCountY = ComponentsY;
+                ClampLandscapeSize();
+                break;
+            }
+        }
+    }
+
+    if ( !bFoundMatch )
+    {
+        // if the heightmap is very large, fall back to using the largest values we support
+        const int32 MaxSectionSize = SectionSizes[ARRAY_COUNT( SectionSizes ) - 1];
+        const int32 MaxNumSubSections = NumSections[ARRAY_COUNT( NumSections ) - 1];
+        const int32 ComponentsX = FMath::DivideAndRoundUp( ( SizeX - 1 ), MaxSectionSize * MaxNumSubSections );
+        const int32 ComponentsY = FMath::DivideAndRoundUp( ( SizeY - 1 ), MaxSectionSize * MaxNumSubSections );
+
+        bFoundMatch = true;
+        NumberOfQuadsPerSection = MaxSectionSize;
+        NumberOfSectionsPerComponent = MaxNumSubSections;
+        ComponentsCountX = ComponentsX;
+        ComponentsCountY = ComponentsY;
+        ClampLandscapeSize();
+    }
+
+    if ( !bFoundMatch )
+    {
+        // Using default size just to not crash..
+        NewSizeX = 512;
+        NewSizeY = 512;
+        NumberOfSectionsPerComponent = 1;
+        NumberOfQuadsPerSection = 511;
+        ComponentsCountX = 1;
+        ComponentsCountY = 1;
+    }
+    else
+    {
+        // Calculating the desired size
+        int32 QuadsPerComponent = NumberOfSectionsPerComponent * NumberOfQuadsPerSection;
+        NewSizeX = ComponentsCountX * QuadsPerComponent + 1;
+        NewSizeY = ComponentsCountY * QuadsPerComponent + 1;
+    }
+
+    // Do we need to resize/expand the data to the new size?
+    if ( ( NewSizeX != SizeX ) || ( NewSizeY != SizeY ) )
+    {
+        TArray<uint16> NewData;
+        if ( ( NewSizeX > SizeX ) || ( NewSizeY > SizeY ) )
+        {
+            NewData.SetNumUninitialized( NewSizeX * NewSizeY );
+
+            const int32 OffsetX = (int32)( NewSizeX - SizeX ) / 2;
+            const int32 OffsetY = (int32)( NewSizeY - SizeY ) / 2;
+
+            // Expanding the Data
+            NewData = ExpandData(
+                HeightData, 0, 0, SizeX - 1, SizeY - 1,
+                -OffsetX, -OffsetY, NewSizeX - OffsetX - 1, NewSizeY - OffsetY - 1 );
+        }
+        else
+        {
+            // Resampling the data
+            NewData.SetNumUninitialized( NewSizeX * NewSizeY );
+            NewData = ResampleData( HeightData, SizeX, SizeY, NewSizeX, NewSizeY );
+        }
+
+        // Replaces Old data with the new one
+        HeightData = NewData;
+
+        SizeX = NewSizeX;
+        SizeY = NewSizeY;
+    }
+
+    return true;
+}
