@@ -46,6 +46,8 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "MessageLog.h"
+#include "UObjectToken.h"
 
 #if WITH_EDITOR
 
@@ -2543,8 +2545,11 @@ UHoudiniAssetComponent::PostLoad()
 
 #if WITH_EDITOR
     // Only do PostLoad stuff if we are in the editor world
-    if(GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
-        return;
+    if(UWorld* World = GetWorld())
+        if ( World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive )
+            return;
+
+    SanitizePostLoad();
 #endif
 
     // We loaded a component which has no asset associated with it.
@@ -2959,6 +2964,36 @@ UHoudiniAssetComponent::PostEditImport()
     AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor( TEXT( "" ) );
     if ( CopiedActor )
         OnComponentClipboardCopy( CopiedActor->HoudiniAssetComponent );
+}
+
+void UHoudiniAssetComponent::SanitizePostLoad()
+{
+    AActor* Owner = GetOwner();
+
+    for(auto Iter : Parameters)
+    {
+        if(nullptr == Iter.Value)
+        {
+            // we have at least one bad parameter, clear them all
+            FMessageLog("LoadErrors").Error(LOCTEXT("NullParameterFound", "Houdini Engine: Null parameter found, clearing parameters"))
+                ->AddToken(FUObjectToken::Create(Owner));
+            Parameters.Empty();
+            ParameterByName.Empty();
+            break;
+        }
+    }
+
+    for(auto Input : Inputs)
+    {
+        if(nullptr == Input)
+        {
+            // we have at least one bad input, clear them all
+            FMessageLog("LoadErrors").Error(LOCTEXT("NullInputFound", "Houdini Engine: Null input found, clearing inputs"))
+                ->AddToken(FUObjectToken::Create(Owner));
+            Inputs.Empty();
+            break;
+        }
+    }
 }
 
 #endif
@@ -3930,10 +3965,16 @@ UHoudiniAssetComponent::ClearCurves()
 void
 UHoudiniAssetComponent::ClearParameters()
 {
-    for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
+    for ( auto Iter : Parameters )
     {
-        UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-        HoudiniAssetParameter->ConditionalBeginDestroy();
+        if ( Iter.Value )
+        {
+            Iter.Value->ConditionalBeginDestroy();
+        }
+        else
+        {
+            HOUDINI_LOG_WARNING(TEXT("%s: null parameter when clearing"), *GetOwner()->GetName());
+        }
     }
 
     Parameters.Empty();
