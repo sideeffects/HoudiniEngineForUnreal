@@ -324,7 +324,6 @@ public:
         virtual void PreEditUndo() override;
         virtual void PostEditUndo() override;
         virtual void PostEditImport() override;
-
 #endif
 
         virtual void PostLoad() override;
@@ -364,6 +363,9 @@ public:
 
         /** Called after each cook. **/
         void PostCook( bool bCookError = false );
+
+        /** Check ourselves over and fix up any errors */
+        void SanitizePostLoad();
 
         /** Remove all attached components. **/
         void RemoveAllAttachedComponents();
