@@ -93,9 +93,12 @@ UHoudiniAssetParameterFloat::CreateParameter(
 
     // Assign internal Hapi values index.
     SetValuesIndex( ParmInfo.floatValuesIndex );
+        
+    if ( TupleSize <= 0 )
+        return false;
+    Values.SetNumZeroed(TupleSize);
 
     // Get the actual value for this property.
-    Values.SetNumZeroed( TupleSize );
     if ( FHoudiniApi::GetParmFloatValues(
         FHoudiniEngine::Get().GetSession(), InNodeId, &Values[ 0 ],
         ValuesIndex, TupleSize ) != HAPI_RESULT_SUCCESS )
