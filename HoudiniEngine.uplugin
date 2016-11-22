@@ -6,8 +6,6 @@
 	"VersionName" : "1.0",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL" : "http://www.sidefx.com",
-	"EngineVersion" : "4.7.3",
-	"MinEngineVersion" : "2455222",
 	"Description" : "Houdini Engine for Unreal Engine.",
 	"Category" : "Rendering.Components",
 	"EnabledByDefault" : true,
