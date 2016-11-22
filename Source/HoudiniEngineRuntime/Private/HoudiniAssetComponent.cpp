@@ -46,8 +46,10 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "Landscape.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
+#include "LandscapeInfo.h"
 
 #if WITH_EDITOR
 
@@ -2190,7 +2192,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
             UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
             if ( OverridenMaterial && OverridenMaterial == Material )
             {
-                if ( MaterialIdx < StaticMesh->Materials.Num() )
+                if ( MaterialIdx < StaticMesh->StaticMaterials.Num() )
                     MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
             }
         }
@@ -2215,7 +2217,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         int32 MaterialIdx = Iter.Value();
 
         // Get old material.
-        UMaterialInterface * OldMaterial = StaticMesh->Materials[ MaterialIdx ];
+        UMaterialInterface * OldMaterial = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
 
         // Locate geo part object.
         FHoudiniGeoPartObject HoudiniGeoPartObject = LocateGeoPartObject( StaticMesh );
@@ -2225,7 +2227,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         if ( ReplaceMaterial( HoudiniGeoPartObject, Material, OldMaterial, MaterialIdx ) )
         {
             StaticMesh->Modify();
-            StaticMesh->Materials[ MaterialIdx ] = Material;
+            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = Material;
 
             StaticMesh->PreEditChange( nullptr );
             StaticMesh->PostEditChange();
@@ -2803,11 +2805,12 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticM
     StaticMesh->LightMapCoordinateIndex = GeneratedLightMapCoordinateIndex;
 
     // Set method for LOD texture factor computation.
-    StaticMesh->bUseMaximumStreamingTexelRatio = bGeneratedUseMaximumStreamingTexelRatio;
+    /* TODO_414
+    //StaticMesh->bUseMaximumStreamingTexelRatio = bGeneratedUseMaximumStreamingTexelRatio;
 
-    // Set distance where textures using UV 0 are streamed in/out.
-    StaticMesh->StreamingDistanceMultiplier = GeneratedStreamingDistanceMultiplier;
-
+    // Set distance where textures using UV 0 are streamed in/out.  - GOES ON COMPONENT
+    // StaticMesh->StreamingDistanceMultiplier = GeneratedStreamingDistanceMultiplier;
+    */
     // Add user data.
     for ( int32 AssetUserDataIdx = 0; AssetUserDataIdx < GeneratedAssetUserData.Num(); ++AssetUserDataIdx )
         StaticMesh->AddAssetUserData( GeneratedAssetUserData[ AssetUserDataIdx ] );

@@ -233,7 +233,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
             {
                 InstancedStaticMeshComponent->OverrideMaterials.Empty();
 
-                int32 MeshMaterialCount = StaticMesh->Materials.Num();
+                int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
                 for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
                     InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
             }
@@ -566,7 +566,7 @@ UHoudiniAssetInstanceInputField::GetMaterialReplacementMeshes(
                     UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
                     if ( OverridenMaterial && OverridenMaterial == Material )
                     {
-                        if ( MaterialIdx < StaticMesh->Materials.Num() )
+                        if ( MaterialIdx < StaticMesh->StaticMaterials.Num() )
                         {
                             MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
                             bResult = true;
