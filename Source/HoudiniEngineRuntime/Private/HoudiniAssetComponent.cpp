@@ -1180,7 +1180,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
                     if ( ( FPlatformTime::Seconds() - HapiNotificationStarted) >= NotificationUpdateFrequency )
                     {
-                        if ( !IsPlayModeActive() )
+                        if ( !IsPIEActive() )
                             NotificationPtr = FSlateNotificationManager::Get().AddNotification( Info );
                     }
                 }
@@ -1889,10 +1889,6 @@ UHoudiniAssetComponent::ResetHoudiniResources()
 void
 UHoudiniAssetComponent::SubscribeEditorDelegates()
 {
-    // Add begin and end delegates for play-in-editor.
-    DelegateHandleBeginPIE = FEditorDelegates::BeginPIE.AddUObject( this, &UHoudiniAssetComponent::OnPIEEventBegin );
-    DelegateHandleEndPIE = FEditorDelegates::EndPIE.AddUObject( this, &UHoudiniAssetComponent::OnPIEEventEnd );
-
     // Add delegate for asset post import.
     DelegateHandleAssetPostImport =
         FEditorDelegates::OnAssetPostImport.AddUObject( this, &UHoudiniAssetComponent::OnAssetPostImport );
@@ -1910,10 +1906,6 @@ UHoudiniAssetComponent::SubscribeEditorDelegates()
 void
 UHoudiniAssetComponent::UnsubscribeEditorDelegates()
 {
-    // Remove begin and end delegates for play-in-editor.
-    FEditorDelegates::BeginPIE.Remove( DelegateHandleBeginPIE );
-    FEditorDelegates::EndPIE.Remove( DelegateHandleEndPIE );
-
     // Remove delegate for asset post import.
     FEditorDelegates::OnAssetPostImport.Remove( DelegateHandleAssetPostImport );
 
@@ -2058,20 +2050,6 @@ UHoudiniAssetComponent::OnComponentClipboardCopy( UHoudiniAssetComponent * Houdi
 
     // Mark this component as imported.
     bComponentCopyImported = true;
-}
-
-void
-UHoudiniAssetComponent::OnPIEEventBegin( const bool bIsSimulating )
-{
-    // We are now in PIE mode.
-    bIsPlayModeActive = true;
-}
-
-void
-UHoudiniAssetComponent::OnPIEEventEnd( const bool bIsSimulating )
-{
-    // We are no longer in PIE mode.
-    bIsPlayModeActive = false;
 }
 
 void
@@ -2716,7 +2694,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         Ar << TempId;
         bIsPlayModeActive_Unused = false;
     }
-    else if ( IsPlayModeActive() )
+    else if ( IsPIEActive() )
     {
         // Store or restore asset id only when playing/simulating
         Ar << AssetId;
@@ -2798,7 +2776,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         bLoadedComponent = true;
 
         // If we are in PIE and asset id is valid, set asset id sharing flag.
-        if ( IsPlayModeActive() && FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
+        if ( IsPIEActive() && FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
             bIsSharingAssetId = true;
     }
 }
@@ -3111,9 +3089,18 @@ UHoudiniAssetComponent::LocateGeoPartObject( UStaticMesh * StaticMesh ) const
 }
 
 bool
-UHoudiniAssetComponent::IsPlayModeActive() const
+UHoudiniAssetComponent::IsPIEActive() const
 {
-    return bIsPlayModeActive;
+#if WITH_EDITOR
+    for( const FWorldContext& Context : GEngine->GetWorldContexts() )
+    {
+        if( Context.WorldType == EWorldType::PIE )
+        {
+            return true;
+        }
+    }
+#endif
+    return false;
 }
 
 #if WITH_EDITOR
