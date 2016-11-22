@@ -278,7 +278,7 @@ public:
         FHoudiniGeoPartObject LocateGeoPartObject( UStaticMesh * StaticMesh ) const;
 
         /** Return true if this component is in playmode. **/
-        bool IsPlayModeActive() const;
+        bool IsPIEActive() const;
 
         /** Return component GUID. **/
         const FGuid& GetComponentGuid() const;
@@ -375,10 +375,6 @@ public:
 
         /** If we are being copied from a component, transfer necessary state. **/
         void OnComponentClipboardCopy( UHoudiniAssetComponent * HoudiniAssetComponent );
-
-        /** Play mode delegate events. **/
-        void OnPIEEventBegin( const bool bIsSimulating );
-        void OnPIEEventEnd( const bool bIsSimulating );
 
         /** Delegate for asset post import. **/
         void OnAssetPostImport( UFactory * Factory, UObject * Object );
@@ -608,12 +604,6 @@ public:
         /** GUID used to track asynchronous cooking requests. **/
         FGuid HapiGUID;
 
-        /** Delegate handle returned by Begin play mode in editor delegate. **/
-        FDelegateHandle DelegateHandleBeginPIE;
-
-        /** Delegate handle returned by End play mode in editor delegate. **/
-        FDelegateHandle DelegateHandleEndPIE;
-
         /** Delegate handle returned by editor asset post import delegate. **/
         FDelegateHandle DelegateHandleAssetPostImport;
 
@@ -723,9 +713,6 @@ public:
 
                 /** Is set to true when component shares instantiated asset id. Used in PIE. */
                 uint32 bIsSharingAssetId : 1;
-
-                /** Is set to true when PIE mode is on (either play or simulate.) **/
-                uint32 bIsPlayModeActive : 1;
             };
 
             uint32 HoudiniAssetComponentTransientFlagsPacked;
