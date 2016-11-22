@@ -1589,6 +1589,60 @@ HAPI_DECL HAPI_GetParmInfoFromName( const HAPI_Session * session,
                                     const char * parm_name,
                                     HAPI_ParmInfo * parm_info );
 
+/// @brief  Get the tag name on a parameter given an index.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_id
+///                 The parm id.
+///
+/// @param[in]      tag_index
+///                 The tag index, which should be between 0 and
+///                 ::HAPI_ParmInfo::tagCount - 1.
+///
+/// @param[out]     tag_name
+///                 The returned tag name. This string handle will be valid
+///                 until another call to ::HAPI_GetParmTagName().
+///
+HAPI_DECL HAPI_GetParmTagName( const HAPI_Session * session,
+                               HAPI_NodeId node_id,
+                               HAPI_ParmId parm_id,
+                               int tag_index,
+                               HAPI_StringHandle * tag_name );
+
+/// @brief  Get the tag value on a parameter given the tag name.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_id
+///                 The parm id.
+///
+/// @param[in]      tag_name
+///                 The tag name, either known or returned by
+///                 ::HAPI_GetParmTagName().
+///
+/// @param[out]     tag_value
+///                 The returned tag value. This string handle will be valid
+///                 until another call to ::HAPI_GetParmTagValue().
+///
+HAPI_DECL HAPI_GetParmTagValue( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                HAPI_ParmId parm_id,
+                                const char * tag_name,
+                                HAPI_StringHandle * tag_value );
+
 /// @brief  Get single parm int value by name.
 ///
 /// @param[in]      session
@@ -4312,6 +4366,41 @@ HAPI_DECL HAPI_GetVolumeTileIntData( const HAPI_Session * session,
                                      const HAPI_VolumeTileInfo * tile,
                                      int * values_array,
                                      int length );
+
+/// @brief  Get the height field data for a terrain volume as a flattened
+///         2D array of float heights. Should call ::HAPI_GetVolumeInfo()
+///         first to make sure the volume info is initialized.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     values_array
+///                 Heightfield flattened array. Should be at least the size of
+///                 @p start + @p length.
+///
+/// @param[in]      start
+///                 The start at least 0 and at most
+///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 - @p length.
+///
+/// @param[in]      length
+///                 The length should be at least 1 or at most
+///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 - @p start.
+///
+HAPI_DECL HAPI_GetHeightFieldData( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_PartId part_id,
+                                   float * values_array,
+                                   int start, int length );
 
 /// @brief  Set the volume info of a geo on a geo input.
 ///

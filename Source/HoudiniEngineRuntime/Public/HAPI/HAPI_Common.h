@@ -1027,6 +1027,9 @@ struct HAPI_API HAPI_ParmInfo
     /// the Browse Mode parameter property.
     HAPI_Permissions permissions;
 
+    /// Number of tags on this paramter.
+    int tagCount;
+
     /// Tuple size. For scalar parameters this value is 1, but for vector
     /// parameters this value can be greater.  For example, a 3 vector would
     /// have a size of 3. For folders and folder lists, this value is the
