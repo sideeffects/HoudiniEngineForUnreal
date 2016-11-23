@@ -2090,6 +2090,27 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     StaticMeshes.Empty();
     StaticMeshComponents.Empty();
 
+    TMap<UObject*, UObject*> ReplacementMap;
+
+    // We need to reconstruct geometry from copied actor.
+    for( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CopiedHoudiniComponent->StaticMeshes );
+        Iter; ++Iter )
+    {
+        FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+        UStaticMesh * StaticMesh = Iter.Value();
+
+        // Duplicate static mesh and all related generated Houdini materials and textures.
+        UStaticMesh * DuplicatedStaticMesh =
+            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject );
+
+        if( DuplicatedStaticMesh )
+        {
+            // Store this duplicated mesh.
+            StaticMeshes.Add( FHoudiniGeoPartObject( HoudiniGeoPartObject, true ), DuplicatedStaticMesh );
+            ReplacementMap.Add( StaticMesh, DuplicatedStaticMesh );
+        }
+    }
+
     // Copy parameters.
     {
         ClearParameters();
@@ -2105,25 +2126,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     // Copy instance inputs.
     {
         ClearInstanceInputs();
-        CopiedHoudiniComponent->DuplicateInstanceInputs( this );
-    }
-
-    // We need to reconstruct geometry from copied actor.
-    for( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CopiedHoudiniComponent->StaticMeshes );
-        Iter; ++Iter )
-    {
-        FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-        UStaticMesh * StaticMesh = Iter.Value();
-
-        // Duplicate static mesh and all related generated Houdini materials and textures.
-        UStaticMesh * DuplicatedStaticMesh = 
-            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject );
-
-        if ( DuplicatedStaticMesh )
-        {
-            // Store this duplicated mesh.
-            StaticMeshes.Add( FHoudiniGeoPartObject(HoudiniGeoPartObject, true ), DuplicatedStaticMesh );
-        }
+        CopiedHoudiniComponent->DuplicateInstanceInputs( this, ReplacementMap );
     }
 
     // We need to reconstruct splines.
@@ -3904,7 +3907,7 @@ UHoudiniAssetComponent::DuplicateInputs( UHoudiniAssetComponent * DuplicatedHoud
 }
 
 void
-UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent )
+UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent, const TMap<UObject*, UObject*>& ReplacementMap )
 {
     auto& InInstanceInputs = DuplicatedHoudiniComponent->InstanceInputs;
 
@@ -3917,6 +3920,12 @@ UHoudiniAssetComponent::DuplicateInstanceInputs( UHoudiniAssetComponent * Duplic
         DuplicatedHoudiniAssetInstanceInput->ClearFlags( RF_Standalone );
 
         InInstanceInputs.Add( DuplicatedHoudiniAssetInstanceInput );
+
+        // remap our instanced objects (only necessary for unbaked assets)
+        for( UHoudiniAssetInstanceInputField* InputField : DuplicatedHoudiniAssetInstanceInput->GetInstanceInputFields() )
+        {
+            InputField->FixInstancedObjects( ReplacementMap );
+        }
     }
 }
 
