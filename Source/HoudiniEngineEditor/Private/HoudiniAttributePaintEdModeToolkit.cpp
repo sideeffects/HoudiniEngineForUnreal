@@ -37,7 +37,7 @@ FHoudiniAttributePaintEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitTo
                 AActor* SelectedActor = CastChecked<AActor>(*Iter);
                 if ( auto Comp = SelectedActor->FindComponentByClass< UStaticMeshComponent >() )
                 {
-                    if ( Comp->StaticMesh )
+                    if ( Comp->GetStaticMesh() )
                         Selection.Add( SelectedActor );
                 }
             }
@@ -65,7 +65,7 @@ FHoudiniAttributePaintEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitTo
                 if ( ensure( DataComponent ) )
                 {
                     UStaticMeshComponent* SMC = SelectedActor->FindComponentByClass< UStaticMeshComponent >();
-                    FStaticMeshSourceModel & SrcModel = SMC->StaticMesh->SourceModels[ 0 ];
+                    FStaticMeshSourceModel & SrcModel = SMC->GetStaticMesh()->SourceModels[ 0 ];
                     FRawMesh RawMesh;
                     SrcModel.RawMeshBulkData->LoadRawMesh( RawMesh );
                     DataComponent->SetAttributeData( FHoudiniPointAttributeData( TEXT( "test_attr" ), SMC, EHoudiniVertexAttributeDataType::VADT_Float, RawMesh.VertexPositions.Num(), 1) );

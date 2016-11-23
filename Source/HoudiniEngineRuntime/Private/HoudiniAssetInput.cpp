@@ -2757,7 +2757,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
             if ( !StaticMeshComponent )
                 continue;
 
-            UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
+            UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
             if ( !StaticMesh )
                 continue;
 

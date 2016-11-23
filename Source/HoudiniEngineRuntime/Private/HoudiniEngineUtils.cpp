@@ -2468,9 +2468,10 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         int32 LightmapMipSizeY = 0;
 
         // See if we need to export lighting information.
-        if ( bExportLighting && LandscapeComponent->LightMap.IsValid() )
+        if ( bExportLighting )
         {
-            FLightMap2D * LightMap2D = LandscapeComponent->LightMap->GetLightMap2D();
+            const FMeshMapBuildData* MapBuildData = LandscapeComponent->GetMeshMapBuildData();
+            FLightMap2D* LightMap2D = MapBuildData && MapBuildData->LightMap ? MapBuildData->LightMap->GetLightMap2D() : nullptr;
             if ( LightMap2D )
             {
                 if ( LightMap2D->IsValid( 0 ) )
@@ -3464,7 +3465,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         // Create list of materials, one for each face.
         TArray< char * > StaticMeshFaceMaterials;
         FHoudiniEngineUtils::CreateFaceMaterialArray(
-            StaticMesh->Materials, RawMesh.FaceMaterialIndices,
+            StaticMesh->StaticMaterials, RawMesh.FaceMaterialIndices,
             StaticMeshFaceMaterials );
 
         // Get name of attribute used for marshalling materials.
@@ -5304,7 +5305,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             FaceMaterials.Init( SingleFaceMaterial, SplitGroupVertexList.Num() / 3 );
                         }
 
-                        StaticMesh->Materials.Empty();
+                        StaticMesh->StaticMaterials.Empty();
                         RawMesh.FaceMaterialIndices.SetNumZeroed( FaceCount );
 
                         TMap< FString, int32 > FaceMaterialMap;
@@ -5339,7 +5340,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     bMissingReplacement = true;
                                 }
 
-                                StaticMesh->Materials.Add( MaterialInterface );
+                                StaticMesh->StaticMaterials.Add( FStaticMaterial(MaterialInterface) );
                                 FaceMaterialMap.Add( MaterialName, UniqueMaterialIdx );
                                 CurrentFaceMaterialIdx = UniqueMaterialIdx;
                                 UniqueMaterialIdx++;
@@ -5392,16 +5393,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             for ( int32 FaceIdx = 0; FaceIdx < RawMesh.FaceMaterialIndices.Num(); ++FaceIdx )
                             {
                                 int32 MaterialIdx = RawMesh.FaceMaterialIndices[ FaceIdx ];
-                                UMaterialInterface * FaceMaterial = StaticMesh->Materials[ MaterialIdx ];
+                                auto FaceMaterial = StaticMesh->StaticMaterials[ MaterialIdx ];
 
-                                if ( FaceMaterial == MaterialDefault )
+                                if ( FaceMaterial.MaterialInterface == MaterialDefault )
                                 {
                                     HAPI_MaterialId MaterialId = FaceMaterialIds[ FaceIdx ];
                                     if ( MaterialId >= 0 )
                                     {
                                         UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
                                         if ( FoundNativeMaterial )
-                                            StaticMesh->Materials[ MaterialIdx ] = *FoundNativeMaterial;
+                                            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = *FoundNativeMaterial;
                                     }
                                 }
                             }
@@ -5434,8 +5435,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 if ( ReplacementMaterial )
                                     Material = ReplacementMaterial;
 
-                                StaticMesh->Materials.Empty();
-                                StaticMesh->Materials.Add( Material );
+                                StaticMesh->StaticMaterials.Empty();
+                                StaticMesh->StaticMaterials.Add( FStaticMaterial(Material) );
                             }
                             else
                             {
@@ -5494,10 +5495,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     }
                                 }
 
-                                StaticMesh->Materials.Empty();
+                                StaticMesh->StaticMaterials.Empty();
 
                                 for ( int32 MaterialIdx = 0; MaterialIdx < MappedMaterialsList.Num(); ++MaterialIdx )
-                                    StaticMesh->Materials.Add( MappedMaterialsList[ MaterialIdx ] );
+                                    StaticMesh->StaticMaterials.Add( FStaticMaterial(MappedMaterialsList[ MaterialIdx ]) );
                             }
                         }
                         else
@@ -5515,8 +5516,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             if ( ReplacementMaterial )
                                 Material = ReplacementMaterial;
 
-                            StaticMesh->Materials.Empty();
-                            StaticMesh->Materials.Add( Material );
+                            StaticMesh->StaticMaterials.Empty();
+                            StaticMesh->StaticMaterials.Add( FStaticMaterial(Material) );
                         }
                     }
 
@@ -5553,7 +5554,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         StaticMesh->SourceModels[ ModelLODIndex ].ReductionSettings =
                             LODGroup.GetDefaultSettings( ModelLODIndex );
 
-                        for ( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->Materials.Num(); ++MaterialIndex )
+                        for ( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex )
                         {
                             FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get( ModelLODIndex, MaterialIndex );
                             Info.MaterialIndex = MaterialIndex;
@@ -5804,7 +5805,7 @@ FHoudiniEngineUtils::BakeStaticMesh(
     FAssetRegistryModule::AssetCreated( StaticMesh );
 
     // Copy materials.
-    StaticMesh->Materials = InStaticMesh->Materials;
+    StaticMesh->StaticMaterials = InStaticMesh->StaticMaterials;
 
     // Create new source model for current static mesh.
     if ( !StaticMesh->SourceModels.Num() )
@@ -5851,7 +5852,7 @@ FHoudiniEngineUtils::BakeStaticMesh(
     {
         StaticMesh->SourceModels[ ModelLODIndex ].ReductionSettings = LODGroup.GetDefaultSettings( ModelLODIndex );
 
-        for ( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->Materials.Num(); ++MaterialIndex )
+        for ( int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex )
         {
             FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get( ModelLODIndex, MaterialIndex );
             Info.MaterialIndex = MaterialIndex;
@@ -7793,7 +7794,7 @@ FHoudiniEngineUtils::ExtractRawName( const FString & Name )
 
 void
 FHoudiniEngineUtils::CreateFaceMaterialArray(
-    const TArray< UMaterialInterface * > & Materials, const TArray< int32 > & FaceMaterialIndices,
+    const TArray< FStaticMaterial > & Materials, const TArray< int32 > & FaceMaterialIndices,
     TArray< char * > & OutStaticMeshFaceMaterials )
 {
     // We need to create list of unique materials.
@@ -7807,7 +7808,7 @@ FHoudiniEngineUtils::CreateFaceMaterialArray(
         for ( int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx )
         {
             UniqueName = nullptr;
-            MaterialInterface = Materials[ MaterialIdx ];
+            MaterialInterface = Materials[ MaterialIdx ].MaterialInterface;
 
             if ( !MaterialInterface )
             {
@@ -8735,11 +8736,14 @@ FHoudiniEngineUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh )
     if ( ! BackingAssetData.IsUAsset() )
         return true;
 
-    for ( const UMaterialInterface* MaterialInterface : StaticMesh->Materials )
+    for ( const auto& StaticMaterial : StaticMesh->StaticMaterials )
     {
-        BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *MaterialInterface->GetPathName() );
-        if ( ! BackingAssetData.IsUAsset() )
-            return true;
+        if ( StaticMaterial.MaterialInterface )
+        {
+            BackingAssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *StaticMaterial.MaterialInterface->GetPathName() );
+            if ( ! BackingAssetData.IsUAsset() )
+                return true;
+        }
     }
     return false;
 }
@@ -8775,12 +8779,12 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
             HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MeshName );
 
         // See if we need to duplicate materials and textures.
-        TArray< UMaterialInterface * > DuplicatedMaterials;
-        TArray< UMaterialInterface * > & Materials = DuplicatedStaticMesh->Materials;
+        TArray< FStaticMaterial > DuplicatedMaterials;
+        TArray< FStaticMaterial > & Materials = DuplicatedStaticMesh->StaticMaterials;
 
         for ( int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx )
         {
-            UMaterialInterface* MaterialInterface = Materials[ MaterialIdx ];
+            UMaterialInterface* MaterialInterface = Materials[ MaterialIdx ].MaterialInterface;
             if ( MaterialInterface )
             {
                 UPackage * MaterialPackage = Cast< UPackage >( MaterialInterface->GetOuter() );
@@ -8799,18 +8803,20 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
                                 Material, Component, MaterialName, bBake );
 
                             // Store duplicated material.
-                            DuplicatedMaterials.Add( DuplicatedMaterial );
+                            FStaticMaterial DupeStaticMaterial = Materials[ MaterialIdx ];
+                            DupeStaticMaterial.MaterialInterface = DuplicatedMaterial;
+                            DuplicatedMaterials.Add( DupeStaticMaterial );
                             continue;
                         }
                     }
                 }
             }
 
-            DuplicatedMaterials.Add( MaterialInterface );
+            DuplicatedMaterials.Add( Materials[ MaterialIdx ] );
         }
 
         // Assign duplicated materials.
-        DuplicatedStaticMesh->Materials = DuplicatedMaterials;
+        DuplicatedStaticMesh->StaticMaterials = DuplicatedMaterials;
 
         // Notify registry that we have created a new duplicate mesh.
         FAssetRegistryModule::AssetCreated( DuplicatedStaticMesh );
@@ -9018,22 +9024,22 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         const UStaticMeshComponent * OtherSMC = Iter.Key;
 
-        if ( ! ensure( OtherSMC->StaticMesh ) )
+        if ( ! ensure( OtherSMC->GetStaticMesh() ) )
             continue;
 
         UStaticMesh* BakedSM = nullptr;
-        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->StaticMesh ) )
+        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->GetStaticMesh() ) )
         {
             // We've already baked this mesh, use it
             BakedSM = *FoundMeshPtr;
         }
         else
         {
-            if ( FHoudiniEngineUtils::StaticMeshRequiresBake( OtherSMC->StaticMesh ) )
+            if ( FHoudiniEngineUtils::StaticMeshRequiresBake( OtherSMC->GetStaticMesh() ) )
             {
                 // Bake the found mesh into the project
                 BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                    OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
+                    OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, true );
 
                 if ( ensure( BakedSM ) )
                 {
@@ -9043,9 +9049,9 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
             else
             {
                 // We didn't bake this mesh, but it's already baked so we will just use it as is
-                BakedSM = OtherSMC->StaticMesh;
+                BakedSM = OtherSMC->GetStaticMesh();
             }
-            OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
+            OriginalToBakedMesh.Add( OtherSMC->GetStaticMesh(), BakedSM );
         }
     }
 
@@ -9053,7 +9059,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
     for ( const auto& Iter : SMComponentToPart )
     {
         const UStaticMeshComponent * OtherSMC = Iter.Key;
-        UStaticMesh* BakedSM = OriginalToBakedMesh[ OtherSMC->StaticMesh ];
+        UStaticMesh* BakedSM = OriginalToBakedMesh[ OtherSMC->GetStaticMesh() ];
 
         if ( ensure( BakedSM ) )
         {
@@ -9203,11 +9209,11 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         const UStaticMeshComponent * OtherSMC = Iter.Key;
 
-        if ( ! ensure( OtherSMC->StaticMesh ) )
+        if ( ! ensure( OtherSMC->GetStaticMesh() ) )
             continue;
 
         UStaticMesh* BakedSM = nullptr;
-        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->StaticMesh ) )
+        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->GetStaticMesh() ) )
         {
             // We've already baked this mesh, use it
             BakedSM = *FoundMeshPtr;
@@ -9216,11 +9222,11 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         {
             // Bake the found mesh into the project
             BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
+                OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, true );
 
             if ( BakedSM )
             {
-                OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
+                OriginalToBakedMesh.Add( OtherSMC->GetStaticMesh(), BakedSM );
                 FAssetRegistryModule::AssetCreated( BakedSM );
             }
         }
@@ -9239,7 +9245,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
                 {
                     UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
                     InputOutlinerMesh.Actor->Modify();
-                    InOutSMC->StaticMesh = Iter.Value;
+                    InOutSMC->SetStaticMesh( Iter.Value );
                     InOutSMC->InvalidateLightingCache();
                     InOutSMC->MarkPackageDirty();
 
