@@ -1643,6 +1643,55 @@ HAPI_DECL HAPI_GetParmTagValue( const HAPI_Session * session,
                                 const char * tag_name,
                                 HAPI_StringHandle * tag_value );
 
+/// @brief  See if a parameter has a specific tag.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      parm_id
+///                 The parm id.
+///
+/// @param[in]      tag_name
+///                 The tag name to look for.
+///
+/// @param[out]     has_tag
+///                 True if the tag exists on the parameter, false otherwise.
+///
+HAPI_DECL HAPI_ParmHasTag( const HAPI_Session * session,
+                           HAPI_NodeId node_id,
+                           HAPI_ParmId parm_id,
+                           const char * tag_name,
+                           HAPI_Bool * has_tag );
+
+/// @brief  Get the first parm with a specific, ideally unique, tag on it.
+///         This is particularly useful for getting the ogl parameters on a
+///         material node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      tag_name
+///                 The tag name to look for.
+///
+/// @param[out]     parm_id
+///                 The returned parm id. This will be -1 if no parm was found
+///                 with this tag.
+///
+HAPI_DECL HAPI_GetParmWithTag( const HAPI_Session * session,
+                               HAPI_NodeId node_id,
+                               const char * tag_name,
+                               HAPI_ParmId * parm_id );
+
 /// @brief  Get single parm int value by name.
 ///
 /// @param[in]      session
@@ -3667,58 +3716,6 @@ HAPI_DECL HAPI_GetMaterialNodeIdsOnFaces( const HAPI_Session * session,
 HAPI_DECL HAPI_GetMaterialInfo( const HAPI_Session * session,
                                 HAPI_NodeId material_node_id,
                                 HAPI_MaterialInfo * material_info );
-
-/// @brief  Get the material on a part.
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///
-/// @param[in]      geometry_node_id
-///                 The geometry node id.
-///
-/// @param[in]      part_id
-///                 The part id.
-///
-/// @param[out]     material_info
-///                 The returned ::HAPI_MaterialInfo. If there is no
-///                 material on this part the call will still succeed
-///                 but the ::HAPI_MaterialInfo::exists will be set to
-///                 false.
-///
-HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialNodeIdsOnFaces)
-HAPI_GetMaterialOnPart( const HAPI_Session * session,
-                        HAPI_NodeId geometry_node_id,
-                        HAPI_PartId part_id,
-                        HAPI_MaterialInfo * material_info );
-
-/// @brief  Get the material on a group. Use the
-///         ::HAPI_GetGroupMembership() call to determine where the
-///         material should be applied.
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///
-/// @param[in]      geometry_node_id
-///                 The geometry node id.
-///
-/// @param[in]      group_name
-///                 The group name.
-///
-/// @param[out]     material_info
-///                 The returned ::HAPI_MaterialInfo. If there is no
-///                 material on this group the call will still succeed
-///                 but the ::HAPI_MaterialInfo::exists will be set to
-///                 false.
-///
-HAPI_DECL_DEPRECATED_REPLACE( 1.9.16, 14.0.289, HAPI_GetMaterialNodeIdsOnFaces)
-HAPI_GetMaterialOnGroup( const HAPI_Session * session,
-                         HAPI_NodeId geometry_node_id,
-                         const char * group_name,
-                         HAPI_MaterialInfo * material_info );
 
 /// @brief  Render a single texture from a COP to an image for
 ///         later extraction.
