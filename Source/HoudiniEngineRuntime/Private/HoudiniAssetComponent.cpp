@@ -2942,7 +2942,7 @@ UHoudiniAssetComponent::PostEditImport()
 {
     Super::PostEditImport();
 
-    AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor( TEXT( "" ) );
+    AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor( GetOwner(), TEXT( "" ) );
     if ( CopiedActor )
         OnComponentClipboardCopy( CopiedActor->HoudiniAssetComponent );
 }
