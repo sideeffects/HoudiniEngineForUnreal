@@ -8338,8 +8338,8 @@ FHoudiniEngineUtils::MaterialLocateExpression( UMaterialExpression * Expression,
     return nullptr;
 }
 
-AHoudiniAssetActor *
-FHoudiniEngineUtils::LocateClipboardActor( const FString & ClipboardText )
+AHoudiniAssetActor * 
+FHoudiniEngineUtils::LocateClipboardActor( const AActor* IgnoreActor, const FString & ClipboardText )
 {
     const TCHAR * Paste = nullptr;
 
@@ -8386,7 +8386,7 @@ FHoudiniEngineUtils::LocateClipboardActor( const FString & ClipboardText )
     UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
     for (TActorIterator<AHoudiniAssetActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
     {
-	if ((ActorItr->GetActorLabel() == ActorName) || (ActorItr->GetName() == ActorName))
+	if ( *ActorItr != IgnoreActor && (ActorItr->GetActorLabel() == ActorName || ActorItr->GetName() == ActorName))
 	    HoudiniAssetActor = *ActorItr;
     }
 #endif
