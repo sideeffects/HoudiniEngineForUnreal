@@ -8848,22 +8848,22 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         const UStaticMeshComponent * OtherSMC = Iter.Key;
 
-        if ( ! ensure( OtherSMC->StaticMesh ) )
+        if ( ! ensure( OtherSMC->GetStaticMesh() ) )
             continue;
 
         UStaticMesh* BakedSM = nullptr;
-        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->StaticMesh ) )
+        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->GetStaticMesh() ) )
         {
             // We've already baked this mesh, use it
             BakedSM = *FoundMeshPtr;
         }
         else
         {
-            if ( FHoudiniEngineUtils::StaticMeshRequiresBake( OtherSMC->StaticMesh ) )
+            if ( FHoudiniEngineUtils::StaticMeshRequiresBake( OtherSMC->GetStaticMesh() ) )
             {
                 // Bake the found mesh into the project
                 BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                    OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
+                    OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, true );
 
                 if ( ensure( BakedSM ) )
                 {
@@ -8873,9 +8873,9 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
             else
             {
                 // We didn't bake this mesh, but it's already baked so we will just use it as is
-                BakedSM = OtherSMC->StaticMesh;
+                BakedSM = OtherSMC->GetStaticMesh();
             }
-            OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
+            OriginalToBakedMesh.Add( OtherSMC->GetStaticMesh(), BakedSM );
         }
     }
 
@@ -8883,7 +8883,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
     for ( const auto& Iter : SMComponentToPart )
     {
         const UStaticMeshComponent * OtherSMC = Iter.Key;
-        UStaticMesh* BakedSM = OriginalToBakedMesh[ OtherSMC->StaticMesh ];
+        UStaticMesh* BakedSM = OriginalToBakedMesh[ OtherSMC->GetStaticMesh() ];
 
         if ( ensure( BakedSM ) )
         {
@@ -9033,11 +9033,11 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         const UStaticMeshComponent * OtherSMC = Iter.Key;
 
-        if ( ! ensure( OtherSMC->StaticMesh ) )
+        if ( ! ensure( OtherSMC->GetStaticMesh() ) )
             continue;
 
         UStaticMesh* BakedSM = nullptr;
-        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->StaticMesh ) )
+        if ( UStaticMesh ** FoundMeshPtr = OriginalToBakedMesh.Find( OtherSMC->GetStaticMesh() ) )
         {
             // We've already baked this mesh, use it
             BakedSM = *FoundMeshPtr;
@@ -9046,11 +9046,11 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         {
             // Bake the found mesh into the project
             BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                OtherSMC->StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
+                OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, true );
 
             if ( BakedSM )
             {
-                OriginalToBakedMesh.Add( OtherSMC->StaticMesh, BakedSM );
+                OriginalToBakedMesh.Add( OtherSMC->GetStaticMesh(), BakedSM );
                 FAssetRegistryModule::AssetCreated( BakedSM );
             }
         }
@@ -9069,7 +9069,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
                 {
                     UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
                     InputOutlinerMesh.Actor->Modify();
-                    InOutSMC->StaticMesh = Iter.Value;
+                    InOutSMC->SetStaticMesh( Iter.Value );
                     InOutSMC->InvalidateLightingCache();
                     InOutSMC->MarkPackageDirty();
 
