@@ -3344,7 +3344,6 @@ UHoudiniAssetComponent::CreateParameters()
             if ( ParmInfo.invisible )
                 continue;
 
-            // See if this parameter has already been created.
             UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
 
             switch ( ParmInfo.type )
@@ -3486,6 +3485,7 @@ UHoudiniAssetComponent::CreateParameters()
                     }
                     break;
                 }
+                
                 default:
                 {
                     // Just ignore unsupported types for now.
@@ -4086,6 +4086,18 @@ UHoudiniAssetComponent::CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPa
     if ( !MyWorld )
         return false;
 
+    /*
+    // Get runtime settings.
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( HoudiniRuntimeSettings )
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+    }
+    */
+
     TMap< FHoudiniGeoPartObject, ALandscape * > NewLandscapes;
     for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter(FoundVolumes); Iter; ++Iter )
     {
@@ -4139,42 +4151,29 @@ UHoudiniAssetComponent::CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPa
         //--------------------------------------------------------------------------------------------------
         // 1. Reading values from HAPI
         //--------------------------------------------------------------------------------------------------
-
-        // We will need the min and max value for the conversion to uint16
-        float FloatMin, FloatMax;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetVolumeVoxelFloatData(
-            FHoudiniEngine::Get().GetSession(),
-            NodeId, HoudiniGeoPartObject.PartId,
-            0, 0, 0, &FloatMin,
-            CurrentVolumeInfo.tupleSize ), false );
-
-        FloatMax = FloatMin;
-
         TArray<float> FloatHeightData;
         FloatHeightData.SetNumUninitialized( TotalSize );
 
-        int32 n = 0;
-        for ( int32 nY = 0; nY < YSize; nY++ )
+        // Get all the heightfield data
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetHeightFieldData(
+            FHoudiniEngine::Get().GetSession(),
+            NodeId, HoudiniGeoPartObject.PartId,
+            FloatHeightData.GetData(),
+            0, SizeInPoints ), false );
+
+        // We will need the min and max value for the conversion to uint16
+        float FloatMin = FloatHeightData[0];
+        float FloatMax = FloatMin;
+        for ( int32 n = 0; n < SizeInPoints; n++ )
         {
-            for ( int32 nX = 0; nX < XSize; nX++ )
-            {
-                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetVolumeVoxelFloatData(
-                    FHoudiniEngine::Get().GetSession(),
-                    NodeId, HoudiniGeoPartObject.PartId,
-                    nX, nY, 0, &( FloatHeightData[n] ),
-                    CurrentVolumeInfo.tupleSize ), false);
-
-                if ( FloatHeightData[n] > FloatMax )
-                    FloatMax = FloatHeightData[n];
-                else if ( FloatHeightData[n] < FloatMin )
-                    FloatMin = FloatHeightData[n];
-
-                n += CurrentVolumeInfo.tupleSize;
-            }
+            if ( FloatHeightData[n] > FloatMax )
+                FloatMax = FloatHeightData[n];
+            else if ( FloatHeightData[n] < FloatMin )
+                FloatMin = FloatHeightData[n];
         }
 
         // We don't want to create a flat landscape
-        if ( FloatMin == FloatMax )
+        if (FloatMin == FloatMax)
             continue;
 
         //--------------------------------------------------------------------------------------------------
@@ -4198,29 +4197,28 @@ UHoudiniAssetComponent::CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPa
         double ZSpacing = ( DigitRange / ZRange );
 
         double DoubleValue = 0.0f;
-        for ( int nCurrent = 0; nCurrent < SizeInPoints; nCurrent++ )
+
+        int32 nUnreal = 0;
+        for (int32 nY = 0; nY < YSize; nY++)
         {
-            // Get the double values in [0 - ZRange]
-            DoubleValue = (double)FloatHeightData[nCurrent] - (double)FloatMin;
-
-            // Then convert it to [0 - DesiredRange] and center them 
-            DoubleValue = DoubleValue * ZSpacing + ZCenterOffset;
-
-            //dValue = FMath::Clamp(dValue, 0.0, 65535.0);
-            IntHeightData[nCurrent] = FMath::RoundToInt( DoubleValue );
-            /*
-            if ( nCurrent == 0 )
+            for (int32 nX = 0; nX < XSize; nX++)
             {
-                nFinalMin = IntHeightData[nCurrent];
-                nFinalMax = nFinalMin;
-            }
-            else if ( IntHeightData[nCurrent] < nFinalMin )
-                nFinalMin = IntHeightData[nCurrent];
-            else if ( IntHeightData[nCurrent] > nFinalMax )
-                nFinalMax = IntHeightData[nCurrent];
-            */
-        }
+                // Inverts the values from Houdini
+                int32 nHoudini = ( XSize - 1 - nX ) + ( ( nY )* XSize );
+                if ( ImportAxis == HRSAI_Houdini )
+                    nHoudini = nUnreal;
 
+                // Get the double values in [0 - ZRange]
+                DoubleValue = (double)FloatHeightData[nHoudini] - (double)FloatMin;
+
+                // Then convert it to [0 - DesiredRange] and center them 
+                DoubleValue = DoubleValue * ZSpacing + ZCenterOffset;
+
+                //dValue = FMath::Clamp(dValue, 0.0, 65535.0);
+                IntHeightData[nUnreal++] = FMath::RoundToInt(DoubleValue);
+            }
+	}
+        
         //--------------------------------------------------------------------------------------------------
         // 3. Creating a new landscape object from the heightfield
         //--------------------------------------------------------------------------------------------------
@@ -4244,20 +4242,45 @@ UHoudiniAssetComponent::CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPa
             continue;
 
         // Calculating the equivalent scale to match Houdini's Terrain Size in Unreal
+        // For some reason, XY scale from Houdini needs to be multiplied by 2 to get the proper grid spacing ...
         FVector LandscapeScale;
-        // For some reason, XY scale from Houdini needs to be multiplied by 2 ...
-        LandscapeScale.X = 100.0f * CurrentVolumeTransform.GetScale3D().X * 2.0f;
-        LandscapeScale.Y = 100.0f * CurrentVolumeTransform.GetScale3D().Y * 2.0f;
-        
-        // Calculating the Z Scale so that the Z values in Unreal are the same as in Houdini
-        // Unreal's default Z range is 512m for a scale of a 100%
-        LandscapeScale.Z = (100.0 * (65535.0 / DigitRange) * ZRange / 512.0);
-        Landscape->SetActorRelativeScale3D(LandscapeScale);
+        LandscapeScale.X = GeneratedGeometryScaleFactor * CurrentVolumeTransform.GetScale3D().X * 2.0f;
+        LandscapeScale.Y = GeneratedGeometryScaleFactor * CurrentVolumeTransform.GetScale3D().Y * 2.0f;
 
-        // Using the position from Houdini, but we will need to offset the Z Position to center the 
-        // values properly as the data has been offset by the conversion to uint16
-        FVector LandscapePosition;
-        LandscapePosition = CurrentVolumeTransform.GetLocation();
+	// Calculating the Z Scale so that the Z values in Unreal are the same as in Houdini
+	// Unreal's default Z range is 512m for a scale of a 100%
+        LandscapeScale.Z = (float) ( (double)GeneratedGeometryScaleFactor * ( 65535.0 / DigitRange ) * ZRange / 512.0 );
+	Landscape->SetActorRelativeScale3D(LandscapeScale);
+
+        // Landscape rotation
+        FRotator LandscapeRotation( 0.0, -90.0, 0.0 );
+        Landscape->SetActorRelativeRotation( LandscapeRotation );
+
+	// Using the position from Houdini, but we will need to offset the Z Position to center the 
+	// values properly as the data has been offset by the conversion to uint16
+        FVector LandscapePosition = CurrentVolumeTransform.GetLocation();
+
+        // Trying to compensate the landscape grid orientation (XZ / YZ / XY)
+        if ( FMath::Abs( LandscapePosition.Z) < SMALL_NUMBER )
+        {
+            // XZ orientation, we just need to invert Y
+            LandscapePosition.Y = -LandscapePosition.Y;
+            LandscapePosition.Z = 0.0f;
+        }
+        else if ( FMath::Abs( LandscapePosition.X) < SMALL_NUMBER )
+        {
+            // YZ orientation
+            LandscapePosition.X = LandscapePosition.Y;
+            LandscapePosition.Y = -LandscapePosition.Z;
+            LandscapePosition.Z = 0.0f;
+        }
+        else if ( FMath::Abs( LandscapePosition.Y) < SMALL_NUMBER )
+        {
+            // XY orientation
+            LandscapePosition.Y = -LandscapePosition.X;
+            LandscapePosition.X = LandscapePosition.Z;
+            LandscapePosition.Z = 0.0f;
+        }
 
         // We need to calculate the position offset so that Houdini and Unreal have the same Zero position
         // In Unreal, zero has a height value of 32768.
@@ -4273,6 +4296,9 @@ UHoudiniAssetComponent::CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPa
         // We can now set the Landscape position
         Landscape->SetActorRelativeLocation( LandscapePosition );
 
+        // Deactivate CastStaticShadow on the landscape to avoid "grid shadow" issue
+        Landscape->bCastStaticShadow = false;
+
         Landscape->Import( currentGUID,
             XOffset, YOffset, XOffset + XSize - 1, YOffset + YSize - 1,
             NumSectionPerLandscapeComponent, NumQuadsPerLandscapeSection,
@@ -4282,7 +4308,7 @@ UHoudiniAssetComponent::CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPa
         // automatically calculate a lighting LOD that won't crash lightmass (hopefully)
         // < 2048x2048 -> LOD0,  >=2048x2048 -> LOD1,  >= 4096x4096 -> LOD2,  >= 8192x8192 -> LOD3
         Landscape->StaticLightingLOD = FMath::DivideAndRoundUp( FMath::CeilLogTwo( ( XSize * YSize ) / ( 2048 * 2048 ) + 1 ), (uint32) 2 );
-
+	
         ULandscapeInfo* LandscapeInfo = Landscape->CreateLandscapeInfo();
         LandscapeInfo->UpdateLayerInfoMap( Landscape );
 

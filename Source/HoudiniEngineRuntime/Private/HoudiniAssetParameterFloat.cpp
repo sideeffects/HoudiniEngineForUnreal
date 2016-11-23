@@ -93,7 +93,7 @@ UHoudiniAssetParameterFloat::CreateParameter(
 
     // Assign internal Hapi values index.
     SetValuesIndex( ParmInfo.floatValuesIndex );
-        
+
     if ( TupleSize <= 0 )
         return false;
     Values.SetNumZeroed(TupleSize);
