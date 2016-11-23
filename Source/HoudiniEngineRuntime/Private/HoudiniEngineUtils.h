@@ -138,7 +138,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static int32 CountUVSets( const FRawMesh & RawMesh );
 
         /** Helper function to extract copied Houdini actor from clipboard. **/
-        static AHoudiniAssetActor * LocateClipboardActor( const FString & ClipboardText );
+        static AHoudiniAssetActor * LocateClipboardActor( const AActor* IgnoreActor, const FString & ClipboardText );
 
         /** Update instances of a given instanced static mesh component. **/
         static void UpdateInstancedStaticMeshComponentInstances(
@@ -525,7 +525,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(
-            const TArray< UMaterialInterface * > & Materials,
+            const TArray< FStaticMaterial > & Materials,
             const TArray< int32 > & FaceMaterialIndices,
             TArray< char * > & OutStaticMeshFaceMaterials );
 

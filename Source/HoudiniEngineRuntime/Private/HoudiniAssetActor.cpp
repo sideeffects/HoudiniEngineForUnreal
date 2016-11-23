@@ -103,14 +103,17 @@ AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel 
         return false;
 
     // Locate actor which is being copied in clipboard string.
-    AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor( *ActorPropString );
+    AHoudiniAssetActor * CopiedActor = FHoudiniEngineUtils::LocateClipboardActor(this, *ActorPropString );
 
     // We no longer need clipboard string and can empty it. This seems to avoid occasional crash bug in UE4 which
     // happens on copy / paste.
     ActorPropString->Empty();
 
-    if (CopiedActor == nullptr)
+    if( CopiedActor == nullptr )
+    {
+        HOUDINI_LOG_WARNING( TEXT("Failed to import from copy: Duplicated actor not found") );
         return false;
+    }
 
     // Get Houdini component of an actor which is being copied.
     UHoudiniAssetComponent * CopiedActorHoudiniAssetComponent = CopiedActor->HoudiniAssetComponent;
