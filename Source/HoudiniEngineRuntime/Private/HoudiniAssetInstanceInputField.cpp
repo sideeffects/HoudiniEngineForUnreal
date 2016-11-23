@@ -79,8 +79,7 @@ UHoudiniAssetInstanceInputField::Create(
     // Duplicate the given field's InstancedStaticMesh components
     for ( const USceneComponent* OtherISMC : OtherInputField->InstancerComponents )
     {
-        FName NewName = MakeUniqueObjectName( InHoudiniAssetComponent, USceneComponent::StaticClass() );
-        USceneComponent* NewISMC = DuplicateObject< USceneComponent >( OtherISMC, InHoudiniAssetComponent, NewName );
+        USceneComponent* NewISMC = DuplicateObject< USceneComponent >( OtherISMC, InHoudiniAssetComponent );
         NewISMC->RegisterComponent();
         NewISMC->AttachToComponent( InHoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
         InputField->InstancerComponents.Add( NewISMC );
@@ -233,7 +232,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
             {
                 InstancedStaticMeshComponent->OverrideMaterials.Empty();
 
-                int32 MeshMaterialCount = StaticMesh->Materials.Num();
+                int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
                 for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
                     InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
             }
@@ -566,7 +565,7 @@ UHoudiniAssetInstanceInputField::GetMaterialReplacementMeshes(
                     UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
                     if ( OverridenMaterial && OverridenMaterial == Material )
                     {
-                        if ( MaterialIdx < StaticMesh->Materials.Num() )
+                        if ( MaterialIdx < StaticMesh->StaticMaterials.Num() )
                         {
                             MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
                             bResult = true;
@@ -578,4 +577,35 @@ UHoudiniAssetInstanceInputField::GetMaterialReplacementMeshes(
     }
 
     return bResult;
+}
+
+void
+UHoudiniAssetInstanceInputField::FixInstancedObjects( const TMap<UObject*, UObject*>& ReplacementMap )
+{
+    if ( OriginalObject )
+    {
+        UObject *const *ReplacementObj = ReplacementMap.Find( OriginalObject );
+        if( ReplacementObj )
+        {
+            OriginalObject = *ReplacementObj;
+        }
+    }
+
+    int32 VariationCount = InstanceVariationCount();
+    for( int32 Idx = 0; Idx < VariationCount; Idx++ )
+    {
+        UObject *const *ReplacementObj = ReplacementMap.Find( InstancedObjects[ Idx ] );
+        if( ReplacementObj && *ReplacementObj )
+        {
+            InstancedObjects[ Idx ] = *ReplacementObj;
+            if( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Idx ] ) )
+            {
+                ISMC->SetStaticMesh( CastChecked<UStaticMesh>( *ReplacementObj ) );
+            }
+            else if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Idx ] ) )
+            {
+                IAC->InstancedAsset = *ReplacementObj;
+            }
+        }
+    }
 }

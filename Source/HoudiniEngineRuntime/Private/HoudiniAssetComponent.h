@@ -476,7 +476,7 @@ public:
         void DuplicateInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent );
 
         /** Duplicate instance inputs. Used during copying. **/
-        void DuplicateInstanceInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent );
+        void DuplicateInstanceInputs( UHoudiniAssetComponent * DuplicatedHoudiniComponent, const TMap<UObject*, UObject*>& ReplacementMap );
 
         /** Helper called when world transform changes */
         void CheckedUploadTransform();

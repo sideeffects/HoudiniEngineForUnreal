@@ -104,6 +104,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         /** Get combo button used by static mesh used by this field. **/
         TSharedPtr< SComboButton > GetComboButton() const;
 
+        /** After duplicating this field we need to fix up the referenced external objects */
+        void FixInstancedObjects( const TMap<UObject*, UObject*>& ReplacementMap );
 #endif
 
         /** Get rotator used by this field. **/
