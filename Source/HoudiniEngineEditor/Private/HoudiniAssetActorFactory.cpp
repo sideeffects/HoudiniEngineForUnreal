@@ -51,7 +51,7 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance( AActor * Instance )
 void
 UHoudiniAssetActorFactory::PostSpawnActor( UObject * Asset, AActor * NewActor )
 {
-    HOUDINI_LOG_MESSAGE( TEXT( "PostSpawnActor, supplied Asset = 0x%0.8p" ), Asset );
+    HOUDINI_LOG_MESSAGE( TEXT( "PostSpawnActor %s, supplied Asset = 0x%0.8p" ), *NewActor->GetName(), Asset );
 
     UHoudiniAsset * HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
     if ( HoudiniAsset )

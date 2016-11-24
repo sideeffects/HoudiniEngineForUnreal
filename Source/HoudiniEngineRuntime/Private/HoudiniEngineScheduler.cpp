@@ -81,14 +81,18 @@ FHoudiniEngineScheduler::TaskDescription(
 void
 FHoudiniEngineScheduler::TaskInstantiateAsset( const FHoudiniEngineTask & Task )
 {
+    FString AssetN;
+    FHoudiniEngineString( Task.AssetHapiName ).ToFString( AssetN );
+
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Instantiation Started. Component = 0x%x, HoudiniAsset = 0x%x, HapiGUID = %s" ),
-        Task.AssetComponent.Get(), Task.Asset.Get(), *Task.HapiGUID.ToString() );
+        TEXT( "HAPI Asynchronous Instantiation Started for %s: Asset=%s Component = 0x%x, HoudiniAsset = 0x%x, HapiGUID = %s" ),
+        *Task.ActorName, *AssetN, Task.AssetComponent.Get(), Task.Asset.Get(), *Task.HapiGUID.ToString() );
 
     if ( !FHoudiniEngineUtils::IsInitialized() )
     {
         HOUDINI_LOG_ERROR(
-            TEXT( "TaskInstantiateAsset failed: %s" ),
+            TEXT( "TaskInstantiateAsset failed for %s: %s" ),
+            *Task.ActorName,
             *FHoudiniEngineUtils::GetErrorDescription( HAPI_RESULT_NOT_INITIALIZED ) );
 
         AddResponseMessageTaskInfo(
@@ -221,7 +225,8 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
     if ( !FHoudiniEngineUtils::IsInitialized() )
     {
         HOUDINI_LOG_ERROR(
-            TEXT( "TaskCookAsset failed: %s"),
+            TEXT( "TaskCookAsset failed for %s: %s"),
+            *Task.ActorName,
             *FHoudiniEngineUtils::GetErrorDescription( HAPI_RESULT_NOT_INITIALIZED ) );
 
         AddResponseMessageTaskInfo(
@@ -248,14 +253,14 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Cooking Started. Component = 0x%x, HoudiniAsset = 0x%x, " )
+        TEXT( "HAPI Asynchronous Cooking Started for %s. Component = 0x%x, HoudiniAsset = 0x%x, " )
         TEXT( "AssetId = %d, HapiGUID = %s" ),
-        Task.AssetComponent.Get(), Task.Asset.Get(), AssetId, *Task.HapiGUID.ToString() );
+        *Task.ActorName, Task.AssetComponent.Get(), Task.Asset.Get(), AssetId, *Task.HapiGUID.ToString() );
 
     if ( AssetId == -1 )
     {
         // We have an invalid asset id.
-        HOUDINI_LOG_ERROR( TEXT( "TaskCookAsset failed: Invalid Asset Id." ) );
+        HOUDINI_LOG_ERROR( TEXT( "TaskCookAsset failed for %s: Invalid Asset Id." ), *Task.ActorName );
 
         AddResponseMessageTaskInfo(
             HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetCooking,
@@ -346,9 +351,9 @@ void
 FHoudiniEngineScheduler::TaskDeleteAsset( const FHoudiniEngineTask & Task )
 {
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Destruction Started. Component = 0x%x, HoudiniAsset = 0x%x, " )
+        TEXT( "HAPI Asynchronous Destruction Started for %s. Component = 0x%x, HoudiniAsset = 0x%x, " )
         TEXT( "AssetId = %d, HapiGUID = %s" ),
-        Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString() );
+        *Task.ActorName, Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString() );
 
     if ( FHoudiniEngineUtils::IsHoudiniAssetValid( Task.AssetId ) )
         FHoudiniEngineUtils::DestroyHoudiniAsset( Task.AssetId );
