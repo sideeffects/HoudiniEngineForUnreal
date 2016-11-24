@@ -1211,7 +1211,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
             {
                 case EHoudiniEngineTaskState::FinishedInstantiation:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT("    FinishedInstantiation." ) );
+                    HOUDINI_LOG_MESSAGE( TEXT("    %s FinishedInstantiation." ), *GetOwner()->GetName() );
 
                     if ( FHoudiniEngineUtils::IsValidAssetId( TaskInfo.AssetId ) )
                     {
@@ -1258,7 +1258,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                     else
                     {
                         bStopTicking = true;
-                        HOUDINI_LOG_MESSAGE( TEXT( "    Received invalid asset id." ) );
+                        HOUDINI_LOG_MESSAGE( TEXT( "    %s Received invalid asset id." ), *GetOwner()->GetName() );
                     }
 
                     break;
@@ -1266,7 +1266,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
                 case EHoudiniEngineTaskState::FinishedCooking:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT( "    FinishedCooking." ) );
+                    HOUDINI_LOG_MESSAGE( TEXT( "   %s FinishedCooking." ), *GetOwner()->GetName() );
 
                     if ( FHoudiniEngineUtils::IsValidAssetId( TaskInfo.AssetId ) )
                     {
@@ -1288,7 +1288,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                     }
                     else
                     {
-                        HOUDINI_LOG_MESSAGE( TEXT( "    Received invalid asset id." ) );
+                        HOUDINI_LOG_MESSAGE( TEXT( "    %s Received invalid asset id." ), *GetOwner()->GetName() );
                     }
 
                     if ( NotificationPtr.IsValid() && bDisplaySlateCookingNotifications )
@@ -1314,7 +1314,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
                 case EHoudiniEngineTaskState::FinishedCookingWithErrors:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT( "    FinishedCookingWithErrors." ) );
+                    HOUDINI_LOG_MESSAGE( TEXT( "    %s FinishedCookingWithErrors." ), *GetOwner()->GetName() );
 
                     if ( FHoudiniEngineUtils::IsValidAssetId( TaskInfo.AssetId ) )
                     {
@@ -1360,7 +1360,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 case EHoudiniEngineTaskState::Aborted:
                 case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT( "    FinishedInstantiationWithErrors." ) );
+                    HOUDINI_LOG_MESSAGE( TEXT( "    %s FinishedInstantiationWithErrors." ), *GetOwner()->GetName() );
 
                     bool bLicensingIssue = false;
                     switch( TaskInfo.Result )
