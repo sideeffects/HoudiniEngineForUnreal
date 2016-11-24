@@ -430,8 +430,15 @@ public:
         /** Create handles.**/
         bool CreateHandles();
 
-        /** Create Volumes **/
-        bool CreateLandscapesFromVolumes( const TArray< FHoudiniGeoPartObject > & FoundCurves );
+        /** Create all landscapes **/
+        bool CreateAllLandscapes(const TArray< FHoudiniGeoPartObject > & FoundCurves);
+
+        /** Creates a single landscape and its corresponding layers **/
+        bool CreateLandscape(
+            const FHoudiniGeoPartObject* HeightField,
+            const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
+            TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
+            UMaterialInterface* LandscapeMaterial );
 
         /** Resizes the HeightData so that it matches Unreal's requirement for Landscape import **/
         void ResizeHeightDataForLandscape(

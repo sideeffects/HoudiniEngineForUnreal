@@ -9355,10 +9355,10 @@ TArray<T> ResampleData(const TArray<T>& Data, int32 OldWidth, int32 OldHeight, i
 
 bool
 FHoudiniEngineUtils::ResizeHeightDataForLandscape(
+    TArray<uint16>& HeightData,
     int32& SizeX, int32& SizeY,
     int32& NumberOfSectionsPerComponent,
-    int32& NumberOfQuadsPerSection,
-    TArray<uint16>& HeightData)
+    int32& NumberOfQuadsPerSection )
 {
     if ( HeightData.Num() <= 4 )
         return false;
@@ -9504,6 +9504,41 @@ FHoudiniEngineUtils::ResizeHeightDataForLandscape(
         SizeX = NewSizeX;
         SizeY = NewSizeY;
     }
+
+    return true;
+}
+
+bool
+FHoudiniEngineUtils::ResizeLayerDataForLandscape(
+    TArray<uint8>& LayerData,
+    const int32& SizeX, const int32& SizeY,
+    const int32& NewSizeX, const int32& NewSizeY)
+{   
+    if ( ( NewSizeX == SizeX ) && ( NewSizeY == SizeY ) )
+        return true;
+
+    TArray<uint8> NewData;
+    if ( ( NewSizeX > SizeX ) || ( NewSizeY > SizeY ) )
+    {
+        NewData.SetNumUninitialized( NewSizeX * NewSizeY );
+
+        const int32 OffsetX = (int32)( NewSizeX - SizeX ) / 2;
+        const int32 OffsetY = (int32)( NewSizeY - SizeY ) / 2;
+
+        // Expanding the Data
+        NewData = ExpandData(
+            LayerData, 
+            0, 0, SizeX - 1, SizeY - 1,
+            -OffsetX, -OffsetY, NewSizeX - OffsetX - 1, NewSizeY - OffsetY - 1);
+    }
+    else
+    {
+        // Resampling the data
+        NewData.SetNumUninitialized( NewSizeX * NewSizeY );
+        NewData = ResampleData( LayerData, SizeX, SizeY, NewSizeX, NewSizeY );
+    }
+
+    LayerData = NewData;
 
     return true;
 }
