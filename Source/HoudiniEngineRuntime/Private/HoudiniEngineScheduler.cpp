@@ -85,8 +85,8 @@ FHoudiniEngineScheduler::TaskInstantiateAsset( const FHoudiniEngineTask & Task )
     FHoudiniEngineString( Task.AssetHapiName ).ToFString( AssetN );
 
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Instantiation Started for %s: Asset=%s Component = 0x%x, HoudiniAsset = 0x%x, HapiGUID = %s" ),
-        *Task.ActorName, *AssetN, Task.AssetComponent.Get(), Task.Asset.Get(), *Task.HapiGUID.ToString() );
+        TEXT( "HAPI Asynchronous Instantiation Started for %s: Asset=%s, HoudiniAsset = 0x%x" ),
+        *Task.ActorName, *AssetN, Task.Asset.Get() );
 
     if ( !FHoudiniEngineUtils::IsInitialized() )
     {
@@ -253,9 +253,8 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Cooking Started for %s. Component = 0x%x, HoudiniAsset = 0x%x, " )
-        TEXT( "AssetId = %d, HapiGUID = %s" ),
-        *Task.ActorName, Task.AssetComponent.Get(), Task.Asset.Get(), AssetId, *Task.HapiGUID.ToString() );
+        TEXT( "HAPI Asynchronous Cooking Started for %s. Component = 0x%x, AssetId = %d" ),
+        *Task.ActorName, Task.AssetComponent.Get(), AssetId );
 
     if ( AssetId == -1 )
     {
@@ -351,9 +350,9 @@ void
 FHoudiniEngineScheduler::TaskDeleteAsset( const FHoudiniEngineTask & Task )
 {
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Destruction Started for %s. Component = 0x%x, HoudiniAsset = 0x%x, " )
-        TEXT( "AssetId = %d, HapiGUID = %s" ),
-        *Task.ActorName, Task.AssetComponent.Get(), Task.Asset.Get(), Task.AssetId, *Task.HapiGUID.ToString() );
+        TEXT( "HAPI Asynchronous Destruction Started for %s. Component = 0x%x" )
+        TEXT( "AssetId = %d" ),
+        *Task.ActorName, Task.AssetComponent.Get(), Task.AssetId );
 
     if ( FHoudiniEngineUtils::IsHoudiniAssetValid( Task.AssetId ) )
         FHoudiniEngineUtils::DestroyHoudiniAsset( Task.AssetId );

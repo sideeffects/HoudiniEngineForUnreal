@@ -1438,7 +1438,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
     if ( !IsInstantiatingOrCooking() )
     {
-        if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged )
+        if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged || bManualRecook )
         {
             // Grab current time for delayed notification.
             HapiNotificationStarted = FPlatformTime::Seconds();
@@ -1494,7 +1494,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 // Create asset cooking task object and submit it for processing.
                 StartTaskAssetCooking();
             }
-            else if ( bEnableCooking || bComponentTransformHasChanged)
+            else if ( bEnableCooking || bComponentTransformHasChanged || bManualRecook )
             {
                 // Uploads parameters and cooks the asset if cook on parameter
                 // changed or cook on transform changed is enabled
@@ -1724,8 +1724,7 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
         bManualRecook = true;
         if ( FHoudiniEngineUtils::IsValidAssetId( GetAssetId() ) )
         {
-            StartTaskAssetCooking( true );
-            bParametersChanged = true;
+            StartHoudiniTicking();
         }
         else
         {

@@ -4218,13 +4218,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             if ( !GeoInfo.isDisplayGeo )
                 continue;
 
-            bool bGeoError = false;
-
             // Get object / geo group memberships for primitives.
             TArray< FString > ObjectGeoGroupNames;
-            FHoudiniEngineUtils::HapiGetGroupNames(
+            if( ! FHoudiniEngineUtils::HapiGetGroupNames(
                 AssetId, ObjectInfo.id, GeoIdx, HAPI_GROUPTYPE_PRIM,
-                ObjectGeoGroupNames );
+                ObjectGeoGroupNames ) )
+            {
+                HOUDINI_LOG_MESSAGE( TEXT( "Creating Static Meshes: Object [%d %s] non-fatal error reading group names" ),
+                    ObjectInfo.nodeId, *ObjectName );
+            }
 
             bool bIsRenderCollidable = false;
             bool bIsCollidable = false;
@@ -4264,7 +4266,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     &PartInfo ) != HAPI_RESULT_SUCCESS )
                 {
                     // Error retrieving part info.
-                    bGeoError = true;
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve PartInfo, " )
                         TEXT( "- skipping." ),
@@ -4291,7 +4292,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
                     continue;
                 }
-
+                else if( PartInfo.type == HAPI_PARTTYPE_INVALID )
+                {
+                    continue;
+                }
 
                 // Get name of attribute used for marshalling generated mesh name.
                 HAPI_AttributeInfo AttribGeneratedMeshName;
@@ -4314,7 +4318,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // There are no vertices and no points.
                 if ( PartInfo.vertexCount <= 0 && PartInfo.pointCount <= 0 )
                 {
-                    bGeoError = true;
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found, " )
                         TEXT( "- skipping." ),
@@ -4338,7 +4341,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) != HAPI_RESULT_SUCCESS )
                     {
                         // Error retrieving material face assignments.
-                        bGeoError = true;
                         HOUDINI_LOG_MESSAGE(
                             TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve material face assignments, " )
                             TEXT( "- skipping." ),
@@ -4448,7 +4450,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     else
                     {
                         // This is an instancer with no points.
-                        bGeoError = true;
                         HOUDINI_LOG_MESSAGE(
                             TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is instancer but has 0 points " )
                             TEXT( "skipping." ),
@@ -4466,7 +4467,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 else if ( PartInfo.vertexCount <= 0 )
                 {
                     // This is not an instancer, but we do not have vertices, skip.
-                    bGeoError = true;
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] has 0 vertices and non-zero points, " )
                         TEXT( "but is not an intstancer - skipping." ),
@@ -4482,8 +4482,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     &VertexList[ 0 ], 0, PartInfo.vertexCount ) != HAPI_RESULT_SUCCESS )
                 {
                     // Error getting the vertex list.
-                    bGeoError = true;
-
                     HOUDINI_LOG_MESSAGE(
                         TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve vertex list " )
                         TEXT( "- skipping." ),
@@ -4672,7 +4670,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         else
                         {
                             // No mesh located, this is an error.
-                            bGeoError = true;
                             HOUDINI_LOG_MESSAGE(
                                 TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] geometry has changed " )
                                 TEXT( "but static mesh does not exist - skipping." ),
@@ -4753,8 +4750,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
                         {
                             // Error retrieving positions.
-                            bGeoError = true;
-
                             HOUDINI_LOG_MESSAGE(
                                 TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data " )
                                 TEXT( "- skipping." ),
