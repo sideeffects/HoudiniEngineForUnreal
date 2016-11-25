@@ -125,6 +125,12 @@ UHoudiniAssetParameter::CreateParameter(
     return true;
 }
 
+UHoudiniAssetParameter * 
+UHoudiniAssetParameter::Duplicate( UHoudiniAssetComponent* InOuter )
+{
+    return DuplicateObject<UHoudiniAssetParameter>(this, InOuter );
+}
+
 #if WITH_EDITOR
 
 void

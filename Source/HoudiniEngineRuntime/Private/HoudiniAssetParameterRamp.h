@@ -161,6 +161,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAsset
         /** Notification from component that all child parameters have been created. **/
         virtual void NotifyChildParametersCreated();
 
+        /** Duplicates this object as well as owned subobjects */
+        virtual UHoudiniAssetParameter * Duplicate( UHoudiniAssetComponent* InOuter ) override;
+
     /** UObject methods. **/
     public:
 

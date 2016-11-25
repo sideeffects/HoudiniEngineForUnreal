@@ -3829,8 +3829,7 @@ UHoudiniAssetComponent::DuplicateParameters( UHoudiniAssetComponent * Duplicated
             continue;
 
         // Duplicate parameter.
-        UHoudiniAssetParameter * DuplicatedHoudiniAssetParameter =
-            DuplicateObject( HoudiniAssetParameter, DuplicatedHoudiniComponent );
+        UHoudiniAssetParameter * DuplicatedHoudiniAssetParameter = HoudiniAssetParameter->Duplicate( DuplicatedHoudiniComponent );
 
         // PIE does not like standalone flags.
         DuplicatedHoudiniAssetParameter->ClearFlags( RF_Standalone );
