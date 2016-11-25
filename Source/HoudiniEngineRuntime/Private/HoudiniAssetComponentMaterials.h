@@ -37,8 +37,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponentMaterials : public UObject
         virtual void Serialize( FArchive & Ar ) override;
         static void AddReferencedObjects(
             UObject * InThis, FReferenceCollector & Collector);
-
     public:
+        /** Duplicate this object for the given Outer.  Replace material references based on the given replacement map */
+        class UHoudiniAssetComponentMaterials* Duplicate( class UHoudiniAssetComponent* InOuter, TMap<UObject*, UObject*>& InReplacements );
 
         /** Reset the object. **/
         void ResetMaterialInfo();
