@@ -48,6 +48,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo );
 
+        /** Create a duplicate of this parameter for the given parent component, takes care of any subobjects */
+        virtual UHoudiniAssetParameter * Duplicate( UHoudiniAssetComponent* InOuter );
+
         /** Set component for this parameter. **/
         virtual void SetHoudiniAssetComponent( UHoudiniAssetComponent * InHoudiniAssetComponent );
 
