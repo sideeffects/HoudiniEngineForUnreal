@@ -2112,6 +2112,9 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
         }
     }
 
+    // Copy material information.
+    HoudiniAssetComponentMaterials = CopiedHoudiniComponent->HoudiniAssetComponentMaterials->Duplicate( this, ReplacementMap );
+
     // Copy parameters.
     {
         ClearParameters();
@@ -2147,11 +2150,6 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
             SplineComponents.Add( HoudiniGeoPartObject, DuplicatedSplineComponent );
         }
     }
-
-    // Copy material information.
-    HoudiniAssetComponentMaterials = 
-        DuplicateObject< UHoudiniAssetComponentMaterials >(
-            CopiedHoudiniComponent->HoudiniAssetComponentMaterials, this );
 
     // Perform any necessary post loading.
     PostLoad();
