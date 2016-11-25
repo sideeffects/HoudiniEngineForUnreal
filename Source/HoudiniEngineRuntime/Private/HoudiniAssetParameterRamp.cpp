@@ -355,6 +355,30 @@ UHoudiniAssetParameterRamp::UHoudiniAssetParameterRamp( const FObjectInitializer
 UHoudiniAssetParameterRamp::~UHoudiniAssetParameterRamp()
 {}
 
+UHoudiniAssetParameter * 
+UHoudiniAssetParameterRamp::Duplicate( UHoudiniAssetComponent* InOuter )
+{
+    if( UHoudiniAssetParameterRamp* NewParm = Cast<UHoudiniAssetParameterRamp>( Super::Duplicate( InOuter ) ) )
+    {
+        // The duplicate has had PostLoad called, so we need to fix ownership of the curve subobjects
+        if( HoudiniAssetParameterRampCurveColor )
+        {
+            NewParm->HoudiniAssetParameterRampCurveColor = DuplicateObject<UHoudiniAssetParameterRampCurveColor>( HoudiniAssetParameterRampCurveColor, InOuter );
+            NewParm->HoudiniAssetParameterRampCurveColor->SetParentRampParameter( NewParm );
+            HoudiniAssetParameterRampCurveColor->SetParentRampParameter( this );
+        }
+
+        if( HoudiniAssetParameterRampCurveFloat )
+        {
+            NewParm->HoudiniAssetParameterRampCurveFloat = DuplicateObject<UHoudiniAssetParameterRampCurveFloat>( HoudiniAssetParameterRampCurveFloat, InOuter );
+            NewParm->HoudiniAssetParameterRampCurveFloat->SetParentRampParameter( NewParm );
+            HoudiniAssetParameterRampCurveFloat->SetParentRampParameter( this );
+        }
+        return NewParm;
+    }
+    return nullptr;
+}
+
 UHoudiniAssetParameterRamp *
 UHoudiniAssetParameterRamp::Create(
     UHoudiniAssetComponent * InHoudiniAssetComponent,
