@@ -73,3 +73,46 @@ UHoudiniAssetComponentMaterials::ResetMaterialInfo()
     Assignments.Empty();
     Replacements.Empty();
 }
+
+UHoudiniAssetComponentMaterials* 
+UHoudiniAssetComponentMaterials::Duplicate( class UHoudiniAssetComponent* InOuter, TMap<UObject*, UObject*>& InReplacements )
+{
+    UHoudiniAssetComponentMaterials* ACM = DuplicateObject<UHoudiniAssetComponentMaterials>( this, InOuter );
+    
+    // Build a map of MI duplications
+    TMap<UMaterialInterface*, UMaterialInterface*> MatReplacements;
+    for( auto ReplacementPair : InReplacements )
+    {
+        UStaticMesh* OriginalSM = Cast<UStaticMesh>( ReplacementPair.Key );
+        UStaticMesh* NewSM = Cast<UStaticMesh>( ReplacementPair.Value );
+        if( OriginalSM && NewSM )
+        {
+            for( int32 Ix = 0; Ix < OriginalSM->StaticMaterials.Num(); ++Ix )
+            {
+                MatReplacements.Add( OriginalSM->StaticMaterials[ Ix ].MaterialInterface,
+                    NewSM->StaticMaterials[ Ix ].MaterialInterface);
+            }
+        }
+    }
+
+    // Remap MIs
+    for( auto& AssignmentPair : ACM->Assignments )
+    {
+        if( auto NewMI = MatReplacements.Find( AssignmentPair.Value ) )
+        {
+            AssignmentPair.Value = *NewMI;
+        }
+    }
+
+    for( auto& ReplacementPair : ACM->Replacements )
+    {
+        for( auto& MatPair : ReplacementPair.Value )
+        {
+            if( auto NewMI = MatReplacements.Find( MatPair.Value ) )
+            {
+                MatPair.Value = *NewMI;
+            }
+        }
+    }
+    return ACM;
+}
