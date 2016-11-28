@@ -84,6 +84,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
             EHoudiniSplineComponentMethod::Enum InCurveMethod,
             bool bInClosedCurve = false);
 
+	void SetHoudiniGeoPartObject(const FHoudiniGeoPartObject& InHoudiniGeoPartObject);
+
 
         /** Copies data from an another curve. Resets any existing state **/
         bool CopyFrom( UHoudiniSplineComponent* InSplineComponent );
@@ -136,9 +138,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         /** Assign input parameter to this spline, if it is an input curve. **/
         void SetHoudiniAssetInput( class UHoudiniAssetInput * InHoudiniAssetInput );
 
-        /** Used by visualizer to notify about input spline update. **/
-        void NotifyHoudiniInputCurveChanged();
-
         /** Return curve points. **/
         const TArray< FTransform > & GetCurvePoints() const;
 
@@ -150,6 +149,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
 
         /** Extract Scales from the Transform Array **/
         void GetCurveScales(TArray<FVector>& Scales) const;
+
+	/** Updates self and notify parent component **/
+	void UpdateHoudiniComponents();
 
     protected:
 

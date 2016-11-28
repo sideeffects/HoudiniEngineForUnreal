@@ -777,6 +777,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 #endif
 }
 
+
 void
 UHoudiniAssetComponent::ReleaseObjectGeoPartResources( bool bDeletePackages )
 {
@@ -1132,6 +1133,9 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             }
         }
 
+        // Make sure rendering is done
+        // FlushRenderingCommands();
+        
         // Free meshes and components that are no longer used.
         ReleaseObjectGeoPartResources( StaticMeshes, true );
 
@@ -1488,7 +1492,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
             else if ( bFinishedLoadedInstantiation )
             {
                 // If we are doing first cook after instantiation.
-                // RefreshEditableNodesAfterLoad();
+                RefreshEditableNodesAfterLoad();
 
                 // Update parameter node id for all loaded parameters.
                 UpdateLoadedParameters();
@@ -2389,7 +2393,8 @@ UHoudiniAssetComponent::UpdateRenderingInformation()
     for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
     {
         USceneComponent * SceneComponent = *Iter;
-        SceneComponent->RecreatePhysicsState();
+        if( SceneComponent )
+            SceneComponent->RecreatePhysicsState();
     }
 
     // Since we have new asset, we need to update bounds.
@@ -3183,23 +3188,6 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
             continue;
         }
 
-        /*
-        // Check if this curve already exists.
-        UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = nullptr;
-        for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TConstIterator SplineIter(SplineComponents); SplineIter; ++SplineIter )
-        {
-            const FHoudiniGeoPartObject & SplineGeoPartObject = SplineIter.Key();
-            if ( SplineGeoPartObject.GetNodePath() == HoudiniGeoPartObject.GetNodePath() )
-            {
-                FoundHoudiniSplineComponent = &(SplineIter.Value());
-            }
-        }
-
-        //UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
-        if ( FoundHoudiniSplineComponent )
-            (*FoundHoudiniSplineComponent)->UploadControlPoints();
-        */
-
         // We need to cook the spline node.
         FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), NodeId, nullptr);
 
@@ -3259,6 +3247,9 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
                 this, UHoudiniSplineComponent::StaticClass(),
                 NAME_None, RF_Public | RF_Transactional );
         }
+
+        // Set the GeoPartObject
+        HoudiniSplineComponent->SetHoudiniGeoPartObject( HoudiniGeoPartObject );
 
         // If we have no parent, we need to re-attach.
         if ( !HoudiniSplineComponent->GetAttachParent() )
@@ -3822,7 +3813,6 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
     }
 }
 
-/*
 bool
 UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
 {
@@ -3830,66 +3820,74 @@ UHoudiniAssetComponent::RefreshEditableNodesAfterLoad()
     // To "Activate" them...
     HAPI_AssetInfo AssetInfo;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-	FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
+        FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
 
     // Retrieve information about each object contained within our asset.
     TArray< HAPI_ObjectInfo > ObjectInfos;
     if (!FHoudiniEngineUtils::HapiGetObjectInfos(AssetId, ObjectInfos))
-	return false;
+        return false;
 
     // Iterate through all objects.
     for (int32 ObjectIdx = 0; ObjectIdx < ObjectInfos.Num(); ++ObjectIdx)
     {
-	// Retrieve object at this index.
-	const HAPI_ObjectInfo & ObjectInfo = ObjectInfos[ObjectIdx];
+        // Retrieve object at this index.
+        const HAPI_ObjectInfo & ObjectInfo = ObjectInfos[ObjectIdx];
 
-	// We need both the display Geos and the editables Geos
-	TArray<HAPI_GeoInfo> GeoInfos;
+        // Get all the GeoInfos for the editable nodes
+        int32 EditableNodeCount = 0;
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
+            FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId,
+            HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+            true, &EditableNodeCount), false);
 
-	// First, get the Display Geo Infos
-	{
-	    HAPI_GeoInfo DisplayGeoInfo;
-	    if (FHoudiniApi::GetDisplayGeoInfo(
-		FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId, &DisplayGeoInfo) == HAPI_RESULT_SUCCESS)
-	    {
-		GeoInfos.Add(DisplayGeoInfo);
-	    }
-	}
+        if (EditableNodeCount <= 0)
+            continue;
 
-	// Then get all the GeoInfos for all the editable nodes
-	{
-	    int32 EditableNodeCount = 0;
-	    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
-		FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId,
-		HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
-		true, &EditableNodeCount), false);
+        TArray< HAPI_NodeId > EditableNodeIds;
+        EditableNodeIds.SetNumUninitialized(EditableNodeCount);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedChildNodeList(
+            FHoudiniEngine::Get().GetSession(), AssetId,
+            EditableNodeIds.GetData(), EditableNodeCount), false);
 
-	    if (EditableNodeCount > 0)
-	    {
-		TArray< HAPI_NodeId > EditableNodeIds;
-		EditableNodeIds.SetNumUninitialized(EditableNodeCount);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedChildNodeList(
-		    FHoudiniEngine::Get().GetSession(), AssetId,
-		    EditableNodeIds.GetData(), EditableNodeCount), false);
+        for (int nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+        {
+            HAPI_GeoInfo CurrentEditableGeoInfo;
 
-		for (int nEditable = 0; nEditable < EditableNodeCount; nEditable++)
-		{
-		    HAPI_GeoInfo CurrentEditableGeoInfo;
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
+                FHoudiniEngine::Get().GetSession(),
+                EditableNodeIds[nEditable],
+                &CurrentEditableGeoInfo), false);
 
-		    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
-			FHoudiniEngine::Get().GetSession(),
-			EditableNodeIds[nEditable],
-			&CurrentEditableGeoInfo), false);
+            if ( CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE )
+                continue;
 
-		    GeoInfos.Add(CurrentEditableGeoInfo);
-		}
-	    }
-	}
+            FString NodePathTemp;
+            if ( !FHoudiniEngineUtils::HapiGetNodePath( CurrentEditableGeoInfo.nodeId, AssetId, NodePathTemp ) )
+                continue;
+
+            // We need to refresh the spline corresponding to that node
+            for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TIterator Iter( SplineComponents ); Iter; ++Iter )
+            {
+                FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+
+                // Get NodePath appends the partId to the node path, so we use contains instead of equals
+                if ( HoudiniGeoPartObject.GetNodePath().Contains( NodePathTemp ) )
+                {
+                    // Update the Geo/Node Id
+                    HoudiniGeoPartObject.GeoId = CurrentEditableGeoInfo.nodeId;
+
+                    // Update the attached spline component too
+                    UHoudiniSplineComponent * SplineComponent = Iter.Value();
+                    if ( SplineComponent )
+                        SplineComponent->SetHoudiniGeoPartObject( HoudiniGeoPartObject );
+                }
+            }
+        }
     }
 
     return true;
 }
-*/
+
 
 void
 UHoudiniAssetComponent::UploadLoadedCurves()

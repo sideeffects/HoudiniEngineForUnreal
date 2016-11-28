@@ -4346,8 +4346,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             }
         }
 
-        // This is a loop that goes over once and stops. We use this so we can then
-        // exit out of the scope using break or continue.
+        // Going through the geo infos of the display and editable nodes to create their GeoPartObject/StaticMeshes
         for ( int32 n = 0; n < GeoInfos.Num(); n++ )
         {
             HAPI_GeoInfo GeoInfo = GeoInfos[n];

@@ -85,12 +85,7 @@ UHoudiniSplineComponent::PostEditUndo()
 {
     Super::PostEditUndo();
 
-    UHoudiniAssetComponent * AttachComponent = Cast< UHoudiniAssetComponent >( GetAttachParent() );
-    if ( AttachComponent )
-    {
-        UploadControlPoints();
-        AttachComponent->StartTaskAssetCooking( true );
-    }
+    UpdateHoudiniComponents();
 }
 
 #endif // WITH_EDITOR
@@ -104,19 +99,15 @@ UHoudiniSplineComponent::Construct(
     EHoudiniSplineComponentMethod::Enum InCurveMethod,
     bool bInClosedCurve )
 {
-    HoudiniGeoPartObject = InHoudiniGeoPartObject;
-
     ResetCurvePoints();
     AddPoints( InCurvePoints );
 
-    ResetCurveDisplayPoints();
-    AddDisplayPoints( InCurveDisplayPoints );
-
-    CurveType = InCurveType;
-    CurveMethod = InCurveMethod;
-    bClosedCurve = bInClosedCurve;
-
-    return true;
+    return Construct(
+        InHoudiniGeoPartObject,
+        InCurveDisplayPoints,
+        InCurveType,
+        InCurveMethod,
+        bInClosedCurve );
 }
 
 
@@ -138,6 +129,13 @@ UHoudiniSplineComponent::Construct(
     bClosedCurve = bInClosedCurve;
 
     return true;
+}
+
+
+void 
+UHoudiniSplineComponent::SetHoudiniGeoPartObject( const FHoudiniGeoPartObject& InHoudiniGeoPartObject )
+{
+    HoudiniGeoPartObject = InHoudiniGeoPartObject;
 }
 
 
@@ -235,20 +233,25 @@ UHoudiniSplineComponent::UpdatePoint( int32 PointIndex, const FTransform & Point
 
 void
 UHoudiniSplineComponent::UploadControlPoints()
-{    
-    // Grab component we are attached to.
+{
     HAPI_AssetId HostAssetId = -1;
-    UHoudiniAssetComponent * AttachedComponent = Cast< UHoudiniAssetComponent >(GetAttachParent());
-    if (AttachedComponent)
-        HostAssetId = AttachedComponent->GetAssetId();
-
     HAPI_NodeId NodeId = -1;
     if (HoudiniGeoPartObject.IsValid())
     {
-        if (IsInputCurve())
-            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(HoudiniAssetInput->GetConnectedAssetId());
+        if ( IsInputCurve() )
+        {
+            HostAssetId = HoudiniAssetInput->GetConnectedAssetId();
+            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId();
+        }
         else
-            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId(HostAssetId);
+        {
+            // Grab component we are attached to.
+            UHoudiniAssetComponent * AttachedComponent = Cast< UHoudiniAssetComponent >( GetAttachParent() );
+            if ( AttachedComponent )
+                HostAssetId = AttachedComponent->GetAssetId();
+
+            NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId( HostAssetId );
+        }
     }
    
     if ( ( NodeId < 0 ) || ( HostAssetId < 0 ) )
@@ -258,7 +261,7 @@ UHoudiniSplineComponent::UploadControlPoints()
     TArray<FVector> Positions;
     GetCurvePositions(Positions);
 
-    if (IsInputCurve())
+    if ( IsInputCurve() )
     {
         // Only input curves support rotation and scale
         TArray<FQuat> Rotations;
@@ -304,6 +307,28 @@ UHoudiniSplineComponent::UploadControlPoints()
 }
 
 void
+UHoudiniSplineComponent::UpdateHoudiniComponents()
+{
+    if ( IsInputCurve() )
+    {
+        if ( HoudiniAssetInput )
+            HoudiniAssetInput->OnInputCurveChanged();
+    }
+    else
+    {
+        // If not an input curve, we need first to upload the new CVs
+        UploadControlPoints();
+
+        UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >( GetAttachParent() );
+        if ( HoudiniAssetComponent )
+            HoudiniAssetComponent->NotifyHoudiniSplineChanged( this );
+    }
+
+    if ( GEditor )
+        GEditor->RedrawLevelEditingViewports( true );
+}
+
+void
 UHoudiniSplineComponent::RemovePoint( int32 PointIndex )
 {
     check( PointIndex >= 0 && PointIndex < CurvePoints.Num() );
@@ -329,12 +354,6 @@ UHoudiniSplineComponent::SetHoudiniAssetInput( UHoudiniAssetInput * InHoudiniAss
     HoudiniAssetInput = InHoudiniAssetInput;
 }
 
-void
-UHoudiniSplineComponent::NotifyHoudiniInputCurveChanged()
-{
-    if ( HoudiniAssetInput )
-        HoudiniAssetInput->OnInputCurveChanged();
-}
 
 const TArray< FTransform > &
 UHoudiniSplineComponent::GetCurvePoints() const

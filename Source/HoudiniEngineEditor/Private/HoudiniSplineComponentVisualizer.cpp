@@ -435,27 +435,8 @@ FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
 void
 FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
 {
-    if ( !EditedHoudiniSplineComponent )
-        return;
-
-    if (EditedHoudiniSplineComponent->IsInputCurve())
-    {
-        EditedHoudiniSplineComponent->NotifyHoudiniInputCurveChanged();
-    }
-    else
-    {
-        // If not an input curve, we need first to upload the new CVs
-        EditedHoudiniSplineComponent->UploadControlPoints();
-
-        UHoudiniAssetComponent * HoudiniAssetComponent =
-            Cast< UHoudiniAssetComponent >(EditedHoudiniSplineComponent->GetAttachParent());
-
-        if (HoudiniAssetComponent)
-            HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);
-    }
-
-    if (GEditor)
-        GEditor->RedrawLevelEditingViewports(true);
+    if ( EditedHoudiniSplineComponent )
+        EditedHoudiniSplineComponent->UpdateHoudiniComponents();
 
     bComponentNeedUpdate = false;
 }

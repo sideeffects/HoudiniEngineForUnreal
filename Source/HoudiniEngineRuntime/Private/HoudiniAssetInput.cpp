@@ -2258,10 +2258,6 @@ UHoudiniAssetInput::UpdateInputCurve()
             HoudiniGeoPartObject, CurveDisplayPoints, CurveTypeValue, CurveMethodValue,
             (CurveClosed == 1));
     }
-    else
-    {
-	InputCurve = nullptr;
-    }
 
     // We also need to construct curve parameters we care about.
     TMap< FString, UHoudiniAssetParameter * > NewInputCurveParameters;

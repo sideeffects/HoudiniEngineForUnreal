@@ -465,7 +465,8 @@ public:
         /** If curves were loaded, their points need to be uploaded. **/
         void UploadLoadedCurves();
 
-        //bool RefreshEditableNodesAfterLoad();
+        /** Refreshes editables nodes after loading the level **/
+        bool RefreshEditableNodesAfterLoad();
 
         /** Find an instance input for the given geo part */
         UHoudiniAssetInstanceInput* LocateInstanceInput( const FHoudiniGeoPartObject& GeoPart ) const;
@@ -665,8 +666,8 @@ public:
         /** Indicates the asset is being istantiated to avoid instantiating it twice on load **/
         bool bAssetIsBeingInstantiated;
 
-	/** Indicates that new asset's mesh must rebuild the Navigation System to update the NavMesh properly **/
-	bool bNeedToUpdateNavigationSystem;
+        /** Indicates that new asset's mesh must rebuild the Navigation System to update the NavMesh properly **/
+        bool bNeedToUpdateNavigationSystem;
 
         /** Flags used by Houdini component. **/
         union
