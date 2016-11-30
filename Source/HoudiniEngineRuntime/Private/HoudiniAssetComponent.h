@@ -537,8 +537,8 @@ public:
         /** Delete Static mesh resources. This will free static meshes and corresponding components. **/
         void ReleaseObjectGeoPartResources( bool bDeletePackages = false );
 
-	/** Check all the attached StaticMeshComponents to delete invalid ones **/
-	void CleanUpAttachedStaticMeshesComponent();
+        /** Check all the attached StaticMeshComponents to delete invalid ones **/
+        void CleanUpAttachedStaticMeshComponents();
 
         /** Create Static mesh resource which corresponds to Houdini logo. **/
         void CreateStaticMeshHoudiniLogoResource( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMesDhMap );
