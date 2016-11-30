@@ -841,10 +841,6 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
             UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
             if ( !FoundStaticMeshComponent )
             {
-		HOUDINI_LOG_MESSAGE(
-		    TEXT("Destroyed extra Static Mesh Component: %s for StaticMesh: %s."),
-		    *(StaticMeshComponent->GetName() ), *( StaticMesh->GetName() ) );
-
                 // This StaticMeshComponent is attached to the asset but not in the map.
                 // It may be a leftover from previous cook/undo/redo and needs to be properly destroyed
                 StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
