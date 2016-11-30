@@ -277,6 +277,9 @@ public:
         /** Locate geo part object for given static mesh. Reverse map search. **/
         FHoudiniGeoPartObject LocateGeoPartObject( UStaticMesh * StaticMesh ) const;
 
+	/** Locate spline component for a given geo part. **/
+	UHoudiniSplineComponent * LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const;
+
         /** Return true if this component is in playmode. **/
         bool IsPIEActive() const;
 
@@ -513,6 +516,9 @@ public:
 
         /** Delete Static mesh resources. This will free static meshes and corresponding components. **/
         void ReleaseObjectGeoPartResources( bool bDeletePackages = false );
+
+	/** Check all the attached StaticMeshComponents to delete invalid ones **/
+	void CleanUpAttachedStaticMeshComponents();
 
         /** Create Static mesh resource which corresponds to Houdini logo. **/
         void CreateStaticMeshHoudiniLogoResource( TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMesDhMap );
