@@ -105,6 +105,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
         static const FColor ColorNormal = FColor(255, 255, 255);
         static const FColor ColorNone = FColor(172, 172, 172);
         static const FColor ColorSelected(255, 0, 0);
+        static const FColor ColorFirst(0, 172, 0);
 
         static const float GrabHandleSize = 12.0f;
         static const float GrabHandleSizeNone = 12.0f;// 8.0f;
@@ -160,12 +161,20 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 
             // Draw point and set hit box for it.
             PDI->SetHitProxy(new HHoudiniSplineControlPointVisProxy(HoudiniSplineComponent, PointIdx));
-
-            // If we are editing this control point, change its color
+       
             if ((bCurveEditing) && (EditedControlPointsIndexes.Contains(PointIdx)))
+            {
+                // If we are editing this control point, change its color
                 PDI->DrawPoint(DisplayPoint, ColorSelected, GrabHandleSizeSelected, SDPG_Foreground);
+            }
             else
-                PDI->DrawPoint(DisplayPoint, ColorUnselected, GrabHandleCurrentSize, SDPG_Foreground);
+            {
+                // Color the first point differently to show the direction of the spline
+                if( PointIdx == 0 )
+                    PDI->DrawPoint(DisplayPoint, ColorFirst, GrabHandleCurrentSize, SDPG_Foreground);
+                else
+                    PDI->DrawPoint(DisplayPoint, ColorUnselected, GrabHandleCurrentSize, SDPG_Foreground);
+            }
 
             PDI->SetHitProxy(nullptr);
         }

@@ -690,11 +690,11 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
             }
 
             UStaticMeshComponent * StaticMeshComponent = nullptr;
-            UStaticMeshComponent * const* FoundStaticMeshComponent = StaticMeshComponents.Find( StaticMesh );
+            UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
 
             if ( FoundStaticMeshComponent )
             {
-                StaticMeshComponent = *FoundStaticMeshComponent;
+                StaticMeshComponent = FoundStaticMeshComponent;
                 if ( ! HoudiniGeoPartObject.IsVisible() )
                 {
                     // We have a mesh and component for a part which is invisible.
@@ -710,9 +710,6 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                     GetOwner(), UStaticMeshComponent::StaticClass(),
                     NAME_None, RF_Transactional );
 
-                // Add to map of components.
-                StaticMeshComponents.Add( StaticMesh, StaticMeshComponent );
-
                 // Attach created static mesh component to our Houdini component.
                 StaticMeshComponent->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
 
@@ -720,6 +717,9 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 StaticMeshComponent->SetVisibility( true );
                 StaticMeshComponent->SetMobility( Mobility );
                 StaticMeshComponent->RegisterComponent();
+
+                // Add to the map of components.
+                StaticMeshComponents.Add( StaticMesh, StaticMeshComponent );
             }
 
             if ( StaticMeshComponent )
@@ -757,10 +757,6 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         ReleaseObjectGeoPartResources( StaleParts, true );
     }
 
-    // Skip self assignment.
-    if ( &StaticMeshes != &StaticMeshMap )
-        StaticMeshes = StaticMeshMap;
-
 #if WITH_EDITOR
     if ( FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
     {
@@ -773,7 +769,6 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         // Create necessary landscapes
         CreateAllLandscapes( FoundVolumes );
     }
-
 #endif
 }
 
@@ -790,7 +785,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
     bool bDeletePackages )
 {
     // Record generated static meshes which we need to delete.
-    TArray< UObject * > StaticMeshesToDelete;
+    TArray< UStaticMesh * > StaticMeshesToDelete;
 
     // Get Houdini logo.
     UStaticMesh * HoudiniLogoMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
@@ -798,68 +793,109 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
     {
         UStaticMesh * StaticMesh = Iter.Value();
-        if ( StaticMesh )
-        {
-            // Locate corresponding component.
-            UStaticMeshComponent * const * FoundStaticMeshComponent = StaticMeshComponents.Find( StaticMesh );
-            if ( FoundStaticMeshComponent )
-            {
-                // Remove component from map of static mesh components.
-                StaticMeshComponents.Remove( StaticMesh );
+        if ( !StaticMesh )
+            continue;
 
-                // Detach and destroy the component.
-                UStaticMeshComponent * StaticMeshComponent = *FoundStaticMeshComponent;
-                if ( StaticMeshComponent->IsRegistered() )
-                {
-                    StaticMeshComponent->UnregisterComponent();
-                }
-                StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-		StaticMeshComponent->DestroyComponent();
-            }
-        }
+        // Removes the static mesh component from the map, detaches and destroys it.
+        RemoveStaticMeshComponent( StaticMesh );
 
-        if ( bDeletePackages && StaticMesh && StaticMesh != HoudiniLogoMesh )
+        if ( bDeletePackages && ( StaticMesh != HoudiniLogoMesh ) )
         {
             // Make sure this static mesh is not referenced.
             UObject * ObjectMesh = (UObject *) StaticMesh;
             FReferencerInformationList Referencers;
 
-            bool bReferenced = true;
-
-            {
-                // Check if object is referenced and get its referencers, if it is.
-                bReferenced = IsReferenced(
-                    ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS,
-                    EInternalObjectFlags::GarbageCollectionKeepFlags, true, &Referencers );
-            }
+            // Check if object is referenced and get its referencers, if it is.
+            bool bReferenced = IsReferenced(
+                ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS,
+                EInternalObjectFlags::GarbageCollectionKeepFlags, true, &Referencers );
 
             if ( !bReferenced || IsObjectReferencedLocally( StaticMesh, Referencers ) )
             {
                 // Only delete generated mesh if it has not been saved manually.
                 UPackage * Package = Cast< UPackage >( StaticMesh->GetOuter() );
                 if ( !Package || !Package->bHasBeenFullyLoaded )
-                    StaticMeshesToDelete.Add( StaticMesh );
+                    StaticMeshesToDelete.Add(StaticMesh);
             }
         }
     }
 
+    // Cleans all the attached static meshes components
+    CleanUpAttachedStaticMeshComponents();
+
     // Remove unused meshes.
     StaticMeshMap.Empty();
 
-#if WITH_EDITOR
-
-    // Delete no longer used generated static meshes.
+#if WITH_EDITOR    // Delete no longer used generated static meshes.
     int32 MeshNum = StaticMeshesToDelete.Num();
+
     if ( bDeletePackages && MeshNum > 0 )
     {
         for ( int32 MeshIdx = 0; MeshIdx < MeshNum; ++MeshIdx )
         {
-            UObject * ObjectToDelete = StaticMeshesToDelete[ MeshIdx ];
-            ObjectTools::DeleteSingleObject( ObjectToDelete, false );
+            UStaticMesh * StaticMesh = StaticMeshesToDelete[ MeshIdx ];
+
+            // Free any RHI resources.
+            StaticMesh->PreEditChange( nullptr );
+
+            ObjectTools::DeleteSingleObject( StaticMesh, false );
         }
     }
 
 #endif
+}
+
+void
+UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
+{
+    // Record generated static meshes which we need to delete.
+    TArray< UStaticMesh * > StaticMeshesToDelete;
+
+    // We'll check all the children static mesh components for junk
+    const auto & LocalAttachChildren = GetAttachChildren();
+    for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
+    {
+        UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >( *Iter );
+        if ( StaticMeshComponent )
+        {
+            UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
+            UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
+            if ( !FoundStaticMeshComponent )
+            {
+                // This StaticMeshComponent is attached to the asset but not in the map.
+                // It may be a leftover from previous cook/undo/redo and needs to be properly destroyed
+                StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+                StaticMeshComponent->UnregisterComponent();
+                StaticMeshComponent->DestroyComponent();
+
+                StaticMeshesToDelete.Add( StaticMesh );
+            }
+        }
+    }
+
+    // We'll try to delete the undesirable static meshes too
+    for (int32 MeshIdx = 0; MeshIdx < StaticMeshesToDelete.Num(); ++MeshIdx)
+    {
+        UStaticMesh * StaticMesh = StaticMeshesToDelete[MeshIdx];
+
+        // Check if object is referenced and get its referencers, if it is.
+        UObject * ObjectMesh = (UObject *)StaticMesh;
+        FReferencerInformationList Referencers;	
+        bool bReferenced = IsReferenced(
+            ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS,
+            EInternalObjectFlags::GarbageCollectionKeepFlags, true, &Referencers);
+
+        if ( !bReferenced || IsObjectReferencedLocally( StaticMesh, Referencers ) )
+        {
+            // Only delete generated mesh if it has not been saved manually.
+            UPackage * Package = Cast< UPackage >( StaticMesh->GetOuter() );
+            if ( !Package || !Package->bHasBeenFullyLoaded )
+            {
+                StaticMesh->PreEditChange( nullptr );
+                ObjectTools::DeleteSingleObject( StaticMesh, false );
+            }
+        }
+    }
 }
 
 bool
@@ -1118,32 +1154,29 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
             UStaticMesh * StaticMesh = Iter.Value();
 
-            // Remove mesh from previous map of meshes.
-            UStaticMesh * const * FoundOldStaticMesh = StaticMeshes.Find( HoudiniGeoPartObject );
-            if ( FoundOldStaticMesh )
+            // Removes the mesh from previous map of meshes
+            UStaticMesh * FoundOldStaticMesh = LocateStaticMesh( HoudiniGeoPartObject );
+            if ( ( FoundOldStaticMesh ) && ( FoundOldStaticMesh == StaticMesh ) )
             {
-                UStaticMesh * OldStaticMesh = *FoundOldStaticMesh;
-
-                if ( OldStaticMesh == StaticMesh )
-                {
-                    // Mesh has not changed, we need to remove it from old map to avoid
-                    // deallocation.
-                    StaticMeshes.Remove( HoudiniGeoPartObject );
-                }
+                // Mesh has not changed, we need to remove it from the old map to avoid deallocation.
+                StaticMeshes.Remove( HoudiniGeoPartObject );
             }
         }
 
         // Make sure rendering is done
-        // FlushRenderingCommands();
+        FlushRenderingCommands();
         
+        // Set meshes and create new components for those meshes that do not have them.
+        if ( NewStaticMeshes.Num() > 0 )
+            CreateObjectGeoPartResources( NewStaticMeshes );
+        else
+            CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
+
         // Free meshes and components that are no longer used.
         ReleaseObjectGeoPartResources( StaticMeshes, true );
 
-	// Set meshes and create new components for those meshes that do not have them.
-	if ( NewStaticMeshes.Num() > 0 )
-	    CreateObjectGeoPartResources( NewStaticMeshes );
-	else
-	    CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
+        // Assigns the new map
+        StaticMeshes = NewStaticMeshes;
     }
 
     // Invoke cooks of downstream assets.
@@ -2923,12 +2956,9 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
             UStaticMesh * StaticMesh = Iter.Value();
 
             // Retrieve referenced static mesh component.
-            UStaticMeshComponent * const * FoundStaticMeshComponent = StaticMeshComponents.Find( StaticMesh );
-            UStaticMeshComponent * StaticMeshComponent = nullptr;
+            UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
 
-            if ( FoundStaticMeshComponent )
-                StaticMeshComponent = *FoundStaticMeshComponent;
-            else
+            if ( !StaticMeshComponent )
                 continue;
 
             // Bake the referenced static mesh.
@@ -2940,7 +2970,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 
             // Create static mesh component for baked mesh.
             UStaticMeshComponent * DuplicatedComponent =
-                NewObject< UStaticMeshComponent >( Actor, UStaticMeshComponent::StaticClass(), NAME_None );
+                NewObject< UStaticMeshComponent >( Actor, UStaticMeshComponent::StaticClass(), NAME_None );//, RF_Transactional );
 
             Actor->AddInstanceComponent( DuplicatedComponent );
 
@@ -2989,6 +3019,8 @@ void
 UHoudiniAssetComponent::PostEditUndo()
 {
     Super::PostEditUndo();
+
+    CleanUpAttachedStaticMeshComponents();
 }
 
 void
@@ -3229,20 +3261,17 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
         FHoudiniEngineUtils::ExtractStringPositions( CurvePointsString, CurvePositions );
 
         // Check if this curve already exists.
-        UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find( HoudiniGeoPartObject );
-        UHoudiniSplineComponent * HoudiniSplineComponent = nullptr;
+        UHoudiniSplineComponent * HoudiniSplineComponent = LocateSplineComponent( HoudiniGeoPartObject );
 
-        if ( FoundHoudiniSplineComponent )
+        if ( HoudiniSplineComponent )
         {
-            // Curve already exists, we can reuse it.
-            HoudiniSplineComponent = *FoundHoudiniSplineComponent;
-
+            // The curve already exists, we can reuse it.
             // Remove it from old map.
             SplineComponents.Remove( HoudiniGeoPartObject );
         }
         else
         {
-            // We need to create new curve.
+            // We need to create a new curve.
             HoudiniSplineComponent = NewObject< UHoudiniSplineComponent >(
                 this, UHoudiniSplineComponent::StaticClass(),
                 NAME_None, RF_Public | RF_Transactional );
@@ -4689,6 +4718,9 @@ UHoudiniAssetComponent::LocateStaticMesh( const FHoudiniGeoPartObject & HoudiniG
     if ( FoundStaticMesh )
         StaticMesh = *FoundStaticMesh;
 
+    if ( StaticMesh && StaticMesh->IsPendingKill() )
+        return nullptr;        
+
     return StaticMesh;
 }
 
@@ -4700,6 +4732,9 @@ UHoudiniAssetComponent::LocateStaticMeshComponent( const UStaticMesh * StaticMes
 
     if ( FoundStaticMeshComponent )
         StaticMeshComponent = *FoundStaticMeshComponent;
+
+    if ( StaticMeshComponent && StaticMeshComponent->IsPendingKill() )
+        return nullptr;        
 
     return StaticMeshComponent;
 }
@@ -4720,6 +4755,21 @@ UHoudiniAssetComponent::LocateInstancedStaticMeshComponents(
     }
 
     return bResult;
+}
+
+UHoudiniSplineComponent*
+UHoudiniAssetComponent::LocateSplineComponent(const FHoudiniGeoPartObject & HoudiniGeoPartObject) const
+{
+    UHoudiniSplineComponent * const * FoundHoudiniSplineComponent = SplineComponents.Find(HoudiniGeoPartObject);
+    UHoudiniSplineComponent * SplineComponent = nullptr;
+
+    if ( FoundHoudiniSplineComponent )
+        SplineComponent = *FoundHoudiniSplineComponent;
+
+    if ( SplineComponent && SplineComponent->IsPendingKill() )
+        return nullptr;
+
+    return SplineComponent;
 }
 
 void
