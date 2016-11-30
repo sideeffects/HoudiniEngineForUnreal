@@ -105,6 +105,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
         static const FColor ColorNormal = FColor(255, 255, 255);
         static const FColor ColorNone = FColor(172, 172, 172);
         static const FColor ColorSelected(255, 0, 0);
+        static const FColor ColorFirst(0, 172, 0);
 
         static const float GrabHandleSize = 12.0f;
         static const float GrabHandleSizeNone = 12.0f;// 8.0f;
@@ -160,12 +161,20 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 
             // Draw point and set hit box for it.
             PDI->SetHitProxy( new HHoudiniSplineControlPointVisProxy( HoudiniSplineComponent, PointIdx ) );
-
-            // If we are editing this control point, change its color
+       
             if ((bCurveEditing) && (EditedControlPointsIndexes.Contains(PointIdx)))
-                PDI->DrawPoint( DisplayPoint, ColorSelected, GrabHandleSizeSelected, SDPG_Foreground );
+            {
+                // If we are editing this control point, change its color
+                PDI->DrawPoint(DisplayPoint, ColorSelected, GrabHandleSizeSelected, SDPG_Foreground);
+            }
             else
-                PDI->DrawPoint(DisplayPoint, ColorUnselected, GrabHandleCurrentSize, SDPG_Foreground);
+            {
+                // Color the first point differently to show the direction of the spline
+                if( PointIdx == 0 )
+                    PDI->DrawPoint(DisplayPoint, ColorFirst, GrabHandleCurrentSize, SDPG_Foreground);
+                else
+                    PDI->DrawPoint(DisplayPoint, ColorUnselected, GrabHandleCurrentSize, SDPG_Foreground);
+            }
 
             PDI->SetHitProxy( nullptr );
         }
@@ -434,27 +443,8 @@ FHoudiniSplineComponentVisualizer::GenerateContextMenu() const
 void
 FHoudiniSplineComponentVisualizer::UpdateHoudiniComponents()
 {
-    if ( !EditedHoudiniSplineComponent )
-        return;
-
-    if (EditedHoudiniSplineComponent->IsInputCurve())
-    {
-        EditedHoudiniSplineComponent->NotifyHoudiniInputCurveChanged();
-    }
-    else
-    {
-        // If not an input curve, we need first to upload the new CVs
-        EditedHoudiniSplineComponent->UploadControlPoints();
-
-        UHoudiniAssetComponent * HoudiniAssetComponent =
-            Cast< UHoudiniAssetComponent >(EditedHoudiniSplineComponent->GetAttachParent());
-
-        if (HoudiniAssetComponent)
-            HoudiniAssetComponent->NotifyHoudiniSplineChanged(EditedHoudiniSplineComponent);
-    }
-
-    if (GEditor)
-        GEditor->RedrawLevelEditingViewports(true);
+    if ( EditedHoudiniSplineComponent )
+        EditedHoudiniSplineComponent->UpdateHoudiniComponents();
 
     bComponentNeedUpdate = false;
 }
@@ -471,6 +461,7 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified( int32 PointIndex, co
     FScopedTransaction Transaction( TEXT( HOUDINI_MODULE_EDITOR ),
         LOCTEXT( "HoudiniSplineComponentChange", "Houdini Spline Component: Moving a point" ),
         HoudiniAssetComponent );
+
     EditedHoudiniSplineComponent->Modify();
 
     // Update given control point.
