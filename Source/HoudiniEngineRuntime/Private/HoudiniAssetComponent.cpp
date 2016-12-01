@@ -864,6 +864,7 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
             {
                 // This StaticMeshComponent is attached to the asset but not in the map.
                 // It may be a leftover from previous cook/undo/redo and needs to be properly destroyed
+
                 StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
                 StaticMeshComponent->UnregisterComponent();
                 StaticMeshComponent->DestroyComponent();
@@ -3018,9 +3019,21 @@ UHoudiniAssetComponent::PreEditUndo()
 void
 UHoudiniAssetComponent::PostEditUndo()
 {
-    Super::PostEditUndo();
-
+    // We need to make sure that all mesh components in the maps are valid ones
     CleanUpAttachedStaticMeshComponents();
+
+    // We need to make sure that the Mesh's resources are initialized after undo,
+    // or a crash might happen in the RenderThread.
+    for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
+    {
+        UStaticMesh * StaticMesh = Iter.Value();
+        if ( !StaticMesh )
+            continue;
+
+        StaticMesh->InitResources();
+    }
+
+    Super::PostEditUndo();
 }
 
 void
