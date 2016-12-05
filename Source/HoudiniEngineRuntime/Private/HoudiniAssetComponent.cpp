@@ -757,6 +757,10 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         ReleaseObjectGeoPartResources( StaleParts, true );
     }
 
+    // Skip self assignment.
+    if (&StaticMeshes != &StaticMeshMap)
+        StaticMeshes = StaticMeshMap;
+
 #if WITH_EDITOR
     if ( FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
     {
@@ -819,10 +823,10 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
             }
         }
     }
-
+    /*
     // Cleans all the attached static meshes components
     CleanUpAttachedStaticMeshComponents();
-
+    */
     // Remove unused meshes.
     StaticMeshMap.Empty();
 
@@ -1167,17 +1171,14 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         // Make sure rendering is done
         FlushRenderingCommands();
         
+        // Free meshes and components that are no longer used.
+        ReleaseObjectGeoPartResources(StaticMeshes, true);
+
         // Set meshes and create new components for those meshes that do not have them.
         if ( NewStaticMeshes.Num() > 0 )
             CreateObjectGeoPartResources( NewStaticMeshes );
         else
             CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
-
-        // Free meshes and components that are no longer used.
-        ReleaseObjectGeoPartResources( StaticMeshes, true );
-
-        // Assigns the new map
-        StaticMeshes = NewStaticMeshes;
     }
 
     // Invoke cooks of downstream assets.
@@ -3030,9 +3031,10 @@ UHoudiniAssetComponent::PreEditUndo()
 void
 UHoudiniAssetComponent::PostEditUndo()
 {
+    /*
     // We need to make sure that all mesh components in the maps are valid ones
     CleanUpAttachedStaticMeshComponents();
-    
+    */
     Super::PostEditUndo();
 }
 
