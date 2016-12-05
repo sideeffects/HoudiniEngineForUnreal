@@ -772,8 +772,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions )
 
 struct HAPI_API HAPI_AssetInfo
 {
-    HAPI_NodeId id;
-
     /// The houdini asset type. There may be all sorts of different assets
     /// in Houdini, corresponding to the type of data that flows in that
     /// particular type of data network. For the moment, the only supported
@@ -1180,8 +1178,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo )
 
 struct HAPI_API HAPI_ObjectInfo
 {
-    HAPI_NodeId id;
-
     HAPI_StringHandle nameSH;
     HAPI_StringHandle objectInstancePathSH;
 
@@ -1231,7 +1227,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_ObjectInfo )
 
 struct HAPI_API HAPI_GeoInfo
 {
-    HAPI_NodeId id;
     HAPI_GeoType type;
     HAPI_StringHandle nameSH;
 
@@ -1357,7 +1352,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_AttributeInfo )
 
 struct HAPI_API HAPI_MaterialInfo
 {
-    HAPI_NodeId id;
     HAPI_NodeId assetId;
 
     /// This is the HAPI node id for the SHOP node this material is attached
