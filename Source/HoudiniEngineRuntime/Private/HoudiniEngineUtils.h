@@ -318,9 +318,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static void HapiRetrieveParameterNames( const TArray< HAPI_ParmInfo > & ParmInfos, TArray< FString > & Names );
         static void HapiRetrieveParameterNames( const TArray< HAPI_ParmInfo > & ParmInfos, TArray< std::string > & Names );
 
-        /** HAPI : Look for parameter by name and return its index. Return -1 if not found. **/
-        static int32 HapiFindParameterByName( const std::string & ParmName, const TArray< std::string > & Names );
-        static int32 HapiFindParameterByName( const FString & ParmName, const TArray< FString > & Names );
+        /** HAPI : Look for a parameter by name or tag and returns its index. Returns -1 if not found. **/
+        static int32 HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName );
+        static int32 HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo );
+        static int32 HapiFindParameterByNameOrTag( const TArray< HAPI_ParmInfo > NodeParams, const HAPI_NodeId& NodeId, const std::string ParmName );
 
         /** HAPI : Retrieve a list of image planes. **/
         static bool HapiGetImagePlanes(
@@ -348,50 +349,42 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool CreateMaterialComponentDiffuse(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentNormal(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentSpecular(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentRoughness(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentMetallic(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentEmissive(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentOpacity(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentOpacityMask(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams,
-            const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY );
+            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
 #endif // WITH_EDITOR
 

@@ -754,25 +754,6 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(
         HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId, Name, Owner );
 }
 
-int32
-FHoudiniEngineUtils::HapiFindParameterByName( const std::string & ParmName, const TArray< std::string > & Names )
-{
-    for ( int32 Idx = 0; Idx < Names.Num(); ++Idx )
-        if ( !ParmName.compare( 0, ParmName.length(), Names[ Idx ] ) )
-            return Idx;
-
-    return -1;
-}
-
-int32
-FHoudiniEngineUtils::HapiFindParameterByName( const FString & ParmName, const TArray< FString > & Names )
-{
-    for ( int32 Idx = 0, Num = Names.Num(); Idx < Num; ++Idx )
-        if ( Names[ Idx ].Equals( ParmName ) )
-            return Idx;
-
-    return -1;
-}
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
@@ -1222,6 +1203,63 @@ FHoudiniEngineUtils::ResetRawMesh( FRawMesh & RawMesh )
 
 #endif
 
+int32 FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName )
+{
+    HAPI_ParmInfo ParmInfo;
+    return HapiFindParameterByNameOrTag( NodeId, ParmName, ParmInfo );
+}
+
+int32 FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo )
+{
+    HAPI_NodeInfo NodeInfo;
+    FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
+
+    TArray< HAPI_ParmInfo > NodeParams;
+    NodeParams.SetNumUninitialized( NodeInfo.parmCount );
+    FHoudiniApi::GetParameters(
+        FHoudiniEngine::Get().GetSession(), NodeInfo.id, &NodeParams[0], 0, NodeInfo.parmCount );
+
+    int32 ParmId = HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, ParmName );
+    if ( ( ParmId < 0 ) || ( ParmId >= NodeParams.Num() ) )
+        return -1;
+
+    FoundParmInfo = NodeParams[ParmId];
+    return ParmId;
+}
+
+int32 FHoudiniEngineUtils::HapiFindParameterByNameOrTag( const TArray< HAPI_ParmInfo > NodeParams, const HAPI_NodeId& NodeId, const std::string ParmName )
+{
+   {
+        // First, try to find the parameter by its name
+        TArray< std::string > NodeParamNames;
+        FHoudiniEngineUtils::HapiRetrieveParameterNames( NodeParams, NodeParamNames );
+
+        int32 ParmNameIdx = -1;
+        for ( ParmNameIdx = 0; ParmNameIdx < NodeParamNames.Num(); ++ParmNameIdx )
+        {
+            if ( ParmName.compare( 0, ParmName.length(), NodeParamNames[ParmNameIdx] ) == 0 )
+                break;
+        }
+
+        if ( ( ParmNameIdx >= 0 ) && ( ParmNameIdx < NodeParams.Num() ) )
+            return ParmNameIdx;
+    }
+
+    {
+        // Second, try to find it by its tag
+        HAPI_ParmId ParmId;
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmWithTag(
+            FHoudiniEngine::Get().GetSession(),
+            NodeId, ParmName.c_str(), &ParmId ), false );
+
+        if ( ( ParmId >= 0 ) && ( ParmId < NodeParams.Num() ) )
+            return ParmId;
+    }
+
+    return -1;
+}
+
+
 bool
 FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
     HAPI_NodeId NodeId, const std::string ParmName, float DefaultValue, float & OutValue )
@@ -1229,27 +1267,12 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
     float Value = DefaultValue;
     bool bComputed = false;
 
-    HAPI_NodeInfo NodeInfo;
-    FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
-
-    TArray< HAPI_ParmInfo > NodeParams;
-    NodeParams.SetNumUninitialized( NodeInfo.parmCount );
-    FHoudiniApi::GetParameters(
-        FHoudiniEngine::Get().GetSession(), NodeInfo.id, &NodeParams[ 0 ], 0, NodeInfo.parmCount );
-
-    // Get names of parameters.
-    TArray< std::string > NodeParamNames;
-    FHoudiniEngineUtils::HapiRetrieveParameterNames( NodeParams, NodeParamNames );
-
-    // See if parameter is present.
-    int32 ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName( ParmName, NodeParamNames );
-
-    if ( ParmNameIdx != -1 )
+    HAPI_ParmInfo FoundParamInfo;
+    if ( FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo ) )
     {
-        HAPI_ParmInfo& ParmInfo = NodeParams[ ParmNameIdx ];
-        if ( FHoudiniApi::GetParmFloatValues(
+        if (FHoudiniApi::GetParmFloatValues(
             FHoudiniEngine::Get().GetSession(), NodeId, &Value,
-            ParmInfo.floatValuesIndex, 1 ) == HAPI_RESULT_SUCCESS )
+            FoundParamInfo.floatValuesIndex, 1 ) == HAPI_RESULT_SUCCESS )
         {
             bComputed = true;
         }
@@ -1266,27 +1289,12 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
     int32 Value = DefaultValue;
     bool bComputed = false;
 
-    HAPI_NodeInfo NodeInfo;
-    FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
-    
-    TArray<HAPI_ParmInfo> NodeParams;
-    NodeParams.SetNumUninitialized( NodeInfo.parmCount );
-    FHoudiniApi::GetParameters(
-        FHoudiniEngine::Get().GetSession(), NodeInfo.id, &NodeParams[ 0 ], 0, NodeInfo.parmCount );
-
-    // Get names of parameters.
-    TArray< std::string > NodeParamNames;
-    FHoudiniEngineUtils::HapiRetrieveParameterNames( NodeParams, NodeParamNames );
-
-    // See if parameter is present.
-    int32 ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName( ParmName, NodeParamNames );
-
-    if ( ParmNameIdx != -1 )
+    HAPI_ParmInfo FoundParamInfo;
+    if ( FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo ) )
     {
-        HAPI_ParmInfo & ParmInfo = NodeParams[ ParmNameIdx ];
         if ( FHoudiniApi::GetParmIntValues(
             FHoudiniEngine::Get().GetSession(), NodeId, &Value,
-            ParmInfo.intValuesIndex, 1 ) == HAPI_RESULT_SUCCESS )
+            FoundParamInfo.intValuesIndex, 1 ) == HAPI_RESULT_SUCCESS )
         {
             bComputed = true;
         }
@@ -1304,29 +1312,13 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
     FString Value;
     bool bComputed = false;
 
-    HAPI_NodeInfo NodeInfo;
-    FHoudiniApi::GetNodeInfo( FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo );
-
-    TArray< HAPI_ParmInfo > NodeParams;
-    NodeParams.SetNumUninitialized( NodeInfo.parmCount );
-    FHoudiniApi::GetParameters(
-        FHoudiniEngine::Get().GetSession(), NodeInfo.id, &NodeParams[ 0 ], 0, NodeInfo.parmCount );
-
-    // Get names of parameters.
-    TArray< std::string > NodeParamNames;
-    FHoudiniEngineUtils::HapiRetrieveParameterNames( NodeParams, NodeParamNames );
-
-    // See if parameter is present.
-    int32 ParmNameIdx = FHoudiniEngineUtils::HapiFindParameterByName( ParmName, NodeParamNames );
-
-    if ( ParmNameIdx != -1 )
+    HAPI_ParmInfo FoundParamInfo;
+    if ( FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo ) )
     {
-        HAPI_ParmInfo & ParmInfo = NodeParams[ ParmNameIdx ];
         HAPI_StringHandle StringHandle;
-
         if ( FHoudiniApi::GetParmStringValues(
             FHoudiniEngine::Get().GetSession(), NodeId, false,
-            &StringHandle, ParmInfo.stringValuesIndex, 1 ) == HAPI_RESULT_SUCCESS )
+            &StringHandle, FoundParamInfo.stringValuesIndex, 1 ) == HAPI_RESULT_SUCCESS )
         {
             FHoudiniEngineString HoudiniEngineString( StringHandle );
             if ( HoudiniEngineString.ToFString( Value ) )
@@ -6135,10 +6127,6 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             FHoudiniApi::GetParameters(
                 FHoudiniEngine::Get().GetSession(), NodeInfo.id, &NodeParams[ 0 ], 0, NodeInfo.parmCount);
 
-            // Get names of parameters.
-            TArray< std::string > NodeParamNames;
-            FHoudiniEngineUtils::HapiRetrieveParameterNames( NodeParams, NodeParamNames );
-
             // Reset material expressions.
             Material->Expressions.Empty();
 
@@ -6151,35 +6139,35 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
             // Extract diffuse plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract opacity plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacity(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract opacity mask plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract normal plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentNormal(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract specular plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentSpecular(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract roughness plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentRoughness(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract metallic plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentMetallic(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract emissive plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentEmissive(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, NodeParamNames, MaterialNodeY );
+                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Set other material properties.
             Material->TwoSided = true;
@@ -6194,7 +6182,6 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             // Propagate and trigger material updates.
             if ( bCreatedNewMaterial )
                 FAssetRegistryModule::AssetCreated( Material );
-
 
             Material->PreEditChange( nullptr );
             Material->PostEditChange();
@@ -6217,7 +6204,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams, const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY)
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -6317,7 +6304,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
 
     // See if diffuse texture is available.
     int32 ParmDiffuseTextureIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_DIFFUSE_0 );
 
     if ( ParmDiffuseTextureIdx >= 0 )
     {
@@ -6326,7 +6313,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
     else
     {
         ParmDiffuseTextureIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_DIFFUSE_1 );
 
         if ( ParmDiffuseTextureIdx >= 0 )
             GeneratingParameterNameDiffuseTexture = TEXT( HAPI_UNREAL_PARAM_MAP_DIFFUSE_1 );
@@ -6334,7 +6321,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
 
     // See if uniform color is available.
     int32 ParmDiffuseColorIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_COLOR_DIFFUSE_0 );
 
     if ( ParmDiffuseColorIdx >= 0 )
     {
@@ -6343,7 +6330,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
     else
     {
         ParmDiffuseColorIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1 );
 
         if ( ParmDiffuseColorIdx >= 0 )
             GeneratingParameterNameUniformColor = TEXT( HAPI_UNREAL_PARAM_COLOR_DIFFUSE_1 );
@@ -6560,8 +6547,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams,
-    const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY )
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -6585,7 +6571,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
 
     // See if opacity texture is available.
     int32 ParmOpacityTextureIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_OPACITY_1, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_OPACITY_1 );
 
     if ( ParmOpacityTextureIdx >= 0 )
         GeneratingParameterNameTexture = TEXT( HAPI_UNREAL_PARAM_MAP_OPACITY_1 );
@@ -6721,8 +6707,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentOpacity(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams,
-    const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY )
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -6778,7 +6763,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(
 
     // Retrieve opacity uniform parameter.
     int32 ParmOpacityValueIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_ALPHA, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_ALPHA );
 
     if ( ParmOpacityValueIdx >= 0 )
     {
@@ -6891,8 +6876,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentNormal(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams,
-    const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY)
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
     bool bExpressionCreated = false;
     bool bTangentSpaceNormal = true;
@@ -6911,7 +6895,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
 
     // See if separate normal texture is available.
     int32 ParmNameNormalIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_NORMAL_0, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_NORMAL_0 );
 
     if ( ParmNameNormalIdx >= 0 )
     {
@@ -6920,7 +6904,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
     else
     {
         ParmNameNormalIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_NORMAL_1, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_NORMAL_1 );
 
         if ( ParmNameNormalIdx >= 0 )
             GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_MAP_NORMAL_1 );
@@ -6930,7 +6914,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
     {
         // Retrieve space for this normal texture.
         int32 ParmNormalTypeIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_NORMAL_TYPE );
 
         // Retrieve value for normal type choice list (if exists).
 
@@ -7056,7 +7040,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
     {
         // See if diffuse texture is available.
         int32 ParmNameBaseIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_DIFFUSE_0, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_DIFFUSE_0 );
 
         if ( ParmNameBaseIdx >= 0 )
         {
@@ -7065,7 +7049,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
         else
         {
             ParmNameBaseIdx =
-                FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_DIFFUSE_1, NodeParamNames );
+                FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_DIFFUSE_1 );
 
             if ( ParmNameBaseIdx >= 0 )
                 GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_MAP_DIFFUSE_1 );
@@ -7181,7 +7165,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentSpecular(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams, const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY )
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -7199,7 +7183,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
 
     // See if specular texture is available.
     int32 ParmNameSpecularIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_SPECULAR_0, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_SPECULAR_0 );
 
     if ( ParmNameSpecularIdx >= 0 )
     {
@@ -7208,7 +7192,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
     else
     {
         ParmNameSpecularIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_SPECULAR_1, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_SPECULAR_1 );
 
         if ( ParmNameSpecularIdx >= 0 )
             GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_MAP_SPECULAR_1 );
@@ -7307,7 +7291,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
     }
 
     int32 ParmNameSpecularColorIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_COLOR_SPECULAR_0, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_COLOR_SPECULAR_0 );
 
     if( ParmNameSpecularColorIdx >= 0 )
     {
@@ -7316,7 +7300,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
     else
     {
         ParmNameSpecularColorIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_COLOR_SPECULAR_1, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_COLOR_SPECULAR_1 );
 
         if ( ParmNameSpecularColorIdx >= 0 )
             GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_COLOR_SPECULAR_1 );
@@ -7379,7 +7363,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentRoughness(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams, const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY)
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -7397,7 +7381,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
 
     // See if roughness texture is available.
     int32 ParmNameRoughnessIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_ROUGHNESS_0, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_ROUGHNESS_0 );
 
     if ( ParmNameRoughnessIdx >= 0 )
     {
@@ -7406,7 +7390,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
     else
     {
         ParmNameRoughnessIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1 );
 
         if ( ParmNameRoughnessIdx >= 0 )
             GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_MAP_ROUGHNESS_1 );
@@ -7503,7 +7487,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
     }
 
     int32 ParmNameRoughnessValueIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_0 );
 
     if ( ParmNameRoughnessValueIdx >= 0 )
     {
@@ -7512,7 +7496,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
     else
     {
         ParmNameRoughnessValueIdx =
-            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1, NodeParamNames );
+            FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1 );
 
         if ( ParmNameRoughnessValueIdx >= 0 )
             GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_1 );
@@ -7577,8 +7561,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentMetallic(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams,
-    const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY)
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -7596,7 +7579,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
 
     // See if metallic texture is available.
     int32 ParmNameMetallicIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_METALLIC, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_MAP_METALLIC );
 
     if ( ParmNameMetallicIdx >= 0 )
     {
@@ -7694,7 +7677,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
     }
 
     int32 ParmNameMetallicValueIdx =
-        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_VALUE_METALLIC, NodeParamNames );
+        FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeParams, NodeInfo.id, HAPI_UNREAL_PARAM_VALUE_METALLIC );
 
     if ( ParmNameMetallicValueIdx >= 0 )
         GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_VALUE_METALLIC );
@@ -7759,8 +7742,7 @@ bool
 FHoudiniEngineUtils::CreateMaterialComponentEmissive(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams,
-    const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY )
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     return true;
 }
