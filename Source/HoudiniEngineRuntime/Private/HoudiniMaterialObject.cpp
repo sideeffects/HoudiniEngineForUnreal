@@ -34,7 +34,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject()
 FHoudiniMaterialObject::FHoudiniMaterialObject( const HAPI_MaterialInfo & MaterialInfo )
     : AssetId( MaterialInfo.assetId )
     , NodeId( MaterialInfo.nodeId )
-    , MaterialId( MaterialInfo.id )
+    , MaterialId( MaterialInfo.nodeId )
     , HoudiniMaterialObjectFlagsPacked( 0u )
     , HoudiniMaterialObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -274,10 +274,10 @@ FHoudiniMaterialObject::CreateMaterialPackage(
     FString MaterialDescriptor = TEXT( "" );
     if ( bBake )
         MaterialDescriptor =
-            HoudiniAsset->GetName() + TEXT("_material_") + FString::FromInt( MaterialInfo.id ) + TEXT( "_" );
+            HoudiniAsset->GetName() + TEXT("_material_") + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
         MaterialDescriptor =
-            HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt(MaterialInfo.id) + TEXT( "_" );
+            HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt(MaterialInfo.nodeId) + TEXT( "_" );
 
     FGuid BakeGUID = FGuid::NewGuid();
     const FGuid& ComponentGUID = HoudiniAssetComponent->GetComponentGuid();

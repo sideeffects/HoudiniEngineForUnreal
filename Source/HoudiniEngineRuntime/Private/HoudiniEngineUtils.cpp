@@ -994,14 +994,14 @@ FHoudiniEngineUtils::HapiGetImagePlanes(
 
     if ( FHoudiniApi::RenderTextureToImage(
         FHoudiniEngine::Get().GetSession(),
-        MaterialInfo.id, NodeParmId ) != HAPI_RESULT_SUCCESS )
+        MaterialInfo.nodeId, NodeParmId ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
 
     if ( FHoudiniApi::GetImagePlaneCount(
         FHoudiniEngine::Get().GetSession(),
-        MaterialInfo.id, &ImagePlaneCount ) != HAPI_RESULT_SUCCESS )
+        MaterialInfo.nodeId, &ImagePlaneCount ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
@@ -1014,7 +1014,7 @@ FHoudiniEngineUtils::HapiGetImagePlanes(
 
     if ( FHoudiniApi::GetImagePlanes(
         FHoudiniEngine::Get().GetSession(),
-        MaterialInfo.id, &ImagePlaneStringHandles[ 0 ], ImagePlaneCount ) != HAPI_RESULT_SUCCESS )
+        MaterialInfo.nodeId, &ImagePlaneStringHandles[ 0 ], ImagePlaneCount ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
@@ -1040,7 +1040,7 @@ FHoudiniEngineUtils::HapiExtractImage(
     {
         if ( FHoudiniApi::RenderTextureToImage(
             FHoudiniEngine::Get().GetSession(),
-            MaterialInfo.id, NodeParmId ) != HAPI_RESULT_SUCCESS )
+            MaterialInfo.nodeId, NodeParmId ) != HAPI_RESULT_SUCCESS )
         {
             return false;
         }
@@ -1050,7 +1050,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 
     if ( FHoudiniApi::GetImageInfo(
         FHoudiniEngine::Get().GetSession(),
-        MaterialInfo.id, &ImageInfo ) != HAPI_RESULT_SUCCESS )
+        MaterialInfo.nodeId, &ImageInfo ) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
@@ -1061,7 +1061,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 
     if ( FHoudiniApi::SetImageInfo(
         FHoudiniEngine::Get().GetSession(),
-        MaterialInfo.id, &ImageInfo) != HAPI_RESULT_SUCCESS )
+        MaterialInfo.nodeId, &ImageInfo) != HAPI_RESULT_SUCCESS )
     {
         return false;
     }
@@ -1070,7 +1070,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 
     if ( FHoudiniApi::ExtractImageToMemory(
         FHoudiniEngine::Get().GetSession(),
-        MaterialInfo.id, HAPI_RAW_FORMAT_NAME,
+        MaterialInfo.nodeId, HAPI_RAW_FORMAT_NAME,
         PlaneType, &ImageBufferSize ) != HAPI_RESULT_SUCCESS )
     {
         return false;
@@ -1083,7 +1083,7 @@ FHoudiniEngineUtils::HapiExtractImage(
 
     if ( FHoudiniApi::GetImageMemoryBuffer(
         FHoudiniEngine::Get().GetSession(),
-        MaterialInfo.id, &ImageBuffer[ 0 ],
+        MaterialInfo.nodeId, &ImageBuffer[ 0 ],
         ImageBufferSize ) != HAPI_RESULT_SUCCESS )
     {
         return false;
@@ -3967,9 +3967,9 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
     FString MaterialDescriptor;
 
     if ( bBake )
-        MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.id ) + TEXT( "_" );
+        MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
-        MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.id ) + TEXT( "_" );
+        MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
 
     return FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
         HoudiniAssetComponent, MaterialDescriptor,
@@ -4070,12 +4070,12 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
 
     if ( bBake )
     {
-        TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT( "_texture_" ) + FString::FromInt( MaterialInfo.id ) +
+        TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT( "_texture_" ) + FString::FromInt( MaterialInfo.nodeId ) +
             TEXT( "_" ) + TextureType + TEXT( "_" );
     }
     else
     {
-        TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.id ) + TEXT( "_" ) +
+        TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" ) +
             TextureType + TEXT( "_" );
     }
 
@@ -4357,7 +4357,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // If this geo is a curve, we skip part processing.
                 FHoudiniGeoPartObject HoudiniGeoPartObject(
                     TransformMatrix, ObjectName, ObjectName, AssetId,
-                    ObjectInfo.id, GeoInfo.id, 0 );
+                    ObjectInfo.nodeId, GeoInfo.nodeId, 0 );
                 HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible;
                 HoudiniGeoPartObject.bIsInstancer = false;
                 HoudiniGeoPartObject.bIsCurve = true;
@@ -4376,7 +4376,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             // Get object / geo group memberships for primitives.
             TArray< FString > ObjectGeoGroupNames;
             if( ! FHoudiniEngineUtils::HapiGetGroupNames(
-                AssetId, ObjectInfo.id, GeoId, HAPI_GROUPTYPE_PRIM,
+                AssetId, ObjectInfo.nodeId, GeoId, HAPI_GROUPTYPE_PRIM,
                 ObjectGeoGroupNames ) )
             {
                 HOUDINI_LOG_MESSAGE( TEXT( "Creating Static Meshes: Object [%d %s] non-fatal error reading group names" ), 
@@ -4417,7 +4417,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 FString PartName = TEXT( "" );
 
                 if ( FHoudiniApi::GetPartInfo(
-                    FHoudiniEngine::Get().GetSession(), GeoInfo.id, PartIdx,
+                    FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartIdx,
                     &PartInfo ) != HAPI_RESULT_SUCCESS )
                 {
                     // Error retrieving part info.
@@ -4437,7 +4437,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // This is a Packed Primitive instancer
                     FHoudiniGeoPartObject HoudiniGeoPartObject(
                         TransformMatrix, ObjectName, PartName, AssetId,
-                        ObjectInfo.id, GeoInfo.id, PartInfo.id );
+                        ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
                     HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
                     HoudiniGeoPartObject.bIsInstancer = false;
                     HoudiniGeoPartObject.bIsCurve = false;
@@ -4452,7 +4452,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Volume Data, this is a Terrain?
                     FHoudiniGeoPartObject HoudiniGeoPartObject(
                         TransformMatrix, ObjectName, PartName, AssetId,
-                        ObjectInfo.id, GeoInfo.id, PartInfo.id );
+                        ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
 
                     HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !ObjectInfo.isInstanced;
                     HoudiniGeoPartObject.bIsInstancer = false;
@@ -4484,7 +4484,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
 
                     FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                        AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id,
+                        AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id,
                         MarshallingAttributeName.c_str(), AttribGeneratedMeshName, GeneratedMeshNames );
                 }
 
@@ -4510,7 +4510,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
                         FHoudiniEngine::Get().GetSession(),
-                        GeoInfo.id, PartInfo.id, &bSingleFaceMaterial,
+                        GeoInfo.nodeId, PartInfo.id, &bSingleFaceMaterial,
                         &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) != HAPI_RESULT_SUCCESS )
                     {
                         // Error retrieving material face assignments.
@@ -4557,7 +4557,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Create geo part object identifier.
                 FHoudiniGeoPartObject HoudiniGeoPartObject(
                     TransformMatrix, ObjectName, PartName, AssetId,
-                    ObjectInfo.id, GeoInfo.id, PartInfo.id );
+                    ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
 
                 HoudiniGeoPartObject.bIsVisible = ObjectInfo.isVisible && !PartInfo.isInstanced;
                 HoudiniGeoPartObject.bIsInstancer = ObjectInfo.isInstancer;
@@ -4604,7 +4604,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             TArray< FString > InstancerAttribMaterials;
 
                             FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                                AssetId, ObjectInfo.id, GeoInfo.id,
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                                 PartInfo.id, MarshallingAttributeNameMaterial.c_str(), AttribInstancerAttribMaterials,
                                 InstancerAttribMaterials );
 
@@ -4655,7 +4655,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 VertexList.SetNumUninitialized( PartInfo.vertexCount );
 
                 if ( FHoudiniApi::GetVertexList(
-                    FHoudiniEngine::Get().GetSession(), GeoInfo.id, PartInfo.id,
+                    FHoudiniEngine::Get().GetSession(), GeoInfo.nodeId, PartInfo.id,
                     &VertexList[ 0 ], 0, PartInfo.vertexCount ) != HAPI_RESULT_SUCCESS )
                 {
                     // Error getting the vertex list.
@@ -4704,7 +4704,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                             // Extract vertex indices for this split.
                             GroupVertexListCount = FHoudiniEngineUtils::HapiGetVertexListForGroup(
-                                AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, GroupName, VertexList, GroupVertexList,
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, GroupName, VertexList, GroupVertexList,
                                 AllCollisionVertexList, AllFaceList, AllCollisionFaceIndices );
 
                             if ( GroupVertexListCount > 0 )
@@ -4923,7 +4923,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     {
                         // Retrieve position data.
                         if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.id, GeoInfo.id,
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                             PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
                         {
                             // Error retrieving positions.
@@ -4940,14 +4940,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         // Get lightmap resolution (if present).
                         FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-                            AssetId, ObjectInfo.id, GeoInfo.id,
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                             PartInfo.id, MarshallingAttributeNameLightmapResolution.c_str(),
                             AttribLightmapResolution, LightMapResolutions );
 
                         // Get name of attribute used for marshalling materials.
                         {
                             FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                                AssetId, ObjectInfo.id, GeoInfo.id,
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                                 PartInfo.id, MarshallingAttributeNameMaterial.c_str(),
                                 AttribFaceMaterials, FaceMaterials );
 
@@ -4956,7 +4956,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             {
                                 FaceMaterials.Empty();
                                 FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-                                    AssetId, ObjectInfo.id, GeoInfo.id,
+                                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                                     PartInfo.id, MarshallingAttributeNameMaterialFallback.c_str(),
                                     AttribFaceMaterials, FaceMaterials );
                             }
@@ -4972,7 +4972,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         // Retrieve color data.
                         FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.id, GeoInfo.id,
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                             PartInfo.id, HAPI_UNREAL_ATTRIB_COLOR, AttribInfoColors, Colors );
 
                         // See if we need to transfer color point attributes to vertex attributes.
@@ -4982,12 +4982,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         // Retrieve normal data.
                         FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.id, GeoInfo.id,
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                             PartInfo.id, HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals );
 
                         // Retrieve face smoothing data.
                         FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-                            AssetId, ObjectInfo.id, GeoInfo.id,
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
                             PartInfo.id, MarshallingAttributeNameFaceSmoothingMask.c_str(),
                             AttribInfoFaceSmoothingMasks, FaceSmoothingMasks );
 
@@ -5005,7 +5005,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                             const char * UVAttributeNameString = UVAttributeName.c_str();
                             FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                                AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, UVAttributeNameString,
+                                AssetId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id, UVAttributeNameString,
                                 AttribInfoUVs[ TexCoordIdx ], TextureCoordinates[ TexCoordIdx ], 2 );
 
                             // See if we need to transfer uv point attributes to vertex attributes.
@@ -6399,7 +6399,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
             HAPI_ImageInfo ImageInfo;
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
-                MaterialInfo.id, &ImageInfo );
+                MaterialInfo.nodeId, &ImageInfo );
 
             if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
             {
@@ -6636,7 +6636,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
             HAPI_ImageInfo ImageInfo;
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
-                MaterialInfo.id, &ImageInfo );
+                MaterialInfo.nodeId, &ImageInfo );
 
             if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
             {
@@ -6991,7 +6991,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
             HAPI_ImageInfo ImageInfo;
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
-                MaterialInfo.id, &ImageInfo );
+                MaterialInfo.nodeId, &ImageInfo );
 
             if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
             {
@@ -7107,7 +7107,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                 HAPI_ImageInfo ImageInfo;
                 Result = FHoudiniApi::GetImageInfo(
                     FHoudiniEngine::Get().GetSession(),
-                    MaterialInfo.id, &ImageInfo );
+                    MaterialInfo.nodeId, &ImageInfo );
 
                 if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
                 {
@@ -7248,7 +7248,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
             HAPI_ImageInfo ImageInfo;
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
-                MaterialInfo.id, &ImageInfo );
+                MaterialInfo.nodeId, &ImageInfo );
 
             if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
             {
@@ -7446,7 +7446,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
             HAPI_ImageInfo ImageInfo;
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
-                MaterialInfo.id, &ImageInfo );
+                MaterialInfo.nodeId, &ImageInfo );
 
             if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
             {
@@ -7637,7 +7637,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
             HAPI_ImageInfo ImageInfo;
             Result = FHoudiniApi::GetImageInfo(
                 FHoudiniEngine::Get().GetSession(),
-                MaterialInfo.id, &ImageInfo );
+                MaterialInfo.nodeId, &ImageInfo );
 
             if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
             {
@@ -8371,7 +8371,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
     InstancerMaterialMap.Empty();
 
     TArray< HAPI_ObjectInfo > ObjectInfos;
-    if ( !HapiGetObjectInfos( AssetInfo.id, ObjectInfos ) )
+    if ( !HapiGetObjectInfos( AssetInfo.nodeId, ObjectInfos ) )
         return false;
     const int32 ObjectCount = ObjectInfos.Num();
 
@@ -8402,7 +8402,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
 
                 if ( FHoudiniApi::GetPartInfo(
                     FHoudiniEngine::Get().GetSession(),
-                    GeoInfo.id, PartIdx, &PartInfo ) != HAPI_RESULT_SUCCESS )
+                    GeoInfo.nodeId, PartIdx, &PartInfo ) != HAPI_RESULT_SUCCESS )
                 {
                     continue;
                 }
@@ -8418,7 +8418,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
 
                     if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
                         FHoudiniEngine::Get().GetSession(),
-                        GeoInfo.id, PartInfo.id, &bSingleFaceMaterial,
+                        GeoInfo.nodeId, PartInfo.id, &bSingleFaceMaterial,
                         &FaceMaterialIds[ 0 ], 0, PartInfo.faceCount ) != HAPI_RESULT_SUCCESS )
                     {
                         continue;
@@ -8435,7 +8435,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
 
                         if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
                             FHoudiniEngine::Get().GetSession(),
-                            GeoInfo.id, PartInfo.id, &bSingleFaceMaterial,
+                            GeoInfo.nodeId, PartInfo.id, &bSingleFaceMaterial,
                             &InstanceMaterialId, 0, 1 ) != HAPI_RESULT_SUCCESS )
                         {
                             continue;
@@ -8445,7 +8445,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
 
                         if ( InstanceMaterialId != -1 )
                         {
-                            FHoudiniGeoPartObject GeoPartObject( AssetInfo.id, ObjectInfo.id, GeoInfo.id, PartInfo.id );
+                            FHoudiniGeoPartObject GeoPartObject( AssetInfo.nodeId, ObjectInfo.nodeId, GeoInfo.nodeId, PartInfo.id );
                             InstancerMaterialMap.Add( GeoPartObject, InstanceMaterialId );
 
                             InstancerMaterialIds.Add( InstanceMaterialId );

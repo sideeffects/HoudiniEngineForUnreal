@@ -466,13 +466,13 @@ UHoudiniAssetInstance::GetGeoPartObjects( TArray< FHoudiniGeoPartObject > & InGe
         HoudiniEngineStringObjectName.ToFString( ObjectName );
 
         HAPI_GeoInfo GeoInfo;
-        if ( !HapiGetDisplayGeoInfo( ObjectInfo.id, GeoInfo ) )
+        if ( !HapiGetDisplayGeoInfo( ObjectInfo.nodeId, GeoInfo ) )
             continue;
 
         for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
         {
             HAPI_PartInfo PartInfo;
-            if ( !HapiGetPartInfo( ObjectInfo.id, GeoInfo.id, PartIdx, PartInfo ) )
+            if ( !HapiGetPartInfo( ObjectInfo.nodeId, GeoInfo.nodeId, PartIdx, PartInfo ) )
                 continue;
 
             FString PartName = TEXT( "" );
@@ -480,8 +480,8 @@ UHoudiniAssetInstance::GetGeoPartObjects( TArray< FHoudiniGeoPartObject > & InGe
             HoudiniEngineStringPartName.ToFString( PartName );
 
             InGeoPartObjects.Add( FHoudiniGeoPartObject(
-                ObjectTransform, ObjectName, PartName, AssetId, ObjectInfo.id,
-                GeoInfo.id, PartInfo.id ) );
+                ObjectTransform, ObjectName, PartName, AssetId, ObjectInfo.nodeId,
+                GeoInfo.nodeId, PartInfo.id ) );
         }
     }
 
