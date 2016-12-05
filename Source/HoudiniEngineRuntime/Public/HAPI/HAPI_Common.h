@@ -137,7 +137,6 @@ typedef HAPI_Int64 HAPI_SessionId;
 typedef int HAPI_StringHandle;
 
 typedef int HAPI_AssetLibraryId;
-typedef int HAPI_AssetId;
 
 /// See @ref HAPI_Nodes_Basics.
 typedef int HAPI_NodeId;
@@ -146,19 +145,9 @@ typedef int HAPI_NodeId;
 /// See @ref HAPI_Parameters.
 typedef int HAPI_ParmId;
 
-/// Use this with ::HAPI_GetObjects().
-/// See @ref HAPI_ObjectsGeosParts_Objects.
-typedef int HAPI_ObjectId;
-
-/// Use this with ::HAPI_GetGeoInfo().
-/// See @ref HAPI_ObjectsGeosParts_Geos.
-typedef int HAPI_GeoId;
-
 /// Use this with ::HAPI_GetPartInfo().
 /// See @ref HAPI_ObjectsGeosParts_Parts.
 typedef int HAPI_PartId;
-
-typedef int HAPI_MaterialId;
 
 /////////////////////////////////////////////////////////////////////////////
 // Enums
@@ -783,7 +772,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions )
 
 struct HAPI_API HAPI_AssetInfo
 {
-    HAPI_AssetId id;
+    HAPI_NodeId id;
 
     /// The houdini asset type. There may be all sorts of different assets
     /// in Houdini, corresponding to the type of data that flows in that
@@ -939,7 +928,7 @@ struct HAPI_API HAPI_NodeInfo
 {
     HAPI_NodeId id;
     HAPI_NodeId parentId;
-    HAPI_AssetId assetId;
+    HAPI_NodeId assetId;
     HAPI_StringHandle nameSH;
     HAPI_NodeType type;
 
@@ -1191,7 +1180,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_HandleBindingInfo )
 
 struct HAPI_API HAPI_ObjectInfo
 {
-    HAPI_ObjectId id;
+    HAPI_NodeId id;
 
     HAPI_StringHandle nameSH;
     HAPI_StringHandle objectInstancePathSH;
@@ -1234,7 +1223,7 @@ struct HAPI_API HAPI_ObjectInfo
     /// If the object is an instancer, this variable gives the object id of
     /// the object that should be instanced.
     /// See @ref HAPI_Instancing.
-    HAPI_ObjectId objectToInstanceId;
+    HAPI_NodeId objectToInstanceId;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_ObjectInfo )
 
@@ -1242,7 +1231,7 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_ObjectInfo )
 
 struct HAPI_API HAPI_GeoInfo
 {
-    HAPI_GeoId id;
+    HAPI_NodeId id;
     HAPI_GeoType type;
     HAPI_StringHandle nameSH;
 
@@ -1285,8 +1274,8 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInfo )
 
 struct HAPI_API HAPI_GeoInputInfo
 {
-    HAPI_ObjectId objectId;
-    HAPI_GeoId geoId;
+    HAPI_NodeId objectId;
+    HAPI_NodeId geoId;
     HAPI_NodeId objectNodeId;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInputInfo )
@@ -1368,8 +1357,8 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_AttributeInfo )
 
 struct HAPI_API HAPI_MaterialInfo
 {
-    HAPI_MaterialId id;
-    HAPI_AssetId assetId;
+    HAPI_NodeId id;
+    HAPI_NodeId assetId;
 
     /// This is the HAPI node id for the SHOP node this material is attached
     /// to. Use it to get access to the parameters (which contain the

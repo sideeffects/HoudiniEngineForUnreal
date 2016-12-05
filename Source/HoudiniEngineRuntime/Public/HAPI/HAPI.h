@@ -3679,7 +3679,7 @@ HAPI_DECL HAPI_RevertGeo( const HAPI_Session * session,
 ///                 same material assignment. You can pass NULL here.
 ///
 /// @param[out]     material_ids_array
-///                 An array of ::HAPI_MaterialId at least the size of
+///                 An array of ::HAPI_NodeId at least the size of
 ///                 @p length and at most the size of
 ///                 ::HAPI_PartInfo::faceCount.
 ///
