@@ -784,23 +784,6 @@ struct HAPI_API HAPI_AssetInfo
     /// .otl files, such as curves.
     HAPI_AssetSubType subType;
 
-    /// This id is primarily used to check whether the asset still exists
-    /// within the Houdini scene running inside the runtime. The asset id
-    /// alone is not enough as asset ids are re-used between sessions.
-    /// We use this id to determine whether we need to re-instantiate an asset
-    /// we have on the client side so that Houdini also knows about it -
-    /// which is different from the case where a new asset is being loaded
-    /// for the first time.
-    ///
-    /// The best example is saving and loading a scene in the host application.
-    /// The host would need to restore the underlying Houdini scene. However,
-    /// in the saved information, the host would have seemingly valid asset
-    /// ids and would have no way of know if those ids are from the current
-    /// session or a previous session. Using this validation id and
-    /// HAPI_IsAssetValid(), the host can check if the asset ids it has are
-    /// valid.
-    int validationId;
-
     /// Use the node id to get the asset's parameters.
     /// See @ref HAPI_Nodes_Basics.
     HAPI_NodeId nodeId;
@@ -926,7 +909,6 @@ struct HAPI_API HAPI_NodeInfo
 {
     HAPI_NodeId id;
     HAPI_NodeId parentId;
-    HAPI_NodeId assetId;
     HAPI_StringHandle nameSH;
     HAPI_NodeType type;
 
@@ -1352,8 +1334,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_AttributeInfo )
 
 struct HAPI_API HAPI_MaterialInfo
 {
-    HAPI_NodeId assetId;
-
     /// This is the HAPI node id for the SHOP node this material is attached
     /// to. Use it to get access to the parameters (which contain the
     /// texture paths).
