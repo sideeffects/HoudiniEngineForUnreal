@@ -3013,15 +3013,6 @@ UHoudiniAssetComponent::IsCookingEnabled() const
 void
 UHoudiniAssetComponent::PreEditUndo()
 {
-    Super::PreEditUndo();
-}
-
-void
-UHoudiniAssetComponent::PostEditUndo()
-{
-    // We need to make sure that all mesh components in the maps are valid ones
-    CleanUpAttachedStaticMeshComponents();
-
     // We need to make sure that the Mesh's resources are initialized after undo,
     // or a crash might happen in the RenderThread.
     for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
@@ -3033,6 +3024,15 @@ UHoudiniAssetComponent::PostEditUndo()
         StaticMesh->InitResources();
     }
 
+    Super::PreEditUndo();
+}
+
+void
+UHoudiniAssetComponent::PostEditUndo()
+{
+    // We need to make sure that all mesh components in the maps are valid ones
+    CleanUpAttachedStaticMeshComponents();
+    
     Super::PostEditUndo();
 }
 

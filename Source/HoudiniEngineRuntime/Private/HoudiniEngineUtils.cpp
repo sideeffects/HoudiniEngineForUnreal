@@ -1268,7 +1268,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
-    if ( FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo ) )
+    int32 ParmIndex = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
+    if ( ParmIndex > -1 )
     {
         if (FHoudiniApi::GetParmFloatValues(
             FHoudiniEngine::Get().GetSession(), NodeId, &Value,
@@ -1290,7 +1291,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
-    if ( FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo ) )
+    int32 ParmIndex = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
+    if ( ParmIndex > -1 )
     {
         if ( FHoudiniApi::GetParmIntValues(
             FHoudiniEngine::Get().GetSession(), NodeId, &Value,
@@ -1313,7 +1315,8 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
     bool bComputed = false;
 
     HAPI_ParmInfo FoundParamInfo;
-    if ( FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo ) )
+    int32 ParmIndex = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( NodeId, ParmName, FoundParamInfo );
+    if ( ParmIndex > -1 )
     {
         HAPI_StringHandle StringHandle;
         if ( FHoudiniApi::GetParmStringValues(
