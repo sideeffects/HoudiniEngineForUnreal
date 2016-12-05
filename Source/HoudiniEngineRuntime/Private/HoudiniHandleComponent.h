@@ -48,7 +48,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
 
     public:
         bool Construct(
-            HAPI_AssetId AssetId, int32 HandleIdx, const FString & HandleName,
+            HAPI_NodeId AssetId, int32 HandleIdx, const FString & HandleName,
             const HAPI_HandleInfo &, const TMap< HAPI_ParmId, UHoudiniAssetParameter * > & );
 
         void ResolveDuplicatedParameters( const TMap< HAPI_ParmId, UHoudiniAssetParameter * > & );

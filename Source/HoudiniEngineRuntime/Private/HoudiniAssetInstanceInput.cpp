@@ -47,7 +47,7 @@ UHoudiniAssetInstanceInput::Create(
         MarshallingAttributeInstanceOverride );
 
     // Get object to be instanced.
-    HAPI_ObjectId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
+    HAPI_NodeId ObjectToInstance = InHoudiniGeoPartObject.HapiObjectGetToInstanceId();
 
     bool bIsPackedPrimitiveInstancerLocal = InHoudiniGeoPartObject.IsPackedPrimitiveInstancer();
 
@@ -118,7 +118,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
     if ( !HoudiniAssetComponent )
         return false;
 
-    HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
 
     // Retrieve instance transforms (for each point).
     TArray< FTransform > AllTransforms;

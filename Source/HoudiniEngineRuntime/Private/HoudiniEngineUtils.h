@@ -62,22 +62,22 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool IsLicenseHoudiniEngineIndie();
 
         /** Return necessary buffer size to store preset information for a given asset. **/
-        static bool ComputeAssetPresetBufferLength( HAPI_AssetId AssetId, int32 & OutBufferLength );
+        static bool ComputeAssetPresetBufferLength( HAPI_NodeId AssetId, int32 & OutBufferLength );
 
         /** Sets preset data for a given asset. **/
-        static bool SetAssetPreset( HAPI_AssetId AssetId, const TArray< char > & PresetBuffer );
+        static bool SetAssetPreset( HAPI_NodeId AssetId, const TArray< char > & PresetBuffer );
 
         /** Gets preset data for a given asset. **/
-        static bool GetAssetPreset( HAPI_AssetId AssetId, TArray< char > & PresetBuffer );
+        static bool GetAssetPreset( HAPI_NodeId AssetId, TArray< char > & PresetBuffer );
 
         /** Return true if asset is valid. **/
-        static bool IsHoudiniAssetValid( HAPI_AssetId AssetId );
+        static bool IsHoudiniAssetValid( HAPI_NodeId AssetId );
 
         /** Destroy asset, returns the status. **/
-        static bool DestroyHoudiniAsset( HAPI_AssetId AssetId );
+        static bool DestroyHoudiniAsset( HAPI_NodeId AssetId );
 
         /** HAPI : Get unique material SHOP name. **/
-        static bool GetUniqueMaterialShopName( HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString & Name );
+        static bool GetUniqueMaterialShopName( HAPI_NodeId AssetId, HAPI_NodeId MaterialId, FString & Name );
 
         /** HAPI : Convert Unreal string to ascii one. **/
         static void ConvertUnrealString( const FString & UnrealString, std::string & String );
@@ -98,7 +98,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool SetCurrentTime( float CurrentTime );
 
         /** Return name of Houdini asset. **/
-        static bool GetHoudiniAssetName( HAPI_AssetId AssetId, FString & NameString );
+        static bool GetHoudiniAssetName( HAPI_NodeId AssetId, FString & NameString );
 
         /** Construct static meshes for a given Houdini asset. **/
         static bool CreateStaticMeshesFromHoudiniAsset(
@@ -166,87 +166,87 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const int32& NewSizeX, const int32& NewSizeY );
 
         /** HAPI : Return true if given asset id is valid. **/
-        static bool IsValidAssetId( HAPI_AssetId AssetId );
+        static bool IsValidAssetId( HAPI_NodeId AssetId );
 
         /** HAPI : Create curve for input. **/
-        static bool HapiCreateCurveNode( HAPI_AssetId & CurveNodeId );
+        static bool HapiCreateCurveNode( HAPI_NodeId & CurveNodeId );
 
         /** HAPI : Retrieve the asset node's object transform. **/
-        static bool HapiGetAssetTransform( HAPI_AssetId AssetId, FTransform & InTransform );
+        static bool HapiGetAssetTransform( HAPI_NodeId AssetId, FTransform & InTransform );
 
         /** HAPI : Retrieve Node id from given parameters. **/
-        static bool HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId & NodeId );
+        static bool HapiGetNodeId( HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_NodeId & NodeId );
 
         /** HAPI: Retrieve Path to the given Node, relative to the given Node */
         static bool HapiGetNodePath( HAPI_NodeId NodeId, HAPI_NodeId RelativeToNodeId, FString & OutPath );
 
         /** HAPI : Retrieve HAPI_ObjectInfo's from given asset node id. **/
-        static bool HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos );
+        static bool HapiGetObjectInfos( HAPI_NodeId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos );
 
         /** HAPI : Retrieve object transforms from given asset node id. **/
-        static bool HapiGetObjectTransforms( HAPI_AssetId AssetId, TArray< HAPI_Transform > & ObjectTransforms );
+        static bool HapiGetObjectTransforms( HAPI_NodeId AssetId, TArray< HAPI_Transform > & ObjectTransforms );
 
         /** HAPI : Marshalling, extract landscape geometry and upload it. Return true on success. **/
         static bool HapiCreateInputNodeForData(
-            HAPI_AssetId HostAssetId,
-            ALandscapeProxy * LandscapeProxy, HAPI_AssetId & ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
+            HAPI_NodeId HostAssetId,
+            ALandscapeProxy * LandscapeProxy, HAPI_NodeId & ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
             bool bExportMaterials, bool bExportFullGeometry, bool bExportLighting, bool bExportNormalizedUVs,
             bool bExportTileUVs );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
-            HAPI_AssetId HostAssetId, 
+            HAPI_NodeId HostAssetId, 
             UStaticMesh * Mesh,
-            HAPI_AssetId & ConnectedAssetId,
+            HAPI_NodeId & ConnectedAssetId,
             class UStaticMeshComponent* StaticMeshComponent = nullptr );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
-            HAPI_AssetId HostAssetId,
+            HAPI_NodeId HostAssetId,
             TArray<UObject *>& InputObjects,
-            HAPI_AssetId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
+            HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(
-            HAPI_AssetId HostAssetId,
+            HAPI_NodeId HostAssetId,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
-            HAPI_AssetId & ConnectedAssetId,
+            HAPI_NodeId & ConnectedAssetId,
             const float& SplineResolution = -1.0f);
 
         /** HAPI : Marshaling, extract points from the Unreal Spline and create an input curve for it - return true on success **/
         static bool HapiCreateInputNodeForData(
-            HAPI_AssetId HostAssetId,
+            HAPI_NodeId HostAssetId,
             USplineComponent * SplineComponent,
-            HAPI_AssetId & ConnectedAssetId,
+            HAPI_NodeId & ConnectedAssetId,
             FHoudiniAssetInputOutlinerMesh& OutlinerMesh,
             const float& fSplineResolution = -1.0f);
 
         static bool HapiCreateCurveInputNodeForData(
-            HAPI_AssetId HostAssetId,
-            HAPI_AssetId & ConnectedAssetId,
+            HAPI_NodeId HostAssetId,
+            HAPI_NodeId & ConnectedAssetId,
             TArray<FVector>* Positions,
             TArray<FQuat>* Rotations = nullptr,
             TArray<FVector>* Scales3d = nullptr,
             TArray<float>* UniformScales = nullptr);
 
         /** HAPI : Marshaling, disconnect input asset from a given slot. **/
-        static bool HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex );
+        static bool HapiDisconnectAsset( HAPI_NodeId HostAssetId, int32 InputIndex );
 
         /** HAPI : Marshaling, connect input asset to a given slot of host asset. **/
         static bool HapiConnectAsset(
-            HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex );
+            HAPI_NodeId AssetIdFrom, HAPI_NodeId ObjectIdFrom, HAPI_NodeId AssetIdTo, int32 InputIndex );
 
         /** HAPI : Set asset transform. **/
-        static bool HapiSetAssetTransform( HAPI_AssetId AssetId, const FTransform & Transform );
+        static bool HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransform & Transform );
 
         /** HAPI : Return all group names for a given Geo. **/
         static bool HapiGetGroupNames(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_GroupType GroupType, TArray< FString > & GroupNames );
 
         /** HAPI : Retrieve group membership. **/
         static bool HapiGetGroupMembership(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, HAPI_GroupType GroupType, const FString & GroupName,
             TArray< int32 > & GroupMembership );
 
@@ -261,19 +261,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
             HAPI_GroupType GroupType, const FString & GroupName );
         static bool HapiCheckGroupMembership(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, HAPI_GroupType GroupType, const FString & GroupName );
 
         /** HAPI : Check if given attribute exists. **/
         static bool HapiCheckAttributeExists(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name, HAPI_AttributeOwner Owner );
         static bool HapiCheckAttributeExists(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name, HAPI_AttributeOwner Owner );
 
         /** HAPI : Get attribute data as float. **/
         static bool HapiGetAttributeDataAsFloat(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< float > & Data,
             int32 TupleSize = 0 );
 
@@ -283,7 +283,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Get attribute data as integer. **/
         static bool HapiGetAttributeDataAsInteger(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char* Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< int32 > & Data,
             int32 TupleSize = 0 );
 
@@ -293,7 +293,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Get attribute data as string. **/
         static bool HapiGetAttributeDataAsString(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data,
             int32 TupleSize = 0 );
 
@@ -339,7 +339,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
         static void HapiCreateMaterials(
             UHoudiniAssetComponent * HoudiniAssetComponent, const HAPI_AssetInfo & AssetInfo,
-            const TSet< HAPI_MaterialId > & UniqueMaterialIds, const TSet< HAPI_MaterialId > & UniqueInstancerMaterialIds,
+            const TSet< HAPI_NodeId > & UniqueMaterialIds, const TSet< HAPI_NodeId > & UniqueInstancerMaterialIds,
             TMap< FString, UMaterialInterface * > & Materials );
 
 #if WITH_EDITOR
@@ -397,7 +397,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Retrieve instance transforms for a specified geo object. **/
         static bool HapiGetInstanceTransforms(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, TArray< FTransform > & Transforms );
 
         static bool HapiGetInstanceTransforms(
@@ -407,7 +407,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Given vertex list, retrieve new vertex list for a scpecified group.                                  **/
         /** Return number of processed valid index vertices for this split.                                             **/
         static int32 HapiGetVertexListForGroup(
-            HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const FString & GroupName, const TArray< int32 > & FullVertexList,
             TArray< int32 > & NewVertexList, TArray< int32 > & AllVertexList, TArray< int32 > & AllFaceList,
             TArray< int32 > & AllCollisionFaceIndices );
@@ -543,9 +543,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Extract all unique material ids for all geo object parts. **/
         static bool ExtractUniqueMaterialIds(
-            const HAPI_AssetInfo & AssetInfo, TSet< HAPI_MaterialId > & MaterialIds,
-            TSet< HAPI_MaterialId > & InstancerMaterialIds,
-            TMap< FHoudiniGeoPartObject, HAPI_MaterialId > & InstancerMaterialMap );
+            const HAPI_AssetInfo & AssetInfo, TSet< HAPI_NodeId > & MaterialIds,
+            TSet< HAPI_NodeId > & InstancerMaterialIds,
+            TMap< FHoudiniGeoPartObject, HAPI_NodeId > & InstancerMaterialMap );
 
         /** Helper function to locate first Material expression of given class within given expression subgraph. **/
         static UMaterialExpression * MaterialLocateExpression( UMaterialExpression * Expression, UClass * ExpressionClass );

@@ -69,7 +69,7 @@ AHoudiniAssetActor::Tick( float DeltaSeconds )
 
     if ( HoudiniAssetComponent->bTimeCookInPlaymode )
     {
-        HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+        HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
         if ( AssetId == -1 )
         {
             // If component is not instantiating or cooking, we can set time and force cook.

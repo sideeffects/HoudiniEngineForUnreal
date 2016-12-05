@@ -112,7 +112,7 @@ UHoudiniAssetInstance::Serialize( FArchive & Ar )
     Ar << Transform;
 
     /*
-    HAPI_AssetId AssetIdTemp = AssetId;
+    HAPI_NodeId AssetIdTemp = AssetId;
     Ar << AssetIdTemp;
 
     if ( Ar.IsLoading() )
@@ -204,7 +204,7 @@ UHoudiniAssetInstance::InstantiateAsset(
     double TimingStart = FPlatformTime::Seconds();
 
     // We instantiate without cooking.
-    HAPI_AssetId AssetIdNew = -1;
+    HAPI_NodeId AssetIdNew = -1;
     if ( FHoudiniApi::CreateNode(
         FHoudiniEngine::Get().GetSession(), -1,  &AssetNameString[ 0 ], nullptr, false, &AssetIdNew) != HAPI_RESULT_SUCCESS )
     {
@@ -617,7 +617,7 @@ UHoudiniAssetInstance::HapiGetAssetTransform( FTransform & InTransform ) const
 }
 
 bool
-UHoudiniAssetInstance::HapiGetDisplayGeoInfo( HAPI_ObjectId ObjectId, HAPI_GeoInfo & GeoInfo ) const
+UHoudiniAssetInstance::HapiGetDisplayGeoInfo( HAPI_NodeId ObjectId, HAPI_GeoInfo & GeoInfo ) const
 {
     FMemory::Memset< HAPI_GeoInfo >( GeoInfo, 0 );
 
@@ -635,7 +635,7 @@ UHoudiniAssetInstance::HapiGetDisplayGeoInfo( HAPI_ObjectId ObjectId, HAPI_GeoIn
 
 bool
 UHoudiniAssetInstance::HapiGetPartInfo(
-    HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, int32 PartIdx,
+    HAPI_NodeId ObjectId, HAPI_NodeId GeoId, int32 PartIdx,
     HAPI_PartInfo& PartInfo ) const
 {
     FMemory::Memset< HAPI_PartInfo >( PartInfo, 0 );

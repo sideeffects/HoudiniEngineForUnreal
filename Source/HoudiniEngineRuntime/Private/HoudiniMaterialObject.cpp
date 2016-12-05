@@ -40,9 +40,9 @@ FHoudiniMaterialObject::FHoudiniMaterialObject( const HAPI_MaterialInfo & Materi
 {}
 
 FHoudiniMaterialObject::FHoudiniMaterialObject(
-    HAPI_AssetId InAssetId,
+    HAPI_NodeId InAssetId,
     HAPI_NodeId InNodeId,
-    HAPI_MaterialId InMaterialId )
+    HAPI_NodeId InMaterialId )
     : AssetId( InAssetId )
     , NodeId( InNodeId )
     , MaterialId( InMaterialId )

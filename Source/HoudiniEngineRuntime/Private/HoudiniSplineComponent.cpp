@@ -234,7 +234,7 @@ UHoudiniSplineComponent::UpdatePoint( int32 PointIndex, const FTransform & Point
 void
 UHoudiniSplineComponent::UploadControlPoints()
 {
-    HAPI_AssetId HostAssetId = -1;
+    HAPI_NodeId HostAssetId = -1;
     HAPI_NodeId NodeId = -1;
     if (HoudiniGeoPartObject.IsValid())
     {

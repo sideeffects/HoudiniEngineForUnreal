@@ -67,7 +67,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(
 {}
 
 FHoudiniAttributeObject::FHoudiniAttributeObject(
-    HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
+    HAPI_NodeId InAssetId, HAPI_NodeId InObjectId, HAPI_NodeId InGeoId,
     HAPI_PartId InPartId, const char * InAttributeName,
     const HAPI_AttributeInfo & AttributeInfo )
     : ValueCount( 0 )
@@ -84,7 +84,7 @@ FHoudiniAttributeObject::FHoudiniAttributeObject(
 {}
 
 FHoudiniAttributeObject::FHoudiniAttributeObject(
-    HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
+    HAPI_NodeId InAssetId, HAPI_NodeId InObjectId, HAPI_NodeId InGeoId,
     HAPI_PartId InPartId, const FString & InAttributeName,
     const HAPI_AttributeInfo & AttributeInfo )
     : ValueCount( 0 )

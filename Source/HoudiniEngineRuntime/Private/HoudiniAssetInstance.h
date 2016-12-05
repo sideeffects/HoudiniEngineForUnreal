@@ -123,10 +123,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstance : public UObject
         bool HapiGetObjectTransforms( TArray< FTransform > & ObjectTransforms ) const;
 
         /** Retrieve the display geo info structure. **/
-        bool HapiGetDisplayGeoInfo( HAPI_ObjectId ObjectId, HAPI_GeoInfo & GeoInfo ) const;
+        bool HapiGetDisplayGeoInfo( HAPI_NodeId ObjectId, HAPI_GeoInfo & GeoInfo ) const;
 
         /** Retrieve part info structure. **/
-        bool HapiGetPartInfo( HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, int32 PartIdx, HAPI_PartInfo& PartInfo ) const;
+        bool HapiGetPartInfo( HAPI_NodeId ObjectId, HAPI_NodeId GeoId, int32 PartIdx, HAPI_PartInfo& PartInfo ) const;
 
         /** Retrieve all parameter info structures. **/
         bool HapiGetParmInfos( TArray< HAPI_ParmInfo > & ParmInfos ) const;
@@ -172,7 +172,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstance : public UObject
     protected:
 
         /** Id of instantiated asset. **/
-        volatile HAPI_AssetId AssetId;
+        volatile HAPI_NodeId AssetId;
 
         /** Number of times this asset has been cooked. **/
         volatile int32 AssetCookCount;

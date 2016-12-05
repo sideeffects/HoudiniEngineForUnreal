@@ -64,7 +64,7 @@ UHoudiniHandleComponent::~UHoudiniHandleComponent()
 
 bool
 UHoudiniHandleComponent::Construct(
-    HAPI_AssetId AssetId,
+    HAPI_NodeId AssetId,
     int32 HandleIdx,
     const FString & HandleName,
     const HAPI_HandleInfo & HandleInfo,
@@ -95,7 +95,7 @@ UHoudiniHandleComponent::Construct(
         FHoudiniEngineString HoudiniEngineString( BindingInfo.handleParmNameSH );
         HoudiniEngineString.ToFString( HandleParmName );
 
-        const HAPI_AssetId AssetParmId = BindingInfo.assetParmId;
+        const HAPI_NodeId AssetParmId = BindingInfo.assetParmId;
 
         (void)( XformParms[ EXformParameter::TX ].Bind( HapiEulerXform.position[ 0 ], "tx", 0, HandleParmName, AssetParmId, Parameters )
             ||  XformParms[ EXformParameter::TY ].Bind( HapiEulerXform.position[ 1 ], "ty", 1, HandleParmName, AssetParmId, Parameters )

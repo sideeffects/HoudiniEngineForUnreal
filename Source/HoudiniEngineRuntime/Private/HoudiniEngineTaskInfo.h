@@ -37,7 +37,7 @@ struct FHoudiniEngineTaskInfo
     /** Constructors. **/
     FHoudiniEngineTaskInfo();
     FHoudiniEngineTaskInfo(
-        HAPI_Result InResult, HAPI_AssetId InAssetId,
+        HAPI_Result InResult, HAPI_NodeId InAssetId,
         EHoudiniEngineTaskType::Type InTaskType,
         EHoudiniEngineTaskState::Type InTaskState );
 
@@ -45,7 +45,7 @@ struct FHoudiniEngineTaskInfo
     HAPI_Result Result;
 
     /** Current Asset Id. **/
-    HAPI_AssetId AssetId;
+    HAPI_NodeId AssetId;
 
     /** Type of task. **/
     EHoudiniEngineTaskType::Type TaskType;

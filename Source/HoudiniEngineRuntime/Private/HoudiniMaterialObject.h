@@ -29,7 +29,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniMaterialObject
 
         FHoudiniMaterialObject();
         FHoudiniMaterialObject( const HAPI_MaterialInfo & MaterialInfo );
-        FHoudiniMaterialObject( HAPI_AssetId InAssetId, HAPI_NodeId InNodeId, HAPI_MaterialId InMaterialId );
+        FHoudiniMaterialObject( HAPI_NodeId InAssetId, HAPI_NodeId InNodeId, HAPI_NodeId InMaterialId );
         FHoudiniMaterialObject( const FHoudiniMaterialObject & HoudiniMaterialObject );
 
     public:
@@ -79,13 +79,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniMaterialObject
     protected:
 
         /** Asset Id associated with this material. **/
-        HAPI_AssetId AssetId;
+        HAPI_NodeId AssetId;
 
         /** Node Id associated with this material. **/
         HAPI_NodeId NodeId;
 
         /** Material Id associated with this material. **/
-        HAPI_MaterialId MaterialId;
+        HAPI_NodeId MaterialId;
 
     protected:
 

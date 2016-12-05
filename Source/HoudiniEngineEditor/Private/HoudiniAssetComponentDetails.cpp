@@ -284,10 +284,10 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             StaticMeshThumbnailBorders.Add( StaticMesh, StaticMeshThumbnailBorder );
 
             // We need to add material box for each material present in this static mesh.
-            TArray< UMaterialInterface * > & StaticMeshMaterials = StaticMesh->Materials;
+            auto & StaticMeshMaterials = StaticMesh->StaticMaterials;
             for ( int32 MaterialIdx = 0; MaterialIdx < StaticMeshMaterials.Num(); ++MaterialIdx )
             {
-                UMaterialInterface * MaterialInterface = StaticMeshMaterials[ MaterialIdx ];
+                UMaterialInterface * MaterialInterface = StaticMeshMaterials[ MaterialIdx ].MaterialInterface;
                 TSharedPtr< SBorder > MaterialThumbnailBorder;
                 TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
 
@@ -906,7 +906,7 @@ FHoudiniAssetComponentDetails::OnFetchAssetHelp( UHoudiniAssetComponent * Houdin
     if ( HoudiniAssetComponent )
     {
         HAPI_AssetInfo AssetInfo;
-        HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+        HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
 
         if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
         {
@@ -978,7 +978,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
                 bool bMaterialReplaced = false;
 
                 // Retrieve material interface which is being replaced.
-                UMaterialInterface * OldMaterialInterface = StaticMesh->Materials[ MaterialIdx ];
+                UMaterialInterface * OldMaterialInterface = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
 
                 if ( OldMaterialInterface != MaterialInterface )
                 {
@@ -993,7 +993,7 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
 
                         // Replace material on static mesh.
                         StaticMesh->Modify();
-                        StaticMesh->Materials[ MaterialIdx ] = MaterialInterface;
+                        StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = MaterialInterface;
 
                         UStaticMeshComponent * StaticMeshComponent =
                             HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh );
@@ -1100,7 +1100,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
         IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
     {
         // Retrieve material interface which is being replaced.
-        UMaterialInterface * MaterialInterface = StaticMesh->Materials[ MaterialIdx ];
+        UMaterialInterface * MaterialInterface = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
         UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
@@ -1120,7 +1120,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
 
             // Replace material on static mesh.
             StaticMesh->Modify();
-            StaticMesh->Materials[ MaterialIdx ] = MaterialInterfaceReplacement;
+            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = MaterialInterfaceReplacement;
 
             UStaticMeshComponent * StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh );
             if ( StaticMeshComponent )

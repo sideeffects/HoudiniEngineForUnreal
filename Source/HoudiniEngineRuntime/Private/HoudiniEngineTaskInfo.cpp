@@ -25,7 +25,7 @@ FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo()
 {}
 
 FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo(
-    HAPI_Result InResult, HAPI_AssetId InAssetId,
+    HAPI_Result InResult, HAPI_NodeId InAssetId,
     EHoudiniEngineTaskType::Type InTaskType,
     EHoudiniEngineTaskState::Type InTaskState )
     : Result( InResult )

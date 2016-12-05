@@ -264,7 +264,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         FHoudiniGeoPartObject HoudiniGeoPartObject;
 
         /** Id of an object to instance. **/
-        HAPI_ObjectId ObjectToInstanceId;
+        HAPI_NodeId ObjectToInstanceId;
 
         /** Flags used by this input. **/
         union

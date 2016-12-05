@@ -32,13 +32,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAttributeObject
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * InAttributeName,
             const HAPI_AttributeInfo & AttributeInfo );
         FHoudiniAttributeObject(
-            HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
+            HAPI_NodeId InAssetId, HAPI_NodeId InObjectId, HAPI_NodeId InGeoId, HAPI_PartId InPartId,
             const char * InAttributeName, const HAPI_AttributeInfo & AttributeInfo );
         FHoudiniAttributeObject(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, const FString & InAttributeName,
             const HAPI_AttributeInfo & AttributeInfo );
         FHoudiniAttributeObject(
-            HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId,
+            HAPI_NodeId InAssetId, HAPI_NodeId InObjectId, HAPI_NodeId InGeoId, HAPI_PartId InPartId,
             const FString & InAttributeName, const HAPI_AttributeInfo & AttributeInfo );
         FHoudiniAttributeObject( const FHoudiniAttributeObject & HoudiniAttributeObject );
 
@@ -119,9 +119,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAttributeObject
         HAPI_StorageType StorageType;
 
         /** Associated HAPI ids. **/
-        HAPI_AssetId AssetId;
-        HAPI_ObjectId ObjectId;
-        HAPI_GeoId GeoId;
+        HAPI_NodeId AssetId;
+        HAPI_NodeId ObjectId;
+        HAPI_NodeId GeoId;
         HAPI_PartId PartId;
 
     protected:

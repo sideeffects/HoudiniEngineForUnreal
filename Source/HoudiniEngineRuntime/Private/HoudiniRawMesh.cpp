@@ -19,9 +19,9 @@
 #include "HoudiniGeoPartObject.h"
 
 FHoudiniRawMesh::FHoudiniRawMesh(
-    HAPI_AssetId InAssetId,
-    HAPI_ObjectId InObjectId,
-    HAPI_GeoId InGeoId,
+    HAPI_NodeId InAssetId,
+    HAPI_NodeId InObjectId,
+    HAPI_NodeId InGeoId,
     HAPI_PartId InPartId )
     : AssetId( InAssetId )
     , ObjectId( InObjectId )
@@ -40,7 +40,7 @@ FHoudiniRawMesh::FHoudiniRawMesh( const FHoudiniGeoPartObject & HoudiniGeoPartOb
     , HoudiniRawMeshVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
 
-FHoudiniRawMesh::FHoudiniRawMesh( HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject & HoudiniGeoPartObject )
+FHoudiniRawMesh::FHoudiniRawMesh( HAPI_NodeId OtherAssetId, FHoudiniGeoPartObject & HoudiniGeoPartObject )
     : AssetId( OtherAssetId )
     , ObjectId( HoudiniGeoPartObject.ObjectId )
     , GeoId( HoudiniGeoPartObject.GeoId )

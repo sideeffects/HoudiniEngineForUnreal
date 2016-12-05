@@ -84,7 +84,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     FTransform ComponentTransform;
 
     /** Mesh's input asset id. **/
-    HAPI_AssetId AssetId = -1;
+    HAPI_NodeId AssetId = -1;
     
     /** TranformType used to generate the asset **/
     int32 KeepWorldTransform = 2;
@@ -152,7 +152,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
     public:
 
         /** Return id of connected asset id. **/
-        HAPI_AssetId GetConnectedAssetId() const;
+        HAPI_NodeId GetConnectedAssetId() const;
 
         /** Return true if connected asset is a geometry asset. **/
         bool IsGeometryAssetConnected() const;
@@ -406,7 +406,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;
 
         /** Id of currently connected asset. **/
-        HAPI_AssetId ConnectedAssetId;
+        HAPI_NodeId ConnectedAssetId;
 
         /** The ids of the assets connected to the input for GeometryInput mode */
         TArray< HAPI_NodeId > GeometryInputAssetIds;

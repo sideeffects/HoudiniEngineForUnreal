@@ -307,7 +307,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
     {
         if ( HoudiniAssetComponent )
         {
-            HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+            HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
             if (FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
                 FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
         }
@@ -1063,7 +1063,7 @@ UHoudiniAssetInput::UploadParameterValue()
     if (HoudiniAssetComponent == nullptr)
         return false;
     
-    HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
 
     switch ( ChoiceIndex )
     {
@@ -1331,7 +1331,7 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
 
     // Get the Input node ID from the host ID
     HAPI_NodeId InputNodeId = -1;
-    HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
 
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::QueryNodeInput(
         FHoudiniEngine::Get().GetSession(), HostAssetId,
@@ -1806,7 +1806,7 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 	    StartWorldOutlinerTicking();
 
 	    // Force recook and reconnect of the input assets.
-	    HAPI_AssetId HostAssetId = HoudiniAssetComponent->GetAssetId();
+	    HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
 	    if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
 		HostAssetId, InputOutlinerMeshArray,
 		ConnectedAssetId, UnrealSplineResolution))
@@ -2082,7 +2082,7 @@ void
 UHoudiniAssetInput::DisconnectLandscapeActor()
 {}
 
-HAPI_AssetId
+HAPI_NodeId
 UHoudiniAssetInput::GetConnectedAssetId() const
 {
     return ConnectedAssetId;

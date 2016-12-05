@@ -92,7 +92,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject()
 {}
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(
-    HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId )
+    HAPI_NodeId InAssetId, HAPI_NodeId InObjectId, HAPI_NodeId InGeoId, HAPI_PartId InPartId )
     : TransformMatrix( FMatrix::Identity )
     , ObjectName( TEXT( "Empty" ) )
     , PartName( TEXT( "Empty" ) )
@@ -125,7 +125,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
 {}
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(
-    const FTransform & InTransform, HAPI_AssetId InAssetId,
+    const FTransform & InTransform, HAPI_NodeId InAssetId,
     const HAPI_ObjectInfo & ObjectInfo, const HAPI_GeoInfo & GeoInfo, const HAPI_PartInfo & PartInfo )
     : TransformMatrix( InTransform )
     , ObjectName( TEXT( "Empty" ) )
@@ -160,8 +160,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
 
 FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     const FTransform & InTransform, const FString & InObjectName,
-    const FString & InPartName, HAPI_AssetId InAssetId,
-    HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId,
+    const FString & InPartName, HAPI_NodeId InAssetId,
+    HAPI_NodeId InObjectId, HAPI_NodeId InGeoId,
     HAPI_PartId InPartId )
     : TransformMatrix( InTransform )
     , ObjectName( InObjectName )
@@ -289,13 +289,13 @@ FHoudiniGeoPartObject::IsRenderCollidable() const
     return bIsRenderCollidable;
 }
 
-HAPI_ObjectId
+HAPI_NodeId
 FHoudiniGeoPartObject::GetObjectId() const
 {
     return ObjectId;
 }
 
-HAPI_GeoId
+HAPI_NodeId
 FHoudiniGeoPartObject::GetGeoId() const
 {
     return GeoId;
@@ -454,7 +454,7 @@ FHoudiniGeoPartObject::HasParameters() const
 }
 
 bool
-FHoudiniGeoPartObject::HasParameters( HAPI_AssetId InAssetId ) const
+FHoudiniGeoPartObject::HasParameters( HAPI_NodeId InAssetId ) const
 {
     HAPI_NodeId NodeId = HapiGeoGetNodeId( InAssetId );
     if ( NodeId == -1 )
@@ -486,7 +486,7 @@ FHoudiniGeoPartObject::SetCustomName( const FString & CustomName )
 
 bool
 FHoudiniGeoPartObject::HapiCheckAttributeExistance(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeOwner AttributeOwner ) const
 {
     std::string AttributeNameRaw = "";
@@ -504,7 +504,7 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(
 
 bool
 FHoudiniGeoPartObject::HapiCheckAttributeExistance(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeOwner AttributeOwner ) const
 {
     return HapiCheckAttributeExistance( AttributeName.c_str(), AttributeOwner );
@@ -519,7 +519,7 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(
 
 bool
 FHoudiniGeoPartObject::HapiCheckAttributeExistance(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeOwner AttributeOwner ) const
 {
     HAPI_AttributeInfo AttributeInfo;
@@ -543,7 +543,7 @@ FHoudiniGeoPartObject::HapiCheckAttributeExistance(
 }
 
 bool
-FHoudiniGeoPartObject::HapiGetInstanceTransforms( HAPI_AssetId OtherAssetId, TArray< FTransform > & AllTransforms ) const
+FHoudiniGeoPartObject::HapiGetInstanceTransforms( HAPI_NodeId OtherAssetId, TArray< FTransform > & AllTransforms ) const
 {
     AllTransforms.Empty();
     int32 PointCount = HapiPartGetPointCount( OtherAssetId );
@@ -582,10 +582,10 @@ FHoudiniGeoPartObject::HapiGetInstanceTransforms( TArray< FTransform > & AllTran
     return HapiGetInstanceTransforms( AssetId, AllTransforms );
 }
 
-HAPI_ObjectId
-FHoudiniGeoPartObject::HapiObjectGetToInstanceId( HAPI_AssetId OtherAssetId ) const
+HAPI_NodeId
+FHoudiniGeoPartObject::HapiObjectGetToInstanceId( HAPI_NodeId OtherAssetId ) const
 {
-    HAPI_ObjectId ObjectToInstance = -1;
+    HAPI_NodeId ObjectToInstance = -1;
     HAPI_ObjectInfo ObjectInfo;
 
     if ( HapiObjectGetInfo( OtherAssetId, ObjectInfo ) )
@@ -594,7 +594,7 @@ FHoudiniGeoPartObject::HapiObjectGetToInstanceId( HAPI_AssetId OtherAssetId ) co
     return ObjectToInstance;
 }
 
-HAPI_ObjectId
+HAPI_NodeId
 FHoudiniGeoPartObject::HapiObjectGetToInstanceId() const
 {
     return HapiObjectGetToInstanceId( AssetId );
@@ -607,7 +607,7 @@ FHoudiniGeoPartObject::HapiObjectGetInfo( HAPI_ObjectInfo & ObjectInfo ) const
 }
 
 bool
-FHoudiniGeoPartObject::HapiObjectGetInfo( HAPI_AssetId OtherAssetId, HAPI_ObjectInfo & ObjectInfo ) const
+FHoudiniGeoPartObject::HapiObjectGetInfo( HAPI_NodeId OtherAssetId, HAPI_ObjectInfo & ObjectInfo ) const
 {
     FMemory::Memset< HAPI_ObjectInfo >( ObjectInfo, 0 );
 
@@ -620,7 +620,7 @@ FHoudiniGeoPartObject::HapiObjectGetInfo( HAPI_AssetId OtherAssetId, HAPI_Object
 }
 
 FHoudiniEngineString
-FHoudiniGeoPartObject::HapiObjectGetName( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectGetName( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_StringHandle StringHandle = -1;
     HAPI_ObjectInfo ObjectInfo;
@@ -638,7 +638,7 @@ FHoudiniGeoPartObject::HapiObjectGetName() const
 }
 
 FHoudiniEngineString
-FHoudiniGeoPartObject::HapiObjectGetInstancePath( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectGetInstancePath( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_StringHandle StringHandle = -1;
     HAPI_ObjectInfo ObjectInfo;
@@ -656,7 +656,7 @@ FHoudiniGeoPartObject::HapiObjectGetInstancePath() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiObjectIsVisible( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectIsVisible( HAPI_NodeId OtherAssetId ) const
 {
     bool bIsObjectVisible = false;
     HAPI_ObjectInfo ObjectInfo;
@@ -674,7 +674,7 @@ FHoudiniGeoPartObject::HapiObjectIsVisible() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiObjectIsInstancer( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectIsInstancer( HAPI_NodeId OtherAssetId ) const
 {
     bool bIsObjectInstancer = false;
     HAPI_ObjectInfo ObjectInfo;
@@ -692,7 +692,7 @@ FHoudiniGeoPartObject::HapiObjectIsInstancer() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiObjectHasTransformChanged( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectHasTransformChanged( HAPI_NodeId OtherAssetId ) const
 {
     bool bObjectTransformHasChanged = false;
     HAPI_ObjectInfo ObjectInfo;
@@ -710,7 +710,7 @@ FHoudiniGeoPartObject::HapiObjectHasTransformChanged() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiObjectHaveGeosChanged( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectHaveGeosChanged( HAPI_NodeId OtherAssetId ) const
 {
     bool bGeosChanged = false;
     HAPI_ObjectInfo ObjectInfo;
@@ -728,7 +728,7 @@ FHoudiniGeoPartObject::HapiObjectHaveGeosChanged() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiObjectGetGeoCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectGetGeoCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 GeoCount = 0;
     HAPI_ObjectInfo ObjectInfo;
@@ -759,7 +759,7 @@ FHoudiniGeoPartObject::HapiObjectGetNodeId() const
 }
 
 HAPI_NodeId
-FHoudiniGeoPartObject::HapiObjectGetNodeId( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiObjectGetNodeId( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_NodeId NodeId = -1;
     HAPI_ObjectInfo ObjectInfo;
@@ -777,7 +777,7 @@ FHoudiniGeoPartObject::HapiGeoGetInfo( HAPI_GeoInfo & GeoInfo ) const
 }
 
 bool
-FHoudiniGeoPartObject::HapiGeoGetInfo( HAPI_AssetId OtherAssetId, HAPI_GeoInfo & GeoInfo ) const
+FHoudiniGeoPartObject::HapiGeoGetInfo( HAPI_NodeId OtherAssetId, HAPI_GeoInfo & GeoInfo ) const
 {
     FMemory::Memset< HAPI_GeoInfo >( GeoInfo, 0 );
 
@@ -792,7 +792,7 @@ FHoudiniGeoPartObject::HapiGeoGetInfo( HAPI_AssetId OtherAssetId, HAPI_GeoInfo &
 }
 
 HAPI_GeoType
-FHoudiniGeoPartObject::HapiGeoGetType( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoGetType( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_GeoType GeoType = HAPI_GEOTYPE_INVALID;
     HAPI_GeoInfo GeoInfo;
@@ -810,7 +810,7 @@ FHoudiniGeoPartObject::HapiGeoGetType() const
 }
 
 FHoudiniEngineString
-FHoudiniGeoPartObject::HapiGeoGetName( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoGetName( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_StringHandle StringHandle = -1;
     HAPI_GeoInfo GeoInfo;
@@ -840,7 +840,7 @@ FHoudiniGeoPartObject::HapiGeoGetNodeId() const
 }
 
 HAPI_NodeId
-FHoudiniGeoPartObject::HapiGeoGetNodeId( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoGetNodeId( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_NodeId NodeId = -1;
     HAPI_GeoInfo GeoInfo;
@@ -852,7 +852,7 @@ FHoudiniGeoPartObject::HapiGeoGetNodeId( HAPI_AssetId OtherAssetId ) const
 }
 
 bool
-FHoudiniGeoPartObject::HapiGeoIsEditable( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoIsEditable( HAPI_NodeId OtherAssetId ) const
 {
     bool bLocalIsEditable = false;
     HAPI_GeoInfo GeoInfo;
@@ -870,7 +870,7 @@ FHoudiniGeoPartObject::HapiGeoIsEditable() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiGeoIsTemplated( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoIsTemplated( HAPI_NodeId OtherAssetId ) const
 {
     bool bIsTemplated = false;
     HAPI_GeoInfo GeoInfo;
@@ -888,7 +888,7 @@ FHoudiniGeoPartObject::HapiGeoIsTemplated() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiGeoIsDisplayGeo( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoIsDisplayGeo( HAPI_NodeId OtherAssetId ) const
 {
     bool bIsDisplayGeo = false;
     HAPI_GeoInfo GeoInfo;
@@ -906,7 +906,7 @@ FHoudiniGeoPartObject::HapiGeoIsDisplayGeo() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiGeoHasChanged( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoHasChanged( HAPI_NodeId OtherAssetId ) const
 {
     bool bGeoChanged = false;
     HAPI_GeoInfo GeoInfo;
@@ -924,7 +924,7 @@ FHoudiniGeoPartObject::HapiGeoHasChanged() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiGeoHasMaterialChanged( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoHasMaterialChanged( HAPI_NodeId OtherAssetId ) const
 {
     bool bHasMaterialChanged = false;
     HAPI_GeoInfo GeoInfo;
@@ -942,7 +942,7 @@ FHoudiniGeoPartObject::HapiGeoHasMaterialChanged() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiGeoGetPointGroupCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoGetPointGroupCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 PointGroupCount = 0;
     HAPI_GeoInfo GeoInfo;
@@ -960,7 +960,7 @@ FHoudiniGeoPartObject::HapiGeoGetPointGroupCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiGeoGetPrimitiveGroupCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoGetPrimitiveGroupCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 PrimitiveGroupCount = 0;
     HAPI_GeoInfo GeoInfo;
@@ -978,7 +978,7 @@ FHoudiniGeoPartObject::HapiGeoGetPrimitiveGroupCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiGeoGetPartCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiGeoGetPartCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 PartCount = 0;
     HAPI_GeoInfo GeoInfo;
@@ -1002,7 +1002,7 @@ FHoudiniGeoPartObject::HapiPartGetInfo( HAPI_PartInfo & PartInfo ) const
 }
 
 bool
-FHoudiniGeoPartObject::HapiPartGetInfo( HAPI_AssetId OtherAssetId, HAPI_PartInfo & PartInfo ) const
+FHoudiniGeoPartObject::HapiPartGetInfo( HAPI_NodeId OtherAssetId, HAPI_PartInfo & PartInfo ) const
 {
     FMemory::Memset< HAPI_PartInfo >( PartInfo, 0 );
 
@@ -1017,7 +1017,7 @@ FHoudiniGeoPartObject::HapiPartGetInfo( HAPI_AssetId OtherAssetId, HAPI_PartInfo
 }
 
 FHoudiniEngineString
-FHoudiniGeoPartObject::HapiPartGetName( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetName( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_StringHandle StringHandle = -1;
     HAPI_PartInfo PartInfo;
@@ -1035,7 +1035,7 @@ FHoudiniGeoPartObject::HapiPartGetName() const
 }
 
 HAPI_PartType
-FHoudiniGeoPartObject::HapiPartGetType( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetType( HAPI_NodeId OtherAssetId ) const
 {
     HAPI_PartType PartType = HAPI_PARTTYPE_INVALID;
     HAPI_PartInfo PartInfo;
@@ -1053,7 +1053,7 @@ FHoudiniGeoPartObject::HapiPartGetType() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetFaceCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetFaceCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 FaceCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1071,7 +1071,7 @@ FHoudiniGeoPartObject::HapiPartGetFaceCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetVertexCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetVertexCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 VertexCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1089,7 +1089,7 @@ FHoudiniGeoPartObject::HapiPartGetVertexCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetPointCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetPointCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 PointCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1107,7 +1107,7 @@ FHoudiniGeoPartObject::HapiPartGetPointCount() const
 }
 
 bool
-FHoudiniGeoPartObject::HapiPartIsInstanced( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartIsInstanced( HAPI_NodeId OtherAssetId ) const
 {
     bool bPartIsInstanced = false;
     HAPI_PartInfo PartInfo;
@@ -1125,7 +1125,7 @@ FHoudiniGeoPartObject::HapiPartIsInstanced() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetInstancedPartCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetInstancedPartCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 InstancedPartCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1143,7 +1143,7 @@ FHoudiniGeoPartObject::HapiPartGetInstancedPartCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetInstanceCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetInstanceCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 InstanceCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1161,7 +1161,7 @@ FHoudiniGeoPartObject::HapiPartGetInstanceCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetPointAttributeCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetPointAttributeCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 PointAttributeCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1179,7 +1179,7 @@ FHoudiniGeoPartObject::HapiPartGetPointAttributeCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetVertexAttributeCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetVertexAttributeCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 VertexAttributeCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1197,7 +1197,7 @@ FHoudiniGeoPartObject::HapiPartGetVertexAttributeCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetPrimitiveAttributeCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetPrimitiveAttributeCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 PrimitiveAttributeCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1215,7 +1215,7 @@ FHoudiniGeoPartObject::HapiPartGetPrimitiveAttributeCount() const
 }
 
 int32
-FHoudiniGeoPartObject::HapiPartGetDetailAttributeCount( HAPI_AssetId OtherAssetId ) const
+FHoudiniGeoPartObject::HapiPartGetDetailAttributeCount( HAPI_NodeId OtherAssetId ) const
 {
     int32 DetailAttributeCount = 0;
     HAPI_PartInfo PartInfo;
@@ -1234,7 +1234,7 @@ FHoudiniGeoPartObject::HapiPartGetDetailAttributeCount() const
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & AttributeInfo ) const
 {
     FMemory::Memset< HAPI_AttributeInfo >( AttributeInfo, 0 );
@@ -1260,7 +1260,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & AttributeInfo) const
 {
     return HapiGetAttributeInfo( OtherAssetId, AttributeName.c_str(), AttributeOwner, AttributeInfo );
@@ -1276,7 +1276,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & AttributeInfo ) const
 {
     std::string AttributeNameRaw = "";
@@ -1295,7 +1295,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeInfo & AttributeInfo ) const
 {
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
@@ -1322,7 +1322,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo( const char * AttributeName, HAPI_At
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeInfo & AttributeInfo ) const
 {
     return HapiGetAttributeInfo( OtherAssetId, AttributeName.c_str(), AttributeInfo );
@@ -1336,7 +1336,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo( const std::string & AttributeName, 
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeInfo(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeInfo & AttributeInfo) const
 {
     std::string AttributeNameRaw = "";
@@ -1353,7 +1353,7 @@ FHoudiniGeoPartObject::HapiGetAttributeInfo( const FString & AttributeName, HAPI
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< float > & AttributeData,
     int32 TupleSize ) const
@@ -1397,7 +1397,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo, TArray< float > & AttributeData,
     int32 TupleSize ) const
 {
@@ -1420,7 +1420,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< float > & AttributeData,
     int32 TupleSize ) const
@@ -1444,7 +1444,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< float > & AttributeData, int32 TupleSize ) const
 {
@@ -1475,7 +1475,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< float > & AttributeData, int32 TupleSize ) const
 {
@@ -1494,7 +1494,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< float > & AttributeData, int32 TupleSize ) const
 {
@@ -1517,7 +1517,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsFloat(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< int32 > & AttributeData,
     int32 TupleSize ) const
@@ -1562,7 +1562,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< int32 > & AttributeData,
     int32 TupleSize ) const
@@ -1585,7 +1585,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< int32 > & AttributeData,
     int32 TupleSize ) const
@@ -1609,7 +1609,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< int32 > & AttributeData, int32 TupleSize ) const
 {
@@ -1640,7 +1640,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< int32 > & AttributeData, int32 TupleSize ) const
 {
@@ -1659,7 +1659,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo, TArray< int32 > & AttributeData, int32 TupleSize ) const
 {
     std::string AttributeNameRaw = "";
@@ -1681,7 +1681,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsInt(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< FString > & AttributeData,
     int32 TupleSize ) const
@@ -1734,7 +1734,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeOwner AttributeOwner, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< FString > & AttributeData,
     int32 TupleSize ) const
@@ -1758,7 +1758,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeOwner AttributeOwner,
     HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< FString > & AttributeData,
@@ -1783,7 +1783,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
-    HAPI_AssetId OtherAssetId, const char * AttributeName,
+    HAPI_NodeId OtherAssetId, const char * AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & AttributeData, int32 TupleSize ) const
 {
     for ( int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx )
@@ -1813,7 +1813,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
-    HAPI_AssetId OtherAssetId, const std::string & AttributeName,
+    HAPI_NodeId OtherAssetId, const std::string & AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & AttributeData, int32 TupleSize ) const
 {
     return HapiGetAttributeDataAsString(
@@ -1831,7 +1831,7 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
-    HAPI_AssetId OtherAssetId, const FString & AttributeName,
+    HAPI_NodeId OtherAssetId, const FString & AttributeName,
     HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< FString > & AttributeData, int32 TupleSize ) const
 {
@@ -1853,14 +1853,14 @@ FHoudiniGeoPartObject::HapiGetAttributeDataAsString(
 }
 
 bool
-FHoudiniGeoPartObject::HapiObjectGetUniqueInstancerMaterialId( HAPI_MaterialId & MaterialId ) const
+FHoudiniGeoPartObject::HapiObjectGetUniqueInstancerMaterialId( HAPI_NodeId & MaterialId ) const
 {
     return HapiObjectGetUniqueInstancerMaterialId( AssetId, MaterialId );
 }
 
 bool
 FHoudiniGeoPartObject::HapiObjectGetUniqueInstancerMaterialId(
-    HAPI_AssetId OtherAssetId, HAPI_MaterialId& MaterialId ) const
+    HAPI_NodeId OtherAssetId, HAPI_NodeId& MaterialId ) const
 {
     MaterialId = -1;
 
@@ -1880,22 +1880,22 @@ FHoudiniGeoPartObject::HapiObjectGetUniqueInstancerMaterialId(
 }
 
 bool
-FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds( TSet< HAPI_MaterialId > & MaterialIds ) const
+FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds( TSet< HAPI_NodeId > & MaterialIds ) const
 {
     return HapiPartGetUniqueMaterialIds( AssetId, MaterialIds );
 }
 
 bool
 FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds(
-    HAPI_AssetId OtherAssetId,
-    TSet< HAPI_MaterialId > & MaterialIds ) const
+    HAPI_NodeId OtherAssetId,
+    TSet< HAPI_NodeId > & MaterialIds ) const
 {
     MaterialIds.Empty();
 
     int32 FaceCount = HapiPartGetFaceCount( OtherAssetId );
     if ( FaceCount > 0 )
     {
-        TArray< HAPI_MaterialId > FaceMaterialIds;
+        TArray< HAPI_NodeId > FaceMaterialIds;
         FaceMaterialIds.SetNumUninitialized( FaceCount );
 
         HAPI_Bool bSingleFaceMaterial = false;
@@ -1913,7 +1913,7 @@ FHoudiniGeoPartObject::HapiPartGetUniqueMaterialIds(
 }
 
 bool
-FHoudiniGeoPartObject::HapiGetAllAttributeNames( HAPI_AssetId OtherAssetId, TArray< FString > & AttributeNames ) const
+FHoudiniGeoPartObject::HapiGetAllAttributeNames( HAPI_NodeId OtherAssetId, TArray< FString > & AttributeNames ) const
 {
     AttributeNames.Empty();
 
@@ -1938,7 +1938,7 @@ FHoudiniGeoPartObject::HapiGetAllAttributeNames( TArray< FString > & AttributeNa
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeNames(
-    HAPI_AssetId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
+    HAPI_NodeId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
     TArray< FString > & AttributeNames ) const
 {
     AttributeNames.Empty();
@@ -2010,7 +2010,7 @@ FHoudiniGeoPartObject::HapiGetAttributeNames(
 }
 
 bool
-FHoudiniGeoPartObject::HapiGetPointAttributeNames( HAPI_AssetId OtherAssetId, TArray< FString > & AttributeNames ) const
+FHoudiniGeoPartObject::HapiGetPointAttributeNames( HAPI_NodeId OtherAssetId, TArray< FString > & AttributeNames ) const
 {
     return HapiGetAttributeNames( OtherAssetId, HAPI_ATTROWNER_POINT, AttributeNames );
 }
@@ -2022,7 +2022,7 @@ FHoudiniGeoPartObject::HapiGetPointAttributeNames( TArray< FString > & Attribute
 }
 
 bool
-FHoudiniGeoPartObject::HapiGetVertexAttributeNames( HAPI_AssetId OtherAssetId, TArray< FString > & AttributeNames ) const
+FHoudiniGeoPartObject::HapiGetVertexAttributeNames( HAPI_NodeId OtherAssetId, TArray< FString > & AttributeNames ) const
 {
     return HapiGetAttributeNames( OtherAssetId, HAPI_ATTROWNER_VERTEX, AttributeNames );
 }
@@ -2035,7 +2035,7 @@ FHoudiniGeoPartObject::HapiGetVertexAttributeNames( TArray< FString > & Attribut
 
 bool
 FHoudiniGeoPartObject::HapiGetPrimitiveAttributeNames(
-    HAPI_AssetId OtherAssetId,
+    HAPI_NodeId OtherAssetId,
     TArray< FString > & AttributeNames ) const
 {
     return HapiGetAttributeNames( OtherAssetId, HAPI_ATTROWNER_PRIM, AttributeNames );
@@ -2048,7 +2048,7 @@ FHoudiniGeoPartObject::HapiGetPrimitiveAttributeNames( TArray< FString > & Attri
 }
 
 bool
-FHoudiniGeoPartObject::HapiGetDetailAttributeNames( HAPI_AssetId OtherAssetId, TArray< FString > & AttributeNames ) const
+FHoudiniGeoPartObject::HapiGetDetailAttributeNames( HAPI_NodeId OtherAssetId, TArray< FString > & AttributeNames ) const
 {
     return HapiGetAttributeNames( OtherAssetId, HAPI_ATTROWNER_DETAIL, AttributeNames );
 }
@@ -2069,7 +2069,7 @@ FHoudiniGeoPartObject::HapiGetAttributeObjects(
 
 bool
 FHoudiniGeoPartObject::HapiGetAttributeObjects(
-    HAPI_AssetId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
+    HAPI_NodeId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
     TMap< FString, FHoudiniAttributeObject > & AttributeObjects ) const
 {
     AttributeObjects.Empty();
@@ -2111,7 +2111,7 @@ FHoudiniGeoPartObject::HapiGetAllAttributeObjects(
 
 bool
 FHoudiniGeoPartObject::HapiGetAllAttributeObjects(
-    HAPI_AssetId OtherAssetId,
+    HAPI_NodeId OtherAssetId,
     TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPoint,
     TMap< FString, FHoudiniAttributeObject > & AttributeObjectsVertex,
     TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPrimitive,
@@ -2128,7 +2128,7 @@ FHoudiniGeoPartObject::HapiGetAllAttributeObjects(
 }
 
 bool
-FHoudiniGeoPartObject::HapiGetVertices( HAPI_AssetId OtherAssetId, TArray< int32 > & Vertices ) const
+FHoudiniGeoPartObject::HapiGetVertices( HAPI_NodeId OtherAssetId, TArray< int32 > & Vertices ) const
 {
     Vertices.Empty();
 

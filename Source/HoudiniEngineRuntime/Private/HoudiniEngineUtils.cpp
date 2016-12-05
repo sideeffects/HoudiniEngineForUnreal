@@ -222,7 +222,7 @@ FHoudiniEngineUtils::IsLicenseHoudiniEngineIndie()
 }
 
 bool
-FHoudiniEngineUtils::ComputeAssetPresetBufferLength( HAPI_AssetId AssetId, int32 & OutBufferLength )
+FHoudiniEngineUtils::ComputeAssetPresetBufferLength( HAPI_NodeId AssetId, int32 & OutBufferLength )
 {
     HAPI_AssetInfo AssetInfo;
     OutBufferLength = 0;
@@ -240,7 +240,7 @@ FHoudiniEngineUtils::ComputeAssetPresetBufferLength( HAPI_AssetId AssetId, int32
 }
 
 bool
-FHoudiniEngineUtils::SetAssetPreset( HAPI_AssetId AssetId, const TArray< char > & PresetBuffer )
+FHoudiniEngineUtils::SetAssetPreset( HAPI_NodeId AssetId, const TArray< char > & PresetBuffer )
 {
     if ( PresetBuffer.Num() > 0 )
     {
@@ -261,7 +261,7 @@ FHoudiniEngineUtils::SetAssetPreset( HAPI_AssetId AssetId, const TArray< char > 
 }
 
 bool
-FHoudiniEngineUtils::GetAssetPreset( HAPI_AssetId AssetId, TArray< char > & PresetBuffer )
+FHoudiniEngineUtils::GetAssetPreset( HAPI_NodeId AssetId, TArray< char > & PresetBuffer )
 {
     PresetBuffer.Empty();
 
@@ -283,7 +283,7 @@ FHoudiniEngineUtils::GetAssetPreset( HAPI_AssetId AssetId, TArray< char > & Pres
 }
 
 bool
-FHoudiniEngineUtils::IsHoudiniAssetValid( HAPI_AssetId AssetId )
+FHoudiniEngineUtils::IsHoudiniAssetValid( HAPI_NodeId AssetId )
 {
     if ( AssetId < 0 )
         return false;
@@ -301,7 +301,7 @@ FHoudiniEngineUtils::IsHoudiniAssetValid( HAPI_AssetId AssetId )
 }
 
 bool
-FHoudiniEngineUtils::DestroyHoudiniAsset( HAPI_AssetId AssetId )
+FHoudiniEngineUtils::DestroyHoudiniAsset( HAPI_NodeId AssetId )
 {
     return FHoudiniApi::DeleteNode( FHoudiniEngine::Get().GetSession(), AssetId ) == HAPI_RESULT_SUCCESS;
 }
@@ -313,7 +313,7 @@ FHoudiniEngineUtils::ConvertUnrealString( const FString & UnrealString, std::str
 }
 
 bool
-FHoudiniEngineUtils::GetUniqueMaterialShopName( HAPI_AssetId AssetId, HAPI_MaterialId MaterialId, FString & Name )
+FHoudiniEngineUtils::GetUniqueMaterialShopName( HAPI_NodeId AssetId, HAPI_NodeId MaterialId, FString & Name )
 {
     HAPI_AssetInfo AssetInfo;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetInfo(
@@ -564,7 +564,7 @@ FHoudiniEngineUtils::SetCurrentTime( float CurrentTime )
 }
 
 bool
-FHoudiniEngineUtils::GetHoudiniAssetName( HAPI_AssetId AssetId, FString & NameString )
+FHoudiniEngineUtils::GetHoudiniAssetName( HAPI_NodeId AssetId, FString & NameString )
 {
     HAPI_AssetInfo AssetInfo;
 
@@ -605,7 +605,7 @@ FHoudiniEngineUtils::HapiGetElementCountByGroupType( HAPI_GroupType GroupType, H
 
 bool
 FHoudiniEngineUtils::HapiGetGroupNames(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_GroupType GroupType, TArray< FString > & GroupNames )
 {
     HAPI_GeoInfo GeoInfo;
@@ -636,7 +636,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 
 bool
 FHoudiniEngineUtils::HapiGetGroupMembership(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, HAPI_GroupType GroupType,
     const FString & GroupName, TArray< int32 > & GroupMembership )
 {
@@ -666,7 +666,7 @@ FHoudiniEngineUtils::HapiCheckGroupMembership(
 
 bool
 FHoudiniEngineUtils::HapiCheckGroupMembership(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_PartId PartId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_PartId PartId,
     HAPI_GroupType GroupType, const FString & GroupName )
 {
     TArray< int32 > GroupMembership;
@@ -730,7 +730,7 @@ FHoudiniEngineUtils::HapiRetrieveParameterNames( const TArray< HAPI_ParmInfo > &
 
 bool
 FHoudiniEngineUtils::HapiCheckAttributeExists(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeOwner Owner )
 {
     HAPI_AttributeInfo AttribInfo;
@@ -776,7 +776,7 @@ FHoudiniEngineUtils::HapiFindParameterByName( const FString & ParmName, const TA
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< float > & Data, int32 TupleSize )
 {
@@ -828,7 +828,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< int32 > & Data, int32 TupleSize )
 {
@@ -881,7 +881,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo,
     TArray< FString > & Data, int32 TupleSize )
 {
@@ -942,7 +942,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsString(
 
 bool
 FHoudiniEngineUtils::HapiGetInstanceTransforms(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, TArray< FTransform > & Transforms )
 {
     Transforms.Empty();
@@ -1352,13 +1352,13 @@ FHoudiniEngineUtils::HapiIsMaterialTransparent( const HAPI_MaterialInfo & Materi
 }
 
 bool
-FHoudiniEngineUtils::IsValidAssetId( HAPI_AssetId AssetId )
+FHoudiniEngineUtils::IsValidAssetId( HAPI_NodeId AssetId )
 {
     return AssetId != -1;
 }
 
 bool
-FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & ConnectedAssetId )
+FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_NodeId & ConnectedAssetId )
 {
 #if WITH_EDITOR
 
@@ -1390,8 +1390,8 @@ FHoudiniEngineUtils::HapiCreateCurveNode( HAPI_AssetId & ConnectedAssetId )
 
 bool
 FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
-    HAPI_AssetId HostAssetId,
-    HAPI_AssetId& ConnectedAssetId,
+    HAPI_NodeId HostAssetId,
+    HAPI_NodeId& ConnectedAssetId,
     TArray<FVector>* Positions,
     TArray<FQuat>* Rotations /*= nullptr*/,
     TArray<FVector>* Scales3d /*= nullptr*/,
@@ -1411,7 +1411,7 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
     // Check if connected asset id is valid, if it is not, we need to create an input asset.
     if (ConnectedAssetId < 0)
     {
-        HAPI_AssetId NodeId = -1;
+        HAPI_NodeId NodeId = -1;
         // Create the curve SOP Node
         if (!HapiCreateCurveNode(NodeId))
             return false;
@@ -2138,7 +2138,7 @@ FHoudiniEngineUtils::HapiCreateCurveInputNodeForData(
 }
 
 bool
-FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_AssetId AssetId, FTransform & InTransform )
+FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_NodeId AssetId, FTransform & InTransform )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
@@ -2169,7 +2169,7 @@ FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_AssetId AssetId, FTransform & I
 }
 
 bool
-FHoudiniEngineUtils::HapiGetNodeId( HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId, HAPI_NodeId & NodeId )
+FHoudiniEngineUtils::HapiGetNodeId( HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId, HAPI_NodeId & NodeId )
 {
     if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
     {
@@ -2204,7 +2204,7 @@ FHoudiniEngineUtils::HapiGetNodePath( HAPI_NodeId NodeId, HAPI_NodeId RelativeTo
 }
 
 bool
-FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos )
+FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_NodeId AssetId, TArray< HAPI_ObjectInfo > & ObjectInfos )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
@@ -2250,7 +2250,7 @@ FHoudiniEngineUtils::HapiGetObjectInfos( HAPI_AssetId AssetId, TArray< HAPI_Obje
 }
 
 bool
-FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_AssetId AssetId, TArray< HAPI_Transform > & ObjectTransforms )
+FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_NodeId AssetId, TArray< HAPI_Transform > & ObjectTransforms )
 {
     HAPI_NodeInfo LocalAssetNodeInfo;
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
@@ -2297,8 +2297,8 @@ FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_AssetId AssetId, TArray< HAPI
 
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_AssetId HostAssetId,
-    ALandscapeProxy * LandscapeProxy, HAPI_AssetId & ConnectedAssetId,
+    HAPI_NodeId HostAssetId,
+    ALandscapeProxy * LandscapeProxy, HAPI_NodeId & ConnectedAssetId,
     bool bExportOnlySelected, bool bExportCurves,
     bool bExportMaterials, bool bExportFullGeometry,
     bool bExportLighting, bool bExportNormalizedUVs,
@@ -2313,7 +2313,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     // Check if connected asset id is invalid, if it is not, we need to create an input asset.
     if ( ConnectedAssetId < 0 )
     {
-        HAPI_AssetId AssetId = -1;
+        HAPI_NodeId AssetId = -1;
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateInputNode(
             FHoudiniEngine::Get().GetSession(), &AssetId, nullptr ), false );
 
@@ -3032,9 +3032,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_AssetId HostAssetId, 
+    HAPI_NodeId HostAssetId, 
     USplineComponent * SplineComponent,
-    HAPI_AssetId & ConnectedAssetId,
+    HAPI_NodeId & ConnectedAssetId,
     FHoudiniAssetInputOutlinerMesh& OutlinerMesh,
     const float& SplineResolution)
 {
@@ -3146,9 +3146,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_AssetId HostAssetId, 
+    HAPI_NodeId HostAssetId, 
     UStaticMesh * StaticMesh,
-    HAPI_AssetId & ConnectedAssetId,
+    HAPI_NodeId & ConnectedAssetId,
     UStaticMeshComponent* StaticMeshComponent /* = nullptr */)
 {
 #if WITH_EDITOR
@@ -3160,7 +3160,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     // Check if connected asset id is valid, if it is not, we need to create an input asset.
     if ( ConnectedAssetId < 0 )
     {
-        HAPI_AssetId AssetId = -1;
+        HAPI_NodeId AssetId = -1;
         HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateInputNode(
             FHoudiniEngine::Get().GetSession(), &AssetId, nullptr ), false );
 
@@ -3633,9 +3633,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_AssetId HostAssetId,
+    HAPI_NodeId HostAssetId,
     TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
-    HAPI_AssetId & ConnectedAssetId,
+    HAPI_NodeId & ConnectedAssetId,
     const float& SplineResolution)
 {
     if ( OutlinerMeshArray.Num() <= 0 )
@@ -3701,7 +3701,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 }
 
 bool 
-FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_AssetId HostAssetId, TArray<UObject *>& InputObjects, HAPI_AssetId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
+FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
 {
     if ( ensure( InputObjects.Num() ) )
     {
@@ -3716,7 +3716,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_AssetId HostAssetId, TArra
         {
             if ( UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[ InputIdx ] ) )
             {
-                HAPI_AssetId MeshAssetNodeId = -1;
+                HAPI_NodeId MeshAssetNodeId = -1;
                 // Creating an Input Node for Mesh Data
                 bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr );
                 if ( !bInputCreated )
@@ -3739,7 +3739,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_AssetId HostAssetId, TArra
 }
 
 bool
-FHoudiniEngineUtils::HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputIndex )
+FHoudiniEngineUtils::HapiDisconnectAsset( HAPI_NodeId HostAssetId, int32 InputIndex )
 {
 #if WITH_EDITOR
 
@@ -3753,7 +3753,7 @@ FHoudiniEngineUtils::HapiDisconnectAsset( HAPI_AssetId HostAssetId, int32 InputI
 
 bool
 FHoudiniEngineUtils::HapiConnectAsset(
-    HAPI_AssetId AssetIdFrom, HAPI_ObjectId ObjectIdFrom, HAPI_AssetId AssetIdTo, int32 InputIndex )
+    HAPI_NodeId AssetIdFrom, HAPI_NodeId ObjectIdFrom, HAPI_NodeId AssetIdTo, int32 InputIndex )
 {
 #if WITH_EDITOR
 
@@ -3768,7 +3768,7 @@ FHoudiniEngineUtils::HapiConnectAsset(
 
 
 bool
-FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_AssetId AssetId, const FTransform & Transform )
+FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransform & Transform )
 {
     if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
         return false;
@@ -4173,7 +4173,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 {
 #if WITH_EDITOR
 
-    HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
     if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) || !HoudiniAsset )
@@ -4256,9 +4256,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     TArray< int32 > LightMapResolutions;
 
     // Retrieve all used unique material ids.
-    TSet< HAPI_MaterialId > UniqueMaterialIds;
-    TSet< HAPI_MaterialId > UniqueInstancerMaterialIds;
-    TMap< FHoudiniGeoPartObject, HAPI_MaterialId > InstancerMaterialMap;
+    TSet< HAPI_NodeId > UniqueMaterialIds;
+    TSet< HAPI_NodeId > UniqueInstancerMaterialIds;
+    TMap< FHoudiniGeoPartObject, HAPI_NodeId > InstancerMaterialMap;
     FHoudiniEngineUtils::ExtractUniqueMaterialIds(
         AssetInfo, UniqueMaterialIds, UniqueInstancerMaterialIds,
         InstancerMaterialMap );
@@ -4350,7 +4350,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         for ( int32 n = 0; n < GeoInfos.Num(); n++ )
         {
             HAPI_GeoInfo GeoInfo = GeoInfos[n];
-            HAPI_GeoId GeoId = GeoInfo.nodeId;
+            HAPI_NodeId GeoId = GeoInfo.nodeId;
 
             if ( GeoInfo.type == HAPI_GEOTYPE_CURVE )
             {
@@ -4499,7 +4499,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Retrieve material information for this geo part.
-                TArray< HAPI_MaterialId > FaceMaterialIds;
+                TArray< HAPI_NodeId > FaceMaterialIds;
                 HAPI_Bool bSingleFaceMaterial = false;
                 bool bMaterialsFound = false;
                 bool bMaterialsChanged = false;
@@ -4581,11 +4581,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     if ( PartInfo.pointCount > 0 )
                     {
                         // We need to check whether this instancer has a material.
-                        HAPI_MaterialId const * FoundInstancerMaterialId =
+                        HAPI_NodeId const * FoundInstancerMaterialId =
                             InstancerMaterialMap.Find( HoudiniGeoPartObject );
                         if ( FoundInstancerMaterialId )
                         {
-                            HAPI_MaterialId InstancerMaterialId = *FoundInstancerMaterialId;
+                            HAPI_NodeId InstancerMaterialId = *FoundInstancerMaterialId;
 
                             FString InstancerMaterialShopName = TEXT( "" );
                             if ( InstancerMaterialId > -1 &&
@@ -5357,12 +5357,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             UMaterial * MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
                             // Extract native Houdini materials.
-                            TMap< HAPI_MaterialId, UMaterialInterface * > NativeMaterials;
+                            TMap< HAPI_NodeId, UMaterialInterface * > NativeMaterials;
 
                             for(int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
                             {
                                 // Get material id for this face.
-                                HAPI_MaterialId MaterialId = FaceMaterialIds[ FaceIdx ];
+                                HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
                                 UMaterialInterface * Material = MaterialDefault;
 
                                 FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
@@ -5392,7 +5392,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                                 if ( FaceMaterial.MaterialInterface == MaterialDefault )
                                 {
-                                    HAPI_MaterialId MaterialId = FaceMaterialIds[ FaceIdx ];
+                                    HAPI_NodeId MaterialId = FaceMaterialIds[ FaceIdx ];
                                     if ( MaterialId >= 0 )
                                     {
                                         UMaterialInterface * const * FoundNativeMaterial = NativeMaterials.Find( MaterialId );
@@ -5451,7 +5451,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     int32 SplitFaceIndex = SplitGroupFaceIndices[FaceIdx];
 
                                     // Get material id for this face.
-                                    HAPI_MaterialId MaterialId = -1; 
+                                    HAPI_NodeId MaterialId = -1; 
                                     if( SplitFaceIndex >= 0 && SplitFaceIndex < FaceMaterialIds.Num() )
                                         MaterialId = FaceMaterialIds[ SplitFaceIndex ];
 
@@ -6024,8 +6024,8 @@ void
 FHoudiniEngineUtils::HapiCreateMaterials(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     const HAPI_AssetInfo & AssetInfo,
-    const TSet< HAPI_MaterialId > & UniqueMaterialIds,
-    const TSet< HAPI_MaterialId > & UniqueInstancerMaterialIds,
+    const TSet< HAPI_NodeId > & UniqueMaterialIds,
+    const TSet< HAPI_NodeId > & UniqueInstancerMaterialIds,
     TMap< FString, UMaterialInterface * > & Materials )
 {
 #if WITH_EDITOR
@@ -6036,7 +6036,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
     if ( UniqueMaterialIds.Num() == 0 )
         return;
 
-    HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
 
     const TMap< FString, UMaterialInterface * > & CachedMaterials =
         HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments;
@@ -6054,9 +6054,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(
     UMaterialFactoryNew * MaterialFactory = NewObject< UMaterialFactoryNew >();
     MaterialFactory->AddToRoot();
 
-    for ( TSet< HAPI_MaterialId >::TConstIterator IterMaterialId( UniqueMaterialIds ); IterMaterialId; ++IterMaterialId )
+    for ( TSet< HAPI_NodeId >::TConstIterator IterMaterialId( UniqueMaterialIds ); IterMaterialId; ++IterMaterialId )
     {
-        HAPI_MaterialId MaterialId = *IterMaterialId;
+        HAPI_NodeId MaterialId = *IterMaterialId;
 
         // Get material information.
         HAPI_MaterialInfo MaterialInfo;
@@ -8245,7 +8245,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 
 int32
 FHoudiniEngineUtils::HapiGetVertexListForGroup(
-    HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const FString & GroupName,
     const TArray< int32 > & FullVertexList, TArray< int32 > & NewVertexList,
     TArray< int32 > & AllVertexList, TArray< int32 > & AllFaceList,
@@ -8361,9 +8361,9 @@ FHoudiniEngineUtils::GetStatusString( HAPI_StatusType status_type, HAPI_StatusVe
 bool
 FHoudiniEngineUtils::ExtractUniqueMaterialIds(
     const HAPI_AssetInfo & AssetInfo,
-    TSet< HAPI_MaterialId > & MaterialIds,
-    TSet< HAPI_MaterialId > & InstancerMaterialIds,
-    TMap< FHoudiniGeoPartObject, HAPI_MaterialId > & InstancerMaterialMap )
+    TSet< HAPI_NodeId > & MaterialIds,
+    TSet< HAPI_NodeId > & InstancerMaterialIds,
+    TMap< FHoudiniGeoPartObject, HAPI_NodeId > & InstancerMaterialMap )
 {
     // Empty passed incontainers.
     MaterialIds.Empty();
@@ -8413,7 +8413,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
 
                 if ( PartInfo.faceCount > 0 )
                 {
-                    TArray< HAPI_MaterialId > FaceMaterialIds;
+                    TArray< HAPI_NodeId > FaceMaterialIds;
                     FaceMaterialIds.SetNumUninitialized( PartInfo.faceCount );
 
                     if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
@@ -8431,7 +8431,7 @@ FHoudiniEngineUtils::ExtractUniqueMaterialIds(
                     // If this is an instancer, attempt to look up instancer material.
                     if ( ObjectInfo.isInstancer )
                     {
-                        HAPI_MaterialId InstanceMaterialId = -1;
+                        HAPI_NodeId InstanceMaterialId = -1;
 
                         if ( FHoudiniApi::GetMaterialNodeIdsOnFaces(
                             FHoudiniEngine::Get().GetSession(),

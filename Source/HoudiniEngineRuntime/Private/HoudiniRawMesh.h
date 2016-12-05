@@ -26,9 +26,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniRawMesh
 {
     public:
 
-        FHoudiniRawMesh( HAPI_AssetId InAssetId, HAPI_ObjectId InObjectId, HAPI_GeoId InGeoId, HAPI_PartId InPartId );
+        FHoudiniRawMesh( HAPI_NodeId InAssetId, HAPI_NodeId InObjectId, HAPI_NodeId InGeoId, HAPI_PartId InPartId );
         FHoudiniRawMesh( const FHoudiniGeoPartObject & HoudiniGeoPartObject );
-        FHoudiniRawMesh( HAPI_AssetId OtherAssetId, FHoudiniGeoPartObject & HoudiniGeoPartObject );
+        FHoudiniRawMesh( HAPI_NodeId OtherAssetId, FHoudiniGeoPartObject & HoudiniGeoPartObject );
         FHoudiniRawMesh( const FHoudiniRawMesh & HoudiniRawMesh );
 
     public:
@@ -92,9 +92,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniRawMesh
     protected:
 
         /** HAPI ids. **/
-        HAPI_AssetId AssetId;
-        HAPI_ObjectId ObjectId;
-        HAPI_GeoId GeoId;
+        HAPI_NodeId AssetId;
+        HAPI_NodeId ObjectId;
+        HAPI_NodeId GeoId;
         HAPI_PartId PartId;
         int32 SplitId;
 

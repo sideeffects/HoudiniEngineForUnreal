@@ -59,7 +59,7 @@ struct FHoudiniEngineTask
     FString ActorName;
 
     /** Asset Id. **/
-    HAPI_AssetId AssetId;
+    HAPI_NodeId AssetId;
 
     /** Library Id. **/
     HAPI_AssetLibraryId AssetLibraryId;

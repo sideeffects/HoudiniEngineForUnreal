@@ -128,7 +128,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset( const FHoudiniEngineTask & Task )
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
     UHoudiniAsset* HoudiniAsset = Task.Asset.Get();
     int32 AssetCount = 0;
-    HAPI_AssetId AssetId = -1;
+    HAPI_NodeId AssetId = -1;
     std::string AssetNameString;
     double LastUpdateTime;
 
@@ -250,7 +250,7 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
     }
 
     // Retrieve asset id.
-    HAPI_AssetId AssetId = Task.AssetComponent->GetAssetId();
+    HAPI_NodeId AssetId = Task.AssetComponent->GetAssetId();
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
     HOUDINI_LOG_MESSAGE(
@@ -365,7 +365,7 @@ FHoudiniEngineScheduler::TaskDeleteAsset( const FHoudiniEngineTask & Task )
 void
 FHoudiniEngineScheduler::AddResponseTaskInfo(
     HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, EHoudiniEngineTaskState::Type TaskState,
-    HAPI_AssetId AssetId, const FHoudiniEngineTask & Task )
+    HAPI_NodeId AssetId, const FHoudiniEngineTask & Task )
 {
     FHoudiniEngineTaskInfo TaskInfo( Result, AssetId, TaskType, TaskState );
     FString StatusString = FHoudiniEngineUtils::GetErrorDescription();
@@ -378,7 +378,7 @@ FHoudiniEngineScheduler::AddResponseTaskInfo(
 void
 FHoudiniEngineScheduler::AddResponseMessageTaskInfo(
     HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType, EHoudiniEngineTaskState::Type TaskState,
-    HAPI_AssetId AssetId, const FHoudiniEngineTask & Task, const FString & ErrorMessage )
+    HAPI_NodeId AssetId, const FHoudiniEngineTask & Task, const FString & ErrorMessage )
 {
     FHoudiniEngineTaskInfo TaskInfo( Result, AssetId, TaskType, TaskState );
 

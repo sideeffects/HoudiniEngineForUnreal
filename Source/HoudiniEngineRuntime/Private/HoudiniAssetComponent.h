@@ -223,7 +223,7 @@ public:
         int32 GetAssetId() const;
 
         /** Set id of a Houdini asset. **/
-        void SetAssetId( HAPI_AssetId InAssetId );
+        void SetAssetId( HAPI_NodeId InAssetId );
 
         /** Return true if asset id is valid. **/
         bool HasValidAssetId() const;
@@ -652,7 +652,7 @@ public:
         FTimerDelegate TimerDelegateUIUpdate;
 
         /** Id of corresponding Houdini asset. **/
-        HAPI_AssetId AssetId;
+        HAPI_NodeId AssetId;
 
         /** Scale factor used for generated geometry of this component. **/
         float GeneratedGeometryScaleFactor;

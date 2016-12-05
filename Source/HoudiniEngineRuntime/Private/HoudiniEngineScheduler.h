@@ -46,11 +46,11 @@ class FHoudiniEngineScheduler : public FRunnable, FSingleThreadRunnable
         void AddResponseTaskInfo(
             HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
             EHoudiniEngineTaskState::Type TaskState,
-            HAPI_AssetId AssetId, const FHoudiniEngineTask & Task );
+            HAPI_NodeId AssetId, const FHoudiniEngineTask & Task );
 
         void AddResponseMessageTaskInfo(
             HAPI_Result Result, EHoudiniEngineTaskType::Type TaskType,
-            EHoudiniEngineTaskState::Type TaskState, HAPI_AssetId AssetId, const FHoudiniEngineTask & Task,
+            EHoudiniEngineTaskState::Type TaskState, HAPI_NodeId AssetId, const FHoudiniEngineTask & Task,
             const FString & ErrorMessage );
 
     protected:

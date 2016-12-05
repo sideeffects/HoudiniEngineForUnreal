@@ -432,14 +432,14 @@ UHoudiniAssetComponent::SetNative( bool InbIsNativeComponent )
     bIsNativeComponent = InbIsNativeComponent;
 }
 
-HAPI_AssetId
+HAPI_NodeId
 UHoudiniAssetComponent::GetAssetId() const
 {
     return AssetId;
 }
 
 void
-UHoudiniAssetComponent::SetAssetId( HAPI_AssetId InAssetId )
+UHoudiniAssetComponent::SetAssetId( HAPI_NodeId InAssetId )
 {
     AssetId = InAssetId;
 }
@@ -2128,7 +2128,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     SetMobility( CopiedHoudiniComponent->Mobility );
 
     // Get original asset id.
-    HAPI_AssetId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
+    HAPI_NodeId CopiedHoudiniComponentAssetId = CopiedHoudiniComponent->AssetId;
 
     // Set Houdini asset.
     HoudiniAsset = CopiedHoudiniComponent->HoudiniAsset;
@@ -2780,7 +2780,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     // the following fixes that case - should only happen once when first loading
     if( Ar.IsLoading() && bIsPlayModeActive_Unused )
     {
-        HAPI_AssetId TempId;
+        HAPI_NodeId TempId;
         Ar << TempId;
         bIsPlayModeActive_Unused = false;
     }
@@ -4834,7 +4834,7 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
 
             for ( int32 InstanceInputIdx = 0; InstanceInputIdx < InstanceInputCount; ++InstanceInputIdx )
             {
-                HAPI_ObjectId HoudiniInstanceInputKey = -1;
+                HAPI_NodeId HoudiniInstanceInputKey = -1;
 
                 Ar << HoudiniInstanceInputKey;
                 Ar << InstanceInputs[ InstanceInputIdx ];
