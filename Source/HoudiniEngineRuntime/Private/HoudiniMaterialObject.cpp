@@ -32,7 +32,7 @@ FHoudiniMaterialObject::FHoudiniMaterialObject()
 {}
 
 FHoudiniMaterialObject::FHoudiniMaterialObject( const HAPI_MaterialInfo & MaterialInfo )
-    : AssetId( MaterialInfo.assetId )
+    : AssetId( MaterialInfo.nodeId )
     , NodeId( MaterialInfo.nodeId )
     , MaterialId( MaterialInfo.nodeId )
     , HoudiniMaterialObjectFlagsPacked( 0u )
