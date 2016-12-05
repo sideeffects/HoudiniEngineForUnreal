@@ -405,38 +405,6 @@ enum HAPI_NodeFlags
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
 typedef int HAPI_NodeFlagsBits;
 
-enum HAPI_AssetType
-{
-    HAPI_ASSETTYPE_INVALID = -1,
-    HAPI_ASSETTYPE_OBJ = 0,
-    HAPI_ASSETTYPE_SOP,
-    HAPI_ASSETTYPE_POPNET,
-    HAPI_ASSETTYPE_POP,
-    HAPI_ASSETTYPE_CHOPNET,
-    HAPI_ASSETTYPE_CHOP,
-    HAPI_ASSETTYPE_ROP,
-    HAPI_ASSETTYPE_SHOP,
-    HAPI_ASSETTYPE_COP2,
-    HAPI_ASSETTYPE_COPNET,
-    HAPI_ASSETTYPE_VOP,
-    HAPI_ASSETTYPE_VOPNET,
-    HAPI_ASSETTYPE_DOP,
-    HAPI_ASSETTYPE_MGR,
-    HAPI_ASSETTYPE_DIR,
-    HAPI_ASSETTYPE_MAX
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_AssetType )
-
-enum HAPI_AssetSubType
-{
-    HAPI_ASSETSUBTYPE_INVALID = -1,
-    HAPI_ASSETSUBTYPE_DEFAULT,
-    HAPI_ASSETSUBTYPE_CURVE,
-    HAPI_ASSETSUBTYPE_INPUT,
-    HAPI_ASSETSUBTYPE_MAX
-};
-HAPI_C_ENUM_TYPEDEF( HAPI_AssetSubType )
-
 enum HAPI_GroupType
 {
     HAPI_GROUPTYPE_INVALID = -1,
@@ -772,18 +740,6 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions )
 
 struct HAPI_API HAPI_AssetInfo
 {
-    /// The houdini asset type. There may be all sorts of different assets
-    /// in Houdini, corresponding to the type of data that flows in that
-    /// particular type of data network. For the moment, the only supported
-    /// types are OBJ and SOP assets, though this will change in the future
-    /// to include a greater set.
-    HAPI_AssetType type;
-
-    /// Usually this will be ::HAPI_ASSETSUBTYPE_DEFAULT. The other values
-    /// correspond to assets that weren't instantiated through the use of
-    /// .otl files, such as curves.
-    HAPI_AssetSubType subType;
-
     /// Use the node id to get the asset's parameters.
     /// See @ref HAPI_Nodes_Basics.
     HAPI_NodeId nodeId;
@@ -1248,14 +1204,6 @@ struct HAPI_API HAPI_GeoInfo
     int partCount;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInfo )
-
-struct HAPI_API HAPI_GeoInputInfo
-{
-    HAPI_NodeId objectId;
-    HAPI_NodeId geoId;
-    HAPI_NodeId objectNodeId;
-};
-HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInputInfo )
 
 struct HAPI_API HAPI_PartInfo
 {

@@ -125,11 +125,6 @@ HAPI_DECL_RETURN( int )
         HAPI_GeoInfo * in, HAPI_GroupType type );
 
 HAPI_DECL_RETURN( void )
-    HAPI_GeoInputInfo_Init( HAPI_GeoInputInfo * in );
-HAPI_DECL_RETURN( HAPI_GeoInputInfo )
-    HAPI_GeoInputInfo_Create();
-
-HAPI_DECL_RETURN( void )
     HAPI_PartInfo_Init( HAPI_PartInfo * in );
 HAPI_DECL_RETURN( HAPI_PartInfo )
     HAPI_PartInfo_Create();
