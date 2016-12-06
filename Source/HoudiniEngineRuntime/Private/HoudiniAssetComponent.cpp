@@ -738,6 +738,10 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         ReleaseObjectGeoPartResources( StaleParts, true );
     }
 
+    // Skip self assignment.
+    if (&StaticMeshes != &StaticMeshMap)
+        StaticMeshes = StaticMeshMap;
+
 #if WITH_EDITOR
     if ( FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
     {
@@ -796,10 +800,10 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
             }
         }
     }
-
+    
     // Cleans all the attached static meshes components
     CleanUpAttachedStaticMeshComponents();
-
+    
     // Remove unused meshes.
     StaticMeshMap.Empty();
 
@@ -833,36 +837,47 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
     for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
     {
         UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >( *Iter );
-        if ( StaticMeshComponent )
+        if ( !StaticMeshComponent )
+            continue;
+
+        // Try to find the corresponding static mesh in the map
+        UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
+        UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
+
+        bool bNeedToCleanMeshComponent = false;
+        if ( !FoundStaticMeshComponent )
         {
-            UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
-            UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
-            if ( !FoundStaticMeshComponent )
-            {
-                // This StaticMeshComponent is attached to the asset but not in the map.
-                // It may be a leftover from previous cook/undo/redo and needs to be properly destroyed
+            UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >( *Iter );
+            if ( !InstancedStaticMeshComponent )
+                bNeedToCleanMeshComponent = true;
+        }
 
-                StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-                StaticMeshComponent->UnregisterComponent();
-                StaticMeshComponent->DestroyComponent();
+        if ( bNeedToCleanMeshComponent )
+        {
+            // This StaticMeshComponent is attached to the asset but not in the map, and not an instance.
+            // It may be a leftover from previous cook/undo/redo and needs to be properly destroyed
+            StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+            StaticMeshComponent->UnregisterComponent();
+            StaticMeshComponent->DestroyComponent();
 
-                StaticMeshesToDelete.Add( StaticMesh );
-            }
+            StaticMeshesToDelete.Add( StaticMesh );
         }
     }
 
 #if WITH_EDITOR
     // We'll try to delete the undesirable static meshes too
-    for (int32 MeshIdx = 0; MeshIdx < StaticMeshesToDelete.Num(); ++MeshIdx)
+    for ( int32 MeshIdx = 0; MeshIdx < StaticMeshesToDelete.Num(); ++MeshIdx )
     {
-        UStaticMesh * StaticMesh = StaticMeshesToDelete[MeshIdx];
+        UStaticMesh * StaticMesh = StaticMeshesToDelete[ MeshIdx ];
+        if ( !StaticMesh )
+            continue;
 
-        // Check if object is referenced and get its referencers, if it is.
+        // Check if object is referenced and get its referencers if it is.
         UObject * ObjectMesh = (UObject *)StaticMesh;
         FReferencerInformationList Referencers;	
         bool bReferenced = IsReferenced(
             ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS,
-            EInternalObjectFlags::GarbageCollectionKeepFlags, true, &Referencers);
+            EInternalObjectFlags::GarbageCollectionKeepFlags, true, &Referencers );
 
         if ( !bReferenced || IsObjectReferencedLocally( StaticMesh, Referencers ) )
         {
@@ -1146,17 +1161,14 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
         // Make sure rendering is done
         FlushRenderingCommands();
         
+        // Free meshes and components that are no longer used.
+        ReleaseObjectGeoPartResources(StaticMeshes, true);
+
         // Set meshes and create new components for those meshes that do not have them.
         if ( NewStaticMeshes.Num() > 0 )
             CreateObjectGeoPartResources( NewStaticMeshes );
         else
             CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
-
-        // Free meshes and components that are no longer used.
-        ReleaseObjectGeoPartResources( StaticMeshes, true );
-
-        // Assigns the new map
-        StaticMeshes = NewStaticMeshes;
     }
 
     // Invoke cooks of downstream assets.
@@ -2962,15 +2974,6 @@ UHoudiniAssetComponent::IsCookingEnabled() const
 void
 UHoudiniAssetComponent::PreEditUndo()
 {
-    Super::PreEditUndo();
-}
-
-void
-UHoudiniAssetComponent::PostEditUndo()
-{
-    // We need to make sure that all mesh components in the maps are valid ones
-    CleanUpAttachedStaticMeshComponents();
-
     // We need to make sure that the Mesh's resources are initialized after undo,
     // or a crash might happen in the RenderThread.
     for (TMap< FHoudiniGeoPartObject, UStaticMesh * >::TConstIterator Iter(StaticMeshes); Iter; ++Iter)
@@ -2981,6 +2984,15 @@ UHoudiniAssetComponent::PostEditUndo()
 
         StaticMesh->InitResources();
     }
+
+    Super::PreEditUndo();
+}
+
+void
+UHoudiniAssetComponent::PostEditUndo()
+{
+    // We need to make sure that all mesh components in the maps are valid ones
+    CleanUpAttachedStaticMeshComponents();
 
     Super::PostEditUndo();
 }
