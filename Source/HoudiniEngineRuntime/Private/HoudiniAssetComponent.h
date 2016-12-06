@@ -739,9 +739,6 @@ public:
 
                 /** Is set to true when component is loaded and requires instantiation. **/
                 uint32 bLoadedComponentRequiresInstantiation : 1;
-
-                /** Is set to true when component shares instantiated asset id. Used in PIE. */
-                uint32 bIsSharingAssetId : 1;
             };
 
             uint32 HoudiniAssetComponentTransientFlagsPacked;

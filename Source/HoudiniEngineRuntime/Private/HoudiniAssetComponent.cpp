@@ -1872,17 +1872,13 @@ UHoudiniAssetComponent::StartTaskAssetDeletion()
 {
     if ( FHoudiniEngineUtils::IsValidAssetId( AssetId ) && bIsNativeComponent )
     {
-        // If this component is sharing asset id, we should not start destruction.
-        if ( !bIsSharingAssetId )
-        {
-            // Generate GUID for our new task.
-            FGuid HapiDeletionGUID = FGuid::NewGuid();
+        // Generate GUID for our new task.
+        FGuid HapiDeletionGUID = FGuid::NewGuid();
 
-            // Create asset deletion task object and submit it for processing.
-            FHoudiniEngineTask Task( EHoudiniEngineTaskType::AssetDeletion, HapiDeletionGUID );
-            Task.AssetId = AssetId;
-            FHoudiniEngine::Get().AddTask( Task );
-        }
+        // Create asset deletion task object and submit it for processing.
+        FHoudiniEngineTask Task( EHoudiniEngineTaskType::AssetDeletion, HapiDeletionGUID );
+        Task.AssetId = AssetId;
+        FHoudiniEngine::Get().AddTask( Task );
 
         // Reset asset id
         AssetId = -1;
@@ -2785,11 +2781,6 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         Ar << TempId;
         bIsPlayModeActive_Unused = false;
     }
-    else if ( IsPIEActive() )
-    {
-        // Store or restore asset id only when playing/simulating
-        Ar << AssetId;
-    }
 
     // Serialization of default preset.
     Ar << DefaultPresetBuffer;
@@ -2865,10 +2856,6 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     {
         // This component has been loaded.
         bLoadedComponent = true;
-
-        // If we are in PIE and asset id is valid, set asset id sharing flag.
-        if ( IsPIEActive() && FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
-            bIsSharingAssetId = true;
     }
 }
 
