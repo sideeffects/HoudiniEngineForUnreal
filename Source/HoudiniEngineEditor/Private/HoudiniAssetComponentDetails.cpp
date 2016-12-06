@@ -598,10 +598,6 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
         FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking, HoudiniAssetComponent),
         TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking, HoudiniAssetComponent)));
     AddOptionRow(
-        LOCTEXT("HoudiniSetTimeAndCookInPlaymode", "Set Time and Cook when in Playmode"),
-        FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookInPlaymode, HoudiniAssetComponent),
-        TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookInPlaymode, HoudiniAssetComponent)));
-    AddOptionRow(
         LOCTEXT("HoudiniUseHoudiniMaterials", "Use Native Houdini Materials"),
         FOnCheckStateChanged::CreateSP(this, &FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingUseHoudiniMaterials, HoudiniAssetComponent),
         TAttribute<ECheckBoxState>::Create(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::IsCheckedComponentSettingUseHoudiniMaterials, HoudiniAssetComponent)));
@@ -1297,16 +1293,6 @@ FHoudiniAssetComponentDetails::IsCheckedComponentSettingTransformCooking(
 }
 
 ECheckBoxState
-FHoudiniAssetComponentDetails::IsCheckedComponentSettingCookInPlaymode(
-    UHoudiniAssetComponent * HoudiniAssetComponent) const
-{
-    if ( HoudiniAssetComponent && HoudiniAssetComponent->bTimeCookInPlaymode )
-        return ECheckBoxState::Checked;
-
-    return ECheckBoxState::Unchecked;
-}
-
-ECheckBoxState
 FHoudiniAssetComponentDetails::IsCheckedComponentSettingUseHoudiniMaterials(
     UHoudiniAssetComponent * HoudiniAssetComponent ) const
 {
@@ -1351,15 +1337,6 @@ FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingTransformCooking
 {
     if ( HoudiniAssetComponent )
         HoudiniAssetComponent->bTransformChangeTriggersCooks = ( NewState == ECheckBoxState::Checked );
-}
-
-void
-FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookInPlaymode(
-    ECheckBoxState NewState,
-    UHoudiniAssetComponent * HoudiniAssetComponent )
-{
-    if ( HoudiniAssetComponent )
-        HoudiniAssetComponent->bTimeCookInPlaymode = ( NewState == ECheckBoxState::Checked );
 }
 
 void

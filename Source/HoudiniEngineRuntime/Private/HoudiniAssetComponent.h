@@ -704,8 +704,8 @@ public:
                 /** Unused **/
                 uint32 bIsPlayModeActive_Unused : 1;
 
-                /** Is set to true when component should set time and cook in play mode. **/
-                uint32 bTimeCookInPlaymode : 1;
+                /** unused flag **/
+                uint32 bTimeCookInPlaymode_Unused : 1;
 
                 /** Is set to true when Houdini materials are used. **/
                 uint32 bUseHoudiniMaterials : 1;
