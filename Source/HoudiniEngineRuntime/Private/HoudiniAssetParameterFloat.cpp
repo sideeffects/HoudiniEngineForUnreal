@@ -215,7 +215,10 @@ UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailC
         .Z( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( this, &UHoudiniAssetParameterFloat::GetValue, bSwappedAxis3Vector ? 1 : 2 ) ) )
         .OnXChanged( FOnFloatValueChanged::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValue, 0, true, true ) )
         .OnYChanged( FOnFloatValueChanged::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValue, bSwappedAxis3Vector ? 2 : 1, true, true ) )
-        .OnZChanged( FOnFloatValueChanged::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValue, bSwappedAxis3Vector ? 1 : 2, true, true ) );
+        .OnZChanged( FOnFloatValueChanged::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValue, bSwappedAxis3Vector ? 1 : 2, true, true ) )
+        .OnXCommitted( FOnFloatValueCommitted::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValueCommitted, 0 ) )
+        .OnYCommitted( FOnFloatValueCommitted::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValueCommitted, bSwappedAxis3Vector ? 2 : 1 ) )
+        .OnZCommitted( FOnFloatValueCommitted::CreateUObject( this, &UHoudiniAssetParameterFloat::SetValueCommitted, bSwappedAxis3Vector ? 1 : 2 ) );
     }
     else
     {
@@ -343,7 +346,7 @@ UHoudiniAssetParameterFloat::SetValue( float InValue, int32 Idx, bool bTriggerMo
         Values[ Idx ] = FMath::Clamp< float >( InValue, ValueMin, ValueMax );
 
         // Mark this parameter as changed.
-        MarkChanged( bTriggerModify );
+        //MarkChanged( bTriggerModify );
     }
 }
 
@@ -360,7 +363,10 @@ UHoudiniAssetParameterFloat::GetParameterValue( int32 Idx, float DefaultValue ) 
 
 void
 UHoudiniAssetParameterFloat::SetValueCommitted( float InValue, ETextCommit::Type CommitType, int32 Idx )
-{}
+{
+    // Mark this parameter as changed.
+    MarkChanged( true );
+}
 
 void
 UHoudiniAssetParameterFloat::OnSliderMovingBegin( int32 Idx )
