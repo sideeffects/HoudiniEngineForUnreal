@@ -310,14 +310,16 @@ UHoudiniSplineComponent::UpdateHoudiniComponents()
     {
         // If not an input curve, we need first to upload the new CVs
         UploadControlPoints();
-
+#if WITH_EDITOR
         UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >( GetAttachParent() );
         if ( HoudiniAssetComponent )
             HoudiniAssetComponent->NotifyHoudiniSplineChanged( this );
+#endif
     }
-
+#if WITH_EDITOR
     if ( GEditor )
         GEditor->RedrawLevelEditingViewports( true );
+#endif
 }
 
 void
