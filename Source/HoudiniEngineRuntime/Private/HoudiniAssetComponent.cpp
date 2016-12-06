@@ -878,6 +878,7 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
         }
     }
 
+#if WITH_EDITOR
     // We'll try to delete the undesirable static meshes too
     for (int32 MeshIdx = 0; MeshIdx < StaticMeshesToDelete.Num(); ++MeshIdx)
     {
@@ -901,6 +902,7 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
             }
         }
     }
+#endif
 }
 
 bool
