@@ -31,6 +31,8 @@
 
 #include "AI/Navigation/NavCollision.h"
 
+DECLARE_CYCLE_STAT( TEXT( "Houdini: Build Static Mesh" ), STAT_BuildStaticMesh, STATGROUP_HoudiniEngine );
+
 const FString kResultStringSuccess( TEXT( "Success" ) );
 const FString kResultStringFailure( TEXT( "Generic Failure" ) );
 const FString kResultStringAlreadyInitialized( TEXT( "Already Initialized" ) );
@@ -5581,8 +5583,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     FHoudiniScopedGlobalSilence ScopedGlobalSilence;
 
                     TArray< FText > BuildErrors;
-                    StaticMesh->Build( true, &BuildErrors );
-
+                    {
+                        SCOPE_CYCLE_COUNTER( STAT_BuildStaticMesh );
+                        StaticMesh->Build( true, &BuildErrors );
+                    }
                     for ( int32 BuildErrorIdx = 0; BuildErrorIdx < BuildErrors.Num(); ++BuildErrorIdx )
                     {
                         const FText & TextError = BuildErrors[ BuildErrorIdx ];

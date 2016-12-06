@@ -36,6 +36,8 @@ class USplineComponent;
 
 struct FRawMesh;
 
+DECLARE_STATS_GROUP( TEXT( "HoudiniEngine" ), STATGROUP_HoudiniEngine, STATCAT_Advanced );
+
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 {
     public:
