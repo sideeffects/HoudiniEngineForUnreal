@@ -823,10 +823,10 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
             }
         }
     }
-    /*
+    
     // Cleans all the attached static meshes components
     CleanUpAttachedStaticMeshComponents();
-    */
+    
     // Remove unused meshes.
     StaticMeshMap.Empty();
 
@@ -857,24 +857,33 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
 
     // We'll check all the children static mesh components for junk
     const auto & LocalAttachChildren = GetAttachChildren();
-    for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
+    for (TArray< USceneComponent * >::TConstIterator Iter(LocalAttachChildren); Iter; ++Iter)
     {
-        UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >( *Iter );
-        if ( StaticMeshComponent )
+        UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >(*Iter);
+        if ( !StaticMeshComponent )
+            continue;
+
+        // Try to find the corresponding static mesh in the map
+        UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
+        UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent(StaticMesh);
+
+        bool bNeedToCleanMeshComponent = false;
+        if ( !FoundStaticMeshComponent )
         {
-            UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
-            UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
-            if ( !FoundStaticMeshComponent )
-            {
-                // This StaticMeshComponent is attached to the asset but not in the map.
-                // It may be a leftover from previous cook/undo/redo and needs to be properly destroyed
+            UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >(*Iter);
+            if ( !InstancedStaticMeshComponent )
+                bNeedToCleanMeshComponent = true;
+        }
 
-                StaticMeshComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-                StaticMeshComponent->UnregisterComponent();
-                StaticMeshComponent->DestroyComponent();
+        if ( bNeedToCleanMeshComponent )
+        {
+            // This StaticMeshComponent is attached to the asset but not in the map, and not an instance.
+            // It may be a leftover from previous cook/undo/redo and needs to be properly destroyed
+            StaticMeshComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+            StaticMeshComponent->UnregisterComponent();
+            StaticMeshComponent->DestroyComponent();
 
-                StaticMeshesToDelete.Add( StaticMesh );
-            }
+            StaticMeshesToDelete.Add(StaticMesh);
         }
     }
 
@@ -3020,10 +3029,9 @@ UHoudiniAssetComponent::PreEditUndo()
 void
 UHoudiniAssetComponent::PostEditUndo()
 {
-    /*
     // We need to make sure that all mesh components in the maps are valid ones
     CleanUpAttachedStaticMeshComponents();
-    */
+
     Super::PostEditUndo();
 }
 

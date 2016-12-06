@@ -57,6 +57,7 @@
 #include "IPluginManager.h"
 #include "DesktopPlatformModule.h"
 #include "TargetPlatform.h"
+#include "Components/StaticMeshComponent.h"
 #endif
 
 /** Other Unreal headers. **/
@@ -75,9 +76,9 @@
 #include "AssetData.h"
 #include "AssetRegistryModule.h"
 #include "HitProxies.h"
-#include "Components/StaticMeshComponent.h"
-#include "Components/InstancedStaticMeshComponent.h"
+#include "Components.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/StaticMesh.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialExpressionTextureSample.h"
@@ -98,6 +99,7 @@
 #include "Curves/CurveBase.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveLinearColor.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 /** Houdini Engine Runtime Module Localization. **/
 #include "HoudiniEngineRuntimeLocalization.h"
