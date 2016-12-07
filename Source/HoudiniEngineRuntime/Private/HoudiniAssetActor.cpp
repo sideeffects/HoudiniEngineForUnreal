@@ -60,42 +60,7 @@ AHoudiniAssetActor::GetHoudiniCurrentPlaytime() const
     return CurrentPlayTime;
 }
 
-void
-AHoudiniAssetActor::Tick( float DeltaSeconds )
-{
-    Super::Tick( DeltaSeconds );
-
 #if WITH_EDITOR
-
-    if ( HoudiniAssetComponent->bTimeCookInPlaymode )
-    {
-        HAPI_AssetId AssetId = HoudiniAssetComponent->GetAssetId();
-        if ( AssetId == -1 )
-        {
-            // If component is not instantiating or cooking, we can set time and force cook.
-            if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
-            {
-                FHoudiniEngineUtils::SetCurrentTime( 0.0f );
-                HoudiniAssetComponent->StartTaskAssetCookingManual();
-            }
-        }
-        else
-        {
-            FHoudiniEngineUtils::SetCurrentTime( CurrentPlayTime );
-            FHoudiniApi::CookAsset( FHoudiniEngine::Get().GetSession(), AssetId, nullptr );
-
-            HoudiniAssetComponent->PostCook();
-        }
-
-        // Increment play time.
-        CurrentPlayTime += DeltaSeconds;
-    }
-
-#endif
-}
-
-#if WITH_EDITOR
-
 bool
 AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel )
 {

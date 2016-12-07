@@ -44,8 +44,6 @@ class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
     /** AActor methods. **/
     public:
 
-        virtual void Tick( float DeltaSeconds ) override;
-
 #if WITH_EDITOR
 
         virtual bool ShouldImport( FString * ActorPropString, bool IsMovingLevel ) override;
