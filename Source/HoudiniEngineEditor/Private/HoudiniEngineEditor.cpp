@@ -273,6 +273,14 @@ FHoudiniEngineEditor::AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder )
     MenuBuilder.BeginSection( "Houdini", LOCTEXT( "HoudiniLabel", "Houdini Engine" ) );
 
     MenuBuilder.AddMenuEntry(
+        LOCTEXT("HoudiniMenuEntryTitleOpenHoudini", "Open scene in Houdini"),
+        LOCTEXT("HoudiniMenuEntryToolTipOpenInHoudini", "Opens the current Houdini scene in Houdini."),
+        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+        FUIAction(
+            FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::OpenInHoudini),
+            FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanOpenInHoudini)));
+
+    MenuBuilder.AddMenuEntry(
         LOCTEXT( "HoudiniMenuEntryTitleSaveHip", "Save Houdini scene (HIP)" ),
         LOCTEXT( "HoudiniMenuEntryToolTipSaveHip", "Saves a .hip file of the current Houdini scene." ),
         FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
@@ -331,6 +339,48 @@ FHoudiniEngineEditor::SaveHIPFile()
             FHoudiniApi::SaveHIPFile( FHoudiniEngine::Get().GetSession(), HIPPathConverted.c_str(), false );
         }
     }
+}
+
+bool
+FHoudiniEngineEditor::CanOpenInHoudini() const
+{
+    return FHoudiniEngine::IsInitialized();
+}
+
+void
+FHoudiniEngineEditor::OpenInHoudini()
+{
+    if ( !FHoudiniEngine::IsInitialized() )
+        return;
+
+    // First, saves the current scene as a hip file
+    // Creates a proper temporary file name
+    FString UserTempPath = FPaths::CreateTempFilename(
+        FPlatformProcess::UserTempDir(), 
+        TEXT( "HoudiniEngine" ), TEXT( ".hip" ) );
+
+    // Save HIP file through Engine.
+    std::string TempPathConverted( TCHAR_TO_UTF8( *UserTempPath ) );
+    FHoudiniApi::SaveHIPFile(
+        FHoudiniEngine::Get().GetSession(), 
+        TempPathConverted.c_str(), false);
+
+    if ( !FPaths::FileExists( UserTempPath ) )
+        return;
+    
+    // Then open the hip file in Houdini
+    FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
+    FString houdiniLocation = LibHAPILocation + "//houdini";
+    FPlatformProcess::CreateProc( 
+        houdiniLocation.GetCharArray().GetData(), 
+        UserTempPath.GetCharArray().GetData(), 
+        true, false, false, 
+        nullptr, 0,
+        FPlatformProcess::UserTempDir(),
+        nullptr, nullptr );
+
+    // Unfortunately, LaunchFileInDefaultExternalApplication doesn't seem to be working properly
+    //FPlatformProcess::LaunchFileInDefaultExternalApplication( UserTempPath.GetCharArray().GetData(), nullptr, ELaunchVerb::Open );
 }
 
 void
