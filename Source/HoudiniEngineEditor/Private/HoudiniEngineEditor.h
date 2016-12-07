@@ -87,6 +87,12 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if report a bug can be executed. **/
         bool CanReportBug() const;
 
+        /** Menu action called to open the current scene in Houdini. **/
+        void OpenInHoudini();
+
+        /** Helper delegate used to determine if open in Houdini can be executed. **/
+        bool CanOpenInHoudini() const; 
+
     protected:
 
         /** Register AssetType action. **/
