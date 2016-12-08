@@ -56,6 +56,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     MarshallingAttributeGeneratedMeshName = TEXT( HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME );
     MarshallingAttributeInputMeshName = TEXT( HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME );
     MarshallingSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
+    MarshallingLandscapesUseFullResolution = false;
 
     /** Geometry scaling. **/
     GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;

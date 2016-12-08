@@ -25,6 +25,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniAssetLogWidget.h"
 #include "HoudiniEngineString.h"
+#include "Landscape.h"
 
 uint32
 GetTypeHash( TPair< UStaticMesh *, int32 > Pair )
@@ -188,6 +189,7 @@ void
 FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCategoryBuilder & DetailCategoryBuilder )
 {
     StaticMeshThumbnailBorders.Empty();
+    LandscapeThumbnailBorders.Empty();
     MaterialInterfaceComboButtons.Empty();
     MaterialInterfaceThumbnailBorders.Empty();
 
@@ -195,6 +197,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
     IDetailLayoutBuilder & DetailLayoutBuilder = DetailCategoryBuilder.GetParentLayout();
     TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
+    int32 NumberOfGeneratedMeshes = 0;
     for ( TArray< UHoudiniAssetComponent * >::TIterator
         IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents)
     {
@@ -209,6 +212,8 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
 
             if ( !StaticMesh )
                 continue;
+
+            NumberOfGeneratedMeshes++;
 
             FString Label = TEXT( "" );
             if ( HoudiniGeoPartObject.HasCustomName() )
@@ -386,7 +391,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
                     PropertyCustomizationHelpers::MakeBrowseButton(
                         FSimpleDelegate::CreateSP(
                             this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceBrowse, MaterialInterface ),
-                        TAttribute< FText >( MaterialTooltip ) )
+			    TAttribute< FText >( MaterialTooltip ) )
                 ];
 
                 ButtonBox->AddSlot()
@@ -417,34 +422,126 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
 
             MeshIdx++;
         }
+
+        // Do the same for the Landscape components
+        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+            IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
+        {
+            ALandscape * Landscape = IterLandscapes.Value();
+            FHoudiniGeoPartObject & HoudiniGeoPartObject = IterLandscapes.Key();
+
+            if (!Landscape)
+                continue;
+
+            NumberOfGeneratedMeshes++;
+
+            FString Label = TEXT("");
+            if (HoudiniGeoPartObject.HasCustomName())
+                Label = HoudiniGeoPartObject.PartName;
+            else
+                Label = Landscape->GetName();
+
+            // Create thumbnail for this landscape.
+            TSharedPtr< FAssetThumbnail > LandscapeThumbnail =
+                MakeShareable(new FAssetThumbnail(Landscape, 64, 64, AssetThumbnailPool));
+
+            TSharedPtr< SBorder > LandscapeThumbnailBorder;
+            TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
+
+            IDetailGroup& LandscapeGrp = DetailCategoryBuilder.AddGroup(FName(*Label), FText::FromString(Label));
+            LandscapeGrp.AddWidgetRow()
+            .NameContent()
+            [
+                SNew(SSpacer)
+                .Size(FVector2D(250, 64))
+            ]
+            .ValueContent()
+            .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+            [
+                VerticalBox
+            ];
+
+            VerticalBox->AddSlot().Padding(0, 2).AutoHeight()
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot()
+                .Padding(0.0f, 0.0f, 2.0f, 0.0f)
+                .AutoWidth()
+                [
+                    SAssignNew(LandscapeThumbnailBorder, SBorder)
+                    .Padding(5.0f)
+                    .BorderImage(this, &FHoudiniAssetComponentDetails::GetLandscapeThumbnailBorder, Landscape)
+                    .OnMouseDoubleClick(this, &FHoudiniAssetComponentDetails::OnThumbnailDoubleClick, (UObject *)Landscape)
+                    [
+                        SNew(SBox)
+                        .WidthOverride(64)
+                        .HeightOverride(64)
+                        .ToolTipText(FText::FromString(Landscape->GetPathName()))
+                        [
+                            LandscapeThumbnail->MakeThumbnailWidget()
+                        ]
+                    ]
+                ]
+                + SHorizontalBox::Slot()
+                .FillWidth(1.0f)
+                .Padding(0.0f, 4.0f, 4.0f, 4.0f)
+                .VAlign(VAlign_Center)
+                [
+                    SNew(SVerticalBox)
+                    + SVerticalBox::Slot()
+                    [
+                        SNew(SHorizontalBox)
+                        + SHorizontalBox::Slot()
+                        .MaxWidth(80.0f)
+                        [
+                            SNew(SButton)
+                            .VAlign(VAlign_Center)
+                            .HAlign(HAlign_Center)
+                            .Text(LOCTEXT("Bake", "Bake"))
+                            .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeLandscape, Landscape, HoudiniAssetComponent)
+                            .ToolTipText(LOCTEXT("HoudiniLandscapeBakeButton", "Bake this landscape"))
+                        ]
+                    ]
+                ]
+            ];
+
+            // Store thumbnail for this landscape.
+            LandscapeThumbnailBorders.Add(Landscape, LandscapeThumbnailBorder);
+
+            MeshIdx++;
+        }
     }
 
-    TSharedRef< SHorizontalBox > HorizontalButtonBox = SNew( SHorizontalBox );
-    DetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-    [
-        SNew( SVerticalBox )
-        +SVerticalBox::Slot()
-        .Padding( 0, 2.0f, 0, 0 )
-        .FillHeight( 1.0f )
-        .VAlign( VAlign_Center )
-        [
-            SAssignNew( HorizontalButtonBox, SHorizontalBox )
-        ]
-    ];
+    if (NumberOfGeneratedMeshes > 1)
+    {
+        // Add the BakeAll button
+        TSharedRef< SHorizontalBox > HorizontalButtonBox = SNew(SHorizontalBox);
+        DetailCategoryBuilder.AddCustomRow(FText::GetEmpty())
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot()
+                .Padding(0, 2.0f, 0, 0)
+                .FillHeight(1.0f)
+                .VAlign(VAlign_Center)
+                [
+                    SAssignNew(HorizontalButtonBox, SHorizontalBox)
+                ]
+            ];
 
-    HorizontalButtonBox->AddSlot()
-    .AutoWidth()
-    .Padding( 2.0f, 0.0f )
-    .VAlign( VAlign_Center )
-    .HAlign( HAlign_Center )
-    [
-        SNew( SButton )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        .OnClicked( this, &FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes )
-        .Text( LOCTEXT( "BakeHoudiniActor", "Bake All" ) )
-        .ToolTipText( LOCTEXT( "BakeHoudiniActorToolTip", "Bake all generated static meshes" ) )
-    ];
+        HorizontalButtonBox->AddSlot()
+            .AutoWidth()
+            .Padding(2.0f, 0.0f)
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            [
+                SNew(SButton)
+                .VAlign(VAlign_Center)
+                .HAlign(HAlign_Center)
+                .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeAllGeneratedMeshes)
+                .Text(LOCTEXT("BakeHoudiniActor", "Bake All"))
+                .ToolTipText(LOCTEXT("BakeHoudiniActorToolTip", "Bake all generated meshes"))
+            ];
+    }
 }
 
 void
@@ -706,6 +803,16 @@ FHoudiniAssetComponentDetails::GetStaticMeshThumbnailBorder( UStaticMesh * Stati
 }
 
 const FSlateBrush *
+FHoudiniAssetComponentDetails::GetLandscapeThumbnailBorder( ALandscape * Landscape ) const
+{
+    TSharedPtr< SBorder > ThumbnailBorder = LandscapeThumbnailBorders[ Landscape ];
+    if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
+        return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+    else
+        return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailShadow");
+}
+
+const FSlateBrush *
 FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder( UStaticMesh * StaticMesh, int32 MaterialIdx ) const
 {
     TPairInitializer< UStaticMesh *, int32 > Pair( StaticMesh, MaterialIdx );
@@ -744,7 +851,36 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoud
 }
 
 FReply
-FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
+FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent)
+{
+    if (HoudiniAssetComponent && Landscape)
+    {
+        bool bNeedToUpdateProperties = false;
+        // We just need to "separate" the landscape and the Asset component
+        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+            IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
+        {
+            ALandscape * CurrentLandscape = IterLandscapes.Value();
+            if (CurrentLandscape != Landscape)
+                continue;
+
+            // Simply remove the landscape from the map
+            FHoudiniGeoPartObject & HoudiniGeoPartObject = IterLandscapes.Key();
+            HoudiniAssetComponent->LandscapeComponents.Remove( HoudiniGeoPartObject );
+
+            bNeedToUpdateProperties = true;
+            break;
+        }
+
+        if (bNeedToUpdateProperties)
+            HoudiniAssetComponent->UpdateEditorProperties(false);
+    }
+
+    return FReply::Handled();
+}
+
+FReply
+FHoudiniAssetComponentDetails::OnBakeAllGeneratedMeshes()
 {
     if ( HoudiniAssetComponents.Num() > 0 )
     {
@@ -756,6 +892,15 @@ FHoudiniAssetComponentDetails::OnBakeAllStaticMeshes()
             FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
             UStaticMesh * StaticMesh = Iter.Value();
             (void) OnBakeStaticMesh( StaticMesh, HoudiniAssetComponent );
+        }
+
+        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
+            IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
+        {
+            ALandscape * Landscape = IterLandscapes.Value();
+            if (!Landscape)
+                continue;
+            (void)OnBakeLandscape(Landscape, HoudiniAssetComponent);
         }
     }
 

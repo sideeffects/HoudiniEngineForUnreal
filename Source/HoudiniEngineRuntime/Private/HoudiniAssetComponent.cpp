@@ -2863,6 +2863,12 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     // Serialize downstream asset connections.
     Ar << DownstreamAssetConnections;
 
+    // Serialize Landscape/GeoPart map
+    if ( HoudiniAssetComponentVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_LANDSCAPES )
+    {
+        Ar << LandscapeComponents;
+    }
+
     if ( Ar.IsLoading() && bIsNativeComponent )
     {
         // This component has been loaded.
@@ -4340,9 +4346,10 @@ UHoudiniAssetComponent::CreateLandscape(
     double ZRange = (double)( FloatMax - FloatMin );
 
     // The corresponding unreal digit range (as unreal uses uint16, max is 65535)
-    double DigitRange = 32767.0;
-    bool bFullRange = false;
-    if ( bFullRange )
+    double DigitRange = 49152.0;
+
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( HoudiniRuntimeSettings && HoudiniRuntimeSettings->MarshallingLandscapesUseFullResolution )
         DigitRange = 65535.0;
 
     // The Offset in Digit used to center the values so that the terrain can be edited up/down

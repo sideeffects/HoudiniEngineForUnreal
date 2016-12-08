@@ -233,6 +233,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
         float MarshallingSplineResolution;
 
+        // If true, generated Landscapes will be using full precision for their ZAxis, 
+        // allowing for more precision but preventing them from being sculpted higher/lower than their min/max.
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
+        bool MarshallingLandscapesUseFullResolution;
+
     /** Geometry scaling. **/
     public:
 

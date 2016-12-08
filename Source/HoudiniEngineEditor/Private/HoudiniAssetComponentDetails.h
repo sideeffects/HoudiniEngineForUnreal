@@ -60,6 +60,7 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
         const FSlateBrush * GetStaticMeshThumbnailBorder( UStaticMesh * StaticMesh ) const;
         const FSlateBrush * GetMaterialInterfaceThumbnailBorder( UStaticMesh * StaticMesh, int32 MaterialIdx ) const;
+        const FSlateBrush * GetLandscapeThumbnailBorder(ALandscape * Landscape) const;
 
         /** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
         FReply OnThumbnailDoubleClick(
@@ -68,8 +69,11 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Handler for bake individual static mesh action. **/
         FReply OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoudiniAssetComponent * HoudiniAssetComponent );
 
+        /** Handler for baking an individual Landscape. **/
+        FReply OnBakeLandscape( ALandscape * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent );
+
         /** Handler for bake all static meshes action. **/
-        FReply OnBakeAllStaticMeshes();
+        FReply OnBakeAllGeneratedMeshes();
 
         /** Handler for recook action. **/
         FReply OnRecookAsset();
@@ -197,6 +201,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
 
         /** Map of static meshes and corresponding thumbnail borders. **/
         TMap< UStaticMesh *, TSharedPtr< SBorder > > StaticMeshThumbnailBorders;
+
+        /** Map of Lnadscapes and corresponding thumbnail borders. **/
+        TMap< ALandscape *, TSharedPtr< SBorder > > LandscapeThumbnailBorders;
 
         /** Map of static meshes / material indices to combo elements. **/
         TMap< TPair< UStaticMesh *, int32 >, TSharedPtr<SComboButton > > MaterialInterfaceComboButtons;
