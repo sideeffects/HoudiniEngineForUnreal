@@ -286,6 +286,7 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 
 /** Handle types. **/
 #define HAPI_UNREAL_HANDLE_TRANSFORM                    "xform"
+#define HAPI_UNREAL_HANDLE_BOUNDER                      "bound"
 
 /** Ramp related defines. **/
 #define HAPI_UNREAL_RAMP_FLOAT_AXIS_X                   "position"
