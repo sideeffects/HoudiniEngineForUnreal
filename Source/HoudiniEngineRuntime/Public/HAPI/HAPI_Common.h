@@ -146,7 +146,7 @@ typedef int HAPI_NodeId;
 typedef int HAPI_ParmId;
 
 /// Use this with ::HAPI_GetPartInfo().
-/// See @ref HAPI_ObjectsGeosParts_Parts.
+/// See @ref HAPI_Parts.
 typedef int HAPI_PartId;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -588,7 +588,7 @@ HAPI_C_ENUM_TYPEDEF( HAPI_ImagePacking )
 
 /// This enum is to be used with ::HAPI_GetEnvInt() to retrieve basic
 /// information about the HAPI implementation currently being linked
-/// against. Note that as of HAPI version 2.0, these enum values are 
+/// against. Note that as of HAPI version 2.0, these enum values are
 /// guaranteed never to change so you can reliably get this information from
 /// any post-2.0 version of HAPI. The same goes for the actual
 /// ::HAPI_GetEnvInt() API call.
@@ -764,7 +764,7 @@ struct HAPI_API HAPI_AssetInfo
     HAPI_StringHandle fullOpNameSH; ///< Full asset name and namespace.
     HAPI_StringHandle helpTextSH; ///< Asset help marked-up text.
 
-    int objectCount; ///< See @ref HAPI_ObjectsGeosParts_Objects.
+    int objectCount; ///< See @ref HAPI_Objects.
     int handleCount; ///< See @ref HAPI_Handles.
 
     /// Transform inputs exposed by the asset. For OBJ assets this is the
@@ -1145,7 +1145,7 @@ struct HAPI_API HAPI_ObjectInfo
     /// The number of geometries under this object. For those familiar with
     /// Houdini, this number will always include the one visible SOP and any
     /// SOPs that were exposed as "editable" or "templated".
-    /// See @ref HAPI_ObjectsGeosParts_Geos.
+    /// See @ref HAPI_Geos.
     int geoCount;
 
     /// Use the node id to get the node's parameters.
@@ -1200,7 +1200,7 @@ struct HAPI_API HAPI_GeoInfo
     /// @}
 
     /// Total number of parts this geometry contains.
-    /// See @ref HAPI_ObjectsGeosParts_Parts.
+    /// See @ref HAPI_Parts.
     int partCount;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_GeoInfo )

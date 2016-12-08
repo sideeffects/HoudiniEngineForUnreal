@@ -209,7 +209,7 @@ HAPI_DECL HAPI_IsInitialized( const HAPI_Session * session );
 ///
 /// @param[in]      houdini_environment_files
 ///                 A list of paths, separated by a ";" on Windows and a ":"
-///                 on Linux and Mac, to .env files that follow the same 
+///                 on Linux and Mac, to .env files that follow the same
 ///                 syntax as the houdini.env file in Houdini's user prefs
 ///                 folder. These will be applied after the default
 ///                 houdini.env file and will overwrite the process'
@@ -491,7 +491,7 @@ HAPI_DECL HAPI_GetStatusString( const HAPI_Session * session,
 ///
 ///         This will actually parse the node network inside the given
 ///         node and return ALL errors/warnings/messages of all child nodes,
-///         combined into a single string. If you'd like a more narrowed 
+///         combined into a single string. If you'd like a more narrowed
 ///         search, call this function on one of the child nodes.
 ///
 ///         You MUST call ::HAPI_ComposeNodeCookResult() before calling
@@ -724,7 +724,7 @@ HAPI_DECL HAPI_ConvertTransformEulerToMatrix(
 ///         mode (see ::HAPI_Initialize()).
 ///
 ///         The problem arises when async functions like
-///         ::HAPI_InstantiateAsset() may start a cooking thread that
+///         ::HAPI_CreateNode() may start a cooking thread that
 ///         may try to run Python code. That is, we would now have
 ///         Python running on two different threads - something not
 ///         allowed by Python by default.
@@ -852,7 +852,7 @@ HAPI_DECL HAPI_SetTimelineOptions(
 // ASSETS -------------------------------------------------------------------
 
 /// @brief  Loads a Houdini asset library (OTL) from a .otl file.
-///         It does NOT instantiate anything inside the Houdini scene.
+///         It does NOT create anything inside the Houdini scene.
 ///
 ///         @note This is when we actually check for valid licenses.
 ///
@@ -860,8 +860,8 @@ HAPI_DECL HAPI_SetTimelineOptions(
 ///         to get the number of assets contained in the library using the
 ///         returned library_id. Then call ::HAPI_GetAvailableAssets()
 ///         to get the list of available assets by name. Use the asset
-///         names with ::HAPI_InstantiateAsset() to actually instantiate
-///         one of these assets in the Houdini scene and get back
+///         names with ::HAPI_CreateNode() to actually create
+///         one of these nodes in the Houdini scene and get back
 ///         an asset_id.
 ///
 ///         @note The HIP file saved using ::HAPI_SaveHIPFile() will only
@@ -900,7 +900,7 @@ HAPI_DECL HAPI_LoadAssetLibraryFromFile( const HAPI_Session * session,
                                          HAPI_AssetLibraryId* library_id );
 
 /// @brief  Loads a Houdini asset library (OTL) from memory.
-///         It does NOT instantiate anything inside the Houdini scene.
+///         It does NOT create anything inside the Houdini scene.
 ///
 ///         @note This is when we actually check for valid licenses.
 ///
@@ -917,8 +917,8 @@ HAPI_DECL HAPI_LoadAssetLibraryFromFile( const HAPI_Session * session,
 ///         to get the number of assets contained in the library using the
 ///         returned library_id. Then call ::HAPI_GetAvailableAssets()
 ///         to get the list of available assets by name. Use the asset
-///         names with ::HAPI_InstantiateAsset() to actually instantiate
-///         one of these assets in the Houdini scene and get back
+///         names with ::HAPI_CreateNode() to actually create
+///         one of these nodes in the Houdini scene and get back
 ///         an asset_id.
 ///
 ///         @note The saved HIP file using ::HAPI_SaveHIPFile() will
@@ -990,8 +990,8 @@ HAPI_DECL HAPI_GetAvailableAssetCount( const HAPI_Session * session,
 ///         hapi::Object/foo::2.0
 ///
 ///         However, you should not need to worry about this detail. Just
-///         pass this string directly to ::HAPI_InstantiateAsset() to
-///         instantiate the asset. You can then get the pretty name
+///         pass this string directly to ::HAPI_CreateNode() to
+///         create the node. You can then get the pretty name
 ///         using ::HAPI_GetAssetInfo().
 ///
 ///         You should call ::HAPI_LoadAssetLibraryFromFile() prior to
@@ -1061,9 +1061,9 @@ HAPI_DECL HAPI_Interrupt( const HAPI_Session * session );
 ///                 Absolute path to the .hip file to load.
 ///
 /// @param[in]      cook_on_load
-///                 Set to true if you wish the assets to cook as soon
-///                 as they are instantiated. Otherwise, you will have to
-///                 call ::HAPI_CookAsset() explicitly for each after you
+///                 Set to true if you wish the nodes to cook as soon
+///                 as they are created. Otherwise, you will have to
+///                 call ::HAPI_CookNode() explicitly for each after you
 ///                 call this function.
 ///
 HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
@@ -1084,7 +1084,7 @@ HAPI_DECL HAPI_LoadHIPFile( const HAPI_Session * session,
 ///                 Specify whether to lock all SOP nodes before saving
 ///                 the scene file. This way, when you load the scene
 ///                 file you can see exactly the state of each SOP at
-///                 the time it was saved instead of relying on the 
+///                 the time it was saved instead of relying on the
 ///                 re-cook to accurately reproduce the state. It does,
 ///                 however, take a lot more space and time locking all
 ///                 nodes like this.
@@ -1276,13 +1276,13 @@ HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
 ///                 If you passed parent_node_id == -1, then the operator_name
 ///                 has to include the table name (ie. Object/ or Sop/).
 ///                 This is the common case for when creating asset nodes
-///                 from a loaded asset library. In that case, just pass 
+///                 from a loaded asset library. In that case, just pass
 ///                 whatever ::HAPI_GetAvailableAssets() returns.
 ///
 ///                 If you have a parent_node_id then you should
 ///                 include only the namespace, name, and version.
 ///
-///                 For example, lets say you have an Object type asset, in 
+///                 For example, lets say you have an Object type asset, in
 ///                 the "hapi" namespace, of version 2.0, named "foo". If
 ///                 you pass parent_node_id == -1, then set the operator_name
 ///                 as "Object/hapi::foo::2.0". Otherwise, if you have a valid
@@ -2567,7 +2567,7 @@ HAPI_DECL HAPI_GetComposedObjectTransforms( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      node_id
+/// @param[in]      object_node_id
 ///                 The object node id.
 ///
 /// @param[out]     instanced_node_id_array
@@ -3183,22 +3183,22 @@ HAPI_DECL HAPI_GetGroupMembership( const HAPI_Session * session,
 ///                 Array of ::HAPI_PartId's to instance.
 ///
 /// @param[in]      start
-///                 Should be less than @p part_id's 
+///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instancedPartCount but more than or
 ///                 equal to 0.
 ///
 /// @param[in]      length
-///                 Should be less than @p part_id's 
+///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instancedPartCount - @p start.
 ///
 HAPI_DECL HAPI_GetInstancedPartIds( const HAPI_Session * session,
                                     HAPI_NodeId node_id,
-                                    HAPI_PartId part_id, 
+                                    HAPI_PartId part_id,
                                     HAPI_PartId * instanced_parts_array,
                                     int start, int length );
 
 /// @brief  Get the instancer part's list of transforms on which to
-///         instance the instanced parts you got from 
+///         instance the instanced parts you got from
 ///         ::HAPI_GetInstancedPartIds().
 ///
 /// @param[in]      session
@@ -3220,12 +3220,12 @@ HAPI_DECL HAPI_GetInstancedPartIds( const HAPI_Session * session,
 ///                 Array of ::HAPI_PartId's to instance.
 ///
 /// @param[in]      start
-///                 Should be less than @p part_id's 
+///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instanceCount but more than or
 ///                 equal to 0.
 ///
 /// @param[in]      length
-///                 Should be less than @p part_id's 
+///                 Should be less than @p part_id's
 ///                 ::HAPI_PartInfo::instanceCount - @p start.
 ///
 HAPI_DECL HAPI_GetInstancerPartTransforms( const HAPI_Session * session,
@@ -4734,7 +4734,7 @@ HAPI_DECL HAPI_SetCurveKnots( const HAPI_Session * session,
 ///                 The geo node id.
 ///
 /// @param[in]      part_id
-///                 The part id of the 
+///                 The part id of the
 ///
 /// @param[out]     box_info
 ///                 The returned box info.
@@ -4755,7 +4755,7 @@ HAPI_DECL HAPI_GetBoxInfo( const HAPI_Session * session,
 ///                 The geo node id.
 ///
 /// @param[in]      part_id
-///                 The part id of the 
+///                 The part id of the
 ///
 /// @param[out]     sphere_info
 ///                 The returned sphere info.
