@@ -280,7 +280,7 @@ UHoudiniAssetParameterInt::SetValue( int32 InValue, int32 Idx, bool bTriggerModi
         Values[ Idx ] = FMath::Clamp< int32 >( InValue, ValueMin, ValueMax );
 
         // Mark this parameter as changed.
-        //MarkChanged( bTriggerModify );
+        MarkChanged( bTriggerModify );
     }
 }
 
@@ -297,10 +297,7 @@ UHoudiniAssetParameterInt::GetParameterValue( int32 Idx, int32 DefaultValue ) co
 
 void
 UHoudiniAssetParameterInt::SetValueCommitted( int32 InValue, ETextCommit::Type CommitType, int32 Idx )
-{
-    // Mark this parameter as changed.
-    MarkChanged( true );
-}
+{}
 
 void
 UHoudiniAssetParameterInt::OnSliderMovingBegin( int32 Idx )
