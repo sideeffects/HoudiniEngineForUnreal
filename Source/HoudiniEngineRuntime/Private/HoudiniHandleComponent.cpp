@@ -68,8 +68,9 @@ UHoudiniHandleComponent::Construct(
     int32 HandleIdx,
     const FString & HandleName,
     const HAPI_HandleInfo & HandleInfo,
-    const TMap< HAPI_ParmId, UHoudiniAssetParameter * > & Parameters )
+    const TMap< HAPI_ParmId, UHoudiniAssetParameter * > & Parameters, EHoudiniHandleType InHandleType )
 {
+    HandleType = InHandleType;
     TArray< HAPI_HandleBindingInfo > BindingInfos;
     BindingInfos.SetNumZeroed( HandleInfo.bindingsCount );
 
@@ -115,6 +116,11 @@ UHoudiniHandleComponent::Construct(
 
     HapiEulerXform.rstOrder = GetHapiRSTOrder( RSTOrderStrPtr );
     HapiEulerXform.rotationOrder = GetHapiXYZOrder( XYZOrderStrPtr );
+    constexpr float MaxFloat = std::numeric_limits<float>::max();
+    constexpr float MinFloat = std::numeric_limits<float>::min();
+    HapiEulerXform.scale[ 0 ] = FMath::Clamp( HapiEulerXform.scale[ 0 ], MinFloat, MaxFloat );
+    HapiEulerXform.scale[ 1 ] = FMath::Clamp( HapiEulerXform.scale[ 1 ], MinFloat, MaxFloat );
+    HapiEulerXform.scale[ 2 ] = FMath::Clamp( HapiEulerXform.scale[ 2 ], MinFloat, MaxFloat );
 
     FTransform UnrealXform;
     FHoudiniEngineUtils::TranslateHapiTransform( HapiEulerXform, UnrealXform );
@@ -160,6 +166,12 @@ UHoudiniHandleComponent::UpdateTransformParameters()
     XformParms[ EXformParameter::RX ] = HapiEulerXform.rotationEuler[ 0 ];
     XformParms[ EXformParameter::RY ] = HapiEulerXform.rotationEuler[ 1 ];
     XformParms[ EXformParameter::RZ ] = HapiEulerXform.rotationEuler[ 2 ];
+
+    constexpr float MaxFloat = std::numeric_limits<float>::max();
+    constexpr float MinFloat = std::numeric_limits<float>::min();
+    HapiEulerXform.scale[ 0 ] = FMath::Clamp( HapiEulerXform.scale[ 0 ], MinFloat, MaxFloat );
+    HapiEulerXform.scale[ 1 ] = FMath::Clamp( HapiEulerXform.scale[ 1 ], MinFloat, MaxFloat );
+    HapiEulerXform.scale[ 2 ] = FMath::Clamp( HapiEulerXform.scale[ 2 ], MinFloat, MaxFloat );
 
     XformParms[ EXformParameter::SX ] = HapiEulerXform.scale[ 0 ];
     XformParms[ EXformParameter::SY ] = HapiEulerXform.scale[ 1 ];

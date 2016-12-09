@@ -3676,16 +3676,19 @@ UHoudiniAssetComponent::CreateHandles()
                 continue;
 
             FString TypeName = TEXT( "" );
-
+            EHoudiniHandleType HandleType = EHoudiniHandleType::Unsupported;
             {
                 FHoudiniEngineString HoudiniEngineString( HandleInfo.typeNameSH );
-                if ( !HoudiniEngineString.ToFString( TypeName ) )
+                if( !HoudiniEngineString.ToFString( TypeName ) )
+                {
                     continue;
+                }
 
-                if ( !TypeName.Equals( TEXT( HAPI_UNREAL_HANDLE_TRANSFORM ) ) )
-                    continue;
+                if( TypeName.Equals( TEXT( HAPI_UNREAL_HANDLE_TRANSFORM ) ) )
+                    HandleType = EHoudiniHandleType::Xform;
+                else if( TypeName.Equals( TEXT( HAPI_UNREAL_HANDLE_BOUNDER ) ) )
+                    HandleType = EHoudiniHandleType::Bounder;
             }
-
 
             FString HandleName = TEXT( "" );
 
@@ -3693,6 +3696,12 @@ UHoudiniAssetComponent::CreateHandles()
                 FHoudiniEngineString HoudiniEngineString( HandleInfo.nameSH );
                 if ( !HoudiniEngineString.ToFString( HandleName ) )
                     continue;
+            }
+
+            if( HandleType == EHoudiniHandleType::Unsupported )
+            {
+                HOUDINI_LOG_DISPLAY( TEXT( "%s: Unsupported Handle Type %s for handle %s" ), *GetOwner()->GetName(), *TypeName, *HandleName );
+                continue;
             }
 
             UHoudiniHandleComponent * HandleComponent = nullptr;
@@ -3725,7 +3734,7 @@ UHoudiniAssetComponent::CreateHandles()
             if ( !HandleComponent->IsRegistered() )
                 HandleComponent->RegisterComponent();
 
-            if ( HandleComponent->Construct( AssetId, HandleIdx, HandleName, HandleInfo, Parameters ) )
+            if ( HandleComponent->Construct( AssetId, HandleIdx, HandleName, HandleInfo, Parameters, HandleType ) )
                 NewHandleComponents.Add( HandleName, HandleComponent );
         }
     }

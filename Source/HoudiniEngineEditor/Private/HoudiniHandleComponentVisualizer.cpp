@@ -48,6 +48,22 @@ FHoudiniHandleComponentVisualizer::~FHoudiniHandleComponentVisualizer()
     FHoudiniHandleComponentVisualizerCommands::Unregister();
 }
 
+bool 
+FHoudiniHandleComponentVisualizer::HandleInputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
+{
+    if( EditedComponent )
+    {
+        if( Key == EKeys::LeftMouseButton && Event == IE_Released )
+        {
+            if( GEditor )
+                GEditor->RedrawLevelEditingViewports( true );
+
+            EditedComponent->UpdateTransformParameters();
+        }
+    }
+    return false;
+}
+
 void
 FHoudiniHandleComponentVisualizer::DrawVisualization(
     const UActorComponent * Component, const FSceneView * View,
@@ -57,12 +73,26 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
     if ( !HandleComponent )
         return;
 
-    static const FColor Color( 255, 0, 255 );
-    static const float GrabHandleSize = 12.0f;
+    bool IsActive = EditedComponent != nullptr;
+
+    static const FLinearColor ActiveColor( 1.f, 0, 1.f);
+    static const FLinearColor InactiveColor( 0.2f, 0.2f, 0.2f, 0.2f );
 
     // Draw point and set hit box for it.
     PDI->SetHitProxy( new HHoudiniHandleVisProxy( HandleComponent ) );
-    PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), Color, GrabHandleSize, SDPG_Foreground );
+    {
+        static const float GrabHandleSize = 12.0f;
+        PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), IsActive ? ActiveColor : InactiveColor, GrabHandleSize, SDPG_Foreground );
+    }
+
+    if( HandleComponent->HandleType == EHoudiniHandleType::Bounder )
+    {
+        // draw the scale box
+        FTransform BoxTransform = HandleComponent->ComponentToWorld;
+        const float BoxRad = 50.f;
+        const FBox Box( FVector( -BoxRad, -BoxRad, -BoxRad ), FVector( BoxRad, BoxRad, BoxRad ) );
+        DrawWireBox( PDI, BoxTransform.ToMatrixWithScale(), Box, IsActive ? ActiveColor : InactiveColor, SDPG_Foreground );
+    }
     PDI->SetHitProxy( nullptr );
 }
 
@@ -71,6 +101,10 @@ FHoudiniHandleComponentVisualizer::VisProxyHandleClick(
     FEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click )
 {
     bEditing = false;
+    
+    bAllowTranslate = false;
+    bAllowRotation = false;
+    bAllowScale = false;
 
     if ( VisProxy && VisProxy->Component.IsValid() )
     {
@@ -83,6 +117,21 @@ FHoudiniHandleComponentVisualizer::VisProxyHandleClick(
         {
             if ( VisProxy->IsA( HHoudiniHandleVisProxy::StaticGetType() ) )
                 bEditing = true;
+
+            bAllowTranslate =
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::TX ].AssetParameter ||
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::TY ].AssetParameter ||
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::TZ ].AssetParameter;
+
+            bAllowRotation =
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::RX ].AssetParameter ||
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::RY ].AssetParameter ||
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::RZ ].AssetParameter;
+
+            bAllowScale =
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::SX ].AssetParameter ||
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::SY ].AssetParameter ||
+                Component->XformParms[ UHoudiniHandleComponent::EXformParameter::SZ ].AssetParameter;
         }
     }
 
@@ -134,27 +183,28 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(
         return false;
 
     bool bUpdated = false;
-    if ( !DeltaTranslate.IsZero() )
+    if ( !DeltaTranslate.IsZero() && bAllowTranslate )
     {
         EditedComponent->SetWorldLocation( EditedComponent->ComponentToWorld.GetLocation() + DeltaTranslate );
         bUpdated = true;
     }
 
-    if ( !DeltaRotate.IsZero() )
+    if ( !DeltaRotate.IsZero() && bAllowRotation )
     {
         EditedComponent->SetWorldRotation( DeltaRotate.Quaternion() * EditedComponent->ComponentToWorld.GetRotation() );
         bUpdated = true;
     }
 
-    if ( !DeltaScale.IsZero() )
+    if ( !DeltaScale.IsZero() && bAllowScale )
     {
         EditedComponent->SetWorldScale3D( EditedComponent->ComponentToWorld.GetScale3D() + DeltaScale );
         bUpdated = true;
     }
 
-    if ( bUpdated )
+    // Don't continuously update bounder because it jitters badly
+    if( bUpdated && (EditedComponent->HandleType != EHoudiniHandleType::Bounder) )
     {
-        if ( GEditor )
+        if( GEditor )
             GEditor->RedrawLevelEditingViewports( true );
 
         EditedComponent->UpdateTransformParameters();
