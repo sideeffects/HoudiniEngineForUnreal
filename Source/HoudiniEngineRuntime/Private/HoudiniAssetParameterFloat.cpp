@@ -249,10 +249,10 @@ UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailC
 
                 .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
                     this, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
-                .OnValueChanged( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::SetValue, Idx, true, true ) )
-                .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::SetValueCommitted, Idx ) )
+                .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateLambda(
+                    [=]( float Val, ETextCommit::Type TextCommitType ) {
+                        SetValue( Val, 0, true, true );
+                 } ) )
                 .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
                     this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
                 .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
@@ -342,7 +342,7 @@ UHoudiniAssetParameterFloat::SetValue( float InValue, int32 Idx, bool bTriggerMo
             HoudiniAssetComponent );
         Modify();
 
-        if ( bSliderDragged || !bRecordUndo )
+        if ( !bRecordUndo )
             Transaction.Cancel();
 
 #endif // WITH_EDITOR
@@ -368,19 +368,8 @@ UHoudiniAssetParameterFloat::GetParameterValue( int32 Idx, float DefaultValue ) 
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterFloat::SetValueCommitted( float InValue, ETextCommit::Type CommitType, int32 Idx )
-{}
-
-void
 UHoudiniAssetParameterFloat::OnSliderMovingBegin( int32 Idx )
 {
-    // We want to record undo increments only when user lets go of the slider.
-    FScopedTransaction Transaction(
-        TEXT( HOUDINI_MODULE_RUNTIME ),
-        LOCTEXT( "HoudiniAssetParameterFloatChange", "Houdini Parameter Float: Changing a value" ),
-        HoudiniAssetComponent );
-    Modify();
-
     bSliderDragged = true;
 }
 

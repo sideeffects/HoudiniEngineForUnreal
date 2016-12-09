@@ -163,10 +163,10 @@ UHoudiniAssetParameterInt::CreateWidget( IDetailCategoryBuilder & LocalDetailCat
             .Value( TAttribute< TOptional< int32 > >::Create(
                 TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
                     this, &UHoudiniAssetParameterInt::GetValue, Idx ) ) )
-            .OnValueChanged( SNumericEntryBox< int32 >::FOnValueChanged::CreateUObject(
-                this, &UHoudiniAssetParameterInt::SetValue, Idx, true, true ) )
-            .OnValueCommitted( SNumericEntryBox< int32 >::FOnValueCommitted::CreateUObject(
-                this, &UHoudiniAssetParameterInt::SetValueCommitted, Idx ) )
+            .OnValueCommitted( SNumericEntryBox< int32 >::FOnValueCommitted::CreateLambda(
+                [=]( float Val, ETextCommit::Type TextCommitType ) {
+                    SetValue( Val, 0, true, true );
+                }))
             .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
                 this, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx ) )
             .OnEndSliderMovement( SNumericEntryBox< int32 >::FOnValueChanged::CreateUObject(
@@ -270,9 +270,8 @@ UHoudiniAssetParameterInt::SetValue( int32 InValue, int32 Idx, bool bTriggerModi
             HoudiniAssetComponent );
         Modify();
 
-        if ( bSliderDragged || !bRecordUndo )
+        if ( !bRecordUndo )
             Transaction.Cancel();
-
 #endif
 
         MarkPreChanged( bTriggerModify );
@@ -296,19 +295,8 @@ UHoudiniAssetParameterInt::GetParameterValue( int32 Idx, int32 DefaultValue ) co
 #if WITH_EDITOR
 
 void
-UHoudiniAssetParameterInt::SetValueCommitted( int32 InValue, ETextCommit::Type CommitType, int32 Idx )
-{}
-
-void
 UHoudiniAssetParameterInt::OnSliderMovingBegin( int32 Idx )
 {
-    // We want to record undo increments only when user lets go of the slider.
-    FScopedTransaction Transaction(
-        TEXT( HOUDINI_MODULE_RUNTIME ),
-        LOCTEXT( "HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value" ),
-        HoudiniAssetComponent );
-    Modify();
-
     bSliderDragged = true;
 }
 

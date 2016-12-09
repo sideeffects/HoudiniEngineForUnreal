@@ -76,9 +76,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterInt : public UHoudiniAssetP
 
 #if WITH_EDITOR
 
-        /** Set value of this property through commit action, used by Slate. **/
-        void SetValueCommitted( int32 InValue, ETextCommit::Type CommitType, int32 Idx );
-
         /** Delegate fired when slider for this property begins moving. **/
         void OnSliderMovingBegin( int32 Idx );
 
