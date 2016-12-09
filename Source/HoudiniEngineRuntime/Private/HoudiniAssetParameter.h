@@ -142,6 +142,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
         /** Return true if this is Substance parameter. **/
         bool IsSubstanceParameter() const;
 
+        /** Return tuple size. **/
+        int32 GetTupleSize() const;
+
     /** UObject methods. **/
     public:
 
@@ -179,9 +182,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Mark this parameter as changed. This occurs when user modifies the value of this parameter through UI. **/
         void MarkChanged( bool bMarkAndTriggerUpdate = true );
-
-        /** Return tuple size. **/
-        int32 GetTupleSize() const;
 
         /** Return true if this parameter is an array (has tuple size larger than one). **/
         bool IsArray() const;
