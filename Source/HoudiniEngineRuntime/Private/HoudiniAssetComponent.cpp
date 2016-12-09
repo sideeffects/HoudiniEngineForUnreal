@@ -3385,6 +3385,101 @@ UHoudiniAssetComponent::CreateParameters()
 
             UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
 
+            {
+                // See if this parameter has already been created.
+                // We can't use HAPI_ParmId because that is not unique to parameter instances, so instead
+                // we find the existing parameter by name
+                FString NewParmName;
+                FHoudiniEngineString( ParmInfo.nameSH ).ToFString( NewParmName );
+                UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = ParameterByName.Find( NewParmName );
+
+                // If parameter exists, we can reuse it.
+                if( FoundHoudiniAssetParameter && *FoundHoudiniAssetParameter )
+                {
+                    // sanity check that type and tuple size hasn't changed
+                    if( ( *FoundHoudiniAssetParameter )->GetTupleSize() == ParmInfo.size )
+                    {
+                        UClass* FoundClass = ( *FoundHoudiniAssetParameter )->GetClass();
+                        bool FailedTypeCheck = true;
+                        switch( ParmInfo.type )
+                        {
+                            case HAPI_PARMTYPE_STRING:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterString>();
+                                break;
+                            case HAPI_PARMTYPE_INT:
+                                if( !ParmInfo.choiceCount )
+                                    FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterInt>();
+                                else
+                                    FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterChoice>();
+                                break;
+                            case HAPI_PARMTYPE_FLOAT:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterFloat>();
+                                break;
+                            case HAPI_PARMTYPE_TOGGLE:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterToggle>();
+                                break;
+                            case HAPI_PARMTYPE_COLOR:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterColor>();
+                                break;
+                            case HAPI_PARMTYPE_LABEL:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterLabel>();
+                                break;
+                            case HAPI_PARMTYPE_BUTTON:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterButton>();
+                                break;
+                            case HAPI_PARMTYPE_SEPARATOR:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterSeparator>();
+                                break;
+                            case HAPI_PARMTYPE_FOLDERLIST:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterFolderList>();
+                                break;
+                            case HAPI_PARMTYPE_FOLDER:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterFolder>();
+                                break;
+                            case HAPI_PARMTYPE_MULTIPARMLIST:
+                                if( !bTreatRampParametersAsMultiparms && ( HAPI_RAMPTYPE_FLOAT == ParmInfo.rampType ||
+                                    HAPI_RAMPTYPE_COLOR == ParmInfo.rampType ) )
+                                {
+                                    FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterRamp>();
+                                }
+                                else
+                                    FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterMultiparm>();
+                                break;
+                            case HAPI_PARMTYPE_PATH_FILE:
+                            case HAPI_PARMTYPE_PATH_FILE_GEO:
+                            case HAPI_PARMTYPE_PATH_FILE_IMAGE:
+                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterFile>();
+                                break;
+                            case HAPI_PARMTYPE_NODE:
+                                if( ParmInfo.inputNodeType == HAPI_NODETYPE_ANY ||
+                                    ParmInfo.inputNodeType == HAPI_NODETYPE_SOP ||
+                                    ParmInfo.inputNodeType == HAPI_NODETYPE_OBJ )
+                                {
+                                    FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetInput>();
+                                }
+                                else
+                                {
+                                    FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterString>();
+                                }
+                                break;
+                        }
+
+                        if ( !FailedTypeCheck )
+                        {
+                            HoudiniAssetParameter = *FoundHoudiniAssetParameter;
+
+                            // Remove parameter from current map.
+                            Parameters.Remove( ParmInfo.id );
+
+                            // Reinitialize parameter and add it to map.
+                            HoudiniAssetParameter->CreateParameter( this, nullptr, AssetInfo.nodeId, ParmInfo );
+                            NewParameters.Add( ParmInfo.id, HoudiniAssetParameter );
+                            continue;
+                        }
+                    }
+                }
+            }
+
             switch ( ParmInfo.type )
             {
                 case HAPI_PARMTYPE_STRING:
@@ -3499,23 +3594,8 @@ UHoudiniAssetComponent::CreateParameters()
                         ParmInfo.inputNodeType == HAPI_NODETYPE_SOP || 
                         ParmInfo.inputNodeType == HAPI_NODETYPE_OBJ)
                     {
-                        // This parameter is an Input, if it exists, we can reuse it.
-                        UHoudiniAssetParameter * const * FoundHoudiniAssetParameter = Parameters.Find(ParmInfo.id);
-                        if ( FoundHoudiniAssetParameter )
-                        {
-                            HoudiniAssetParameter = *FoundHoudiniAssetParameter;
-
-                            // Remove parameter from current map.
-                            Parameters.Remove(ParmInfo.id);
-
-                            // Reinitialize parameter and add it to map.
-                            HoudiniAssetParameter->CreateParameter(this, nullptr, AssetInfo.nodeId, ParmInfo);
-                        }
-                        else
-                        {
-                            HoudiniAssetParameter = UHoudiniAssetInput::Create(
-                                this, nullptr, AssetInfo.nodeId, ParmInfo);
-                        }
+                        HoudiniAssetParameter = UHoudiniAssetInput::Create(
+                            this, nullptr, AssetInfo.nodeId, ParmInfo);
                     }
                     else
                     {
