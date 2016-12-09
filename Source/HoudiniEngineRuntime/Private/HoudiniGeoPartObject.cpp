@@ -85,6 +85,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject()
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
+    , bIsUCXCollisionGeo( false )
+    , bIsRenderedUCXCollisionGeo( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -116,6 +118,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
+    , bIsUCXCollisionGeo( false )
+    , bIsRenderedUCXCollisionGeo( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -148,6 +152,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( PartInfo.type == HAPI_PARTTYPE_VOLUME )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( PartInfo.type == HAPI_PARTTYPE_INSTANCER )
+    , bIsUCXCollisionGeo( false )
+    , bIsRenderedUCXCollisionGeo( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -182,6 +188,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsVolume( false )
     , bInstancerAttributeMaterialAvailable( false )
     , bIsPackedPrimitiveInstancer( false )
+    , bIsUCXCollisionGeo( false )
+    , bIsRenderedUCXCollisionGeo( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -212,6 +220,8 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject( const FHoudiniGeoPartObject & GeoP
     , bIsVolume( GeoPartObject.bIsVolume )
     , bInstancerAttributeMaterialAvailable( GeoPartObject.bInstancerAttributeMaterialAvailable )
     , bIsPackedPrimitiveInstancer( GeoPartObject.bIsPackedPrimitiveInstancer )
+    , bIsUCXCollisionGeo( GeoPartObject.bIsUCXCollisionGeo )
+    , bIsRenderedUCXCollisionGeo( GeoPartObject.bIsRenderedUCXCollisionGeo )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {

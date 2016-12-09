@@ -188,6 +188,14 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration )
         FString RenderedCollisionGroupNamePrefix;
 
+        // Group name prefix used for UCX collision geometry generation.
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration )
+        FString CollisionUCXGroupNamePrefix;
+
+        // Group name prefix used for rendered UBX collision geometry generation.
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = CollisionGeneration )
+        FString RenderedCollisionUCXGroupNamePrefix;
+
     /** Geometry marshalling. **/
     public:
 

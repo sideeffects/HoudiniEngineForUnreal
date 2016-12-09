@@ -29,6 +29,7 @@
 #include "HoudiniInstancedActorComponent.h"
 
 #include "AI/Navigation/NavCollision.h"
+#include "PhysicsEngine/AggregateGeom.h"
 
 const FString kResultStringSuccess( TEXT( "Success" ) );
 const FString kResultStringFailure( TEXT( "Generic Failure" ) );
@@ -4227,15 +4228,32 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
             bool bIsRenderCollidable = false;
             bool bIsCollidable = false;
-
+            bool bIsUCXCollidable = false;
+            
             if ( HoudiniRuntimeSettings )
             {
-                // Detect if this object has collision geo or rendered collision geo.
+                // Detect if this object has collision geo, rendered collision geo, UCX collisions
                 for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
                 {
                     const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
 
-                    if ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
+                    // collision_geo_ucx and rendered_collision_geo_ucx have to be checked first
+                    // as they both start in the same way as their non UCX equivalent!
+                    if ( !HoudiniRuntimeSettings->CollisionUCXGroupNamePrefix.IsEmpty() &&
+                            GroupName.StartsWith(
+                            HoudiniRuntimeSettings->CollisionUCXGroupNamePrefix,
+                            ESearchCase::IgnoreCase ) )
+                    {
+                        bIsUCXCollidable = true;
+                    }
+                    else if (!HoudiniRuntimeSettings->RenderedCollisionUCXGroupNamePrefix.IsEmpty() &&
+                        GroupName.StartsWith(
+                            HoudiniRuntimeSettings->RenderedCollisionUCXGroupNamePrefix,
+                            ESearchCase::IgnoreCase))
+                    {
+                        bIsUCXCollidable = true;
+                    }
+                    else if ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
                         GroupName.StartsWith(
                             HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix,
                             ESearchCase::IgnoreCase ) )
@@ -4251,6 +4269,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
                 }
             }
+
+            // Prepare the object that will store UCX/UBX/USP Collision geo
+            FKAggregateGeom AggregateCollisionGeo;
+            bool bHasAggregateGeometryCollision = false;
 
             for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
             {
@@ -4499,7 +4521,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 int32 GroupVertexListCount = 0;
                 static const FString RemainingGroupName = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION );
 
-                if ( bIsRenderCollidable || bIsCollidable )
+                if ( bIsRenderCollidable || bIsCollidable || bIsUCXCollidable )
                 {
                     // Buffer for all vertex indices used for collision. We need this to figure out all vertex
                     // indices that are not part of collision geos.
@@ -4520,7 +4542,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 ESearchCase::IgnoreCase ) ) ||
                             ( !HoudiniRuntimeSettings->CollisionGroupNamePrefix.IsEmpty() &&
                                 GroupName.StartsWith( HoudiniRuntimeSettings->CollisionGroupNamePrefix,
-                                ESearchCase::IgnoreCase ) ) )
+                                ESearchCase::IgnoreCase ) ) ||
+                            ( !HoudiniRuntimeSettings->CollisionUCXGroupNamePrefix.IsEmpty() &&
+                                GroupName.StartsWith(HoudiniRuntimeSettings->CollisionUCXGroupNamePrefix,
+                                ESearchCase::IgnoreCase ) ) ||
+                            ( !HoudiniRuntimeSettings->RenderedCollisionUCXGroupNamePrefix.IsEmpty() &&
+                                GroupName.StartsWith(HoudiniRuntimeSettings->RenderedCollisionUCXGroupNamePrefix,
+                                ESearchCase::IgnoreCase) ) )
                         {
                             // New vertex list just for this group.
                             TArray< int32 > GroupVertexList;
@@ -4597,7 +4625,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 // Keep track of split id.
                 int32 SplitId = 0;
 
-                // Iterate through all detected split groups we care about and split geometry.
+		// Iterate through all detected split groups we care about and split geometry.
                 for ( TMap< FString, TArray< int32 > >::TIterator IterGroups( GroupSplitFaces ); IterGroups; ++IterGroups )
                 {
                     // Get split group name and vertex indices.
@@ -4616,11 +4644,30 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Reset collision flags.
                     HoudiniGeoPartObject.bIsRenderCollidable = false;
                     HoudiniGeoPartObject.bIsCollidable = false;
+                    HoudiniGeoPartObject.bIsRenderedUCXCollisionGeo = false;
+                    HoudiniGeoPartObject.bIsUCXCollisionGeo = false;
 
                     // Increment split id.
                     SplitId++;
 
-                    if ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
+                    // Determining the type of collision:
+                    // collision_geo_ucx and rendered_collision_geo_ucx have to be checked first
+                    // as they both start in the same way as their non UCX equivalent!
+                    if ( !HoudiniRuntimeSettings->CollisionUCXGroupNamePrefix.IsEmpty() &&
+                        SplitGroupName.StartsWith(
+                            HoudiniRuntimeSettings->CollisionUCXGroupNamePrefix,
+                            ESearchCase::IgnoreCase ) )
+                    {
+                        HoudiniGeoPartObject.bIsUCXCollisionGeo = true;
+                    }
+                    else if ( !HoudiniRuntimeSettings->RenderedCollisionUCXGroupNamePrefix.IsEmpty() &&
+                        SplitGroupName.StartsWith(
+                            HoudiniRuntimeSettings->RenderedCollisionUCXGroupNamePrefix,
+                            ESearchCase::IgnoreCase ) )
+                    {
+                        HoudiniGeoPartObject.bIsRenderedUCXCollisionGeo = true;
+                    }
+                    else if ( !HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix.IsEmpty() &&
                         SplitGroupName.StartsWith(
                             HoudiniRuntimeSettings->RenderedCollisionGroupNamePrefix,
                             ESearchCase::IgnoreCase ) )
@@ -4633,6 +4680,83 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 ESearchCase::IgnoreCase ) )
                     {
                         HoudiniGeoPartObject.bIsCollidable = true;
+                    }
+
+                    // Boolean used to avoid asking the Positions to HAPI twice if we have a rendered collision UCX
+                    bool bAlreadyCalledGetPositions = false;
+
+                    // Handling UBX colliders
+                    if ( HoudiniGeoPartObject.bIsUCXCollisionGeo || HoudiniGeoPartObject.bIsRenderedUCXCollisionGeo )
+                    {
+                        bool bCollisionCreated = false;
+
+                        // CONVEX HULL
+                        // We need to retrieve the vertices positions
+                        HAPI_AttributeInfo AttribInfoPositions;
+                        FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
+
+                        // Retrieve position data.
+                        if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.id, GeoInfo.id,
+                            PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
+                        {
+                            // Error retrieving positions.
+                            HOUDINI_LOG_MESSAGE(
+                                TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data ")
+                                TEXT("- skipping."),
+                                ObjectInfo.nodeId, *ObjectName, GeoIdx, PartIdx, *PartName);
+
+                            break;
+                        }
+
+                        bAlreadyCalledGetPositions = true;
+
+                        // We're only interested in the unique vertices
+                        TArray<int32> UniqueVertexIndexes;
+                        for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx++ )
+                        {
+                            int32 Index = SplitGroupVertexList[VertexIdx];
+                            if ( Index < 0 || (Index >= Positions.Num() ) )
+                                continue;
+
+                            UniqueVertexIndexes.AddUnique( Index );
+                        }
+                            
+                        // Extract the collision geo's vertices
+                        TArray< FVector > VertexArray;
+                        VertexArray.SetNum(UniqueVertexIndexes.Num());
+                        for ( int32 Idx = 0; Idx < UniqueVertexIndexes.Num(); Idx++ )
+                        {
+                            int32 VertexIndex = UniqueVertexIndexes[Idx];
+
+                            VertexArray[Idx].X = Positions[VertexIndex * 3 + 0] * GeneratedGeometryScaleFactor;
+                            if ( ImportAxis == HRSAI_Unreal )
+                            {
+                                VertexArray[Idx].Y = Positions[VertexIndex * 3 + 2] * GeneratedGeometryScaleFactor;
+                                VertexArray[Idx].Z = Positions[VertexIndex * 3 + 1] * GeneratedGeometryScaleFactor;
+                            }
+                            else
+                            {
+                                VertexArray[Idx].Y = Positions[VertexIndex * 3 + 1] * GeneratedGeometryScaleFactor;
+                                VertexArray[Idx].Z = Positions[VertexIndex * 3 + 2] * GeneratedGeometryScaleFactor;
+                            }
+                        }
+
+                        // Creating Convex collision
+                        FKConvexElem ConvexCollision;
+                        ConvexCollision.VertexData = VertexArray;
+                        ConvexCollision.UpdateElemBox();
+
+                        AggregateCollisionGeo.ConvexElems.Add( ConvexCollision );
+
+                        bCollisionCreated = true;
+
+                        // We'll add the collision after all the meshes are generated
+                        if( bCollisionCreated )
+                            bHasAggregateGeometryCollision = true;
+
+                        if ( !HoudiniGeoPartObject.bIsRenderedUCXCollisionGeo )
+                            continue;
                     }
 
                     // Record split group name.
@@ -4706,9 +4830,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         bStaticMeshCreated = true;
                     }                    
-		    else
+                    else
                     {
-			// If it was located, we will just reuse it.
+                        // If it was located, we will just reuse it.
                         StaticMesh = *FoundStaticMesh;
                     }
 
@@ -4746,23 +4870,27 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     if ( bRebuildStaticMesh )
                     {
-                        // Retrieve position data.
-                        if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.id, GeoInfo.id,
-                            PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
+                        if ( !bAlreadyCalledGetPositions )
+
                         {
-                            // Error retrieving positions.
-                            bGeoError = true;
+                            // Retrieve position data.
+                            if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                                AssetId, ObjectInfo.id, GeoInfo.id,
+                                PartInfo.id, HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
+                            {
+                                 // Error retrieving positions.
+                                bGeoError = true;
 
-                            HOUDINI_LOG_MESSAGE(
-                                TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data " )
-                                TEXT( "- skipping." ),
-                                ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
+                                HOUDINI_LOG_MESSAGE(
+                                    TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve position data " )
+                                    TEXT( "- skipping." ),
+                                    ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName );
 
-                            if ( bStaticMeshCreated )
-                                StaticMesh->MarkPendingKill();
+                                if ( bStaticMeshCreated )
+                                    StaticMesh->MarkPendingKill();
 
-                            break;
+                                break;
+                            }
                         }
 
                         // Get lightmap resolution (if present).
@@ -5424,6 +5552,30 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             ObjectIdx, *ObjectName, GeoIdx, PartIdx, *PartName, SplitId, *( TextError.ToString() ) );
                     }
 
+                    // We need to handle rendered_ucx collisions now
+                    if ( HoudiniGeoPartObject.bIsRenderedUCXCollisionGeo && bHasAggregateGeometryCollision )
+                    {
+                        // We can add the collision to this mesh now
+                        UBodySetup * BodySetup = StaticMesh->BodySetup;
+                        check( BodySetup );
+
+                        // Make sure we remove the old collisions
+                        BodySetup->RemoveSimpleCollision();
+                        BodySetup->AddCollisionFrom( AggregateCollisionGeo );
+                        BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
+
+                        StaticMesh->BodySetup->ClearPhysicsMeshes();
+                        StaticMesh->BodySetup->InvalidatePhysicsData();
+                        RefreshCollisionChange( StaticMesh );
+
+                        // This geo part will have to be considered as a rendered collision
+                        HoudiniGeoPartObject.bIsRenderCollidable = true;
+
+                        // Clean the added collisions
+                        bHasAggregateGeometryCollision = false;
+                        AggregateCollisionGeo.EmptyElements();
+                    }
+
                     // Now that the mesh is built, we need to update its pre-built navigation collision
                     if (HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable())
                     {
@@ -5443,10 +5595,82 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     StaticMesh->MarkPackageDirty();
 
                     StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
+
+                } // end for SplitId
+
+            } // end for PartId
+
+            // We need to add the UCX/UBX/Collisions here
+            if ( bHasAggregateGeometryCollision )
+            {
+                // We want to find a StaticMesh for these collisions...
+                // As there's no way of telling where we should add these, 
+                // We need to find a static mesh for this geo that doesn't have any collision
+                // and add the aggregate UCX/UBX/USP geo to its body setup
+                UStaticMesh * CollisionStaticMesh = nullptr;
+                FHoudiniGeoPartObject * CollisionHoudiniGeoPartObject = nullptr;
+                for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter(StaticMeshesOut); Iter; ++Iter )
+                {
+                    FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
+
+                    if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
+                    {
+                        // If we haven't find a mesh for the collision, we might as well use this one but
+                        // we will keep searching for a better one
+                        if ( !CollisionStaticMesh )
+                        {
+                            CollisionStaticMesh = Iter.Value();
+                            CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
+                        }
+
+                        continue;
+                    }
+
+                    if ( HoudiniGeoPartObject->IsCollidable() || HoudiniGeoPartObject->IsRenderCollidable() )
+                    {
+                        // We can add collision to this StaticMesh, but as it already has some.
+                        // we'd prefer to find one that has no collision already, so we'll keep searching...
+                        CollisionStaticMesh = Iter.Value();
+                        CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
+                        continue;
+                    }
+
+                    // This mesh is from the same geo, and is not a collision mesh so 
+                    // we will add the simple collision to this mesh's body setup
+                    CollisionStaticMesh = Iter.Value();
+                    CollisionHoudiniGeoPartObject = HoudiniGeoPartObject;
+                    break;
+                }
+
+                if ( CollisionStaticMesh && CollisionStaticMesh->BodySetup )
+                {
+                    // we need to activate simple collisions for this mesh using the AggregateGeo
+                    UBodySetup * BodySetup = CollisionStaticMesh->BodySetup;
+                    check( BodySetup );
+
+                    // We need to remove the old collisions unless this mesh is a rendered_collision_ucx one
+                    // In that case, we just created them and have already removed the old ones...
+                    if( ( CollisionHoudiniGeoPartObject ) &&  ( !CollisionHoudiniGeoPartObject->bIsRenderedUCXCollisionGeo ) )
+                        BodySetup->RemoveSimpleCollision();
+                    BodySetup->AddCollisionFrom( AggregateCollisionGeo );
+                    BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
+
+                    BodySetup->ClearPhysicsMeshes();
+                    BodySetup->InvalidatePhysicsData();
+                    RefreshCollisionChange( CollisionStaticMesh );
+
+                    // This geo part will have to be considered as rendered collision
+                    CollisionHoudiniGeoPartObject->bIsRenderCollidable = true;
+
+                    // Clean the added collisions
+                    bHasAggregateGeometryCollision = false;
+                    AggregateCollisionGeo.EmptyElements();
                 }
             }
-        }
-    }
+
+        } // end for GeoId
+
+    } // end for ObjectId
 
 #endif
 
