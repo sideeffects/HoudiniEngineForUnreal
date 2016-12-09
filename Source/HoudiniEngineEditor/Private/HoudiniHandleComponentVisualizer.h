@@ -52,7 +52,7 @@ class FHoudiniHandleComponentVisualizer : public FComponentVisualizer
         FHoudiniHandleComponentVisualizer();
         virtual ~FHoudiniHandleComponentVisualizer();
 
-    /** FComponentVisualizer methods. **/
+        /** FComponentVisualizer methods. **/
     public:
 
         /** Draw visualization for the given component. **/
@@ -79,6 +79,8 @@ class FHoudiniHandleComponentVisualizer : public FComponentVisualizer
             FEditorViewportClient *, FViewport *, FVector & DeltaTranslate,
             FRotator & DeltaRotate, FVector & DeltaScale) override;
 
+        virtual bool HandleInputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
+
     protected:
         /** Visualizer actions. **/
         TSharedPtr< FUICommandList > VisualizerActions;
@@ -87,5 +89,8 @@ class FHoudiniHandleComponentVisualizer : public FComponentVisualizer
         UHoudiniHandleComponent * EditedComponent;
 
         /** Is set to true if we are editing. **/
-        bool bEditing;
+        uint32 bEditing : 1;
+        uint32 bAllowTranslate : 1;
+        uint32 bAllowRotation : 1;
+        uint32 bAllowScale : 1;
 };

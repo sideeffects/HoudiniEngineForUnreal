@@ -18,6 +18,14 @@
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniHandleComponent.generated.h"
 
+UENUM()
+enum class EHoudiniHandleType : uint8
+{
+    Xform,
+    Bounder,
+    Unsupported
+};
+
 UCLASS( config = Engine )
 class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
 {
@@ -49,7 +57,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
     public:
         bool Construct(
             HAPI_AssetId AssetId, int32 HandleIdx, const FString & HandleName,
-            const HAPI_HandleInfo &, const TMap< HAPI_ParmId, UHoudiniAssetParameter * > & );
+            const HAPI_HandleInfo &, const TMap< HAPI_ParmId, UHoudiniAssetParameter * > &, EHoudiniHandleType InHandleType);
 
         void ResolveDuplicatedParameters( const TMap< HAPI_ParmId, UHoudiniAssetParameter * > & );
 
@@ -168,4 +176,5 @@ class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
 
         THandleParameter< UHoudiniAssetParameterChoice > RSTParm;
         THandleParameter< UHoudiniAssetParameterChoice > RotOrderParm;
+        EHoudiniHandleType HandleType;
 };
