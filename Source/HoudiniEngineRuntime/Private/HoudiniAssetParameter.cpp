@@ -174,12 +174,6 @@ UHoudiniAssetParameter::NotifyChildParameterChanged( UHoudiniAssetParameter * Ho
 }
 
 void
-UHoudiniAssetParameter::NotifyChildParameterWillChange( UHoudiniAssetParameter * HoudiniAssetParameter )
-{
-    // Default implementation does nothing.
-}
-
-void
 UHoudiniAssetParameter::NotifyChildParametersCreated()
 {
     // Default implementation does nothing.
@@ -398,15 +392,6 @@ UHoudiniAssetParameter::SetNameAndLabel( const FString & Name )
 void
 UHoudiniAssetParameter::MarkPreChanged( bool bMarkAndTriggerUpdate )
 {
-#if WITH_EDITOR
-
-    if ( HoudiniAssetComponent && bMarkAndTriggerUpdate )
-        HoudiniAssetComponent->NotifyParameterWillChange( this );
-
-    if ( ParentParameter && bMarkAndTriggerUpdate )
-        ParentParameter->NotifyChildParameterWillChange( this );
-
-#endif // WITH_EDITOR
 }
 
 void

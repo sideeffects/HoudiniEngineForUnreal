@@ -189,9 +189,6 @@ public:
         /** Refresh editor's detail panel and update properties. **/
         void UpdateEditorProperties( bool bConditionalUpdate );
 
-        /** Callback used by parameters to notify component that their value is about to change. **/
-        void NotifyParameterWillChange( UHoudiniAssetParameter * HoudiniAssetParameter );
-
         /** Callback used by parameters to notify component about their changes. **/
         void NotifyParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter );
 

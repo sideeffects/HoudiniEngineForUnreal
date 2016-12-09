@@ -3544,10 +3544,6 @@ UHoudiniAssetComponent::CreateParameters()
 }
 
 void
-UHoudiniAssetComponent::NotifyParameterWillChange( UHoudiniAssetParameter * HoudiniAssetParameter )
-{}
-
-void
 UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter )
 {
     if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated )
