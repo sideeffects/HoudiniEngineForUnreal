@@ -77,10 +77,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFloat : public UHoudiniAsse
         float GetParameterValue( int32 Idx, float DefaultValue ) const;
 
 #if WITH_EDITOR
-
-        /** Set value of this property through commit action, used by Slate. **/
-        void SetValueCommitted( float InValue, ETextCommit::Type CommitType, int32 Idx );
-
         /** Delegate fired when slider for this property begins moving. **/
         void OnSliderMovingBegin( int32 Idx );
 

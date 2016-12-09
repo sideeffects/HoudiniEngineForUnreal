@@ -89,9 +89,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
             bool bTriggerModify = true,
             bool bRecordUndo = true );
 
-        /** Notification from a child parameter about upcoming change. **/
-        virtual void NotifyChildParameterWillChange( UHoudiniAssetParameter * HoudiniAssetParameter );
-
         /** Notifaction from a child parameter about its change. **/
         virtual void NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter );
 
