@@ -176,5 +176,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniHandleComponent : public USceneComponent
 
         THandleParameter< UHoudiniAssetParameterChoice > RSTParm;
         THandleParameter< UHoudiniAssetParameterChoice > RotOrderParm;
+        UPROPERTY()
         EHoudiniHandleType HandleType;
 };
