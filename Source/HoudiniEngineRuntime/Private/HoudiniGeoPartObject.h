@@ -622,8 +622,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
                 /** Is set when referenced object contains packed primitive instancing */
                 uint32 bIsPackedPrimitiveInstancer : 1;
 
+                /** Is set to true when referenced object is a UCX collision geo. **/
+                uint32 bIsUCXCollisionGeo : 1;
+
+                /** Is set to true when referenced object is a rendered UCX collision geo. **/
+                uint32 bIsRenderedUCXCollisionGeo : 1;
+
                 /** unused flag space is zero initialized */
-                uint32 UnusedFlagsSpace : 18;
+                uint32 UnusedFlagsSpace : 16;
             };
 
             uint32 HoudiniGeoPartObjectFlagsPacked;

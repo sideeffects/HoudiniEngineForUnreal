@@ -44,6 +44,8 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     /** Collision generation. **/
     CollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_COLLISION );
     RenderedCollisionGroupNamePrefix = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION );
+    CollisionUCXGroupNamePrefix = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION_UCX);
+    RenderedCollisionUCXGroupNamePrefix = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION_UCX);
 
     /** Geometry marshalling. **/
     MarshallingAttributeTangent = TEXT( HAPI_UNREAL_ATTRIB_TANGENT );

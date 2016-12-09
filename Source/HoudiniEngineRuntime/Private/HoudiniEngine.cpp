@@ -319,6 +319,7 @@ FHoudiniEngine::StartupModule()
             CookOptions.refineCurveToLinear = true;
             CookOptions.handleBoxPartTypes = false;
             CookOptions.handleSpherePartTypes = false;
+            CookOptions.splitPointsByVertexAttributes = false;
             CookOptions.packedPrimInstancingMode = HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT;
 
             HAPI_Result Result = FHoudiniApi::Initialize( SessionPtr, &CookOptions, true, -1, "", "", "", "", "" );
