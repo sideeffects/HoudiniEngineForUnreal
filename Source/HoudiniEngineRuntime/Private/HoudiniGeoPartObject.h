@@ -626,10 +626,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
                 uint32 bIsUCXCollisionGeo : 1;
 
                 /** Is set to true when referenced object is a rendered UCX collision geo. **/
-                uint32 bIsRenderedUCXCollisionGeo : 1;
+                uint32 bIsSimpleCollisionGeo : 1;
+
+                /** Is set to true when new collision geo has been generated **/
+                uint32 bHasCollisionBeenAdded : 1;
 
                 /** unused flag space is zero initialized */
-                uint32 UnusedFlagsSpace : 16;
+                uint32 UnusedFlagsSpace : 15;
             };
 
             uint32 HoudiniGeoPartObjectFlagsPacked;

@@ -44,8 +44,10 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     /** Collision generation. **/
     CollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_COLLISION );
     RenderedCollisionGroupNamePrefix = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION );
-    CollisionUCXGroupNamePrefix = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_COLLISION_UCX);
-    RenderedCollisionUCXGroupNamePrefix = TEXT(HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION_UCX);
+    UCXCollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_COLLISION_UCX );
+    UCXRenderedCollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION_UCX );
+    SimpleCollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_COLLISION );
+    SimpleRenderedCollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_RENDERED_COLLISION );
 
     /** Geometry marshalling. **/
     MarshallingAttributeTangent = TEXT( HAPI_UNREAL_ATTRIB_TANGENT );
@@ -134,6 +136,18 @@ UHoudiniRuntimeSettings::PostInitProperties()
 
         if ( UProperty* Property = LocateProperty( TEXT( "RenderedCollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
+
+        if ( UProperty* Property = LocateProperty(TEXT("UCXCollisionGroupNamePrefix" ) ) )
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if ( UProperty* Property = LocateProperty(TEXT("UCXRenderedCollisionGroupNamePrefix" ) ) )
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if ( UProperty* Property = LocateProperty(TEXT("SimpleCollisionGroupNamePrefix" ) ) )
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if ( UProperty* Property = LocateProperty(TEXT("SimpleRenderedCollisionGroupNamePrefix" ) ) )
+            Property->SetPropertyFlags(CPF_EditConst);
     }
 
     // Disable UI elements depending on current session type.
