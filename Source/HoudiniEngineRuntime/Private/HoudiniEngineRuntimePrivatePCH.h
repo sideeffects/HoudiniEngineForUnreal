@@ -386,6 +386,9 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #define HAPI_UNREAL_GROUP_GEOMETRY_COLLISION_UCX	"collision_geo_ucx"
 #define HAPI_UNREAL_GROUP_GEOMETRY_RENDERED_COLLISION_UCX "rendered_collision_geo_ucx"
 
+#define HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_COLLISION  		"collision_geo_simple"
+#define HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_RENDERED_COLLISION	"rendered_collision_geo_simple"
+
 /** Group name used to mark everything that is not a member of collision or rendered collision group. **/
 #define HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION        "main_geo"
 
