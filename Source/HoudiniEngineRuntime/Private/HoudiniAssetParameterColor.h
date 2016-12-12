@@ -17,6 +17,8 @@
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterColor.generated.h"
 
+class SWindow;
+
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAssetParameter
 {

@@ -18,6 +18,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "SlateCore.h"
 
 UHoudiniAssetParameterColor::UHoudiniAssetParameterColor( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
