@@ -5566,13 +5566,19 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             StaticMesh->LightMapResolution = LightMapResolutionOverride;
                     }
 
+                    // Make sure we remove the old simple colliders if needed
+                    UBodySetup * BodySetup = StaticMesh->BodySetup;
+                    check(BodySetup);
+
+                    if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
+                    {
+                        BodySetup->RemoveSimpleCollision();
+                    }
+
                     // See if we need to enable collisions on the whole mesh.
                     if ( ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
                         && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !bIsUCXCollidable ) )
                     {
-                        UBodySetup * BodySetup = StaticMesh->BodySetup;
-                        check( BodySetup );
-
                         // Enable collisions for this static mesh.
                         BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
                     }
@@ -5617,14 +5623,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     if ( bAddSimpleCollisions )
                     {
-                        // We can add the collision to this mesh now
-                        UBodySetup * BodySetup = StaticMesh->BodySetup;
-                        check(BodySetup);
-
-                        // Make sure we remove the old collisions
-                        if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
-                            BodySetup->RemoveSimpleCollision();
-
                         int32 PrimIndex = INDEX_NONE;
                         if ( SplitGroupName.Contains( "Box" ) )
                         {
@@ -5692,14 +5690,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // We need to handle rendered_ucx collisions now
                     if ( HoudiniGeoPartObject.bIsUCXCollisionGeo && HoudiniGeoPartObject.bIsRenderCollidable && bHasAggregateGeometryCollision )
                     {
-                        // We can add the collision to this mesh now
-                        UBodySetup * BodySetup = StaticMesh->BodySetup;
-                        check( BodySetup );
-
-                        // Make sure we remove the old collisions
-                        if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
-                            BodySetup->RemoveSimpleCollision();
-
                         BodySetup->AddCollisionFrom( AggregateCollisionGeo );
                         BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
 
@@ -5818,11 +5808,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
             // Unreal caches the Navigation Collision and never updates it for StaticMeshes,
             // so we need to manually flush and recreate the data to have proper navigation collision
-            if (StaticMesh->NavCollision)
+            if ( StaticMesh->NavCollision )
             {
                 StaticMesh->NavCollision->CookedFormatData.FlushData();
                 StaticMesh->NavCollision->GatherCollision();
-                StaticMesh->NavCollision->Setup(BodySetup);
+                StaticMesh->NavCollision->Setup( BodySetup );
             }
         }
     }
