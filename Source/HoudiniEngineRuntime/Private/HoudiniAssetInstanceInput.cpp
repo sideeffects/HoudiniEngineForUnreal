@@ -21,6 +21,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniInstancedActorComponent.h"
 
 
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer& ObjectInitializer )
@@ -1078,7 +1079,42 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
 
             if ( ! InstancedStaticMeshComponent )
             {
-                HOUDINI_LOG_WARNING( TEXT( "Instanced Actor overrides cannot be Baked to Blueprint." ) );
+                if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx )) )
+                {
+                    if( !IAC->InstancedAsset )
+                        continue;
+
+                    TSubclassOf<AActor> ActorClass;
+                    UClass* ObjectClass = IAC->InstancedAsset->GetClass();
+                    if( ObjectClass->IsChildOf( UBlueprint::StaticClass() ) )
+                    {
+                        UBlueprint* BlueprintObj = StaticCast<UBlueprint*>( IAC->InstancedAsset );
+                        ActorClass = *BlueprintObj->GeneratedClass;
+                    }
+
+                    if( ! *ActorClass )
+                    {
+                        // Oh no, the asset is not an actor.  We will need to handle each asset type case by case.
+                        // for example we could create a bunch of ParticleSystemComponent if given an emitter asset
+                        HOUDINI_LOG_ERROR( TEXT( "Can not bake instanced actor component for asset type %s" ), *ObjectClass->GetName() );
+                    }
+
+                    if( ActorClass.GetDefaultObject() )
+                    {
+                        for( AActor* InstancedActor : IAC->Instances )
+                        {
+                            if( InstancedActor )
+                            {
+                                UChildActorComponent* CAC = NewObject< UChildActorComponent >( Actor, UChildActorComponent::StaticClass(), NAME_None, RF_Public );
+                                Actor->AddInstanceComponent( CAC );
+                                CAC->SetChildActorClass( ActorClass );
+                                CAC->RegisterComponent();
+                                CAC->SetWorldTransform( InstancedActor->GetTransform() );
+                                CAC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
+                            }
+                        }
+                    }
+                }
                 continue;
             }
 
