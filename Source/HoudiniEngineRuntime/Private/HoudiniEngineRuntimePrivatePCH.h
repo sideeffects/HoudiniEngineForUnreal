@@ -253,6 +253,7 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX       "unreal_vertex_index"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_NAME               "unreal_landscape"
 #define HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME              "unreal_input_mesh_name"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME             "unreal_mesh_socket_name"
 
 /** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE                     "instance"
@@ -393,6 +394,9 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 
 /** Group name used to mark everything that is not a member of collision or rendered collision group. **/
 #define HAPI_UNREAL_GROUP_GEOMETRY_NOT_COLLISION        "main_geo"
+
+/** Group name prefix used to mark mesh sockets **/
+#define HAPI_UNREAL_GROUP_MESH_SOCKETS                  "socket"
 
 /** Details panel desired sizes. **/
 #define HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH              270

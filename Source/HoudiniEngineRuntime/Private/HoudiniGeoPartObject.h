@@ -631,8 +631,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
                 /** Is set to true when new collision geo has been generated **/
                 uint32 bHasCollisionBeenAdded : 1;
 
+                /** Is set to true when new sockets have been added **/
+                uint32 bHasSocketBeenAdded : 1;
+
                 /** unused flag space is zero initialized */
-                uint32 UnusedFlagsSpace : 15;
+                uint32 UnusedFlagsSpace : 14;
             };
 
             uint32 HoudiniGeoPartObjectFlagsPacked;

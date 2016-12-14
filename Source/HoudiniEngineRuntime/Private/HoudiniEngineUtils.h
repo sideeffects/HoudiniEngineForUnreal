@@ -399,13 +399,33 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
             TArray< FTransform > & Transforms );
 
-        /** HAPI : Given vertex list, retrieve new vertex list for a scpecified group.                                  **/
+        /** HAPI : Given vertex list, retrieve new vertex list for a specified group.                                   **/
         /** Return number of processed valid index vertices for this split.                                             **/
         static int32 HapiGetVertexListForGroup(
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
             HAPI_PartId PartId, const FString & GroupName, const TArray< int32 > & FullVertexList,
             TArray< int32 > & NewVertexList, TArray< int32 > & AllVertexList, TArray< int32 > & AllFaceList,
             TArray< int32 > & AllCollisionFaceIndices );
+
+        /** HAPI : Retrieves the mesh sockets list for the current part							**/
+        static int32 GetMeshSocketList(
+            HAPI_NodeId AssetId, HAPI_NodeId ObjectId,
+            HAPI_NodeId GeoId, HAPI_PartId PartId,
+            TArray< FTransform >& AllSockets,
+            TArray< FString >& AllSocketsName );
+
+        /** Add the mesh sockets in the list to the specified StaticMesh						**/
+        static bool AddMeshSocketsToStaticMesh(
+            UStaticMesh* StaticMesh,
+            FHoudiniGeoPartObject& HoudiniGeoPartObject,
+            TArray< FTransform >& AllSockets,
+            TArray< FString >& AllSocketsNames );
+
+        /** Add the mesh aggregate collision geo to the specified StaticMesh						**/
+        static bool AddAggregateCollisionGeometryToStaticMesh(
+            UStaticMesh* StaticMesh,
+            FHoudiniGeoPartObject& HoudiniGeoPartObject,
+            FKAggregateGeom& AggregateCollisionGeo );
 
         /** Create a package for given component for static mesh baking. **/
         static UPackage * BakeCreateStaticMeshPackageForComponent(

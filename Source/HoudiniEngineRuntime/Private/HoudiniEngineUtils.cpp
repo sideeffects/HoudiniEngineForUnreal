@@ -1,4 +1,4 @@
-/*
+﻿/*
 * PROPRIETARY INFORMATION.  This software is proprietary to
 * Side Effects Software Inc., and is not to be reproduced,
 * transmitted, or disclosed in any way without written permission.
@@ -4444,6 +4444,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             FKAggregateGeom AggregateCollisionGeo;
             bool bHasAggregateGeometryCollision = false;
 
+            // Prepare the object that will store the mesh sockets and their names
+            TArray< FTransform > AllSockets;
+            TArray< FString > AllSocketsNames;
+
             for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
             {
                 // Get part information.
@@ -4588,6 +4592,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         }
                     }
                 }
+
+                // Extracting Sockets points
+                GetMeshSocketList( AssetId, ObjectInfo.nodeId, GeoId, PartInfo.id, AllSockets, AllSocketsNames );
 
                 // Create geo part object identifier.
                 FHoudiniGeoPartObject HoudiniGeoPartObject(
@@ -4842,6 +4849,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HoudiniGeoPartObject.bIsSimpleCollisionGeo = false;
                     HoudiniGeoPartObject.bIsUCXCollisionGeo = false;
                     HoudiniGeoPartObject.bHasCollisionBeenAdded = false;
+                    HoudiniGeoPartObject.bHasSocketBeenAdded = false;
 
                     // Increment split id.
                     SplitId++;
@@ -5489,18 +5497,19 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         for ( int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx )
                         {
                             FVector VertexPosition;
-                            VertexPosition.X = Positions[ VertexPositionIdx * 3 + 0 ] * GeneratedGeometryScaleFactor;
-                            VertexPosition.Y = Positions[ VertexPositionIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
-                            VertexPosition.Z = Positions[ VertexPositionIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
-
                             if ( ImportAxis == HRSAI_Unreal )
                             {
-                                // We need to flip Z and Y coordinate here.
-                                Swap( VertexPosition.Y, VertexPosition.Z );
+                                // We need to swap Z and Y coordinate here.
+                                VertexPosition.X = Positions[ VertexPositionIdx * 3 + 0 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Y = Positions[ VertexPositionIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Z = Positions[ VertexPositionIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
                             }
                             else if ( ImportAxis == HRSAI_Houdini )
                             {
-                                // No action required.
+                                // No swap required.
+                                VertexPosition.X = Positions[ VertexPositionIdx * 3 + 0 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Y = Positions[ VertexPositionIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Z = Positions[ VertexPositionIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
                             }
                             else
                             {
@@ -5937,20 +5946,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // We need to handle rendered_ucx collisions now
                     if ( HoudiniGeoPartObject.bIsUCXCollisionGeo && HoudiniGeoPartObject.bIsRenderCollidable && bHasAggregateGeometryCollision )
                     {
-                        BodySetup->AddCollisionFrom( AggregateCollisionGeo );
-                        BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
-
-                        StaticMesh->BodySetup->ClearPhysicsMeshes();
-                        StaticMesh->BodySetup->InvalidatePhysicsData();
-                        RefreshCollisionChange( StaticMesh );
-
-                        // We don't want these collisions to be removed
-                        HoudiniGeoPartObject.bHasCollisionBeenAdded = true;
-
-                        // Clean the added collisions
-                        bHasAggregateGeometryCollision = false;
-                        AggregateCollisionGeo.EmptyElements();
+                        // Add the aggregate collision geo to the static mesh
+                        if ( AddAggregateCollisionGeometryToStaticMesh(
+                            StaticMesh, HoudiniGeoPartObject, AggregateCollisionGeo ) )
+                        {
+                            bHasAggregateGeometryCollision = false;
+                        }
                     }
+
+                    // Add sockets to the static mesh if neeeded
+                    AddMeshSocketsToStaticMesh( StaticMesh, HoudiniGeoPartObject, AllSockets, AllSocketsNames );
 
                     StaticMesh->MarkPackageDirty();
 
@@ -5960,7 +5965,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
             } // end for PartId
 
-            // We need to add the UCX/UBX/Collisions here
+            // We need to add the remaining UCX/UBX/Collisions here
             if ( bHasAggregateGeometryCollision )
             {
                 // We want to find a StaticMesh for these collisions...
@@ -6002,34 +6007,57 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     break;
                 }
 
-                if ( CollisionStaticMesh && CollisionStaticMesh->BodySetup )
+                // Add the aggregate collision geo to the static mesh
+                if ( AddAggregateCollisionGeometryToStaticMesh(
+                StaticMesh, *CollisionHoudiniGeoPartObject, AggregateCollisionGeo ) )
                 {
-                    // we need to activate simple collisions for this mesh using the AggregateGeo
-                    UBodySetup * BodySetup = CollisionStaticMesh->BodySetup;
-                    check( BodySetup );
-
-                    // We need to remove the old collisions from the previous cook
-                    if( CollisionHoudiniGeoPartObject  && !CollisionHoudiniGeoPartObject->bHasCollisionBeenAdded )
-                        BodySetup->RemoveSimpleCollision();
-
-                    BodySetup->AddCollisionFrom( AggregateCollisionGeo );
-                    BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
-
-                    BodySetup->ClearPhysicsMeshes();
-                    BodySetup->InvalidatePhysicsData();
-                    RefreshCollisionChange( CollisionStaticMesh );
-
-                    // This geo part will have to be considered as rendered collision
-                    if ( !CollisionHoudiniGeoPartObject->bIsCollidable )
-                        CollisionHoudiniGeoPartObject->bIsRenderCollidable = true;
-
-                    // We don't want these collisions to be removed
-                    CollisionHoudiniGeoPartObject->bHasCollisionBeenAdded = true;
-
-                    // Clean the added collisions
                     bHasAggregateGeometryCollision = false;
-                    AggregateCollisionGeo.EmptyElements();
                 }
+            }
+
+            // We still have socket that need to be attached to a StaticMesh...
+            if (AllSockets.Num() > 0)
+            {
+                // We want to find a StaticMesh for these socket...
+                // As there's no way of telling where we should add these, 
+                // We need to find a static mesh for this geo that is (preferably) visible
+                UStaticMesh * SocketStaticMesh = nullptr;
+                FHoudiniGeoPartObject * SocketHoudiniGeoPartObject = nullptr;
+                for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshesOut ); Iter; ++Iter )
+                {
+                    FHoudiniGeoPartObject * HoudiniGeoPartObject = &(Iter.Key());
+
+                    if ( ( HoudiniGeoPartObject->ObjectId != ObjectInfo.nodeId ) && ( HoudiniGeoPartObject->GeoId != GeoInfo.nodeId ) )
+                    {
+                        // If we haven't find a mesh for the socket yet, we might as well use this one but
+                        // we will keep searching for a "better" candidate
+                        if ( !SocketStaticMesh )
+                        {
+                            SocketStaticMesh = Iter.Value();
+                            SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
+                        }
+
+                        continue;
+                    }
+
+                    if ( HoudiniGeoPartObject->IsCollidable() )
+                    {
+                        // This object has the same geo/node id, but won't be visible,
+                        // so we'll keep looking for a "better" one
+                        SocketStaticMesh = Iter.Value();
+                        SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
+                        continue;
+                    }
+
+                    // This mesh is from the same geo and is visible, we'll add the socket to it..
+                    SocketStaticMesh = Iter.Value();
+                    SocketHoudiniGeoPartObject = HoudiniGeoPartObject;
+                    break;
+                }
+
+                // Add socket to the mesh if we found a suitable one
+                if ( SocketStaticMesh )
+                    AddMeshSocketsToStaticMesh(SocketStaticMesh, *SocketHoudiniGeoPartObject, AllSockets, AllSocketsNames);
             }
 
         } // end for GeoId
@@ -8721,6 +8749,7 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
     return ProcessedWedges;
 }
 
+
 #if WITH_EDITOR
 
 bool
@@ -9967,6 +9996,296 @@ FHoudiniEngineUtils::ResizeLayerDataForLandscape(
     }
 
     LayerData = NewData;
+
+    return true;
+}
+
+
+int32
+FHoudiniEngineUtils::GetMeshSocketList(
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId,
+    HAPI_NodeId GeoId, HAPI_PartId PartId,
+    TArray< FTransform >& AllSockets,
+    TArray< FString >& AllSocketsNames)
+{
+    // Get object / geo group memberships for primitives.
+    TArray< FString > ObjectGeoGroupNames;
+    if ( !FHoudiniEngineUtils::HapiGetGroupNames(
+        AssetId, ObjectId, GeoId, HAPI_GROUPTYPE_POINT, ObjectGeoGroupNames ) )
+    {
+        HOUDINI_LOG_MESSAGE( TEXT( "GetMeshSocketList: Object [%d] non-fatal error reading group names" ), ObjectId );
+    }
+
+    // First, we want to make sure we have at least one socket group before continuing
+    bool bHasSocketGroup = false;
+    for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
+    {
+        const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
+        if ( GroupName.StartsWith( TEXT( HAPI_UNREAL_GROUP_MESH_SOCKETS ), ESearchCase::IgnoreCase ) )
+        {
+            bHasSocketGroup = true;
+            break;
+        }
+    }
+
+    if ( !bHasSocketGroup )
+        return 0;
+
+    //
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    check( HoudiniRuntimeSettings );
+
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
+    if ( HoudiniRuntimeSettings )
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+    }
+
+    // Attributes we are interested in.
+    TArray< float > Positions;
+    HAPI_AttributeInfo AttribInfoPositions;
+    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoPositions, 0);
+
+    TArray< float > Rotations;
+    HAPI_AttributeInfo AttribInfoRotations;
+    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoRotations, 0);
+
+    TArray< float > Normals;
+    HAPI_AttributeInfo AttribInfoNormals;
+    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoNormals, 0);
+
+    TArray< float > Scales;
+    HAPI_AttributeInfo AttribInfoScales;
+    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoScales, 0);
+
+    TArray< FString > Names;
+    HAPI_AttributeInfo AttribInfoNames;
+    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoNames, 0);
+
+    // Retrieve position data.
+    if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_POSITION, AttribInfoPositions, Positions ) )
+        return false;
+
+    // Retrieve rotation data.
+    bool bHasRotation = false;
+    if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_ROTATION, AttribInfoRotations, Rotations ) )
+        bHasRotation = true;
+
+    // Retrieve normal data.
+    bool bHasNormals = false;
+    if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals ) )
+        bHasNormals = true;
+
+    // Retrieve scale data.
+    bool bHasScale = false;
+    if ( FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_SCALE, AttribInfoScales, Scales ) )
+        bHasScale = true;
+
+    // Retrieve mesh socket names.
+    bool bHasNames = false;
+    if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, AttribInfoNames, Names ) )
+        bHasNames = true;
+
+    // Extracting Sockets vertices
+    for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
+    {
+        const FString & GroupName = ObjectGeoGroupNames[ GeoGroupNameIdx ];
+        if ( !GroupName.StartsWith ( TEXT ( HAPI_UNREAL_GROUP_MESH_SOCKETS ) , ESearchCase::IgnoreCase ) )
+            continue;
+
+        TArray< int32 > PointGroupMembership;
+        FHoudiniEngineUtils::HapiGetGroupMembership(
+            AssetId, ObjectId, GeoId, PartId, 
+            HAPI_GROUPTYPE_POINT, GroupName, PointGroupMembership );
+
+        // Go through all primitives.
+        for ( int32 PointIdx = 0; PointIdx < PointGroupMembership.Num(); ++PointIdx )
+        {
+            if ( PointGroupMembership[PointIdx] != 1 )
+                continue;
+
+            FTransform currentSocketTransform;
+            FVector currentPosition = FVector::ZeroVector;
+            FVector currentScale = FVector( 1.0f, 1.0f, 1.0f );
+            FQuat currentRotation = FQuat::Identity;
+            FString currentName;
+
+            currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
+
+            if( bHasScale )
+             currentScale.X = Scales[PointIdx * 3];
+
+            if ( ImportAxis == HRSAI_Unreal )
+            {
+                currentPosition.Y = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                currentPosition.Z = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+
+                if ( bHasScale )
+                {
+                    currentScale.Y = Scales[ PointIdx * 3 + 2 ];
+                    currentScale.Z = Scales[ PointIdx * 3 + 1 ];
+                }
+
+                if ( bHasRotation )
+                {
+                    currentRotation.X = Rotations[ PointIdx * 4 ];
+                    currentRotation.Y = Rotations[ PointIdx * 4 + 2 ];
+                    currentRotation.Z = Rotations[ PointIdx * 4 + 1 ];
+                    currentRotation.W = -Rotations[ PointIdx * 4 + 3 ];
+                }
+                else if ( bHasNormals )
+                {
+                    FVector vNormal;
+                    vNormal.X = Normals[ PointIdx * 3 ];
+                    vNormal.Y = Normals[ PointIdx * 3 + 2 ];
+                    vNormal.Z = Normals[ PointIdx * 3 + 1 ];
+
+                    if ( vNormal != FVector::ZeroVector )
+                        currentRotation = FQuat::FindBetween( FVector::UpVector, vNormal );
+                }
+            }
+            else
+            {
+                currentPosition.Y = Positions[ PointIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                currentPosition.Z = Positions[ PointIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+
+                if ( bHasScale )
+                {
+                    currentScale.Y = Scales[ PointIdx * 3 + 1 ];
+                    currentScale.Z = Scales[ PointIdx * 3 + 2 ];
+                }
+
+                if ( bHasRotation )
+                {
+                    currentRotation.X = Rotations[ PointIdx * 4 ];
+                    currentRotation.Y = Rotations[ PointIdx * 4 + 1 ];
+                    currentRotation.Z = Rotations[ PointIdx * 4 + 2 ];
+                    currentRotation.W = Rotations[ PointIdx * 4 + 3 ];
+                }
+                else if ( bHasNormals )
+                {
+                    FVector vNormal;
+                    vNormal.X = Normals[ PointIdx * 3 ];
+                    vNormal.Y = Normals[ PointIdx * 3 + 1 ];
+                    vNormal.Z = Normals[ PointIdx * 3 + 2 ];
+
+                    if ( vNormal != FVector::ZeroVector )
+                        currentRotation = FQuat::FindBetween( FVector::UpVector, vNormal );
+                }
+            }
+
+            if ( bHasNames )
+                currentName = Names[ PointIdx ];
+
+            // If the scale attribute wasn't set on all socket, we might end up
+            // with a zero scale socket, avoid that.
+            if ( currentScale == FVector::ZeroVector)
+                currentScale = FVector( 1.0f, 1.0f, 1.0f );
+
+            currentSocketTransform.SetLocation( currentPosition );
+            currentSocketTransform.SetRotation( currentRotation );
+            currentSocketTransform.SetScale3D( currentScale );
+
+            AllSockets.Add( currentSocketTransform );
+            AllSocketsNames.Add( currentName );
+        }
+    }
+
+    return AllSockets.Num();
+}
+
+
+bool 
+FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
+    UStaticMesh* StaticMesh,
+    FHoudiniGeoPartObject& HoudiniGeoPartObject,
+    TArray< FTransform >& AllSockets,
+    TArray< FString >& AllSocketsNames )
+{
+    if ( !StaticMesh )
+        return false;
+
+    if ( AllSockets.Num() <= 0 )
+        return false;
+
+    // Do we need to clear the previously generated sockets?
+    if ( !HoudiniGeoPartObject.bHasSocketBeenAdded )
+        StaticMesh->Sockets.Empty();
+
+    for ( int32 nSocket = 0; nSocket < AllSockets.Num(); nSocket++ )
+    {
+        // Create a new Socket
+        UStaticMeshSocket* Socket = NewObject<UStaticMeshSocket>( StaticMesh );
+        check( Socket );
+
+        Socket->RelativeLocation = AllSockets[ nSocket ].GetLocation();
+        Socket->RelativeRotation = FRotator(AllSockets[ nSocket ].GetRotation());
+        Socket->RelativeScale = AllSockets[ nSocket ].GetScale3D();
+
+        if ( AllSocketsNames.IsValidIndex( nSocket ) && !AllSocketsNames[ nSocket ].IsEmpty() )
+            Socket->SocketName = FName( *AllSocketsNames[ nSocket ] );
+
+        StaticMesh->Sockets.Add( Socket );
+    }
+
+    // We don't want these new socket to be removed until next cook
+    HoudiniGeoPartObject.bHasSocketBeenAdded = true;
+
+    // Clean up
+    AllSockets.Empty();
+    AllSocketsNames.Empty();
+
+    return true;
+}
+
+
+bool
+FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
+    UStaticMesh* StaticMesh,
+    FHoudiniGeoPartObject& HoudiniGeoPartObject,
+    FKAggregateGeom& AggregateCollisionGeo )
+{
+    if ( !StaticMesh )
+        return false;
+    
+    UBodySetup * BodySetup = StaticMesh->BodySetup;
+    if ( !BodySetup )
+        return false;
+
+    // Do we need to remove the old collisions from the previous cook
+    if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
+        BodySetup->RemoveSimpleCollision();
+
+    BodySetup->AddCollisionFrom( AggregateCollisionGeo );
+    BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
+
+    BodySetup->ClearPhysicsMeshes();
+    BodySetup->InvalidatePhysicsData();
+    RefreshCollisionChange( StaticMesh );
+
+    // This geo part will have to be considered as rendered collision
+    if ( !HoudiniGeoPartObject.bIsCollidable )
+        HoudiniGeoPartObject.bIsRenderCollidable = true;
+
+    // We don't want these collisions to be removed before the next cook
+    HoudiniGeoPartObject.bHasCollisionBeenAdded = true;
+
+    // Clean the added collisions
+    AggregateCollisionGeo.EmptyElements();
 
     return true;
 }
