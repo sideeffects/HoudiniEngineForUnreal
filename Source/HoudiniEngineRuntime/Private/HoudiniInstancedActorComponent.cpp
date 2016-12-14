@@ -61,9 +61,17 @@ UHoudiniInstancedActorComponent::SetInstances( const TArray<FTransform>& Instanc
         const FScopedTransaction Transaction( LOCTEXT( "UpdateInstances", "Update Instances" ) );
         GetOwner()->Modify();
         ClearInstances();
-        for ( const FTransform& InstanceTransform : InstanceTransforms )
+
+        if( InstancedAsset )
         {
-            AddInstance( InstanceTransform );
+            for( const FTransform& InstanceTransform : InstanceTransforms )
+            {
+                AddInstance( InstanceTransform );
+            }
+        }
+        else
+        {
+            HOUDINI_LOG_ERROR( TEXT( "%s: Null InstancedAsset for instanced actor override" ), *GetOwner()->GetName() );
         }
     }
 #endif
