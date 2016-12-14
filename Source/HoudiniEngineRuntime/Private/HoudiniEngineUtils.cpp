@@ -27,7 +27,6 @@
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
 #include "HoudiniInstancedActorComponent.h"
-#include "StaticMeshResources.h"
 
 #include "AI/Navigation/NavCollision.h"
 #include "PhysicsEngine/AggregateGeom.h"
