@@ -90,7 +90,6 @@
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
-#include "StaticMeshResources.h"
 #include "ISettingsModule.h"
 #include "LandscapeProxy.h"
 #include "LandscapeDataAccess.h"
@@ -100,6 +99,7 @@
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveLinearColor.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "StaticMeshResources.h"
 
 /** Houdini Engine Runtime Module Localization. **/
 #include "HoudiniEngineRuntimeLocalization.h"
