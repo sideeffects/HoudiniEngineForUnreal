@@ -21,6 +21,9 @@
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniInstancedActorComponent.h"
+#include "Components/AudioComponent.h"
+#include "Particles/ParticleSystemComponent.h"
 
 
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer& ObjectInitializer )
@@ -1036,7 +1039,77 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
 
             if ( ! InstancedStaticMeshComponent )
             {
-                HOUDINI_LOG_WARNING( TEXT( "Instanced Actor overrides cannot be Baked to Blueprint." ) );
+                if( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( HoudiniAssetInstanceInputField->GetInstancedComponent( VariationIdx )) )
+                {
+                    if( !IAC->InstancedAsset )
+                        continue;
+
+                    UClass* ObjectClass = IAC->InstancedAsset->GetClass();
+                    
+                    TSubclassOf<AActor> ActorClass;
+
+                    if( ObjectClass->IsChildOf<AActor>() )
+                    {
+                        ActorClass = ObjectClass;
+                    }
+                    else if( ObjectClass->IsChildOf<UBlueprint>() )
+                    {
+                        UBlueprint* BlueprintObj = StaticCast<UBlueprint*>( IAC->InstancedAsset );
+                        ActorClass = *BlueprintObj->GeneratedClass;
+                    }
+
+                    if( *ActorClass )
+                    {
+                        for( AActor* InstancedActor : IAC->Instances )
+                        {
+                            if( InstancedActor )
+                            {
+                                UChildActorComponent* CAC = NewObject< UChildActorComponent >( Actor, UChildActorComponent::StaticClass(), NAME_None, RF_Public );
+                                Actor->AddInstanceComponent( CAC );
+                                CAC->SetChildActorClass( ActorClass );
+                                CAC->RegisterComponent();
+                                CAC->SetWorldTransform( InstancedActor->GetTransform() );
+                                CAC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
+                            }
+                        }
+                    }
+                    else if( ObjectClass->IsChildOf<UParticleSystem>() )
+                    {
+                        for( AActor* InstancedActor : IAC->Instances )
+                        {
+                            if( InstancedActor )
+                            {
+                                UParticleSystemComponent* PSC = NewObject< UParticleSystemComponent >( Actor, UParticleSystemComponent::StaticClass(), NAME_None, RF_Public );
+                                Actor->AddInstanceComponent( PSC );
+                                PSC->SetTemplate( StaticCast<UParticleSystem*>( IAC->InstancedAsset ) );
+                                PSC->RegisterComponent();
+                                PSC->SetWorldTransform( InstancedActor->GetTransform() );
+                                PSC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
+                            }
+                        }
+                    }
+                    else if( ObjectClass->IsChildOf<USoundBase>() )
+                    {
+                        for( AActor* InstancedActor : IAC->Instances )
+                        {
+                            if( InstancedActor )
+                            {
+                                UAudioComponent* AC = NewObject< UAudioComponent >( Actor, UAudioComponent::StaticClass(), NAME_None, RF_Public );
+                                Actor->AddInstanceComponent( AC );
+                                AC->SetSound( StaticCast<USoundBase*>( IAC->InstancedAsset ) );
+                                AC->RegisterComponent();
+                                AC->SetWorldTransform( InstancedActor->GetTransform() );
+                                AC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Oh no, the asset is not something we know.  We will need to handle each asset type case by case.
+                        // for example we could create a bunch of ParticleSystemComponent if given an emitter asset
+                        HOUDINI_LOG_ERROR( TEXT( "Can not bake instanced actor component for asset type %s" ), *ObjectClass->GetName() );
+                    }
+                }
                 continue;
             }
 
