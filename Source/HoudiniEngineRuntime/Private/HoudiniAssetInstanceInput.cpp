@@ -22,6 +22,8 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "Components/AudioComponent.h"
+#include "Particles/ParticleSystemComponent.h"
 
 
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer& ObjectInitializer )
@@ -1125,6 +1127,21 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
                                 PSC->RegisterComponent();
                                 PSC->SetWorldTransform( InstancedActor->GetTransform() );
                                 PSC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
+                            }
+                        }
+                    }
+                    else if( ObjectClass->IsChildOf<USoundBase>() )
+                    {
+                        for( AActor* InstancedActor : IAC->Instances )
+                        {
+                            if( InstancedActor )
+                            {
+                                UAudioComponent* AC = NewObject< UAudioComponent >( Actor, UAudioComponent::StaticClass(), NAME_None, RF_Public );
+                                Actor->AddInstanceComponent( AC );
+                                AC->SetSound( StaticCast<USoundBase*>( IAC->InstancedAsset ) );
+                                AC->RegisterComponent();
+                                AC->SetWorldTransform( InstancedActor->GetTransform() );
+                                AC->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepWorldTransform );
                             }
                         }
                     }
