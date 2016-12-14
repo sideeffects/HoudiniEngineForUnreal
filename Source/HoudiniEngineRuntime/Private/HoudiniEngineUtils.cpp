@@ -31,6 +31,7 @@
 
 #include "AI/Navigation/NavCollision.h"
 #include "PhysicsEngine/AggregateGeom.h"
+#include "Engine/StaticMeshSocket.h"
 
 DECLARE_CYCLE_STAT( TEXT( "Houdini: Build Static Mesh" ), STAT_BuildStaticMesh, STATGROUP_HoudiniEngine );
 
@@ -10275,7 +10276,10 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
 
     BodySetup->ClearPhysicsMeshes();
     BodySetup->InvalidatePhysicsData();
+
+#if WITH_EDITOR
     RefreshCollisionChange( StaticMesh );
+#endif
 
     // This geo part will have to be considered as rendered collision
     if ( !HoudiniGeoPartObject.bIsCollidable )
