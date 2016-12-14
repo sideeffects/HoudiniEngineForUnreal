@@ -88,6 +88,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject()
     , bIsUCXCollisionGeo( false )
     , bIsSimpleCollisionGeo( false )
     , bHasCollisionBeenAdded( false )
+    , bHasSocketBeenAdded( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -122,6 +123,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsUCXCollisionGeo( false )
     , bIsSimpleCollisionGeo( false )
     , bHasCollisionBeenAdded( false )
+    , bHasSocketBeenAdded( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -157,6 +159,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsUCXCollisionGeo( false )
     , bIsSimpleCollisionGeo( false )
     , bHasCollisionBeenAdded( false )
+    , bHasSocketBeenAdded( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -194,6 +197,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject(
     , bIsUCXCollisionGeo( false )
     , bIsSimpleCollisionGeo( false )
     , bHasCollisionBeenAdded( false )
+    , bHasSocketBeenAdded( false )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {}
@@ -227,6 +231,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject( const FHoudiniGeoPartObject & GeoP
     , bIsUCXCollisionGeo( GeoPartObject.bIsUCXCollisionGeo )
     , bIsSimpleCollisionGeo( GeoPartObject.bIsSimpleCollisionGeo )
     , bHasCollisionBeenAdded( GeoPartObject.bHasCollisionBeenAdded )
+    , bHasSocketBeenAdded( GeoPartObject.bHasSocketBeenAdded )
     , UnusedFlagsSpace( 0u )
     , HoudiniGeoPartObjectVersion( VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE )
 {
