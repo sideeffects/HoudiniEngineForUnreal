@@ -16,6 +16,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
 
 FText
