@@ -38,6 +38,9 @@ class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
         /** Handler for reimport option. **/
         void ExecuteReimport( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
 
+        /** Handler for rebuild all option **/
+        void ExecuteRebuildAllInstances( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
+
         /** Handler for when find in explorer is selected. */
         void ExecuteFindInExplorer( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
 };

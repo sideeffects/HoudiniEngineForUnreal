@@ -16,6 +16,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
 
 FText
@@ -82,6 +83,16 @@ FHoudiniAssetTypeActions::GetActions( const TArray< UObject * > & InObjects, cla
     );
 
     MenuBuilder.AddMenuEntry(
+        NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_RebuildAll", "Rebuild All Instances"),
+        NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_RebuildAllTooltip", "Reimports and rebuild all instances of the selected Houdini Assets."),
+        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+        FUIAction(
+            FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteRebuildAllInstances, HoudiniAssets),
+            FCanExecuteAction()
+        )
+    );
+
+    MenuBuilder.AddMenuEntry(
         NSLOCTEXT( "HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorer", "Find Source"),
         NSLOCTEXT(
             "HoudiniAssetTypeActions", "HoudiniAsset_FindInExplorerTooltip",
@@ -102,6 +113,31 @@ FHoudiniAssetTypeActions::ExecuteReimport( TArray< TWeakObjectPtr< UHoudiniAsset
         UHoudiniAsset * HoudiniAsset = ( *ObjIt ).Get();
         if ( HoudiniAsset )
             FReimportManager::Instance()->Reimport( HoudiniAsset, true );
+    }
+}
+
+void
+FHoudiniAssetTypeActions::ExecuteRebuildAllInstances(TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets)
+{
+    // Reimports and then rebuild all instances of the asset
+    for (auto ObjIt = HoudiniAssets.CreateConstIterator(); ObjIt; ++ObjIt)
+    {
+        UHoudiniAsset * HoudiniAsset = ( *ObjIt ).Get();
+        if ( !HoudiniAsset )
+            continue;
+
+        // Reimports the asset
+        FReimportManager::Instance()->Reimport( HoudiniAsset, true );
+
+        // Rebuilds all instances of that asset in the scene
+        for ( TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr )
+        {
+            UHoudiniAssetComponent * Component = *Itr;
+            if ( Component && ( Component->GetHoudiniAsset() == HoudiniAsset ) )
+            {
+                Component->StartTaskAssetRebuildManual();
+            }
+        }
     }
 }
 
