@@ -42,6 +42,7 @@ enum EHoudiniPluginSerializationVersion
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_CUSTOM_LINKER = 12,  // added custom linker version to archives
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ACTOR_INSTANCING = 13,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_LANDSCAPES = 14,
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_UNIT = 15,
 
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)

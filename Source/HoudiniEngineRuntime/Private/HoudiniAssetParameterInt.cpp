@@ -19,6 +19,11 @@
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
 
+#if WITH_EDITOR
+#include "UnitConversion.h"
+#include "NumericUnitTypeInterface.inl"
+#endif
+
 UHoudiniAssetParameterInt::UHoudiniAssetParameterInt( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
     , ValueMin( TNumericLimits<int32>::Lowest() )
@@ -126,6 +131,9 @@ UHoudiniAssetParameterInt::CreateParameter(
         }
     }
 
+    // Get this parameter's unit if it has one
+    FHoudiniEngineUtils::HapiGetParameterUnit( InNodeId, ParmId, ValueUnit );
+
     return true;
 }
 
@@ -142,6 +150,15 @@ UHoudiniAssetParameterInt::CreateWidget( IDetailCategoryBuilder & LocalDetailCat
     CreateNameWidget( Row, true );
 
     TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
+
+    // Helper function to find a unit from a string (name or abbreviation) 
+    TOptional<EUnit> ParmUnit = FUnitConversion::UnitFromString( *ValueUnit );
+
+    TSharedPtr<INumericTypeInterface<int32>> TypeInterface;
+    if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
+    {
+        TypeInterface = MakeShareable( new TNumericUnitTypeInterface<int32>( ParmUnit.GetValue() ) );
+    }
 
     for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
     {
@@ -173,6 +190,7 @@ UHoudiniAssetParameterInt::CreateWidget( IDetailCategoryBuilder & LocalDetailCat
                 this, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx ) )
 
             .SliderExponent( 1.0f )
+            .TypeInterface( TypeInterface )
         ];
 
         if ( NumericEntryBox.IsValid() )
@@ -323,4 +341,7 @@ UHoudiniAssetParameterInt::Serialize( FArchive & Ar )
 
     Ar << ValueUIMin;
     Ar << ValueUIMax;
+    
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_UNIT )
+        Ar << ValueUnit;
 }

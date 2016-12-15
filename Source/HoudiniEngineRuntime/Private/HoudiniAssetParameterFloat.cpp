@@ -21,12 +21,18 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
 
+#if WITH_EDITOR
+#include "UnitConversion.h"
+#include "NumericUnitTypeInterface.inl"
+#endif
+
 UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
     , ValueMin( TNumericLimits< float >::Lowest() )
     , ValueMax( TNumericLimits< float >::Max() )
     , ValueUIMin( TNumericLimits< float >::Lowest() )
     , ValueUIMax( TNumericLimits< float >::Max() )
+    , ValueUnit ( TEXT("") )
 {
     // Parameter will have at least one value.
     Values.AddZeroed( 1 );
@@ -50,6 +56,9 @@ UHoudiniAssetParameterFloat::Serialize( FArchive & Ar )
 
     Ar << ValueUIMin;
     Ar << ValueUIMax;
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_UNIT )
+        Ar << ValueUnit;
 }
 
 UHoudiniAssetParameterFloat *
@@ -184,6 +193,9 @@ UHoudiniAssetParameterFloat::CreateParameter(
         }
     }
 
+    // Get this parameter's unit if it has one
+    FHoudiniEngineUtils::HapiGetParameterUnit( InNodeId, ParmId, ValueUnit );
+
     return true;
 }
 
@@ -206,6 +218,15 @@ UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailC
     // Create the standard parameter name widget.
     CreateNameWidget( Row, true );
 
+    // Helper function to find a unit from a string (name or abbreviation) 
+    TOptional<EUnit> ParmUnit = FUnitConversion::UnitFromString( *ValueUnit );
+
+    TSharedPtr<INumericTypeInterface<float>> TypeInterface;
+    if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
+    {
+        TypeInterface = MakeShareable(new TNumericUnitTypeInterface<float>( ParmUnit.GetValue() ) );
+    }
+
     if ( TupleSize == 3 )
     {
         Row.ValueWidget.Widget = SNew( SVectorInputBox )
@@ -224,7 +245,8 @@ UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailC
         .OnZCommitted( FOnFloatValueCommitted::CreateLambda(
             [=]( float Val, ETextCommit::Type TextCommitType ) {
                 SetValue( Val, bSwappedAxis3Vector ? 1 : 2, true, true );
-        } ) );
+        } ) )
+        .TypeInterface( TypeInterface );
     }
     else
     {
@@ -235,31 +257,32 @@ UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailC
             TSharedPtr< SNumericEntryBox< float > > NumericEntryBox;
 
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-                [
-                    SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
-                    .AllowSpin( true )
+            [
+                SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
+                .AllowSpin( true )
 
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+		.Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 
-                .MinValue( ValueMin )
-                .MaxValue( ValueMax )
+		.MinValue( ValueMin )
+		.MaxValue( ValueMax )
 
-                .MinSliderValue( ValueUIMin )
-                .MaxSliderValue( ValueUIMax )
+		.MinSliderValue( ValueUIMin )
+		.MaxSliderValue( ValueUIMax )
 
-                .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
-                .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateLambda(
-                    [=]( float Val, ETextCommit::Type TextCommitType ) {
-                        SetValue( Val, 0, true, true );
-                 } ) )
-                .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
-                .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
+		.Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
+		    this, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
+		.OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateLambda(
+		    [=]( float Val, ETextCommit::Type TextCommitType ) {
+			SetValue( Val, 0, true, true );
+		    } ) )
+		.OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
+		    this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
+		.OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
+		    this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
 
-                .SliderExponent( 1.0f )
-                ];
+		.SliderExponent( 1.0f )
+                .TypeInterface( TypeInterface )
+            ];
 
             if ( NumericEntryBox.IsValid() )
                 NumericEntryBox->SetEnabled( !bIsDisabled );

@@ -1342,6 +1342,56 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
 }
 
 bool
+FHoudiniEngineUtils::HapiGetParameterUnit( const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, FString& OutUnitString )
+{
+    //
+    OutUnitString = TEXT("");
+
+    // We're looking for the parameter unit tag
+    FString UnitTag = "units";
+    bool HasUnit = false;
+
+    // Does the parameter has the "units" tag?
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ParmHasTag(
+        FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+        TCHAR_TO_ANSI(*UnitTag), &HasUnit ), false );
+
+    if ( !HasUnit )
+        return false;
+    
+    // Get the unit string value
+    HAPI_StringHandle StringHandle;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmTagValue(
+        FHoudiniEngine::Get().GetSession(), NodeId, ParmId,
+        TCHAR_TO_ANSI(*UnitTag), &StringHandle ), false );
+
+    // Get the actual string value.
+    FString UnitString = TEXT("");
+    FHoudiniEngineString HoudiniEngineString( StringHandle );
+    if ( HoudiniEngineString.ToFString( UnitString ) )
+    {
+        // We need to do some replacement in the string here in order to be able to get the
+        // proper unit type when calling FUnitConversion::UnitFromString(...) after.
+
+        // Per second and per hour are the only "per" unit that unreal recognize
+        UnitString.ReplaceInline( TEXT( "s-1" ), TEXT( "/s" ) );
+        UnitString.ReplaceInline( TEXT( "h-1" ), TEXT( "/h" ) );
+
+        // Houdini likes to add '1' on all the unit, so we'll remove all of them
+        // except the '-1' that still needs to remain.
+        UnitString.ReplaceInline( TEXT( "-1" ), TEXT( "--" ) );
+        UnitString.ReplaceInline( TEXT( "1" ), TEXT( "" ) );
+        UnitString.ReplaceInline( TEXT( "--" ), TEXT( "-1" ) );
+
+        OutUnitString = UnitString;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool
 FHoudiniEngineUtils::HapiIsMaterialTransparent( const HAPI_MaterialInfo & MaterialInfo )
 {
     float Alpha;

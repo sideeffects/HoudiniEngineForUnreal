@@ -324,6 +324,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId NodeId, const std::string ParmName,
             const FString & DefaultValue, FString & Value);
 
+        /** HAPI: Get a parameter's unit. **/
+        static bool HapiGetParameterUnit( const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, FString& OutUnitString );
+
         /** HAPI : Retrieve names of all parameters. **/
         static void HapiRetrieveParameterNames( const TArray< HAPI_ParmInfo > & ParmInfos, TArray< FString > & Names );
         static void HapiRetrieveParameterNames( const TArray< HAPI_ParmInfo > & ParmInfos, TArray< std::string > & Names );

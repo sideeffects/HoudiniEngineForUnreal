@@ -96,4 +96,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterInt : public UHoudiniAssetP
         /** Min and Max values for UI for this property. **/
         int32 ValueUIMin;
         int32 ValueUIMax;
+
+        /** Unit for this property **/
+        FString ValueUnit;
 };
