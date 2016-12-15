@@ -1162,11 +1162,11 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
                     HoudiniAssetComponent->LocateGeoPartObject(
                         Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) ));
 
-                // Bake the referenced static mesh.
-                OutStaticMesh =
-                    FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                        Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetOriginalObject()),
-                            HoudiniAssetComponent, ItemHoudiniGeoPartObject, true );
+                    // Bake the referenced static mesh.
+                    OutStaticMesh =
+                        FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+                            Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetOriginalObject() ),
+                            HoudiniAssetComponent, ItemHoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
 
                 HasBakedOriginalStaticMesh = true;
                 if ( OutStaticMesh )

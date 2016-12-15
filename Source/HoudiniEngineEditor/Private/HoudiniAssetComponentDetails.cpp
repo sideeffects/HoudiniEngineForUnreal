@@ -844,7 +844,7 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoud
         const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( StaticMesh );
 
         (void) FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-            StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, true );
+            StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::ReplaceExisitingAssets );
     }
 
     return FReply::Handled();

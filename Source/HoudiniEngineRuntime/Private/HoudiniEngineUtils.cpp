@@ -3801,12 +3801,43 @@ FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransfor
     return true;
 }
 
+bool FHoudiniEngineUtils::CheckPackageSafeForBake( UPackage* Package, FString& FoundAssetName )
+{
+    if( Package )
+    {
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
+        TArray<FAssetData> AssetsInPackage;
+        AssetRegistryModule.Get().GetAssetsByPackageName( Package->GetFName(), AssetsInPackage );
+        for( const auto& AssetInfo : AssetsInPackage )
+        {
+            if( AssetInfo.GetAsset() )
+            {
+                // Check and see whether we are referenced by any objects that won't be garbage collected (*including* the undo buffer)
+                FReferencerInformationList ReferencesIncludingUndo;
+                UObject* AssetInPackage = AssetInfo.GetAsset();
+                bool bReferencedInMemoryOrUndoStack = IsReferenced( AssetInPackage, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo );
+                if( bReferencedInMemoryOrUndoStack )
+                {
+                    // warn
+                    HOUDINI_LOG_ERROR( TEXT( "Could not bake to %s because it is being referenced" ), *Package->GetPathName() );
+                    return false;
+                }
+                FoundAssetName = AssetInfo.AssetName.ToString();
+            }
+        }
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-    const UHoudiniAssetComponent * HoudiniAssetComponent,
+    UHoudiniAssetComponent * HoudiniAssetComponent,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-    FString & MeshName, FGuid & BakeGUID, bool bBake )
+    FString & MeshName, FGuid & BakeGUID, EBakeMode BakeMode )
 {
     UPackage * PackageNew = nullptr;
 
@@ -3822,6 +3853,31 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
 
     while ( true )
     {
+        if( BakeMode == EBakeMode::ReplaceExisitingAssets )
+        {
+            // Find a previously baked asset
+            if( auto FoundPackage = HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Find( HoudiniGeoPartObject ) )
+            {
+                if( (*FoundPackage).IsValid() )
+                {
+                    if( CheckPackageSafeForBake( (*FoundPackage).Get(), MeshName ) )
+                    {
+                        return (*FoundPackage).Get();
+                    }
+                    else
+                    {
+                        // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                        //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+                        return nullptr;
+                    }
+                }
+                else
+                {
+                    HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Remove( HoudiniGeoPartObject );
+                }
+            }
+        }
+
         if ( !BakeGUID.IsValid() )
             BakeGUID = FGuid::NewGuid();
 
@@ -3832,7 +3888,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
         if ( HoudiniGeoPartObject.HasCustomName() )
             PartName = TEXT( "_" ) + HoudiniGeoPartObject.PartName;
 
-        if ( bBake )
+        if ( BakeMode != EBakeMode::Intermediate )
         {
             MeshName = HoudiniAsset->GetName() + PartName + FString::Printf( TEXT( "_bake%d_" ), BakeCount ) +
                 FString::FromInt( HoudiniGeoPartObject.ObjectId ) + TEXT( "_" ) +
@@ -3840,7 +3896,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
                 FString::FromInt( HoudiniGeoPartObject.PartId ) + TEXT( "_" ) +
                 FString::FromInt( HoudiniGeoPartObject.SplitId ) + TEXT( "_" ) +
                 HoudiniGeoPartObject.SplitName;
-
+                
             PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOutermost()->GetName() ) +
                 TEXT( "/" ) +
                 MeshName;
@@ -3854,7 +3910,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
                 FString::FromInt( HoudiniGeoPartObject.SplitId ) + TEXT( "_" ) +
                 HoudiniGeoPartObject.SplitName + TEXT( "_" ) +
                 BakeGUIDString;
-
+            
             PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName()) +
                 TEXT( "/" ) +
                 HoudiniAsset->GetName() +
@@ -3870,7 +3926,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
 
         UObject * OuterPackage = nullptr;
 
-        if ( !bBake )
+        if ( BakeMode == EBakeMode::Intermediate )
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
@@ -3882,9 +3938,9 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
 
         if ( Package )
         {
-            if ( bBake )
+            if ( BakeMode != EBakeMode::Intermediate )
             {
-                // Increment bake counter.
+                // Increment bake counter
                 BakeCount++;
             }
             else
@@ -3902,6 +3958,11 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
     }
 
 #endif
+
+    if( PackageNew && BakeMode == EBakeMode::ReplaceExisitingAssets )
+    {
+        HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Add( HoudiniGeoPartObject, PackageNew );
+    }
 
     return PackageNew;
 }
@@ -3959,38 +4020,63 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-    const UHoudiniAssetComponent * HoudiniAssetComponent,
-    const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, bool bBake )
+    UHoudiniAssetComponent * HoudiniAssetComponent,
+    const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, EBakeMode BakeMode )
 {
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
     FString MaterialDescriptor;
 
-    if ( bBake )
+    if( BakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
 
     return FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
         HoudiniAssetComponent, MaterialDescriptor,
-        MaterialName, bBake );
+        MaterialName, BakeMode );
 }
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-    const UHoudiniAssetComponent * HoudiniAssetComponent,
+    UHoudiniAssetComponent * HoudiniAssetComponent,
     const FString & MaterialInfoDescriptor,
-    FString & MaterialName, bool bBake )
+    FString & MaterialName, EBakeMode BakeMode )
 {
     UPackage * PackageNew = nullptr;
 
 #if WITH_EDITOR
 
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-    FGuid BakeGUID = FGuid::NewGuid();
+    FGuid BakeGUID;
     FString PackageName;
 
     const FGuid & ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
     FString ComponentGUIDString = ComponentGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
+
+    if( BakeMode == EBakeMode::ReplaceExisitingAssets )
+    {
+        // Find a previously baked asset
+        if( auto FoundPackage = HoudiniAssetComponent->BakedMaterialPackagesForIds.Find( MaterialInfoDescriptor ) )
+        {
+            if( ( *FoundPackage ).IsValid() )
+            {
+                if( CheckPackageSafeForBake( ( *FoundPackage ).Get(), MaterialName ) )
+                {
+                    return ( *FoundPackage ).Get();
+                }
+                else
+                {
+                    // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                    //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+                    return nullptr;
+                }
+            }
+            else
+            {
+                HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( MaterialInfoDescriptor );
+            }
+        }
+    }
 
     while ( true )
     {
@@ -4001,9 +4087,10 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
         FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
 
         // Generate material name.
-        MaterialName = MaterialInfoDescriptor + BakeGUIDString;
+        MaterialName = MaterialInfoDescriptor;
+        MaterialName += BakeGUIDString;
 
-        if ( bBake )
+        if ( BakeMode != EBakeMode::Intermediate )
         {
             // Generate unique package name.
             PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOutermost()->GetName() ) +
@@ -4027,7 +4114,7 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
 
         UObject * OuterPackage = nullptr;
 
-        if ( !bBake )
+        if ( BakeMode == EBakeMode::Intermediate )
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
@@ -4039,11 +4126,8 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
 
         if ( Package )
         {
-            if ( !bBake )
-            {
-                // Package does exist, there's a collision, we need to generate a new name.
-                BakeGUID.Invalidate();
-            }
+            // Package does exist, there's a collision, we need to generate a new name.
+            BakeGUID.Invalidate();
         }
         else
         {
@@ -4055,19 +4139,24 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
 
 #endif
 
+    if( PackageNew && BakeMode == EBakeMode::ReplaceExisitingAssets )
+    {
+        HoudiniAssetComponent->BakedMaterialPackagesForIds.Add( MaterialInfoDescriptor, PackageNew );
+    }
+
     return PackageNew;
 }
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-    const UHoudiniAssetComponent * HoudiniAssetComponent,
+    UHoudiniAssetComponent * HoudiniAssetComponent,
     const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
-    FString & TextureName, bool bBake )
+    FString & TextureName, EBakeMode BakeMode )
 {
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
     FString TextureInfoDescriptor;
 
-    if ( bBake )
+    if ( BakeMode != EBakeMode::Intermediate )
     {
         TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT( "_texture_" ) + FString::FromInt( MaterialInfo.nodeId ) +
             TEXT( "_" ) + TextureType + TEXT( "_" );
@@ -4080,25 +4169,50 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
 
     return FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
         HoudiniAssetComponent, TextureInfoDescriptor,
-        TextureType, TextureName, bBake );
+        TextureType, TextureName, BakeMode );
 }
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-    const UHoudiniAssetComponent * HoudiniAssetComponent,
+    UHoudiniAssetComponent * HoudiniAssetComponent,
     const FString & TextureInfoDescriptor, const FString & TextureType,
-    FString & TextureName, bool bBake )
+    FString & TextureName, EBakeMode BakeMode )
 {
     UPackage* PackageNew = nullptr;
 
 #if WITH_EDITOR
 
     UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-    FGuid BakeGUID = FGuid::NewGuid();
+    FGuid BakeGUID;
     FString PackageName;
 
     const FGuid & ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
     FString ComponentGUIDString = ComponentGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
+
+    if( BakeMode == EBakeMode::ReplaceExisitingAssets )
+    {
+        // Find a previously baked asset
+        if( auto FoundPackage = HoudiniAssetComponent->BakedMaterialPackagesForIds.Find( TextureInfoDescriptor ) )
+        {
+            if( ( *FoundPackage ).IsValid() )
+            {
+                if( CheckPackageSafeForBake( ( *FoundPackage ).Get(), TextureName ) )
+                {
+                    return ( *FoundPackage ).Get();
+                }
+                else
+                {
+                    // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                    //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+                    return nullptr;
+                }
+            }
+            else
+            {
+                HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( TextureInfoDescriptor );
+            }
+        }
+    }
 
     while ( true )
     {
@@ -4109,9 +4223,10 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
         FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
 
         // Generate texture name.
-        TextureName = TextureInfoDescriptor + BakeGUIDString;
+        TextureName = TextureInfoDescriptor;
+        TextureName += BakeGUIDString;
 
-        if ( bBake )
+        if ( BakeMode != EBakeMode::Intermediate )
         {
             // Generate unique package name.=
             PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOutermost()->GetName() ) +
@@ -4135,7 +4250,7 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
 
         UObject * OuterPackage = nullptr;
 
-        if ( !bBake )
+        if ( BakeMode == EBakeMode::Intermediate )
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
@@ -4147,11 +4262,8 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
 
         if ( Package )
         {
-            if ( !bBake )
-            {
-                // Package does exist, there's a collision, we need to generate a new name.
-                BakeGUID.Invalidate();
-            }
+            // Package does exist, there's a collision, we need to generate a new name.
+            BakeGUID.Invalidate();
         }
         else
         {
@@ -4159,6 +4271,11 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
             PackageNew = CreatePackage( OuterPackage, *PackageName );
             break;
         }
+    }
+
+    if( PackageNew && BakeMode == EBakeMode::ReplaceExisitingAssets )
+    {
+        HoudiniAssetComponent->BakedMaterialPackagesForIds.Add( TextureInfoDescriptor, PackageNew );
     }
 
 #endif
@@ -5108,7 +5225,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         MeshGuid.Invalidate();
 
                         UPackage * MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-                            HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, MeshGuid );
+                            HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, MeshGuid, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                        if( !MeshPackage )
+                            continue;
 
                         StaticMesh = NewObject< UStaticMesh >(
                             MeshPackage, FName( *MeshName ),
@@ -6257,7 +6376,12 @@ FHoudiniEngineUtils::BakeStaticMesh(
     FString MeshName;
     FGuid BakeGUID;
     UPackage * Package = BakeCreateStaticMeshPackageForComponent(
-        HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, BakeGUID, true );
+        HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, BakeGUID, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
+
+    if( !Package )
+    {
+        return nullptr;
+    }
 
     // Create static mesh.
     StaticMesh = NewObject< UStaticMesh >( Package, FName( *MeshName ), RF_Public | RF_Transactional );
@@ -6581,7 +6705,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
                 // Create material package and get material name.
                 UPackage * MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-                    HoudiniAssetComponent, MaterialInfo, MaterialName );
+                    HoudiniAssetComponent, MaterialInfo, MaterialName, FHoudiniEngineUtils::EBakeMode::Intermediate );
 
                 // Create new material.
                 Material = (UMaterial *) MaterialFactory->FactoryCreateNew(
@@ -6881,7 +7005,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
-                        TextureDiffuseName );
+                        TextureDiffuseName, FHoudiniEngineUtils::EBakeMode::Intermediate );
                 }
 
                 // Create diffuse texture, if we need to create one.
@@ -7117,7 +7241,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK,
-                        TextureOpacityName );
+                        TextureOpacityName, FHoudiniEngineUtils::EBakeMode::Intermediate );
                 }
 
                 // Create opacity texture, if we need to create one.
@@ -7471,7 +7595,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                             HoudiniAssetComponent,
                             MaterialInfo,
                             HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-                            TextureNormalName );
+                            TextureNormalName, FHoudiniEngineUtils::EBakeMode::Intermediate );
                 }
 
                 // Create normal texture, if we need to create one.
@@ -7586,7 +7710,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                             HoudiniAssetComponent,
                             MaterialInfo,
                             HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-                            TextureNormalName );
+                            TextureNormalName, FHoudiniEngineUtils::EBakeMode::Intermediate );
                     }
 
                     // Create normal texture, if we need to create one.
@@ -7727,7 +7851,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
-                        TextureSpecularName );
+                        TextureSpecularName, FHoudiniEngineUtils::EBakeMode::Intermediate );
                 }
 
                 // Create specular texture, if we need to create one.
@@ -7925,7 +8049,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
-                        TextureRoughnessName );
+                        TextureRoughnessName, FHoudiniEngineUtils::EBakeMode::Intermediate );
                 }
 
                 // Create roughness texture, if we need to create one.
@@ -8115,7 +8239,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
-                        TextureMetallicName );
+                        TextureMetallicName, FHoudiniEngineUtils::EBakeMode::Intermediate );
                 }
 
                 // Create metallic texture, if we need to create one.
@@ -9208,8 +9332,8 @@ FHoudiniEngineUtils::StaticMeshRequiresBake( const UStaticMesh * StaticMesh )
 
 UStaticMesh *
 FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-    const UStaticMesh * StaticMesh, const UHoudiniAssetComponent * Component,
-    const FHoudiniGeoPartObject & HoudiniGeoPartObject, bool bBake )
+    const UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
+    const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode )
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
@@ -9220,12 +9344,14 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
         FGuid MeshGuid;
 
         UPackage * MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-            Component, HoudiniGeoPartObject, MeshName, MeshGuid, bBake );
+            Component, HoudiniGeoPartObject, MeshName, MeshGuid, BakeMode );
+        if( !MeshPackage )
+            return nullptr;
 
         // Duplicate mesh for this new copied component.
         DuplicatedStaticMesh = DuplicateObject< UStaticMesh >( StaticMesh, MeshPackage, *MeshName );
 
-        if ( bBake )
+        if ( BakeMode != EBakeMode::Intermediate )
             DuplicatedStaticMesh->SetFlags( RF_Public | RF_Standalone );
 
         // Add meta information.
@@ -9258,7 +9384,10 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
                         {
                             // Duplicate material resource.
                             UMaterial * DuplicatedMaterial = FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-                                Material, Component, MaterialName, bBake );
+                                Material, Component, MaterialName, BakeMode );
+
+                            if( !DuplicatedMaterial )
+                                continue;
 
                             // Store duplicated material.
                             FStaticMaterial DupeStaticMaterial = Materials[ MaterialIdx ];
@@ -9288,20 +9417,23 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 
 UMaterial *
 FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-    UMaterial * Material, const UHoudiniAssetComponent * Component,
-    const FString & SubMaterialName, bool bBake )
+    UMaterial * Material, UHoudiniAssetComponent * Component,
+    const FString & SubMaterialName, EBakeMode BakeMode )
 {
     UMaterial * DuplicatedMaterial = nullptr;
 
     // Create material package.
     FString MaterialName;
     UPackage * MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-        Component, SubMaterialName, MaterialName, bBake );
+        Component, SubMaterialName, MaterialName, BakeMode );
+
+    if( !MaterialPackage )
+        return nullptr;
 
     // Clone material.
     DuplicatedMaterial = DuplicateObject< UMaterial >( Material, MaterialPackage, *MaterialName );
 
-    if ( bBake )
+    if ( BakeMode != EBakeMode::Intermediate )
         DuplicatedMaterial->SetFlags( RF_Public | RF_Standalone );
 
     // Add meta information.
@@ -9317,7 +9449,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
     for ( auto& Expression : DuplicatedMaterial->Expressions )
     {
         FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-            Expression, Component, bBake );
+            Expression, Component, BakeMode );
     }
 
     // Notify registry that we have created a new duplicate material.
@@ -9335,7 +9467,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
 void
 FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
     UMaterialExpression * MaterialExpression,
-    const UHoudiniAssetComponent * Component, bool bBake )
+    UHoudiniAssetComponent * Component, EBakeMode BakeMode )
 {
     UMaterialExpressionTextureSample * TextureSample = Cast< UMaterialExpressionTextureSample >( MaterialExpression );
     if ( TextureSample )
@@ -9352,7 +9484,7 @@ FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
                 {
                     // Duplicate texture.
                     UTexture2D * DuplicatedTexture = FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
-                        Texture, Component, GeneratedTextureName, bBake );
+                        Texture, Component, GeneratedTextureName, BakeMode );
 
                     // Re-assign generated texture.
                     TextureSample->Texture = DuplicatedTexture;
@@ -9364,8 +9496,8 @@ FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
 
 UTexture2D *
 FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
-    UTexture2D * Texture, const UHoudiniAssetComponent * Component,
-    const FString & SubTextureName, bool bBake )
+    UTexture2D * Texture, UHoudiniAssetComponent * Component,
+    const FString & SubTextureName, EBakeMode BakeMode )
 {
     UTexture2D* DuplicatedTexture = nullptr;
 
@@ -9386,12 +9518,12 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
                 // Create texture package.
                 FString TextureName;
                 UPackage * NewTexturePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                    Component, SubTextureName, TextureType, TextureName, bBake );
+                    Component, SubTextureName, TextureType, TextureName, BakeMode );
 
                 // Clone texture.
                 DuplicatedTexture = DuplicateObject< UTexture2D >( Texture, NewTexturePackage, *TextureName );
 
-                if ( bBake )
+                if ( BakeMode != EBakeMode::Intermediate )
                     DuplicatedTexture->SetFlags( RF_Public | RF_Standalone );
 
                 // Add meta information.
@@ -9497,7 +9629,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
             {
                 // Bake the found mesh into the project
                 BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                    OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, true );
+                    OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
 
                 if ( ensure( BakedSM ) )
                 {
@@ -9680,7 +9812,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         {
             // Bake the found mesh into the project
             BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, true );
+                OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
 
             if ( BakedSM )
             {

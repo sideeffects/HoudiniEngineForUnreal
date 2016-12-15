@@ -42,6 +42,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 {
     public:
 
+        /** Used to control behavior of package baking helper functions */
+        enum class EBakeMode
+        {
+            Intermediate,
+            CreateNewAssets,
+            ReplaceExisitingAssets
+        };
+
         /** Return a string description of error from a given error code. **/
         static const FString GetErrorDescription( HAPI_Result Result );
 
@@ -429,17 +437,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create a package for given component for static mesh baking. **/
         static UPackage * BakeCreateStaticMeshPackageForComponent(
-            const UHoudiniAssetComponent * HoudiniAssetComponent,
+            UHoudiniAssetComponent * HoudiniAssetComponent,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            FString & MeshName, FGuid & BakeGUID, bool bBake = false );
+            FString & MeshName, FGuid & BakeGUID, EBakeMode BakeMode );
 
 #if WITH_EDITOR
 
         /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
         /** materials and textures and their corresponding packages. **/
         static UStaticMesh * DuplicateStaticMeshAndCreatePackage(
-            const UStaticMesh * StaticMesh, const UHoudiniAssetComponent * Component,
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject, bool bBake = false );
+            const UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
+            const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode );
 
         /** Bake output meshes and materials to packages and create corresponding actors in the scene */
         static void BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors );
@@ -470,21 +478,23 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create a package for a given component for material. **/
         static UPackage * BakeCreateMaterialPackageForComponent(
-            const UHoudiniAssetComponent * HoudiniAssetComponent,
-            const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, bool bBake = false );
+            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, EBakeMode BakeMode );
         static UPackage * BakeCreateMaterialPackageForComponent(
-            const UHoudiniAssetComponent * HoudiniAssetComponent,
-            const FString & MaterialInfoDescriptor, FString & MaterialName, bool bBake = false );
+            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const FString & MaterialInfoDescriptor, FString & MaterialName, EBakeMode BakeMode );
 
         /** Create a package for a given component for texture. **/
         static UPackage * BakeCreateTexturePackageForComponent(
-            const UHoudiniAssetComponent * HoudiniAssetComponent,
+            UHoudiniAssetComponent * HoudiniAssetComponent,
             const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
-            FString & TextureName, bool bBake = false );
+            FString & TextureName, EBakeMode BakeMode );
         static UPackage * BakeCreateTexturePackageForComponent(
-            const UHoudiniAssetComponent * HoudiniAssetComponent,
+            UHoudiniAssetComponent * HoudiniAssetComponent,
             const FString & TextureInfoDescriptor, const FString & TextureType,
-            FString & TextureName, bool bBake = false );
+            FString & TextureName, EBakeMode BakeMode );
+
+        static bool CheckPackageSafeForBake( UPackage* Package, FString& FoundAssetName );
 
         /** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
         static int32 TransferRegularPointAttributesToVertices(
@@ -496,18 +506,18 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
         /** and their corresponding packages. **/
         static UMaterial * DuplicateMaterialAndCreatePackage(
-            UMaterial * Material, const UHoudiniAssetComponent * Component,
-            const FString & SubMaterialName, bool bBake = false );
+            UMaterial * Material, UHoudiniAssetComponent * Component,
+            const FString & SubMaterialName, EBakeMode BakeMode );
 
         /** Duplicate a given texture. This will create a new package for it. **/
         static UTexture2D * DuplicateTextureAndCreatePackage(
-            UTexture2D * Texture, const UHoudiniAssetComponent * Component,
-            const FString & SubTextureName, bool bBake = false );
+            UTexture2D * Texture, UHoudiniAssetComponent * Component,
+            const FString & SubTextureName, EBakeMode BakeMode );
 
         /** Replace duplicated texture with a new copy within a given sampling expression. **/
         static void ReplaceDuplicatedMaterialTextureSample(
             UMaterialExpression * MaterialExpression,
-            const UHoudiniAssetComponent * Component, bool bBake );
+            UHoudiniAssetComponent * Component, EBakeMode BakeMode );
 
         /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
         static bool StaticMeshRequiresBake( const UStaticMesh * StaticMesh );
