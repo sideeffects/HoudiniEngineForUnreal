@@ -80,10 +80,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
     friend class FHoudiniMeshSceneProxy;
     friend class UHoudiniHandleComponent;
     friend class UHoudiniSplineComponent;
-
+    
 #if WITH_EDITOR
 
     friend class FHoudiniAssetComponentDetails;
+    friend class FHoudiniAssetTypeActions;
 
 #endif
 
