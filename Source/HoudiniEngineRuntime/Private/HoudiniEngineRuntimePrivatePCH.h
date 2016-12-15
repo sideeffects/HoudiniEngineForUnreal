@@ -94,12 +94,12 @@
 #include "LandscapeProxy.h"
 #include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
-#include "ImageUtils.h"
 #include "Curves/CurveBase.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveLinearColor.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "StaticMeshResources.h"
+#include "ImageUtils.h"
 
 /** Houdini Engine Runtime Module Localization. **/
 #include "HoudiniEngineRuntimeLocalization.h"
