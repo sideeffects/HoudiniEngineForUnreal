@@ -105,7 +105,8 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
         static const FColor ColorNormal = FColor(255, 255, 255);
         static const FColor ColorNone = FColor(172, 172, 172);
         static const FColor ColorSelected(255, 0, 0);
-        static const FColor ColorFirst(0, 172, 0);
+        static const FColor ColorFirst(0, 192, 0);
+	static const FColor ColorSecond(96, 182, 96);
 
         static const float GrabHandleSize = 12.0f;
         static const float GrabHandleSizeNone = 12.0f;// 8.0f;
@@ -169,9 +170,11 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             }
             else
             {
-                // Color the first point differently to show the direction of the spline
+                // Color the first two points differently to show the direction of the spline
                 if( PointIdx == 0 )
                     PDI->DrawPoint(DisplayPoint, ColorFirst, GrabHandleCurrentSize, SDPG_Foreground);
+                else if (PointIdx == 1)
+                    PDI->DrawPoint(DisplayPoint, ColorSecond, GrabHandleCurrentSize, SDPG_Foreground);
                 else
                     PDI->DrawPoint(DisplayPoint, ColorUnselected, GrabHandleCurrentSize, SDPG_Foreground);
             }
