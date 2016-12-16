@@ -138,7 +138,6 @@ public class HoudiniEngineRuntime : ModuleRules
 				"ShaderCore",
 				"InputCore",
 				"RHI",
-				"Settings",
 				"Foliage",
 				"Landscape"
 			}
@@ -163,7 +162,8 @@ public class HoudiniEngineRuntime : ModuleRules
 					"AppFramework",
 					"TargetPlatform",
 					"RawMesh",
-					"DesktopWidgets"
+					"DesktopWidgets",
+					"Settings"
 				}
 			);
 		}
