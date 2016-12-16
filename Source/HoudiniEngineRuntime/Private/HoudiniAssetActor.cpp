@@ -101,6 +101,20 @@ AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel 
     return true;
 }
 
+bool 
+AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+    Super::GetReferencedContentObjects(Objects);
+
+    if ( (HoudiniAssetComponent) && (HoudiniAssetComponent->GetHoudiniAsset() ) )
+    {
+        Objects.AddUnique( HoudiniAssetComponent->GetHoudiniAsset() );
+    }
+
+    return true;
+}
+
+
 bool
 AHoudiniAssetActor::ShouldExport()
 {
