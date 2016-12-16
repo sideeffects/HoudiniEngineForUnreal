@@ -1602,6 +1602,9 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 {
     AHoudiniAssetActor * HoudiniAssetActor = GetHoudiniAssetActorOwner();
 
+    if( !HoudiniAssetActor )
+        return;
+
     FPropertyEditorModule & PropertyModule =
         FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
 
@@ -2147,7 +2150,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
 
         // Duplicate static mesh and all related generated Houdini materials and textures.
         UStaticMesh * DuplicatedStaticMesh =
-            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject );
+            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::Intermediate );
 
         if( DuplicatedStaticMesh )
         {
@@ -2912,7 +2915,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 
             // Bake the referenced static mesh.
             UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                StaticMesh, this, HoudiniGeoPartObject, true );
+                StaticMesh, this, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
 
             if ( OutStaticMesh )
                 FAssetRegistryModule::AssetCreated( OutStaticMesh );

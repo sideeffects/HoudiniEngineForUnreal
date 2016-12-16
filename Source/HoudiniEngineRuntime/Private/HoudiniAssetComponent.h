@@ -552,6 +552,11 @@ public:
         /** Indicates a manual recook has been asked by the user **/
         bool bManualRecook;
 
+        /** Transient cache of last baked parts */
+        TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> > BakedStaticMeshPackagesForParts;
+        /** Transient cache of last baked materials and textures */
+        TMap<FString, TWeakObjectPtr<class UPackage> > BakedMaterialPackagesForIds;
+
     protected:
 
         /** Previous asset, if it has been changed through transaction. **/
