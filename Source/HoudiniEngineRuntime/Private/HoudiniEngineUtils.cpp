@@ -4535,7 +4535,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Extracting Sockets points
-                GetMeshSocketList( AssetId, ObjectInfo.nodeId, GeoInfo.id, PartInfo.id, AllSockets, AllSocketsNames );
+                GetMeshSocketList( AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, AllSockets, AllSocketsNames );
 
                 // Create geo part object identifier.
                 FHoudiniGeoPartObject HoudiniGeoPartObject(
