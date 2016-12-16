@@ -49,6 +49,9 @@ class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
         virtual bool ShouldImport( FString * ActorPropString, bool IsMovingLevel ) override;
         virtual bool ShouldExport() override;
 
+        /** Used by the "Sync to Content Browser" right-click menu option in the editor. **/
+        virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const;
+
 #endif
 
     protected:

@@ -14,6 +14,7 @@
  */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
@@ -96,6 +97,21 @@ AHoudiniAssetActor::ShouldImport( FString * ActorPropString, bool IsMovingLevel 
     // We also need to copy actor label.
     const FString & CopiedActorLabel = CopiedActor->GetActorLabel();
     FActorLabelUtilities::SetActorLabelUnique( this, CopiedActorLabel );
+
+    return true;
+}
+
+bool 
+AHoudiniAssetActor::GetReferencedContentObjects( TArray< UObject * >& Objects ) const
+{
+    Super::GetReferencedContentObjects( Objects );
+
+    if ( HoudiniAssetComponent ) 
+    {
+            UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+            if ( HoudiniAsset )
+                Objects.AddUnique( HoudiniAsset );
+    }
 
     return true;
 }
