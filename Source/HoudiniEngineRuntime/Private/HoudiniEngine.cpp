@@ -120,9 +120,9 @@ FHoudiniEngine::StartupModule()
 
     HOUDINI_LOG_MESSAGE( TEXT( "Starting the Houdini Engine module." ) );
 
+#if WITH_EDITOR
     // Register settings.
-    ISettingsModule * SettingsModule = FModuleManager::GetModulePtr< ISettingsModule >( "Settings" );
-    if ( SettingsModule )
+    if( ISettingsModule * SettingsModule = FModuleManager::GetModulePtr< ISettingsModule >( "Settings" ) )
     {
         SettingsModule->RegisterSettings(
             "Project", "Plugins", "HoudiniEngine",
@@ -130,8 +130,6 @@ FHoudiniEngine::StartupModule()
             LOCTEXT( "RuntimeSettingsDescription", "Configure the HoudiniEngine plugin" ),
             GetMutableDefault< UHoudiniRuntimeSettings >() );
     }
-
-#if WITH_EDITOR
 
     // Before starting the module, we need to locate and load HAPI library.
     {
@@ -384,10 +382,12 @@ FHoudiniEngine::ShutdownModule()
         HoudiniBgeoAsset = nullptr;
     }
 
+#if WITH_EDITOR
     // Unregister settings.
     ISettingsModule * SettingsModule = FModuleManager::GetModulePtr< ISettingsModule >( "Settings" );
     if ( SettingsModule )
         SettingsModule->UnregisterSettings( "Project", "Plugins", "HoudiniEngine" );
+#endif
 
     // Do scheduler and thread clean up.
     if ( HoudiniEngineScheduler )
