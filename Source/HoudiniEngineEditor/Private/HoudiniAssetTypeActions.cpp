@@ -103,6 +103,18 @@ FHoudiniAssetTypeActions::GetActions( const TArray< UObject * > & InObjects, cla
             FCanExecuteAction()
         )
     );
+
+    MenuBuilder.AddMenuEntry(
+        NSLOCTEXT("HoudiniAssetTypeActions", "HoudiniAsset_OpenInHoudini", "Open in Houdini"),
+        NSLOCTEXT(
+            "HoudiniAssetTypeActions", "HoudiniAsset_OpenInHoudiniTooltip",
+            "Opens the selected asset in Houdini."),
+        FSlateIcon(StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+        FUIAction(
+            FExecuteAction::CreateSP(this, &FHoudiniAssetTypeActions::ExecuteOpenInHoudini, HoudiniAssets),
+            FCanExecuteAction::CreateLambda( [=] { return ( HoudiniAssets.Num() == 1 ); } )
+        )
+    );
 }
 
 void
@@ -154,4 +166,37 @@ FHoudiniAssetTypeActions::ExecuteFindInExplorer( TArray< TWeakObjectPtr< UHoudin
                 FPlatformProcess::ExploreFolder( *SourceFilePath );
         }
     }
+}
+
+void
+FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets )
+{
+    if ( !FHoudiniEngine::IsInitialized() )
+        return;
+    
+    if ( HoudiniAssets.Num() != 1 )
+        return;
+   
+    UHoudiniAsset * HoudiniAsset = HoudiniAssets[0].Get();
+    if ( !HoudiniAsset || !( HoudiniAsset->AssetImportData ) )
+        return;
+
+    const FString SourceFilePath = HoudiniAsset->AssetImportData->GetFirstFilename();
+    if ( !SourceFilePath.Len() || IFileManager::Get().FileSize(*SourceFilePath) == INDEX_NONE )
+        return;
+    
+    if ( !FPaths::FileExists( SourceFilePath ) )
+        return;
+
+    // Then open the HDA file in Houdini
+    FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
+    FString HoudiniLocation = LibHAPILocation + "/hview";
+
+    FPlatformProcess::CreateProc(
+        HoudiniLocation.GetCharArray().GetData(),
+        SourceFilePath.GetCharArray().GetData(),
+        true, false, false,
+        nullptr, 0,
+        FPlatformProcess::UserTempDir(),
+        nullptr, nullptr );
 }

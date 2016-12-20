@@ -405,14 +405,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId AssetId, HAPI_NodeId ObjectId,
             HAPI_NodeId GeoId, HAPI_PartId PartId,
             TArray< FTransform >& AllSockets,
-            TArray< FString >& AllSocketsName );
+            TArray< FString >& AllSocketsName,
+            TArray< FString >& AllSocketsActors );
 
         /** Add the mesh sockets in the list to the specified StaticMesh						**/
         static bool AddMeshSocketsToStaticMesh(
             UStaticMesh* StaticMesh,
             FHoudiniGeoPartObject& HoudiniGeoPartObject,
             TArray< FTransform >& AllSockets,
-            TArray< FString >& AllSocketsNames );
+            TArray< FString >& AllSocketsNames,
+            TArray< FString >& AllSocketsActors );
+
+        /** Add the actor stored in the socket tag to the socket for the given static mesh component 			**/
+        static bool AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMeshComponent* StaticMeshComponent );
 
         /** Add the mesh aggregate collision geo to the specified StaticMesh						**/
         static bool AddAggregateCollisionGeometryToStaticMesh(
