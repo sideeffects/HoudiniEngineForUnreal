@@ -2017,6 +2017,13 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
         SetVisibility( bVisible, true );
         return;
     }
+    else if ( ( Property->GetName() == TEXT( "RelativeLocation" ) )
+            || (Property->GetName() == TEXT( "RelativeRotation" ) )
+            || (Property->GetName() == TEXT( "RelativeScale3D" ) ) )
+    {
+        // Location has changed
+        CheckedUploadTransform();
+    }
 
     if ( Property->HasMetaData( TEXT( "Category" ) ) )
     {

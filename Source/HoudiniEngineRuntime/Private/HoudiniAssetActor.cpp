@@ -122,4 +122,26 @@ AHoudiniAssetActor::ShouldExport()
     return true;
 }
 
+void
+AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
+{
+    Super::PostEditChangeProperty(PropertyChangedEvent);
+
+    // Some property changes need to be forwarded to the component (ie Transform)
+    if ( !HoudiniAssetComponent )
+        return;
+
+    UProperty * Property = PropertyChangedEvent.MemberProperty;
+    if ( !Property )
+        return;
+
+    if ( ( Property->GetName() == TEXT( "RelativeLocation" ) )
+        || ( Property->GetName() == TEXT( "RelativeRotation" ) )
+        || ( Property->GetName() == TEXT( "RelativeScale3D" ) ) )
+    {
+        // Transform has changed
+        HoudiniAssetComponent->CheckedUploadTransform();
+    }
+}
+
 #endif

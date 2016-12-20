@@ -52,6 +52,9 @@ class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
         /** Used by the "Sync to Content Browser" right-click menu option in the editor. **/
         virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const;
 
+        /** Called after a property has been changed **/
+        virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
+
 #endif
 
     protected:
