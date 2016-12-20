@@ -172,6 +172,18 @@ public:
         /** Change the Houdini Asset used by this component. **/
         virtual void SetHoudiniAsset( UHoudiniAsset * NewHoudiniAsset );
 
+        /** Returns true if this component has any sockets */
+        virtual bool HasAnySockets() const;
+
+        /** Get a list of sockets this component contains   */
+        virtual void QuerySupportedSockets( TArray< FComponentSocketDescription >& OutSockets ) const;
+
+        /** Returns true if this component has the desired socket */
+        virtual bool DoesSocketExist( FName SocketName ) const;
+
+        /** Returns the transform for the desired socket */
+        virtual FTransform GetSocketTransform( FName InSocketName, ERelativeTransformSpace TransformSpace ) const;
+
 #if WITH_EDITOR
 
         /** Return true if this component has no cooking or instantiation in progress. **/

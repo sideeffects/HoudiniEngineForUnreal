@@ -4615,6 +4615,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             // Prepare the object that will store the mesh sockets and their names
             TArray< FTransform > AllSockets;
             TArray< FString > AllSocketsNames;
+            TArray< FString > AllSocketsActors;
 
             for ( int32 PartIdx = 0; PartIdx < GeoInfo.partCount; ++PartIdx )
             {
@@ -4762,7 +4763,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
 
                 // Extracting Sockets points
-                GetMeshSocketList( AssetId, ObjectInfo.nodeId, GeoId, PartInfo.id, AllSockets, AllSocketsNames );
+                GetMeshSocketList( AssetId, ObjectInfo.nodeId, GeoId, PartInfo.id, AllSockets, AllSocketsNames, AllSocketsActors );
 
                 // Create geo part object identifier.
                 FHoudiniGeoPartObject HoudiniGeoPartObject(
@@ -6125,7 +6126,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
 
                     // Add sockets to the static mesh if neeeded
-                    AddMeshSocketsToStaticMesh( StaticMesh, HoudiniGeoPartObject, AllSockets, AllSocketsNames );
+                    AddMeshSocketsToStaticMesh( StaticMesh, HoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
 
                     StaticMesh->MarkPackageDirty();
 
@@ -6227,7 +6228,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 // Add socket to the mesh if we found a suitable one
                 if ( SocketStaticMesh )
-                    AddMeshSocketsToStaticMesh(SocketStaticMesh, *SocketHoudiniGeoPartObject, AllSockets, AllSocketsNames);
+                    AddMeshSocketsToStaticMesh( SocketStaticMesh, *SocketHoudiniGeoPartObject, AllSockets, AllSocketsNames, AllSocketsActors );
             }
 
         } // end for GeoId
@@ -10189,7 +10190,8 @@ FHoudiniEngineUtils::GetMeshSocketList(
     HAPI_NodeId AssetId, HAPI_NodeId ObjectId,
     HAPI_NodeId GeoId, HAPI_PartId PartId,
     TArray< FTransform >& AllSockets,
-    TArray< FString >& AllSocketsNames)
+    TArray< FString >& AllSocketsNames,
+    TArray< FString >& AllSocketsActors )
 {
     // Get object / geo group memberships for primitives.
     TArray< FString > ObjectGeoGroupNames;
@@ -10231,23 +10233,27 @@ FHoudiniEngineUtils::GetMeshSocketList(
     // Attributes we are interested in.
     TArray< float > Positions;
     HAPI_AttributeInfo AttribInfoPositions;
-    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoPositions, 0);
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
 
     TArray< float > Rotations;
     HAPI_AttributeInfo AttribInfoRotations;
-    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoRotations, 0);
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoRotations, 0 );
 
     TArray< float > Normals;
     HAPI_AttributeInfo AttribInfoNormals;
-    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoNormals, 0);
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
 
     TArray< float > Scales;
     HAPI_AttributeInfo AttribInfoScales;
-    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoScales, 0);
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoScales, 0 );
 
     TArray< FString > Names;
     HAPI_AttributeInfo AttribInfoNames;
-    FMemory::Memset< HAPI_AttributeInfo >(AttribInfoNames, 0);
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNames, 0 );
+
+    TArray< FString > Actors;
+    HAPI_AttributeInfo AttribInfoActors;
+    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoActors, 0 );
 
     // Retrieve position data.
     if ( !FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
@@ -10283,6 +10289,13 @@ FHoudiniEngineUtils::GetMeshSocketList(
         HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME, AttribInfoNames, Names ) )
         bHasNames = true;
 
+    // Retrieve mesh socket actor.
+    bool bHasActors = false;
+    if ( FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+        AssetId, ObjectId, GeoId, PartId,
+        HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR, AttribInfoActors, Actors ) )
+        bHasActors = true;
+
     // Extracting Sockets vertices
     for ( int32 GeoGroupNameIdx = 0; GeoGroupNameIdx < ObjectGeoGroupNames.Num(); ++GeoGroupNameIdx )
     {
@@ -10305,7 +10318,6 @@ FHoudiniEngineUtils::GetMeshSocketList(
             FVector currentPosition = FVector::ZeroVector;
             FVector currentScale = FVector( 1.0f, 1.0f, 1.0f );
             FQuat currentRotation = FQuat::Identity;
-            FString currentName;
 
             currentPosition.X = Positions[ PointIdx * 3 ] * GeneratedGeometryScaleFactor;
 
@@ -10371,8 +10383,13 @@ FHoudiniEngineUtils::GetMeshSocketList(
                 }
             }
 
+            FString currentName;
             if ( bHasNames )
                 currentName = Names[ PointIdx ];
+
+            FString currentActors;
+            if ( bHasActors )
+                currentActors = Actors[ PointIdx ];
 
             // If the scale attribute wasn't set on all socket, we might end up
             // with a zero scale socket, avoid that.
@@ -10385,6 +10402,7 @@ FHoudiniEngineUtils::GetMeshSocketList(
 
             AllSockets.Add( currentSocketTransform );
             AllSocketsNames.Add( currentName );
+            AllSocketsActors.Add( currentActors );
         }
     }
 
@@ -10397,7 +10415,8 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
     UStaticMesh* StaticMesh,
     FHoudiniGeoPartObject& HoudiniGeoPartObject,
     TArray< FTransform >& AllSockets,
-    TArray< FString >& AllSocketsNames )
+    TArray< FString >& AllSocketsNames,
+    TArray< FString >& AllSocketsActors )
 {
     if ( !StaticMesh )
         return false;
@@ -10420,7 +10439,19 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
         Socket->RelativeScale = AllSockets[ nSocket ].GetScale3D();
 
         if ( AllSocketsNames.IsValidIndex( nSocket ) && !AllSocketsNames[ nSocket ].IsEmpty() )
+        {
             Socket->SocketName = FName( *AllSocketsNames[ nSocket ] );
+        }
+        else
+        {
+            // Having sockets with empty names can lead to various issues, so we'll create one now
+            Socket->SocketName = FName( TEXT("Socket"), StaticMesh->Sockets.Num() );
+        }
+
+
+        // The actor will be store temporarily in the socket's Tag as we need a StaticMeshComponent to add an actor to the socket
+        if ( AllSocketsActors.IsValidIndex( nSocket ) && !AllSocketsActors[ nSocket ].IsEmpty() )
+            Socket->Tag = AllSocketsActors[ nSocket ];
 
         StaticMesh->Sockets.Add( Socket );
     }
@@ -10431,6 +10462,7 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
     // Clean up
     AllSockets.Empty();
     AllSocketsNames.Empty();
+    AllSocketsActors.Empty();
 
     return true;
 }
@@ -10472,6 +10504,55 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
 
     // Clean the added collisions
     AggregateCollisionGeo.EmptyElements();
+
+    return true;
+}
+
+bool
+FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMeshComponent* StaticMeshComponent )
+{
+    if ( !Socket || !StaticMeshComponent )
+        return false;
+
+    // The actor to assign is stored is the socket's tag
+    FString ActorString = Socket->Tag;
+    if ( ActorString.IsEmpty() )
+        return false;
+
+    // Converting the string to a string array using delimiters
+    const TCHAR* Delims[] = { TEXT(","), TEXT(";") };
+    TArray<FString> ActorStringArray;
+    ActorString.ParseIntoArray( ActorStringArray, Delims, 2 );
+
+    if ( ActorStringArray.Num() <= 0 )
+        return false;
+
+#if WITH_EDITOR
+    // And try to find the corresponding HoudiniAssetActor in the editor world
+    // to avoid finding "deleted" assets with the same name
+    //UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
+    UWorld* editorWorld = StaticMeshComponent->GetOwner()->GetWorld();
+    for (TActorIterator<AActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
+    {
+        // Same as with the Object Iterator, access the subclass instance with the * or -> operators.
+        AActor *Actor = *ActorItr;
+        if ( !Actor )
+            continue;
+
+        for ( int32 StringIdx = 0; StringIdx < ActorStringArray.Num(); StringIdx++ )
+        {
+            if ( Actor->GetName() != ActorStringArray[ StringIdx ] )
+                continue;
+
+            if ( Actor->IsPendingKillOrUnreachable() )
+                continue;
+
+            Socket->AttachActor( Actor, StaticMeshComponent );
+        }
+    }
+#endif
+
+    Socket->Tag = TEXT("");
 
     return true;
 }

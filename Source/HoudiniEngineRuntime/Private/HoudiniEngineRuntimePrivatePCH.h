@@ -254,6 +254,7 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_NAME               "unreal_landscape"
 #define HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME              "unreal_input_mesh_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME             "unreal_mesh_socket_name"
+#define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR            "unreal_mesh_socket_actor"
 
 /** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE                     "instance"

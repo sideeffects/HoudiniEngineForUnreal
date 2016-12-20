@@ -51,6 +51,7 @@
 #include "UObjectToken.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
+#include "Engine/StaticMeshSocket.h"
 
 #if WITH_EDITOR
 
@@ -743,7 +744,18 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                     bNeedToUpdateNavigationSystem = true;
 
                 // Transform the component by transformation provided by HAPI.
-                StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );		
+                StaticMeshComponent->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );
+
+                // If the static mesh had sockets, we can assign the desired actor to them now
+                int32 NumberOfSockets = StaticMesh == nullptr ? 0 : StaticMesh->Sockets.Num();
+                for( int32 nSocket = 0; nSocket < NumberOfSockets; nSocket++ )
+                {
+                    UStaticMeshSocket* MeshSocket = StaticMesh->Sockets[ nSocket ];
+                    if ( MeshSocket && ( MeshSocket->Tag.IsEmpty() ) )
+                        continue;
+
+                    FHoudiniEngineUtils::AddActorsToMeshSocket( StaticMesh->Sockets[nSocket], StaticMeshComponent );
+                }
             }
         }
     }
@@ -875,6 +887,10 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
                 bNeedToCleanMeshComponent = true;
         }
 
+        // Do not clean up component attached to a socket
+        if ( StaticMeshComponent->GetAttachSocketName() != NAME_None )
+            bNeedToCleanMeshComponent = false;
+
         if ( bNeedToCleanMeshComponent )
         {
             // This StaticMeshComponent is attached to the asset but not in the map, and not an instance.
@@ -892,9 +908,12 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
     for (int32 MeshIdx = 0; MeshIdx < StaticMeshesToDelete.Num(); ++MeshIdx)
     {
         UStaticMesh * StaticMesh = StaticMeshesToDelete[MeshIdx];
+                
+        UObject * ObjectMesh = (UObject *)StaticMesh;
+        if ( ObjectMesh->IsUnreachable() )
+            continue;
 
         // Check if object is referenced and get its referencers, if it is.
-        UObject * ObjectMesh = (UObject *)StaticMesh;
         FReferencerInformationList Referencers;	
         bool bReferenced = IsReferenced(
             ObjectMesh, GARBAGE_COLLECTION_KEEPFLAGS,
@@ -5188,5 +5207,82 @@ UHoudiniAssetComponent::RemoveReplacementMaterial(
             MaterialReplacementsValues.Remove( MaterialName );
         }
     }
+}
+
+bool
+UHoudiniAssetComponent::HasAnySockets() const
+{
+    // Return true if any of our StaticMeshComponent HasAnySocket
+    for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
+    {
+        UStaticMeshComponent * StaticMeshComponent = Iter.Value();
+        if ( !StaticMeshComponent )
+            continue;
+
+        if ( StaticMeshComponent->HasAnySockets() )
+            return true;
+    }
+
+    return Super::HasAnySockets();
+}
+
+
+/** Get a list of sockets this component contains   */
+void 
+UHoudiniAssetComponent::QuerySupportedSockets( TArray<FComponentSocketDescription>& OutSockets ) const
+{
+     //Query all the sockets in our StaticMeshComponents
+    for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter(StaticMeshComponents); Iter; ++Iter )
+    {
+        UStaticMeshComponent * StaticMeshComponent = Iter.Value();
+        if ( !StaticMeshComponent )
+            continue;
+
+        if ( !StaticMeshComponent->HasAnySockets() )
+            continue;
+
+        TArray< FComponentSocketDescription > ComponentSocket;
+        StaticMeshComponent->QuerySupportedSockets( ComponentSocket );
+
+        OutSockets.Append( ComponentSocket );
+    }
+}
+
+
+bool 
+UHoudiniAssetComponent::DoesSocketExist( FName SocketName ) const
+{
+    //Query all the sockets in our StaticMeshComponents
+    for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
+    {
+        UStaticMeshComponent * StaticMeshComponent = Iter.Value();
+        if ( !StaticMeshComponent )
+            continue;
+
+        if ( StaticMeshComponent->DoesSocketExist( SocketName ) )
+            return true;
+    }
+    
+    return Super::DoesSocketExist( SocketName );
+}
+
+
+FTransform 
+UHoudiniAssetComponent::GetSocketTransform( FName InSocketName, ERelativeTransformSpace TransformSpace ) const
+{
+    //Query all the sockets in our StaticMeshComponents
+    for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
+    {
+        UStaticMeshComponent * StaticMeshComponent = Iter.Value();
+        if ( !StaticMeshComponent )
+            continue;
+
+        if ( !StaticMeshComponent->DoesSocketExist( InSocketName ) )
+            continue;
+
+        return StaticMeshComponent->GetSocketTransform( InSocketName, TransformSpace );
+    }
+
+    return Super::GetSocketTransform( InSocketName, TransformSpace );
 }
 
