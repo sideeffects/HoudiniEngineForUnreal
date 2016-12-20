@@ -41,6 +41,9 @@ class FHoudiniAssetTypeActions : public FAssetTypeActions_Base
         /** Handler for rebuild all option **/
         void ExecuteRebuildAllInstances( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
 
-        /** Handler for when find in explorer is selected. */
+        /** Handler for find in explorer option */
         void ExecuteFindInExplorer( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
+
+        /** Handler for the open in Houdini option */
+        void ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudiniAsset > > HoudiniAssets );
 };
