@@ -18,6 +18,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngine.h"
 
 FText
 FHoudiniAssetTypeActions::GetName() const
