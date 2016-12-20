@@ -130,7 +130,7 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
     // Some property changes need to be forwarded to the component (ie Transform)
-    if ( HoudiniAssetComponent )
+    if ( !HoudiniAssetComponent )
         return;
 
     UProperty * Property = PropertyChangedEvent.MemberProperty;
