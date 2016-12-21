@@ -133,6 +133,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent
         /** Return true if this is an input curve. **/
         bool IsInputCurve() const;
 
+        /** Returns true if this Spline component is Active **/
+        bool IsActive() const;
+
         /** Assign input parameter to this spline, if it is an input curve. **/
         void SetHoudiniAssetInput( class UHoudiniAssetInput * InHoudiniAssetInput );
 
