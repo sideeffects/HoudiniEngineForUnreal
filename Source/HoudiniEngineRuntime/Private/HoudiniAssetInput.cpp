@@ -2117,7 +2117,7 @@ UHoudiniAssetInput::IsCurveAssetConnected() const
 {
     if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
     {
-        if ( InputCurve )
+        if (InputCurve && ( ChoiceIndex == EHoudiniAssetInputType::CurveInput ) )
             return true;
     }
 
@@ -2375,9 +2375,13 @@ UHoudiniAssetInput::UpdateInputCurve()
     {
 
 #if WITH_EDITOR
-
         // We need to trigger details panel update.
         HoudiniAssetComponent->UpdateEditorProperties( false );
+
+        // The editor caches the current selection visualizer, so we need to trick
+        // and pretend the selection has changed so that the HSplineVisualizer can be drawn immediately
+        if (GUnrealEd)
+            GUnrealEd->NoteSelectionChange();
 #endif
 
         bSwitchedToCurve = false;

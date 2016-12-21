@@ -100,13 +100,17 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
     FPrimitiveDrawInterface * PDI )
 {
     const UHoudiniSplineComponent * HoudiniSplineComponent = Cast< const UHoudiniSplineComponent >( Component );
-    if ( HoudiniSplineComponent && HoudiniSplineComponent->IsValidCurve() )
+
+    if ( HoudiniSplineComponent && HoudiniSplineComponent->IsValidCurve() && HoudiniSplineComponent->IsActive() )
     {   
         static const FColor ColorNormal = FColor(255, 255, 255);
-        static const FColor ColorNone = FColor(172, 172, 172);
-        static const FColor ColorSelected(255, 0, 0);
         static const FColor ColorFirst(0, 192, 0);
-	static const FColor ColorSecond(96, 182, 96);
+        static const FColor ColorSecond(255, 159, 0);
+        static const FColor ColorSelected(255, 0, 0);
+
+        static const FColor ColorNone = FColor(172, 172, 172);
+        static const FColor ColorNoneFirst = FColor(172, 255, 172);
+        static const FColor ColorNoneSecond = FColor(254, 216, 177);
 
         static const float GrabHandleSize = 12.0f;
         static const float GrabHandleSizeNone = 12.0f;// 8.0f;
@@ -123,8 +127,8 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
         FVector DisplayPointFirst;
         FVector DisplayPointPrevious;
 
+        // Dim the color if no points is selected
         bool bNoPointSelected = EditedControlPointsIndexes.Num() <= 0;
-        FColor ColorUnselected = bNoPointSelected ? ColorNone : ColorNormal;
         float GrabHandleCurrentSize = bNoPointSelected ? GrabHandleSizeNone : GrabHandleSize;
 
         int32 NumDisplayPoints = CurveDisplayPoints.Num();
@@ -137,7 +141,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             if ( DisplayPointIdx > 0 )
             {
                 // Draw line from previous point to current one.
-                PDI->DrawLine( DisplayPointPrevious, DisplayPoint, ColorUnselected, SDPG_Foreground );
+                PDI->DrawLine( DisplayPointPrevious, DisplayPoint, bNoPointSelected ? ColorNone : ColorNormal, SDPG_Foreground );
             }
             else
             {
@@ -148,7 +152,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             if ( HoudiniSplineComponent->IsClosedCurve() && NumDisplayPoints > 1 &&
                 DisplayPointIdx + 1 == NumDisplayPoints )
             {
-                PDI->DrawLine( DisplayPointFirst, DisplayPoint, ColorUnselected, SDPG_Foreground );
+                PDI->DrawLine( DisplayPointFirst, DisplayPoint, bNoPointSelected ? ColorNone : ColorNormal, SDPG_Foreground );
             }
 
             DisplayPointPrevious = DisplayPoint;
@@ -163,7 +167,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             // Draw point and set hit box for it.
             PDI->SetHitProxy(new HHoudiniSplineControlPointVisProxy(HoudiniSplineComponent, PointIdx));
        
-            if ((bCurveEditing) && (EditedControlPointsIndexes.Contains(PointIdx)))
+            if ( ( bCurveEditing ) && ( EditedControlPointsIndexes.Contains(PointIdx)))
             {
                 // If we are editing this control point, change its color
                 PDI->DrawPoint(DisplayPoint, ColorSelected, GrabHandleSizeSelected, SDPG_Foreground);
@@ -172,11 +176,11 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
             {
                 // Color the first two points differently to show the direction of the spline
                 if( PointIdx == 0 )
-                    PDI->DrawPoint(DisplayPoint, ColorFirst, GrabHandleCurrentSize, SDPG_Foreground);
+                    PDI->DrawPoint(DisplayPoint, bNoPointSelected ? ColorNoneFirst : ColorFirst, GrabHandleCurrentSize, SDPG_Foreground);
                 else if (PointIdx == 1)
-                    PDI->DrawPoint(DisplayPoint, ColorSecond, GrabHandleCurrentSize, SDPG_Foreground);
+                    PDI->DrawPoint(DisplayPoint, bNoPointSelected ? ColorNoneSecond : ColorSecond, GrabHandleCurrentSize, SDPG_Foreground);
                 else
-                    PDI->DrawPoint(DisplayPoint, ColorUnselected, GrabHandleCurrentSize, SDPG_Foreground);
+                    PDI->DrawPoint(DisplayPoint, bNoPointSelected ? ColorNone : ColorNormal, GrabHandleCurrentSize, SDPG_Foreground);
             }
 
             PDI->SetHitProxy(nullptr);

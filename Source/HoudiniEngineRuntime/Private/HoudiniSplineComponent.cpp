@@ -396,3 +396,15 @@ UHoudiniSplineComponent::GetCurveScales(TArray<FVector>& Scales) const
         Scales[n] = CurvePoints[n].GetScale3D();
     }
 }
+
+bool
+UHoudiniSplineComponent::IsActive() const
+{
+    if ( HoudiniAssetInput )
+    {
+        if ( !HoudiniAssetInput->IsCurveAssetConnected() )
+            return false;
+    }
+
+    return true;
+}
