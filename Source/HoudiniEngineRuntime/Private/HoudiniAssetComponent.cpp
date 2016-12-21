@@ -3187,6 +3187,8 @@ UHoudiniAssetComponent::IsPIEActive() const
 void
 UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & FoundCurves )
 {
+    bool bCurveCreated = false;
+
     TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * > NewSplineComponents;
     for ( TArray< FHoudiniGeoPartObject >::TConstIterator Iter( FoundCurves ); Iter; ++Iter )
     {
@@ -3258,6 +3260,8 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
             HoudiniSplineComponent = NewObject< UHoudiniSplineComponent >(
                 this, UHoudiniSplineComponent::StaticClass(),
                 NAME_None, RF_Public | RF_Transactional );
+
+            bCurveCreated = true;
         }
 
         // If we have no parent, we need to re-attach.
@@ -3292,6 +3296,13 @@ UHoudiniAssetComponent::CreateCurves( const TArray< FHoudiniGeoPartObject > & Fo
             HoudiniGeoPartObject, CurvePoints, CurveDisplayPoints, CurveTypeValue,
             CurveMethodValue, ( CurveClosed == 1 ) );
     }
+
+#if WITH_EDITOR
+    // The editor caches the current selection visualizer, so we need to trick
+    // and pretend the selection has changed so that the HSplineVisualizer can be drawn immediately
+    if ( bCurveCreated && GUnrealEd )
+        GUnrealEd->NoteSelectionChange();
+#endif
 
     ClearCurves();
     SplineComponents = NewSplineComponents;
