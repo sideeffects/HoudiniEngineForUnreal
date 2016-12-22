@@ -5447,15 +5447,26 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             }
                             else
                             {
-                                // Attempt to load this material.
                                 UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >(
                                     StaticLoadObject(
                                         UMaterialInterface::StaticClass(),
                                         nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
 
+                                if ( MaterialInterface )
+                                {
+                                    // Make sure this material is in the assignemets before replacing it.
+                                    if ( !HoudiniAssetComponent->GetAssignmentMaterial(  MaterialInterface->GetName() ) )
+                                        HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments.Add( MaterialInterface->GetName(), MaterialInterface );
+
+                                    // See if we have a replacement material for this.
+                                    UMaterialInterface * ReplacementMaterialInterface = HoudiniAssetComponent->GetReplacementMaterial( HoudiniGeoPartObject, MaterialInterface->GetName() );
+                                    if ( ReplacementMaterialInterface )
+                                        MaterialInterface = ReplacementMaterialInterface;
+                                }
+
                                 if ( !MaterialInterface )
                                 {
-                                    // Material does not exist, use default material.
+                                    // Material/Replacement does not exist, use default material.
                                     MaterialInterface = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
                                     bMissingReplacement = true;
                                 }
