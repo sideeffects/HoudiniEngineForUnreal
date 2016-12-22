@@ -1245,55 +1245,59 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
         UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
 
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
-        if ( HoudiniAssetComponent )
+        if ( !HoudiniAssetComponent )
+            continue;
+
+        bool bMaterialRestored = false;
+        FString MaterialShopName;
+        if ( !HoudiniAssetComponent->GetReplacementMaterialShopName( *HoudiniGeoPartObject, MaterialInterface, MaterialShopName ) )
         {
-            bool bMaterialRestored = false;
+            // This material was not replaced so there's no need to reset it
+            continue;
+        }
 
-            FString MaterialShopName;
-            if ( HoudiniAssetComponent->GetReplacementMaterialShopName(*HoudiniGeoPartObject, MaterialInterface, MaterialShopName ) )
+        // Remove the replacement
+        HoudiniAssetComponent->RemoveReplacementMaterial( *HoudiniGeoPartObject, MaterialShopName );
+
+        // Try to find the original assignment, if not, we'll use the default material
+        UMaterialInterface * AssignedMaterial = HoudiniAssetComponent->GetAssignmentMaterial(MaterialShopName);
+        if ( AssignedMaterial )
+            MaterialInterfaceReplacement = AssignedMaterial;
+
+        // Replace material on static mesh.
+        StaticMesh->Modify();
+        StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = MaterialInterfaceReplacement;
+
+        UStaticMeshComponent * StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh );
+        if ( StaticMeshComponent )
+        {
+            StaticMeshComponent->Modify();
+            StaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterfaceReplacement );
+
+            bMaterialRestored = true;
+        }
+
+        TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+        if ( HoudiniAssetComponent->LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+        {
+            for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
             {
-                HoudiniAssetComponent->RemoveReplacementMaterial( *HoudiniGeoPartObject, MaterialShopName );
-
-                UMaterialInterface * AssignedMaterial = HoudiniAssetComponent->GetAssignmentMaterial( MaterialShopName );
-                if ( AssignedMaterial )
-                    MaterialInterfaceReplacement = AssignedMaterial;
-            }
-
-            // Replace material on static mesh.
-            StaticMesh->Modify();
-            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = MaterialInterfaceReplacement;
-
-            UStaticMeshComponent * StaticMeshComponent = HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh );
-            if ( StaticMeshComponent )
-            {
-                StaticMeshComponent->Modify();
-                StaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterfaceReplacement );
-
-                bMaterialRestored = true;
-            }
-
-            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
-            if ( HoudiniAssetComponent->LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
-            {
-                for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
+                UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
+                if ( InstancedStaticMeshComponent )
                 {
-                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
-                    if ( InstancedStaticMeshComponent )
-                    {
-                        InstancedStaticMeshComponent->Modify();
-                        InstancedStaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterfaceReplacement );
+                    InstancedStaticMeshComponent->Modify();
+                    InstancedStaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterfaceReplacement );
 
-                        bMaterialRestored = true;
-                    }
+                    bMaterialRestored = true;
                 }
             }
-
-            if ( bMaterialRestored )
-            {
-                HoudiniAssetComponent->UpdateEditorProperties( false );
-                bViewportNeedsUpdate = true;
-            }
         }
+
+        if ( bMaterialRestored )
+        {
+            HoudiniAssetComponent->UpdateEditorProperties( false );
+            bViewportNeedsUpdate = true;
+        }        
     }
 
     if ( GEditor && bViewportNeedsUpdate )
