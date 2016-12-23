@@ -5323,7 +5323,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 // Check if we need to patch UVs.
                                 for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
                                 {
-                                    if ( RawMesh.WedgeTexCoords[ TexCoordIdx ].Num() > 0 )
+                                    if ( RawMesh.WedgeTexCoords[ TexCoordIdx ].Num() > 0
+                                        && ( (ValidVertexId + 2) < RawMesh.WedgeTexCoords[TexCoordIdx].Num() ) )
                                     {
                                         Swap( RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 1 ],
                                             RawMesh.WedgeTexCoords[ TexCoordIdx ][ ValidVertexId + 2 ] );
