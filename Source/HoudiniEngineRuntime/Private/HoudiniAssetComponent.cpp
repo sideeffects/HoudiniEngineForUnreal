@@ -328,6 +328,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
 
     // Create unique component GUID.
     ComponentGUID = FGuid::NewGuid();
+
+    bEditorPropertiesNeedFullUpdate = true;
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -1204,10 +1206,6 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
 
     if ( bManualRecook )
         bManualRecook = false;
-
-#if WITH_EDITOR
-    UpdateEditorProperties(true);
-#endif
 }
 
 void
@@ -1328,12 +1326,14 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                         // Need to update rendering information.
                         UpdateRenderingInformation();
 
+#if WITH_EDITOR
                         // Force editor to redraw viewports.
                         if ( GEditor )
                             GEditor->RedrawAllViewports();
 
                         // Update properties panel after instantiation.
                         UpdateEditorProperties( true );
+#endif
                     }
                     else
                     {
@@ -1372,10 +1372,10 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
                         // Create default preset buffer.
                         CreateDefaultPreset();
-
+#if WITH_EDITOR
                         // Update properties panel.
                         UpdateEditorProperties( true );
-
+#endif
                         // If necessary, set asset transform.
                         if ( bUploadTransformsToHoudiniEngine )
                         {
@@ -1678,9 +1678,15 @@ UHoudiniAssetComponent::UpdateEditorProperties( bool bConditionalUpdate )
 
         TArray< UObject * > SelectedActors;
         SelectedActors.Add( HoudiniAssetActor );
+        
+        // bEditorPropertiesNeedFullUpdate is false only when small changes (parameters value) have been made
+        // We do not reselect the actor to avoid loosing the current selected parameter
 
         // Reset selected actor to itself, force refresh and override the lock.
-        DetailsView->SetObjects( SelectedActors, true, true );
+        DetailsView->SetObjects( SelectedActors, bEditorPropertiesNeedFullUpdate, true );
+
+        if ( !bEditorPropertiesNeedFullUpdate )
+            bEditorPropertiesNeedFullUpdate = true;
 
         if ( GUnrealEd )
         {
@@ -3336,6 +3342,7 @@ UHoudiniAssetComponent::CreateParameters()
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
         FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &NodeInfo ), false );
 
+
     if ( NodeInfo.parmCount > 0 )
     {
         // Retrieve parameters.
@@ -3354,6 +3361,20 @@ UHoudiniAssetComponent::CreateParameters()
 
             // If parameter is invisible, skip it.
             if ( ParmInfo.invisible )
+                continue;
+
+            // Check if any parent of this parameter is invisible
+            bool ParentInvisible = false;
+            HAPI_ParmId ParentIdx = ParmInfo.parentId;
+            while (ParentIdx > 0 && !ParentInvisible)
+            {
+                if (ParmInfos[ParentIdx].invisible)
+                    ParentInvisible = true;
+                else
+                    ParentIdx = ParmInfos[ParentIdx].parentId;
+            }
+
+            if ( ParentInvisible )
                 continue;
 
             UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
@@ -3376,7 +3397,10 @@ UHoudiniAssetComponent::CreateParameters()
                         switch( ParmInfo.type )
                         {
                             case HAPI_PARMTYPE_STRING:
-                                FailedTypeCheck &= !FoundClass->IsChildOf<UHoudiniAssetParameterString>();
+                                if ( !ParmInfo.choiceCount )
+                                    FailedTypeCheck &= !FoundClass->IsChildOf< UHoudiniAssetParameterString >();
+                                else
+                                    FailedTypeCheck &= !FoundClass->IsChildOf< UHoudiniAssetParameterChoice >();
                                 break;
                             case HAPI_PARMTYPE_INT:
                                 if( !ParmInfo.choiceCount )
@@ -3442,6 +3466,9 @@ UHoudiniAssetComponent::CreateParameters()
                     }
                 }
             }
+
+            // If we ever get here, it means we are creating new parameters so we'll need a full UI update
+            bEditorPropertiesNeedFullUpdate = true;
 
             switch ( ParmInfo.type )
             {
@@ -3658,6 +3685,17 @@ UHoudiniAssetComponent::NotifyParameterChanged( UHoudiniAssetParameter * Houdini
 {
     if ( bLoadedComponent && !FHoudiniEngineUtils::IsValidAssetId( AssetId ) && !bAssetIsBeingInstantiated )
         bLoadedComponentRequiresInstantiation = true;
+
+    if ( HoudiniAssetParameter )
+    {
+        // Some parameter types won't require a full update of the editor panel
+        // This will avoid breaking the current selection
+        UClass* FoundClass = HoudiniAssetParameter->GetClass();
+        if ( FoundClass->IsChildOf< UHoudiniAssetParameterFloat >()
+            || FoundClass->IsChildOf< UHoudiniAssetParameterInt >()
+            || FoundClass->IsChildOf< UHoudiniAssetParameterString >() )
+            bEditorPropertiesNeedFullUpdate = false;
+    }
 
     bParametersChanged = true;
     StartHoudiniTicking();

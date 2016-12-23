@@ -1707,6 +1707,10 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
     // Disconnect currently connected asset.
     DisconnectAndDestroyInputAsset();
 
+    // Make sure we'll fully update the editor properties
+    if ( ChoiceIndex != newType && InputAssetComponent )
+        InputAssetComponent->bEditorPropertiesNeedFullUpdate = true;
+
     // Switch mode.
     ChoiceIndex = newType;
 
