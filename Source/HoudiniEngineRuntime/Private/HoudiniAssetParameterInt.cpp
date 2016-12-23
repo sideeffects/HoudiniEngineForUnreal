@@ -180,10 +180,14 @@ UHoudiniAssetParameterInt::CreateWidget( IDetailCategoryBuilder & LocalDetailCat
             .Value( TAttribute< TOptional< int32 > >::Create(
                 TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
                     this, &UHoudiniAssetParameterInt::GetValue, Idx ) ) )
+            .OnValueChanged(SNumericEntryBox< int32 >::FOnValueChanged::CreateLambda(
+                [=]( int32 Val ) {
+                SetValue( Val, Idx, false, false );
+                } ) )
             .OnValueCommitted( SNumericEntryBox< int32 >::FOnValueCommitted::CreateLambda(
                 [=]( float Val, ETextCommit::Type TextCommitType ) {
-                    SetValue( Val, 0, true, true );
-                }))
+                    SetValue( Val, Idx, true, true );
+                } ) )
             .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
                 this, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx ) )
             .OnEndSliderMovement( SNumericEntryBox< int32 >::FOnValueChanged::CreateUObject(
@@ -316,12 +320,23 @@ void
 UHoudiniAssetParameterInt::OnSliderMovingBegin( int32 Idx )
 {
     bSliderDragged = true;
+
+    // We want to record undo increments only when user lets go of the slider.
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniAssetParameterIntChange", "Houdini Parameter Float: Changing a value" ),
+        HoudiniAssetComponent );
+
+    Modify();
 }
 
 void
 UHoudiniAssetParameterInt::OnSliderMovingFinish( int32 InValue, int32 Idx )
 {
     bSliderDragged = false;
+
+    // Mark this parameter as changed.
+    MarkChanged(true);
 }
 
 #endif

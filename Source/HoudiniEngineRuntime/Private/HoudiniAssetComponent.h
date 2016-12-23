@@ -589,6 +589,10 @@ public:
         /** Transient cache of last baked materials and textures */
         TMap<FString, TWeakObjectPtr<class UPackage> > BakedMaterialPackagesForIds;
 
+        /** Indicates that the details panels doesn't need a "full" update to avoid breaking parameter selection    **/
+        /** (default behavior is true)										    **/
+        bool bEditorPropertiesNeedFullUpdate;
+
     protected:
 
         /** Previous asset, if it has been changed through transaction. **/
