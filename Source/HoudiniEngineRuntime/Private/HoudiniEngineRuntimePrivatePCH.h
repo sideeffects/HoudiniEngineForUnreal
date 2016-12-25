@@ -210,7 +210,7 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
         if ( ResultVariable != HAPI_RESULT_SUCCESS ) \
         { \
             HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s" ), *FHoudiniEngineUtils::GetErrorDescription() ); \
-            HAPI_PARAM_EXECUTE_RETURN; \
+            bool sink = HAPI_PARAM_EXECUTE_RETURN; \
             return; \
         } \
     } \
