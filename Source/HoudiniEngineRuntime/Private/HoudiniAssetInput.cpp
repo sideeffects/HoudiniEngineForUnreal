@@ -1203,7 +1203,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 Success = false;
 
             // We need to update the curve.
-            UpdateInputCurve();
+            Success &= UpdateInputCurve();
 
             bSwitchedToCurve = false;
 
@@ -2210,9 +2210,10 @@ UHoudiniAssetInput::NotifyChildParameterChanged( UHoudiniAssetParameter * Houdin
     }
 }
 
-void
+bool
 UHoudiniAssetInput::UpdateInputCurve()
 {
+    bool Success = true;
     FString CurvePointsString;
     EHoudiniSplineComponentType::Enum CurveTypeValue = EHoudiniSplineComponentType::Bezier;
     EHoudiniSplineComponentMethod::Enum CurveMethodValue = EHoudiniSplineComponentMethod::CVs;
@@ -2235,7 +2236,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
     // We need to get the NodeInfo to get the parent id
     HAPI_NodeInfo NodeInfo;
-    HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+    HOUDINI_CHECK_ERROR_RETURN(
         FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &NodeInfo),
         false);
 
@@ -2268,7 +2269,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
     TArray< HAPI_ParmInfo > ParmInfos;
     ParmInfos.SetNumUninitialized( NodeInfo.parmCount );
-    HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+    HOUDINI_CHECK_ERROR_RETURN(
         FHoudiniApi::GetParameters(
             FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &ParmInfos[ 0 ], 0, NodeInfo.parmCount ),
         false);
@@ -2278,7 +2279,7 @@ UHoudiniAssetInput::UpdateInputCurve()
     ParmValueInts.SetNumZeroed( NodeInfo.parmIntValueCount );
     if ( NodeInfo.parmIntValueCount > 0 )
     {
-        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+        HOUDINI_CHECK_ERROR_RETURN(
             FHoudiniApi::GetParmIntValues(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &ParmValueInts[ 0 ], 0, NodeInfo.parmIntValueCount ),
         false );
@@ -2289,7 +2290,7 @@ UHoudiniAssetInput::UpdateInputCurve()
     ParmValueFloats.SetNumZeroed( NodeInfo.parmFloatValueCount );
     if ( NodeInfo.parmFloatValueCount > 0 )
     {
-        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+        HOUDINI_CHECK_ERROR_RETURN(
             FHoudiniApi::GetParmFloatValues(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &ParmValueFloats[ 0 ], 0, NodeInfo.parmFloatValueCount ),
         false );
@@ -2300,7 +2301,7 @@ UHoudiniAssetInput::UpdateInputCurve()
     ParmValueStrings.SetNumZeroed( NodeInfo.parmStringValueCount );
     if ( NodeInfo.parmStringValueCount > 0 )
     {
-        HOUDINI_CHECK_ERROR_EXECUTE_RETURN(
+        HOUDINI_CHECK_ERROR_RETURN(
             FHoudiniApi::GetParmStringValues(
                 FHoudiniEngine::Get().GetSession(), ConnectedAssetId, true, &ParmValueStrings[ 0 ], 0, NodeInfo.parmStringValueCount ),
         false );
@@ -2365,6 +2366,7 @@ UHoudiniAssetInput::UpdateInputCurve()
             }
             else
             {
+                Success = false;
                 check( false );
             }
 
@@ -2390,6 +2392,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
         bSwitchedToCurve = false;
     }
+    return Success;
 }
 
 FText
