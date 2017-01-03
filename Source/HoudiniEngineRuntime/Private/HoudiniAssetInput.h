@@ -265,7 +265,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void DisconnectLandscapeActor();
 
         /** Extract curve parameters and update the attached spline component. **/
-        void UpdateInputCurve();
+        bool UpdateInputCurve();
 
         /** Clear input curve parameters. **/
         void ClearInputCurveParameters();
