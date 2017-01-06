@@ -25,6 +25,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniAssetLogWidget.h"
 #include "HoudiniEngineString.h"
+#include "ContentBrowserModule.h"
 
 uint32
 GetTypeHash( TPair< UStaticMesh *, int32 > Pair )
@@ -642,7 +643,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnResetAsset))
     ];
 
-    IDetailGroup& BakeGroup = DetailCategoryBuilder.AddGroup(TEXT("Baking"), LOCTEXT("BakingActions", "Baking Actions"));
+    IDetailGroup& BakeGroup = DetailCategoryBuilder.AddGroup(TEXT("Baking"), LOCTEXT("Baking", "Baking"));
     TSharedPtr< SButton > BakeToInputButton;
     BakeGroup.AddWidgetRow()
     .WholeRowContent()
@@ -672,6 +673,53 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             .OnClicked(this, &FHoudiniAssetComponentDetails::OnBakeToInput)
             .Text(LOCTEXT("BakeToInput", "Bake to Outliner Input"))
             .ToolTipText(LOCTEXT("BakeToInputTooltip", "Bakes single static mesh and sets it on the first outliner input actor and then disconnects it.\nNote: There must be one static mesh outliner input and one generated mesh."))
+        ]
+    ];
+
+    // Bake folder widget
+    //
+    FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>( "ContentBrowser" );
+    FPathPickerConfig PathPickerConfig;
+    PathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP( this, &FHoudiniAssetComponentDetails::OnBakeFolderSelected );
+    PathPickerConfig.bAllowContextMenu = false;
+    PathPickerConfig.bAllowClassesFolder = true;
+
+    BakeGroup.AddWidgetRow()
+    .NameContent()
+    [
+        SNew( STextBlock )
+        .Text( LOCTEXT( "BakeFolder", "Bake Folder" ) )
+        .Font( NormalFont )
+    ]
+    .ValueContent()
+    [
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot()
+        [
+            SNew(SEditableText)
+            .IsReadOnly(true)
+            .Text( TAttribute<FText>::Create( TAttribute<FText>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::GetBakeFolderText ) ) )
+            .Font( IDetailLayoutBuilder::GetDetailFont() )
+            .ToolTipText( TAttribute<FText>::Create( TAttribute<FText>::FGetter::CreateSP( this, &FHoudiniAssetComponentDetails::GetBakeFolderText ) ) )
+        ]
+        +SHorizontalBox::Slot()
+        .AutoWidth()
+        [
+            SNew(SComboButton)
+            .ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
+            .ToolTipText( LOCTEXT( "ChooseABakeFolder", "Choose a baking output folder") )
+            .ContentPadding( 2.0f )
+            .ForegroundColor( FSlateColor::UseForeground() )
+            .IsFocusable( false )
+            .MenuContent()
+            [
+                SNew(SBox)
+                .WidthOverride(300.0f)
+                .HeightOverride(300.0f)
+                [
+                    ContentBrowserModule.Get().CreatePathPicker(PathPickerConfig)
+                ]
+            ]
         ]
     ];
 
@@ -860,6 +908,26 @@ FHoudiniAssetComponentDetails::OnBakeToInput()
     }
 
     return FReply::Handled();
+}
+
+void 
+FHoudiniAssetComponentDetails::OnBakeFolderSelected( const FString& Folder )
+{
+    if( HoudiniAssetComponents.Num() && HoudiniAssetComponents[ 0 ] )
+    {
+        HoudiniAssetComponents[ 0 ]->SetBakeFolder( Folder );
+    }
+}
+
+FText 
+FHoudiniAssetComponentDetails::GetBakeFolderText() const
+{
+    FText BakeFolderText;
+    if( HoudiniAssetComponents.Num() && HoudiniAssetComponents[ 0 ] )
+    {
+        BakeFolderText = HoudiniAssetComponents[ 0 ]->GetBakeFolder();
+    }
+    return BakeFolderText;
 }
 
 FReply

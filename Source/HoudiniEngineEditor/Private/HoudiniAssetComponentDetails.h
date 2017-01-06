@@ -95,6 +95,12 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Handler for bake to outliner input action **/
         FReply OnBakeToInput();
 
+        /** Handler for change the bake folder button */
+        void OnBakeFolderSelected( const FString& Folder );
+
+        /** Get the text for display of baking folder */
+        FText GetBakeFolderText() const;
+
         /** Handler for fetch asset help action. **/
         FReply OnFetchAssetHelp( UHoudiniAssetComponent * HoudiniAssetComponent );
 
