@@ -2065,11 +2065,8 @@ UHoudiniAssetInput::IsInputAssetConnected() const
 bool
 UHoudiniAssetInput::IsCurveAssetConnected() const
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
-    {
-        if (InputCurve && ( ChoiceIndex == EHoudiniAssetInputType::CurveInput ) )
-            return true;
-    }
+    if (InputCurve && ( ChoiceIndex == EHoudiniAssetInputType::CurveInput ) )
+        return true;
 
     return false;
 }
