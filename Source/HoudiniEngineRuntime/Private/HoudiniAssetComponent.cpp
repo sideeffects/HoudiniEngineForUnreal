@@ -2393,6 +2393,29 @@ UHoudiniAssetComponent::CheckedUploadTransform()
     }
 }
 
+FText 
+UHoudiniAssetComponent::GetBakeFolder() const
+{
+    // Empty indicates default - which is Content root
+    if( BakeFolder.IsEmpty() )
+    {
+        return LOCTEXT( "Game", "/Game" );
+    }
+    return BakeFolder;
+}
+
+void 
+UHoudiniAssetComponent::SetBakeFolder( const FString& Folder )
+{
+    FText NewBakeFolder = FText::FromString( Folder );
+    if( !NewBakeFolder.EqualTo( BakeFolder ) )
+    {
+        BakeFolder = NewBakeFolder;
+        BakedStaticMeshPackagesForParts.Empty();
+        BakedMaterialPackagesForIds.Empty();
+    }
+}
+
 #endif  // WITH_EDITOR
 
 FBoxSphereBounds

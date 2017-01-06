@@ -485,6 +485,12 @@ public:
         /** Helper called when world transform changes */
         void CheckedUploadTransform();
 
+        /** Returns the path to the baking folder */
+        FText GetBakeFolder() const;
+        
+        /** Sets a new bake folder */
+        void SetBakeFolder( const FString& Folder );
+
 #endif
 
         /** Clear all spline related resources. **/
@@ -612,6 +618,10 @@ public:
 
         /** Buffer to hold default preset for reset purposes. **/
         TArray< char > DefaultPresetBuffer;
+
+        /** The output folder for baking actions */
+        UPROPERTY()
+        FText BakeFolder;
 
 #if WITH_EDITOR
 

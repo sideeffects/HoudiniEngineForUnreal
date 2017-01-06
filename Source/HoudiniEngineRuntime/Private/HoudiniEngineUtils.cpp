@@ -3781,9 +3781,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
                 FString::FromInt( HoudiniGeoPartObject.SplitId ) + TEXT( "_" ) +
                 HoudiniGeoPartObject.SplitName;
                 
-            PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOutermost()->GetName() ) +
-                TEXT( "/" ) +
-                MeshName;
+            PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + MeshName;
         }
         else
         {
@@ -3875,9 +3873,7 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(
         BlueprintName = HoudiniAsset->GetName() + TEXT( "_" ) + BakeGUIDString;
 
         // Generate unique package name.=
-        FString PackageName = FPackageName::GetLongPackagePath(HoudiniAsset->GetOutermost()->GetName()) +
-            TEXT( "/" ) +
-            BlueprintName;
+        FString PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + BlueprintName;
 
         PackageName = PackageTools::SanitizePackageName( PackageName );
 
@@ -3977,9 +3973,7 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
         if ( BakeMode != EBakeMode::Intermediate )
         {
             // Generate unique package name.
-            PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOutermost()->GetName() ) +
-                TEXT( "/" ) +
-                MaterialName;
+            PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + MaterialName;
         }
         else
         {
@@ -4113,9 +4107,7 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
         if ( BakeMode != EBakeMode::Intermediate )
         {
             // Generate unique package name.=
-            PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOutermost()->GetName() ) +
-                TEXT( "/" ) +
-                TextureName;
+            PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + TextureName;
         }
         else
         {
