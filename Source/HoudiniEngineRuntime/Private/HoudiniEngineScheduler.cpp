@@ -182,10 +182,14 @@ FHoudiniEngineScheduler::TaskInstantiateAsset( const FHoudiniEngineTask & Task )
             else if ( Status == HAPI_STATE_READY_WITH_FATAL_ERRORS || Status == HAPI_STATE_READY_WITH_COOK_ERRORS )
             {
                 // There was an error while instantiating.
+                FString CookResultString = FHoudiniEngineUtils::GetCookResult();
+                int32 CookResult = static_cast<int32>(HAPI_RESULT_SUCCESS);
+                FHoudiniApi::GetStatus( FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_RESULT, &CookResult );
+
                 AddResponseMessageTaskInfo(
-                    HAPI_RESULT_SUCCESS, EHoudiniEngineTaskType::AssetInstantiation,
+                    static_cast<HAPI_Result>(CookResult), EHoudiniEngineTaskType::AssetInstantiation,
                     EHoudiniEngineTaskState::FinishedInstantiationWithErrors, AssetId, Task,
-                    TEXT( "Finished Instantiation with Errors." ) );
+                    FString::Printf(TEXT( "Finished Instantiation with Errors: %s" ), *CookResultString ));
 
                 break;
             }
