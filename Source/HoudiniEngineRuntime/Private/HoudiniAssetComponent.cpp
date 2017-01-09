@@ -1430,7 +1430,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 case EHoudiniEngineTaskState::Aborted:
                 case EHoudiniEngineTaskState::FinishedInstantiationWithErrors:
                 {
-                    HOUDINI_LOG_MESSAGE( TEXT( "    %s FinishedInstantiationWithErrors." ), *GetOwner()->GetName() );
+                    HOUDINI_LOG_ERROR( TEXT( "    %s FinishedInstantiationWithErrors." ), *GetOwner()->GetName() );
 
                     bool bLicensingIssue = false;
                     switch( TaskInfo.Result )
