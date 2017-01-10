@@ -870,7 +870,7 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
     TArray< UStaticMesh * > StaticMeshesToDelete;
 
     // Collect all the static mesh component for this asset
-    // TMap<const UStaticMeshComponent *, FHoudiniGeoPartObject> AllSMC = CollectAllStaticMeshComponents();
+    TMap<const UStaticMeshComponent *, FHoudiniGeoPartObject> AllSMC = CollectAllStaticMeshComponents();
     
     // We'll check all the children static mesh components for junk
     const auto & LocalAttachChildren = GetAttachChildren();
