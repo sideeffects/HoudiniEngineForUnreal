@@ -1361,7 +1361,7 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
 	    FHoudiniEngine::Get().GetSession(), InputNodeId,
             sXformType.c_str(), 0, nTransformType), false);
     }
-    
+
     return true;
 }
 
@@ -2057,7 +2057,6 @@ UHoudiniAssetInput::ConnectInputAssetActor()
     {
         FHoudiniEngineUtils::HapiConnectAsset(
             InputAssetComponent->GetAssetId(),
-            0, // We just pick the first OBJ since we have no way letting the user pick.
             HoudiniAssetComponent->GetAssetId(),
             InputIndex );
 
