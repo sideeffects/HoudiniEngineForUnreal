@@ -194,6 +194,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         EHoudiniAssetInputType::Enum GetChoiceIndex() const { return ChoiceIndex; }
 
+        FText GetCurrentSelectionText() const;
+
     protected:
 
 #if WITH_EDITOR
@@ -213,20 +215,20 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Helper method used to generate choice entry widget. **/
         TSharedRef< SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
 
+        /** Helper method used to generate the menu builder used for custom actor pickers **/
+        FMenuBuilder CreateCustomActorPickerWidget(const TAttribute<FText>& HeadingText, const bool& bShowCurrentSelectionSection);
+
         /** Called when change of selection is triggered. **/
         void OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType );
 
-        /** Called on input actor selection to filter the actors by type. **/
-        bool OnInputActorFilter( const AActor * const Actor ) const;
+        /** Called on actor picker selection to filter the actors by type. **/
+        bool OnShouldFilterActor( const AActor * const Actor ) const;
+
+        /** Called when actor selection changed. **/
+        void OnActorSelected(AActor * Actor);
 
         /** Called when change of input actor selection. **/
         void OnInputActorSelected( AActor * Actor );
-
-        /** Called when the input actor selection combo is closed. **/
-        void OnInputActorCloseComboButton();
-
-        /** Called when the input actor selection combo is used. **/
-        void OnInputActorUse();
 
         /** Called when change of landscape selection. **/
         void OnLandscapeActorSelected( AActor * Actor );
@@ -237,8 +239,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Check if input Actors have had their Transforms changed. **/
         void TickWorldOutlinerInputs();
 
-	/** Update WorldOutliners Transform after they changed **/
-	void UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
+        /** Update WorldOutliners Transform after they changed **/
+        void UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
 
         /** Called to append a slot to the list of input objects */
         void OnAddToInputObjects();
@@ -347,11 +349,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Return checked state of landscape tile uv checkbox. **/
         ECheckBoxState IsCheckedExportTileUVs() const;
 
-	/** Check if state of the transform type checkbox has changed. **/
-	void CheckStateChangedKeepWorldTransform(ECheckBoxState NewState);
+        /** Check if state of the transform type checkbox has changed. **/
+        void CheckStateChangedKeepWorldTransform(ECheckBoxState NewState);
 
-	/** Return checked state of transform type checkbox. **/
-	ECheckBoxState IsCheckedKeepWorldTransform() const;
+        /** Return checked state of transform type checkbox. **/
+        ECheckBoxState IsCheckedKeepWorldTransform() const;
 
         /** Handler for landscape recommit button. **/
         FReply OnButtonClickRecommit();
@@ -455,8 +457,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
                 /** Is set to true when uvs should be exported for each tile separately. **/
                 uint32 bLandscapeExportTileUVs : 1;
 
-		/** Is set to true when this input's Transform Type is set to NONE, 2 will use the input's default value **/
-		uint32 bKeepWorldTransform : 2;
+                /** Is set to true when this input's Transform Type is set to NONE, 2 will use the input's default value **/
+                uint32 bKeepWorldTransform : 2;
             };
 
             uint32 HoudiniAssetInputFlagsPacked;

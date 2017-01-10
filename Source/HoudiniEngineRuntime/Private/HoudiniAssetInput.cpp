@@ -424,16 +424,12 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
-	// ActorPicker : Houdini Asset
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        // ActorPicker : Houdini Asset
+        FMenuBuilder MenuBuilder = CreateCustomActorPickerWidget( LOCTEXT( "AssetInputSelectableActors", "Houdini Asset Actors" ), true );
+
+        VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
         [
-            PropertyCustomizationHelpers::MakeActorPickerWithMenu(
-                nullptr,
-                true,
-                FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnInputActorFilter ),
-                FOnActorSelected::CreateUObject( this, &UHoudiniAssetInput::OnInputActorSelected ),
-                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorCloseComboButton ),
-                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorUse ) )
+            MenuBuilder.MakeWidget()
         ];
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::CurveInput )
@@ -449,19 +445,14 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
     {
-	// ActorPicker : Landscape
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        // ActorPicker : Landscape
+        FMenuBuilder MenuBuilder = CreateCustomActorPickerWidget( LOCTEXT( "LandscapeInputSelectableActors", "Landscapes" ), true );
+        VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
         [
-            PropertyCustomizationHelpers::MakeActorPickerWithMenu(
-                nullptr,
-                true,
-                FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnInputActorFilter ),
-                FOnActorSelected::CreateUObject( this, &UHoudiniAssetInput::OnLandscapeActorSelected ),
-                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorCloseComboButton ),
-                FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnInputActorUse ) )
+            MenuBuilder.MakeWidget()
         ];
 
-	// CheckBox : Export Selected Only
+        // CheckBox : Export Selected Only
         {
             TSharedPtr< SCheckBox > CheckBoxExportSelected;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -630,81 +621,43 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
-	// Button : Start Selection / Use current selection + refresh
-	{
+        // Button : Start Selection / Use current selection + refresh
+        {
             TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
-	    FPropertyEditorModule & PropertyModule =
-		FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
+            FPropertyEditorModule & PropertyModule =
+                FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
 
-	    // Locate the details panel.
-	    FName DetailsPanelName = "LevelEditorSelectionDetails";
-	    TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView(DetailsPanelName);
+            // Locate the details panel.
+            FName DetailsPanelName = "LevelEditorSelectionDetails";
+            TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView(DetailsPanelName);
 
-	    auto ButtonLabel = LOCTEXT("WorldInputStartSelection", "Start Selection (Lock Details Panel)");
-	    if (DetailsView->IsLocked())
-		ButtonLabel = LOCTEXT("WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)");
+            auto ButtonLabel = LOCTEXT("WorldInputStartSelection", "Start Selection (Lock Details Panel)");
+            if (DetailsView->IsLocked())
+                ButtonLabel = LOCTEXT("WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)");
 
-	    VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-	    [
-		SAssignNew(HorizontalBox, SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		[
-		    SNew(SButton)
-		    .VAlign(VAlign_Center)
-		    .HAlign(HAlign_Center)
-		    .Text(ButtonLabel)
-		    .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickSelectActors))		    
-		]
-	    ];
-	}
+            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            [
+                SAssignNew(HorizontalBox, SHorizontalBox)
+                + SHorizontalBox::Slot()
+                [
+                    SNew(SButton)
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Text(ButtonLabel)
+                    .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickSelectActors))		    
+                ]
+            ];
+        }
 
-	// ActorPicker : World Outliner
-	{
-	    // Actor Picker just showing all Actors currently selected as World inputs.
-	    // Note: Code stolen from SPropertyMenuActorPicker.cpp
-	    FOnShouldFilterActor ActorFilter = FOnShouldFilterActor::CreateUObject(this, &UHoudiniAssetInput::OnInputActorFilter);
-	    FOnActorSelected OnSet = FOnActorSelected::CreateUObject(this, &UHoudiniAssetInput::OnWorldOutlinerActorSelected);
-	    FSimpleDelegate OnClose = FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorCloseComboButton);
-	    FSimpleDelegate OnUseSelected = FSimpleDelegate::CreateUObject(this, &UHoudiniAssetInput::OnInputActorUse);
-
-	    FMenuBuilder MenuBuilder(true, NULL);
-
-	    MenuBuilder.BeginSection(NAME_None, LOCTEXT("WorldInputSelectedActors", "Currently Selected Actors"));
-	    {
-		TSharedPtr< SWidget > MenuContent;
-
-		FSceneOutlinerModule & SceneOutlinerModule =
-		    FModuleManager::Get().LoadModuleChecked< FSceneOutlinerModule >(TEXT("SceneOutliner"));
-
-		SceneOutliner::FInitializationOptions InitOptions;
-		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-		InitOptions.Filters->AddFilterPredicate(ActorFilter);
-		InitOptions.bFocusSearchBoxWhenOpened = true;
-
-		static const FVector2D SceneOutlinerWindowSize(350.0f, 200.0f);
-		MenuContent =
-		    SNew(SBox)
-		    .WidthOverride(SceneOutlinerWindowSize.X)
-		    .HeightOverride(SceneOutlinerWindowSize.Y)
-		    [
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-			[
-			    SceneOutlinerModule.CreateSceneOutliner(
-				InitOptions, FOnActorPicked::CreateUObject(
-				this, &UHoudiniAssetInput::OnWorldOutlinerActorSelected))
-			]
-		    ];
-
-		MenuBuilder.AddWidget(MenuContent.ToSharedRef(), FText::GetEmpty(), true);
-	    }
-	    MenuBuilder.EndSection();
-
-	    VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-	    [
-		MenuBuilder.MakeWidget()
-	    ];
-	}
+        // ActorPicker : World Outliner
+        {
+            FMenuBuilder MenuBuilder = CreateCustomActorPickerWidget( LOCTEXT( "WorldInputSelectedActors", "Currently Selected Actors"), false );
+            
+            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            [
+                MenuBuilder.MakeWidget()
+            ];
+        }
 
         {
             // Spline Resolution
@@ -1788,15 +1741,27 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 }
 
 bool
-UHoudiniAssetInput::OnInputActorFilter( const AActor * const Actor ) const
+UHoudiniAssetInput::OnShouldFilterActor( const AActor * const Actor ) const
 {
     if ( !Actor )
         return false;
 
     if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
-        return Actor->IsA( AHoudiniAssetActor::StaticClass() );
+    {
+        // Only return HoudiniAssetActors
+        if ( Actor->IsA(AHoudiniAssetActor::StaticClass() ) )
+        {
+            // But not our own Asset Actor
+            if ( HoudiniAssetComponent && ( HoudiniAssetComponent->GetHoudiniAssetActorOwner() != Actor ) )
+                return true;
+            else
+                return false;
+        }
+    }
     else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
+    {
         return Actor->IsA( ALandscapeProxy::StaticClass() );
+    }        
     else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
         for ( auto & OutlinerMesh : InputOutlinerMeshArray )
@@ -1805,6 +1770,17 @@ UHoudiniAssetInput::OnInputActorFilter( const AActor * const Actor ) const
     }
 
     return false;
+}
+
+void
+UHoudiniAssetInput::OnActorSelected( AActor * Actor )
+{
+    if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
+        return OnInputActorSelected( Actor );
+    else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+        return OnWorldOutlinerActorSelected( Actor );
+    else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
+        return OnLandscapeActorSelected( Actor );
 }
 
 void
@@ -1861,14 +1837,6 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
     MarkPreChanged();
     MarkChanged();
 }
-
-void
-UHoudiniAssetInput::OnInputActorCloseComboButton()
-{}
-
-void
-UHoudiniAssetInput::OnInputActorUse()
-{}
 
 void
 UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
@@ -2961,6 +2929,90 @@ UHoudiniAssetInput::OnResetSplineResolutionClicked()
 
     return FReply::Handled();
 }
+FMenuBuilder
+UHoudiniAssetInput::CreateCustomActorPickerWidget( const TAttribute<FText>& HeadingText, const bool& bShowCurrentSelectionSection )
+{
+    // Custom Actor Picker showing only the desired Actor types.
+    // Note: Code stolen from SPropertyMenuActorPicker.cpp
+    FOnShouldFilterActor ActorFilter = FOnShouldFilterActor::CreateUObject( this, &UHoudiniAssetInput::OnShouldFilterActor );
+        
+    //FHoudiniEngineEditor & HoudiniEngineEditor = FHoudiniEngineEditor::Get();
+    //TSharedPtr< ISlateStyle > StyleSet = GEditor->GetSlateStyle();
+        
+    FMenuBuilder MenuBuilder( true, NULL );
+
+    if ( bShowCurrentSelectionSection )
+    {
+        MenuBuilder.BeginSection( NAME_None, LOCTEXT( "CurrentActorOperationsHeader", "Current Selection" ) );
+        {
+            MenuBuilder.AddMenuEntry(
+                TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetCurrentSelectionText)),
+                TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateUObject(this, &UHoudiniAssetInput::GetCurrentSelectionText)),
+                FSlateIcon(),//StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo")),
+                FUIAction(),
+                NAME_None,
+                EUserInterfaceActionType::Button,
+                NAME_None);
+        }
+        MenuBuilder.EndSection();
+    }
+
+    MenuBuilder.BeginSection(NAME_None, HeadingText );
+    {
+        TSharedPtr< SWidget > MenuContent;
+
+        FSceneOutlinerModule & SceneOutlinerModule =
+            FModuleManager::Get().LoadModuleChecked< FSceneOutlinerModule >( TEXT( "SceneOutliner" ) );
+
+        SceneOutliner::FInitializationOptions InitOptions;
+        InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
+        InitOptions.Filters->AddFilterPredicate( ActorFilter );
+        InitOptions.bFocusSearchBoxWhenOpened = true;
+        
+        static const FVector2D SceneOutlinerWindowSize( 350.0f, 200.0f );
+        MenuContent =
+            SNew( SBox )
+            .WidthOverride( SceneOutlinerWindowSize.X )
+            .HeightOverride( SceneOutlinerWindowSize.Y )
+            [
+                SNew( SBorder )
+                .BorderImage( FEditorStyle::GetBrush( "Menu.Background" ) )
+                [
+                    SceneOutlinerModule.CreateSceneOutliner(
+                        InitOptions, FOnActorPicked::CreateUObject(
+                            this, &UHoudiniAssetInput::OnActorSelected ) )
+                ]
+            ];
+
+        MenuBuilder.AddWidget( MenuContent.ToSharedRef(), FText::GetEmpty(), true );
+    }
+    MenuBuilder.EndSection();
+
+    return MenuBuilder;
+}
+
+FText
+UHoudiniAssetInput::GetCurrentSelectionText() const
+{
+    FText CurrentSelectionText;
+    if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
+    {
+        if ( InputAssetComponent && InputAssetComponent->GetHoudiniAssetActorOwner() )
+        {
+            CurrentSelectionText = FText::FromString( InputAssetComponent->GetHoudiniAssetActorOwner()->GetName() );
+        }
+    }
+    else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
+    {
+        if ( InputLandscapeProxy )
+        {
+            CurrentSelectionText = FText::FromString( InputLandscapeProxy->GetName() );
+        }
+    }
+
+    return CurrentSelectionText;
+}
+
 #endif
 
 FArchive &
