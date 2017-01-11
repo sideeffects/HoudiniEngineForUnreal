@@ -63,6 +63,7 @@ FHoudiniSplineComponentVisualizer::FHoudiniSplineComponentVisualizer()
     , CachedRotation( FQuat::Identity )
     , bComponentNeedUpdate( false )
     , bCookOnlyOnMouseRelease( false )
+    , bRecordTransactionOnMove( true )
 {
     FHoudiniSplineComponentVisualizerCommands::Register();
     VisualizerActions = MakeShareable( new FUICommandList );
@@ -261,6 +262,9 @@ FHoudiniSplineComponentVisualizer::HandleInputKey(
 
         // Reset duplication flag on LMB release.
         bAllowDuplication = true;
+
+        // Reset the transaction flag
+        bRecordTransactionOnMove = true;
 
         // Re-cache the rotation
         CacheRotation();
@@ -466,10 +470,16 @@ FHoudiniSplineComponentVisualizer::NotifyComponentModified( int32 PointIndex, co
     UHoudiniAssetComponent * HoudiniAssetComponent =
         Cast< UHoudiniAssetComponent >( EditedHoudiniSplineComponent->GetAttachParent() );
 
-    FScopedTransaction Transaction( TEXT( HOUDINI_MODULE_EDITOR ),
-        LOCTEXT( "HoudiniSplineComponentChange", "Houdini Spline Component: Moving a point" ),
-        HoudiniAssetComponent );
-    EditedHoudiniSplineComponent->Modify();
+    if ( bRecordTransactionOnMove )
+    {
+        FScopedTransaction Transaction( TEXT(HOUDINI_MODULE_EDITOR),
+            LOCTEXT("HoudiniSplineComponentChange", "Houdini Spline Component: Moving a point"),
+            HoudiniAssetComponent );
+        EditedHoudiniSplineComponent->Modify();
+
+        // Do not record further transaction until the flag is reset
+        bRecordTransactionOnMove = false;
+    }
 
     // Update given control point.
     EditedHoudiniSplineComponent->UpdatePoint( PointIndex, Point );
@@ -493,7 +503,7 @@ FHoudiniSplineComponentVisualizer::OnAddControlPoint()
     FScopedTransaction Transaction(
         TEXT(HOUDINI_MODULE_EDITOR),
         LOCTEXT("HoudiniSplineComponentChange", "Houdini Spline Component: Adding a control point"),
-        HoudiniAssetComponent);
+	HoudiniAssetComponent);
 
     EditedHoudiniSplineComponent->Modify();
 
@@ -575,7 +585,7 @@ FHoudiniSplineComponentVisualizer::OnDeleteControlPoint()
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_EDITOR ),
         LOCTEXT( "HoudiniSplineComponentChange", "Houdini Spline Component: Removing a control point" ),
-        HoudiniAssetComponent );
+	HoudiniAssetComponent);
     EditedHoudiniSplineComponent->Modify();
 
     // We need to sort the selection to delete the nodes properly
