@@ -153,4 +153,7 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 
         /** Indicates if the curves should only cook on mouse release **/
         bool bCookOnlyOnMouseRelease;
+
+        /** Indicates wether or not a transaction should be recorded when moving a point **/
+        bool bRecordTransactionOnMove;
 };

@@ -768,6 +768,8 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
         CreateCurves( FoundCurves );
     }
 #endif
+
+    CleanUpAttachedStaticMeshComponents();
 }
 
 void
@@ -817,9 +819,8 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
         }
     }
     
-    // Cleans all the attached static meshes components
-    CleanUpAttachedStaticMeshComponents();
-    
+    // CleanUpAttachedStaticMeshComponents();
+
     // Remove unused meshes.
     StaticMeshMap.Empty();
 
@@ -848,26 +849,23 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
     // Record generated static meshes which we need to delete.
     TArray< UStaticMesh * > StaticMeshesToDelete;
 
+    // Collect all the static mesh component for this asset
+    TMap<const UStaticMeshComponent *, FHoudiniGeoPartObject> AllSMC = CollectAllStaticMeshComponents();
+
     // We'll check all the children static mesh components for junk
     const auto & LocalAttachChildren = GetAttachChildren();
-    for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
+    for (TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter)
     {
         UStaticMeshComponent * StaticMeshComponent = Cast< UStaticMeshComponent >( *Iter );
         if ( !StaticMeshComponent )
             continue;
 
-        // Try to find the corresponding static mesh in the map
-        UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
-        UStaticMeshComponent * FoundStaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
-
         bool bNeedToCleanMeshComponent = false;
-        if ( !FoundStaticMeshComponent )
-        {
-            UInstancedStaticMeshComponent * InstancedStaticMeshComponent = Cast< UInstancedStaticMeshComponent >( *Iter );
-            if ( !InstancedStaticMeshComponent )
-                bNeedToCleanMeshComponent = true;
-        }
+        UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
 
+        if (AllSMC.Find(StaticMeshComponent) == nullptr)
+            bNeedToCleanMeshComponent = true;
+        
         // Do not clean up component attached to a socket
         if ( StaticMeshComponent->GetAttachSocketName() != NAME_None )
             bNeedToCleanMeshComponent = false;
@@ -881,6 +879,8 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
             StaticMeshComponent->DestroyComponent();
 
             StaticMeshesToDelete.Add( StaticMesh );
+
+            //HOUDINI_LOG_WARNING( TEXT("CLEANUP: Deleted extra Static Mesh Component for %s"), *(StaticMesh->GetName()) );
         }
     }
 #if WITH_EDITOR
@@ -3041,7 +3041,7 @@ void
 UHoudiniAssetComponent::PostEditUndo()
 {
     // We need to make sure that all mesh components in the maps are valid ones
-    CleanUpAttachedStaticMeshComponents();
+    // CleanUpAttachedStaticMeshComponents();
 
     Super::PostEditUndo();
 }
