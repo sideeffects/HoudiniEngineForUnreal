@@ -390,30 +390,42 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, i
 
     // Check if the replacing object and the current object are different types (StaticMesh vs. Non)
     // if so we need to swap out the component 
-    //
     bool bInIsStaticMesh = InObject->IsA<UStaticMesh>();
     bool bCurrentIsStaticMesh = InstancedObjects[ Index ]->IsA<UStaticMesh>();
     InstancedObjects[ Index ] = InObject;
 
-    if ( bInIsStaticMesh != bCurrentIsStaticMesh )
+    bool bComponentNeedToBeCreated = true;
+    if (bInIsStaticMesh == bCurrentIsStaticMesh)
     {
+        // We'll try to reuse the InstanceComponent
+        if ( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Index ] ) )
+        {
+            if ( !ISMC->IsPendingKill() )
+            {
+                ISMC->SetStaticMesh( Cast<UStaticMesh>( InObject ) ); 
+                bComponentNeedToBeCreated = false;
+            }
+        }
+        else if ( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Index ] ) )
+        {
+            if ( !IAC->IsPendingKill() )
+            {
+                IAC->InstancedAsset = InObject;
+                bComponentNeedToBeCreated = false;
+            }
+        }
+    }
+
+    if ( bComponentNeedToBeCreated )
+    {
+        // We'll create a new InstanceComponent
         FTransform SavedXform = InstancerComponents[ Index ]->GetRelativeTransform();
         InstancerComponents[ Index ]->DestroyComponent();
         InstancerComponents.RemoveAt( Index );
         AddInstanceComponent( Index );
         InstancerComponents[ Index ]->SetRelativeTransform( SavedXform );
     }
-    else
-    {
-        if ( UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( InstancerComponents[ Index ] ) )
-        {
-            ISMC->SetStaticMesh( Cast<UStaticMesh>( InObject ) );
-        }
-        else if ( UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( InstancerComponents[ Index ] ) )
-        {
-            IAC->InstancedAsset = InObject;
-        }
-    }
+
     UpdateInstanceTransforms( false );
 }
 
