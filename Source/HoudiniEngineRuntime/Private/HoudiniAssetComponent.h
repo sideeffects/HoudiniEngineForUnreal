@@ -588,7 +588,7 @@ public:
         UHoudiniAsset * HoudiniAsset;
 
         /** Indicates a manual recook has been asked by the user **/
-        bool bManualRecook;
+        bool bManualRecookRequested;
 
         /** Transient cache of last baked parts */
         TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> > BakedStaticMeshPackagesForParts;
