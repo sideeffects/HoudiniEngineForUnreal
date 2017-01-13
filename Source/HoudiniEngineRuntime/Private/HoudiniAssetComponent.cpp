@@ -259,7 +259,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     : Super( ObjectInitializer )
 {
     HoudiniAsset = nullptr;
-    bManualRecook = false;
+    bManualRecookRequested = false;
     PreviousTransactionHoudiniAsset = nullptr;
     HoudiniAssetComponentMaterials = nullptr;
 #if WITH_EDITOR
@@ -1154,8 +1154,12 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
     CreateInputs();
     CreateHandles();
 
-    if ( bCookError )
+    if (bCookError)
+    {
+        // We need to reset the manual recook flag here to avoid endless cooking
+        bManualRecookRequested = false;
         return;
+    }
 
     FTransform ComponentTransform;
     TMap< FHoudiniGeoPartObject, UStaticMesh * > NewStaticMeshes;
@@ -1192,6 +1196,9 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             CreateStaticMeshHoudiniLogoResource( NewStaticMeshes );
     }
 
+    // We can reset the manual recook flag now that the static meshes have been created
+    bManualRecookRequested = false;
+
     // Invoke cooks of downstream assets.
     if ( bCookingTriggersDownstreamCooks )
     {
@@ -1200,12 +1207,10 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             ++IterAssets )
         {
             UHoudiniAssetComponent * DownstreamAsset = IterAssets.Key();
+            DownstreamAsset->bManualRecookRequested = true;
             DownstreamAsset->NotifyParameterChanged( nullptr );
         }
     }
-
-    if ( bManualRecook )
-        bManualRecook = false;
 }
 
 void
@@ -1506,7 +1511,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
     if ( !IsInstantiatingOrCooking() )
     {
-        if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged )
+        if ( HasBeenInstantiatedButNotCooked() || bParametersChanged || bComponentTransformHasChanged || bManualRecookRequested )
         {
             // Grab current time for delayed notification.
             HapiNotificationStarted = FPlatformTime::Seconds();
@@ -1561,7 +1566,7 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                 // Create asset cooking task object and submit it for processing.
                 StartTaskAssetCooking();
             }
-            else if ( bEnableCooking || bComponentTransformHasChanged)
+            else if ( bEnableCooking || bComponentTransformHasChanged || bManualRecookRequested )
             {
                 // Uploads parameters and cooks the asset if cook on parameter
                 // changed or cook on transform changed is enabled
@@ -1797,7 +1802,7 @@ UHoudiniAssetComponent::StartTaskAssetCookingManual()
 {
     if ( !IsInstantiatingOrCooking() )
     {
-        bManualRecook = true;
+        bManualRecookRequested = true;
         if ( FHoudiniEngineUtils::IsValidAssetId( GetAssetId() ) )
         {
             StartTaskAssetCooking( true );

@@ -4933,7 +4933,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         bRebuildStaticMesh = true;
 
                     // If the user asked for a cook manually, we will need to rebuild the static mesh
-                    if ( HoudiniAssetComponent->bManualRecook )
+                    if ( HoudiniAssetComponent->bManualRecookRequested )
                         bRebuildStaticMesh = true;
 
                     if ( !bRebuildStaticMesh )
