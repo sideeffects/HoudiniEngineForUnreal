@@ -9274,7 +9274,7 @@ FHoudiniEngineUtils::GetAssetNames(
 
     if ( FHoudiniEngineUtils::IsInitialized() && HoudiniAsset )
     {
-        const FString & AssetFileName = HoudiniAsset->GetAssetFileName();
+        FString AssetFileName = HoudiniAsset->GetAssetFileName();
         HAPI_Result Result = HAPI_RESULT_SUCCESS;
         HAPI_AssetLibraryId AssetLibraryId = -1;
         int32 AssetCount = 0;
@@ -9282,6 +9282,14 @@ FHoudiniEngineUtils::GetAssetNames(
 
         if ( !AssetFileName.IsEmpty() && FPaths::FileExists( AssetFileName ) )
         {
+            // We'll need to modify the file name for expanded .hda
+            FString FileExtension = FPaths::GetExtension(AssetFileName);
+            if (FileExtension.Compare(TEXT("list"), ESearchCase::IgnoreCase) == 0)
+            {
+                // the .hda directory is what we're interested in loading
+                AssetFileName = FPaths::GetPath(AssetFileName);
+            }
+
             // File does exist, we can load asset from file.
             std::string AssetFileNamePlain;
             FHoudiniEngineUtils::ConvertUnrealString( AssetFileName, AssetFileNamePlain );

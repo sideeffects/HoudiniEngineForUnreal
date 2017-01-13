@@ -182,12 +182,20 @@ FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudini
     if ( !HoudiniAsset || !( HoudiniAsset->AssetImportData ) )
         return;
 
-    const FString SourceFilePath = HoudiniAsset->AssetImportData->GetFirstFilename();
+    FString SourceFilePath = HoudiniAsset->AssetImportData->GetFirstFilename();
     if ( !SourceFilePath.Len() || IFileManager::Get().FileSize(*SourceFilePath) == INDEX_NONE )
         return;
     
     if ( !FPaths::FileExists( SourceFilePath ) )
         return;
+
+    // We'll need to modify the file name for expanded .hda
+    FString FileExtension = FPaths::GetExtension(SourceFilePath);
+    if (FileExtension.Compare(TEXT("list"), ESearchCase::IgnoreCase) == 0)
+    {
+        // the .hda directory is what we're actually interested in loading
+        SourceFilePath = FPaths::GetPath(SourceFilePath);
+    }
 
     // Then open the HDA file in Houdini
     FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
