@@ -3063,7 +3063,7 @@ void
 UHoudiniAssetComponent::PostEditUndo()
 {
     // We need to make sure that all mesh components in the maps are valid ones
-    // CleanUpAttachedStaticMeshComponents();
+    CleanUpAttachedStaticMeshComponents();
 
     Super::PostEditUndo();
 }
