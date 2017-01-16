@@ -9299,11 +9299,11 @@ FHoudiniEngineUtils::GetAssetNames(
         if ( !AssetFileName.IsEmpty() && FPaths::FileExists( AssetFileName ) )
         {
             // We'll need to modify the file name for expanded .hda
-            FString FileExtension = FPaths::GetExtension(AssetFileName);
-            if (FileExtension.Compare(TEXT("list"), ESearchCase::IgnoreCase) == 0)
+            FString FileExtension = FPaths::GetExtension( AssetFileName );
+            if ( FileExtension.Compare( TEXT( "list" ), ESearchCase::IgnoreCase ) == 0 )
             {
                 // the .hda directory is what we're interested in loading
-                AssetFileName = FPaths::GetPath(AssetFileName);
+                AssetFileName = FPaths::GetPath( AssetFileName );
             }
 
             // File does exist, we can load asset from file.
@@ -9315,11 +9315,21 @@ FHoudiniEngineUtils::GetAssetNames(
         }
         else
         {
-            // Otherwise we will try to load from buffer we've cached.
-            Result = FHoudiniApi::LoadAssetLibraryFromMemory(
-                FHoudiniEngine::Get().GetSession(),
-                reinterpret_cast< const char * >( HoudiniAsset->GetAssetBytes() ),
-                HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId );
+            // Expanded hdas cannot be loaded from  Memory
+            FString FileExtension = FPaths::GetExtension( AssetFileName );
+            if ( FileExtension.Compare( TEXT( "list" ), ESearchCase::IgnoreCase ) == 0 )
+            {
+                HOUDINI_LOG_ERROR( TEXT( "Error loading expanded Asset %s: source asset file not found." ), *AssetFileName );
+                return false;
+            }
+            else
+            {
+                // Otherwise we will try to load from buffer we've cached.
+                Result = FHoudiniApi::LoadAssetLibraryFromMemory(
+                    FHoudiniEngine::Get().GetSession(),
+                    reinterpret_cast<const char *>( HoudiniAsset->GetAssetBytes() ),
+                    HoudiniAsset->GetAssetBytesCount(), true, &AssetLibraryId );
+            }
         }
 
         if ( Result != HAPI_RESULT_SUCCESS )
