@@ -256,7 +256,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Return true if given index must scale linearly. **/
         ECheckBoxState IsChecked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
-
+        const FSlateBrush* GetPreserveScaleRatioImage( UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx ) const;
         /** Set option for whether scale should be linear. **/
         void CheckStateChanged(
             ECheckBoxState NewState, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
