@@ -4427,18 +4427,97 @@ UHoudiniAssetComponent::CreateAllLandscapes(const TArray< FHoudiniGeoPartObject 
             FoundLayers.Add( &HoudiniGeoPartObject );
         }
 
-        // Try to see if we can find a materials used by a previous landscape for this Heightfield
+        // We need to see if the current heightfield as an unreal_material or unreal_hole_material assigned to it
         UMaterialInterface* LandscapeMaterial = nullptr;
+        UMaterialInterface* LandscapeHoleMaterial = nullptr;
+        {
+            std::string MarshallingAttributeNameMaterial = HAPI_UNREAL_ATTRIB_MATERIAL;
+            std::string MarshallingAttributeNameMaterialHole = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
+
+            // Get runtime settings.
+            const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+            if ( HoudiniRuntimeSettings )
+            {
+                if ( !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty() )
+                    FHoudiniEngineUtils::ConvertUnrealString(
+                        HoudiniRuntimeSettings->MarshallingAttributeMaterial,
+                        MarshallingAttributeNameMaterial );
+
+                if ( !HoudiniRuntimeSettings->MarshallingAttributeMaterialHole.IsEmpty() )
+                    FHoudiniEngineUtils::ConvertUnrealString(
+                        HoudiniRuntimeSettings->MarshallingAttributeMaterialHole,
+                        MarshallingAttributeNameMaterialHole );
+            }
+
+            TArray< FString > Materials;
+            HAPI_AttributeInfo AttribMaterials;
+            FMemory::Memset< HAPI_AttributeInfo >( AttribMaterials, 0 );
+
+            // First, look for landscape material
+            {
+                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                    *CurrentHeightfield, MarshallingAttributeNameMaterial.c_str(),
+                    AttribMaterials, Materials );
+
+                if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+                {
+                    HOUDINI_LOG_WARNING( TEXT( "Landscape:  unreal_material must be a primitive or detail attribute, ignoring attribute." ) );
+                    AttribMaterials.exists = false;
+                    Materials.Empty();
+                }
+
+                if ( AttribMaterials.exists && Materials.Num() > 0 )
+                {
+                    // Load the material
+                    LandscapeMaterial = Cast< UMaterialInterface >( StaticLoadObject(
+                            UMaterialInterface::StaticClass(),
+                            nullptr, *( Materials[ 0 ] ), nullptr, LOAD_NoWarn, nullptr ) );
+                }
+            }
+
+            Materials.Empty();
+            FMemory::Memset< HAPI_AttributeInfo >(AttribMaterials, 0);
+
+            // Then, for the hole_material
+            {
+                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                    *CurrentHeightfield, MarshallingAttributeNameMaterialHole.c_str(),
+                    AttribMaterials, Materials );
+
+                if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
+                {
+                    HOUDINI_LOG_WARNING(TEXT( "Landscape:  unreal_material must be a primitive or detail attribute, ignoring attribute." ) );
+                    AttribMaterials.exists = false;
+                    Materials.Empty();
+                }
+
+                if ( AttribMaterials.exists && Materials.Num() > 0 )
+                {
+                    // Load the material
+                    LandscapeHoleMaterial = Cast< UMaterialInterface >( StaticLoadObject(
+                        UMaterialInterface::StaticClass(),
+                        nullptr, *(Materials[0]), nullptr, LOAD_NoWarn, nullptr ) );
+                }
+            }
+        }
+
+        // Try to see if we can find materials used by the previous landscape for this Heightfield
         if ( LandscapeComponents.Contains( *CurrentHeightfield ) )
         {
-            ALandscape* OldLandscape = LandscapeComponents[*CurrentHeightfield];
+            ALandscape* OldLandscape = LandscapeComponents[ *CurrentHeightfield ];
             if ( OldLandscape )
-                LandscapeMaterial = OldLandscape->GetLandscapeMaterial();
+            {
+                if ( OldLandscape->GetLandscapeMaterial() )
+                    LandscapeMaterial = OldLandscape->GetLandscapeMaterial();
+
+                if ( OldLandscape->GetLandscapeHoleMaterial() )
+                    LandscapeHoleMaterial = OldLandscape->GetLandscapeHoleMaterial();
+            }
         }
 
         // We can now create a Landscape for the heighfield
         // All found masks will be added as layers
-        CreateLandscape( CurrentHeightfield, FoundLayers, NewLandscapes, LandscapeMaterial );
+        CreateLandscape( CurrentHeightfield, FoundLayers, NewLandscapes, LandscapeMaterial, LandscapeHoleMaterial );
     }
 
     // Replace the old landscapes with the new ones
@@ -4454,7 +4533,8 @@ UHoudiniAssetComponent::CreateLandscape(
     const FHoudiniGeoPartObject* HeightField,
     const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
     TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
-    UMaterialInterface* LandscapeMaterial )
+    UMaterialInterface* LandscapeMaterial,
+    UMaterialInterface* LandscapeHoleMaterial )
 {
     if ( !HeightField )
         return false;
@@ -4805,6 +4885,9 @@ UHoudiniAssetComponent::CreateLandscape(
 
     if( LandscapeMaterial )
         Landscape->LandscapeMaterial = LandscapeMaterial;
+
+    if ( LandscapeHoleMaterial )
+        Landscape->LandscapeHoleMaterial = LandscapeHoleMaterial;
 
     // Import the data
     Landscape->Import(

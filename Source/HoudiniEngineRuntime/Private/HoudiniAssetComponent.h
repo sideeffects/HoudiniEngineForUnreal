@@ -467,7 +467,8 @@ public:
             const FHoudiniGeoPartObject* HeightField,
             const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
             TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
-            UMaterialInterface* LandscapeMaterial );
+            UMaterialInterface* LandscapeMaterial,
+            UMaterialInterface* LandscapeHoleMaterial );
 
         /** Resizes the HeightData so that it matches Unreal's requirement for Landscape import **/
         void ResizeHeightDataForLandscape(
