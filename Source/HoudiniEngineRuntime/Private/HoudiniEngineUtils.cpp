@@ -747,6 +747,21 @@ FHoudiniEngineUtils::HapiRetrieveParameterNames( const TArray< HAPI_ParmInfo > &
 bool
 FHoudiniEngineUtils::HapiCheckAttributeExists(
     HAPI_AssetId AssetId, HAPI_ObjectId ObjectId, HAPI_GeoId GeoId,
+    HAPI_PartId PartId, const char * Name)
+{
+    for (int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+    {
+        if (HapiCheckAttributeExists(AssetId, ObjectId, GeoId,
+            PartId, Name, (HAPI_AttributeOwner)AttrIdx))
+            return true;
+    }
+
+    return false;
+}
+
+bool
+FHoudiniEngineUtils::HapiCheckAttributeExists(
+    HAPI_NodeId AssetId, HAPI_NodeId ObjectId, HAPI_NodeId GeoId,
     HAPI_PartId PartId, const char * Name, HAPI_AttributeOwner Owner )
 {
     HAPI_AttributeInfo AttribInfo;
@@ -5127,13 +5142,17 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
                             SplitGroupVertexList, AttribInfoNormals, Normals );
 
+                        // The second UV set should be called uv2, but we will still check if need to look for a uv1 set.
+                        // If uv1 exists, we'll look for uv, uv1, uv2 etc.. if not we'll look for uv, uv2, uv3 etc..
+                        bool bUV1Exists = FHoudiniEngineUtils::HapiCheckAttributeExists( AssetId, ObjectInfo.id, GeoInfo.id, PartInfo.id, "uv1" );
+
                         // Retrieve UVs.
                         for ( int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx )
                         {
                             std::string UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
 
                             if ( TexCoordIdx > 0 )
-                                UVAttributeName += std::to_string( TexCoordIdx + 1 );
+                                UVAttributeName += std::to_string( bUV1Exists ? TexCoordIdx : TexCoordIdx + 1 );
 
                             const char * UVAttributeNameString = UVAttributeName.c_str();
                             FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
