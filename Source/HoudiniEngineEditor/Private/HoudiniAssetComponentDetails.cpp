@@ -42,6 +42,12 @@ GetTypeHash( TPair< UStaticMesh *, int32 > Pair )
     return PointerHash( Pair.Key, Pair.Value );
 }
 
+uint32
+GetTypeHash( TPair< ALandscape *, int32 > Pair )
+{
+    return PointerHash(Pair.Key, Pair.Value);
+}
+
 TSharedRef< IDetailCustomization >
 FHoudiniAssetComponentDetails::MakeInstance()
 {
@@ -517,6 +523,144 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             // Store thumbnail for this landscape.
             LandscapeThumbnailBorders.Add(Landscape, LandscapeThumbnailBorder);
 
+            // We need to add material box for each the landscape and landscape hole materials
+            for (int32 MaterialIdx = 0; MaterialIdx < 2; ++MaterialIdx)
+            {
+                UMaterialInterface * MaterialInterface = MaterialIdx == 0 ? Landscape->GetLandscapeMaterial() : Landscape->GetLandscapeHoleMaterial();
+                TSharedPtr< SBorder > MaterialThumbnailBorder;
+                TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
+
+                FString MaterialName, MaterialPathName;
+                if (MaterialInterface)
+                {
+                    MaterialName = MaterialInterface->GetName();
+                    MaterialPathName = MaterialInterface->GetPathName();
+                }
+
+                // Create thumbnail for this material.
+                TSharedPtr< FAssetThumbnail > MaterialInterfaceThumbnail =
+                    MakeShareable(new FAssetThumbnail(MaterialInterface, 64, 64, AssetThumbnailPool));
+
+                VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+                [
+                    SNew(STextBlock)
+                    .Text(MaterialIdx == 0 ? LOCTEXT("LandscapeMaterial", "Landscape Material") : LOCTEXT("LandscapeHoleMaterial", "Landscape Hole Material"))
+                    .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+                ];
+
+                VerticalBox->AddSlot().Padding(0, 2)
+                [
+                    SNew(SAssetDropTarget)
+                    .OnIsAssetAcceptableForDrop( this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDraggedOver )
+                    .OnAssetDropped(
+                        this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped,
+                        Landscape, &HoudiniGeoPartObject, MaterialIdx)
+                    [
+                        SAssignNew(HorizontalBox, SHorizontalBox)
+                    ]
+                ];
+
+                HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
+                [
+                    SAssignNew(MaterialThumbnailBorder, SBorder)
+                    .Padding(5.0f)
+                    .BorderImage(
+                        this, &FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder, Landscape, MaterialIdx)
+                    .OnMouseDoubleClick(
+                        this, &FHoudiniAssetComponentDetails::OnThumbnailDoubleClick, (UObject *)MaterialInterface)
+                    [
+                        SNew(SBox)
+                        .WidthOverride(64)
+                        .HeightOverride(64)
+                        .ToolTipText(FText::FromString(MaterialPathName))
+                        [
+                            MaterialInterfaceThumbnail->MakeThumbnailWidget()
+                        ]
+                    ]
+                ];
+
+                // Store thumbnail for this mesh and material index.
+                {
+                    TPairInitializer< ALandscape *, int32 > Pair(Landscape, MaterialIdx);
+                    LandscapeMaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
+                }
+
+                TSharedPtr< SComboButton > AssetComboButton;
+                TSharedPtr< SHorizontalBox > ButtonBox;
+
+                HorizontalBox->AddSlot()
+                    .FillWidth(1.0f)
+                    .Padding(0.0f, 4.0f, 4.0f, 4.0f)
+                    .VAlign(VAlign_Center)
+                    [
+                        SNew(SVerticalBox)
+                        + SVerticalBox::Slot()
+                        .HAlign(HAlign_Fill)
+                        [
+                            SAssignNew(ButtonBox, SHorizontalBox)
+                            + SHorizontalBox::Slot()
+                            [
+                                SAssignNew(AssetComboButton, SComboButton)
+                                //.ToolTipText( this, &FHoudiniAssetComponentDetails::OnGetToolTip )
+                                .ButtonStyle(FEditorStyle::Get(), "PropertyEditor.AssetComboStyle")
+                                .ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+                                .OnGetMenuContent(this, &FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent,
+                                    MaterialInterface, Landscape, &HoudiniGeoPartObject, MaterialIdx)
+                                .ContentPadding(2.0f)
+                                .ButtonContent()
+                                [
+                                    SNew(STextBlock)
+                                    .TextStyle(FEditorStyle::Get(), "PropertyEditor.AssetClass")
+                                    .Font(FEditorStyle::GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+                                    .Text(FText::FromString(MaterialName))
+                                ]
+                            ]
+                        ]
+                    ];
+
+                // Create tooltip.
+                FFormatNamedArguments Args;
+                Args.Add(TEXT("Asset"), FText::FromString(MaterialName));
+                FText MaterialTooltip = FText::Format(
+                    LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+
+                ButtonBox->AddSlot()
+                    .AutoWidth()
+                    .Padding(2.0f, 0.0f)
+                    .VAlign(VAlign_Center)
+                    [
+                        PropertyCustomizationHelpers::MakeBrowseButton(
+                            FSimpleDelegate::CreateSP(
+                                this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceBrowse, MaterialInterface ),
+                            TAttribute< FText >( MaterialTooltip ) )
+                    ];
+
+                ButtonBox->AddSlot()
+                    .AutoWidth()
+                    .Padding(2.0f, 0.0f)
+                    .VAlign(VAlign_Center)
+                    [
+                        SNew(SButton)
+                        .ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
+                        .ButtonStyle(FEditorStyle::Get(), "NoBorder")
+                        .ContentPadding(0)
+                        .Visibility(EVisibility::Visible)
+                        .OnClicked(
+                            this, &FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked,
+                            Landscape, &HoudiniGeoPartObject, MaterialIdx )
+                        [
+                            SNew(SImage)
+                            .Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+                        ]
+                    ];
+
+                // Store combo button for this mesh and index.
+                {
+                    TPairInitializer< ALandscape *, int32 > Pair(Landscape, MaterialIdx);
+                    LandscapeMaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
+                }
+            }
+
             MeshIdx++;
         }
     }
@@ -871,11 +1015,29 @@ FHoudiniAssetComponentDetails::GetLandscapeThumbnailBorder( ALandscape * Landsca
 const FSlateBrush *
 FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder( UStaticMesh * StaticMesh, int32 MaterialIdx ) const
 {
-    TPairInitializer< UStaticMesh *, int32 > Pair( StaticMesh, MaterialIdx );
+    if ( !StaticMesh )
+        return nullptr;
+
+    TPairInitializer< UStaticMesh *, int32 > Pair( StaticMesh, MaterialIdx ); 
     TSharedPtr< SBorder > ThumbnailBorder = MaterialInterfaceThumbnailBorders[ Pair ];
 
     if ( ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered() )
         return FEditorStyle::GetBrush("PropertyEditor.AssetThumbnailLight");
+    else
+        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
+}
+
+const FSlateBrush *
+FHoudiniAssetComponentDetails::GetMaterialInterfaceThumbnailBorder( ALandscape * Landscape, int32 MaterialIdx ) const
+{
+    if ( !Landscape )
+        return nullptr;
+
+    TPairInitializer< ALandscape *, int32 > Pair( Landscape, MaterialIdx );
+    TSharedPtr< SBorder > ThumbnailBorder = LandscapeMaterialInterfaceThumbnailBorders[ Pair ];
+    
+    if (ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered())
+        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailLight" );
     else
         return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
 }
@@ -1181,76 +1343,147 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
     FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx )
 {
     UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >( InObject );
-    if ( MaterialInterface )
+    if ( !MaterialInterface )
+        return;
+
+    bool bViewportNeedsUpdate = false;
+
+    // Replace material on component using this static mesh.
+    for ( TArray< UHoudiniAssetComponent * >::TIterator
+        IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
     {
-        bool bViewportNeedsUpdate = false;
+        UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
+        if ( !HoudiniAssetComponent )
+            continue;
 
-        // Replace material on component using this static mesh.
-        for ( TArray< UHoudiniAssetComponent * >::TIterator
-            IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
+        // Retrieve material interface which is being replaced.
+        UMaterialInterface * OldMaterialInterface = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
+        if ( OldMaterialInterface == MaterialInterface )
+            continue;
+
+        // Record replaced material.
+        const bool bReplaceSuccessful = HoudiniAssetComponent->ReplaceMaterial(
+            *HoudiniGeoPartObject, MaterialInterface, OldMaterialInterface, MaterialIdx );
+
+        bool bMaterialReplaced = false;
+        if ( bReplaceSuccessful )
         {
-            UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
-            if ( HoudiniAssetComponent )
+            FScopedTransaction Transaction(
+                TEXT( HOUDINI_MODULE_EDITOR ),
+                LOCTEXT( "HoudiniMaterialReplacement", "Houdini Material Replacement" ), HoudiniAssetComponent );
+
+            // Replace material on static mesh.
+            StaticMesh->Modify();
+            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = MaterialInterface;
+
+            UStaticMeshComponent * StaticMeshComponent =
+                HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh );
+            if ( StaticMeshComponent )
             {
-                bool bMaterialReplaced = false;
+                StaticMeshComponent->Modify();
+                StaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterface );
 
-                // Retrieve material interface which is being replaced.
-                UMaterialInterface * OldMaterialInterface = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
-
-                if ( OldMaterialInterface != MaterialInterface )
-                {
-                    // Record replaced material.
-                    const bool bReplaceSuccessful = HoudiniAssetComponent->ReplaceMaterial(
-                        *HoudiniGeoPartObject, MaterialInterface, OldMaterialInterface, MaterialIdx );
-                    if ( bReplaceSuccessful )
-                    {
-                        FScopedTransaction Transaction(
-                            TEXT( HOUDINI_MODULE_EDITOR ),
-                            LOCTEXT( "HoudiniMaterialReplacement", "Houdini Material Replacement" ), HoudiniAssetComponent );
-
-                        // Replace material on static mesh.
-                        StaticMesh->Modify();
-                        StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = MaterialInterface;
-
-                        UStaticMeshComponent * StaticMeshComponent =
-                            HoudiniAssetComponent->LocateStaticMeshComponent( StaticMesh );
-                        if ( StaticMeshComponent )
-                        {
-                            StaticMeshComponent->Modify();
-                            StaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterface );
-
-                            bMaterialReplaced = true;
-                        }
+                bMaterialReplaced = true;
+            }
                         
-                        TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
-                        if ( HoudiniAssetComponent->LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
-                        {
-                            for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
-                            {
-                                UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
-                                if ( InstancedStaticMeshComponent )
-                                {
-                                    InstancedStaticMeshComponent->Modify();
-                                    InstancedStaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterface );
-
-                                    bMaterialReplaced = true;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if ( bMaterialReplaced )
+            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+            if ( HoudiniAssetComponent->LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+            {
+                for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
                 {
-                    HoudiniAssetComponent->UpdateEditorProperties( false );
-                    bViewportNeedsUpdate = true;
+                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
+                    if ( InstancedStaticMeshComponent )
+                    {
+                        InstancedStaticMeshComponent->Modify();
+                        InstancedStaticMeshComponent->SetMaterial( MaterialIdx, MaterialInterface );
+
+                        bMaterialReplaced = true;
+                    }
                 }
             }
         }
 
-        if ( GEditor && bViewportNeedsUpdate )
-            GEditor->RedrawAllViewports();
+        if ( bMaterialReplaced )
+        {
+            HoudiniAssetComponent->UpdateEditorProperties( false );
+            bViewportNeedsUpdate = true;
+        }
     }
+
+    if ( GEditor && bViewportNeedsUpdate )
+        GEditor->RedrawAllViewports();
+}
+
+void
+FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
+    UObject * InObject, ALandscape * Landscape,
+    FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
+{
+    UMaterialInterface * MaterialInterface = Cast< UMaterialInterface >( InObject );
+    if (!MaterialInterface)
+        return;
+
+    bool bViewportNeedsUpdate = false;
+
+    // Replace material on component using this static mesh.
+    for (TArray< UHoudiniAssetComponent * >::TIterator
+        IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
+        if (!HoudiniAssetComponent)
+            continue;
+
+        if ( *( HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject ) ) != Landscape )
+            continue;
+
+        // Retrieve the material interface which is being replaced.
+        UMaterialInterface * OldMaterialInterface = MaterialIdx == 0 ? Landscape->GetLandscapeMaterial() : Landscape->GetLandscapeHoleMaterial();
+        if ( OldMaterialInterface == MaterialInterface )
+            continue;
+
+        // Record replaced material.
+        const bool bReplaceSuccessful = HoudiniAssetComponent->ReplaceMaterial(
+            *HoudiniGeoPartObject, MaterialInterface, OldMaterialInterface, MaterialIdx );
+
+        if ( !bReplaceSuccessful )
+            continue;
+        
+        {
+            FScopedTransaction Transaction(
+                TEXT( HOUDINI_MODULE_EDITOR ),
+                LOCTEXT( "HoudiniMaterialReplacement", "Houdini Material Replacement" ), HoudiniAssetComponent );
+
+            // Replace material on static mesh.
+            Landscape->Modify();
+
+            if ( MaterialIdx == 0 )
+                Landscape->LandscapeMaterial = MaterialInterface;
+            else
+                Landscape->LandscapeHoleMaterial = MaterialInterface;
+
+            //Landscape->UpdateAllComponentMaterialInstances();
+
+            // As UpdateAllComponentMaterialInstances() is not accessible to us, we'll try to access the Material's UProperty 
+            // to trigger a fake Property change event that will call the Update function...
+            UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), ( MaterialIdx == 0 ) ? TEXT( "LandscapeMaterial" ) : TEXT( "LandscapeHoleMaterial" ) );
+            if ( FoundProperty )
+            {
+                FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );
+                Landscape->PostEditChangeProperty( PropChanged );
+            }
+            else
+            {
+                // The only way to update the material for now is to recook/recreate the landscape...
+                HoudiniAssetComponent->StartTaskAssetCookingManual();
+            }
+        }
+
+        HoudiniAssetComponent->UpdateEditorProperties( false );
+        bViewportNeedsUpdate = true;
+    }
+
+    if ( GEditor && bViewportNeedsUpdate )
+        GEditor->RedrawAllViewports();
 }
 
 TSharedRef< SWidget >
@@ -1272,6 +1505,25 @@ FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent(
         FSimpleDelegate::CreateSP( this, &FHoudiniAssetComponentDetails::CloseMaterialInterfaceComboButton ) );
 }
 
+TSharedRef< SWidget >
+FHoudiniAssetComponentDetails::OnGetMaterialInterfaceMenuContent(
+    UMaterialInterface * MaterialInterface,
+    ALandscape * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
+{
+    TArray< const UClass * > AllowedClasses;
+    AllowedClasses.Add( UMaterialInterface::StaticClass() );
+
+    TArray< UFactory * > NewAssetFactories;
+
+    return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+        FAssetData(MaterialInterface), true, AllowedClasses,
+        NewAssetFactories, OnShouldFilterMaterialInterface,
+        FOnAssetSelected::CreateSP(
+            this, &FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected,
+            Landscape, HoudiniGeoPartObject, MaterialIdx ),
+        FSimpleDelegate::CreateSP( this, &FHoudiniAssetComponentDetails::CloseMaterialInterfaceComboButton ) );
+}
+
 void
 FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(
     const FAssetData & AssetData, UStaticMesh * StaticMesh,
@@ -1285,6 +1537,22 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(
 
         UObject * Object = AssetData.GetAsset();
         OnMaterialInterfaceDropped( Object, StaticMesh, HoudiniGeoPartObject, MaterialIdx );
+    }
+}
+
+void
+FHoudiniAssetComponentDetails::OnMaterialInterfaceSelected(
+    const FAssetData & AssetData, ALandscape* Landscape,
+    FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx )
+{
+    TPairInitializer< ALandscape *, int32 > Pair( Landscape, MaterialIdx );
+    TSharedPtr< SComboButton > AssetComboButton = LandscapeMaterialInterfaceComboButtons[ Pair ];
+    if ( AssetComboButton.IsValid() )
+    {
+        AssetComboButton->SetIsOpen( false );
+
+        UObject * Object = AssetData.GetAsset();
+        OnMaterialInterfaceDropped( Object, Landscape, HoudiniGeoPartObject, MaterialIdx );
     }
 }
 
@@ -1374,6 +1642,78 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
             HoudiniAssetComponent->UpdateEditorProperties( false );
             bViewportNeedsUpdate = true;
         }        
+    }
+
+    if ( GEditor && bViewportNeedsUpdate )
+    {
+        GEditor->RedrawAllViewports();
+    }
+
+    return FReply::Handled();
+}
+
+FReply
+FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
+    ALandscape * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx)
+{
+    bool bViewportNeedsUpdate = false;
+
+    for ( TArray< UHoudiniAssetComponent * >::TIterator
+        IterComponents( HoudiniAssetComponents ); IterComponents; ++IterComponents )
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
+        if ( !HoudiniAssetComponent )
+            continue;
+
+        if ( * ( HoudiniAssetComponent->LandscapeComponents.Find(*HoudiniGeoPartObject) ) != Landscape)
+            continue;
+
+        // Retrieve the material interface which is being replaced.
+        UMaterialInterface * MaterialInterface = MaterialIdx == 0 ? Landscape->GetLandscapeMaterial() : Landscape->GetLandscapeHoleMaterial();
+        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+
+        bool bMaterialRestored = false;
+        FString MaterialShopName;
+        if ( !HoudiniAssetComponent->GetReplacementMaterialShopName( *HoudiniGeoPartObject, MaterialInterface, MaterialShopName ) )
+        {
+            // This material was not replaced so there's no need to reset it
+            continue;
+        }
+
+        // Remove the replacement
+        HoudiniAssetComponent->RemoveReplacementMaterial( *HoudiniGeoPartObject, MaterialShopName );
+
+        // Try to find the original assignment, if not, we'll use the default material
+        UMaterialInterface * AssignedMaterial = HoudiniAssetComponent->GetAssignmentMaterial( MaterialShopName );
+        if ( AssignedMaterial )
+            MaterialInterfaceReplacement = AssignedMaterial;
+
+        // Replace material on the landscape
+        Landscape->Modify();
+
+        if ( MaterialIdx == 0 )
+            Landscape->LandscapeMaterial = MaterialInterfaceReplacement;
+        else
+            Landscape->LandscapeHoleMaterial = MaterialInterfaceReplacement;
+
+        //Landscape->UpdateAllComponentMaterialInstances();
+
+        // As UpdateAllComponentMaterialInstances() is not accessible to us, we'll try to access the Material's UProperty 
+        // to trigger a fake Property change event that will call the Update function...
+        UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), ( MaterialIdx == 0 ) ? TEXT( "LandscapeMaterial" ) : TEXT( "LandscapeHoleMaterial" ) );
+        if ( FoundProperty )
+        {
+            FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );
+            Landscape->PostEditChangeProperty( PropChanged );
+        }
+        else
+        {
+            // The only way to update the material for now is to recook/recreate the landscape...
+            HoudiniAssetComponent->StartTaskAssetCookingManual();
+        }
+
+        HoudiniAssetComponent->UpdateEditorProperties( false );
+        bViewportNeedsUpdate = true;
     }
 
     if ( GEditor && bViewportNeedsUpdate )

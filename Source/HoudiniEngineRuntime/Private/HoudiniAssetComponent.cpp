@@ -4472,6 +4472,18 @@ UHoudiniAssetComponent::CreateAllLandscapes(const TArray< FHoudiniGeoPartObject 
                     LandscapeMaterial = Cast< UMaterialInterface >( StaticLoadObject(
                             UMaterialInterface::StaticClass(),
                             nullptr, *( Materials[ 0 ] ), nullptr, LOAD_NoWarn, nullptr ) );
+
+                    if ( LandscapeMaterial )
+                    {
+                        // Make sure this material is in the assignemets before replacing it.
+                        if ( !GetAssignmentMaterial( LandscapeMaterial->GetName() ) && HoudiniAssetComponentMaterials )
+                            HoudiniAssetComponentMaterials->Assignments.Add( LandscapeMaterial->GetName(), LandscapeMaterial );
+
+                        // See if we have a replacement material for this.
+                        UMaterialInterface * ReplacementMaterialInterface = GetReplacementMaterial( *CurrentHeightfield, LandscapeMaterial->GetName());
+                        if ( ReplacementMaterialInterface )
+                            LandscapeMaterial = ReplacementMaterialInterface;
+                    }
                 }
             }
 
@@ -4497,6 +4509,18 @@ UHoudiniAssetComponent::CreateAllLandscapes(const TArray< FHoudiniGeoPartObject 
                     LandscapeHoleMaterial = Cast< UMaterialInterface >( StaticLoadObject(
                         UMaterialInterface::StaticClass(),
                         nullptr, *(Materials[0]), nullptr, LOAD_NoWarn, nullptr ) );
+
+                    if ( LandscapeHoleMaterial )
+                    {
+                        // Make sure this material is in the assignemets before replacing it.
+                        if ( !GetAssignmentMaterial( LandscapeHoleMaterial->GetName() ) && HoudiniAssetComponentMaterials )
+                            HoudiniAssetComponentMaterials->Assignments.Add( LandscapeHoleMaterial->GetName(), LandscapeHoleMaterial );
+
+                        // See if we have a replacement material for this.
+                        UMaterialInterface * ReplacementMaterialInterface = GetReplacementMaterial( *CurrentHeightfield, LandscapeHoleMaterial->GetName() );
+                        if ( ReplacementMaterialInterface )
+                            LandscapeHoleMaterial = ReplacementMaterialInterface;
+                    }
                 }
             }
         }
@@ -4504,14 +4528,22 @@ UHoudiniAssetComponent::CreateAllLandscapes(const TArray< FHoudiniGeoPartObject 
         // Try to see if we can find materials used by the previous landscape for this Heightfield
         if ( LandscapeComponents.Contains( *CurrentHeightfield ) )
         {
-            ALandscape* OldLandscape = LandscapeComponents[ *CurrentHeightfield ];
-            if ( OldLandscape )
+            ALandscape* PreviousLandscape = LandscapeComponents[ *CurrentHeightfield ];
+            if ( PreviousLandscape )
             {
-                if ( OldLandscape->GetLandscapeMaterial() )
-                    LandscapeMaterial = OldLandscape->GetLandscapeMaterial();
+                UMaterialInterface* PreviousLandscapeMaterial = PreviousLandscape->GetLandscapeMaterial();
+                if ( PreviousLandscapeMaterial && PreviousLandscapeMaterial != LandscapeMaterial )
+                {
+                    ReplaceMaterial( *CurrentHeightfield, PreviousLandscapeMaterial, LandscapeMaterial, 0);
+                    LandscapeMaterial = PreviousLandscapeMaterial;
+                }
 
-                if ( OldLandscape->GetLandscapeHoleMaterial() )
-                    LandscapeHoleMaterial = OldLandscape->GetLandscapeHoleMaterial();
+                UMaterialInterface* PreviousLandscapeHoleMaterial = PreviousLandscape->GetLandscapeHoleMaterial();
+                if (PreviousLandscapeHoleMaterial && PreviousLandscapeHoleMaterial != LandscapeHoleMaterial)
+                {
+                    ReplaceMaterial(*CurrentHeightfield, PreviousLandscapeHoleMaterial, LandscapeHoleMaterial, 0);
+                    LandscapeMaterial = PreviousLandscapeHoleMaterial;
+                }
             }
         }
 
@@ -5294,15 +5326,21 @@ UHoudiniAssetComponent::ReplaceMaterial(
     if ( !HoudiniAssetComponentMaterials )
         return false;
 
+    // Check that we do own this GeoPartObject, either via StaticMeshes or Landscapes
     UStaticMesh * StaticMesh = LocateStaticMesh( HoudiniGeoPartObject );
-    if ( !StaticMesh )
-        return false;
-
-    UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
-    if ( !StaticMeshComponent )
+    if ( StaticMesh )
     {
-        TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
-        if ( !LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+        UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
+        if ( !StaticMeshComponent )
+        {
+            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+            if (!LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+                return false;
+        }
+    }
+    else
+    {
+        if ( !LandscapeComponents.Find( HoudiniGeoPartObject ) )
             return false;
     }
 

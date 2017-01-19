@@ -44,6 +44,7 @@ class UHoudiniAssetComponent;
 
 /** Hashing function for our pair. **/
 uint32 GetTypeHash( TPair< UStaticMesh *, int32 > Pair );
+uint32 GetTypeHash( TPair< ALandscape *, int32 > Pair );
 
 class FHoudiniAssetComponentDetails : public IDetailCustomization
 {
@@ -75,8 +76,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
 
         /** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
         const FSlateBrush * GetStaticMeshThumbnailBorder( UStaticMesh * StaticMesh ) const;
+        const FSlateBrush * GetLandscapeThumbnailBorder( ALandscape * Landscape ) const; 
         const FSlateBrush * GetMaterialInterfaceThumbnailBorder( UStaticMesh * StaticMesh, int32 MaterialIdx ) const;
-        const FSlateBrush * GetLandscapeThumbnailBorder(ALandscape * Landscape) const;
+        const FSlateBrush * GetMaterialInterfaceThumbnailBorder( ALandscape * Landscape, int32 MaterialIdx ) const;
 
         /** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
         FReply OnThumbnailDoubleClick(
@@ -131,17 +133,24 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         void OnMaterialInterfaceDropped(
             UObject * InObject, UStaticMesh * StaticMesh,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
+        void OnMaterialInterfaceDropped(
+            UObject * InObject, ALandscape * Landscape,
+            FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Construct drop down menu content for material. **/
         TSharedRef< SWidget > OnGetMaterialInterfaceMenuContent(
-            UMaterialInterface * MaterialInterface,
-            UStaticMesh* StaticMesh,
-            FHoudiniGeoPartObject * HoudiniGeoPartObject,
-            int32 MaterialIdx );
+            UMaterialInterface * MaterialInterface, UStaticMesh * StaticMesh,
+            FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
+        TSharedRef< SWidget > OnGetMaterialInterfaceMenuContent(
+            UMaterialInterface * MaterialInterface, ALandscape * Landscape,
+            FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Delegate for handling selection in content browser. **/
         void OnMaterialInterfaceSelected(
             const FAssetData & AssetData, UStaticMesh * StaticMesh,
+            FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
+        void OnMaterialInterfaceSelected(
+            const FAssetData & AssetData, ALandscape * Landscape,
             FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Closes the combo button. **/
@@ -152,9 +161,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
 
         /** Handler for reset material interface button. **/
         FReply OnResetMaterialInterfaceClicked(
-            UStaticMesh * StaticMesh,
-            FHoudiniGeoPartObject * HoudiniGeoPartObject,
-            int32 MaterialIdx );
+            UStaticMesh * StaticMesh, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
+        FReply OnResetMaterialInterfaceClicked(
+            ALandscape * Landscape, FHoudiniGeoPartObject * HoudiniGeoPartObject, int32 MaterialIdx );
 
         /** Delegate used when Houdini asset has been drag and dropped. **/
         void OnHoudiniAssetDropped( UObject * InObject );
@@ -224,14 +233,20 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Map of static meshes and corresponding thumbnail borders. **/
         TMap< UStaticMesh *, TSharedPtr< SBorder > > StaticMeshThumbnailBorders;
 
-        /** Map of Lnadscapes and corresponding thumbnail borders. **/
-        TMap< ALandscape *, TSharedPtr< SBorder > > LandscapeThumbnailBorders;
-
         /** Map of static meshes / material indices to combo elements. **/
         TMap< TPair< UStaticMesh *, int32 >, TSharedPtr<SComboButton > > MaterialInterfaceComboButtons;
 
         /** Map of static meshes / material indices to thumbnail borders. **/
         TMap< TPair< UStaticMesh *, int32 >, TSharedPtr< SBorder > > MaterialInterfaceThumbnailBorders;
+
+        /** Map of Landscapes and corresponding thumbnail borders. **/
+        TMap< ALandscape *, TSharedPtr< SBorder > > LandscapeThumbnailBorders;
+
+        /** Map of Landscapes / material indices to combo elements. **/
+        TMap< TPair< ALandscape *, int32 >, TSharedPtr<SComboButton > > LandscapeMaterialInterfaceComboButtons;
+
+        /** Map of Landscapes / material indices to thumbnail borders. **/
+        TMap< TPair< ALandscape *, int32 >, TSharedPtr< SBorder > > LandscapeMaterialInterfaceThumbnailBorders;
 
         /** Delegate for filtering material interfaces. **/
         FOnShouldFilterAsset OnShouldFilterMaterialInterface;
