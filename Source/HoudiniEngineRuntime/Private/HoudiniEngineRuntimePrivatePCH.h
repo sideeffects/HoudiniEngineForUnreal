@@ -237,8 +237,6 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #define HAPI_UNREAL_CLIENT_NAME                         "unreal"
 
 /** Names of attributes used for data exchange between Unreal and Houdini Engine. **/
-#define HAPI_UNREAL_ATTRIB_TANGENT                      "unreal_tangent"
-#define HAPI_UNREAL_ATTRIB_BINORMAL                     "unreal_binormal"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE            "unreal_instance"
 #define HAPI_UNREAL_ATTRIB_MATERIAL                     "unreal_material"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_HOLE                "unreal_material_hole"

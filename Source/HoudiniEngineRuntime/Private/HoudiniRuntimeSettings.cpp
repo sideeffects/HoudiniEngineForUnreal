@@ -66,8 +66,6 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     SimpleRenderedCollisionGroupNamePrefix = TEXT( HAPI_UNREAL_GROUP_GEOMETRY_SIMPLE_RENDERED_COLLISION );
 
     /** Geometry marshalling. **/
-    MarshallingAttributeTangent = TEXT( HAPI_UNREAL_ATTRIB_TANGENT );
-    MarshallingAttributeBinormal = TEXT( HAPI_UNREAL_ATTRIB_BINORMAL );
     MarshallingAttributeMaterial = TEXT( HAPI_UNREAL_ATTRIB_MATERIAL );
     MarshallingAttributeMaterialHole = TEXT( HAPI_UNREAL_ATTRIB_MATERIAL_HOLE );
     MarshallingAttributeInstanceOverride = TEXT( HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE );
