@@ -222,14 +222,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
     /** Geometry marshalling. **/
     public:
 
-        // Name of attribute used for marshalling Unreal tangents.
-        UPROPERTY( GlobalConfig, EditAnywhere, Category = GeometryMarshalling )
-        FString MarshallingAttributeTangent;
-
-        // Name of attribute used for marshalling Unreal binormals.
-        UPROPERTY( GlobalConfig, EditAnywhere, Category = GeometryMarshalling )
-        FString MarshallingAttributeBinormal;
-
         // Name of attribute used for marshalling Unreal materials.
         UPROPERTY( GlobalConfig, EditAnywhere, Category = GeometryMarshalling )
         FString MarshallingAttributeMaterial;
