@@ -143,7 +143,7 @@ UHoudiniRuntimeSettings::PostInitProperties()
 {
     Super::PostInitProperties();
 
-    // Disable Collision generation options for now.
+    // Set Collision generation options as read only
     {
         if ( UProperty* Property = LocateProperty( TEXT( "CollisionGroupNamePrefix" ) ) )
             Property->SetPropertyFlags( CPF_EditConst );
@@ -161,6 +161,30 @@ UHoudiniRuntimeSettings::PostInitProperties()
             Property->SetPropertyFlags(CPF_EditConst);
 
         if ( UProperty* Property = LocateProperty(TEXT("SimpleRenderedCollisionGroupNamePrefix" ) ) )
+            Property->SetPropertyFlags(CPF_EditConst);
+    }
+
+    // Set marshalling attributes options as read only
+    {
+        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeMaterial")))
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeMaterialHole")))
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeInstanceOverride")))
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeFaceSmoothingMask")))
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeLightmapResolution")))
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeGeneratedMeshName")))
+            Property->SetPropertyFlags(CPF_EditConst);
+
+        if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeInputMeshName")))
             Property->SetPropertyFlags(CPF_EditConst);
     }
 
