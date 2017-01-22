@@ -3941,15 +3941,28 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
             {
                 if( (*FoundPackage).IsValid() )
                 {
-                    if( CheckPackageSafeForBake( (*FoundPackage).Get(), MeshName ) )
+                    UPackage* FoundPkg = (*FoundPackage).Get();
+                    if( UPackage::IsEmptyPackage( FoundPkg ) )
                     {
-                        return (*FoundPackage).Get();
+                        // This happens when the prior baked output gets renamed, we can delete this 
+                        // orphaned package so that we can re-use the name
+                        FoundPkg->ClearFlags( RF_Standalone );
+                        FoundPkg->ConditionalBeginDestroy();
+
+                        HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Remove( HoudiniGeoPartObject );
                     }
                     else
                     {
-                        // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
-                        //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
-                        return nullptr;
+                        if( CheckPackageSafeForBake( FoundPkg, MeshName ) && !MeshName.IsEmpty() )
+                        {
+                            return FoundPkg;
+                        }
+                        else
+                        {
+                            // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                            //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+                            return nullptr;
+                        }
                     }
                 }
                 else
@@ -3962,27 +3975,23 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
         if ( !BakeGUID.IsValid() )
             BakeGUID = FGuid::NewGuid();
 
-        // We only want half of generated guid string.
-        FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
-        FString PartName = TEXT( "" );
+        MeshName = HoudiniAssetComponent->GetBakingBaseName( HoudiniGeoPartObject);
 
-        if ( HoudiniGeoPartObject.HasCustomName() )
-            PartName = TEXT( "_" ) + HoudiniGeoPartObject.PartName;
-
-        if ( BakeMode != EBakeMode::Intermediate )
+        if( BakeCount > 0 )
         {
-            MeshName = HoudiniAsset->GetName() + PartName + FString::Printf( TEXT( "_bake%d_" ), BakeCount ) +
-                FString::FromInt( HoudiniGeoPartObject.ObjectId ) + TEXT( "_" ) +
-                FString::FromInt( HoudiniGeoPartObject.GeoId ) + TEXT( "_" ) +
-                FString::FromInt( HoudiniGeoPartObject.PartId ) + TEXT( "_" ) +
-                FString::FromInt( HoudiniGeoPartObject.SplitId ) + TEXT( "_" ) +
-                HoudiniGeoPartObject.SplitName;
-                
+            MeshName += FString::Printf( TEXT( "_%02d" ), BakeCount );
+        }
+
+        if( BakeMode != EBakeMode::Intermediate )
+        {
             PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + MeshName;
         }
         else
         {
-            MeshName = HoudiniAsset->GetName() + PartName + TEXT( "_" ) +
+            // We only want half of generated guid string.
+            FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
+
+            MeshName += TEXT( "_" ) +
                 FString::FromInt( HoudiniGeoPartObject.ObjectId ) + TEXT( "_" ) +
                 FString::FromInt( HoudiniGeoPartObject.GeoId ) + TEXT( "_" ) +
                 FString::FromInt( HoudiniGeoPartObject.PartId ) + TEXT( "_" ) +
@@ -3993,7 +4002,6 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
             PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName()) +
                 TEXT( "/" ) +
                 HoudiniAsset->GetName() +
-                PartName +
                 TEXT( "_" ) +
                 ComponentGUIDString +
                 TEXT( "/" ) +
@@ -4137,15 +4145,28 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
         {
             if( ( *FoundPackage ).IsValid() )
             {
-                if( CheckPackageSafeForBake( ( *FoundPackage ).Get(), MaterialName ) )
+                UPackage* FoundPkg = ( *FoundPackage ).Get();
+                if( UPackage::IsEmptyPackage( FoundPkg ) )
                 {
-                    return ( *FoundPackage ).Get();
+                    // This happens when the prior baked output gets renamed, we can delete this 
+                    // orphaned package so that we can re-use the name
+                    FoundPkg->ClearFlags( RF_Standalone );
+                    FoundPkg->ConditionalBeginDestroy();
+
+                    HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( MaterialInfoDescriptor );
                 }
                 else
                 {
-                    // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
-                    //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
-                    return nullptr;
+                    if( CheckPackageSafeForBake( FoundPkg, MaterialName ) && !MaterialName.IsEmpty() )
+                    {
+                        return FoundPkg;
+                    }
+                    else
+                    {
+                        // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                        //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+                        return nullptr;
+                    }
                 }
             }
             else
@@ -4271,15 +4292,28 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
         {
             if( ( *FoundPackage ).IsValid() )
             {
-                if( CheckPackageSafeForBake( ( *FoundPackage ).Get(), TextureName ) )
+                UPackage* FoundPkg = ( *FoundPackage ).Get();
+                if( UPackage::IsEmptyPackage( FoundPkg ) )
                 {
-                    return ( *FoundPackage ).Get();
+                    // This happens when the prior baked output gets renamed, we can delete this 
+                    // orphaned package so that we can re-use the name
+                    FoundPkg->ClearFlags( RF_Standalone );
+                    FoundPkg->ConditionalBeginDestroy();
+
+                    HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( TextureInfoDescriptor );
                 }
                 else
                 {
-                    // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
-                    //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
-                    return nullptr;
+                    if( CheckPackageSafeForBake( FoundPkg, TextureName ) && !TextureName.IsEmpty() )
+                    {
+                        return FoundPkg;
+                    }
+                    else
+                    {
+                        // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                        //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+                        return nullptr;
+                    }
                 }
             }
             else
@@ -9627,6 +9661,9 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
                 FString TextureName;
                 UPackage * NewTexturePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
                     Component, SubTextureName, TextureType, TextureName, BakeMode );
+
+                if( !NewTexturePackage )
+                    return nullptr;
 
                 // Clone texture.
                 DuplicatedTexture = DuplicateObject< UTexture2D >( Texture, NewTexturePackage, *TextureName );

@@ -87,6 +87,11 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Handler for bake individual static mesh action. **/
         FReply OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoudiniAssetComponent * HoudiniAssetComponent );
 
+        /** Handler for changing the mesh bake name */
+        void OnBakeNameCommited( const FText&, ETextCommit::Type, UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject );
+
+        FReply OnRemoveBakingBaseNameOverride( UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject );
+
         /** Handler for baking an individual Landscape. **/
         FReply OnBakeLandscape( ALandscape * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent );
 

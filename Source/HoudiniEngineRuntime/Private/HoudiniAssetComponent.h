@@ -525,6 +525,11 @@ public:
         /** Sets a new bake folder */
         void SetBakeFolder( const FString& Folder );
 
+        FString GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const;
+
+        void SetBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject, const FString& BaseName );
+        bool RemoveBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject );
+
 #endif
 
         /** Clear all spline related resources. **/
@@ -663,6 +668,9 @@ public:
         UPROPERTY()
         FText BakeFolder;
 
+        /** overrides for baking names per part */
+        TMap< FHoudiniGeoPartObject, FString > BakeNameOverrides;
+
 #if WITH_EDITOR
 
         /** Notification used by this component. **/
@@ -789,7 +797,4 @@ public:
 
             uint32 HoudiniAssetComponentTransientFlagsPacked;
         };
-
-        /** Temporary variable holding component serialization version. **/
-        uint32 HoudiniAssetComponentVersion;
 };

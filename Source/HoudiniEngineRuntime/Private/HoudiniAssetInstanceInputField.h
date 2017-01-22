@@ -37,7 +37,6 @@
 class UStaticMesh;
 class UMaterialInterface;
 class UHoudiniAssetComponent;
-struct FHoudiniGeoPartObject;
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
