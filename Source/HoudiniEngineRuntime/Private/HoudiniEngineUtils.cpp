@@ -5123,20 +5123,26 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             SplitGroupVertexList,
                             AttribInfoColors, Colors );
 
+                        // No need to read the normals if we'll recompute them after
+                        bool bReadNormals = HoudiniRuntimeSettings->RecomputeNormalsFlag != EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;
+
                         // Retrieve normal data.
-                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.id, GeoInfo.id,
-                            PartInfo.id, HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals );
+                        if ( bReadNormals )
+                        {
+                            FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                                AssetId, ObjectInfo.id, GeoInfo.id,
+                                PartInfo.id, HAPI_UNREAL_ATTRIB_NORMAL, AttribInfoNormals, Normals );
+
+                            // See if we need to transfer normal point attributes to vertex attributes.
+                            FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                                SplitGroupVertexList, AttribInfoNormals, Normals );
+                        }
 
                         // Retrieve face smoothing data.
                         FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
                             AssetId, ObjectInfo.id, GeoInfo.id,
                             PartInfo.id, MarshallingAttributeNameFaceSmoothingMask.c_str(),
                             AttribInfoFaceSmoothingMasks, FaceSmoothingMasks );
-
-                        // See if we need to transfer normal point attributes to vertex attributes.
-                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
-                            SplitGroupVertexList, AttribInfoNormals, Normals );
 
                         // The second UV set should be called uv2, but we will still check if need to look for a uv1 set.
                         // If uv1 exists, we'll look for uv, uv1, uv2 etc.. if not we'll look for uv, uv2, uv3 etc..
@@ -5239,8 +5245,13 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             }
                         }
 
-                        // See if we need to generate tangents, we do this only if normals are present.
+                        // See if we need to generate tangents, we do this only if normals are present, and if we do not recompute them after
                         bool bGenerateTangents = ( Normals.Num() > 0 );
+                        if ( bGenerateTangents && ( HoudiniRuntimeSettings->RecomputeTangentsFlag == EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always ) )
+                        {
+                            // No need to generate tangents if we'll recompute them after
+                            bGenerateTangents = false;
+                        }
 
                         // Transfer normals.
                         int32 WedgeNormalCount = Normals.Num() / 3;

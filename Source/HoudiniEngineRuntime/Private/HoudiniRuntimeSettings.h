@@ -379,6 +379,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Recompute Tangents" ) )
         TEnumAsByte< enum EHoudiniRuntimeSettingsRecomputeFlag > RecomputeTangentsFlag;
 
+        // If true, recomputed tangents and normals will be calculated using Mikk T Space
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
+        bool bUseMikkTSpace;
+
     /** Custom Houdini location. **/
     public:
 
