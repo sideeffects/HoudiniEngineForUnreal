@@ -100,6 +100,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     GenerateLightmapUVsFlag = HRSRF_OnlyIfMissing;
     RecomputeNormalsFlag = HRSRF_OnlyIfMissing;
     RecomputeTangentsFlag = HRSRF_OnlyIfMissing;
+    bUseMikkTSpace = true;
 
     /** Custom Houdini location. **/
     bUseCustomHoudiniLocation = false;
@@ -289,6 +290,7 @@ UHoudiniRuntimeSettings::SetMeshBuildSettings( FMeshBuildSettings & MeshBuildSet
 {
     // Removing degenerate triangles.
     MeshBuildSettings.bRemoveDegenerates = bRemoveDegenerates;
+    MeshBuildSettings.bUseMikkTSpace = bUseMikkTSpace;
 
     // Recomputing normals.
     switch ( RecomputeNormalsFlag )
