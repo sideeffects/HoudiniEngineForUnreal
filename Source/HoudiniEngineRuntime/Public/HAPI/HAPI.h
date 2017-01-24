@@ -1186,6 +1186,14 @@ HAPI_DECL HAPI_GetManagerNodeId( const HAPI_Session * session,
 ///         not return this list. After your call to this function, call
 ///         HAPI_GetComposedChildNodeList() to get the list of child node ids.
 ///
+///         Note: When looking for all Display SOP nodes using this function,
+///         and using recursive mode, the recursion will stop as soon as a
+///         display SOP is found within each OBJ geometry network. It is
+///         almost never useful to get a list of ALL display SOP nodes
+///         recursively as they would all containt the same geometry. Even so,
+///         this special case only comes up if the display SOP itself is a
+///         subnet.
+///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
