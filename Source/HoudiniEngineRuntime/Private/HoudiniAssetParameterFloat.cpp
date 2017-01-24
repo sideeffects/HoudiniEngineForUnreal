@@ -66,6 +66,13 @@ UHoudiniAssetParameterFloat::Serialize( FArchive & Ar )
 
     Ar << ValueUIMin;
     Ar << ValueUIMax;
+
+    // (15.5 BACKPORT STUB)
+    if( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_UNIT )
+    {
+        FString ValueUnit;
+        Ar << ValueUnit;
+    }
 }
 
 UHoudiniAssetParameterFloat *

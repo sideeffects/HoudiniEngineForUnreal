@@ -30,13 +30,13 @@
 */
 
 #pragma once
+#include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetInstanceInput.generated.h"
 
 class AActor;
 class UStaticMesh;
 class UMaterialInterface;
-struct FHoudiniGeoPartObject;
 class UInstancedStaticMeshComponent;
 class UHoudiniAssetInstanceInputField;
 

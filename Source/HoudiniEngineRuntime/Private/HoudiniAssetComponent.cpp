@@ -290,7 +290,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     HapiNotificationStarted = 0.0;
     AssetCookCount = 0;
     HoudiniAssetComponentTransientFlagsPacked = 0u;
-    HoudiniAssetComponentVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE;
 
     /** Component flags. **/
     HoudiniAssetComponentFlagsPacked = 0u;
@@ -2437,6 +2436,46 @@ UHoudiniAssetComponent::SetBakeFolder( const FString& Folder )
     }
 }
 
+FString UHoudiniAssetComponent::GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const
+{
+    if( const FString* FoundOverride = BakeNameOverrides.Find( GeoPartObject ) )
+    {
+        return *FoundOverride;
+    }
+    if( GeoPartObject.HasCustomName() )
+    {
+        return GeoPartObject.PartName;
+    }
+
+    if( HoudiniAsset )
+    {
+        return FString::Printf( TEXT("%s_%d_%d_%d_%d"), *GetOwner()->GetName(),
+            GeoPartObject.ObjectId, GeoPartObject.GeoId, GeoPartObject.PartId, GeoPartObject.SplitId);
+    }
+
+    return FString();
+}
+
+void 
+UHoudiniAssetComponent::SetBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject, const FString& BaseName )
+{
+    if( const FString* FoundOverride = BakeNameOverrides.Find( GeoPartObject ) )
+    {
+        // forget the last baked package since we changed the name
+        if( *FoundOverride != BaseName )
+        {
+            BakedStaticMeshPackagesForParts.Remove( GeoPartObject );
+        }
+    }
+    BakeNameOverrides.Add( GeoPartObject, BaseName );
+}
+
+bool 
+UHoudiniAssetComponent::RemoveBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject )
+{
+    return BakeNameOverrides.Remove( GeoPartObject ) > 0;
+}
+
 #endif  // WITH_EDITOR
 
 FBoxSphereBounds
@@ -2771,7 +2810,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     }
 
     // Serialize format version.
-    HoudiniAssetComponentVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
+    uint32 HoudiniAssetComponentVersion = GetLinkerCustomVersion( FHoudiniCustomSerializationVersion::GUID );
     Ar << HoudiniAssetComponentVersion;
 
     // Serialize component state.
@@ -2891,6 +2930,18 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
     // Serialize downstream asset connections.
     Ar << DownstreamAssetConnections;
+
+    // Serialize Landscape/GeoPart map (15.5 BACKPORT STUB)
+    if( HoudiniAssetComponentVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_LANDSCAPES )
+    {
+        TMap< FHoudiniGeoPartObject, class ALandscape * > DummyMap;
+        Ar << DummyMap;
+    }
+
+    if( HoudiniAssetComponentVersion >=  VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BAKENAME_OVERRIDE )
+    {
+        Ar << BakeNameOverrides;
+    }
 
     if ( Ar.IsLoading() && bIsNativeComponent )
     {
@@ -4380,6 +4431,7 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
         if ( !Ar.IsTransacting() )
             ClearInstanceInputs();
 
+        int32 HoudiniAssetComponentVersion = GetLinkerCustomVersion( FHoudiniCustomSerializationVersion::GUID );
         if ( HoudiniAssetComponentVersion > VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP )
         {
             Ar << InstanceInputs;
