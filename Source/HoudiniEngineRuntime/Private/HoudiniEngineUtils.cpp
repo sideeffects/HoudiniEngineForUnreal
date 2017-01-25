@@ -4314,6 +4314,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     TArray< float > TextureCoordinates[ MAX_STATIC_TEXCOORDS ];
     TArray< float > Normals;
     TArray< float > Colors;
+    TArray< float > Alphas;
     TArray< FString > FaceMaterials;
     TArray< int32 > FaceSmoothingMasks;
     TArray< int32 > LightMapResolutions;
@@ -5077,20 +5078,14 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     FaceMaterials.Empty();
 
                     // Attributes we are interested in.
-                    HAPI_AttributeInfo AttribInfoPositions;
-                    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoPositions, 0 );
-                    HAPI_AttributeInfo AttribLightmapResolution;
-                    FMemory::Memset< HAPI_AttributeInfo >( AttribLightmapResolution, 0 );
-                    HAPI_AttributeInfo AttribFaceMaterials;
-                    FMemory::Memset< HAPI_AttributeInfo >( AttribFaceMaterials, 0 );
-                    HAPI_AttributeInfo AttribInfoColors;
-                    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoColors, 0 );
-                    HAPI_AttributeInfo AttribInfoNormals;
-                    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoNormals, 0 );
-                    HAPI_AttributeInfo AttribInfoFaceSmoothingMasks;
-                    FMemory::Memset< HAPI_AttributeInfo >( AttribInfoFaceSmoothingMasks, 0 );
-                    HAPI_AttributeInfo AttribInfoUVs[ MAX_STATIC_TEXCOORDS ];
-                    FMemory::Memset( &AttribInfoUVs[ 0 ], 0, sizeof( HAPI_AttributeInfo ) * MAX_STATIC_TEXCOORDS );
+                    HAPI_AttributeInfo AttribInfoPositions{};
+                    HAPI_AttributeInfo AttribLightmapResolution{};
+                    HAPI_AttributeInfo AttribFaceMaterials{};
+                    HAPI_AttributeInfo AttribInfoColors{};
+                    HAPI_AttributeInfo AttribInfoAlpha{};
+                    HAPI_AttributeInfo AttribInfoNormals{};
+                    HAPI_AttributeInfo AttribInfoFaceSmoothingMasks{};
+                    HAPI_AttributeInfo AttribInfoUVs[ MAX_STATIC_TEXCOORDS ]{};
 
                     if ( bRebuildStaticMesh )
                     {
@@ -5152,10 +5147,20 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             AssetId, ObjectInfo.id, GeoInfo.id,
                             PartInfo.id, HAPI_UNREAL_ATTRIB_COLOR, AttribInfoColors, Colors );
 
+                        // Retrieve alpha data.
+                        FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            PartInfo.id, HAPI_UNREAL_ATTRIB_ALPHA, AttribInfoAlpha, Alphas );
+
                         // See if we need to transfer color point attributes to vertex attributes.
                         FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
                             SplitGroupVertexList,
                             AttribInfoColors, Colors );
+
+                        // See if we need to transfer alpha point attributes to vertex attributes.
+                        FHoudiniEngineUtils::TransferRegularPointAttributesToVertices(
+                            SplitGroupVertexList,
+                            AttribInfoAlpha, Alphas );
 
                         // No need to read the normals if we'll recompute them after
                         bool bReadNormals = HoudiniRuntimeSettings->RecomputeNormalsFlag != EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;
@@ -5341,7 +5346,11 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 WedgeColor.B = FMath::Clamp(
                                     Colors[ WedgeColorIdx * AttribInfoColors.tupleSize + 2 ], 0.0f, 1.0f );
 
-                                if ( AttribInfoColors.tupleSize == 4 )
+                                if( AttribInfoAlpha.exists )
+                                {
+                                    WedgeColor.A = FMath::Clamp( Alphas[ WedgeColorIdx ], 0.0f, 1.0f );
+                                }
+                                else if ( AttribInfoColors.tupleSize == 4 )
                                 {
                                     // We have alpha.
                                     WedgeColor.A = FMath::Clamp(
