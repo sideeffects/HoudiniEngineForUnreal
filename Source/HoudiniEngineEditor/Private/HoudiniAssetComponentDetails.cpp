@@ -219,11 +219,7 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             if ( !StaticMesh )
                 continue;
 
-            FString Label = TEXT( "" );
-            if ( HoudiniGeoPartObject.HasCustomName() )
-                Label = HoudiniGeoPartObject.PartName;
-            else
-                Label = FString::Printf( TEXT( "Static Mesh %d" ), MeshIdx );
+            FString Label = HoudiniAssetComponent->GetBakingBaseName( HoudiniGeoPartObject);
 
             // Create thumbnail for this mesh.
             TSharedPtr< FAssetThumbnail > StaticMeshThumbnail =
@@ -233,11 +229,68 @@ FHoudiniAssetComponentDetails::CreateStaticMeshAndMaterialWidgets( IDetailCatego
             TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
             
             IDetailGroup& StaticMeshGrp = DetailCategoryBuilder.AddGroup(FName(*Label), FText::FromString(Label));
+
             StaticMeshGrp.AddWidgetRow()
             .NameContent()
             [
-                SNew(SSpacer)
-                .Size(FVector2D(250, 64))
+                SNew( STextBlock )
+                .Text( LOCTEXT( "BakeBaseName", "Bake Name" ) )
+                .Font( IDetailLayoutBuilder::GetDetailFont() )
+            ]
+            .ValueContent()
+            .MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+            [
+                SNew( SHorizontalBox )
+                +SHorizontalBox::Slot()
+                .Padding( 2.0f, 0.0f )
+                .VAlign( VAlign_Center )
+                .FillWidth( 1 )
+                [
+                    SNew( SEditableTextBox )
+                    .Text( FText::FromString(Label) )
+                    .Font( IDetailLayoutBuilder::GetDetailFont() )
+                    .OnTextCommitted( this, &FHoudiniAssetComponentDetails::OnBakeNameCommited, HoudiniAssetComponent, HoudiniGeoPartObject )
+                    .ToolTipText( LOCTEXT( "BakeNameTip", "The base name of the baked asset") )
+                ]
+                +SHorizontalBox::Slot()
+                .Padding( 2.0f, 0.0f )
+                .VAlign( VAlign_Center )
+                .AutoWidth()
+                [
+                    SNew( SButton )
+                    .ToolTipText( LOCTEXT( "RevertNameOverride", "Revert bake name override" ) )
+                    .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+                    .ContentPadding( 0 )
+                    .Visibility( EVisibility::Visible )
+                    .OnClicked( this, &FHoudiniAssetComponentDetails::OnRemoveBakingBaseNameOverride, HoudiniAssetComponent, HoudiniGeoPartObject )
+                    [
+                        SNew( SImage )
+                        .Image( FEditorStyle::GetBrush( "PropertyWindow.DiffersFromDefault" ) )
+                    ]
+                ]
+            ];
+
+            FString MeshLabel = TEXT( "" );
+            
+            if( HoudiniGeoPartObject.bIsRenderCollidable )
+            {
+                MeshLabel = TEXT( "Rendered Complex Collision" );
+            }
+            else if( HoudiniGeoPartObject.bIsCollidable )
+            {
+                MeshLabel = TEXT( "Invisible Complex Collision" );
+            }
+            else if( HoudiniGeoPartObject.bHasCollisionBeenAdded )
+            {
+                MeshLabel = TEXT( "Simple Collision" );
+            }
+
+            StaticMeshGrp.AddWidgetRow()
+            .NameContent()
+            [
+                SNew( STextBlock )
+                .Text( FText::FromString(MeshLabel) )
+                .Font( IDetailLayoutBuilder::GetDetailFont() )
             ]
             .ValueContent()
             .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
@@ -796,6 +849,31 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoud
             StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::ReplaceExisitingAssets );
     }
 
+    return FReply::Handled();
+}
+
+void 
+FHoudiniAssetComponentDetails::OnBakeNameCommited( const FText& NewText, ETextCommit::Type CommitType, 
+    UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject HoudiniGeoPartObject )
+{
+    if( ensure(HoudiniAssetComponent) )
+    {
+        HoudiniAssetComponent->SetBakingBaseNameOverride( HoudiniGeoPartObject, NewText.ToString() );
+    }
+
+    // The group label has to be updated
+    if( HoudiniAssetComponent )
+        HoudiniAssetComponent->UpdateEditorProperties( false );
+}
+
+FReply 
+FHoudiniAssetComponentDetails::OnRemoveBakingBaseNameOverride( UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject GeoPartObject )
+{
+    if( HoudiniAssetComponent )
+    {
+        if ( HoudiniAssetComponent->RemoveBakingBaseNameOverride( GeoPartObject ) )
+            HoudiniAssetComponent->UpdateEditorProperties( false );
+    }
     return FReply::Handled();
 }
 
