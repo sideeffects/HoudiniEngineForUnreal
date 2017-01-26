@@ -246,7 +246,7 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #define HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME          "unreal_generated_mesh_name"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME          HAPI_ATTRIB_NAME
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX       "unreal_vertex_index"
-#define HAPI_UNREAL_ATTRIB_LANDSCAPE_NAME               "unreal_landscape"
+//#define HAPI_UNREAL_ATTRIB_LANDSCAPE_NAME               "unreal_landscape"
 #define HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME              "unreal_input_mesh_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME             "unreal_mesh_socket_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR            "unreal_mesh_socket_actor"
@@ -267,7 +267,7 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 
 #define HAPI_UNREAL_ATTRIB_UV                           HAPI_ATTRIB_UV
 #define HAPI_UNREAL_ATTRIB_UV2                          HAPI_ATTRIB_UV2
-#define HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP                 "unreal_weightmap_uv"
+//#define HAPI_UNREAL_ATTRIB_UV_WEIGHTMAP                 "unreal_weightmap_uv"
 
 #define HAPI_UNREAL_PARAM_CURVE_TYPE                    "type"
 #define HAPI_UNREAL_PARAM_CURVE_METHOD                  "method"
@@ -349,15 +349,14 @@ DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 /** Materials Metallic. **/
 #define HAPI_UNREAL_PARAM_MAP_METALLIC                  "metallic_texture"
 #define HAPI_UNREAL_PARAM_VALUE_METALLIC                "metallic"
-
 #define HAPI_UNREAL_PARAM_MAP_METALLIC_COLOR_SPACE      "metallic_textureColorSpace"
 
 /** Materials Emissive. **/
 #define HAPI_UNREAL_PARAM_MAP_EMISSIVE                  "emitcolor_texture"
+#define HAPI_UNREAL_PARAM_MAP_EMISSIVE_COLOR_SPACE      "emitcolor_textureColorSpace"
+
 #define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_0              "ogl_emit"
 #define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_1              "emitcolor"
-
-#define HAPI_UNREAL_PARAM_MAP_EMISSIVE_COLOR_SPACE      "emitcolor_textureColorSpace"
 
 /** Materials Opacity. **/
 #define HAPI_UNREAL_PARAM_ALPHA                         "ogl_alpha"
