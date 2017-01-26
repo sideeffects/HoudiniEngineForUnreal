@@ -8200,7 +8200,187 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(
     const TArray< HAPI_ParmInfo > & NodeParams,
     const TArray< std::string > & NodeParamNames, int32 & MaterialNodeY )
 {
-    return true;
+    bool bExpressionCreated = false;
+    HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    // Name of generating Houdini parameter.
+    FString GeneratingParameterName = TEXT("");
+
+    // Emissive texture creation parameters.
+    FCreateTexture2DParameters CreateTexture2DParameters;
+    CreateTexture2DParameters.SourceGuidHash = FGuid();
+    CreateTexture2DParameters.bUseAlpha = false;
+    CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
+    CreateTexture2DParameters.bDeferCompression = true;
+    CreateTexture2DParameters.bSRGB = false;
+
+    // See if emissive texture is available.
+    int32 ParmNameEmissiveIdx =
+        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_MAP_EMISSIVE, NodeParamNames );
+
+    if ( ParmNameEmissiveIdx >= 0 )
+    {
+        GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_MAP_EMISSIVE );
+    }
+
+    if ( ParmNameEmissiveIdx >= 0 )
+    {
+        TArray< char > ImageBuffer;
+
+        // Retrieve color plane.
+        if ( FHoudiniEngineUtils::HapiExtractImage(
+            NodeParams[ ParmNameEmissiveIdx ].id, MaterialInfo, ImageBuffer,
+            HAPI_UNREAL_MATERIAL_TEXTURE_COLOR, HAPI_IMAGE_DATA_INT8, HAPI_IMAGE_PACKING_RGBA, true ) )
+        {
+            UMaterialExpressionTextureSampleParameter2D * ExpressionEmissive =
+                Cast< UMaterialExpressionTextureSampleParameter2D >( Material->EmissiveColor.Expression );
+
+            UTexture2D * TextureEmissive = nullptr;
+            if ( ExpressionEmissive )
+            {
+                TextureEmissive = Cast< UTexture2D >( ExpressionEmissive->Texture );
+            }
+            else
+            {
+                // Otherwise new expression is of a different type.
+                if ( Material->EmissiveColor.Expression )
+                {
+                    Material->EmissiveColor.Expression->ConditionalBeginDestroy();
+                    Material->EmissiveColor.Expression = nullptr;
+                }
+            }
+
+            UPackage * TextureEmissivePackage = nullptr;
+            if ( TextureEmissive )
+                TextureEmissivePackage = Cast< UPackage >( TextureEmissive->GetOuter() );
+
+            HAPI_ImageInfo ImageInfo;
+            Result = FHoudiniApi::GetImageInfo(
+                FHoudiniEngine::Get().GetSession(), 
+                MaterialInfo.assetId,
+                MaterialInfo.id, 
+                &ImageInfo );
+
+            if ( Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0 )
+            {
+                // Create texture.
+                FString TextureEmissiveName;
+                bool bCreatedNewTextureEmissive = false;
+
+                // Create emissive texture package, if this is a new emissive texture.
+                if ( !TextureEmissivePackage )
+                {
+                    TextureEmissivePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
+                        HoudiniAssetComponent,
+                        MaterialInfo,
+                        HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE,
+                        TextureEmissiveName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                }
+
+                // Create emissive texture, if we need to create one.
+                if ( !TextureEmissive )
+                    bCreatedNewTextureEmissive = true;
+
+                // Reuse existing emissive texture, or create new one.
+                TextureEmissive = FHoudiniEngineUtils::CreateUnrealTexture(
+                    TextureEmissive, ImageInfo,
+                    TextureEmissivePackage, TextureEmissiveName, ImageBuffer,
+                    HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE,
+                    CreateTexture2DParameters,
+                    TEXTUREGROUP_World );
+
+                // Create emissive sampling expression, if needed.
+                if ( !ExpressionEmissive )
+                    ExpressionEmissive = NewObject< UMaterialExpressionTextureSampleParameter2D >(
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+
+                // Record generating parameter.
+                ExpressionEmissive->Desc = GeneratingParameterName;
+                ExpressionEmissive->ParameterName = *GeneratingParameterName;
+
+                ExpressionEmissive->Texture = TextureEmissive;
+                ExpressionEmissive->SamplerType = SAMPLERTYPE_LinearGrayscale;
+
+                // Offset node placement.
+                ExpressionEmissive->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+                ExpressionEmissive->MaterialExpressionEditorY = MaterialNodeY;
+                MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+                // Assign expression to material.
+                Material->Expressions.Add( ExpressionEmissive );
+                Material->EmissiveColor.Expression = ExpressionEmissive;
+
+                bExpressionCreated = true;
+            }
+        }
+    }
+
+    int32 ParmNameEmissiveValueIdx =
+        FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_VALUE_EMISSIVE_0, NodeParamNames );
+
+    if ( ParmNameEmissiveValueIdx >= 0 )
+        GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_VALUE_EMISSIVE_0 );
+    else
+    {
+        ParmNameEmissiveValueIdx =
+            FHoudiniEngineUtils::HapiFindParameterByName( HAPI_UNREAL_PARAM_VALUE_EMISSIVE_1, NodeParamNames );
+
+        if ( ParmNameEmissiveValueIdx >= 0 )
+            GeneratingParameterName = TEXT( HAPI_UNREAL_PARAM_VALUE_EMISSIVE_1 );
+    }
+
+    if ( !bExpressionCreated && ParmNameEmissiveValueIdx >= 0 )
+    {
+        // Emissive color is available.
+
+        FLinearColor Color = FLinearColor::White;
+        const HAPI_ParmInfo & ParmInfo = NodeParams[ ParmNameEmissiveValueIdx ];
+
+        if ( FHoudiniApi::GetParmFloatValues(
+            FHoudiniEngine::Get().GetSession(), NodeInfo.id, (float*)&Color.R,
+            ParmInfo.floatValuesIndex, ParmInfo.size ) == HAPI_RESULT_SUCCESS )
+        {
+            if ( ParmInfo.size == 3 )
+                Color.A = 1.0f;
+
+            UMaterialExpressionConstant4Vector * ExpressionEmissiveColor =
+                Cast< UMaterialExpressionConstant4Vector >( Material->EmissiveColor.Expression );
+
+            // Create color const expression and add it to material, if we don't have one.
+            if ( !ExpressionEmissiveColor )
+            {
+                // Otherwise new expression is of a different type.
+                if ( Material->EmissiveColor.Expression )
+                {
+                    Material->EmissiveColor.Expression->ConditionalBeginDestroy();
+                    Material->EmissiveColor.Expression = nullptr;
+                }
+
+                ExpressionEmissiveColor = NewObject< UMaterialExpressionConstant4Vector >(
+                    Material, UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional );
+            }
+
+            // Record generating parameter.
+            ExpressionEmissiveColor->Desc = GeneratingParameterName;
+            if ( ExpressionEmissiveColor->CanRenameNode() )
+                ExpressionEmissiveColor->SetEditableName( *GeneratingParameterName );
+
+            ExpressionEmissiveColor->Constant = Color;
+
+            // Offset node placement.
+            ExpressionEmissiveColor->MaterialExpressionEditorX = FHoudiniEngineUtils::MaterialExpressionNodeX;
+            ExpressionEmissiveColor->MaterialExpressionEditorY = MaterialNodeY;
+            MaterialNodeY += FHoudiniEngineUtils::MaterialExpressionNodeStepY;
+
+            // Assign expression to material.
+            Material->Expressions.Add( ExpressionEmissiveColor );
+            Material->EmissiveColor.Expression = ExpressionEmissiveColor;
+
+            bExpressionCreated = true;
+        }
+    }
+
+    return bExpressionCreated;
 }
 
 #endif
