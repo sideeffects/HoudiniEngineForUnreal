@@ -5153,7 +5153,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         // Retrieve alpha data.
                         FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-                            AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                            AssetId, ObjectInfo.id, GeoInfo.id,
                             PartInfo.id, HAPI_UNREAL_ATTRIB_ALPHA, AttribInfoAlpha, Alphas );
 
                         // See if we need to transfer color point attributes to vertex attributes.
