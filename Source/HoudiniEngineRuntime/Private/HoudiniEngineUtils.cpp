@@ -9544,10 +9544,13 @@ FHoudiniEngineUtils::GetAssetNames(
     if ( FHoudiniEngineUtils::IsInitialized() && HoudiniAsset )
     {
         FString AssetFileName = HoudiniAsset->GetAssetFileName();
-        HAPI_Result Result = HAPI_RESULT_SUCCESS;
+        HAPI_Result Result = HAPI_RESULT_FAILURE;
         HAPI_AssetLibraryId AssetLibraryId = -1;
         int32 AssetCount = 0;
         TArray< HAPI_StringHandle > AssetNames;
+
+        if ( FPaths::IsRelative( AssetFileName ) && ( FHoudiniEngine::Get().GetSession()->type != HAPI_SESSION_INPROCESS ) )
+            AssetFileName = FPaths::ConvertRelativePathToFull( AssetFileName );
 
         if ( !AssetFileName.IsEmpty() && FPaths::FileExists( AssetFileName ) )
         {
@@ -9566,7 +9569,9 @@ FHoudiniEngineUtils::GetAssetNames(
             Result = FHoudiniApi::LoadAssetLibraryFromFile(
                 FHoudiniEngine::Get().GetSession(), AssetFileNamePlain.c_str(), true, &AssetLibraryId );
         }
-        else
+
+        // Try to load the asset from memory if loading from file failed
+        if ( Result != HAPI_RESULT_SUCCESS )
         {
             // Expanded hdas cannot be loaded from  Memory
             FString FileExtension = FPaths::GetExtension( AssetFileName );
@@ -9577,6 +9582,9 @@ FHoudiniEngineUtils::GetAssetNames(
             }
             else
             {
+                // Warn the user that we are loading from memory
+                HOUDINI_LOG_WARNING( TEXT( "Asset %s, loading from Memory: source asset file not found."), *AssetFileName );
+
                 // Otherwise we will try to load from buffer we've cached.
                 Result = FHoudiniApi::LoadAssetLibraryFromMemory(
                     FHoudiniEngine::Get().GetSession(),
