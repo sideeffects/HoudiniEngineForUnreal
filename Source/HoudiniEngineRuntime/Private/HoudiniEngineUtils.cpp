@@ -7046,7 +7046,9 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
         HAPI_ImagePacking ImagePacking = HAPI_IMAGE_PACKING_UNKNOWN;
         const char * PlaneType = "";
 
-        if ( bFoundImagePlanes && OpacityImagePlanes.Contains( TEXT( HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA ) ) )
+        bool bColorAlphaFound = ( OpacityImagePlanes.Contains( TEXT( HAPI_UNREAL_MATERIAL_TEXTURE_ALPHA ) ) && OpacityImagePlanes.Contains( TEXT( HAPI_UNREAL_MATERIAL_TEXTURE_COLOR ) ) );
+
+        if ( bFoundImagePlanes && bColorAlphaFound )
         {
             ImagePacking = HAPI_IMAGE_PACKING_RGBA;
             PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA;
@@ -7134,7 +7136,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
                 TArray< FExpressionOutput > ExpressionOutputs = ExpressionTextureOpacitySample->GetOutputs();
                 FExpressionOutput* ExpressionOutput = ExpressionOutputs.GetData();
 
-                Material->OpacityMask.Expression = ExpressionTextureOpacitySample;
+		Material->OpacityMask.Expression = ExpressionTextureOpacitySample;
                 Material->BlendMode = BLEND_Masked;
 
                 Material->OpacityMask.Mask = ExpressionOutput->Mask;
