@@ -37,6 +37,7 @@
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
+#include "PlatformMisc.h"
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName( TEXT( "HoudiniEngineApp" ) );
 
@@ -249,6 +250,10 @@ FHoudiniEngine::StartupModule()
             case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
             {
                 SessionResult = FHoudiniApi::CreateInProcessSession( &this->Session );
+#if PLATFORM_WINDOWS
+                // Workaround for Houdini libtools setting stdout to binary
+                FWindowsPlatformMisc::SetUTF8Output();
+#endif
                 break;
             }
 
