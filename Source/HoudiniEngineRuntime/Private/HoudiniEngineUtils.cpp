@@ -9556,7 +9556,7 @@ FHoudiniEngineUtils::GetAssetNames(
         {
             // We'll need to modify the file name for expanded .hda
             FString FileExtension = FPaths::GetExtension( AssetFileName );
-            if ( FileExtension.Compare( TEXT( "list" ), ESearchCase::IgnoreCase ) == 0 )
+            if ( FileExtension.Compare( TEXT( "hdalibrary" ), ESearchCase::IgnoreCase ) == 0 )
             {
                 // the .hda directory is what we're interested in loading
                 AssetFileName = FPaths::GetPath( AssetFileName );
@@ -9575,7 +9575,7 @@ FHoudiniEngineUtils::GetAssetNames(
         {
             // Expanded hdas cannot be loaded from  Memory
             FString FileExtension = FPaths::GetExtension( AssetFileName );
-            if ( FileExtension.Compare( TEXT( "list" ), ESearchCase::IgnoreCase ) == 0 )
+            if ( FileExtension.Compare( TEXT( "hdalibrary" ), ESearchCase::IgnoreCase ) == 0 )
             {
                 HOUDINI_LOG_ERROR( TEXT( "Error loading expanded Asset %s: source asset file not found." ), *AssetFileName );
                 return false;

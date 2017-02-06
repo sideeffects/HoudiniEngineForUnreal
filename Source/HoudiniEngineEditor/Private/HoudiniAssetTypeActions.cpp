@@ -206,11 +206,11 @@ FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudini
         return;
 
     // We'll need to modify the file name for expanded .hda
-    FString FileExtension = FPaths::GetExtension(SourceFilePath);
-    if (FileExtension.Compare(TEXT("list"), ESearchCase::IgnoreCase) == 0)
+    FString FileExtension = FPaths::GetExtension( SourceFilePath );
+    if ( FileExtension.Compare( TEXT( "hdalibrary" ), ESearchCase::IgnoreCase ) == 0 )
     {
         // the .hda directory is what we're actually interested in loading
-        SourceFilePath = FPaths::GetPath(SourceFilePath);
+        SourceFilePath = FPaths::GetPath( SourceFilePath );
     }
 
     // Then open the HDA file in Houdini
