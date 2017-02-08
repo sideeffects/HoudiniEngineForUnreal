@@ -33,6 +33,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetInstance.h"
 
+
 const uint32
 UHoudiniAsset::PersistenceFormatVersion = 2u;
 
