@@ -12,3 +12,4 @@
 Intermediate/
 Binaries/
 *.Template.cs
+*.uplugin.Template
