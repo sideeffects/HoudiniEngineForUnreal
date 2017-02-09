@@ -1,13 +1,13 @@
 {
 	"FileVersion" : 3,
-
 	"FriendlyName" : "Houdini Engine",
-	"Version" : 1,
-	"VersionName" : "1.0",
+	"Version" : 15050745,
+	"VersionName" : "15.5.745",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL" : "http://www.sidefx.com",
+	"DocsURL" : "http://www.sidefx.com/docs/unreal16.0",
 	"Description" : "Houdini Engine for Unreal Engine.",
-	"Category" : "Rendering.Components",
+	"Category" : "Rendering",
 	"EnabledByDefault" : true,
 
 	"Modules" :
