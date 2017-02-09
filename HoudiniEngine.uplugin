@@ -1,12 +1,12 @@
 {
 	"FileVersion" : 3,
 	"FriendlyName" : "Houdini Engine",
-	"Version" : 16000514,
-	"VersionName" : "16.0.514",
+	"Version" : 16050018,
+	"VersionName" : "16.5.18",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL" : "http://www.sidefx.com",
 	"DocsURL" : "http://www.sidefx.com/docs/unreal16.0",
-	"Description" : "Allows Houdini Digital Assets to be loaded into the Unreal Editor to provide procedural content creation.",
+	"Description" : "Houdini Engine for Unreal Engine.",
 	"Category" : "Rendering",
 	"EnabledByDefault" : true,
 
