@@ -421,28 +421,28 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
     }
 
     // Checkbox : Keep World Transform
-    {	
-	TSharedPtr< SCheckBox > CheckBoxTranformType;
-	VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
-	[
-	    SAssignNew(CheckBoxTranformType, SCheckBox)
-	    .Content()
-	    [
-		SNew(STextBlock)
-		.Text(LOCTEXT("KeepWorldTransformCheckbox", "Keep World Transform"))
-		.ToolTipText(LOCTEXT("KeepWorldTransformCheckboxTip", "Set this Input's object_merge Transform Type to INTO_THIS_OBJECT. If unchecked, it will be set to NONE."))
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-	    ]
-	    .IsChecked(TAttribute< ECheckBoxState >::Create(
-		TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-		this, &UHoudiniAssetInput::IsCheckedKeepWorldTransform)))
-	    .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
-		this, &UHoudiniAssetInput::CheckStateChangedKeepWorldTransform))
-	];
+    {
+        TSharedPtr< SCheckBox > CheckBoxTranformType;
+        VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+        [
+            SAssignNew(CheckBoxTranformType, SCheckBox)
+            .Content()
+            [
+                SNew(STextBlock)
+                .Text(LOCTEXT("KeepWorldTransformCheckbox", "Keep World Transform"))
+                .ToolTipText(LOCTEXT("KeepWorldTransformCheckboxTip", "Set this Input's object_merge Transform Type to INTO_THIS_OBJECT. If unchecked, it will be set to NONE."))
+                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+            ]
+            .IsChecked(TAttribute< ECheckBoxState >::Create(
+                TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                this, &UHoudiniAssetInput::IsCheckedKeepWorldTransform)))
+            .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
+                this, &UHoudiniAssetInput::CheckStateChangedKeepWorldTransform))
+        ];
 
-	// Checkbox is read only if the input is an object-path parameter
-	if (bIsObjectPathParameter)
-	    CheckBoxTranformType->SetEnabled(false);
+        // Checkbox is read only if the input is an object-path parameter
+        if ( bIsObjectPathParameter )
+            CheckBoxTranformType->SetEnabled(false);
     }
 
 
@@ -1292,46 +1292,52 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
 
     uint32 nTransformType = -1;
     if (bKeepWorldTransform == 2)
-	nTransformType = GetDefaultTranformTypeValue();
+        nTransformType = GetDefaultTranformTypeValue();
     else if (bKeepWorldTransform)
-	nTransformType = 1; 
+        nTransformType = 1; 
     else
-	nTransformType = 0;
+        nTransformType = 0;
 
     // Get the Input node ID from the host ID
     HAPI_NodeId InputNodeId = -1;
     HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
 
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::QueryNodeInput(
-        FHoudiniEngine::Get().GetSession(), HostAssetId,
-        InputIndex, &InputNodeId ), false );
-
-    // Change Parameter xformtype
+    bool bSuccess = false;
     const std::string sXformType = "xformtype";
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValue(
-            FHoudiniEngine::Get().GetSession(), InputNodeId,
-        sXformType.c_str(), 0, nTransformType), false);
 
+    if ( HAPI_RESULT_SUCCESS == FHoudiniApi::QueryNodeInput(
+        FHoudiniEngine::Get().GetSession(),
+        HostAssetId, InputIndex, &InputNodeId ) )
+    {
+        // Change Parameter xformtype
+        if ( HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), 
+            InputNodeId, sXformType.c_str(), 0, nTransformType ) )
+            bSuccess = true;
+    }
+    
     // If the input is a world outliner, we also need to modify
     // the transform types of the merge node's inputs
     for (int n = 0; n < InputOutlinerMeshArray.Num(); n++)
     {
-	// Get the Input node ID from the host ID
-	InputNodeId = -1;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::QueryNodeInput(
-	    FHoudiniEngine::Get().GetSession(), ConnectedAssetId,
-	    n, &InputNodeId), false);
+        // Get the Input node ID from the host ID
+        InputNodeId = -1;
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
+            FHoudiniEngine::Get().GetSession(),
+            ConnectedAssetId, n, &InputNodeId ) )
+            continue;
 
-	if (InputNodeId == -1)
-	    continue;
+        if ( InputNodeId == -1 )
+            continue;
 
-	// Change Parameter xformtype
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(
-	    FHoudiniEngine::Get().GetSession(), InputNodeId,
-            sXformType.c_str(), 0, nTransformType), false);
+        // Change Parameter xformtype
+        if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), InputNodeId,
+            sXformType.c_str(), 0, nTransformType ) )
+            bSuccess =  false;
     }
 
-    return true;
+    return bSuccess;
 }
 
 
