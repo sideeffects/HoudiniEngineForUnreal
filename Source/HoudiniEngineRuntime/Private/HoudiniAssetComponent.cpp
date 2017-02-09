@@ -3463,15 +3463,19 @@ UHoudiniAssetComponent::CreateParameters()
             if ( ParmInfo.invisible )
                 continue;
 
-            // Check if any parent of this parameter is invisible
+            // Check if any parent folder of this parameter is invisible
             bool ParentInvisible = false;
-            HAPI_ParmId ParentIdx = ParmInfo.parentId;
-            while (ParentIdx > 0 && !ParentInvisible)
+            HAPI_ParmId ParentId = ParmInfo.parentId;
+            while (ParentId > 0 && !ParentInvisible)
             {
-                if (ParmInfos[ParentIdx].invisible)
-                    ParentInvisible = true;
-                else
-                    ParentIdx = ParmInfos[ParentIdx].parentId;
+                if( const HAPI_ParmInfo* ParentInfoPtr = ParmInfos.FindByPredicate( [=]( const HAPI_ParmInfo& Info ) {
+                    return Info.id == ParentId;
+                } ) )
+                {
+                    if( ParentInfoPtr->invisible && ParentInfoPtr->type == HAPI_PARMTYPE_FOLDER )
+                        ParentInvisible = true;
+                    ParentId = ParentInfoPtr->parentId;
+                }
             }
 
             if ( ParentInvisible )
