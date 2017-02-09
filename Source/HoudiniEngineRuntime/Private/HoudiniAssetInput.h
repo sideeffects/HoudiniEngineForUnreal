@@ -341,10 +341,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         ECheckBoxState IsCheckedExportCurves() const;
 
         /** Check if state of landscape full geometry checkbox has changed. **/
-        void CheckStateChangedExportFullGeometry( ECheckBoxState NewState );
+        void CheckStateChangedExportAsMesh( ECheckBoxState NewState );
 
         /** Return checked state of landscape full geometry checkbox. **/
-        ECheckBoxState IsCheckedExportFullGeometry() const;
+        ECheckBoxState IsCheckedExportAsMesh() const;
 
         /** Check if state of landscape materials checkbox has changed. **/
         void CheckStateChangedExportMaterials( ECheckBoxState NewState );
@@ -458,13 +458,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
                 uint32 bInputAssetConnectedInHoudini : 1;
 
                 /** Is set to true when landscape input is set to selection only. **/
-                uint32 bLandscapeInputSelectionOnly : 1;
+                uint32 bLandscapeExportSelectionOnly : 1;
 
                 /** Is set to true when landscape curves are to be exported. **/
                 uint32 bLandscapeExportCurves : 1;
 
-                /** Is set to true when full geometry needs to be exported. **/
-                uint32 bLandscapeExportFullGeometry : 1;
+                /** Is set to true when the landscape is to be exported as a mesh, not just points. **/
+                uint32 bLandscapeExportAsMesh : 1;
 
                 /** Is set to true when materials are to be exported. **/
                 uint32 bLandscapeExportMaterials : 1;

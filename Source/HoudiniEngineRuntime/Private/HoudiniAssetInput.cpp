@@ -522,8 +522,8 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .Content()
                 [
                     SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeSelectedCheckbox", "Export Selected Landscape Only" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeSelectedCheckbox", "Export Selected Landscape Only" ) )
+                    .Text( LOCTEXT( "LandscapeSelectedCheckbox", "Export Selected Landscape Component Only" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeSelectedTooltip", "If enabled, only the selected Landscape Components will be exported." ) )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont") ) )
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
@@ -536,22 +536,22 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
 
 	// Checkbox : Export full geometry
         {
-            TSharedPtr< SCheckBox > CheckBoxExportFullGeometry;
+            TSharedPtr< SCheckBox > CheckBoxExportGeometryAsMesh;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew( CheckBoxExportFullGeometry, SCheckBox )
+                SAssignNew( CheckBoxExportGeometryAsMesh, SCheckBox )
                 .Content()
                 [
                     SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeFullGeometryCheckbox", "Export Full Landscape Geometry" ) )
+                    .Text( LOCTEXT( "LandscapeExportAsMeshCheckbox", "Export Landscape As Mesh" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeExportAsMeshTooltip", "If enabled, the landscape will be exported as a mesh. If not, the landscape points will be exported as points only." ) )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
                 .IsChecked(TAttribute< ECheckBoxState >::Create(
                     TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        this, &UHoudiniAssetInput::IsCheckedExportFullGeometry ) ) )
+                        this, &UHoudiniAssetInput::IsCheckedExportAsMesh ) ) )
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                    this, &UHoudiniAssetInput::CheckStateChangedExportFullGeometry ) )
+                    this, &UHoudiniAssetInput::CheckStateChangedExportAsMesh ) )
             ];
         }
 
@@ -565,7 +565,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 [
                     SNew( STextBlock )
                     .Text( LOCTEXT( "LandscapeMaterialsCheckbox", "Export Landscape Materials" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeMaterialsCheckbox", "Export Landscape Materials" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeMaterialsTooltip", "If enabled, the landscape materials will be exported with it." ) )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
@@ -586,7 +586,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 [
                     SNew( STextBlock )
                     .Text( LOCTEXT( "LandscapeTileUVsCheckbox", "Export Landscape Tile UVs" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeTileUVsCheckbox", "Export Landscape Tile UVs" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeTileUVsTooltip", "If enabled, UVs will be exported separately for each Landscape tile." ) )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
                 .IsChecked(TAttribute< ECheckBoxState >::Create(
@@ -607,7 +607,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 [
                     SNew( STextBlock )
                     .Text( LOCTEXT( "LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeNormalizedUVsCheckbox", "Export Landscape Normalized UVs" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeNormalizedUVsTooltip", "If enabled, landscape UVs will be exported in [0, 1]." ) )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
@@ -628,7 +628,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 [
                     SNew( STextBlock )
                     .Text( LOCTEXT( "LandscapeLightingCheckbox", "Export Landscape Lighting" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeLightingCheckbox", "Export Landscape Lighting" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeLightingTooltip", "If enabled, lightmap information will be exported with the landscape." ) )
                     .Font(FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
@@ -649,7 +649,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 [
                     SNew( STextBlock )
                     .Text( LOCTEXT( "LandscapeCurvesCheckbox", "Export Landscape Curves" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeCurvesCheckbox", "Export Landscape Curves" ) )
+                    .ToolTipText( LOCTEXT( "LandscapeCurvesTooltip", "If enabled, Landscape curves will be exported." ) )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
                 .IsChecked( TAttribute< ECheckBoxState >::Create(
@@ -675,7 +675,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .VAlign( VAlign_Center )
                 .HAlign( HAlign_Center )
                 .Text( LOCTEXT( "LandscapeInputRecommit", "Recommit Landscape" ) )
-                .ToolTipText( LOCTEXT( "LandscapeInputRecommit", "Recommit Landscape" ) )
+                .ToolTipText( LOCTEXT( "LandscapeInputRecommitTooltip", "Recommits the Landscape to Houdini." ) )
                 .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetInput::OnButtonClickRecommit ) )
             ]
         ];
@@ -1194,8 +1194,8 @@ UHoudiniAssetInput::UploadParameterValue()
                 // Connect input and create connected asset. Will return by reference.
                 if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
                         HostAssetId, InputLandscapeProxy,
-                        ConnectedAssetId, bLandscapeInputSelectionOnly, bLandscapeExportCurves,
-                        bLandscapeExportMaterials, bLandscapeExportFullGeometry, bLandscapeExportLighting,
+                        ConnectedAssetId, bLandscapeExportSelectionOnly, bLandscapeExportCurves,
+                        bLandscapeExportMaterials, bLandscapeExportAsMesh, bLandscapeExportLighting,
                         bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs ) )
                 {
                     bChanged = false;
@@ -2394,7 +2394,7 @@ UHoudiniAssetInput::CheckStateChangedExportOnlySelected( ECheckBoxState NewState
 {
     int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if ( bLandscapeInputSelectionOnly != bState )
+    if ( bLandscapeExportSelectionOnly != bState )
     {
         // Record undo information.
         FScopedTransaction Transaction(
@@ -2405,7 +2405,7 @@ UHoudiniAssetInput::CheckStateChangedExportOnlySelected( ECheckBoxState NewState
 
         MarkPreChanged();
 
-        bLandscapeInputSelectionOnly = bState;
+        bLandscapeExportSelectionOnly = bState;
 
         // Mark this parameter as changed.
         MarkChanged();
@@ -2415,7 +2415,7 @@ UHoudiniAssetInput::CheckStateChangedExportOnlySelected( ECheckBoxState NewState
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportOnlySelected() const
 {
-    if ( bLandscapeInputSelectionOnly )
+    if ( bLandscapeExportSelectionOnly )
         return ECheckBoxState::Checked;
 
     return ECheckBoxState::Unchecked;
@@ -2454,22 +2454,22 @@ UHoudiniAssetInput::IsCheckedExportCurves() const
 }
 
 void
-UHoudiniAssetInput::CheckStateChangedExportFullGeometry( ECheckBoxState NewState )
+UHoudiniAssetInput::CheckStateChangedExportAsMesh( ECheckBoxState NewState )
 {
     int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if ( bLandscapeExportFullGeometry != bState )
+    if ( bLandscapeExportAsMesh != bState )
     {
         // Record undo information.
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Full Geometry mode change." ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape As Mesh mode change." ),
             HoudiniAssetComponent );
         Modify();
 
         MarkPreChanged();
 
-        bLandscapeExportFullGeometry = bState;
+        bLandscapeExportAsMesh = bState;
 
         // Mark this parameter as changed.
         MarkChanged();
@@ -2477,9 +2477,9 @@ UHoudiniAssetInput::CheckStateChangedExportFullGeometry( ECheckBoxState NewState
 }
 
 ECheckBoxState
-UHoudiniAssetInput::IsCheckedExportFullGeometry() const
+UHoudiniAssetInput::IsCheckedExportAsMesh() const
 {
-    if ( bLandscapeExportFullGeometry )
+    if ( bLandscapeExportAsMesh )
         return ECheckBoxState::Checked;
 
     return ECheckBoxState::Unchecked;
@@ -2660,7 +2660,6 @@ FReply
 UHoudiniAssetInput::OnButtonClickRecommit()
 {
     // There's no undo operation for button.
-
     MarkPreChanged();
     MarkChanged();
 
