@@ -3518,26 +3518,38 @@ UHoudiniAssetComponent::CreateParameters()
             // Retrieve param info at this index.
             const HAPI_ParmInfo & ParmInfo = ParmInfos[ ParamIdx ];
 
+            // If the parameter is corrupt, skip it
+            if( ParmInfo.id < 0 || ParmInfo.childIndex < 0 )
+            {
+                HOUDINI_LOG_WARNING( TEXT( "Corrupt parameter %d detected, skipping.  Note: Plug-in does not support nested Multiparm parameters" ), ParamIdx );
+                continue;
+            }
+
             // If parameter is invisible, skip it.
             if ( ParmInfo.invisible )
                 continue;
 
-            // Check if any parent folder of this parameter is invisible
-            bool ParentInvisible = false;
+            // Check if any parent folder of this parameter is invisible 
+            bool SkipParm = false;
             HAPI_ParmId ParentId = ParmInfo.parentId;
-            while (ParentId > 0 && !ParentInvisible)
+            while (ParentId > 0 && !SkipParm)
             {
                 if( const HAPI_ParmInfo* ParentInfoPtr = ParmInfos.FindByPredicate( [=]( const HAPI_ParmInfo& Info ) {
                     return Info.id == ParentId;
                 } ) )
                 {
                     if( ParentInfoPtr->invisible && ParentInfoPtr->type == HAPI_PARMTYPE_FOLDER )
-                        ParentInvisible = true;
+                        SkipParm = true;
                     ParentId = ParentInfoPtr->parentId;
+                }
+                else
+                {
+                    HOUDINI_LOG_ERROR( TEXT("Could not find parent of parameter %d"), ParmInfo.id );
+                    SkipParm = true;
                 }
             }
 
-            if ( ParentInvisible )
+            if ( SkipParm )
                 continue;
 
             UHoudiniAssetParameter * HoudiniAssetParameter = nullptr;
