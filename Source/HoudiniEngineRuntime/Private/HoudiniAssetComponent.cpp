@@ -2566,8 +2566,7 @@ UHoudiniAssetComponent::OnComponentCreated()
     {
         HoudiniAssetComponentMaterials =
             NewObject< UHoudiniAssetComponentMaterials >(
-                this, UHoudiniAssetComponentMaterials::StaticClass(),
-                NAME_None, RF_Transactional );
+                this, UHoudiniAssetComponentMaterials::StaticClass(), NAME_None, RF_Public | RF_Transactional );
     }
 
 #if WITH_EDITOR
@@ -2886,7 +2885,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     }
 
     // Serialize parameters.
-    Ar << Parameters;
+    SerializeParameters( Ar );
 
     // Serialize parameters name map.
     if ( HoudiniAssetComponentVersion >= VER_HOUDINI_ENGINE_COMPONENT_PARAMETER_NAME_MAP )
@@ -4403,6 +4402,20 @@ UHoudiniAssetComponent::SerializeInputs( FArchive & Ar )
             ClearInputs();
     }
 
+    // We have to make sure that inputs are NOT saved with an empty name, as this will cause UE to crash on load
+    for (TArray< UHoudiniAssetInput * >::TIterator IterInputs(Inputs); IterInputs; ++IterInputs)
+    {
+        UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
+        if (!HoudiniAssetInput)
+            continue;
+
+        if (HoudiniAssetInput->GetFName() != NAME_None)
+            continue;
+
+        // Calling Rename with null parameters will make sure the instanced input has a unique name
+        HoudiniAssetInput->Rename();
+    }
+
     Ar << Inputs;
 
     if ( Ar.IsTransacting() )
@@ -4410,13 +4423,14 @@ UHoudiniAssetComponent::SerializeInputs( FArchive & Ar )
         for ( int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx )
             Inputs[ InputIdx ]->Serialize( Ar );
     }
-
-    if ( Ar.IsLoading() )
+    else if ( Ar.IsLoading() )
     {
-        if ( !Ar.IsTransacting() )
+        for ( int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx )
         {
-            for ( int32 InputIdx = 0; InputIdx < Inputs.Num(); ++InputIdx )
-                Inputs[ InputIdx ]->SetHoudiniAssetComponent( this );
+            if ( !Inputs[ InputIdx ] )
+                continue;
+
+            Inputs[ InputIdx ]->SetHoudiniAssetComponent( this );
         }
     }
 }
@@ -4453,6 +4467,20 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
     } 
     else
     {
+        // We have to make sure that instanced inputs are NOT saved with an empty name, as this will cause UE to crash on load
+        for ( TArray< UHoudiniAssetInstanceInput * >::TIterator IterInstance(InstanceInputs ); IterInstance; ++IterInstance )
+        {
+            UHoudiniAssetInstanceInput * HoudiniInstanceInput = *IterInstance;
+            if ( !HoudiniInstanceInput )
+                continue;
+
+            if ( HoudiniInstanceInput->GetFName() != NAME_None )
+                continue;
+
+            // Calling Rename with null parameters will make sure the instanced input has a unique name
+            HoudiniInstanceInput->Rename();
+        }
+
         Ar << InstanceInputs;
     }
 
@@ -4463,6 +4491,26 @@ UHoudiniAssetComponent::SerializeInstanceInputs( FArchive & Ar )
             InstanceInput->Serialize( Ar );
         }
     }
+}
+
+void
+UHoudiniAssetComponent::SerializeParameters( FArchive & Ar )
+{
+    // We have to make sure that parameter are NOT saaved with an empty name, as this will cause UE to crash on load
+    for (TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams(Parameters); IterParams; ++IterParams)
+    {
+        UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
+        if (!HoudiniAssetParameter)
+            continue;
+
+        if (HoudiniAssetParameter->GetFName() != NAME_None)
+            continue;
+
+        // Calling Rename with null parameters will make sure the parameter has a unique name
+        HoudiniAssetParameter->Rename();
+    }
+
+    Ar << Parameters;
 }
 
 void
