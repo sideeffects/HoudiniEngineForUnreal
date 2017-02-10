@@ -566,6 +566,9 @@ public:
         /** Serialize instance inputs. **/
         void SerializeInstanceInputs( FArchive & Ar );
 
+        /** Serialize parameters. **/
+        void SerializeParameters( FArchive & Ar );
+
         /** Used to perform post loading initialization on instance inputs. **/
         void PostLoadInitializeInstanceInputs();
 
