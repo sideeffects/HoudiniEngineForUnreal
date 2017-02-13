@@ -2269,6 +2269,9 @@ FHoudiniEngineUtils::HapiGetNodeId( HAPI_NodeId AssetId, HAPI_NodeId ObjectId, H
 bool
 FHoudiniEngineUtils::HapiGetNodePath( HAPI_NodeId NodeId, HAPI_NodeId RelativeToNodeId, FString & OutPath )
 {
+    if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( NodeId ) )
+        return false;
+
     HAPI_StringHandle StringHandle;
     if ( FHoudiniApi::GetNodePath(
         FHoudiniEngine::Get().GetSession(),
@@ -2380,7 +2383,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId,
     ALandscapeProxy * LandscapeProxy, HAPI_NodeId & ConnectedAssetId,
     bool bExportOnlySelected, bool bExportCurves,
-    bool bExportMaterials, bool bExportFullGeometry,
+    bool bExportMaterials, bool bExportGeometryAsMesh,
     bool bExportLighting, bool bExportNormalizedUVs,
     bool bExportTileUVs )
 {
@@ -2485,7 +2488,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     Part.type = HAPI_PARTTYPE_MESH;
 
     // If we are exporting full geometry.
-    if ( bExportFullGeometry )
+    if ( bExportGeometryAsMesh )
     {
         Part.vertexCount = IndexCount;
         Part.faceCount = QuadCount;
@@ -2884,7 +2887,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     */
 
     // Set indices if we are exporting full geometry.
-    if ( bExportFullGeometry && IndexCount > 0 )
+    if ( bExportGeometryAsMesh && IndexCount > 0 )
     {
         // Array holding indices data.
         TArray< int32 > LandscapeIndices;
@@ -2994,7 +2997,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         }
 
         // Marshall in override primitive material names.
-        if ( bExportFullGeometry )
+        if ( bExportGeometryAsMesh )
         {
             HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
             FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterial );
@@ -3016,7 +3019,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         }
 
         // Marshall in override primitive material hole names.
-        if ( bExportFullGeometry )
+        if ( bExportGeometryAsMesh )
         {
             HAPI_AttributeInfo AttributeInfoPrimitiveMaterialHole;
             FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterialHole );
@@ -4077,7 +4080,7 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(
         // Generate Blueprint name.
         BlueprintName = HoudiniAsset->GetName() + TEXT( "_" ) + BakeGUIDString;
 
-        // Generate unique package name.=
+        // Generate unique package name.
         FString PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + BlueprintName;
 
         PackageName = PackageTools::SanitizePackageName( PackageName );
@@ -4116,13 +4119,13 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
     else
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
 
-    return FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
+    return FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         HoudiniAssetComponent, MaterialDescriptor,
         MaterialName, BakeMode );
 }
 
 UPackage *
-FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
+FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
     UHoudiniAssetComponent * HoudiniAssetComponent,
     const FString & MaterialInfoDescriptor,
     FString & MaterialName, EBakeMode BakeMode )
@@ -4138,41 +4141,77 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
     const FGuid & ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
     FString ComponentGUIDString = ComponentGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
 
-    if( BakeMode == EBakeMode::ReplaceExisitingAssets )
+    if ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) )
     {
-        // Find a previously baked asset
-        if( auto FoundPackage = HoudiniAssetComponent->BakedMaterialPackagesForIds.Find( MaterialInfoDescriptor ) )
-        {
-            if( ( *FoundPackage ).IsValid() )
-            {
-                UPackage* FoundPkg = ( *FoundPackage ).Get();
-                if( UPackage::IsEmptyPackage( FoundPkg ) )
-                {
-                    // This happens when the prior baked output gets renamed, we can delete this 
-                    // orphaned package so that we can re-use the name
-                    FoundPkg->ClearFlags( RF_Standalone );
-                    FoundPkg->ConditionalBeginDestroy();
+        bool bRemovePackageFromCache = false;
 
-                    HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( MaterialInfoDescriptor );
-                }
-                else
-                {
-                    if( CheckPackageSafeForBake( FoundPkg, MaterialName ) && !MaterialName.IsEmpty() )
-                    {
-                        return FoundPkg;
-                    }
-                    else
-                    {
-                        // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
-                        //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
-                        return nullptr;
-                    }
-                }
+        UPackage* FoundPackage = nullptr;
+        if (BakeMode == EBakeMode::ReplaceExisitingAssets)
+        {
+            TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->BakedMaterialPackagesForIds.Find(MaterialInfoDescriptor);
+            if ( FoundPointer )
+            {
+                if ( (*FoundPointer).IsValid() )
+                    FoundPackage = (*FoundPointer).Get();
             }
             else
             {
-                HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( MaterialInfoDescriptor );
+                bRemovePackageFromCache = true;
             }
+        }
+        else
+        {
+            TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->CookedTemporaryPackages.Find(MaterialInfoDescriptor);
+            if (FoundPointer)
+            {
+                if ( (*FoundPointer).IsValid() )
+                    FoundPackage = (*FoundPointer).Get();
+            }
+            else
+            {
+                bRemovePackageFromCache = true;
+            }
+        }
+
+        // Find a previously baked / cooked asset
+        if ( FoundPackage )
+        {
+            if ( UPackage::IsEmptyPackage( FoundPackage ) )
+            {
+                // This happens when the prior baked output gets renamed, we can delete this 
+                // orphaned package so that we can re-use the name
+                FoundPackage->ClearFlags( RF_Standalone );
+                FoundPackage->ConditionalBeginDestroy();
+
+                bRemovePackageFromCache = true;
+            }
+            else
+            {
+                if ( CheckPackageSafeForBake( FoundPackage, MaterialName ) && !MaterialName.IsEmpty() )
+                {
+                    return FoundPackage;
+                }
+                else
+                {
+                    // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                    //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+
+                    // If we're cooking, we'll create a new package, if baking, fail
+                    if ( BakeMode != EBakeMode::CookToTemp )
+                        return nullptr;
+                }
+            }
+
+            bRemovePackageFromCache = true;
+        }
+
+        if ( bRemovePackageFromCache )
+        {
+            // Package is either invalid / not found so we need to remove it from the cache
+            if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
+                HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( MaterialInfoDescriptor );
+            else
+                HoudiniAssetComponent->CookedTemporaryPackages.Remove( MaterialInfoDescriptor );
         }
     }
 
@@ -4188,28 +4227,39 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
         MaterialName = MaterialInfoDescriptor;
         MaterialName += BakeGUIDString;
 
-        if ( BakeMode != EBakeMode::Intermediate )
+        switch (BakeMode)
         {
-            // Generate unique package name.
-            PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + MaterialName;
-        }
-        else
-        {
-            // Generate unique package name.
-            PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName() ) +
-                TEXT( "/" ) +
-                HoudiniAsset->GetName() +
-                TEXT( "_" ) +
-                ComponentGUIDString +
-                TEXT( "/" ) +
-                MaterialName;
+            case EBakeMode::Intermediate:
+            {
+                // Generate unique package name.
+                PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName() ) +
+                    TEXT("/") +
+                    HoudiniAsset->GetName() +
+                    TEXT("_") +
+                    ComponentGUIDString +
+                    TEXT("/") +
+                    MaterialName;
+            }
+            break;
+
+            case EBakeMode::CookToTemp:
+            {
+                PackageName = HoudiniAssetComponent->GetTempCookFolder().ToString() + TEXT("/") + MaterialName;
+            }
+            break;
+
+            default:
+            {
+                // Generate unique package name.
+                PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT("/") + MaterialName;
+            }
+            break;
         }
 
         // Sanitize package name.
         PackageName = PackageTools::SanitizePackageName( PackageName );
 
-        UObject * OuterPackage = nullptr;
-
+        UObject * OuterPackage = nullptr;	
         if ( BakeMode == EBakeMode::Intermediate )
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
@@ -4235,9 +4285,13 @@ FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
 
 #endif
 
-    if( PackageNew && BakeMode == EBakeMode::ReplaceExisitingAssets )
+    if( PackageNew && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
     {
-        HoudiniAssetComponent->BakedMaterialPackagesForIds.Add( MaterialInfoDescriptor, PackageNew );
+        // Add the new package to the cache
+        if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
+            HoudiniAssetComponent->BakedMaterialPackagesForIds.Add( MaterialInfoDescriptor, PackageNew );
+        else
+            HoudiniAssetComponent->CookedTemporaryPackages.Add( MaterialInfoDescriptor, PackageNew );
     }
 
     return PackageNew;
@@ -4263,131 +4317,8 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
             TextureType + TEXT( "_" );
     }
 
-    return FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-        HoudiniAssetComponent, TextureInfoDescriptor,
-        TextureType, TextureName, BakeMode );
-}
-
-UPackage *
-FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
-    const FString & TextureInfoDescriptor, const FString & TextureType,
-    FString & TextureName, EBakeMode BakeMode )
-{
-    UPackage* PackageNew = nullptr;
-
-#if WITH_EDITOR
-
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-    FGuid BakeGUID;
-    FString PackageName;
-
-    const FGuid & ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
-    FString ComponentGUIDString = ComponentGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
-
-    if( BakeMode == EBakeMode::ReplaceExisitingAssets )
-    {
-        // Find a previously baked asset
-        if( auto FoundPackage = HoudiniAssetComponent->BakedMaterialPackagesForIds.Find( TextureInfoDescriptor ) )
-        {
-            if( ( *FoundPackage ).IsValid() )
-            {
-                UPackage* FoundPkg = ( *FoundPackage ).Get();
-                if( UPackage::IsEmptyPackage( FoundPkg ) )
-                {
-                    // This happens when the prior baked output gets renamed, we can delete this 
-                    // orphaned package so that we can re-use the name
-                    FoundPkg->ClearFlags( RF_Standalone );
-                    FoundPkg->ConditionalBeginDestroy();
-
-                    HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( TextureInfoDescriptor );
-                }
-                else
-                {
-                    if( CheckPackageSafeForBake( FoundPkg, TextureName ) && !TextureName.IsEmpty() )
-                    {
-                        return FoundPkg;
-                    }
-                    else
-                    {
-                        // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
-                        //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
-                        return nullptr;
-                    }
-                }
-            }
-            else
-            {
-                HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( TextureInfoDescriptor );
-            }
-        }
-    }
-
-    while ( true )
-    {
-        if ( !BakeGUID.IsValid() )
-            BakeGUID = FGuid::NewGuid();
-
-        // We only want half of generated guid string.
-        FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
-
-        // Generate texture name.
-        TextureName = TextureInfoDescriptor;
-        TextureName += BakeGUIDString;
-
-        if ( BakeMode != EBakeMode::Intermediate )
-        {
-            // Generate unique package name.=
-            PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + TextureName;
-        }
-        else
-        {
-            // Generate unique package name.
-            PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName() ) +
-                TEXT( "/" ) +
-                HoudiniAsset->GetName() +
-                TEXT( "_" ) +
-                ComponentGUIDString +
-                TEXT( "/" ) +
-                TextureName;
-        }
-
-        // Sanitize package name.
-        PackageName = PackageTools::SanitizePackageName( PackageName );
-
-        UObject * OuterPackage = nullptr;
-
-        if ( BakeMode == EBakeMode::Intermediate )
-        {
-            // If we are not baking, then use outermost package, since objects within our package need to be visible
-            // to external operations, such as copy paste.
-            OuterPackage = HoudiniAssetComponent->GetComponentLevel();
-        }
-
-        // See if package exists, if it does, we need to regenerate the name.
-        UPackage * Package = FindPackage( OuterPackage, *PackageName );
-
-        if ( Package )
-        {
-            // Package does exist, there's a collision, we need to generate a new name.
-            BakeGUID.Invalidate();
-        }
-        else
-        {
-            // Create actual package.
-            PackageNew = CreatePackage( OuterPackage, *PackageName );
-            break;
-        }
-    }
-
-    if( PackageNew && BakeMode == EBakeMode::ReplaceExisitingAssets )
-    {
-        HoudiniAssetComponent->BakedMaterialPackagesForIds.Add( TextureInfoDescriptor, PackageNew );
-    }
-
-#endif
-
-    return PackageNew;
+    return FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
+        HoudiniAssetComponent, TextureInfoDescriptor, TextureName, BakeMode );
 }
 
 bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
@@ -5334,7 +5265,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         MeshGuid.Invalidate();
 
                         UPackage * MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-                            HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, MeshGuid, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                            HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, MeshGuid, FHoudiniEngineUtils::GetStaticMeshesCookMode() );
                         if( !MeshPackage )
                             continue;
 
@@ -5385,7 +5316,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HAPI_AttributeInfo AttribInfoAlpha{};
                     HAPI_AttributeInfo AttribInfoNormals{};
                     HAPI_AttributeInfo AttribInfoFaceSmoothingMasks{};
-                    HAPI_AttributeInfo AttribInfoUVs[ MAX_STATIC_TEXCOORDS ]{{}};
+                    HAPI_AttributeInfo AttribInfoUVs[ MAX_STATIC_TEXCOORDS ]{};
 
                     if ( bRebuildStaticMesh )
                     {
@@ -6826,7 +6757,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             if(FoundMaterialInterface)
                 FoundMaterial = Cast< UMaterial >(*FoundMaterialInterface);
 
-	    UMaterial * Material = nullptr;
+            UMaterial * Material = nullptr;
             bool bCreatedNewMaterial = false;
 
             if ( FoundMaterial )
@@ -6844,17 +6775,19 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             else
             {
                 // Material was not found, we need to create it.
-
                 FString MaterialName = TEXT( "" );
+
+                FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+                EObjectFlags ObjFlags = ( BakeMode == FHoudiniEngineUtils::EBakeMode::Intermediate ) ? RF_Transactional : RF_Public | RF_Standalone;
 
                 // Create material package and get material name.
                 UPackage * MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-                    HoudiniAssetComponent, MaterialInfo, MaterialName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                    HoudiniAssetComponent, MaterialInfo, MaterialName, BakeMode );
 
                 // Create new material.
                 Material = (UMaterial *) MaterialFactory->FactoryCreateNew(
                     UMaterial::StaticClass(), MaterialPackage,
-                    *MaterialName, RF_Transactional, NULL, GWarn );
+                    *MaterialName, ObjFlags, NULL, GWarn );
 
                 // Add meta information to this package.
                 FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -6956,6 +6889,9 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
 {
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
+
     // Names of generating Houdini parameters.
     FString GeneratingParameterNameDiffuseTexture = TEXT( "" );
     FString GeneratingParameterNameUniformColor = TEXT( "" );
@@ -6991,7 +6927,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
     if ( !ExpressionConstant4Vector )
     {
         ExpressionConstant4Vector = NewObject< UMaterialExpressionVectorParameter >(
-            Material, UMaterialExpressionVectorParameter::StaticClass(), NAME_None, RF_Transactional );
+            Material, UMaterialExpressionVectorParameter::StaticClass(), NAME_None, ObjectFlag );
         ExpressionConstant4Vector->DefaultValue = FLinearColor::White;
     }
 
@@ -7007,7 +6943,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
     if ( !ExpressionVertexColor )
     {
         ExpressionVertexColor = NewObject< UMaterialExpressionVertexColor >(
-            Material, UMaterialExpressionVertexColor::StaticClass(), NAME_None, RF_Transactional );
+            Material, UMaterialExpressionVertexColor::StaticClass(), NAME_None, ObjectFlag );
         ExpressionVertexColor->Desc = GeneratingParameterNameVertexColor;
     }
 
@@ -7018,7 +6954,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
     UMaterialExpressionMultiply * MaterialExpressionMultiply = Cast< UMaterialExpressionMultiply >( MaterialExpression );
     if ( !MaterialExpressionMultiply )
         MaterialExpressionMultiply = NewObject< UMaterialExpressionMultiply >(
-            Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, RF_Transactional );
+            Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag );
 
     // Add expression.
     Material->Expressions.Add( MaterialExpressionMultiply );
@@ -7149,7 +7085,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
-                        TextureDiffuseName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                        TextureDiffuseName, BakeMode );
                 }
 
                 // Create diffuse texture, if we need to create one.
@@ -7164,11 +7100,14 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
                     CreateTexture2DParameters,
                     TEXTUREGROUP_World );
 
+                if ( BakeMode == EBakeMode::CookToTemp )
+                    TextureDiffuse->SetFlags( RF_Public | RF_Standalone );
+
                 // Create diffuse sampling expression, if needed.
                 if ( !ExpressionTextureSample )
                 {
                     ExpressionTextureSample = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
                 }
 
                 // Record generating parameter.
@@ -7217,7 +7156,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
         if ( !MaterialExpressionMultiplySecondary )
         {
             MaterialExpressionMultiplySecondary = NewObject< UMaterialExpressionMultiply >(
-                Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, RF_Transactional );
+                Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag );
 
             // Add expression.
             Material->Expressions.Add( MaterialExpressionMultiplySecondary );
@@ -7305,6 +7244,9 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
 
     UMaterialExpression * MaterialExpression = Material->OpacityMask.Expression;
 
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
+
     // Opacity expressions.
     UMaterialExpressionTextureSampleParameter2D * ExpressionTextureOpacitySample = nullptr;
     UTexture2D * TextureOpacity = nullptr;
@@ -7387,7 +7329,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK,
-                        TextureOpacityName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                        TextureOpacityName, BakeMode );
                 }
 
                 // Create opacity texture, if we need to create one.
@@ -7402,11 +7344,14 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
                     CreateTexture2DParameters,
                     TEXTUREGROUP_World );
 
+                if ( BakeMode == EBakeMode::CookToTemp )
+                    TextureOpacity->SetFlags(RF_Public | RF_Standalone);
+
                 // Create opacity sampling expression, if needed.
                 if ( !ExpressionTextureOpacitySample )
                 {
                     ExpressionTextureOpacitySample = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
                 }
 
                 // Record generating parameter.
@@ -7463,6 +7408,9 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
     float OpacityValue = 1.0f;
     bool bNeedsTranslucency = false;
+
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameters.
     FString GeneratingParameterNameScalar = TEXT( "" );
@@ -7530,7 +7478,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(
                 if ( !ExpressionScalarOpacity )
                 {
                     ExpressionScalarOpacity = NewObject< UMaterialExpressionScalarParameter >(
-                        Material, UMaterialExpressionScalarParameter::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionScalarParameter::StaticClass(), NAME_None, ObjectFlag );
                 }
 
                 // Clamp retrieved value.
@@ -7567,7 +7515,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(
 
         if ( !ExpressionMultiply )
             ExpressionMultiply = NewObject< UMaterialExpressionMultiply >(
-                Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, RF_Transactional );
+                Material, UMaterialExpressionMultiply::StaticClass(), NAME_None, ObjectFlag );
 
         Material->Expressions.Add( ExpressionMultiply );
 
@@ -7631,6 +7579,9 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
     bool bExpressionCreated = false;
     bool bTangentSpaceNormal = true;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
     FString GeneratingParameterName = TEXT( "" );
@@ -7741,7 +7692,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                             HoudiniAssetComponent,
                             MaterialInfo,
                             HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-                            TextureNormalName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                            TextureNormalName, BakeMode );
                 }
 
                 // Create normal texture, if we need to create one.
@@ -7756,10 +7707,13 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                     CreateTexture2DParameters,
                     TEXTUREGROUP_WorldNormalMap );
 
+                if ( BakeMode == EBakeMode::CookToTemp )
+                    TextureNormal->SetFlags(RF_Public | RF_Standalone);
+
                 // Create normal sampling expression, if needed.
                 if ( !ExpressionNormal )
                     ExpressionNormal = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
 
                 // Record generating parameter.
                 ExpressionNormal->Desc = GeneratingParameterName;
@@ -7856,7 +7810,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                             HoudiniAssetComponent,
                             MaterialInfo,
                             HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-                            TextureNormalName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                            TextureNormalName, BakeMode );
                     }
 
                     // Create normal texture, if we need to create one.
@@ -7870,10 +7824,13 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, CreateTexture2DParameters,
                         TEXTUREGROUP_WorldNormalMap );
 
+                    if ( BakeMode == EBakeMode::CookToTemp )
+                        TextureNormal->SetFlags( RF_Public | RF_Standalone );
+
                     // Create normal sampling expression, if needed.
                     if ( !ExpressionNormal )
                         ExpressionNormal = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                            Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional);
+                            Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
 
                     // Record generating parameter.
                     ExpressionNormal->Desc = GeneratingParameterName;
@@ -7919,6 +7876,9 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
     FString GeneratingParameterName = TEXT( "" );
@@ -7997,7 +7957,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
-                        TextureSpecularName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                        TextureSpecularName, BakeMode );
                 }
 
                 // Create specular texture, if we need to create one.
@@ -8012,11 +7972,14 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
                     CreateTexture2DParameters,
                     TEXTUREGROUP_World );
 
+                if ( BakeMode == EBakeMode::CookToTemp )
+                    TextureSpecular->SetFlags( RF_Public | RF_Standalone );
+
                 // Create specular sampling expression, if needed.
                 if ( !ExpressionSpecular )
                 {
                     ExpressionSpecular = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
                 }
 
                 // Record generating parameter.
@@ -8084,7 +8047,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
                 }
 
                 ExpressionSpecularColor = NewObject< UMaterialExpressionVectorParameter >(
-                    Material, UMaterialExpressionVectorParameter::StaticClass(), NAME_None, RF_Transactional );
+                    Material, UMaterialExpressionVectorParameter::StaticClass(), NAME_None, ObjectFlag );
             }
 
             // Record generating parameter.
@@ -8117,6 +8080,9 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
     FString GeneratingParameterName = TEXT( "" );
@@ -8195,7 +8161,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
-                        TextureRoughnessName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                        TextureRoughnessName, BakeMode );
                 }
 
                 // Create roughness texture, if we need to create one.
@@ -8210,10 +8176,13 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
                     CreateTexture2DParameters,
                     TEXTUREGROUP_World );
 
+                if ( BakeMode == EBakeMode::CookToTemp )
+                    TextureRoughness->SetFlags( RF_Public | RF_Standalone );
+
                 // Create roughness sampling expression, if needed.
                 if ( !ExpressionRoughness )
                     ExpressionRoughness = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
 
                 // Record generating parameter.
                 ExpressionRoughness->Desc = GeneratingParameterName;
@@ -8280,7 +8249,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
                 }
 
                 ExpressionRoughnessValue = NewObject< UMaterialExpressionScalarParameter >(
-                    Material, UMaterialExpressionScalarParameter::StaticClass(), NAME_None, RF_Transactional );
+                    Material, UMaterialExpressionScalarParameter::StaticClass(), NAME_None, ObjectFlag );
             }
 
             // Record generating parameter.
@@ -8315,6 +8284,9 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
     FString GeneratingParameterName = TEXT( "" );
@@ -8385,7 +8357,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
-                        TextureMetallicName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                        TextureMetallicName, BakeMode );
                 }
 
                 // Create metallic texture, if we need to create one.
@@ -8400,10 +8372,13 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
                     CreateTexture2DParameters,
                     TEXTUREGROUP_World );
 
+                if ( BakeMode == EBakeMode::CookToTemp )
+                    TextureMetallic->SetFlags( RF_Public | RF_Standalone );
+
                 // Create metallic sampling expression, if needed.
                 if ( !ExpressionMetallic )
                     ExpressionMetallic = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
 
                 // Record generating parameter.
                 ExpressionMetallic->Desc = GeneratingParameterName;
@@ -8460,7 +8435,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
                 }
 
                 ExpressionMetallicValue = NewObject< UMaterialExpressionScalarParameter >(
-                    Material, UMaterialExpressionScalarParameter::StaticClass(), NAME_None, RF_Transactional );
+                    Material, UMaterialExpressionScalarParameter::StaticClass(), NAME_None, ObjectFlag );
             }
 
             // Record generating parameter.
@@ -8496,6 +8471,9 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
+
+    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
     FString GeneratingParameterName = TEXT("");
@@ -8566,7 +8544,7 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(
                         HoudiniAssetComponent,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE,
-                        TextureEmissiveName, FHoudiniEngineUtils::EBakeMode::Intermediate );
+                        TextureEmissiveName, BakeMode );
                 }
 
                 // Create emissive texture, if we need to create one.
@@ -8581,10 +8559,13 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(
                     CreateTexture2DParameters,
                     TEXTUREGROUP_World );
 
+                if ( BakeMode == EBakeMode::CookToTemp )
+                    TextureEmissive->SetFlags( RF_Public | RF_Standalone );
+
                 // Create emissive sampling expression, if needed.
                 if ( !ExpressionEmissive )
                     ExpressionEmissive = NewObject< UMaterialExpressionTextureSampleParameter2D >(
-                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, RF_Transactional );
+                        Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag );
 
                 // Record generating parameter.
                 ExpressionEmissive->Desc = GeneratingParameterName;
@@ -8649,7 +8630,7 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(
                 }
 
                 ExpressionEmissiveColor = NewObject< UMaterialExpressionConstant4Vector >(
-                    Material, UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, RF_Transactional );
+                    Material, UMaterialExpressionConstant4Vector::StaticClass(), NAME_None, ObjectFlag );
             }
 
             // Record generating parameter.
@@ -9734,7 +9715,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
                         {
                             // Duplicate material resource.
                             UMaterial * DuplicatedMaterial = FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-                                Material, Component, MaterialName, BakeMode );
+                                Material, Component, MaterialName, FHoudiniEngineUtils::GetMaterialAndTextureCookMode() );
 
                             if( !DuplicatedMaterial )
                                 continue;
@@ -9774,7 +9755,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
 
     // Create material package.
     FString MaterialName;
-    UPackage * MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
+    UPackage * MaterialPackage = FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         Component, SubMaterialName, MaterialName, BakeMode );
 
     if( !MaterialPackage )
@@ -9867,8 +9848,8 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
 
                 // Create texture package.
                 FString TextureName;
-                UPackage * NewTexturePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                    Component, SubTextureName, TextureType, TextureName, BakeMode );
+                UPackage * NewTexturePackage = FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
+                    Component, SubTextureName, TextureName, BakeMode );
 
                 if( !NewTexturePackage )
                     return nullptr;
@@ -10857,4 +10838,183 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
     Socket->Tag = TEXT("");
 
     return true;
+}
+
+int32
+FHoudiniEngineUtils::GetUPropertyAttributesList(
+    const HAPI_NodeId& NodeId,
+    const HAPI_PartId& PartId,
+    HAPI_PartInfo* PartInfo,
+    TArray< FString >& AllUPropsNames,
+    TArray< float >& AllUPropsValue)
+{
+    if ( !PartInfo )
+        return 0;
+
+    int32 nUPropCount = 0;
+
+    // Get All Detail attribute names for that part
+    int32 nAttribCount = PartInfo->attributeCounts[ HAPI_ATTROWNER_DETAIL ];
+
+    TArray<HAPI_StringHandle> AttribNameSHArray;
+    AttribNameSHArray.SetNum( nAttribCount );
+
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeNames(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, PartId, HAPI_ATTROWNER_DETAIL, 
+        AttribNameSHArray.GetData(), nAttribCount ) )
+        return 0;
+
+    for ( int32 Idx = 0; Idx < AttribNameSHArray.Num(); ++Idx )
+    {
+        FString HapiString = TEXT("");
+        FHoudiniEngineString HoudiniEngineString( AttribNameSHArray[ Idx ] );
+        HoudiniEngineString.ToFString( HapiString );
+
+        if ( HapiString.StartsWith( "unreal_uproperty_",  ESearchCase::IgnoreCase ) )
+        {
+            // Extract the name of the UProperty from the attribute name
+            FString UPropName = HapiString.Right( HapiString.Len() - 17 );
+
+            // Get the Attribute Info
+            HAPI_AttributeInfo AttribInfo;
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
+                FHoudiniEngine::Get().GetSession(),
+                NodeId, PartId, TCHAR_TO_UTF8( *HapiString ),
+                HAPI_ATTROWNER_DETAIL, &AttribInfo ), false );
+
+            // and its value
+            float Value;
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                NodeId, PartId, 
+                TCHAR_TO_UTF8( *HapiString) ,&AttribInfo,
+                0, &Value, 0, 1 ), false );
+
+            // Add to the array
+            AllUPropsNames.Add( UPropName );
+            AllUPropsValue.Add( Value );
+        }
+    }
+    
+    return nUPropCount;
+}
+
+void 
+FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoudiniGeoPartObject GeoPartObject )
+{
+    if ( !SMC )
+        return;
+
+    HAPI_NodeId NodeId = GeoPartObject.HapiGeoGetNodeId();
+    HAPI_PartInfo PartInfo;
+    if ( !GeoPartObject.HapiPartGetInfo(PartInfo) )
+        return;
+
+    TArray< FString > AllUPropsNames;
+    TArray< float > AllUPropsValue;
+
+    FHoudiniEngineUtils::GetUPropertyAttributesList(
+        NodeId,
+        GeoPartObject.PartId,
+        &PartInfo,
+        AllUPropsNames,
+        AllUPropsValue );
+
+    if ( ( AllUPropsNames.Num() <= 0 ) || ( AllUPropsValue.Num() <= 0 ) )
+        return;
+
+    // Trying to find the UProps in the object 
+    for ( int32 nIdx = 0; nIdx < AllUPropsNames.Num(); nIdx++ )
+    {
+        FString CurrentUPropertyName = AllUPropsNames[nIdx];
+
+        // We have to iterate manually on the properties, in order to handle structProperties correctly
+        void* StructContainer = nullptr;
+        UProperty* FoundProperty = nullptr;
+        for ( TFieldIterator< UProperty > PropIt( SMC->StaticClass() ); PropIt; ++PropIt )
+        {
+            UProperty* CurrentProperty = *PropIt;
+            if ( CurrentProperty->GetName() == CurrentUPropertyName )
+            {
+                FoundProperty = CurrentProperty;
+                break;
+            }
+
+            // StructProperty need to be  a nested struct
+            if ( UStructProperty* StructProperty = Cast< UStructProperty >( CurrentProperty ) )
+            {
+                // Walk the structs' properties and try to find the one we're looking for
+                UScriptStruct* Struct = StructProperty->Struct;
+                for ( TFieldIterator< UProperty > It( Struct ); It; ++It )
+                {
+                    UProperty* Property = *It;
+                    if ( It->GetName() == CurrentUPropertyName )
+                    {
+                        // We found the property in the strcut property, we need to kep the ValuePtr in the object
+                        // of the structProp in order to be able to acces the property value afterwards...
+                        FoundProperty = Property;
+                        StructContainer = StructProperty->ContainerPtrToValuePtr< void >( SMC, 0 );
+                        break;
+                    }
+                }
+            }
+
+            if ( FoundProperty )
+                break;
+        }
+
+        // Couldn.t Find the property
+        if ( !FoundProperty )
+            continue;
+
+        if ( UFloatProperty* FloatProperty = Cast< UFloatProperty >( FoundProperty ) )
+        {
+            float Value = AllUPropsValue[ nIdx ];
+            if ( !StructContainer )
+                FloatProperty->SetFloatingPointPropertyValue( FoundProperty->ContainerPtrToValuePtr< float >( SMC ), Value );
+            else
+                FloatProperty->SetFloatingPointPropertyValue( FoundProperty->ContainerPtrToValuePtr< float >( ( uint8* )StructContainer ), Value );
+        }
+        else if ( UIntProperty* IntProperty = Cast< UIntProperty >( FoundProperty ) )
+        {
+            int32 Value = ( int32 )AllUPropsValue[ nIdx ];
+            if ( !StructContainer )
+                IntProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< int32 >( SMC ), Value );
+            else
+                IntProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< int32 >( ( uint8* )StructContainer ), Value );
+            
+        }
+        else if ( UBoolProperty* BoolProperty = Cast< UBoolProperty >( FoundProperty ) )
+        {
+            bool Value = AllUPropsValue[ nIdx ] == 0 ? false : true;
+            if ( !StructContainer )
+                BoolProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< bool >( SMC ), Value );
+            else
+                BoolProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< bool >( ( uint8* ) StructContainer ), Value );
+        }
+        else if ( UObjectProperty* ObjectProperty = Cast< UObjectProperty >( FoundProperty ) )
+        {
+            //UObject* Value = nullptr;
+            //ObjectProperty->SetObjectPropertyValue( FoundProperty->ContainerPtrToValuePtr< UObject* >( SMC ), Value );
+        }
+        else if ( UStrProperty* StringProperty = Cast< UStrProperty >( FoundProperty ) )
+        {
+            //FString Value;
+            //StringProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< FString >( SMC ), Value );
+        }
+    }
+}
+
+FHoudiniEngineUtils::EBakeMode
+FHoudiniEngineUtils::GetMaterialAndTextureCookMode()
+{
+    return EBakeMode::CookToTemp; //EBakeMode::Intermediate;
+}
+
+FHoudiniEngineUtils::EBakeMode
+FHoudiniEngineUtils::GetStaticMeshesCookMode()
+{
+    return EBakeMode::Intermediate;
 }

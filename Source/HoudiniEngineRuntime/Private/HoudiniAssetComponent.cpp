@@ -2227,7 +2227,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
 
         // Duplicate static mesh and all related generated Houdini materials and textures.
         UStaticMesh * DuplicatedStaticMesh =
-            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::Intermediate );
+            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniEngineUtils::GetStaticMeshesCookMode() );
 
         if( DuplicatedStaticMesh )
         {
@@ -2479,6 +2479,21 @@ UHoudiniAssetComponent::SetBakeFolder( const FString& Folder )
     }
 }
 
+FText
+UHoudiniAssetComponent::GetTempCookFolder() const
+{
+    // Empty indicates default
+    if ( TempCookFolder.IsEmpty() )
+    {
+        // Get runtime settings.
+        const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+        check( HoudiniRuntimeSettings );
+
+        return HoudiniRuntimeSettings->TemporaryCookFolder;
+    }
+    return TempCookFolder;
+}
+
 FString UHoudiniAssetComponent::GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const
 {
     if( const FString* FoundOverride = BakeNameOverrides.Find( GeoPartObject ) )
@@ -2661,6 +2676,9 @@ UHoudiniAssetComponent::OnComponentDestroyed( bool bDestroyingHierarchy )
 
     // Inform downstream assets that we are dieing.
     ClearDownstreamAssets();
+
+    // Clear cook content temp file
+    ClearCookTempFile();
 
 #if WITH_EDITOR
 
@@ -2994,6 +3012,42 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         Ar << BakeNameOverrides;
     }
 
+    if (HoudiniAssetComponentVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_COOK_TEMP_PACKAGES)
+    {
+        TMap<FString, FString> SavedPackages;
+        if ( Ar.IsSaving() )
+        {
+            for (TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages); IterPackage; ++IterPackage)
+            {
+                UPackage * Package = IterPackage.Value().Get();
+
+                FString sValue;
+                if ( Package )
+                    sValue = Package->GetFName().ToString();
+
+                FString sKey = IterPackage.Key();
+                SavedPackages.Add(sKey, sValue);
+            }
+        }
+
+        Ar << SavedPackages;
+
+        if ( Ar.IsLoading() )
+        {
+            for (TMap<FString, FString > ::TIterator IterPackage(SavedPackages); IterPackage; ++IterPackage)
+            {
+                FString sKey = IterPackage.Key();
+                FString PackageFile = IterPackage.Value();
+
+                UPackage * Package = nullptr;
+                if ( !PackageFile.IsEmpty() )
+                    Package = LoadPackage(nullptr, *PackageFile, LOAD_None);
+
+                CookedTemporaryPackages.Add( sKey, Package );
+            }
+        }
+    }
+
     if ( Ar.IsLoading() && bIsNativeComponent )
     {
         // This component has been loaded.
@@ -3163,6 +3217,26 @@ UHoudiniAssetComponent::PostEditUndo()
 {
     // We need to make sure that all mesh components in the maps are valid ones
     CleanUpAttachedStaticMeshComponents();
+
+    // Check the cooked materials refer to something..
+    bool bCookedMaterialNeedRecook = false;
+
+    for ( TMap< FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryPackages ); IterPackage; ++IterPackage )
+    {
+        UPackage * Package = IterPackage.Value().Get();
+        if (Package)
+        {
+            FString PackageName = Package->GetName();
+            if ( !PackageName.IsEmpty() && ( PackageName != TEXT( "None" ) ) )
+                continue;
+        }
+
+        bCookedMaterialNeedRecook = true;
+        break;
+    }
+
+    if ( bCookedMaterialNeedRecook )
+        StartTaskAssetCookingManual();
 
     Super::PostEditUndo();
 }
@@ -4967,6 +5041,8 @@ UHoudiniAssetComponent::CreateLandscape(
             XSize, YSize ) )
                 continue;
 
+        // currentLayerInfo.LayerInfo->bNoWeightBlend = false;
+
         ImportLayerInfos.Add( currentLayerInfo );
     }
         
@@ -5111,6 +5187,30 @@ UHoudiniAssetComponent::ClearDownstreamAssets()
     }
 
     DownstreamAssetConnections.Empty();
+}
+
+void
+UHoudiniAssetComponent::ClearCookTempFile()
+{
+    // First, Clean up the assignement/replacement map
+    HoudiniAssetComponentMaterials->ResetMaterialInfo();
+
+    // Then delete all the materials
+    //for ( TMap<FString, UPackage* > ::TIterator IterPackage( CookedTemporaryPackages );
+    for ( TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages );
+        IterPackage; ++IterPackage)
+    {
+        UPackage * Package = IterPackage.Value().Get();
+        if ( !Package )
+            continue;
+
+        // This happens when the prior baked output gets renamed, we can delete this 
+        // orphaned package so that we can re-use the name
+        Package->ClearFlags( RF_Standalone );
+        Package->ConditionalBeginDestroy();
+    }
+
+    CookedTemporaryPackages.Empty();
 }
 
 UStaticMesh *

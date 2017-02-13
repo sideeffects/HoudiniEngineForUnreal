@@ -63,7 +63,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         {
             Intermediate,
             CreateNewAssets,
-            ReplaceExisitingAssets
+            ReplaceExisitingAssets,
+            CookToTemp
         };
 
         /** Return a string description of error from a given error code. **/
@@ -326,9 +327,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data,
             int32 TupleSize = 0 );
 
-        static bool HapiGetAttributeDataAsString(
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
-            HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize = 0 );
+         static bool HapiGetAttributeDataAsString(
+             const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
+             HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize = 0 );
 
         /** HAPI : Get parameter data as float. **/
         static bool HapiGetParameterDataAsFloat(
@@ -468,6 +469,15 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
             FString & MeshName, FGuid & BakeGUID, EBakeMode BakeMode );
 
+        /** Return a list with all the UProperty attributes found **/
+        static int32 GetUPropertyAttributesList(
+            const HAPI_NodeId& NodeId,  const HAPI_PartId& PartId, HAPI_PartInfo* PartInfo, 
+            TArray< FString >& AllUPropsNames,  TArray< float >& AllUPropsValue );
+
+        /** Try to update values from all the UProperty attributes found for this object **/
+        static void UpdateUPropertyAttributes( 
+            UStaticMeshComponent* SMC, FHoudiniGeoPartObject GeoPartObject );
+
 #if WITH_EDITOR
 
         /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
@@ -487,6 +497,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Bakes output meshes and materials to packages and sets them on an input */
         static void BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent );
+
+        static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
+
+        /** Helper function used get the desired cook behavior for Materials and textures **/
+        static FHoudiniEngineUtils::EBakeMode GetMaterialAndTextureCookMode();
+
+        /** Helper function used get the desired cook behavior forStatic Meshes **/
+        static FHoudiniEngineUtils::EBakeMode GetStaticMeshesCookMode();
 #endif
 
     protected:
@@ -507,21 +525,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static UPackage * BakeCreateMaterialPackageForComponent(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, EBakeMode BakeMode );
-        static UPackage * BakeCreateMaterialPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
-            const FString & MaterialInfoDescriptor, FString & MaterialName, EBakeMode BakeMode );
 
         /** Create a package for a given component for texture. **/
         static UPackage * BakeCreateTexturePackageForComponent(
             UHoudiniAssetComponent * HoudiniAssetComponent,
             const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
             FString & TextureName, EBakeMode BakeMode );
-        static UPackage * BakeCreateTexturePackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
-            const FString & TextureInfoDescriptor, const FString & TextureType,
-            FString & TextureName, EBakeMode BakeMode );
 
-        static bool CheckPackageSafeForBake( UPackage* Package, FString& FoundAssetName );
+        /** Create a package for a given component for either a texture or material **/
+        static UPackage * BakeCreateTextureOrMaterialPackageForComponent(
+            UHoudiniAssetComponent * HoudiniAssetComponent,
+            const FString & MaterialInfoDescriptor, FString & MaterialName, EBakeMode BakeMode );
 
         /** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
         static int32 TransferRegularPointAttributesToVertices(

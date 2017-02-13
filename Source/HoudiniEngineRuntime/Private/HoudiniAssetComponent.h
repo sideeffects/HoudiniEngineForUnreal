@@ -525,6 +525,9 @@ public:
         /** Sets a new bake folder */
         void SetBakeFolder( const FString& Folder );
 
+        /** Returns the path to the temporary cooking folder */
+        FText GetTempCookFolder() const;
+
         FString GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const;
 
         void SetBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject, const FString& BaseName );
@@ -552,6 +555,9 @@ public:
 
         /** Clear all landscapes **/
         void ClearLandscapes();
+
+        /** Clear cooked content temp files **/
+        void ClearCookTempFile();
 
         /** Delete Static mesh resources. This will free static meshes and corresponding components. **/
         void ReleaseObjectGeoPartResources(
@@ -587,8 +593,8 @@ public:
         /** Serialize instance inputs. **/
         void SerializeInstanceInputs( FArchive & Ar );
 
-        /** Serialize parameters. **/
-        void SerializeParameters( FArchive & Ar );
+	/** Serialize parameters. **/
+	void SerializeParameters( FArchive & Ar );
 
         /** Used to perform post loading initialization on instance inputs. **/
         void PostLoadInitializeInstanceInputs();
@@ -619,6 +625,9 @@ public:
         TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> > BakedStaticMeshPackagesForParts;
         /** Transient cache of last baked materials and textures */
         TMap<FString, TWeakObjectPtr<class UPackage> > BakedMaterialPackagesForIds;
+
+        /** Cache of the temp cook content packages created by the asset */
+        TMap<FString, TWeakObjectPtr<class UPackage> > CookedTemporaryPackages;
 
         /** Indicates that the details panels doesn't need a "full" update to avoid breaking parameter selection    **/
         /** (default behavior is true)										    **/
@@ -670,6 +679,10 @@ public:
         /** The output folder for baking actions */
         UPROPERTY()
         FText BakeFolder;
+
+        /** The temporary output folder for cooking actions */
+        UPROPERTY()
+        FText TempCookFolder;
 
         /** overrides for baking names per part */
         TMap< FHoudiniGeoPartObject, FString > BakeNameOverrides;
