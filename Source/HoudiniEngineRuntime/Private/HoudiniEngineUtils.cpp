@@ -11010,11 +11010,11 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
 FHoudiniEngineUtils::EBakeMode
 FHoudiniEngineUtils::GetMaterialAndTextureCookMode()
 {
-    return EBakeMode::CookToTemp; //EBakeMode::Intermediate;
+    return FHoudiniEngineUtils::EBakeMode::CookToTemp; //EBakeMode::Intermediate;
 }
 
 FHoudiniEngineUtils::EBakeMode
 FHoudiniEngineUtils::GetStaticMeshesCookMode()
 {
-    return EBakeMode::Intermediate;
+    return FHoudiniEngineUtils::EBakeMode::Intermediate;
 }

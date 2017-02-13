@@ -478,6 +478,14 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static void UpdateUPropertyAttributes( 
             UStaticMeshComponent* SMC, FHoudiniGeoPartObject GeoPartObject );
 
+        static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
+
+        /** Helper function used get the desired cook behavior for Materials and textures **/
+        static FHoudiniEngineUtils::EBakeMode GetMaterialAndTextureCookMode();
+
+        /** Helper function used get the desired cook behavior forStatic Meshes **/
+        static FHoudiniEngineUtils::EBakeMode GetStaticMeshesCookMode();
+
 #if WITH_EDITOR
 
         /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
@@ -498,13 +506,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Bakes output meshes and materials to packages and sets them on an input */
         static void BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent );
 
-        static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
-
-        /** Helper function used get the desired cook behavior for Materials and textures **/
-        static FHoudiniEngineUtils::EBakeMode GetMaterialAndTextureCookMode();
-
-        /** Helper function used get the desired cook behavior forStatic Meshes **/
-        static FHoudiniEngineUtils::EBakeMode GetStaticMeshesCookMode();
 #endif
 
     protected:
