@@ -3937,78 +3937,126 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
 
     while ( true )
     {
-        if( BakeMode == EBakeMode::ReplaceExisitingAssets )
+        if( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) )
         {
-            // Find a previously baked asset
-            if( auto FoundPackage = HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Find( HoudiniGeoPartObject ) )
-            {
-                if( (*FoundPackage).IsValid() )
-                {
-                    UPackage* FoundPkg = (*FoundPackage).Get();
-                    if( UPackage::IsEmptyPackage( FoundPkg ) )
-                    {
-                        // This happens when the prior baked output gets renamed, we can delete this 
-                        // orphaned package so that we can re-use the name
-                        FoundPkg->ClearFlags( RF_Standalone );
-                        FoundPkg->ConditionalBeginDestroy();
+            bool bRemovePackageFromCache = false;
 
-                        HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Remove( HoudiniGeoPartObject );
-                    }
-                    else
-                    {
-                        if( CheckPackageSafeForBake( FoundPkg, MeshName ) && !MeshName.IsEmpty() )
-                        {
-                            return FoundPkg;
-                        }
-                        else
-                        {
-                            // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
-                            //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
-                            return nullptr;
-                        }
-                    }
+            UPackage* FoundPackage = nullptr;
+            if (BakeMode == EBakeMode::ReplaceExisitingAssets)
+            {
+                TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Find( HoudiniGeoPartObject );
+                if ( FoundPointer )
+                {
+                    if ( ( *FoundPointer ).IsValid() )
+                        FoundPackage = ( *FoundPointer ).Get();
                 }
                 else
                 {
-                    HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Remove( HoudiniGeoPartObject );
+                    bRemovePackageFromCache = true;
                 }
+            }
+            else
+            {
+                TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->CookedTemporaryStaticMeshPackages.Find( HoudiniGeoPartObject );
+                if ( FoundPointer )
+                {
+                    if ( ( *FoundPointer ).IsValid() )
+                        FoundPackage = ( *FoundPointer ).Get();
+                }
+                else
+                {
+                    bRemovePackageFromCache = true;
+                }
+            }
+
+            // Find a previously baked / cooked asset
+            if ( FoundPackage )
+            {
+                if ( UPackage::IsEmptyPackage( FoundPackage ) )
+                {
+                    // This happens when the prior baked output gets renamed, we can delete this 
+                    // orphaned package so that we can re-use the name
+                    FoundPackage->ClearFlags( RF_Standalone );
+                    FoundPackage->ConditionalBeginDestroy();
+
+                    bRemovePackageFromCache = true;
+                }
+                else
+                {
+                    if ( CheckPackageSafeForBake( FoundPackage, MeshName ) && !MeshName.IsEmpty() )
+                    {
+                        return FoundPackage;
+                    }
+                    else
+                    {
+                        // Found the package but we can't update it.  We already issued an error, but should popup the standard reference error dialog
+                        //::ErrorPopup( TEXT( "Baking Failed: Could not overwrite %s, because it is being referenced" ), *(*FoundPackage)->GetPathName() );
+
+                        // If we're cooking, we'll create a new package, if baking, fail
+                        if ( BakeMode != EBakeMode::CookToTemp )
+                            return nullptr;
+                    }
+                }
+
+                bRemovePackageFromCache = true;
+            }
+
+            if ( bRemovePackageFromCache )
+            {
+                // Package is either invalid / not found so we need to remove it from the cache
+                if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
+                    HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Remove( HoudiniGeoPartObject );
+                else
+                    HoudiniAssetComponent->CookedTemporaryStaticMeshPackages.Remove( HoudiniGeoPartObject );
             }
         }
 
         if ( !BakeGUID.IsValid() )
             BakeGUID = FGuid::NewGuid();
 
-        MeshName = HoudiniAssetComponent->GetBakingBaseName( HoudiniGeoPartObject);
+        MeshName = HoudiniAssetComponent->GetBakingBaseName( HoudiniGeoPartObject );
 
         if( BakeCount > 0 )
         {
             MeshName += FString::Printf( TEXT( "_%02d" ), BakeCount );
         }
 
-        if( BakeMode != EBakeMode::Intermediate )
+        switch ( BakeMode )
         {
-            PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + MeshName;
-        }
-        else
-        {
-            // We only want half of generated guid string.
-            FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
+            case EBakeMode::Intermediate:
+            {
+                // We only want half of generated guid string.
+                FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
 
-            MeshName += TEXT( "_" ) +
-                FString::FromInt( HoudiniGeoPartObject.ObjectId ) + TEXT( "_" ) +
-                FString::FromInt( HoudiniGeoPartObject.GeoId ) + TEXT( "_" ) +
-                FString::FromInt( HoudiniGeoPartObject.PartId ) + TEXT( "_" ) +
-                FString::FromInt( HoudiniGeoPartObject.SplitId ) + TEXT( "_" ) +
-                HoudiniGeoPartObject.SplitName + TEXT( "_" ) +
-                BakeGUIDString;
-            
-            PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName()) +
-                TEXT( "/" ) +
-                HoudiniAsset->GetName() +
-                TEXT( "_" ) +
-                ComponentGUIDString +
-                TEXT( "/" ) +
-                MeshName;
+                MeshName += TEXT("_") +
+                    FString::FromInt(HoudiniGeoPartObject.ObjectId) + TEXT("_") +
+                    FString::FromInt(HoudiniGeoPartObject.GeoId) + TEXT("_") +
+                    FString::FromInt(HoudiniGeoPartObject.PartId) + TEXT("_") +
+                    FString::FromInt(HoudiniGeoPartObject.SplitId) + TEXT("_") +
+                    HoudiniGeoPartObject.SplitName + TEXT("_") +
+                    BakeGUIDString;
+
+                PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName() ) +
+                    TEXT("/") +
+                    HoudiniAsset->GetName() +
+                    TEXT("_") +
+                    ComponentGUIDString +
+                    TEXT("/") +
+                    MeshName;
+            }
+            break;
+
+            case EBakeMode::CookToTemp:
+            {
+                PackageName = HoudiniAssetComponent->GetTempCookFolder().ToString() + TEXT("/") + MeshName;
+            }
+            break;
+
+            default:
+            {
+                PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT("/") + MeshName;
+            }
+            break;
         }
 
         // Santize package name.
@@ -4049,9 +4097,13 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
 
 #endif
 
-    if( PackageNew && BakeMode == EBakeMode::ReplaceExisitingAssets )
+    if ( PackageNew && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
     {
-        HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Add( HoudiniGeoPartObject, PackageNew );
+        // Add the new package to the cache
+        if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
+            HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Add( HoudiniGeoPartObject, PackageNew );
+        else
+            HoudiniAssetComponent->CookedTemporaryStaticMeshPackages.Add( HoudiniGeoPartObject, PackageNew );
     }
 
     return PackageNew;
@@ -5264,14 +5316,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     {
                         MeshGuid.Invalidate();
 
+                        FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetStaticMeshesCookMode();
                         UPackage * MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-                            HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, MeshGuid, FHoudiniEngineUtils::GetStaticMeshesCookMode() );
+                            HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, MeshGuid, BakeMode);
                         if( !MeshPackage )
                             continue;
 
                         StaticMesh = NewObject< UStaticMesh >(
                             MeshPackage, FName( *MeshName ),
-                            RF_Transactional );
+                            ( BakeMode == EBakeMode::Intermediate ) ? RF_Transactional : RF_Public | RF_Standalone );
 
                         // Add meta information to this package.
                         FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -11010,11 +11063,11 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
 FHoudiniEngineUtils::EBakeMode
 FHoudiniEngineUtils::GetMaterialAndTextureCookMode()
 {
-    return FHoudiniEngineUtils::EBakeMode::CookToTemp; //EBakeMode::Intermediate;
+    return FHoudiniEngineUtils::EBakeMode::CookToTemp; //Intermediate;
 }
 
 FHoudiniEngineUtils::EBakeMode
 FHoudiniEngineUtils::GetStaticMeshesCookMode()
 {
-    return FHoudiniEngineUtils::EBakeMode::Intermediate;
+    return FHoudiniEngineUtils::EBakeMode::Intermediate; // CookToTemp;
 }

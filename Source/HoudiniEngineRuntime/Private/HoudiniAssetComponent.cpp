@@ -3219,8 +3219,7 @@ UHoudiniAssetComponent::PostEditUndo()
     CleanUpAttachedStaticMeshComponents();
 
     // Check the cooked materials refer to something..
-    bool bCookedMaterialNeedRecook = false;
-
+    bool bCookedContentNeedRecook = false;
     for ( TMap< FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryPackages ); IterPackage; ++IterPackage )
     {
         UPackage * Package = IterPackage.Value().Get();
@@ -3231,11 +3230,26 @@ UHoudiniAssetComponent::PostEditUndo()
                 continue;
         }
 
-        bCookedMaterialNeedRecook = true;
+        bCookedContentNeedRecook = true;
         break;
     }
 
-    if ( bCookedMaterialNeedRecook )
+    // Check the cooked materials refer to something..
+    for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryStaticMeshPackages ); IterPackage; ++IterPackage )
+    {
+        UPackage * Package = IterPackage.Value().Get();
+        if ( Package )
+        {
+            FString PackageName = Package->GetName();
+            if ( !PackageName.IsEmpty() && ( PackageName != TEXT("None") ) )
+                continue;
+        }
+
+        bCookedContentNeedRecook = true;
+        break;
+    }
+
+    if ( bCookedContentNeedRecook )
         StartTaskAssetCookingManual();
 
     Super::PostEditUndo();
@@ -5204,13 +5218,25 @@ UHoudiniAssetComponent::ClearCookTempFile()
         if ( !Package )
             continue;
 
-        // This happens when the prior baked output gets renamed, we can delete this 
-        // orphaned package so that we can re-use the name
         Package->ClearFlags( RF_Standalone );
         Package->ConditionalBeginDestroy();
     }
 
     CookedTemporaryPackages.Empty();
+
+    // Delete all cooked Static Meshes
+    for ( TMap<FHoudiniGeoPartObject, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryStaticMeshPackages );
+        IterPackage; ++IterPackage )
+    {
+        UPackage * Package = IterPackage.Value().Get();
+        if ( !Package )
+            continue;
+
+        Package->ClearFlags( RF_Standalone );
+        Package->ConditionalBeginDestroy();
+    }
+
+    CookedTemporaryStaticMeshPackages.Empty();
 }
 
 UStaticMesh *

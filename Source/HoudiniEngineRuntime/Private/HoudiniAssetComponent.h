@@ -626,7 +626,9 @@ public:
         /** Transient cache of last baked materials and textures */
         TMap<FString, TWeakObjectPtr<class UPackage> > BakedMaterialPackagesForIds;
 
-        /** Cache of the temp cook content packages created by the asset */
+        /** Cache of the temp cook content packages created by the asset for its meshes				    **/
+        TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> > CookedTemporaryStaticMeshPackages;
+        /** Cache of the temp cook content packages created by the asset for its materials/textures		    **/
         TMap<FString, TWeakObjectPtr<class UPackage> > CookedTemporaryPackages;
 
         /** Indicates that the details panels doesn't need a "full" update to avoid breaking parameter selection    **/
