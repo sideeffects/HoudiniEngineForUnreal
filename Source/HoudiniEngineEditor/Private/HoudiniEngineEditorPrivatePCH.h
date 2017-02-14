@@ -39,4 +39,4 @@
 
  /** URL used for bug reporting. **/
 #define HAPI_UNREAL_BUG_REPORT_URL \
-    TEXT("http://www.sidefx.com/index.php?Itemid=239&id=768&option=com_content&task=view&category=Unreal%20Plug-in")
+    TEXT("https://www.sidefx.com/bugs/submit/")
