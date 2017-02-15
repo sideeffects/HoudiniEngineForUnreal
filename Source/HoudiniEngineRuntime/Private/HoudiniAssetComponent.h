@@ -470,6 +470,9 @@ public:
             UMaterialInterface* LandscapeMaterial,
             UMaterialInterface* LandscapeHoleMaterial );
 
+        /** Creates a LandscapeInfoObject in the TempCook folder **/
+        ULandscapeLayerInfoObject * CreateLandscapeLayerInfoObject( const TCHAR* LayerName, UPackage*& Package );
+
         /** Resizes the HeightData so that it matches Unreal's requirement for Landscape import **/
         void ResizeHeightDataForLandscape(
             int32& SizeX, int32& SizeY,

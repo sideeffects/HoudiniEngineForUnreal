@@ -4941,6 +4941,8 @@ UHoudiniAssetComponent::CreateLandscape(
     // Try to create all the layers
     TArray<FLandscapeImportLayerInfo> ImportLayerInfos;
     ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
+
+    TArray<UPackage *> CreatedLayerInfoPackage;
     for (TArray<const FHoudiniGeoPartObject *>::TConstIterator IterLayers( FoundLayers ); IterLayers; ++IterLayers)
     {
         HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -5016,9 +5018,13 @@ UHoudiniAssetComponent::CreateLandscape(
 
         FName LayerName( *LayerString );
         FLandscapeImportLayerInfo currentLayerInfo( LayerName );
-        currentLayerInfo.LayerInfo = Landscape->CreateLayerInfo( LayerString.GetCharArray().GetData() );
+        //currentLayerInfo.LayerInfo = Landscape->CreateLayerInfo( LayerString.GetCharArray().GetData() );
+        UPackage * Package;
+        currentLayerInfo.LayerInfo = CreateLandscapeLayerInfoObject( LayerString.GetCharArray().GetData(), Package );
         if ( !currentLayerInfo.LayerInfo )
             continue;
+
+        CreatedLayerInfoPackage.Add( Package );
 
         // Convert the float data to uint8
         currentLayerInfo.LayerData.SetNumUninitialized( LayerSizeInPoints );
@@ -5055,11 +5061,18 @@ UHoudiniAssetComponent::CreateLandscape(
             XSize, YSize ) )
                 continue;
 
-        // currentLayerInfo.LayerInfo->bNoWeightBlend = false;
+        currentLayerInfo.LayerInfo->bNoWeightBlend = false;
+
+        // Mark the package dirty...
+        //Package->MarkPackageDirty();
 
         ImportLayerInfos.Add( currentLayerInfo );
     }
-        
+
+    // Save the packages created for the LayerInfos
+    if ( CreatedLayerInfoPackage.Num() > 0 )
+        FEditorFileUtils::PromptForCheckoutAndSave( CreatedLayerInfoPackage, true, false );
+
     //--------------------------------------------------------------------------------------------------
     // 5. Import the landscape data
     //--------------------------------------------------------------------------------------------------
@@ -5095,6 +5108,41 @@ UHoudiniAssetComponent::CreateLandscape(
 
     return true;
 }
+
+ULandscapeLayerInfoObject *
+UHoudiniAssetComponent::CreateLandscapeLayerInfoObject( const TCHAR* LayerName, UPackage*& Package)
+{
+    //const FGuid & ComponentGUID = GetComponentGuid();
+    FString ComponentGUIDString = GetComponentGuid().ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
+
+    // Create the LandscapeInfoObjectName from the Asset name and the mask name
+    FName LayerObjectName = FName( *( HoudiniAsset->GetName() + ComponentGUIDString + FString::Printf( TEXT( "_LayerInfoObject_%s" ), LayerName ) ) );
+    
+    // Save the package in the temp folder
+    FString Path = GetTempCookFolder().ToString() + TEXT( "/" );
+    FString PackageName = Path + LayerObjectName.ToString();
+
+    // See if package exists, if it does, reuse it
+    //UPackage * Package = FindPackage( nullptr , *PackageName );
+    Package = FindPackage( nullptr, *PackageName );
+    if ( !Package )
+    {
+        // Package does not exsits, create it
+        Package = CreatePackage( nullptr, *PackageName );
+    }
+
+    ULandscapeLayerInfoObject* LayerInfo = NewObject<ULandscapeLayerInfoObject>( Package, LayerObjectName, RF_Public | RF_Standalone | RF_Transactional );
+    LayerInfo->LayerName = LayerName;
+
+    // Notify the asset registry
+    FAssetRegistryModule::AssetCreated( LayerInfo );
+
+    // Mark the package dirty...
+    Package->MarkPackageDirty();
+
+    return LayerInfo;
+}
+
 #endif
 
 void
