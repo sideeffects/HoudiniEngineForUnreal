@@ -314,3 +314,5 @@ FHoudiniRuntimeSettingsDetails::CreateHAPILicenseEntry(
     Row.ValueWidget.Widget = TextBlock;
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_SETTINGS_ROW_VALUE_WIDGET_WIDTH );
 }
+
+#undef LOCTEXT_NAMESPACE

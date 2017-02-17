@@ -30,6 +30,9 @@
 */
 
 #pragma once
+#include <string>
+#include "Engine/EngineTypes.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "HoudiniRuntimeSettings.generated.h"
 
 struct FRawMesh;

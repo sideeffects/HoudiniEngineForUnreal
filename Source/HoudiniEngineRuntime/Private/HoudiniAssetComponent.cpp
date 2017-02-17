@@ -5806,3 +5806,4 @@ UHoudiniAssetComponent::GetSocketTransform( FName InSocketName, ERelativeTransfo
     return Super::GetSocketTransform( InSocketName, TransformSpace );
 }
 
+#undef LOCTEXT_NAMESPACE

@@ -656,3 +656,5 @@ FHoudiniEngineEditor::CanCleanUpTempFolder() const
 {
     return FHoudiniEngine::IsInitialized();
 }
+
+#undef LOCTEXT_NAMESPACE

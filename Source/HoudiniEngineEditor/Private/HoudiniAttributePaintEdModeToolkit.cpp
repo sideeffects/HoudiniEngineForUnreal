@@ -36,6 +36,8 @@
 #include "HoudiniAttributeDataComponent.h"
 #include "Engine/Selection.h"
 
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 FHoudiniAttributePaintEdModeToolkit::FHoudiniAttributePaintEdModeToolkit()
 {
@@ -142,3 +144,5 @@ FHoudiniAttributePaintEdModeToolkit::GetEditorMode() const
 {
     return GLevelEditorModeTools().GetActiveMode(FHoudiniAttributePaintEdMode::EM_HoudiniAttributePaintEdModeId);
 }
+
+#undef LOCTEXT_NAMESPACE

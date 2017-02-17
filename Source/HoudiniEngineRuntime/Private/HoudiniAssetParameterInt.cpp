@@ -379,3 +379,5 @@ UHoudiniAssetParameterInt::Serialize( FArchive & Ar )
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_UNIT )
         Ar << ValueUnit;
 }
+
+#undef LOCTEXT_NAMESPACE

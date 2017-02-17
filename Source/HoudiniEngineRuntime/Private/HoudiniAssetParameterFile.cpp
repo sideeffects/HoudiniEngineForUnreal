@@ -367,3 +367,5 @@ UHoudiniAssetParameterFile::SetParameterValue( const FString& InValue, int32 Idx
         MarkChanged( bTriggerModify );
     }
 }
+
+#undef LOCTEXT_NAMESPACE
