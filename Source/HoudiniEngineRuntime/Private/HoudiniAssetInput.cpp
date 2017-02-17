@@ -3053,3 +3053,5 @@ operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOut
     HoudiniAssetInputOutlinerMesh.Serialize( Ar );
     return Ar;
 }
+
+#undef LOCTEXT_NAMESPACE

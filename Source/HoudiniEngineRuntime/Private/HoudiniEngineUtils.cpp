@@ -52,15 +52,16 @@
 #include "LightMap.h"
 #include "Engine/StaticMeshActor.h"
 #if WITH_EDITOR
-#include "ActorFactories/ActorFactory.h"
-#include "Editor.h"
-#include "Factories/MaterialFactoryNew.h"
-#include "ActorFactories/ActorFactoryStaticMesh.h"
-#include "Interfaces/ITargetPlatform.h"
-#include "Interfaces/ITargetPlatformManagerModule.h"
+    #include "ActorFactories/ActorFactory.h"
+    #include "Editor.h"
+    #include "Factories/MaterialFactoryNew.h"
+    #include "ActorFactories/ActorFactoryStaticMesh.h"
+    #include "Interfaces/ITargetPlatform.h"
+    #include "Interfaces/ITargetPlatformManagerModule.h"
 #endif
 #include "EngineUtils.h"
 #include "MetaData.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if PLATFORM_WINDOWS
     #include "WindowsHWrapper.h"
@@ -10290,3 +10291,4 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
     return true;
 }
 
+#undef LOCTEXT_NAMESPACE

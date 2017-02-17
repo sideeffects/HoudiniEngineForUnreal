@@ -248,3 +248,5 @@ UHoudiniAssetParameterString::SetValueCommitted( const FText & InValue, ETextCom
 }
 
 #endif
+
+#undef LOCTEXT_NAMESPACE

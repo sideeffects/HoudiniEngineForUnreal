@@ -1547,3 +1547,5 @@ UHoudiniAssetInstanceInput::GetMaterialReplacementMeshes(
 
     return bResult;
 }
+
+#undef LOCTEXT_NAMESPACE

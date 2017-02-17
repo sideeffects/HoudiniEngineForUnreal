@@ -391,3 +391,5 @@ UHoudiniAssetParameterMultiparm::PostEditUndo()
 }
 
 #endif
+
+#undef LOCTEXT_NAMESPACE

@@ -40,6 +40,9 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
 FText
 FHoudiniAssetTypeActions::GetName() const
 {
@@ -221,3 +224,5 @@ FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudini
         FPlatformProcess::UserTempDir(),
         nullptr, nullptr );
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -365,3 +365,5 @@ UHoudiniAssetParameterInt::Serialize( FArchive & Ar )
         Ar << ValueUnit;
     }
 }
+
+#undef LOCTEXT_NAMESPACE

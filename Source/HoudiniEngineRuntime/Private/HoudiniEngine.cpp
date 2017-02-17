@@ -459,3 +459,5 @@ FHoudiniEngine::RetrieveTaskInfo( const FGuid HapIGUID, FHoudiniEngineTaskInfo &
 
     return false;
 }
+
+#undef LOCTEXT_NAMESPACE

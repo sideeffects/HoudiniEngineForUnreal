@@ -103,3 +103,5 @@ UHoudiniAssetActorFactory::PostCreateBlueprint( UObject * Asset, AActor * CDO )
         HoudiniAssetComponent->HoudiniAsset = HoudiniAsset;
     }
 }
+
+#undef LOCTEXT_NAMESPACE

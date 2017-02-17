@@ -36,6 +36,9 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
 
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
 UHoudiniAssetFactory::UHoudiniAssetFactory( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
 {
@@ -160,3 +163,5 @@ UHoudiniAssetFactory::Reimport( UObject * Obj )
     HOUDINI_LOG_MESSAGE( TEXT( "Houdini Asset reimport has failed." ) );
     return EReimportResult::Failed;
 }
+
+#undef LOCTEXT_NAMESPACE
