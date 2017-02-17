@@ -241,7 +241,14 @@ FHoudiniEngine::StartupModule()
             TCHAR OrigPathVarMem[ MaxPathVarLen ];
             FPlatformMisc::GetEnvironmentVariable( TEXT( "PATH" ), OrigPathVarMem, MaxPathVarLen );
             FString OrigPathVar( OrigPathVarMem );
-            FString ModifiedPath = LibHAPILocation + PathDelimiter + OrigPathVar;
+
+            FString ModifiedPath =
+#if PLATFORM_MAC
+            // On Mac our binaries are split between two folders
+            LibHAPILocation + TEXT( "/../Resources/bin" ) + PathDelimiter +
+#endif
+            LibHAPILocation + PathDelimiter + OrigPathVar;
+
             FPlatformMisc::SetEnvironmentVar( TEXT( "PATH" ), *ModifiedPath );
         };
 
