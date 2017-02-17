@@ -29,10 +29,14 @@
 *
 */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAttributePaintEdMode.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAttributePaintEdModeToolkit.h"
 #include "Toolkits/ToolkitManager.h"
+#include "EdMode.h"
+#include "EditorModeTools.h"
+#include "EditorModeManager.h"
 
 const FEditorModeID FHoudiniAttributePaintEdMode::EM_HoudiniAttributePaintEdModeId = TEXT("EM_HoudiniAttributePaintEdMode");
 

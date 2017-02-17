@@ -29,14 +29,14 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetInstance.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniAssetParameter2.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 
 UHoudiniAssetInstance::UHoudiniAssetInstance( const FObjectInitializer & ObjectInitializer )

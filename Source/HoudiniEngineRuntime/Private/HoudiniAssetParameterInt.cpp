@@ -29,16 +29,19 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetParameterInt.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 
 #if WITH_EDITOR
 #include "UnitConversion.h"
 #include "NumericUnitTypeInterface.inl"
 #endif
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterInt::UHoudiniAssetParameterInt( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

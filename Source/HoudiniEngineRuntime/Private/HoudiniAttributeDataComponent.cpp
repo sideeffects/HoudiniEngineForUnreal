@@ -29,11 +29,11 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAttributeDataComponent.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 #include "HoudiniPluginSerializationVersion.h"
 
 UHoudiniAttributeDataComponent::UHoudiniAttributeDataComponent( const FObjectInitializer & ObjectInitializer )

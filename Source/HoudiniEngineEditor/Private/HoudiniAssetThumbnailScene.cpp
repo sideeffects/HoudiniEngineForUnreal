@@ -29,11 +29,13 @@
  *
  */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetThumbnailScene.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
 
 FHoudiniAssetThumbnailScene::FHoudiniAssetThumbnailScene()
     : FThumbnailPreviewScene()

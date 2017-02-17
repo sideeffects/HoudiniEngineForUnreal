@@ -29,10 +29,10 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
-#include "HoudiniEngineUtils.h"
-#include "HoudiniRuntimeSettings.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
@@ -45,9 +45,36 @@
 #include "LandscapeComponent.h"
 #include "HoudiniInstancedActorComponent.h"
 
+#include "CoreMinimal.h"
 #include "AI/Navigation/NavCollision.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Engine/StaticMeshSocket.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "LightMap.h"
+#include "Engine/StaticMeshActor.h"
+#if WITH_EDITOR
+#include "ActorFactories/ActorFactory.h"
+#include "Editor.h"
+#include "Factories/MaterialFactoryNew.h"
+#include "ActorFactories/ActorFactoryStaticMesh.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#endif
+#include "EngineUtils.h"
+#include "MetaData.h"
+
+#if PLATFORM_WINDOWS
+    #include "WindowsHWrapper.h"
+
+    // Of course, Windows defines its own GetGeoInfo,
+    // So we need to undefine that before including HoudiniApi.h to avoid collision...
+    #ifdef GetGeoInfo
+	#undef GetGeoInfo
+    #endif
+#endif
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 DECLARE_CYCLE_STAT( TEXT( "Houdini: Build Static Mesh" ), STAT_BuildStaticMesh, STATGROUP_HoudiniEngine );
 
@@ -629,8 +656,7 @@ FHoudiniEngineUtils::HapiGetGroupNames(
     HAPI_GroupType GroupType, TArray< FString > & GroupNames )
 {
     HAPI_GeoInfo GeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo(
-        FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ), false );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGeoInfo( FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo ), false );
 
     int32 GroupCount = FHoudiniEngineUtils::HapiGetGroupCountByType( GroupType, GeoInfo );
 
@@ -10794,7 +10820,7 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
     BodySetup->InvalidatePhysicsData();
 
 #if WITH_EDITOR
-    RefreshCollisionChange( StaticMesh );
+    RefreshCollisionChange( *StaticMesh );
 #endif
 
     // This geo part will have to be considered as rendered collision

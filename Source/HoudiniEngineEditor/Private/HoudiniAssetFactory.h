@@ -30,6 +30,10 @@
  */
 
 #pragma once
+#include "EditorReimportHandler.h"
+#if WITH_EDITOR
+#include "Factories/Factory.h"
+#endif
 #include "HoudiniAssetFactory.generated.h"
 
 class UClass;

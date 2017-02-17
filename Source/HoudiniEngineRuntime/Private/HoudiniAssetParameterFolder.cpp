@@ -29,10 +29,10 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
-#include "HoudiniAssetParameterFolder.h"
-#include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
+#include "HoudiniAssetParameterFolder.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniAssetComponent.h"
 
 UHoudiniAssetParameterFolder::UHoudiniAssetParameterFolder( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

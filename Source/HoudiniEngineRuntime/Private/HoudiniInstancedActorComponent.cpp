@@ -29,11 +29,15 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #if WITH_EDITOR
 #include "LevelEditorViewport.h"
 #endif
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniInstancedActorComponent::UHoudiniInstancedActorComponent( const FObjectInitializer& ObjectInitializer )
 : Super( ObjectInitializer )

@@ -32,6 +32,8 @@
 #pragma once
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetInstanceInput.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SComboButton.h"
 #include "HoudiniAssetInstanceInputField.generated.h"
 
 class UStaticMesh;

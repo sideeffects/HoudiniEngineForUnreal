@@ -34,6 +34,15 @@
 #include "HAPI.h"
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniRuntimeSettings.h"
+
+#include "CoreMinimal.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Landscape.h"
+#include "TimerManager.h"
+#if WITH_EDITOR
+#include "Factories/Factory.h"
+#endif
+#include "Widgets/Notifications/SNotificationList.h"
 #include "HoudiniAssetComponent.generated.h"
 
 class UClass;

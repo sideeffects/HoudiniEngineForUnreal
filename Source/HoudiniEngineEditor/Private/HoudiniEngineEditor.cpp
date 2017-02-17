@@ -29,14 +29,13 @@
 *
 */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAssetThumbnailRenderer.h"
-#include "HoudiniApi.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngine.h"
-
 #include "HoudiniAssetComponent.h"
 #include "HoudiniHandleComponentVisualizer.h"
 #include "HoudiniHandleComponent.h"
@@ -48,6 +47,19 @@
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniAttributePaintEdMode.h"
+
+#include "Textures/SlateIcon.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Engine/ObjectLibrary.h"
+#include "EditorDirectories.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+#include "Styling/SlateStyleRegistry.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 const FName
 FHoudiniEngineEditor::HoudiniEngineEditorAppIdentifier = FName( TEXT( "HoudiniEngineEditorApp" ) );

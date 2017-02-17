@@ -33,7 +33,8 @@
 
 /** Unreal Editor headers. **/
 #if WITH_EDITOR
-#include "UnrealEd.h"
+//#include "UnrealEd.h"
+#include "CoreMinimal.h"
 #include "ObjectTools.h"
 #include "AssetTypeActions_Base.h"
 #include "ComponentAssetBroker.h"
@@ -66,19 +67,20 @@
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/PropertyEditor/Private/PropertyNode.h"
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
-#include "Editor/SceneOutliner/Public/SceneOutliner.h"
+//#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "ScopedTransaction.h"
 #include "RawMesh.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "IPluginManager.h"
 #include "ISettingsModule.h"
 #include "DesktopPlatformModule.h"
-#include "TargetPlatform.h"
+//#include "TargetPlatform.h"
 #include "Components/StaticMeshComponent.h"
+#include "Editor.h"
 #endif
 
 /** Other Unreal headers. **/
-#include "CoreUObject.h"
+//#include "CoreUObject.h"
 #include "Misc/Variant.h"
 #include "ModuleManager.h"
 #include "EngineModule.h"
@@ -89,7 +91,7 @@
 #include "Engine/CollisionProfile.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "Core.h"
+//#include "Core.h"
 #include "AssetData.h"
 #include "AssetRegistryModule.h"
 #include "HitProxies.h"
@@ -116,6 +118,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "StaticMeshResources.h"
 #include "ImageUtils.h"
+#include "Internationalization/Internationalization.h"
 
 /** Houdini Engine Runtime Module Localization. **/
 #include "HoudiniEngineRuntimeLocalization.h"
@@ -140,11 +143,11 @@
 
 /** See whether we are in Editor or Engine module. **/
 #ifdef HOUDINI_ENGINE_EDITOR
-#define LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
-DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngineEditor, Log, All );
+    #define HOUDINI_LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
+    DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngineEditor, Log, All );
 #else
-#define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
-DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
+#define HOUDINI_LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
+    DECLARE_LOG_CATEGORY_EXTERN( LogHoudiniEngine, Log, All );
 #endif
 
 /** Definitions coming from UBT. **/

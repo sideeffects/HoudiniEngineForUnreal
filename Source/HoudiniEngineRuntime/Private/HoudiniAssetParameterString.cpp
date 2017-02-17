@@ -29,13 +29,18 @@
 *
 */
 
+#include "HoudiniApi.h"
+#include "HoudiniAssetParameterString.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SEditableTextBox.h"
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterString::UHoudiniAssetParameterString( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

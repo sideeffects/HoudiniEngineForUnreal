@@ -30,16 +30,17 @@
 */
 
 
-
-
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetParameterRamp.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetParameterColor.h"
 #include "HoudiniAssetParameterChoice.h"
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetComponent.h"
-#include "HoudiniApi.h"
 #include "Curves/CurveBase.h"
+#if WITH_EDITOR
+#include "CurveEditorSettings.h"
+#endif
 
 UHoudiniAssetParameterRampCurveFloat::UHoudiniAssetParameterRampCurveFloat( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
