@@ -31,6 +31,10 @@
 
 #pragma once
 #include "HoudiniParameterObject.h"
+#if WITH_EDITOR
+    #include "DetailWidgetRow.h"
+#endif
+#include "Widgets/SBoxPanel.h"
 #include "HoudiniAssetParameter.generated.h"
 
 class FArchive;

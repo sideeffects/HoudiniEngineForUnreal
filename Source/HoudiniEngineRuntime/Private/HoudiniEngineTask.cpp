@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniEngineTask.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 

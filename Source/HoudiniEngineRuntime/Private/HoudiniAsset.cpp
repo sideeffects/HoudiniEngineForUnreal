@@ -29,10 +29,11 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAsset.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetInstance.h"
-
+#include "Paths.h"
 
 const uint32
 UHoudiniAsset::PersistenceFormatVersion = 2u;

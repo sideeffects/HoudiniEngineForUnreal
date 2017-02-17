@@ -31,6 +31,12 @@
 
 #pragma once
 #include "HoudiniAssetParameter.h"
+#include "CoreMinimal.h"
+#include "Widgets/Input/SComboBox.h"
+#include "TimerManager.h"
+#if WITH_EDITOR
+#include "AssetThumbnail.h"
+#endif
 #include "HoudiniAssetInput.generated.h"
 
 class ALandscapeProxy;

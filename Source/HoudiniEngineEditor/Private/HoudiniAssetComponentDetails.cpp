@@ -21,8 +21,9 @@
  *
  */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetComponentDetails.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
@@ -30,11 +31,19 @@
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInput.h"
-#include "HoudiniApi.h"
 #include "HoudiniAssetLogWidget.h"
 #include "HoudiniEngineString.h"
 #include "Landscape.h"
 #include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Editor.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 uint32
 GetTypeHash( TPair< UStaticMesh *, int32 > Pair )

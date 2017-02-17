@@ -29,10 +29,12 @@
 *
 */
 
+#include "HoudiniApi.h"
+#include "HoudiniAttributePaintEdModeToolkit.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAttributePaintEdMode.h"
-#include "HoudiniAttributePaintEdModeToolkit.h"
 #include "HoudiniAttributeDataComponent.h"
+#include "Engine/Selection.h"
 
 
 FHoudiniAttributePaintEdModeToolkit::FHoudiniAttributePaintEdModeToolkit()

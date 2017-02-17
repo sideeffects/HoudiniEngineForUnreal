@@ -29,14 +29,20 @@
  *
  */
 
+#include "HoudiniApi.h"
+#include "HoudiniAssetParameterFile.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniAssetParameterFile.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#if WITH_EDITOR
+#include "EditorDirectories.h"
+#endif
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterFile::UHoudiniAssetParameterFile( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

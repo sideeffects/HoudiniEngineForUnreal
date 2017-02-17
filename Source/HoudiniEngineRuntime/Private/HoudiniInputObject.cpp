@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniInputObject.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniPluginSerializationVersion.h"
 
 FHoudiniInputObject::FHoudiniInputObject( int32 InInputIndex )

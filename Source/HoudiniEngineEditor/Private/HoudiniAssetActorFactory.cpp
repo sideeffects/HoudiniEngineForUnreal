@@ -29,11 +29,16 @@
  *
  */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetActorFactory.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAsset.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetActorFactory::UHoudiniAssetActorFactory( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

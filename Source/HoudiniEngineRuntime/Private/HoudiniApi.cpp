@@ -30,9 +30,10 @@
 *      This file is generated. Do not modify directly.
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniApi.h"
-
+#include "HAL/Platform.h"
+#include "HAL/PlatformProcess.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 FHoudiniApi::AddAttributeFuncPtr
 FHoudiniApi::AddAttribute = &FHoudiniApi::AddAttributeEmptyStub;

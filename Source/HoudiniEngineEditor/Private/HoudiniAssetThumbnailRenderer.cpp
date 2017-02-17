@@ -29,8 +29,9 @@
  *
  */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetThumbnailRenderer.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetThumbnailScene.h"
 #include "HoudiniAsset.h"
 

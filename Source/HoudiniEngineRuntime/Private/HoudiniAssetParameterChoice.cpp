@@ -29,13 +29,16 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetParameterChoice.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterChoice::UHoudiniAssetParameterChoice( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

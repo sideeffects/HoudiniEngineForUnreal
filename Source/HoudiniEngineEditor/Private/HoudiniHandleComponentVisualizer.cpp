@@ -28,9 +28,11 @@
 *
 */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniHandleComponentVisualizer.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
+#include "EditorViewportClient.h"
 
 IMPLEMENT_HIT_PROXY( HHoudiniHandleVisProxy, HComponentVisProxy );
 

@@ -29,17 +29,24 @@
 *
 */
 
+#include "HoudiniApi.h"
+#include "HoudiniAssetInstanceInput.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInputField.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "Components/AudioComponent.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Sound/SoundBase.h"
+#include "Widgets/Input/SButton.h"
+#include "Engine/SkeletalMesh.h"
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
 
 
 UHoudiniAssetInstanceInput::UHoudiniAssetInstanceInput( const FObjectInitializer& ObjectInitializer )

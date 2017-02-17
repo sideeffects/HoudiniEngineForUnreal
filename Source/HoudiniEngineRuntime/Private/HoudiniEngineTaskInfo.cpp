@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniEngineTaskInfo.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 FHoudiniEngineTaskInfo::FHoudiniEngineTaskInfo()
     : Result( HAPI_RESULT_SUCCESS )

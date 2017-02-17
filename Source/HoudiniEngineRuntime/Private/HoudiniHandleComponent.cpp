@@ -28,11 +28,11 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniHandleComponent.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
 
 HAPI_RSTOrder

@@ -29,13 +29,13 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniSplineComponent.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 #include "HoudiniPluginSerializationVersion.h"
 
 UHoudiniSplineComponent::UHoudiniSplineComponent( const FObjectInitializer & ObjectInitializer )

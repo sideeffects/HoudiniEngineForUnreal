@@ -29,10 +29,16 @@
 *
 */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniSplineComponentVisualizer.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
+#include "EditorViewportClient.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 IMPLEMENT_HIT_PROXY( HHoudiniSplineVisProxy, HComponentVisProxy );
 IMPLEMENT_HIT_PROXY( HHoudiniSplineControlPointVisProxy, HHoudiniSplineVisProxy );

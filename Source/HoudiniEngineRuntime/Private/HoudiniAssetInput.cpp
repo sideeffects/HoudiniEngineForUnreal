@@ -29,9 +29,9 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
-#include "HoudiniEngineUtils.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetInput.h"
+#include "HoudiniEngineUtils.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetComponent.h"
@@ -40,10 +40,17 @@
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAssetActor.h"
-#include "HoudiniApi.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 #include "Components/SplineComponent.h"
+#include "Engine/Selection.h"
+#include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
+#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Internationalization.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+
+#define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
 
 void
 FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
