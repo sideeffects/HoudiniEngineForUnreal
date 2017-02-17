@@ -40,6 +40,9 @@
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
 uint32
 GetTypeHash( const UHoudiniAssetParameter * HoudiniAssetParameter )
 {
@@ -611,3 +614,5 @@ UHoudiniAssetParameter::IsDisabled() const
 {
     return bIsDisabled;
 }
+
+#undef LOCTEXT_NAMESPACE

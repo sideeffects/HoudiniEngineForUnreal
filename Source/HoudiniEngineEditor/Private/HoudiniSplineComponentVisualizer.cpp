@@ -778,3 +778,5 @@ FHoudiniSplineComponentVisualizer::CacheRotation()
 
     CachedRotation = NewCachedQuat;
 }
+
+#undef LOCTEXT_NAMESPACE

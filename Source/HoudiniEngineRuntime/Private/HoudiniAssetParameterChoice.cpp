@@ -529,3 +529,5 @@ UHoudiniAssetParameterChoice::HandleChoiceContentText() const
 }
 
 #endif // WITH_EDITOR
+
+#undef LOCTEXT_NAMESPACE

@@ -2008,3 +2008,5 @@ FHoudiniAssetComponentDetails::CheckStateChangedComponentSettingCookingTriggersD
     if ( HoudiniAssetComponent )
         HoudiniAssetComponent->bCookingTriggersDownstreamCooks = ( NewState == ECheckBoxState::Checked );
 }
+
+#undef LOCTEXT_NAMESPACE

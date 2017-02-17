@@ -445,3 +445,5 @@ UHoudiniRuntimeSettings::GetSettingsValue( const FString & PropertyName, FString
 
     return false;
 }
+
+#undef LOCTEXT_NAMESPACE

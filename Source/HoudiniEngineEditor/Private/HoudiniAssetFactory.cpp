@@ -36,6 +36,9 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
 
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
 UHoudiniAssetFactory::UHoudiniAssetFactory( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
 {
@@ -208,3 +211,5 @@ UHoudiniAssetFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 
     return FactoryCreateBinary( InClass, InParent, NewIname, Flags, nullptr, *NewFileExtension, Ptr, Ptr + Data.Num() - 1, Warn );
 }
+
+#undef LOCTEXT_NAMESPACE

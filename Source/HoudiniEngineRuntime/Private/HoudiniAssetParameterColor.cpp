@@ -279,3 +279,5 @@ UHoudiniAssetParameterColor::OnColorPickerClosed( const TSharedRef< SWindow > & 
 {
     bIsColorPickerOpen = false;
 }
+
+#undef LOCTEXT_NAMESPACE

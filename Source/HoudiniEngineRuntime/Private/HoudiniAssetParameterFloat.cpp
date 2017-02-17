@@ -437,3 +437,5 @@ UHoudiniAssetParameterFloat::OnSliderMovingFinish( float InValue, int32 Idx )
 }
 
 #endif // WITH_EDITOR
+
+#undef LOCTEXT_NAMESPACE

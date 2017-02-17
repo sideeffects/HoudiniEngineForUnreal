@@ -155,3 +155,5 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
         }
     }
 }
+
+#undef LOCTEXT_NAMESPACE

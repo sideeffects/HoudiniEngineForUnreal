@@ -302,3 +302,5 @@ UHoudiniAssetParameterToggle::IsChecked( int32 Idx ) const
 }
 
 #endif
+
+#undef LOCTEXT_NAMESPACE

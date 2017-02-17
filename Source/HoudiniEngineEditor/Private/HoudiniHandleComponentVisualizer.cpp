@@ -33,6 +33,11 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditor.h"
 #include "EditorViewportClient.h"
+#include "Commands.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 IMPLEMENT_HIT_PROXY( HHoudiniHandleVisProxy, HComponentVisProxy );
 
@@ -231,3 +236,4 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(
     return true;
 }
 
+#undef LOCTEXT_NAMESPACE

@@ -545,3 +545,5 @@ FHoudiniEngineEditor::PostRedo( bool bSuccess )
         LastHoudiniAssetComponentUndoObject = nullptr;
     }
 }
+
+#undef LOCTEXT_NAMESPACE

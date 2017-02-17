@@ -43,6 +43,7 @@
 #include "Factories/Factory.h"
 #endif
 #include "Widgets/Notifications/SNotificationList.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "HoudiniAssetComponent.generated.h"
 
 class UClass;
