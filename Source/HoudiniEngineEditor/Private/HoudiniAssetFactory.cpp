@@ -29,9 +29,12 @@
  *
  */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetFactory.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAsset.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Misc/FileHelper.h"
 
 UHoudiniAssetFactory::UHoudiniAssetFactory( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

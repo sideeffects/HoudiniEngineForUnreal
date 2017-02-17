@@ -29,10 +29,11 @@
 *
 */
 
+#include "HoudiniApi.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
-#include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetInstanceInput.h"
@@ -54,7 +55,6 @@
 #include "HoudiniAssetParameterRamp.h"
 #include "HoudiniHandleComponent.h"
 #include "HoudiniSplineComponent.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponentMaterials.h"
@@ -67,6 +67,16 @@
 #include "UObjectToken.h"
 #include "LandscapeInfo.h"
 #include "Engine/StaticMeshSocket.h"
+#include "MessageDialog.h"
+#include "Widgets/Input/SButton.h"
+#if WITH_EDITOR
+#include "UnrealEdGlobals.h"
+#include "FileHelpers.h"
+#include "Editor/UnrealEdEngine.h"
+#endif
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 #if WITH_EDITOR
 
@@ -2063,11 +2073,13 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
             {
                 UStaticMesh * StaticMesh = Iter.Key();
+		if ( !StaticMesh )
+		    continue;
 
                 SetStaticMeshGenerationParameters( StaticMesh );
                 FHoudiniScopedGlobalSilence ScopedGlobalSilence;
                 StaticMesh->Build( true );
-                RefreshCollisionChange( StaticMesh );
+                RefreshCollisionChange( *StaticMesh );
             }
 
             return;

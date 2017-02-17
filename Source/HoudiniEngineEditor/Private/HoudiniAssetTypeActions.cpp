@@ -29,12 +29,16 @@
  *
  */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetTypeActions.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngine.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 FText
 FHoudiniAssetTypeActions::GetName() const

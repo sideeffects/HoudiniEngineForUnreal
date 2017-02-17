@@ -29,11 +29,11 @@
 *
 */
 
+#include "HoudiniApi.h"
+#include "HoudiniEngineString.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngine.h"
-#include "HoudiniEngineString.h"
 
 #include <vector>
 

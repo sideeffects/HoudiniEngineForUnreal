@@ -29,15 +29,22 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
-#include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineScheduler.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
+
 #include "PlatformMisc.h"
+#include "PlatformFilemanager.h"
+#include "ScopeLock.h"
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName( TEXT( "HoudiniEngineApp" ) );
 

@@ -29,11 +29,11 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAttributeObject.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniGeoPartObject.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 
 FHoudiniAttributeObject::FHoudiniAttributeObject()

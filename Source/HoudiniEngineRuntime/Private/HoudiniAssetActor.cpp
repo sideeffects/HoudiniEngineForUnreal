@@ -29,13 +29,13 @@
 *
 */
 
+#include "HoudiniApi.h"
+#include "HoudiniAssetActor.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAsset.h"
-#include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniApi.h"
 
 AHoudiniAssetActor::AHoudiniAssetActor( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

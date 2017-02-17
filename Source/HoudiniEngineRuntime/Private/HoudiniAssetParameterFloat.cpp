@@ -29,13 +29,16 @@
 *
 */
 
+#include "HoudiniApi.h"
+#include "HoudiniAssetParameterFloat.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
-#include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 #include "HoudiniEngineString.h"
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

@@ -29,11 +29,15 @@
 *
 */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniRuntimeSettingsDetails.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 TSharedRef< IDetailCustomization >
 FHoudiniRuntimeSettingsDetails::MakeInstance()

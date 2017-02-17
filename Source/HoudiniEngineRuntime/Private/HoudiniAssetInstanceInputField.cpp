@@ -29,8 +29,9 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetInstanceInputField.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniInstancedActorComponent.h"

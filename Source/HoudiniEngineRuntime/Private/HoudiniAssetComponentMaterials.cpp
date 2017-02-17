@@ -29,8 +29,10 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetComponentMaterials.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+
 
 UHoudiniAssetComponentMaterials::UHoudiniAssetComponentMaterials( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

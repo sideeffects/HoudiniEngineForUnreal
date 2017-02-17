@@ -32,6 +32,7 @@
 
 #pragma once
 #include "HAPI.h"
+#include "HAL/PlatformProcess.h"
 
 
 struct HOUDINIENGINERUNTIME_API FHoudiniApi

@@ -29,9 +29,13 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniRuntimeSettings.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
+
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & ObjectInitializer )
 : Super( ObjectInitializer )

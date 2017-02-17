@@ -29,8 +29,11 @@
 *
 */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetLogWidget.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
 
 void
 SHoudiniAssetLogWidget::Construct( const FArguments & InArgs )

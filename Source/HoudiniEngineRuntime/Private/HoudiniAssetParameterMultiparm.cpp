@@ -29,12 +29,14 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniApi.h"
 #include "HoudiniAssetParameterMultiparm.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
-#include "HoudiniApi.h"
 
+#include "Internationalization.h"
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterMultiparm::UHoudiniAssetParameterMultiparm( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
