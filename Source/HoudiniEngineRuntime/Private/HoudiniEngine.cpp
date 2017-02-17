@@ -29,15 +29,19 @@
 *
 */
 
-#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngineScheduler.h"
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
+
 #include "PlatformMisc.h"
+#include "PlatformFilemanager.h"
+#include "ScopeLock.h"
+
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName( TEXT( "HoudiniEngineApp" ) );
 
@@ -241,7 +245,14 @@ FHoudiniEngine::StartupModule()
             TCHAR OrigPathVarMem[ MaxPathVarLen ];
             FPlatformMisc::GetEnvironmentVariable( TEXT( "PATH" ), OrigPathVarMem, MaxPathVarLen );
             FString OrigPathVar( OrigPathVarMem );
-            FString ModifiedPath = LibHAPILocation + PathDelimiter + OrigPathVar;
+
+            FString ModifiedPath =
+#if PLATFORM_MAC
+            // On Mac our binaries are split between two folders
+            LibHAPILocation + TEXT( "/../Resources/bin" ) + PathDelimiter +
+#endif
+            LibHAPILocation + PathDelimiter + OrigPathVar;
+
             FPlatformMisc::SetEnvironmentVar( TEXT( "PATH" ), *ModifiedPath );
         };
 
