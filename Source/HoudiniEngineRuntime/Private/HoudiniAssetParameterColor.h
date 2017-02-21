@@ -30,8 +30,12 @@
 */
 
 #pragma once
+
 #include "HoudiniAssetParameter.h"
+#include "CoreMinimal.h"
+#include "Widgets/Colors/SColorBlock.h"
 #include "HoudiniAssetParameterColor.generated.h"
+
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAssetParameter

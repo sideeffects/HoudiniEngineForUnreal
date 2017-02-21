@@ -32,6 +32,8 @@
 #pragma once
 
 #include "HoudiniGeoPartObject.h"
+#include "IDetailCustomization.h"
+
 
 struct FGeometry;
 struct FSlateBrush;
@@ -41,6 +43,7 @@ class FAssetData;
 class UStaticMesh;
 class IDetailLayoutBuilder;
 class UHoudiniAssetComponent;
+
 
 /** Hashing function for our pair. **/
 uint32 GetTypeHash( TPair< UStaticMesh *, int32 > Pair );

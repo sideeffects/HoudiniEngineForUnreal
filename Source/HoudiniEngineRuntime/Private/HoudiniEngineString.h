@@ -37,6 +37,7 @@ class FName;
 
 #include <string>
 
+
 class HOUDINIENGINERUNTIME_API FHoudiniEngineString
 {
     public:

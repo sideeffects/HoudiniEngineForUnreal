@@ -31,6 +31,11 @@
 
 #pragma once
 
+#include "HAPI_Common.h"
+#include "CoreMinimal.h"
+#include <string>
+
+
 class FArchive;
 struct FTransform;
 struct HAPI_GeoInfo;

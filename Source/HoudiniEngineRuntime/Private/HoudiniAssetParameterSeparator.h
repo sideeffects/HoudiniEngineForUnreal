@@ -30,6 +30,7 @@
 */
 
 #pragma once
+
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterSeparator.generated.h"
 

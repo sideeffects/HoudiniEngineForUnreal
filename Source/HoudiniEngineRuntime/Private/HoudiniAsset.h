@@ -32,10 +32,12 @@
 #pragma once
 #include "HoudiniAsset.generated.h"
 
+
 class UThumbnailInfo;
 class UAssetImportData;
 class UHoudiniAssetInstance;
 class UHoudiniAssetComponent;
+
 
 UCLASS( EditInlineNew, config = Engine )
 class HOUDINIENGINERUNTIME_API UHoudiniAsset : public UObject

@@ -32,8 +32,10 @@
 #pragma once
 
 
+
 class UHoudiniAsset;
 class AHoudiniAssetActor;
+
 
 class FHoudiniAssetThumbnailScene : public FThumbnailPreviewScene
 {

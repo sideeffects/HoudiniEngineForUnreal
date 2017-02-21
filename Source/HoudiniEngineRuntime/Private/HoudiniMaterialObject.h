@@ -31,6 +31,7 @@
 
 #pragma once
 
+
 class FString;
 class UPackage;
 struct HAPI_NodeInfo;
@@ -38,6 +39,7 @@ struct HAPI_ParmInfo;
 struct HAPI_MaterialInfo;
 class UHoudiniAssetComponent;
 struct FHoudiniParameterObject;
+
 
 struct HOUDINIENGINERUNTIME_API FHoudiniMaterialObject
 {

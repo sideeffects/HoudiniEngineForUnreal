@@ -30,6 +30,8 @@
 */
 
 #pragma once
+
+#include "GameFramework/Actor.h"
 #include "HoudiniAssetActor.generated.h"
 
 class UHoudiniAssetComponent;

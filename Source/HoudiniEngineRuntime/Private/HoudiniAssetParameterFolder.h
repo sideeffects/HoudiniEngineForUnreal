@@ -30,8 +30,10 @@
 */
 
 #pragma once
+
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterFolder.generated.h"
+
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFolder : public UHoudiniAssetParameter
