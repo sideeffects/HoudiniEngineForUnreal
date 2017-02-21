@@ -30,8 +30,10 @@
 */
 
 #pragma once
+
 #include "IHoudiniEngine.h"
 #include "HoudiniEngineTaskInfo.h"
+
 
 class UStaticMesh;
 class FRunnableThread;

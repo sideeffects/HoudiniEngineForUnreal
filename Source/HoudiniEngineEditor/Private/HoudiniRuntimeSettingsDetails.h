@@ -31,6 +31,7 @@
 
 #pragma once
 
+
 class FHoudiniRuntimeSettingsDetails : public IDetailCustomization
 {
     public:

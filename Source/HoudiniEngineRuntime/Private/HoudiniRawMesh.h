@@ -33,10 +33,12 @@
 
 #include "HoudiniAttributeObject.h"
 
+
 class FArchive;
 struct FRawMesh;
 struct FHoudiniRawMesh;
 struct FHoudiniGeoPartObject;
+
 
 struct HOUDINIENGINERUNTIME_API FHoudiniRawMesh
 {

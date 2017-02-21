@@ -30,9 +30,14 @@
 */
 
 #pragma once
+
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetParameter.h"
+#if WITH_EDITOR
+    #include "ContentBrowserDelegates.h"
+#endif
 #include "HoudiniAssetInstanceInput.generated.h"
+
 
 class AActor;
 class UStaticMesh;

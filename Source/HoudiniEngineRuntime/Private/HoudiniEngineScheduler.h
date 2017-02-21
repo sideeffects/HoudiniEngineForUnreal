@@ -33,6 +33,10 @@
 
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "SingleThreadRunnable.h"
+
 
 class FHoudiniEngineScheduler : public FRunnable, FSingleThreadRunnable
 {

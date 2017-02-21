@@ -34,6 +34,7 @@
 class UObject;
 class UActorComponent;
 
+
 class FHoudiniAssetBroker : public IComponentAssetBroker
 {
     public:
@@ -52,3 +53,4 @@ class FHoudiniAssetBroker : public IComponentAssetBroker
         /** Get the currently assigned asset from the component. **/
         UObject * GetAssetFromComponent( UActorComponent * InComponent ) override;
 };
+
