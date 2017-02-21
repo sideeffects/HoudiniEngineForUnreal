@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 15.5.750
+    Houdini Version: 15.5.757
     Houdini Engine Version: 2.0.24
     Unreal Version: 4.13.1
 
@@ -47,7 +47,7 @@ public class HoudiniEngineRuntime : ModuleRules
 	{
 		bool bIsRelease = true;
 		string HFSPath = "";
-		string HoudiniVersion = "15.5.750";
+		string HoudiniVersion = "15.5.757";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -154,7 +154,6 @@ public class HoudiniEngineRuntime : ModuleRules
 				"ShaderCore",
 				"InputCore",
 				"RHI",
-				"Settings",
 				"Foliage",
 				"Landscape"
 			}
@@ -167,6 +166,7 @@ public class HoudiniEngineRuntime : ModuleRules
 				{
 					"AssetTools",
 					"UnrealEd",
+					"Settings",
 					"Slate",
 					"SlateCore",
 					"Projects",
