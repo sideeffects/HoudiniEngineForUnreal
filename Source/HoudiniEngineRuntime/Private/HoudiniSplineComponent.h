@@ -32,6 +32,7 @@
 #pragma once
 
 #include "HoudiniGeoPartObject.h"
+#include "Components/SceneComponent.h"
 #include "HoudiniSplineComponent.generated.h"
 
 

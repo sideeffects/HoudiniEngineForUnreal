@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include "AssetTypeActions_Base.h"
 
 class UClass;
 class UObject;

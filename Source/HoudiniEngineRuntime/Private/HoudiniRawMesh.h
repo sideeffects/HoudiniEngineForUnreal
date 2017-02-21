@@ -32,6 +32,7 @@
 #pragma once
 
 #include "HoudiniAttributeObject.h"
+#include "CoreMinimal.h"
 
 
 class FArchive;

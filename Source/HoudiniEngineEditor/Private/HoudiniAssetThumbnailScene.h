@@ -31,7 +31,7 @@
 
 #pragma once
 
-
+#include "ThumbnailHelpers.h"
 
 class UHoudiniAsset;
 class AHoudiniAssetActor;

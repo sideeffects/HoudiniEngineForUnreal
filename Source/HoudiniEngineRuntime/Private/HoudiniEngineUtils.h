@@ -32,7 +32,11 @@
 #pragma once
 
 #include "HoudiniAssetInput.h"
+#include "ImageUtils.h"
 #include "HoudiniGeoPartObject.h"
+#include "Engine/StaticMesh.h"
+#include "PhysicsEngine/AggregateGeom.h"
+#include "Engine/StaticMeshSocket.h"
 
 
 class AActor;

@@ -31,6 +31,7 @@
 #pragma once
 
 #include "HoudiniHandleComponent.h"
+#include "ComponentVisualizer.h"
 #include "Commands.h"
 
 /** Base class for clickable editing proxies. **/

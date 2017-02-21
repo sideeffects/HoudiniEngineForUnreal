@@ -46,7 +46,6 @@
 
 #include "CoreMinimal.h"
 #include "AI/Navigation/NavCollision.h"
-#include "PhysicsEngine/AggregateGeom.h"
 #include "Engine/StaticMeshSocket.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "LightMap.h"

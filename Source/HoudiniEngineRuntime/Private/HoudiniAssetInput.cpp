@@ -50,6 +50,11 @@
 #include "Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
+#if WITH_EDITOR
+    #include "UnrealEdGlobals.h"
+    #include "Editor/UnrealEdEngine.h"
+#endif
+
 #define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
 
 void

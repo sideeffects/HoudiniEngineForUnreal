@@ -33,6 +33,9 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetParameterChoice.h"
 #include "HoudiniAssetParameterFloat.h"
+
+#include "Components/SceneComponent.h"
+
 #include "HoudiniHandleComponent.generated.h"
 
 

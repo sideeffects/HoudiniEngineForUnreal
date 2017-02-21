@@ -31,6 +31,8 @@
 
 #pragma once
 
+#include "ComponentAssetBroker.h"
+
 class UObject;
 class UActorComponent;
 

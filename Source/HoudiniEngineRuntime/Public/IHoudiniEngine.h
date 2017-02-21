@@ -31,6 +31,8 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
 
 class UMaterial;
 class UStaticMesh;

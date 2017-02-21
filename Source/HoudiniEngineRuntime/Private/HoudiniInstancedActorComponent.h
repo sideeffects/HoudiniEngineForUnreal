@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include "Components/SceneComponent.h"
 #include "HoudiniInstancedActorComponent.generated.h"
 
 
