@@ -34,8 +34,11 @@
 #include "CoreMinimal.h"
 #include "Widgets/Input/SComboBox.h"
 #include "TimerManager.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #if WITH_EDITOR
 #include "AssetThumbnail.h"
+#include "ContentBrowserDelegates.h"
 #endif
 #include "HoudiniAssetInput.generated.h"
 

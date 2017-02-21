@@ -31,8 +31,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "HoudiniGeoPartObject.h"
+#include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
+#include "ContentBrowserDelegates.h"
 
 
 struct FGeometry;
@@ -43,6 +46,7 @@ class FAssetData;
 class UStaticMesh;
 class IDetailLayoutBuilder;
 class UHoudiniAssetComponent;
+class ALandscape;
 
 
 /** Hashing function for our pair. **/

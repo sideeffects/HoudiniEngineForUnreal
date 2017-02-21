@@ -36,6 +36,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "ScopeLock.h"
 
 const uint32
 FHoudiniEngineScheduler::InitialTaskSize = 256u;

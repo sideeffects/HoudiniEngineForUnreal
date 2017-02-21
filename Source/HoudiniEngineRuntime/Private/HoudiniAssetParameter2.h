@@ -31,7 +31,11 @@
 
 #pragma once
 
+#include "Object.h"
 #include "HoudiniParameterObject.h"
+#if WITH_EDITOR
+    #include "DetailCategoryBuilder.h"
+#endif
 #include "HoudiniAssetParameter2.generated.h"
 
 class UHoudiniAssetInstance;

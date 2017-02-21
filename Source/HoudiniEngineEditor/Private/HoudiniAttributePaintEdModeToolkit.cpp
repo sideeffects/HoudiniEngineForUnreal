@@ -35,6 +35,7 @@
 #include "HoudiniAttributePaintEdMode.h"
 #include "HoudiniAttributeDataComponent.h"
 #include "Engine/Selection.h"
+#include "EditorModeManager.h"
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
