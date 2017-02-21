@@ -31,6 +31,8 @@
 
 #pragma once
 
+#include "DetailCategoryBuilder.h"
+#include "IDetailCustomization.h"
 
 class FHoudiniRuntimeSettingsDetails : public IDetailCustomization
 {

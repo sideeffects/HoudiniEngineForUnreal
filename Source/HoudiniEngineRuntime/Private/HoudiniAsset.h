@@ -30,6 +30,7 @@
 */
 
 #pragma once
+#include "Object.h"
 #include "HoudiniAsset.generated.h"
 
 

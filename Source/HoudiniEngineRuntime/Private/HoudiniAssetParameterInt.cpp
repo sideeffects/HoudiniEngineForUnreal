@@ -34,6 +34,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineUtils.h"
 
 #if WITH_EDITOR
 #include "UnitConversion.h"

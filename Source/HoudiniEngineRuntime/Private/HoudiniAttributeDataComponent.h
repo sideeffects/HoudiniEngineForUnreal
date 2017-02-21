@@ -30,6 +30,9 @@
 */
 
 #pragma once
+#include "ObjectMacros.h"
+#include "Components/ActorComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "HoudiniAttributeDataComponent.generated.h"
 
