@@ -30,10 +30,14 @@
 */
 
 #pragma once
+
 #include "HoudiniAssetParameter.h"
 #include "HoudiniAssetParameterMultiparm.h"
 #include "Tickable.h"
+#include "Curves/CurveFloat.h"
+#include "Curves/CurveLinearColor.h"
 #include "HoudiniAssetParameterRamp.generated.h"
+
 
 class UCurveBase;
 class UHoudiniAssetParameterRamp;

@@ -31,11 +31,15 @@
 
 #pragma once
 #include "IHoudiniEngineEditor.h"
+#include "ComponentVisualizer.h"
+#include "Styling/SlateStyle.h"
+
 
 class IAssetTools;
 class IAssetTypeActions;
 class IComponentAssetBroker;
 class UHoudiniAssetComponent;
+
 
 class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClient
 {

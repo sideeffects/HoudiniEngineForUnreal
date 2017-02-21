@@ -30,13 +30,16 @@
  */
 
 #pragma once
+#include "ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
 #include "HoudiniAssetThumbnailRenderer.generated.h"
+
 
 class UObject;
 class FCanvas;
 class FRenderTarget;
 class UHoudiniAsset;
 class FHoudiniAssetThumbnailScene;
+
 
 UCLASS( config = Editor )
 class UHoudiniAssetThumbnailRenderer : public UDefaultSizedThumbnailRenderer

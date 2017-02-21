@@ -29,10 +29,12 @@
 */
 
 #pragma once
+
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetParameterChoice.h"
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniHandleComponent.generated.h"
+
 
 UENUM()
 enum class EHoudiniHandleType : uint8

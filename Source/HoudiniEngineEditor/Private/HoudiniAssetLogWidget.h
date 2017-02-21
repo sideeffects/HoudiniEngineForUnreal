@@ -31,6 +31,7 @@
 
 #pragma once
 
+
 class SHoudiniAssetLogWidget : public SCompoundWidget
 {
 public:

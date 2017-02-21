@@ -29,9 +29,11 @@
 *
 */
 
+
 #pragma once
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetComponentMaterials.generated.h"
+
 
 class UMaterial;
 class UMaterialInterface;

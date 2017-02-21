@@ -36,6 +36,7 @@ class FString;
 class UObject;
 struct HAPI_MaterialInfo;
 
+
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineSubstance
 {
 #if WITH_EDITOR

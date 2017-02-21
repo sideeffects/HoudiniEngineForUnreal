@@ -31,10 +31,14 @@
 
 #pragma once
 
+
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniParameterObject.h"
 #include "HoudiniInputObject.h"
+#include "ObjectMacros.h"
+#include "Object.h"
 #include "HoudiniAssetInstance.generated.h"
+
 
 struct FTransform;
 class UHoudiniAsset;

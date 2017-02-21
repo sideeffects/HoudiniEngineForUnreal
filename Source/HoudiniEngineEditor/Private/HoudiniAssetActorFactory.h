@@ -30,12 +30,15 @@
  */
 
 #pragma once
+#include "ActorFactories/ActorFactory.h"
 #include "HoudiniAssetActorFactory.generated.h"
+
 
 class FText;
 class AActor;
 class UObject;
 class FAssetData;
+
 
 UCLASS( config = Editor )
 class UHoudiniAssetActorFactory : public UActorFactory
