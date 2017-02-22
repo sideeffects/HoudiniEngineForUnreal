@@ -61,6 +61,7 @@ enum EHoudiniPluginSerializationVersion
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_LANDSCAPES = 14,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_PARAMETERS_UNIT = 15,
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BAKENAME_OVERRIDE = 16,
+    VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_COOK_TEMP_PACKAGES = 17,
 
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)

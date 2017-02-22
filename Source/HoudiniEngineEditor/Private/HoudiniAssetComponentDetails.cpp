@@ -956,6 +956,28 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
             FOnClicked::CreateSP(this, &FHoudiniAssetComponentDetails::OnResetAsset))
     ];
 
+    // Cook folder widget
+    CookGroup.AddWidgetRow()
+    .NameContent()
+    [
+        SNew(STextBlock)
+        .Text(LOCTEXT("CookFolder", "Temporary Cook Folder"))
+        .Font(NormalFont)
+    ]
+    .ValueContent()
+    [
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot()
+        .AutoWidth()
+        [
+            SNew(SEditableText)
+            .IsReadOnly(true)
+            .Text(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::GetTempCookFolderText)))
+            .Font(IDetailLayoutBuilder::GetDetailFont())
+            .ToolTipText(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FHoudiniAssetComponentDetails::GetTempCookFolderText)))
+        ]
+    ];
+
     IDetailGroup& BakeGroup = DetailCategoryBuilder.AddGroup(TEXT("Baking"), LOCTEXT("Baking", "Baking"));
     TSharedPtr< SButton > BakeToInputButton;
     BakeGroup.AddWidgetRow()
@@ -1332,6 +1354,17 @@ FHoudiniAssetComponentDetails::GetBakeFolderText() const
         BakeFolderText = HoudiniAssetComponents[ 0 ]->GetBakeFolder();
     }
     return BakeFolderText;
+}
+
+FText
+FHoudiniAssetComponentDetails::GetTempCookFolderText() const
+{
+    FText TempCookFolderText;
+    if (HoudiniAssetComponents.Num() && HoudiniAssetComponents[0])
+    {
+        TempCookFolderText = HoudiniAssetComponents[0]->GetTempCookFolder();
+    }
+    return TempCookFolderText;
 }
 
 FReply

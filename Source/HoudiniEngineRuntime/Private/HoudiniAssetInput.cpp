@@ -534,7 +534,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .Content()
                 [
                     SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeSelectedCheckbox", "Export Selected Landscape Component Only" ) )
+                    .Text( LOCTEXT( "LandscapeSelectedCheckbox", "Export Selected Landscape Components Only" ) )
                     .ToolTipText( LOCTEXT( "LandscapeSelectedTooltip", "If enabled, only the selected Landscape Components will be exported." ) )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont") ) )
                 ]

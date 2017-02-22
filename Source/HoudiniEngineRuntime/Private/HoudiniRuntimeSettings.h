@@ -188,6 +188,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
         bool bCookCurvesOnMouseRelease;
 
+        // Content folder storing all the temporary cook data
+        UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
+        FText TemporaryCookFolder;
+
     /** Parameter options. **/
     public:
 

@@ -135,6 +135,9 @@ class FHoudiniAssetComponentDetails : public IDetailCustomization
         /** Get the text for display of baking folder */
         FText GetBakeFolderText() const;
 
+        /** Get the text for displaying the temporary cook folder */
+        FText GetTempCookFolderText() const;
+
         /** Handler for fetch asset help action. **/
         FReply OnFetchAssetHelp( UHoudiniAssetComponent * HoudiniAssetComponent );
 

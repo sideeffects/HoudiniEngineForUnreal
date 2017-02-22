@@ -324,6 +324,14 @@ FHoudiniEngineEditor::AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder )
             FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::ReportBug ),
             FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanReportBug ) ) );
 
+    MenuBuilder.AddMenuEntry(
+        LOCTEXT( "HoudiniMenuEntryTitleCleanTemp", "Clean Houdini Engine Temp Folder" ),
+        LOCTEXT( "HoudiniMenuEntryToolTipCleanTemp", "Deletes the unused temporary files in the Temporary Cook Folder." ),
+        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+        FUIAction(
+            FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CleanUpTempFolder ),
+            FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanCleanUpTempFolder ) ) );
+
     MenuBuilder.EndSection();
 }
 
@@ -544,6 +552,109 @@ FHoudiniEngineEditor::PostRedo( bool bSuccess )
         LastHoudiniAssetComponentUndoObject->UpdateEditorProperties( false );
         LastHoudiniAssetComponentUndoObject = nullptr;
     }
+}
+
+void
+FHoudiniEngineEditor::CleanUpTempFolder()
+{
+    // Get Runtime settings to get the Temp Cook Folder
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if (!HoudiniRuntimeSettings)
+        return;
+    
+    FString TempCookFolder = HoudiniRuntimeSettings->TemporaryCookFolder.ToString();
+
+    // The Asset registry will help us finding if the content of the asset is referenced
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+
+    bool bDidDeleteAsset = true;
+    while ( bDidDeleteAsset )
+    {
+        // To correctly clean the temp folder, we need to iterate multiple times, because some of the temp assets
+        // might be referenced by other temp assets.. (ie Textures are referenced by Materials)
+        // We'll stop looking for assets to delete when no deletion occured.
+        bDidDeleteAsset = false;
+
+        // The Object library will list all UObjects found in the TempFolder
+        auto ObjectLibrary = UObjectLibrary::CreateLibrary( UObject::StaticClass(), false, true );
+        ObjectLibrary->LoadAssetDataFromPath( TempCookFolder );
+
+        // Getting all the found asset in the TEMPO folder
+        TArray<FAssetData> AssetDataList;
+        ObjectLibrary->GetAssetDataList( AssetDataList );
+
+        // All the assets we're going to delete
+        TArray<FAssetData> AssetDataToDelete;
+
+        for ( FAssetData Data : AssetDataList )
+        {
+            UPackage* CurrentPackage = Data.GetPackage();
+            if ( !CurrentPackage )
+                continue;
+
+            TArray<FAssetData> AssetsInPackage;
+            bool bAssetDataSafeToDelete = true;
+            AssetRegistryModule.Get().GetAssetsByPackageName( CurrentPackage->GetFName(), AssetsInPackage );
+
+            for ( const auto& AssetInfo : AssetsInPackage )
+            {
+                if ( !AssetInfo.GetAsset() )
+                    continue;
+
+                // Check and see whether we are referenced by any objects that won't be garbage collected (*including* the undo buffer)
+                FReferencerInformationList ReferencesIncludingUndo;
+                UObject* AssetInPackage = AssetInfo.GetAsset();
+                bool bReferencedInMemoryOrUndoStack = IsReferenced( AssetInPackage, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo );
+                if ( !bReferencedInMemoryOrUndoStack )
+                    continue;
+
+                // We do have external references, check if the external references are in our ObjectToDelete list
+                // If they are, we can delete the asset cause its references are going to be deleted too.
+                for ( auto ExtRef : ReferencesIncludingUndo.ExternalReferences )
+                {
+                    UObject* Outer = ExtRef.Referencer->GetOuter();
+
+                    bool bOuterFound = false;
+                    for ( auto DataToDelete : AssetDataToDelete )
+                    {
+                        if ( DataToDelete.GetPackage() == Outer )
+                        {
+                            bOuterFound = true;
+                            break;
+                        }
+                        else if ( DataToDelete.GetAsset() == Outer )
+                        {
+                            bOuterFound = true;
+                            break;
+                        }
+                    }
+
+                    // We have at least one reference that's not going to be deleted, we have to keep the asset
+                    if ( !bOuterFound )
+                    {
+                        bAssetDataSafeToDelete = false;
+                        break;
+                    }
+                }
+            }
+            
+            if ( bAssetDataSafeToDelete )
+                AssetDataToDelete.Add( Data );
+        }
+
+        // Nothing to delete
+        if ( AssetDataToDelete.Num() <= 0 )
+            break;
+
+        if ( ObjectTools::DeleteAssets( AssetDataToDelete, false ) > 0 )
+            bDidDeleteAsset = true;   
+    }
+}
+
+bool
+FHoudiniEngineEditor::CanCleanUpTempFolder() const
+{
+    return FHoudiniEngine::IsInitialized();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -58,6 +58,8 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     bDisplaySlateCookingNotifications = true;
     bCookCurvesOnMouseRelease = false;
 
+    TemporaryCookFolder = LOCTEXT("Temp", "/Game/HoudiniEngine/Temp");
+
     /** Parameter options. **/
     bTreatRampParametersAsMultiparms = false;
 
@@ -191,6 +193,12 @@ UHoudiniRuntimeSettings::PostInitProperties()
 
         if (UProperty* Property = LocateProperty(TEXT("MarshallingAttributeInputMeshName")))
             Property->SetPropertyFlags(CPF_EditConst);
+    }
+
+    // Set Cook Folder as read-only
+    {
+        if ( UProperty* Property = LocateProperty( TEXT( "TemporaryCookFolder" ) ) )
+            Property->SetPropertyFlags( CPF_EditConst );
     }
 
     // Disable UI elements depending on current session type.

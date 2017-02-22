@@ -115,6 +115,12 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if open in Houdini can be executed. **/
         bool CanOpenInHoudini() const; 
 
+        /** Menu action called to clean up all unused files in the cook temp folder **/
+        void CleanUpTempFolder();
+
+        /** Helper delegate used to determine if Clean up temp can be executed. **/
+        bool CanCleanUpTempFolder() const;
+
     protected:
 
         /** Register AssetType action. **/
