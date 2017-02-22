@@ -5350,7 +5350,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         StaticMesh = NewObject< UStaticMesh >(
                             MeshPackage, FName( *MeshName ),
-                            ( BakeMode == EBakeMode::Intermediate ) ? RF_Transactional : RF_Public | RF_Standalone );
+                            ( BakeMode == EBakeMode::Intermediate ) ? RF_NoFlags : RF_Public | RF_Standalone );
 
                         // Add meta information to this package.
                         FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
