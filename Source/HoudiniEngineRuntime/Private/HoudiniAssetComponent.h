@@ -353,7 +353,6 @@ public:
 #if WITH_EDITOR
 
         virtual void PostEditChangeProperty( FPropertyChangedEvent & PropertyChangedEvent ) override;
-        virtual void PreEditUndo() override;
         virtual void PostEditUndo() override;
         virtual void PostEditImport() override;
 #endif

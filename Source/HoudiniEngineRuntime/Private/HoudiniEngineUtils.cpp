@@ -5040,7 +5040,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         StaticMesh = NewObject< UStaticMesh >(
                             MeshPackage, FName( *MeshName ),
-                            RF_Transactional );
+			                RF_NoFlags);
+
 
                         // Add meta information to this package.
                         FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
