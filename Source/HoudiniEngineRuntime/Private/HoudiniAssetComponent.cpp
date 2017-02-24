@@ -3273,6 +3273,26 @@ void UHoudiniAssetComponent::SanitizePostLoad()
             break;
         }
     }
+
+    // Patch any invalid material references
+    for( auto& SMCElem : StaticMeshComponents )
+    {
+        UStaticMesh* SM = SMCElem.Key;
+        UMeshComponent* SMC = SMCElem.Value;
+        if( SM && SMC )
+        {
+            auto& StaticMeshMaterials = SM->StaticMaterials;
+            for( int32 MaterialIdx = 0; MaterialIdx < StaticMeshMaterials.Num(); ++MaterialIdx )
+            {
+                if( nullptr == StaticMeshMaterials[ MaterialIdx ].MaterialInterface )
+                {
+                    auto DefaultMI = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+                    StaticMeshMaterials[ MaterialIdx ].MaterialInterface = DefaultMI;
+                    SMC->SetMaterial( MaterialIdx, DefaultMI );
+                }
+            }
+        }
+    }
 }
 
 #endif
