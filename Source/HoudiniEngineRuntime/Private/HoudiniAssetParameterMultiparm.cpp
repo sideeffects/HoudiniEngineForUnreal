@@ -34,6 +34,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineUtils.h"
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
