@@ -5395,6 +5395,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 SplitGroupVertexList[ VertexIdx + 2 ]
                             };
 
+                            if ( ValidVertexId >= SplitGroupVertexListCount )
+                                continue;
+
                             if ( ImportAxis == HRSAI_Unreal )
                             {
                                 // Flip wedge indices to fix winding order.
@@ -5843,17 +5846,51 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     if ( bAddSimpleCollisions )
                     {
                         int32 PrimIndex = INDEX_NONE;
+                        bool bSimpleCollisionAddedToAggregate = false;
                         if ( SplitGroupName.Contains( "Box" ) )
                         {
                             PrimIndex = GenerateBoxAsSimpleCollision( StaticMesh );
+                            if ( !HoudiniGeoPartObject.bIsRenderCollidable )
+                            {
+                                // If this part is not renderCollidable, we want to extract the Box collider
+                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+                                UBodySetup* bs = StaticMesh->BodySetup;
+                                if (bs && bs->AggGeom.BoxElems.IsValidIndex( PrimIndex ) )
+                                {
+                                    AggregateCollisionGeo.BoxElems.Add( bs->AggGeom.BoxElems[PrimIndex] );
+                                    bSimpleCollisionAddedToAggregate = true;
+                                }
+                            }
                         }
                         else if ( SplitGroupName.Contains( "Sphere" ) )
                         {
                             PrimIndex = GenerateSphereAsSimpleCollision( StaticMesh );
+                            if (!HoudiniGeoPartObject.bIsRenderCollidable)
+                            {
+                                // If this part is not renderCollidable, we want to extract the Sphere collider
+                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+                                UBodySetup* bs = StaticMesh->BodySetup;
+                                if ( bs && bs->AggGeom.SphereElems.IsValidIndex( PrimIndex ) )
+                                {
+                                    AggregateCollisionGeo.SphereElems.Add(bs->AggGeom.SphereElems[PrimIndex]);
+                                    bSimpleCollisionAddedToAggregate = true;
+                                }
+                            }
                         }
                         else if ( SplitGroupName.Contains( "Capsule" ) )
                         {
                             PrimIndex = GenerateSphylAsSimpleCollision( StaticMesh );
+                            if (!HoudiniGeoPartObject.bIsRenderCollidable)
+                            {
+                                // If this part is not renderCollidable, we want to extract the Capsule collider
+                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+                                UBodySetup* bs = StaticMesh->BodySetup;
+                                if ( bs && bs->AggGeom.SphylElems.IsValidIndex( PrimIndex ) )
+                                {
+                                    AggregateCollisionGeo.SphylElems.Add(bs->AggGeom.SphylElems[PrimIndex]);
+                                    bSimpleCollisionAddedToAggregate = true;
+                                }
+                            }
                         }
                         else
                         {
@@ -5891,6 +5928,18 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             }
 
                             PrimIndex = GenerateKDopAsSimpleCollision( StaticMesh, DirArray );
+
+                            if (!HoudiniGeoPartObject.bIsRenderCollidable)
+                            {
+                                // If this part is not renderCollidable, we want to extract the KDOP collider
+                                // and add it to the AggregateCollisionGeo to avoid creating extra meshes
+                                UBodySetup* bs = StaticMesh->BodySetup;
+                                if (bs && bs->AggGeom.ConvexElems.IsValidIndex( PrimIndex ) )
+                                {
+                                    AggregateCollisionGeo.ConvexElems.Add(bs->AggGeom.ConvexElems[PrimIndex]);
+                                    bSimpleCollisionAddedToAggregate = true;
+                                }
+                            }
                         }
 
                         if ( PrimIndex == INDEX_NONE )
@@ -5901,8 +5950,17 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                         }
                         else
                         {
-                            // We don't want these collisions to be removed
-                            HoudiniGeoPartObject.bHasCollisionBeenAdded = true;
+                            if (bSimpleCollisionAddedToAggregate)
+                            {
+                                // We will add the colliders after
+                                bHasAggregateGeometryCollision = true;
+                                continue;
+                            }
+                            else
+                            {
+                                // We don't want these collisions to be removed
+                                HoudiniGeoPartObject.bHasCollisionBeenAdded = true;
+                            }
                         }
                     }
 
@@ -9379,7 +9437,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
-    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() )
+    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() && !HoudiniGeoPartObject.IsVolume())
     {
         // Create package for this duplicated mesh.
         FString MeshName;
