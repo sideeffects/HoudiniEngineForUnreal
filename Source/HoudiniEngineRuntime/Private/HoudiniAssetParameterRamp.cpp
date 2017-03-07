@@ -813,7 +813,7 @@ UHoudiniAssetParameterRamp::GenerateCurvePoints()
 
             if ( !GetRampKeysCurveFloat(ChildIdx, ChildParamPosition, ChildParamValue, ChildParamInterpolation ) )
             {
-                HoudiniAssetParameterRampCurveColor->ResetCurve();
+                HoudiniAssetParameterRampCurveFloat->ResetCurve();
                 return;
             }
 
