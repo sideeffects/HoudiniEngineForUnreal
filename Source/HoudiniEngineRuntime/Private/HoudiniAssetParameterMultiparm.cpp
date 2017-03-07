@@ -34,6 +34,8 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineUtils.h"
+
 
 
 UHoudiniAssetParameterMultiparm::UHoudiniAssetParameterMultiparm( const FObjectInitializer & ObjectInitializer )

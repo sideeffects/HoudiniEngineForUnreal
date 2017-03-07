@@ -4907,8 +4907,8 @@ UHoudiniAssetComponent::CreateLandscape(
     if ( FMath::Abs(LandscapePosition.Z) < SMALL_NUMBER )
     {
         // XZ orientation, we just need to invert Y
-        LandscapePosition.Y = -LandscapePosition.Y;
-        LandscapePosition.Z = 0.0f;
+        //LandscapePosition.Y = -LandscapePosition.Y;
+        //LandscapePosition.Z = 0.0f;
     }
     else if ( FMath::Abs( LandscapePosition.X ) < SMALL_NUMBER )
     {
@@ -4934,7 +4934,8 @@ UHoudiniAssetComponent::CreateLandscape(
     uint16 HoudiniZeroValueInDigit = FMath::RoundToInt( -(double)FloatMin * ZSpacing + ZCenterOffset );
 
     float ZOffset = -( (float)HoudiniZeroValueInDigit - 32768.0f ) / 128.0f * LandscapeScale.Z;
-    LandscapePosition.Z = ZOffset;
+    //LandscapePosition.Z += ZOffset;
+    LandscapePosition.Z += ZOffset;
 
     // We can now set the Landscape position
     Landscape->SetActorRelativeLocation( LandscapePosition );
@@ -5181,6 +5182,8 @@ UHoudiniAssetComponent::ClearLandscapes()
     for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(LandscapeComponents); Iter; ++Iter)
     {
         ALandscape * HoudiniLandscape = Iter.Value();
+        if ( !HoudiniLandscape )
+            continue;
 
         //HoudiniLandscape->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         HoudiniLandscape->UnregisterAllComponents();
