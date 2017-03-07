@@ -9666,6 +9666,12 @@ FHoudiniEngineUtils::GetAssetNames(
             return false;
         }
 
+        if( AssetCount <= 0 )
+        {
+            HOUDINI_LOG_MESSAGE( TEXT( "Could not find an asset in library %s" ), *AssetFileName );
+            return false;
+        }
+
         AssetNames.SetNumUninitialized( AssetCount );
 
         Result = FHoudiniApi::GetAvailableAssets( FHoudiniEngine::Get().GetSession(), AssetLibraryId, &AssetNames[ 0 ], AssetCount );

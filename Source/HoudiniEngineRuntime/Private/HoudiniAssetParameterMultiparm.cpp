@@ -89,9 +89,10 @@ UHoudiniAssetParameterMultiparm::CreateParameter(
 
     // Get the actual value for this property.
     MultiparmValue = 0;
-    if ( FHoudiniApi::GetParmIntValues( nullptr, InNodeId, &MultiparmValue, ValuesIndex, 1 ) != HAPI_RESULT_SUCCESS )
-        return false;
-
+    HOUDINI_CHECK_ERROR_RETURN(
+        FHoudiniApi::GetParmIntValues( 
+            FHoudiniEngine::Get().GetSession(), InNodeId, &MultiparmValue, ValuesIndex, 1 )
+        , false );
     return true;
 }
 
