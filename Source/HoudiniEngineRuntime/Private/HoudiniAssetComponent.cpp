@@ -1286,8 +1286,12 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                         // Set new asset id.
                         SetAssetId( TaskInfo.AssetId );
 
-                        // Assign unique actor label based on asset name.
-                        AssignUniqueActorLabel();
+                        AHoudiniAssetActor * HoudiniAssetActor = GetHoudiniAssetActorOwner();
+                        if( HoudiniAssetActor && HoudiniAssetActor->GetName().StartsWith( AHoudiniAssetActor::StaticClass()->GetName() ) )
+                        {
+                            // Assign unique actor label based on asset name if it seems to have not been renamed already
+                            AssignUniqueActorLabel();
+                        }
 
                         // Create default preset buffer.
                         CreateDefaultPreset();
