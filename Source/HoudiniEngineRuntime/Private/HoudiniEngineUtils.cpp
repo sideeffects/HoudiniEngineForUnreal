@@ -4921,11 +4921,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                 }
                 else if ( PartInfo.vertexCount <= 0 )
                 {
-                    // This is not an instancer, but we do not have vertices, skip.
-                    HOUDINI_LOG_MESSAGE(
-                        TEXT( "Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] has 0 vertices and non-zero points, " )
-                        TEXT( "but is not an intstancer - skipping." ),
-                        ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
+                    // This is not an instancer, but we do not have vertices, but maybe this
+                    // is a point cloud with attribute override instancing, we will assume it is and
+                    // let the PostCook figure it out.
+                    HoudiniGeoPartObject.bIsInstancer = true;
+                    StaticMesh = nullptr;
+                    StaticMeshesOut.Add( HoudiniGeoPartObject, StaticMesh );
                     continue;
                 }
 
