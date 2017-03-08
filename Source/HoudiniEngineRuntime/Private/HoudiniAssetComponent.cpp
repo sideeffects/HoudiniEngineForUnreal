@@ -4376,7 +4376,7 @@ UHoudiniAssetComponent::CreateInstanceInputs( const TArray< FHoudiniGeoPartObjec
             if ( !HoudiniAssetInstanceInput )
             {
                 // Invalid instance input.
-                HOUDINI_LOG_WARNING( TEXT( "Inavlid Instance Input" ) );
+                HOUDINI_LOG_WARNING( TEXT( "%s: Failed to create Instancer from part %s" ), *GetOwner()->GetName(), *GeoPart.GetNodePath() );
             }
             else
             {
