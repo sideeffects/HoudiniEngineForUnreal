@@ -4196,10 +4196,6 @@ UHoudiniAssetComponent::CreateInputs()
         return;
     }
 
-    // Inputs have been created already.
-    if ( Inputs.Num() > 0 )
-        return;
-
     HAPI_AssetInfo AssetInfo;
     int32 InputCount = 0;
     if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) == HAPI_RESULT_SUCCESS
@@ -4208,10 +4204,34 @@ UHoudiniAssetComponent::CreateInputs()
         InputCount = AssetInfo.geoInputCount;
     }
 
-    // Create inputs.
-    Inputs.SetNumZeroed( InputCount );
-    for ( int32 InputIdx = 0; InputIdx < InputCount; ++InputIdx )
-        Inputs[ InputIdx ] = UHoudiniAssetInput::Create( this, InputIdx );
+    // We've already created the number of required inputs.
+    if( Inputs.Num() == InputCount )
+        return;
+
+    // Resize our inputs to match the asset
+    if( InputCount == 0 )
+    {
+        ClearInputs();
+    }
+    else
+    {
+        if( InputCount > Inputs.Num() )
+        {
+            int32 NumNewInputs = InputCount - Inputs.Num();
+            for( int32 InputIdx = Inputs.Num(); InputIdx < InputCount; ++InputIdx )
+                Inputs.Add( UHoudiniAssetInput::Create( this, InputIdx ) );
+        }
+        else
+        {
+            // Must be fewer inputs
+            for( int32 InputIdx = InputCount; InputIdx < Inputs.Num(); ++InputIdx )
+            {
+                Inputs[ InputIdx ]->ConditionalBeginDestroy();
+            }
+            Inputs.SetNum( InputCount );
+        }
+    }
+
 }
 
 void
