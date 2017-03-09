@@ -2958,6 +2958,22 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         Ar << BakeNameOverrides;
     }
 
+    if (HoudiniAssetComponentVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_COOK_TEMP_PACKAGES)
+    {
+        TMap<FString, FString> SavedPackages;
+        Ar << SavedPackages;
+    }
+
+    if ( HoudiniAssetComponentVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_COOK_TEMP_PACKAGES_MESH_AND_LAYERS )
+    {
+        // Temporary Mesh Packages
+        TMap<FHoudiniGeoPartObject, FString> MeshPackages;
+        Ar << MeshPackages;
+
+        // Temporary Landscape Layers Packages
+        Ar << LayerPackages;
+    }
+    
     if ( Ar.IsLoading() && bIsNativeComponent )
     {
         // This component has been loaded.
