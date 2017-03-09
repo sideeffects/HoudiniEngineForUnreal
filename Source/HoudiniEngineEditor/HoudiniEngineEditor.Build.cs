@@ -33,7 +33,7 @@
 /*
 
     Houdini Version: 16.5.46
-    Houdini Engine Version: 3.1.0
+    Houdini Engine Version: 3.1.1
     Unreal Version: 4.15.0
 
 */
