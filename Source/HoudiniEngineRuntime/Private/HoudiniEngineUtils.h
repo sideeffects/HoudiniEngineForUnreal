@@ -259,10 +259,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** HAPI : Marshaling, disconnect input asset from a given slot. **/
         static bool HapiDisconnectAsset( HAPI_NodeId HostAssetId, int32 InputIndex );
 
-        /** HAPI : Marshaling, connect input asset to a given slot of host asset. **/
-        static bool HapiConnectAsset(
-            HAPI_NodeId AssetIdFrom, HAPI_NodeId AssetIdTo, int32 InputIndex );
-
         /** HAPI : Set asset transform. **/
         static bool HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransform & Transform );
 

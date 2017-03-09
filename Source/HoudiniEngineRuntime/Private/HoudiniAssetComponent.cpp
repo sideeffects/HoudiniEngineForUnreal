@@ -5369,7 +5369,28 @@ UHoudiniAssetComponent::ClearDownstreamAssets()
         TSet< int32 > & LocalInputIndicies = IterAssets.Value();
         for ( auto LocalInputIndex : LocalInputIndicies )
         {
-            DownstreamAsset->Inputs[ LocalInputIndex ]->ExternalDisconnectInputAssetActor();
+            if( DownstreamAsset->Inputs.IsValidIndex( LocalInputIndex ) && DownstreamAsset->Inputs[ LocalInputIndex ] != nullptr )
+            {
+                DownstreamAsset->Inputs[ LocalInputIndex ]->ExternalDisconnectInputAssetActor();
+            }
+            else
+            {
+                // It could be connected as an operator path parameter
+                bool DidADisconnect = false;
+                for( auto& OtherParmElem : DownstreamAsset->Parameters )
+                {
+                    if( UHoudiniAssetInput* OtherParm = Cast<UHoudiniAssetInput>( OtherParmElem.Value ) )
+                    {
+                        if( OtherParm->GetConnectedInputAssetComponent() == this && OtherParm->IsInputAssetConnected() )
+                        {
+                            OtherParm->ExternalDisconnectInputAssetActor();
+                            DidADisconnect = true;
+                        }
+                    }
+                }
+                if ( !DidADisconnect )
+                    HOUDINI_LOG_ERROR( TEXT( "%s: Invalid downstream asset connection" ), *GetOwner()->GetName() );
+            }
         }
     }
 
