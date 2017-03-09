@@ -3861,22 +3861,6 @@ FHoudiniEngineUtils::HapiDisconnectAsset( HAPI_NodeId HostAssetId, int32 InputIn
 }
 
 bool
-FHoudiniEngineUtils::HapiConnectAsset(
-    HAPI_NodeId AssetIdFrom, HAPI_NodeId AssetIdTo, int32 InputIndex )
-{
-#if WITH_EDITOR
-
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
-        FHoudiniEngine::Get().GetSession(), AssetIdTo, InputIndex,
-        AssetIdFrom), false );
-
-#endif // WITH_EDITOR
-
-    return true;
-}
-
-
-bool
 FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransform & Transform )
 {
     if (!FHoudiniEngineUtils::IsValidAssetId(AssetId))
