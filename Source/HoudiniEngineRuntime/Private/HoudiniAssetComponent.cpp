@@ -72,8 +72,11 @@
 #include "Widgets/Input/SButton.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
-#include "FileHelpers.h"
 #include "Editor/UnrealEdEngine.h"
+#include "Editor.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
 #endif
 
 #include "Internationalization.h"
@@ -3103,19 +3106,19 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         }
 
         // Temporary Landscape Layers Packages
-        TMap<FName, FString> LayerPackages;
+        TMap<FString, FHoudiniGeoPartObject> LayerPackages;
         if ( Ar.IsSaving() )
         {
-            for ( TMap<FName, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
+            for ( TMap<TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage( CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
             {
-                UPackage * Package = IterPackage.Value().Get();
+                UPackage * Package = IterPackage.Key().Get();
 
-                FString sValue;
+                FString sKey;
                 if ( Package )
-                    sValue = Package->GetFName().ToString();
+                    sKey = Package->GetFName().ToString();
 
-                FName sKey = IterPackage.Key();
-                LayerPackages.Add( sKey, sValue );
+                FHoudiniGeoPartObject Value = IterPackage.Value();
+                LayerPackages.Add( sKey, Value );
             }
         }
 
@@ -3123,16 +3126,16 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
 
         if ( Ar.IsLoading() )
         {
-            for ( TMap<FName, FString > ::TIterator IterPackage( LayerPackages ); IterPackage; ++IterPackage )
+            for ( TMap<FString, FHoudiniGeoPartObject > ::TIterator IterPackage( LayerPackages ); IterPackage; ++IterPackage )
             {
-                FName sKey = IterPackage.Key();
-                FString PackageFile = IterPackage.Value();
+                FHoudiniGeoPartObject Value = IterPackage.Value();
+                FString PackageFile = IterPackage.Key();
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
                     Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
 
-                CookedTemporaryLandscapeLayers.Add( sKey, Package );
+                CookedTemporaryLandscapeLayers.Add( Package, Value );
             }
         }
     }
@@ -3326,12 +3329,12 @@ UHoudiniAssetComponent::PostEditUndo()
     }
 
     // Check the cooked landscape layers refer to something..
-    for ( TMap< FName, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryLandscapeLayers); IterPackage; ++IterPackage )
+    for ( TMap< TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject >::TIterator IterPackage( CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
     {
         if ( bCookedContentNeedRecook )
             break;
 
-        UPackage * Package = IterPackage.Value().Get();
+        UPackage * Package = IterPackage.Key().Get();
         if ( Package )
         {
             FString PackageName = Package->GetName();
@@ -4858,13 +4861,29 @@ UHoudiniAssetComponent::CreateLandscape(
     if ( !GEditor )
         return false;
 
+    this->SetMobility( EComponentMobility::Static );
+
     FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
     UWorld* MyWorld = EditorWorldContext.World();
+
+    // We need to create the landscape in the landscape editor mode's world
+    // Activate Landscape mode
+    bool bLandscapeModeWasActive = GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape);
+    if ( !bLandscapeModeWasActive )
+        GLevelEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Landscape );
+
+    FEdMode* LandscapeEditorMode = GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Landscape );
+    if ( LandscapeEditorMode )
+        MyWorld = LandscapeEditorMode->GetWorld();
+
+    // Deactivate Landscape Edition mode
+    if (!bLandscapeModeWasActive)
+        GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
 
     if ( !MyWorld )
         return false;
 
-    const FHoudiniGeoPartObject HoudiniGeoPartObject = *HeightField;
+     const FHoudiniGeoPartObject HoudiniGeoPartObject = *HeightField;
 
     // Retrieve node id from geo part.
     HAPI_NodeId NodeId = HoudiniGeoPartObject.HapiGeoGetNodeId( AssetId );
@@ -5077,7 +5096,6 @@ UHoudiniAssetComponent::CreateLandscape(
     TArray<FLandscapeImportLayerInfo> ImportLayerInfos;
     ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
 
-    TArray<UPackage *> CreatedLayerInfoPackage;
     for (TArray<const FHoudiniGeoPartObject *>::TConstIterator IterLayers( FoundLayers ); IterLayers; ++IterLayers)
     {
         HAPI_Result Result = HAPI_RESULT_SUCCESS;
@@ -5159,7 +5177,7 @@ UHoudiniAssetComponent::CreateLandscape(
         if ( !currentLayerInfo.LayerInfo )
             continue;
 
-        CreatedLayerInfoPackage.Add( Package );
+        CookedTemporaryLandscapeLayers.Add( Package, HoudiniGeoPartObject );
 
         // Convert the float data to uint8
         currentLayerInfo.LayerData.SetNumUninitialized( LayerSizeInPoints );
@@ -5236,6 +5254,8 @@ UHoudiniAssetComponent::CreateLandscape(
     // < 2048x2048 -> LOD0,  >=2048x2048 -> LOD1,  >= 4096x4096 -> LOD2,  >= 8192x8192 -> LOD3
     Landscape->StaticLightingLOD = FMath::DivideAndRoundUp( FMath::CeilLogTwo( ( XSize * YSize ) / ( 2048 * 2048 ) + 1 ), (uint32) 2 );
     
+    // The asset needs to be static in order to attach the landscape to it
+    SetMobility( EComponentMobility::Static );
     Landscape->AttachToComponent( this, FAttachmentTransformRules::KeepRelativeTransform );
     Landscape->RegisterAllComponents();
 
@@ -5263,7 +5283,7 @@ UHoudiniAssetComponent::CreateLandscapeLayerInfoObject( const TCHAR* LayerName, 
     Package = FindPackage( nullptr, *PackageName );
     if ( !Package )
     {
-        // Package does not exsits, create it
+        // Package does not exists, create it
         Package = CreatePackage( nullptr, *PackageName );
     }
 
@@ -5275,8 +5295,6 @@ UHoudiniAssetComponent::CreateLandscapeLayerInfoObject( const TCHAR* LayerName, 
 
     // Mark the package dirty...
     Package->MarkPackageDirty();
-
-    CookedTemporaryLandscapeLayers.Add(LayerName, Package);
 
     return LayerInfo;
 }
@@ -5448,10 +5466,10 @@ UHoudiniAssetComponent::ClearCookTempFile()
     CookedTemporaryStaticMeshPackages.Empty();
 
     // Delete all cooked Landscape Layers
-    for ( TMap<FName, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryLandscapeLayers);
+    for ( TMap<TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage(CookedTemporaryLandscapeLayers);
         IterPackage; ++IterPackage )
     {
-        UPackage * Package = IterPackage.Value().Get();
+        UPackage * Package = IterPackage.Key().Get();
         if ( !Package )
             continue;
 
