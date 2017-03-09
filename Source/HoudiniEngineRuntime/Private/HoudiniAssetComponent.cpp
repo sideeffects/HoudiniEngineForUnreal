@@ -2307,6 +2307,12 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     }
     */
 
+    // We cannot duplicate landscape for now...
+    // we will have to recook the asset to recreate them
+    bool bNeedsRecook = false;
+    if ( CopiedHoudiniComponent->LandscapeComponents.Num() > 0 )
+        bNeedsRecook = true;
+
     // Perform any necessary post loading.
     PostLoad();
 
@@ -2315,6 +2321,9 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     // Mark this component as no longer copy imported and reset copied component.
     bComponentCopyImported = false;
     CopiedHoudiniComponent = nullptr;
+
+    if ( bNeedsRecook )
+        StartTaskAssetCookingManual();
 }
 
 void
@@ -4852,8 +4861,6 @@ UHoudiniAssetComponent::CreateLandscape(
 
     if ( !GEditor )
         return false;
-
-    this->SetMobility( EComponentMobility::Static );
 
     FWorldContext& EditorWorldContext = GEditor->GetEditorWorldContext();
     UWorld* MyWorld = EditorWorldContext.World();
