@@ -2288,7 +2288,8 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
             SplineComponents.Add( HoudiniGeoPartObject, DuplicatedSplineComponent );
         }
     }
-
+    
+    /*
     // We need to duplicate landscapes.
     for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
         Iter(CopiedHoudiniComponent->LandscapeComponents); Iter; ++Iter)
@@ -2296,7 +2297,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
         FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
         ALandscape * HoudiniLandscape = Iter.Value();
 
-        // Duplicate spline component.
+        // Duplicate landscape component.
         ALandscape * DuplicatedLandscape =
             DuplicateObject< ALandscape >( HoudiniLandscape, this );
 
@@ -2306,6 +2307,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
             LandscapeComponents.Add(HoudiniGeoPartObject, DuplicatedLandscape);
         }
     }
+    */
 
     // Perform any necessary post loading.
     PostLoad();
@@ -2780,7 +2782,7 @@ UHoudiniAssetComponent::PostLoad()
 #endif
 
     // We loaded a component which has no asset associated with it.
-    if ( !HoudiniAsset )
+    if ( !HoudiniAsset && StaticMeshes.Num() <= 0)
     {
         // Set geometry to be Houdini logo geometry, since we have no other geometry.
         CreateStaticMeshHoudiniLogoResource( StaticMeshes );
@@ -3030,7 +3032,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         TMap<FString, FString> SavedPackages;
         if ( Ar.IsSaving() )
         {
-            for (TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages); IterPackage; ++IterPackage)
+            for ( TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages); IterPackage; ++IterPackage )
             {
                 UPackage * Package = IterPackage.Value().Get();
 
@@ -3039,24 +3041,95 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                     sValue = Package->GetFName().ToString();
 
                 FString sKey = IterPackage.Key();
-                SavedPackages.Add(sKey, sValue);
+                SavedPackages.Add( sKey, sValue );
             }
         }
 
         Ar << SavedPackages;
 
-        if ( Ar.IsLoading() )
+        if (Ar.IsLoading())
         {
-            for (TMap<FString, FString > ::TIterator IterPackage(SavedPackages); IterPackage; ++IterPackage)
+            for ( TMap<FString, FString > ::TIterator IterPackage( SavedPackages ); IterPackage; ++IterPackage )
             {
                 FString sKey = IterPackage.Key();
                 FString PackageFile = IterPackage.Value();
 
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
-                    Package = LoadPackage(nullptr, *PackageFile, LOAD_None);
+                    Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
 
                 CookedTemporaryPackages.Add( sKey, Package );
+            }
+        }
+    }
+
+    if ( HoudiniAssetComponentVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_COOK_TEMP_PACKAGES_MESH_AND_LAYERS )
+    {
+        // Temporary Mesh Packages
+        TMap<FHoudiniGeoPartObject, FString> MeshPackages;
+        if ( Ar.IsSaving() )
+        {
+            for ( TMap<FHoudiniGeoPartObject, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryStaticMeshPackages); IterPackage; ++IterPackage )
+            {
+                UPackage * Package = IterPackage.Value().Get();
+
+                FString sValue;
+                if ( Package )
+                    sValue = Package->GetFName().ToString();
+
+                FHoudiniGeoPartObject Key = IterPackage.Key();
+                MeshPackages.Add( Key, sValue );
+            }
+        }
+
+        Ar << MeshPackages;
+
+        if ( Ar.IsLoading() )
+        {
+            for ( TMap<FHoudiniGeoPartObject, FString > ::TIterator IterPackage( MeshPackages ); IterPackage; ++IterPackage )
+            {
+                FHoudiniGeoPartObject Key = IterPackage.Key();
+                FString PackageFile = IterPackage.Value();
+
+                UPackage * Package = nullptr;
+                if ( !PackageFile.IsEmpty() )
+                    Package = LoadPackage(nullptr, *PackageFile, LOAD_None);
+
+                CookedTemporaryStaticMeshPackages.Add( Key, Package );
+            }
+        }
+
+        // Temporary Landscape Layers Packages
+        TMap<FName, FString> LayerPackages;
+        if ( Ar.IsSaving() )
+        {
+            for ( TMap<FName, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
+            {
+                UPackage * Package = IterPackage.Value().Get();
+
+                FString sValue;
+                if ( Package )
+                    sValue = Package->GetFName().ToString();
+
+                FName sKey = IterPackage.Key();
+                LayerPackages.Add( sKey, sValue );
+            }
+        }
+
+        Ar << LayerPackages;
+
+        if ( Ar.IsLoading() )
+        {
+            for ( TMap<FName, FString > ::TIterator IterPackage( LayerPackages ); IterPackage; ++IterPackage )
+            {
+                FName sKey = IterPackage.Key();
+                FString PackageFile = IterPackage.Value();
+
+                UPackage * Package = nullptr;
+                if ( !PackageFile.IsEmpty() )
+                    Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
+
+                CookedTemporaryLandscapeLayers.Add( sKey, Package );
             }
         }
     }
@@ -3218,8 +3291,11 @@ UHoudiniAssetComponent::PostEditUndo()
     bool bCookedContentNeedRecook = false;
     for ( TMap< FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryPackages ); IterPackage; ++IterPackage )
     {
+        if ( bCookedContentNeedRecook )
+            break;
+
         UPackage * Package = IterPackage.Value().Get();
-        if (Package)
+        if ( Package )
         {
             FString PackageName = Package->GetName();
             if ( !PackageName.IsEmpty() && ( PackageName != TEXT( "None" ) ) )
@@ -3227,12 +3303,14 @@ UHoudiniAssetComponent::PostEditUndo()
         }
 
         bCookedContentNeedRecook = true;
-        break;
     }
 
-    // Check the cooked materials refer to something..
+    // Check the cooked meshes refer to something..
     for ( TMap< FHoudiniGeoPartObject, TWeakObjectPtr< UPackage > > ::TIterator IterPackage( CookedTemporaryStaticMeshPackages ); IterPackage; ++IterPackage )
     {
+        if ( bCookedContentNeedRecook )
+            break;
+
         UPackage * Package = IterPackage.Value().Get();
         if ( Package )
         {
@@ -3242,8 +3320,25 @@ UHoudiniAssetComponent::PostEditUndo()
         }
 
         bCookedContentNeedRecook = true;
-        break;
     }
+
+    // Check the cooked landscape layers refer to something..
+    for ( TMap< FName, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryLandscapeLayers); IterPackage; ++IterPackage )
+    {
+        if ( bCookedContentNeedRecook )
+            break;
+
+        UPackage * Package = IterPackage.Value().Get();
+        if ( Package )
+        {
+            FString PackageName = Package->GetName();
+            if ( !PackageName.IsEmpty() && ( PackageName != TEXT("None") ) )
+                continue;
+        }
+
+        bCookedContentNeedRecook = true;
+    }
+
 
     if ( bCookedContentNeedRecook )
         StartTaskAssetCookingManual();
@@ -5106,9 +5201,10 @@ UHoudiniAssetComponent::CreateLandscape(
         ImportLayerInfos.Add( currentLayerInfo );
     }
 
+    // Autosaving the layers prevents them for being deleted with the Asset
     // Save the packages created for the LayerInfos
-    if ( CreatedLayerInfoPackage.Num() > 0 )
-        FEditorFileUtils::PromptForCheckoutAndSave( CreatedLayerInfoPackage, true, false );
+    //if ( CreatedLayerInfoPackage.Num() > 0 )
+    //    FEditorFileUtils::PromptForCheckoutAndSave( CreatedLayerInfoPackage, true, false );
 
     //--------------------------------------------------------------------------------------------------
     // 5. Import the landscape data
@@ -5168,7 +5264,7 @@ UHoudiniAssetComponent::CreateLandscapeLayerInfoObject( const TCHAR* LayerName, 
         Package = CreatePackage( nullptr, *PackageName );
     }
 
-    ULandscapeLayerInfoObject* LayerInfo = NewObject<ULandscapeLayerInfoObject>( Package, LayerObjectName, RF_Public | RF_Standalone | RF_Transactional );
+    ULandscapeLayerInfoObject* LayerInfo = NewObject<ULandscapeLayerInfoObject>( Package, LayerObjectName, RF_Public | RF_Standalone /*| RF_Transactional*/ );
     LayerInfo->LayerName = LayerName;
 
     // Notify the asset registry
@@ -5176,6 +5272,8 @@ UHoudiniAssetComponent::CreateLandscapeLayerInfoObject( const TCHAR* LayerName, 
 
     // Mark the package dirty...
     Package->MarkPackageDirty();
+
+    CookedTemporaryLandscapeLayers.Add(LayerName, Package);
 
     return LayerInfo;
 }
@@ -5294,10 +5392,10 @@ void
 UHoudiniAssetComponent::ClearCookTempFile()
 {
     // First, Clean up the assignement/replacement map
-    HoudiniAssetComponentMaterials->ResetMaterialInfo();
+    if ( HoudiniAssetComponentMaterials )
+        HoudiniAssetComponentMaterials->ResetMaterialInfo();
 
     // Then delete all the materials
-    //for ( TMap<FString, UPackage* > ::TIterator IterPackage( CookedTemporaryPackages );
     for ( TMap<FString, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryPackages );
         IterPackage; ++IterPackage)
     {
@@ -5324,6 +5422,20 @@ UHoudiniAssetComponent::ClearCookTempFile()
     }
 
     CookedTemporaryStaticMeshPackages.Empty();
+
+    // Delete all cooked Landscape Layers
+    for ( TMap<FName, TWeakObjectPtr< UPackage > > ::TIterator IterPackage(CookedTemporaryLandscapeLayers);
+        IterPackage; ++IterPackage )
+    {
+        UPackage * Package = IterPackage.Value().Get();
+        if ( !Package )
+            continue;
+
+        Package->ClearFlags( RF_Standalone );
+        Package->ConditionalBeginDestroy();
+    }
+
+    CookedTemporaryLandscapeLayers.Empty();
 }
 
 UStaticMesh *

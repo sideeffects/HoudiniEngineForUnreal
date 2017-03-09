@@ -642,6 +642,8 @@ public:
         TMap<FHoudiniGeoPartObject, TWeakObjectPtr<class UPackage> > CookedTemporaryStaticMeshPackages;
         /** Cache of the temp cook content packages created by the asset for its materials/textures		    **/
         TMap<FString, TWeakObjectPtr<class UPackage> > CookedTemporaryPackages;
+        /** Cache of the temp cook content packages created by the asset for its Landscape layers		    **/
+        TMap< FName, TWeakObjectPtr<class UPackage> > CookedTemporaryLandscapeLayers;
 
         /** Indicates that the details panels doesn't need a "full" update to avoid breaking parameter selection    **/
         /** (default behavior is true)										    **/
