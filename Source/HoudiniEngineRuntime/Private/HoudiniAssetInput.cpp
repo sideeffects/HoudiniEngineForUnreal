@@ -325,10 +325,19 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
 {
     if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
+        if( bIsObjectPathParameter )
+        {
+            std::string ParamNameString = TCHAR_TO_UTF8( *GetParameterName() );
+
+            FHoudiniApi::SetParmStringValue(
+                FHoudiniEngine::Get().GetSession(), NodeId, "",
+                ParmId, 0 );
+        }
         if ( InputAssetComponent )
             InputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
 
         InputAssetComponent = nullptr;
+        bInputAssetConnectedInHoudini = false;
         ConnectedAssetId = -1;
     }
     else
@@ -1089,7 +1098,6 @@ UHoudiniAssetInput::UploadParameterValue()
                 && !bInputAssetConnectedInHoudini )
             {
                 ConnectInputAssetActor();
-                Success &= UpdateObjectMergeTransformType();
             }
             else if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
             {
@@ -1098,7 +1106,8 @@ UHoudiniAssetInput::UploadParameterValue()
             else
             {
                 bChanged = false;
-                return false;
+                if ( InputAssetComponent )
+                    return false;
             }
 
             break;
@@ -1696,8 +1705,7 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 
 	case EHoudiniAssetInputType::AssetInput:
 	{
-	    // We are switching away from asset input.
-	    DisconnectInputAssetActor();
+	    // We are switching away from asset input.  WIll be handled in DisconnectAndDestroyInputAsset
 	    break;
 	}
 
@@ -2057,13 +2065,8 @@ UHoudiniAssetInput::ConnectInputAssetActor()
     if ( InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() )
         && !bInputAssetConnectedInHoudini )
     {
-        FHoudiniEngineUtils::HapiConnectAsset(
-            InputAssetComponent->GetAssetId(),
-            HoudiniAssetComponent->GetAssetId(),
-            InputIndex );
 
-        ConnectedAssetId = InputAssetComponent->GetAssetId();
-
+        ConnectInputNode();
         InputAssetComponent->AddDownstreamAsset( HoudiniAssetComponent, InputIndex );
         bInputAssetConnectedInHoudini = true;
     }
@@ -2074,7 +2077,18 @@ UHoudiniAssetInput::DisconnectInputAssetActor()
 {
     if ( bInputAssetConnectedInHoudini && !InputAssetComponent )
     {
-        FHoudiniEngineUtils::HapiDisconnectAsset( HoudiniAssetComponent->GetAssetId(), InputIndex );
+        if( bIsObjectPathParameter )
+        {
+            std::string ParamNameString = TCHAR_TO_UTF8( *GetParameterName() );
+
+            FHoudiniApi::SetParmStringValue(
+                FHoudiniEngine::Get().GetSession(), NodeId, "",
+                ParmId, 0);
+        }
+        else
+        {
+            FHoudiniEngineUtils::HapiDisconnectAsset( HoudiniAssetComponent->GetAssetId(), InputIndex );
+        }
         bInputAssetConnectedInHoudini = false;
     }
 }
