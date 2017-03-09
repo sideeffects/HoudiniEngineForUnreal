@@ -1213,13 +1213,16 @@ FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniA
                     LayerPackages.Add(Package);
             }
 
+            // Modify the component GUID to avoid overwriting the layers
+            HoudiniAssetComponent->ComponentGUID = FGuid::NewGuid();
+
             bNeedToUpdateProperties = true;
             break;
         }
 
         if (LayerPackages.Num() > 0 )
             FEditorFileUtils::PromptForCheckoutAndSave(LayerPackages, true, false );
-        
+
         if (bNeedToUpdateProperties)
             HoudiniAssetComponent->UpdateEditorProperties(false);
     }
