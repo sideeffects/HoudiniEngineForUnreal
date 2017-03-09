@@ -2971,6 +2971,7 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
         Ar << MeshPackages;
 
         // Temporary Landscape Layers Packages
+        TMap<FString, FHoudiniGeoPartObject> LayerPackages;
         Ar << LayerPackages;
     }
     
