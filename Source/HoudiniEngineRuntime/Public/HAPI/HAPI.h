@@ -2653,8 +2653,13 @@ HAPI_DECL HAPI_SetObjectTransform( const HAPI_Session * session,
 
 /// @brief  Get the display geo (SOP) node inside an Object node. If there
 ///         there are multiple display SOP nodes, only the first one is
-///         returned. If the node is a display SOP itself and not a network
-///         it will return its own geo info.
+///         returned. If the node is a display SOP itself, even if a network,
+///         it will return its own geo info. If the node is a SOP but not
+///         a network and not the display SOP, this function will fail.
+///
+///         The above implies that you can safely call this function on both
+///         OBJ and SOP asset nodes and get the same (equivalent) geometry
+///         display node back. SOP asset nodes will simply return themselves.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
