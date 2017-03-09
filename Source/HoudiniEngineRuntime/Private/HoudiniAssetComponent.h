@@ -633,7 +633,8 @@ public:
         /** Cache of the temp cook content packages created by the asset for its materials/textures		    **/
         TMap<FString, TWeakObjectPtr<class UPackage> > CookedTemporaryPackages;
         /** Cache of the temp cook content packages created by the asset for its Landscape layers		    **/
-        TMap< FName, TWeakObjectPtr<class UPackage> > CookedTemporaryLandscapeLayers;
+        /** As packages are unique their are used as the key (we can have multiple package for the same geopartobj  **/
+        TMap< TWeakObjectPtr<class UPackage> , FHoudiniGeoPartObject > CookedTemporaryLandscapeLayers;
 
         /** Indicates that the details panels doesn't need a "full" update to avoid breaking parameter selection    **/
         /** (default behavior is true)										    **/

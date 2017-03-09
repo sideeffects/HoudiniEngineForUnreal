@@ -35,6 +35,7 @@
 #include "HoudiniEngineString.h"
 #include "Landscape.h"
 #include "ContentBrowserModule.h"
+#include "FileHelpers.h"
 
 uint32
 GetTypeHash( TPair< UStaticMesh *, int32 > Pair )
@@ -1174,6 +1175,8 @@ FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniA
     if (HoudiniAssetComponent && Landscape)
     {
         bool bNeedToUpdateProperties = false;
+        TArray<UPackage *> LayerPackages;
+
         // We just need to "separate" the landscape and the Asset component
         for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
             IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
@@ -1186,10 +1189,26 @@ FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniA
             FHoudiniGeoPartObject & HoudiniGeoPartObject = IterLandscapes.Key();
             HoudiniAssetComponent->LandscapeComponents.Remove( HoudiniGeoPartObject );
 
+            CurrentLandscape->DetachFromActor( FDetachmentTransformRules::KeepWorldTransform );
+
+            // And save its layers to prevent them from being removed
+            for (TMap< TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage(HoudiniAssetComponent->CookedTemporaryLandscapeLayers); IterPackage; ++IterPackage)
+            {
+                if ( !(HoudiniGeoPartObject == IterPackage.Value() ) )
+                    continue;
+
+                UPackage * Package = IterPackage.Key().Get();
+                if ( Package )
+                    LayerPackages.Add(Package);
+            }
+
             bNeedToUpdateProperties = true;
             break;
         }
 
+        if (LayerPackages.Num() > 0 )
+            FEditorFileUtils::PromptForCheckoutAndSave(LayerPackages, true, false );
+        
         if (bNeedToUpdateProperties)
             HoudiniAssetComponent->UpdateEditorProperties(false);
     }
@@ -1216,9 +1235,9 @@ FHoudiniAssetComponentDetails::OnBakeAllGeneratedMeshes()
             IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
         {
             ALandscape * Landscape = IterLandscapes.Value();
-            if (!Landscape)
+            if ( !Landscape )
                 continue;
-            (void)OnBakeLandscape(Landscape, HoudiniAssetComponent);
+            (void) OnBakeLandscape(Landscape, HoudiniAssetComponent);
         }
     }
 
