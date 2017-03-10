@@ -71,7 +71,8 @@
 #include "MessageDialog.h"
 #include "Widgets/Input/SButton.h"
 #if WITH_EDITOR
-#include "UnrealEdGlobals.h"
+#include "UnrealEd.h"
+
 #include "Editor/UnrealEdEngine.h"
 #include "Editor.h"
 #include "EdMode.h"
