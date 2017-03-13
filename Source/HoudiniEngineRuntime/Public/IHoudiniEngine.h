@@ -32,6 +32,7 @@
 #pragma once
 
 #include "ModuleInterface.h"
+#include "Brushes/SlateDynamicImageBrush.h"
 
 
 class UMaterial;

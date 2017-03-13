@@ -49,6 +49,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+#include "Widgets/Input/SButton.h"
 
 #if WITH_EDITOR
     #include "UnrealEdGlobals.h"

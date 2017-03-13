@@ -36,6 +36,7 @@
 #include "HoudiniAttributeDataComponent.h"
 #include "Engine/Selection.h"
 #include "EditorModeManager.h"
+#include "Widgets/Input/SButton.h"
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 

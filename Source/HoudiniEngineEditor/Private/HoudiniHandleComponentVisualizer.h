@@ -33,6 +33,7 @@
 #include "HoudiniHandleComponent.h"
 #include "ComponentVisualizer.h"
 #include "Commands.h"
+#include "Framework/Commands/UICommandList.h"
 
 /** Base class for clickable editing proxies. **/
 struct HHoudiniHandleVisProxy : public HComponentVisProxy

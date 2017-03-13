@@ -31,7 +31,8 @@
 
 
 #pragma once
-
+#include "Modules/ModuleInterface.h"
+#include "Styling/ISlateStyle.h"
 
 class IHoudiniEngineEditor : public IModuleInterface
 {

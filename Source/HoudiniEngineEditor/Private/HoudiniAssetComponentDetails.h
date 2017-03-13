@@ -36,6 +36,9 @@
 #include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
 #include "ContentBrowserDelegates.h"
+#include "Materials/MaterialInterface.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SComboButton.h"
 
 
 struct FGeometry;

@@ -40,6 +40,7 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "EditorReimportHandler.h"
+#include "HAL/FileManager.h"
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -220,6 +221,9 @@ FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudini
         // the .hda directory is what we're actually interested in loading
         SourceFilePath = FPaths::GetPath( SourceFilePath );
     }
+
+    if ( FPaths::IsRelative( SourceFilePath ) )
+        FPaths::ConvertRelativePathToFull(SourceFilePath);
 
     // Then open the HDA file in Houdini
     FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
