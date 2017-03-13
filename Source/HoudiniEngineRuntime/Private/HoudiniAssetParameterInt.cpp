@@ -34,6 +34,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniApi.h"
+#include "HoudiniEngineUtils.h"
 
 #if WITH_EDITOR
 #include "UnitConversion.h"
