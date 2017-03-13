@@ -68,17 +68,6 @@
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Engine/StaticMeshSocket.h"
-#include "MessageDialog.h"
-#include "Widgets/Input/SButton.h"
-#if WITH_EDITOR
-#include "UnrealEd.h"
-
-#include "Editor/UnrealEdEngine.h"
-#include "Editor.h"
-#include "EdMode.h"
-#include "EditorModeManager.h"
-#include "EditorModes.h"
-#endif
 
 #if WITH_EDITOR
 
