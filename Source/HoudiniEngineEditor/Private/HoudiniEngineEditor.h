@@ -33,6 +33,8 @@
 #include "IHoudiniEngineEditor.h"
 #include "ComponentVisualizer.h"
 #include "Styling/SlateStyle.h"
+#include "EditorUndoClient.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
 
 
 class IAssetTools;

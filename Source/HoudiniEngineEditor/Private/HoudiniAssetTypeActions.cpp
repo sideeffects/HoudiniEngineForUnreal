@@ -40,6 +40,7 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "EditorReimportHandler.h"
+#include "HAL/FileManager.h"
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 

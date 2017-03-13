@@ -34,6 +34,7 @@
 #include "HoudiniSplineComponent.h"
 #include "Commands.h"
 #include "ComponentVisualizer.h"
+#include "Framework/Commands/UICommandList.h"
 
 /** Base class for clickable spline editing proxies. **/
 struct HHoudiniSplineVisProxy : public HComponentVisProxy

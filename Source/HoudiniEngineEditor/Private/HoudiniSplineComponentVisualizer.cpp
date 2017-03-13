@@ -35,6 +35,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineEditor.h"
 #include "EditorViewportClient.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Internationalization.h"
