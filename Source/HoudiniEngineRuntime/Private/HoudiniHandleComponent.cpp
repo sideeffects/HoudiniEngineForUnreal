@@ -34,6 +34,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniAssetComponent.h"
 
 HAPI_RSTOrder
 UHoudiniHandleComponent::GetHapiRSTOrder( const TSharedPtr< FString > & StrPtr )

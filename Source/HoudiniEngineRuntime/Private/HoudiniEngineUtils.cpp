@@ -3929,19 +3929,17 @@ bool FHoudiniEngineUtils::CheckPackageSafeForBake( UPackage* Package, FString& F
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-    FString & MeshName, FGuid & BakeGUID, EBakeMode BakeMode )
+    FString & MeshName, FGuid & BakeGUID )
 {
     UPackage * PackageNew = nullptr;
 
 #if WITH_EDITOR
-
+    EBakeMode BakeMode = HoudiniCookParams.StaticMeshBakeMode;
     FString PackageName;
     int32 BakeCount = 0;
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-
-    const FGuid & ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
+    const FGuid & ComponentGUID = HoudiniCookParams.PackageGUID;
     FString ComponentGUIDString = ComponentGUID.ToString().Left(
         FHoudiniEngineUtils::PackageGUIDComponentNameLength );
 
@@ -3954,7 +3952,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
             UPackage* FoundPackage = nullptr;
             if (BakeMode == EBakeMode::ReplaceExisitingAssets)
             {
-                TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Find( HoudiniGeoPartObject );
+                TWeakObjectPtr< UPackage > * FoundPointer = HoudiniCookParams.BakedStaticMeshPackagesForParts->Find( HoudiniGeoPartObject );
                 if ( FoundPointer )
                 {
                     if ( ( *FoundPointer ).IsValid() )
@@ -3967,7 +3965,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
             }
             else
             {
-                TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->CookedTemporaryStaticMeshPackages.Find( HoudiniGeoPartObject );
+                TWeakObjectPtr< UPackage > * FoundPointer = HoudiniCookParams.CookedTemporaryStaticMeshPackages->Find( HoudiniGeoPartObject );
                 if ( FoundPointer )
                 {
                     if ( ( *FoundPointer ).IsValid() )
@@ -4015,16 +4013,16 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
             {
                 // Package is either invalid / not found so we need to remove it from the cache
                 if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
-                    HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Remove( HoudiniGeoPartObject );
+                    HoudiniCookParams.BakedStaticMeshPackagesForParts->Remove( HoudiniGeoPartObject );
                 else
-                    HoudiniAssetComponent->CookedTemporaryStaticMeshPackages.Remove( HoudiniGeoPartObject );
+                    HoudiniCookParams.CookedTemporaryStaticMeshPackages->Remove( HoudiniGeoPartObject );
             }
         }
 
         if ( !BakeGUID.IsValid() )
             BakeGUID = FGuid::NewGuid();
 
-        MeshName = HoudiniAssetComponent->GetBakingBaseName( HoudiniGeoPartObject );
+        MeshName = HoudiniCookParams.HoudiniCookManager->GetBakingBaseName( HoudiniGeoPartObject );
 
         if( BakeCount > 0 )
         {
@@ -4046,9 +4044,9 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
                     HoudiniGeoPartObject.SplitName + TEXT("_") +
                     BakeGUIDString;
 
-                PackageName = FPackageName::GetLongPackagePath( HoudiniAsset->GetOuter()->GetName() ) +
+                PackageName = FPackageName::GetLongPackagePath( HoudiniCookParams.HoudiniAsset->GetOuter()->GetName() ) +
                     TEXT("/") +
-                    HoudiniAsset->GetName() +
+                    HoudiniCookParams.HoudiniAsset->GetName() +
                     TEXT("_") +
                     ComponentGUIDString +
                     TEXT("/") +
@@ -4058,13 +4056,13 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
 
             case EBakeMode::CookToTemp:
             {
-                PackageName = HoudiniAssetComponent->GetTempCookFolder().ToString() + TEXT("/") + MeshName;
+                PackageName = HoudiniCookParams.TempCookFolder.ToString() + TEXT("/") + MeshName;
             }
             break;
 
             default:
             {
-                PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT("/") + MeshName;
+                PackageName = HoudiniCookParams.BakeFolder.ToString() + TEXT("/") + MeshName;
             }
             break;
         }
@@ -4078,7 +4076,7 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
-            OuterPackage = HoudiniAssetComponent->GetComponentLevel();
+            OuterPackage = HoudiniCookParams.IntermediateOuter;
         }
 
         // See if package exists, if it does, we need to regenerate the name.
@@ -4105,17 +4103,15 @@ FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
         }
     }
 
-#endif
-
     if ( PackageNew && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
     {
         // Add the new package to the cache
         if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
-            HoudiniAssetComponent->BakedStaticMeshPackagesForParts.Add( HoudiniGeoPartObject, PackageNew );
+            HoudiniCookParams.BakedStaticMeshPackagesForParts->Add( HoudiniGeoPartObject, PackageNew );
         else
-            HoudiniAssetComponent->CookedTemporaryStaticMeshPackages.Add( HoudiniGeoPartObject, PackageNew );
+            HoudiniCookParams.CookedTemporaryStaticMeshPackages->Add( HoudiniGeoPartObject, PackageNew );
     }
-
+#endif
     return PackageNew;
 }
 
@@ -4170,37 +4166,37 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
-    const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, EBakeMode BakeMode )
+    FHoudiniCookParams& HoudiniCookParams,
+    const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName )
 {
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+    UHoudiniAsset * HoudiniAsset = HoudiniCookParams.HoudiniAsset;
     FString MaterialDescriptor;
 
-    if( BakeMode != EBakeMode::Intermediate )
+    if( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_material_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
     else
         MaterialDescriptor = HoudiniAsset->GetName() + TEXT( "_" ) + FString::FromInt( MaterialInfo.nodeId ) + TEXT( "_" );
 
     return FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
-        HoudiniAssetComponent, MaterialDescriptor,
-        MaterialName, BakeMode );
+        HoudiniCookParams, MaterialDescriptor,
+        MaterialName );
 }
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     const FString & MaterialInfoDescriptor,
-    FString & MaterialName, EBakeMode BakeMode )
+    FString & MaterialName )
 {
     UPackage * PackageNew = nullptr;
 
 #if WITH_EDITOR
-
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
+    UHoudiniAsset * HoudiniAsset = HoudiniCookParams.HoudiniAsset;
     FGuid BakeGUID;
     FString PackageName;
 
-    const FGuid & ComponentGUID = HoudiniAssetComponent->GetComponentGuid();
+    const FGuid & ComponentGUID = HoudiniCookParams.PackageGUID;
     FString ComponentGUIDString = ComponentGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
 
     if ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) )
@@ -4210,7 +4206,7 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         UPackage* FoundPackage = nullptr;
         if (BakeMode == EBakeMode::ReplaceExisitingAssets)
         {
-            TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->BakedMaterialPackagesForIds.Find(MaterialInfoDescriptor);
+            TWeakObjectPtr< UPackage > * FoundPointer = HoudiniCookParams.BakedMaterialPackagesForIds->Find(MaterialInfoDescriptor);
             if ( FoundPointer )
             {
                 if ( (*FoundPointer).IsValid() )
@@ -4223,7 +4219,7 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
         else
         {
-            TWeakObjectPtr< UPackage > * FoundPointer = HoudiniAssetComponent->CookedTemporaryPackages.Find(MaterialInfoDescriptor);
+            TWeakObjectPtr< UPackage > * FoundPointer = HoudiniCookParams.CookedTemporaryPackages->Find(MaterialInfoDescriptor);
             if (FoundPointer)
             {
                 if ( (*FoundPointer).IsValid() )
@@ -4271,9 +4267,9 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         {
             // Package is either invalid / not found so we need to remove it from the cache
             if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
-                HoudiniAssetComponent->BakedMaterialPackagesForIds.Remove( MaterialInfoDescriptor );
+                HoudiniCookParams.BakedMaterialPackagesForIds->Remove( MaterialInfoDescriptor );
             else
-                HoudiniAssetComponent->CookedTemporaryPackages.Remove( MaterialInfoDescriptor );
+                HoudiniCookParams.CookedTemporaryPackages->Remove( MaterialInfoDescriptor );
         }
     }
 
@@ -4306,14 +4302,14 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
 
             case EBakeMode::CookToTemp:
             {
-                PackageName = HoudiniAssetComponent->GetTempCookFolder().ToString() + TEXT("/") + MaterialName;
+                PackageName = HoudiniCookParams.TempCookFolder.ToString() + TEXT("/") + MaterialName;
             }
             break;
 
             default:
             {
                 // Generate unique package name.
-                PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT("/") + MaterialName;
+                PackageName = HoudiniCookParams.BakeFolder.ToString() + TEXT("/") + MaterialName;
             }
             break;
         }
@@ -4326,7 +4322,7 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
             // to external operations, such as copy paste.
-            OuterPackage = HoudiniAssetComponent->GetComponentLevel();
+            OuterPackage = HoudiniCookParams.IntermediateOuter;
         }
 
         // See if package exists, if it does, we need to regenerate the name.
@@ -4345,30 +4341,30 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         }
     }
 
-#endif
+
 
     if( PackageNew && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
     {
         // Add the new package to the cache
         if ( BakeMode == EBakeMode::ReplaceExisitingAssets )
-            HoudiniAssetComponent->BakedMaterialPackagesForIds.Add( MaterialInfoDescriptor, PackageNew );
+            HoudiniCookParams.BakedMaterialPackagesForIds->Add( MaterialInfoDescriptor, PackageNew );
         else
-            HoudiniAssetComponent->CookedTemporaryPackages.Add( MaterialInfoDescriptor, PackageNew );
+            HoudiniCookParams.CookedTemporaryPackages->Add( MaterialInfoDescriptor, PackageNew );
     }
-
+#endif
     return PackageNew;
 }
 
 UPackage *
 FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
-    FString & TextureName, EBakeMode BakeMode )
+    FString & TextureName )
 {
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+    UHoudiniAsset * HoudiniAsset = HoudiniCookParams.HoudiniAsset;
     FString TextureInfoDescriptor;
 
-    if ( BakeMode != EBakeMode::Intermediate )
+    if ( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
     {
         TextureInfoDescriptor = HoudiniAsset->GetName() + TEXT( "_texture_" ) + FString::FromInt( MaterialInfo.nodeId ) +
             TEXT( "_" ) + TextureType + TEXT( "_" );
@@ -4380,19 +4376,20 @@ FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
     }
 
     return FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
-        HoudiniAssetComponent, TextureInfoDescriptor, TextureName, BakeMode );
+        HoudiniCookParams, TextureInfoDescriptor, TextureName );
 }
 
 bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
-    UHoudiniAssetComponent * HoudiniAssetComponent, const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
-    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform )
+    HAPI_NodeId AssetId,
+    FHoudiniCookParams& HoudiniCookParams,
+    bool ForceRebuildStaticMesh, bool ForceRecookAll,
+    const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut,
+    FTransform & ComponentTransform )
 {
 #if WITH_EDITOR
 
-    HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-
-    if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) || !HoudiniAsset )
+    if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) || !HoudiniCookParams.HoudiniAsset )
         return false;
 
     // Make sure rendering is done - so we are not changing data being used by collision drawing.
@@ -4485,12 +4482,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
     // Create materials.
     FHoudiniEngineUtils::HapiCreateMaterials(
-        HoudiniAssetComponent, AssetInfo, UniqueMaterialIds,
+        AssetId, HoudiniCookParams, AssetInfo, UniqueMaterialIds,
         UniqueInstancerMaterialIds, Materials );
 
-    // Cache all materials inside the component.
-    if ( HoudiniAssetComponent->HoudiniAssetComponentMaterials )
-        HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments = Materials;
+    // Replace all material assignments
+    HoudiniCookParams.HoudiniCookManager->ClearAssignmentMaterials();
+    for( const auto& AssPair : Materials )
+    {
+        HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( AssPair.Key, AssPair.Value );
+    }
 
     UStaticMesh * StaticMesh = nullptr;
     FString MeshName;
@@ -5286,13 +5286,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Flag whether we need to rebuild the mesh.
                     bool bRebuildStaticMesh = false;
 
-                    // See if the geometry and scaling factor have changed. 
-                    // If not, then we can reuse the corresponding static mesh.
-                    if ( GeoInfo.hasGeoChanged || !HoudiniAssetComponent->CheckGlobalSettingScaleFactors() )
-                        bRebuildStaticMesh = true;
-
+                    // See if the geometry and scaling factor have changed Or 
                     // If the user asked for a cook manually, we will need to rebuild the static mesh
-                    if ( HoudiniAssetComponent->bManualRecookRequested )
+                    // If not, then we can reuse the corresponding static mesh.
+                    if ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll )
                         bRebuildStaticMesh = true;
 
                     if ( !bRebuildStaticMesh )
@@ -5326,16 +5323,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     if ( !FoundStaticMesh || *FoundStaticMesh == nullptr )
                     {
                         MeshGuid.Invalidate();
-
-                        FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetStaticMeshesCookMode();
                         UPackage * MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-                            HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, MeshGuid, BakeMode);
+                            HoudiniCookParams, HoudiniGeoPartObject, MeshName, MeshGuid );
+
                         if( !MeshPackage )
                             continue;
 
                         StaticMesh = NewObject< UStaticMesh >(
                             MeshPackage, FName( *MeshName ),
-                            ( BakeMode == EBakeMode::Intermediate ) ? RF_NoFlags : RF_Public | RF_Standalone );
+                            ( HoudiniCookParams.StaticMeshBakeMode == EBakeMode::Intermediate ) ? RF_NoFlags : RF_Public | RF_Standalone );
 
                         // Add meta information to this package.
                         FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
@@ -5830,13 +5826,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                                 if ( MaterialInterface )
                                 {
-                                    // Make sure this material is in the assignemets before replacing it.
-                                    if ( !HoudiniAssetComponent->GetAssignmentMaterial(  MaterialInterface->GetName() ) )
-                                        HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments.Add( MaterialInterface->GetName(), MaterialInterface );
+                                    // Make sure this material is in the assignments before replacing it.
+                                    if( HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialInterface->GetName() ) )
+                                    {
+                                        HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( MaterialInterface->GetName(), MaterialInterface );
+                                    }
 
                                     // See if we have a replacement material for this.
-                                    UMaterialInterface * ReplacementMaterialInterface = HoudiniAssetComponent->GetReplacementMaterial( HoudiniGeoPartObject, MaterialInterface->GetName() );
-                                    if ( ReplacementMaterialInterface )
+                                    UMaterialInterface * ReplacementMaterialInterface = HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialInterface->GetName() );
+                                    if( ReplacementMaterialInterface )
                                         MaterialInterface = ReplacementMaterialInterface;
                                 }
 
@@ -5885,8 +5883,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     Material = *FoundMaterial;
 
                                 // If we have replacement material for this geo part object and this shop material name.
-                                UMaterialInterface * ReplacementMaterial =
-                                    HoudiniAssetComponent->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+                                UMaterialInterface * ReplacementMaterial = 
+                                    HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
 
                                 if ( ReplacementMaterial )
                                     Material = ReplacementMaterial;
@@ -5936,8 +5934,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     Material = *FoundMaterial;
 
                                 // If we have replacement material for this geo part object and this shop material name.
-                                UMaterialInterface * ReplacementMaterial =
-                                    HoudiniAssetComponent->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+                                UMaterialInterface * ReplacementMaterial = 
+                                    HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
 
                                 if ( ReplacementMaterial )
                                     Material = ReplacementMaterial;
@@ -5977,8 +5975,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                         Material = *FoundMaterial;
 
                                     // If we have replacement material for this geo part object and this shop material name.
-                                    UMaterialInterface * ReplacementMaterial =
-                                        HoudiniAssetComponent->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+                                    UMaterialInterface * ReplacementMaterial = 
+                                        HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
 
                                     if ( ReplacementMaterial )
                                         Material = ReplacementMaterial;
@@ -6017,8 +6015,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             FString MaterialShopName = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
 
                             // If we have replacement material for this geo part object and this shop material name.
-                            UMaterialInterface * ReplacementMaterial =
-                                HoudiniAssetComponent->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
+                            UMaterialInterface * ReplacementMaterial = 
+                                HoudiniCookParams.HoudiniCookManager->GetReplacementMaterial( HoudiniGeoPartObject, MaterialShopName );
 
                             if ( ReplacementMaterial )
                                 Material = ReplacementMaterial;
@@ -6032,7 +6030,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HoudiniRuntimeSettings->SetMeshBuildSettings( SrcModel->BuildSettings, RawMesh );
 
                     // By default the distance field resolution should be set to 2.0
-                    SrcModel->BuildSettings.DistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
+                    SrcModel->BuildSettings.DistanceFieldResolutionScale = HoudiniCookParams.GeneratedDistanceFieldResolutionScale;
 
                     // We need to check light map uv set for correctness. Unreal seems to have occasional issues with
                     // zero UV sets when building lightmaps.
@@ -6072,7 +6070,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
 
                     // Assign generation parameters for this static mesh.
-                    HoudiniAssetComponent->SetStaticMeshGenerationParameters( StaticMesh );
+                    HoudiniCookParams.HoudiniCookManager->SetStaticMeshGenerationParameters( StaticMesh );
 
                     // If we have an override for lightmap resolution.
                     if ( LightMapResolutions.Num() > 0 )
@@ -6083,20 +6081,20 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     }
 
                     // Make sure we remove the old simple colliders if needed
-                    UBodySetup * BodySetup = StaticMesh->BodySetup;
-                    check(BodySetup);
-
-                    if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
+                    if( UBodySetup * BodySetup = StaticMesh->BodySetup )
                     {
-                        BodySetup->RemoveSimpleCollision();
-                    }
+                        if( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
+                        {
+                            BodySetup->RemoveSimpleCollision();
+                        }
 
-                    // See if we need to enable collisions on the whole mesh.
-                    if ( ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
-                        && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !bIsUCXCollidable ) )
-                    {
-                        // Enable collisions for this static mesh.
-                        BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+                        // See if we need to enable collisions on the whole mesh.
+                        if( ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
+                            && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !bIsUCXCollidable ) )
+                        {
+                            // Enable collisions for this static mesh.
+                            BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+                        }
                     }
 
                     // Free any RHI resources.
@@ -6395,16 +6393,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             if ( !StaticMesh )
                 continue;
 
-            UBodySetup * BodySetup = StaticMesh->BodySetup;
-            check(BodySetup);
-
-            // Unreal caches the Navigation Collision and never updates it for StaticMeshes,
-            // so we need to manually flush and recreate the data to have proper navigation collision
-            if ( StaticMesh->NavCollision )
+            if( UBodySetup * BodySetup = StaticMesh->BodySetup )
             {
-                StaticMesh->NavCollision->CookedFormatData.FlushData();
-                StaticMesh->NavCollision->GatherCollision();
-                StaticMesh->NavCollision->Setup( BodySetup );
+                // Unreal caches the Navigation Collision and never updates it for StaticMeshes,
+                // so we need to manually flush and recreate the data to have proper navigation collision
+                if( StaticMesh->NavCollision )
+                {
+                    StaticMesh->NavCollision->CookedFormatData.FlushData();
+                    StaticMesh->NavCollision->GatherCollision();
+                    StaticMesh->NavCollision->Setup( BodySetup );
+                }
             }
         }
     }
@@ -6570,10 +6568,12 @@ FHoudiniEngineUtils::BakeStaticMesh(
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
     check( HoudiniRuntimeSettings );
 
+    FHoudiniCookParams HoudiniCookParams( HoudiniAssetComponent );
+    HoudiniCookParams.StaticMeshBakeMode = EBakeMode::CreateNewAssets;
     FString MeshName;
     FGuid BakeGUID;
     UPackage * Package = BakeCreateStaticMeshPackageForComponent(
-        HoudiniAssetComponent, HoudiniGeoPartObject, MeshName, BakeGUID, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
+        HoudiniCookParams, HoudiniGeoPartObject, MeshName, BakeGUID );
 
     if( !Package )
     {
@@ -6815,7 +6815,8 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponent * 
 
 void
 FHoudiniEngineUtils::HapiCreateMaterials(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    HAPI_NodeId AssetId,
+    FHoudiniCookParams& HoudiniCookParams,
     const HAPI_AssetInfo & AssetInfo,
     const TSet< HAPI_NodeId > & UniqueMaterialIds,
     const TSet< HAPI_NodeId > & UniqueInstancerMaterialIds,
@@ -6828,13 +6829,6 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
     if ( UniqueMaterialIds.Num() == 0 )
         return;
-
-    HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
-
-    const TMap< FString, UMaterialInterface * > & CachedMaterials =
-        HoudiniAssetComponent->HoudiniAssetComponentMaterials->Assignments;
-
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
 
     // Update context for generated materials (will trigger when object goes out of scope).
     FMaterialUpdateContext MaterialUpdateContext;
@@ -6873,19 +6867,12 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             FString MaterialShopName = TEXT( "" );
             if ( !FHoudiniEngineUtils::GetUniqueMaterialShopName( AssetId, MaterialId, MaterialShopName ) )
                 continue;
-
-            UMaterialInterface * const * FoundMaterialInterface = CachedMaterials.Find( MaterialShopName );
-            UMaterial * FoundMaterial = nullptr;
-            if(FoundMaterialInterface)
-                FoundMaterial = Cast< UMaterial >(*FoundMaterialInterface);
-
-            UMaterial * Material = nullptr;
+            
+            UMaterial * Material = Cast< UMaterial >( HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialShopName ) );
             bool bCreatedNewMaterial = false;
 
-            if ( FoundMaterial )
+            if ( Material )
             {
-                Material = FoundMaterial;
-
                 // If cached material exists and has not changed, we can reuse it.
                 if ( !MaterialInfo.hasChanged )
                 {
@@ -6898,13 +6885,11 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             {
                 // Material was not found, we need to create it.
                 FString MaterialName = TEXT( "" );
-
-                FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
-                EObjectFlags ObjFlags = ( BakeMode == FHoudiniEngineUtils::EBakeMode::Intermediate ) ? RF_Transactional : RF_Public | RF_Standalone;
+                EObjectFlags ObjFlags = ( HoudiniCookParams.MaterialAndTextureBakeMode == EBakeMode::Intermediate ) ? RF_Transactional : RF_Public | RF_Standalone;
 
                 // Create material package and get material name.
                 UPackage * MaterialPackage = FHoudiniEngineUtils::BakeCreateMaterialPackageForComponent(
-                    HoudiniAssetComponent, MaterialInfo, MaterialName, BakeMode );
+                    HoudiniCookParams, MaterialInfo, MaterialName );
 
                 // Create new material.
                 Material = (UMaterial *) MaterialFactory->FactoryCreateNew(
@@ -6942,35 +6927,35 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
             // Extract diffuse plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract opacity plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacity(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract opacity mask plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract normal plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentNormal(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract specular plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentSpecular(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract roughness plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentRoughness(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract metallic plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentMetallic(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract emissive plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentEmissive(
-                HoudiniAssetComponent, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Set other material properties.
             Material->TwoSided = true;
@@ -7005,13 +6990,13 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Names of generating Houdini parameters.
@@ -7204,10 +7189,10 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
                 if ( !TextureDiffusePackage )
                 {
                     TextureDiffusePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                        HoudiniAssetComponent,
+                        HoudiniCookParams,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
-                        TextureDiffuseName, BakeMode );
+                        TextureDiffuseName );
                 }
 
                 // Create diffuse texture, if we need to create one.
@@ -7354,7 +7339,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
@@ -7366,7 +7351,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
 
     UMaterialExpression * MaterialExpression = Material->OpacityMask.Expression;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Opacity expressions.
@@ -7448,10 +7433,10 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
                 if ( !TextureOpacityPackage )
                 {
                     TextureOpacityPackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                        HoudiniAssetComponent,
+                        HoudiniCookParams,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK,
-                        TextureOpacityName, BakeMode );
+                        TextureOpacityName );
                 }
 
                 // Create opacity texture, if we need to create one.
@@ -7522,7 +7507,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentOpacity(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
@@ -7531,7 +7516,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(
     float OpacityValue = 1.0f;
     bool bNeedsTranslucency = false;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameters.
@@ -7694,7 +7679,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentNormal(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
@@ -7702,7 +7687,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
     bool bTangentSpaceNormal = true;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
@@ -7811,10 +7796,10 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                 {
                     TextureNormalPackage =
                         FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                            HoudiniAssetComponent,
+                            HoudiniCookParams,
                             MaterialInfo,
                             HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-                            TextureNormalName, BakeMode );
+                            TextureNormalName );
                 }
 
                 // Create normal texture, if we need to create one.
@@ -7929,10 +7914,10 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                     if ( !TextureNormalPackage )
                     {
                         TextureNormalPackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                            HoudiniAssetComponent,
+                            HoudiniCookParams,
                             MaterialInfo,
                             HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-                            TextureNormalName, BakeMode );
+                            TextureNormalName );
                     }
 
                     // Create normal texture, if we need to create one.
@@ -7992,14 +7977,14 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentSpecular(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
@@ -8076,10 +8061,10 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
                 if ( !TextureSpecularPackage )
                 {
                     TextureSpecularPackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                        HoudiniAssetComponent,
+                        HoudiniCookParams,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
-                        TextureSpecularName, BakeMode );
+                        TextureSpecularName );
                 }
 
                 // Create specular texture, if we need to create one.
@@ -8196,14 +8181,14 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentRoughness(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
@@ -8280,10 +8265,10 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
                 if ( !TextureRoughnessPackage )
                 {
                     TextureRoughnessPackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                        HoudiniAssetComponent,
+                        HoudiniCookParams,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
-                        TextureRoughnessName, BakeMode );
+                        TextureRoughnessName );
                 }
 
                 // Create roughness texture, if we need to create one.
@@ -8400,14 +8385,14 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentMetallic(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
@@ -8476,10 +8461,10 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
                 if ( !TextureMetallicPackage )
                 {
                     TextureMetallicPackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                        HoudiniAssetComponent,
+                        HoudiniCookParams,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
-                        TextureMetallicName, BakeMode );
+                        TextureMetallicName );
                 }
 
                 // Create metallic texture, if we need to create one.
@@ -8587,14 +8572,14 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentEmissive(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    FHoudiniCookParams& HoudiniCookParams,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     bool bExpressionCreated = false;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
-    FHoudiniEngineUtils::EBakeMode BakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    EBakeMode BakeMode = HoudiniCookParams.MaterialAndTextureBakeMode;
     EObjectFlags ObjectFlag = ( BakeMode == EBakeMode::CookToTemp ) ? RF_NoFlags : RF_Standalone;
 
     // Name of generating Houdini parameter.
@@ -8663,10 +8648,10 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(
                 if ( !TextureEmissivePackage )
                 {
                     TextureEmissivePackage = FHoudiniEngineUtils::BakeCreateTexturePackageForComponent(
-                        HoudiniAssetComponent,
+                        HoudiniCookParams,
                         MaterialInfo,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE,
-                        TextureEmissiveName, BakeMode );
+                        TextureEmissiveName );
                 }
 
                 // Create emissive texture, if we need to create one.
@@ -9799,11 +9784,13 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
     if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() && !HoudiniGeoPartObject.IsVolume())
     {
         // Create package for this duplicated mesh.
+        FHoudiniCookParams HoudiniCookParams( Component );
+        HoudiniCookParams.StaticMeshBakeMode = BakeMode;
         FString MeshName;
         FGuid MeshGuid;
 
         UPackage * MeshPackage = FHoudiniEngineUtils::BakeCreateStaticMeshPackageForComponent(
-            Component, HoudiniGeoPartObject, MeshName, MeshGuid, BakeMode );
+            HoudiniCookParams, HoudiniGeoPartObject, MeshName, MeshGuid );
         if( !MeshPackage )
             return nullptr;
 
@@ -9843,7 +9830,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
                         {
                             // Duplicate material resource.
                             UMaterial * DuplicatedMaterial = FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-                                Material, Component, MaterialName, FHoudiniEngineUtils::GetMaterialAndTextureCookMode() );
+                                Material, HoudiniCookParams, MaterialName, FHoudiniEngineUtils::GetMaterialAndTextureCookMode() );
 
                             if( !DuplicatedMaterial )
                                 continue;
@@ -9876,7 +9863,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 
 UMaterial *
 FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-    UMaterial * Material, UHoudiniAssetComponent * Component,
+    UMaterial * Material, FHoudiniCookParams& HoudiniCookParams,
     const FString & SubMaterialName, EBakeMode BakeMode )
 {
     UMaterial * DuplicatedMaterial = nullptr;
@@ -9884,7 +9871,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
     // Create material package.
     FString MaterialName;
     UPackage * MaterialPackage = FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
-        Component, SubMaterialName, MaterialName, BakeMode );
+        HoudiniCookParams, SubMaterialName, MaterialName );
 
     if( !MaterialPackage )
         return nullptr;
@@ -9908,7 +9895,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
     for ( auto& Expression : DuplicatedMaterial->Expressions )
     {
         FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-            Expression, Component, BakeMode );
+            Expression, HoudiniCookParams, BakeMode );
     }
 
     // Notify registry that we have created a new duplicate material.
@@ -9926,7 +9913,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
 void
 FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
     UMaterialExpression * MaterialExpression,
-    UHoudiniAssetComponent * Component, EBakeMode BakeMode )
+    FHoudiniCookParams& HoudiniCookParams, EBakeMode BakeMode )
 {
     UMaterialExpressionTextureSample * TextureSample = Cast< UMaterialExpressionTextureSample >( MaterialExpression );
     if ( TextureSample )
@@ -9943,7 +9930,7 @@ FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
                 {
                     // Duplicate texture.
                     UTexture2D * DuplicatedTexture = FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
-                        Texture, Component, GeneratedTextureName, BakeMode );
+                        Texture, HoudiniCookParams, GeneratedTextureName, BakeMode );
 
                     // Re-assign generated texture.
                     TextureSample->Texture = DuplicatedTexture;
@@ -9955,7 +9942,7 @@ FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
 
 UTexture2D *
 FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
-    UTexture2D * Texture, UHoudiniAssetComponent * Component,
+    UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams,
     const FString & SubTextureName, EBakeMode BakeMode )
 {
     UTexture2D* DuplicatedTexture = nullptr;
@@ -9977,7 +9964,7 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
                 // Create texture package.
                 FString TextureName;
                 UPackage * NewTexturePackage = FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
-                    Component, SubTextureName, TextureName, BakeMode );
+                    HoudiniCookParams, SubTextureName, TextureName );
 
                 if( !NewTexturePackage )
                     return nullptr;
@@ -10091,7 +10078,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToActors_StaticMeshes(
             {
                 // Bake the found mesh into the project
                 BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                    OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
+                    OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
                 if ( ensure( BakedSM ) )
                 {
@@ -10274,7 +10261,7 @@ FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * H
         {
             // Bake the found mesh into the project
             BakedSM = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
+                OtherSMC->GetStaticMesh(), HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
             if ( BakedSM )
             {
@@ -11135,16 +11122,38 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
     }
 }
 
-FHoudiniEngineUtils::EBakeMode
+EBakeMode
 FHoudiniEngineUtils::GetMaterialAndTextureCookMode()
 {
-    return FHoudiniEngineUtils::EBakeMode::CookToTemp; //Intermediate;
+    return EBakeMode::CookToTemp; //Intermediate;
 }
 
-FHoudiniEngineUtils::EBakeMode
+EBakeMode
 FHoudiniEngineUtils::GetStaticMeshesCookMode()
 {
-    return FHoudiniEngineUtils::EBakeMode::Intermediate; // CookToTemp;
+    return EBakeMode::Intermediate; // CookToTemp;
+}
+
+FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
+: HoudiniAsset( InHoudiniAsset )
+{
+    PackageGUID = FGuid::NewGuid();
+    TempCookFolder = LOCTEXT( "Temp", "/Game/HoudiniEngine/Temp" );
+}
+
+FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComponent )
+{
+    HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
+    HoudiniCookManager = HoudiniAssetComponent;
+    PackageGUID = HoudiniAssetComponent->GetComponentGuid();
+    BakedStaticMeshPackagesForParts = &HoudiniAssetComponent->BakedStaticMeshPackagesForParts;
+    BakedMaterialPackagesForIds = &HoudiniAssetComponent->BakedMaterialPackagesForIds;
+    CookedTemporaryStaticMeshPackages = &HoudiniAssetComponent->CookedTemporaryStaticMeshPackages;
+    CookedTemporaryPackages = &HoudiniAssetComponent->CookedTemporaryPackages;
+    TempCookFolder = HoudiniAssetComponent->GetTempCookFolder();
+    BakeFolder = HoudiniAssetComponent->GetBakeFolder();
+    IntermediateOuter = HoudiniAssetComponent->GetComponentLevel();
+    GeneratedDistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 }
 
 #undef LOCTEXT_NAMESPACE
