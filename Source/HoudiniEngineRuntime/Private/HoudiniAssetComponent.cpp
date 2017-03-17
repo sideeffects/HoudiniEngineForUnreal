@@ -68,7 +68,6 @@
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Engine/StaticMeshSocket.h"
-#include "PackageTools.h"
 
 #if WITH_EDITOR
 
