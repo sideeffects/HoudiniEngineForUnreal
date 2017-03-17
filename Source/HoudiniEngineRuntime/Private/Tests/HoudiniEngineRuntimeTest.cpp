@@ -3,19 +3,21 @@
 #include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"
 #include "FileCacheUtilities.h"
+#include "StaticMeshResources.h"
 
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineUtils.h"
 #include "AssetRegistryModule.h"
 #include "HoudiniCookHandler.h"
+#include "HoudiniRuntimeSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogHoudiniTests, Log, All );
 
 /** Test MatchExtensionString */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeInstantiateAssetTest, "Houdini.Runtime.InstantiateAsset", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
 
-static float TestTickDelay = 2.0f;
+static float TestTickDelay = 1.0f;
 
 struct FTestCookHandler : public FHoudiniCookParams, public IHoudiniCookHandler
 {
@@ -80,11 +82,67 @@ struct FTestCookHandler : public FHoudiniCookParams, public IHoudiniCookHandler
 
 };
 
+struct FHVert
+{
+    int32 PointNum;
+    float Nx, Ny, Nz;
+    float uv0, uv1, uv2;
+};
+struct FSortVectors
+{
+    bool operator()( const FVector& A, const FVector& B ) const
+    {
+        if( A.X == B.X )
+            if( A.Y == B.Y )
+                if( A.Z == B.Z )
+                    return false;
+                else
+                    return A.Z < B.Z;
+            else
+                return A.Y < B.Y;
+        else
+            return A.X < B.X;
+    }
+};
+
+#if 0
+struct FParamBlock
+{
+    
+};
+
+typedef TMap< FHoudiniGeoPartObject, UStaticMesh * > PartMeshMap;
+
+struct IHoudiniPluginAPI 
+{
+    virtual void InstatiateLiveAsset( const char* AssetPath, TFunction<void ( HAPI_NodeId, FParamBlock ParamBlock )> OnComplete )
+    {
+        FFunctionGraphTask::CreateAndDispatchWhenReady( [=]() {
+            OnComplete( -1, FParamBlock() );
+        }
+        , TStatId(), nullptr, ENamedThreads::GameThread );
+    }
+
+    virtual void CookLiveAsset( 
+        HAPI_NodeId AssetId,
+        const FParamBlock& ParamBlock, 
+        PartMeshMap& CurrentParts,
+        TFunction<void ( bool, PartMeshMap )> OnComplete )
+    {
+        FFunctionGraphTask::CreateAndDispatchWhenReady( [=]() {
+            PartMeshMap NewParts;
+            OnComplete( true, NewParts );
+        }
+        , TStatId(), nullptr, ENamedThreads::GameThread );
+    }
+};
+#endif
+
 bool FHoudiniEngineRuntimeInstantiateAssetTest::RunTest( const FString& Parameters )
 {
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
     TArray<FAssetData> AssetData;
-    AssetRegistryModule.Get().GetAssetsByPackageName( TEXT("/Game/ItsATorusGeo"), AssetData );
+    AssetRegistryModule.Get().GetAssetsByPackageName( TEXT("/HoudiniEngine/TestBox"), AssetData );
     UHoudiniAsset* TestAsset = nullptr;
     if( AssetData.Num() > 0 )
     {
@@ -138,6 +196,12 @@ bool FHoudiniEngineRuntimeInstantiateAssetTest::RunTest( const FString& Paramete
                     }
                     else
                     {
+                        // Marshal the static mesh data
+                        float GeoScale = 1.f;
+                        if( const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >() )
+                        {
+                            GeoScale = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+                        }
                         TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesIn;
                         TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
                         FTestCookHandler CookHandler ( TestAsset );
@@ -149,12 +213,103 @@ bool FHoudiniEngineRuntimeInstantiateAssetTest::RunTest( const FString& Paramete
                             CookHandler,
                             false, false, StaticMeshesIn, StaticMeshesOut, AssetTransform );
 
+#define ExpectedNumVerts 24
+#define ExpectedNumPoints 8
+#define ExpectedNumTris 12
+
+                        FHVert ExpectedVerts[ ExpectedNumVerts ] = {
+                           {1, -0.0, -0.0, -1.0, 0.333333, 0.666667, 0.0},
+                           {5, -0.0, 0.0, -1.0, 0.333333, 0.982283, 0.0},
+                           {4, -0.0, -0.0, -1.0, 0.64895, 0.982283, 0.0},
+                           {0, 0.0, -0.0, -1.0, 0.64895, 0.666667, 0.0},
+                           {2, 1.0, -0.0, -0.0, 0.0, 0.666667, 0.0},
+                           {6, 1.0, -0.0, -0.0, 0.0, 0.982283, 0.0},
+                           {5, 1.0, 0.0, 0.0, 0.315616, 0.982283, 0.0},
+                           {1, 1.0, -0.0, -0.0, 0.315616, 0.666667, 0.0},
+                           {3, -0.0, -0.0, 1.0, 0.0, 0.333333, 0.0},
+                           {7, -0.0, -0.0, 1.0, 0.0, 0.64895, 0.0},
+                           {6, -0.0, -0.0, 1.0, 0.315616, 0.64895, 0.0},
+                           {2, 0.0, 0.0, 1.0, 0.315616, 0.333333, 0.0},
+                           {0, -1.0, 0.0, -0.0, 0.333333, 0.333333, 0.0},
+                           {4, -1.0, -0.0, -0.0, 0.333333, 0.64895, 0.0},
+                           {7, -1.0, -0.0, 0.0, 0.64895, 0.64895, 0.0},
+                           {3, -1.0, -0.0, -0.0, 0.64895, 0.333333, 0.0},
+                           {2, 0.0, -1.0, -0.0, 0.64895, 0.315616, 0.0},
+                           {1, -0.0, -1.0, -0.0, 0.64895, 0.0, 0.0},
+                           {0, -0.0, -1.0, 0.0, 0.333333, 0.0, 0.0},
+                           {3, -0.0, -1.0, -0.0, 0.333333, 0.315616, 0.0},
+                           {5, -0.0, 1.0, -0.0, 0.315616, 0.315616, 0.0},
+                           {6, -0.0, 1.0, -0.0, 0.315616, 0.0, 0.0},
+                           {7, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                           {4, -0.0, 1.0, -0.0, 0.0, 0.315616, 0.0},
+                        };
+
+                        FVector ExpectedPoints[ ExpectedNumPoints ] = {
+                           {-0.5, -0.5, -0.5},
+                           {0.5, -0.5, -0.5},
+                           {0.5, -0.5, 0.5},
+                           {-0.5, -0.5, 0.5},
+                           {-0.5, 0.5, -0.5},
+                           {0.5, 0.5, -0.5},
+                           {0.5, 0.5, 0.5},
+                           {-0.5, 0.5, 0.5}
+                        };
+
+                        for( int32 Ix = 0; Ix < ExpectedNumPoints; ++Ix )
+                        {
+                            ExpectedPoints[ Ix ] *= GeoScale;
+                        }
+
+                        if( Result )
+                        {
+                            TestEqual( TEXT( "Num Mesh" ), StaticMeshesOut.Num(), 1 );
+                            for( auto GeoPartSM : StaticMeshesOut )
+                            {
+                                FHoudiniGeoPartObject& Part = GeoPartSM.Key;
+                                if( UStaticMesh* NewSM = GeoPartSM.Value )
+                                {
+                                    if( NewSM->RenderData->LODResources.Num() > 0 )
+                                    {
+                                        TestEqual( TEXT( "Num Triangles" ), ExpectedNumTris, NewSM->RenderData->LODResources[ 0 ].GetNumTriangles() );
+                                        FPositionVertexBuffer& VB = NewSM->RenderData->LODResources[ 0 ].PositionVertexBuffer;
+                                        const int32 VertexCount = VB.GetNumVertices();
+                                        if( VertexCount !=  ExpectedNumVerts )
+                                        {
+                                            TestEqual(TEXT("Num Verts"), VertexCount, ExpectedNumVerts );
+                                            break;
+                                        }
+                                        TArray<FVector> GeneratedPoints, ExpectedVertPositions;
+                                        GeneratedPoints.SetNumUninitialized( VertexCount );
+                                        ExpectedVertPositions.SetNumUninitialized( VertexCount );
+                                        for( int32 Index = 0; Index < VertexCount; Index++ )
+                                        {
+                                            GeneratedPoints[Index] = VB.VertexPosition( Index );
+                                            ExpectedVertPositions[ Index ] = ExpectedPoints[ ExpectedVerts[ Index ].PointNum ];
+                                        }
+
+                                        GeneratedPoints.Sort( FSortVectors() );
+                                        ExpectedVertPositions.Sort( FSortVectors() );
+                                        
+                                        for( int32 Index = 0; Index < VertexCount; Index++ )
+                                        {
+                                            TestEqual( TEXT( "Points match" ), GeneratedPoints[Index], ExpectedVertPositions[Index] );
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            AddError( FString::Printf( TEXT( "CreateStaticMeshesFromHoudiniAsset failed" )) );
+                        }
+
                     }
                     UE_LOG( LogHoudiniTests, Log, TEXT( "CookTaskInfo.StatusText: %s" ), *CookTaskInfo.StatusText.ToString() );
 
 
                     FHoudiniEngine::Get().RemoveTaskInfo( CookGUID );
-#if 0
+#if 1
                     // Now destroy asset
                     auto DelGUID = FGuid::NewGuid();
                     FHoudiniEngineTask DeleteTask( EHoudiniEngineTaskType::AssetDeletion, DelGUID );
