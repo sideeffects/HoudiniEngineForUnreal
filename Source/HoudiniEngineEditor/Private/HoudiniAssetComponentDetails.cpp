@@ -1566,7 +1566,11 @@ FHoudiniAssetComponentDetails::OnMaterialInterfaceDropped(
         if (!HoudiniAssetComponent)
             continue;
 
-        if ( *( HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject ) ) != Landscape )
+        ALandscape ** FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        if ( !FoundLandscape )
+            continue;
+
+        if ( *FoundLandscape != Landscape )
             continue;
 
         // Retrieve the material interface which is being replaced.
@@ -1798,7 +1802,11 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
         if ( !HoudiniAssetComponent )
             continue;
 
-        if ( * ( HoudiniAssetComponent->LandscapeComponents.Find(*HoudiniGeoPartObject) ) != Landscape)
+        ALandscape ** FoundLandscape = HoudiniAssetComponent->LandscapeComponents.Find( *HoudiniGeoPartObject );
+        if ( !FoundLandscape )
+            continue;
+
+        if ( *FoundLandscape != Landscape )
             continue;
 
         // Retrieve the material interface which is being replaced.
