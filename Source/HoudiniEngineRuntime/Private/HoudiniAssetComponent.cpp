@@ -70,6 +70,7 @@
 #include "Engine/StaticMeshSocket.h"
 #include "MessageDialog.h"
 #include "Widgets/Input/SButton.h"
+#include "PackageTools.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -4824,14 +4825,22 @@ UHoudiniAssetComponent::CreateAllLandscapes(const TArray< FHoudiniGeoPartObject 
             ALandscape* PreviousLandscape = LandscapeComponents[ *CurrentHeightfield ];
             if ( PreviousLandscape )
             {
+                // Get the previously used materials, but ignore the default ones
                 UMaterialInterface* PreviousLandscapeMaterial = PreviousLandscape->GetLandscapeMaterial();
+                if ( PreviousLandscapeMaterial == UMaterial::GetDefaultMaterial( MD_Surface ) )
+                    PreviousLandscapeMaterial = nullptr;
+
                 if ( PreviousLandscapeMaterial && PreviousLandscapeMaterial != LandscapeMaterial )
                 {
                     ReplaceMaterial( *CurrentHeightfield, PreviousLandscapeMaterial, LandscapeMaterial, 0);
                     LandscapeMaterial = PreviousLandscapeMaterial;
                 }
 
+                // Do the same thing for the hole material
                 UMaterialInterface* PreviousLandscapeHoleMaterial = PreviousLandscape->GetLandscapeHoleMaterial();
+                if ( PreviousLandscapeHoleMaterial == UMaterial::GetDefaultMaterial( MD_Surface ) )
+                    PreviousLandscapeHoleMaterial = nullptr;
+
                 if (PreviousLandscapeHoleMaterial && PreviousLandscapeHoleMaterial != LandscapeHoleMaterial)
                 {
                     ReplaceMaterial(*CurrentHeightfield, PreviousLandscapeHoleMaterial, LandscapeHoleMaterial, 0);
@@ -5275,12 +5284,16 @@ UHoudiniAssetComponent::CreateLandscapeLayerInfoObject( const TCHAR* LayerName, 
     //const FGuid & ComponentGUID = GetComponentGuid();
     FString ComponentGUIDString = GetComponentGuid().ToString().Left( FHoudiniEngineUtils::PackageGUIDComponentNameLength );
 
+    FString LayerNameString = FString::Printf( TEXT( "%s" ), LayerName );
+    LayerNameString = PackageTools::SanitizePackageName( LayerNameString );
+
     // Create the LandscapeInfoObjectName from the Asset name and the mask name
-    FName LayerObjectName = FName( *( HoudiniAsset->GetName() + ComponentGUIDString + FString::Printf( TEXT( "_LayerInfoObject_%s" ), LayerName ) ) );
+    FName LayerObjectName = FName( *( HoudiniAsset->GetName() + ComponentGUIDString + TEXT( "_LayerInfoObject_" ) + LayerNameString ) );
     
     // Save the package in the temp folder
     FString Path = GetTempCookFolder().ToString() + TEXT( "/" );
     FString PackageName = Path + LayerObjectName.ToString();
+    PackageName = PackageTools::SanitizePackageName( PackageName );
 
     // See if package exists, if it does, reuse it
     //UPackage * Package = FindPackage( nullptr , *PackageName );
@@ -5290,6 +5303,9 @@ UHoudiniAssetComponent::CreateLandscapeLayerInfoObject( const TCHAR* LayerName, 
         // Package does not exists, create it
         Package = CreatePackage( nullptr, *PackageName );
     }
+
+    if ( !Package )
+        return nullptr;
 
     ULandscapeLayerInfoObject* LayerInfo = NewObject<ULandscapeLayerInfoObject>( Package, LayerObjectName, RF_Public | RF_Standalone /*| RF_Transactional*/ );
     LayerInfo->LayerName = LayerName;
