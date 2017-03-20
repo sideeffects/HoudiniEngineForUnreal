@@ -37,12 +37,14 @@
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
+#include "HoudiniRuntimeSettings.h"
 
 #include "PlatformMisc.h"
 #include "PlatformFilemanager.h"
 #include "ScopeLock.h"
 
 #include "Internationalization.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 

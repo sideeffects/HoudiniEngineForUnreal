@@ -35,7 +35,6 @@
 #include "HoudiniAssetInstance.h"
 #include "Paths.h"
 
-
 const uint32
 UHoudiniAsset::PersistenceFormatVersion = 2u;
 

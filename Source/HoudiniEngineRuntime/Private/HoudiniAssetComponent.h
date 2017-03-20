@@ -34,6 +34,7 @@
 #include "HAPI.h"
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniRuntimeSettings.h"
+#include "HoudiniCookHandler.h"
 
 #include "CoreMinimal.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -46,9 +47,6 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "HoudiniAssetComponent.generated.h"
 
-class UClass;
-class UProperty;
-class UMaterialInterface;
 class UBlueprint;
 class UStaticMesh;
 class UHoudiniAsset;
@@ -99,7 +97,7 @@ namespace EHoudiniAssetComponentState
 
 UCLASS( ClassGroup = (Rendering, Common), hidecategories = (Object,Activation,"Components|Activation"),
     ShowCategories = (Mobility), editinlinenew )
-class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveComponent
+class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveComponent, public IHoudiniCookHandler
 {
     friend class AHoudiniAssetActor;
     friend struct FHoudiniEngineUtils;
@@ -210,6 +208,9 @@ public:
         /** Returns the transform for the desired socket */
         virtual FTransform GetSocketTransform( FName InSocketName, ERelativeTransformSpace TransformSpace ) const;
 
+        /** Assign generation parameters to static mesh. **/
+        void SetStaticMeshGenerationParameters( class UStaticMesh * StaticMesh ) const override;
+
 #if WITH_EDITOR
 
         /** Return true if this component has no cooking or instantiation in progress. **/
@@ -233,9 +234,6 @@ public:
 
         /** Notification used by spline visualizer to notify main Houdini asset component about spline change. **/
         void NotifyHoudiniSplineChanged( UHoudiniSplineComponent * HoudiniSplineComponent );
-
-        /** Assign generation parameters to static mesh. **/
-        void SetStaticMeshGenerationParameters( UStaticMesh * StaticMesh ) const;
 
         /** Used by Blueprint baking; create temporary actor and necessary components to bake a blueprint. **/
         AActor * CloneComponentsAndCreateActor();
@@ -320,29 +318,35 @@ public:
         const FGuid& GetComponentGuid() const;
 
         /** If given material has been replaced for a given geo part object, return it. Otherwise return null. **/
-        UMaterialInterface * GetReplacementMaterial(
+        class UMaterialInterface * GetReplacementMaterial(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, 
             const FString & MaterialName );
 
         /** If given material has been replaced for a given geo part object, return its name by reference. **/
         bool GetReplacementMaterialShopName(
             const FHoudiniGeoPartObject & HoudiniGeoPartObject, 
-            UMaterialInterface * MaterialInterface, FString & MaterialName);
+            class UMaterialInterface * MaterialInterface, FString & MaterialName);
 
         /** Given a shop name return material assignment. **/
-        UMaterialInterface * GetAssignmentMaterial( const FString & MaterialName );
+        class UMaterialInterface * GetAssignmentMaterial( const FString & MaterialName ) override;
+
+        /** Clear the assignment material cache */
+        void ClearAssignmentMaterials() override;
+
+        /** Add a material for the given shop name */
+        void AddAssignmentMaterial( const FString& MaterialName, class UMaterialInterface* MaterialInterface ) override;
 
         /** Material Change **/
         virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material) override;
 
         /** Perform material replacement. **/
         bool ReplaceMaterial(
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject, UMaterialInterface * NewMaterialInterface,
-            UMaterialInterface * OldMaterialInterface, int32 MaterialIndex );
+            const FHoudiniGeoPartObject & HoudiniGeoPartObject, class UMaterialInterface * NewMaterialInterface,
+            class UMaterialInterface * OldMaterialInterface, int32 MaterialIndex );
 
         /** Remove material replacement. **/
         void RemoveReplacementMaterial( const FHoudiniGeoPartObject & HoudiniGeoPartObject, const FString & MaterialName );
-
+        
         /** Collect all Substance parameters. **/
         void CollectSubstanceParameters( TMap< FString, UHoudiniAssetParameter * > & SubstanceParameters ) const;
 
@@ -353,6 +357,17 @@ public:
         UHoudiniAssetParameter * FindParameter( const FString & ParameterName ) const;
 
         FORCEINLINE const TArray< UHoudiniAssetInput* >& GetInputs() const { return Inputs; }
+
+        /** Returns the path to the baking folder */
+        FText GetBakeFolder() const;
+
+        /** Sets a new bake folder */
+        void SetBakeFolder( const FString& Folder );
+
+        /** Returns the path to the temporary cooking folder */
+        FText GetTempCookFolder() const;
+
+        FString GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const override;
 
     /** UObject methods. **/
     public:
@@ -531,17 +546,7 @@ public:
         /** Helper called when world transform changes */
         void CheckedUploadTransform();
 
-        /** Returns the path to the baking folder */
-        FText GetBakeFolder() const;
-        
-        /** Sets a new bake folder */
-        void SetBakeFolder( const FString& Folder );
-
-        /** Returns the path to the temporary cooking folder */
-        FText GetTempCookFolder() const;
-
-        FString GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const;
-
+        /** Per-part overrides for baking file name */
         void SetBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject, const FString& BaseName );
         bool RemoveBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject );
 

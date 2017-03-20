@@ -222,6 +222,9 @@ FHoudiniAssetTypeActions::ExecuteOpenInHoudini( TArray< TWeakObjectPtr< UHoudini
         SourceFilePath = FPaths::GetPath( SourceFilePath );
     }
 
+    if ( FPaths::IsRelative( SourceFilePath ) )
+        FPaths::ConvertRelativePathToFull(SourceFilePath);
+
     // Then open the HDA file in Houdini
     FString LibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
     FString HoudiniLocation = LibHAPILocation + "/hview";

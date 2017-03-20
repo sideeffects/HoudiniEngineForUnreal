@@ -556,7 +556,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             ];
         }
 
-        // Checkbox : Export full geometry
+	// Checkbox : Export full geometry
         {
             TSharedPtr< SCheckBox > CheckBoxExportGeometryAsMesh;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -577,7 +577,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             ];
         }
 
-        // Checkbox : Export materials
+	// Checkbox : Export materials
         {
             TSharedPtr< SCheckBox > CheckBoxExportMaterials;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -598,7 +598,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             ];
         }
 
-        // Checkbox : Export Tile UVs
+	// Checkbox : Export Tile UVs
         {
             TSharedPtr< SCheckBox > CheckBoxExportTileUVs;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -619,7 +619,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             ];
         }
 
-        // Checkbox : Export normalized UVs
+	// Checkbox : Export normalized UVs
         {
             TSharedPtr< SCheckBox > CheckBoxExportNormalizedUVs;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -640,7 +640,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             ];
         }
 
-        // Checkbox : Export lighting
+	// Checkbox : Export lighting
         {
             TSharedPtr< SCheckBox > CheckBoxExportLighting;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -661,7 +661,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             ];
         }
 
-        // Checkbox : Export landscape curves
+	// Checkbox : Export landscape curves
         {
             TSharedPtr< SCheckBox > CheckBoxExportCurves;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -686,7 +686,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 CheckBoxExportCurves->SetEnabled( false );
         }
 
-        // Button : Recommit
+	// Button : Recommit
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             SNew( SHorizontalBox )

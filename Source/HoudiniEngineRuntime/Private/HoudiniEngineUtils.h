@@ -34,6 +34,7 @@
 #include "HoudiniAssetInput.h"
 #include "ImageUtils.h"
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniCookHandler.h"
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Engine/StaticMeshSocket.h"
@@ -62,15 +63,6 @@ DECLARE_STATS_GROUP( TEXT( "HoudiniEngine" ), STATGROUP_HoudiniEngine, STATCAT_A
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 {
     public:
-
-        /** Used to control behavior of package baking helper functions */
-        enum class EBakeMode
-        {
-            Intermediate,
-            CreateNewAssets,
-            ReplaceExisitingAssets,
-            CookToTemp
-        };
 
         /** Return a string description of error from a given error code. **/
         static const FString GetErrorDescription( HAPI_Result Result );
@@ -134,7 +126,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Construct static meshes for a given Houdini asset. **/
         static bool CreateStaticMeshesFromHoudiniAsset(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
+            bool ForceRebuildStaticMesh, bool ForceRecookAll,
             const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
             TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform );
 
@@ -328,9 +321,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_PartId PartId, const char * Name, HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data,
             int32 TupleSize = 0 );
 
-        static bool HapiGetAttributeDataAsString(
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
-            HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize = 0 );
+         static bool HapiGetAttributeDataAsString(
+             const FHoudiniGeoPartObject & HoudiniGeoPartObject, const char * Name,
+             HAPI_AttributeInfo & ResultAttributeInfo, TArray< FString > & Data, int32 TupleSize = 0 );
 
         /** HAPI : Get parameter data as float. **/
         static bool HapiGetParameterDataAsFloat(
@@ -373,7 +366,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
         static void HapiCreateMaterials(
-            UHoudiniAssetComponent * HoudiniAssetComponent, const HAPI_AssetInfo & AssetInfo,
+            HAPI_NodeId AssetId,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_AssetInfo & AssetInfo,
             const TSet< HAPI_NodeId > & UniqueMaterialIds, const TSet< HAPI_NodeId > & UniqueInstancerMaterialIds,
             TMap< FString, UMaterialInterface * > & Materials );
 
@@ -381,42 +375,42 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create various material components. **/
         static bool CreateMaterialComponentDiffuse(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentNormal(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentSpecular(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentRoughness(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentMetallic(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentEmissive(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentOpacity(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentOpacityMask(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
@@ -466,17 +460,26 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create a package for given component for static mesh baking. **/
         static UPackage * BakeCreateStaticMeshPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            FString & MeshName, FGuid & BakeGUID, EBakeMode BakeMode );
+            FString & MeshName, FGuid & BakeGUID );
+
+        /** Return a list with all the UProperty attributes found **/
+        static int32 GetUPropertyAttributesList(
+            const HAPI_NodeId& NodeId,  const HAPI_PartId& PartId, HAPI_PartInfo* PartInfo, 
+            TArray< FString >& AllUPropsNames,  TArray< float >& AllUPropsValue );
+
+        /** Try to update values from all the UProperty attributes found for this object **/
+        static void UpdateUPropertyAttributes( 
+            UStaticMeshComponent* SMC, FHoudiniGeoPartObject GeoPartObject );
 
         static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
 
         /** Helper function used get the desired cook behavior for Materials and textures **/
-        static FHoudiniEngineUtils::EBakeMode GetMaterialAndTextureCookMode();
+        static EBakeMode GetMaterialAndTextureCookMode();
 
         /** Helper function used get the desired cook behavior forStatic Meshes **/
-        static FHoudiniEngineUtils::EBakeMode GetStaticMeshesCookMode();
+        static EBakeMode GetStaticMeshesCookMode();
 
 #if WITH_EDITOR
 
@@ -516,19 +519,19 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create a package for a given component for material. **/
         static UPackage * BakeCreateMaterialPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
-            const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName, EBakeMode BakeMode );
+            FHoudiniCookParams& HoudiniCookParams,
+            const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName );
 
         /** Create a package for a given component for texture. **/
         static UPackage * BakeCreateTexturePackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
+            FHoudiniCookParams& HoudiniCookParams,
             const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
-            FString & TextureName, EBakeMode BakeMode );
+            FString & TextureName );
 
         /** Create a package for a given component for either a texture or material **/
         static UPackage * BakeCreateTextureOrMaterialPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
-            const FString & MaterialInfoDescriptor, FString & MaterialName, EBakeMode BakeMode );
+            FHoudiniCookParams& HoudiniCookParams,
+            const FString & MaterialInfoDescriptor, FString & MaterialName );
 
         /** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
         static int32 TransferRegularPointAttributesToVertices(
@@ -540,18 +543,18 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
         /** and their corresponding packages. **/
         static UMaterial * DuplicateMaterialAndCreatePackage(
-            UMaterial * Material, UHoudiniAssetComponent * Component,
+            UMaterial * Material, FHoudiniCookParams& HoudiniCookParams,
             const FString & SubMaterialName, EBakeMode BakeMode );
 
         /** Duplicate a given texture. This will create a new package for it. **/
         static UTexture2D * DuplicateTextureAndCreatePackage(
-            UTexture2D * Texture, UHoudiniAssetComponent * Component,
+            UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams,
             const FString & SubTextureName, EBakeMode BakeMode );
 
         /** Replace duplicated texture with a new copy within a given sampling expression. **/
         static void ReplaceDuplicatedMaterialTextureSample(
             UMaterialExpression * MaterialExpression,
-            UHoudiniAssetComponent * Component, EBakeMode BakeMode );
+            FHoudiniCookParams& HoudiniCookParams, EBakeMode BakeMode );
 
         /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
         static bool StaticMeshRequiresBake( const UStaticMesh * StaticMesh );
