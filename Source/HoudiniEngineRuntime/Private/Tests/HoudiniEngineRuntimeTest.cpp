@@ -1,21 +1,29 @@
 #include "HoudiniApi.h"
 #if WITH_EDITOR
 #include "CoreMinimal.h"
+#include "Editor.h"
 #include "Misc/AutomationTest.h"
 #include "FileCacheUtilities.h"
 #include "StaticMeshResources.h"
+#include "LevelEditorViewport.h"
+#include "AssetRegistryModule.h"
+#include "PropertyEditorModule.h"
+#include "AutomationCommon.h"
+#include "IDetailsView.h"
 
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineUtils.h"
-#include "AssetRegistryModule.h"
 #include "HoudiniCookHandler.h"
 #include "HoudiniRuntimeSettings.h"
+#include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogHoudiniTests, Log, All );
 
-/** Test MatchExtensionString */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeInstantiateAssetTest, "Houdini.Runtime.InstantiateAsset", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeMeshMarshalTest, "Houdini.Runtime.MeshMarshalTest", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeUploadStaticMeshTest, "Houdini.Runtime.UploadStaticMesh", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeActorTest, "Houdini.Runtime.ActorTest", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
 
 static float TestTickDelay = 1.0f;
 
@@ -138,17 +146,48 @@ struct IHoudiniPluginAPI
 };
 #endif
 
-bool FHoudiniEngineRuntimeInstantiateAssetTest::RunTest( const FString& Parameters )
+UWorld* HelperGetWorld()
+{
+    return GWorld;
+}
+
+UObject* FindAssetUObject( FName AssetUObjectPath )
 {
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
     TArray<FAssetData> AssetData;
-    AssetRegistryModule.Get().GetAssetsByPackageName( TEXT("/HoudiniEngine/TestBox"), AssetData );
-    UHoudiniAsset* TestAsset = nullptr;
+    AssetRegistryModule.Get().GetAssetsByPackageName( AssetUObjectPath, AssetData );
     if( AssetData.Num() > 0 )
     {
-        TestAsset = Cast<UHoudiniAsset>( AssetData[ 0 ].GetAsset() );
+        return AssetData[ 0 ].GetAsset();
     }
+    return nullptr;
+}
 
+AHoudiniAssetActor* HelperInstantiateAssetActor(
+    FAutomationTestBase* Test,
+    FName AssetPath )
+{
+    if( UHoudiniAsset* TestAsset = Cast<UHoudiniAsset>( FindAssetUObject( AssetPath ) ) )
+    {
+        GEditor->ClickLocation = FVector::ZeroVector;
+        GEditor->ClickPlane = FPlane( GEditor->ClickLocation, FVector::UpVector );
+
+        TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject( HelperGetWorld()->GetLevel( 0 ), TestAsset, true, RF_Transactional, nullptr );
+        Test->TestTrue( TEXT( "Placed Actor" ), NewActors.Num() > 0 );
+        if( NewActors.Num() > 0 )
+        {
+            return Cast<AHoudiniAssetActor>( NewActors[ 0 ] );
+        }
+    }
+    return nullptr;
+}
+
+void HelperInstantiateAsset( 
+    FAutomationTestBase* Test, 
+    FName AssetPath, 
+    TFunction<void( FHoudiniEngineTaskInfo, UHoudiniAsset* )> OnFinishedInstantiate )
+{
+    UHoudiniAsset* TestAsset = Cast<UHoudiniAsset>( FindAssetUObject(AssetPath) );
     HAPI_AssetLibraryId AssetLibraryId = -1;
     TArray< HAPI_StringHandle > AssetNames;
     HAPI_StringHandle AssetHapiName = -1;
@@ -166,179 +205,340 @@ bool FHoudiniEngineRuntimeInstantiateAssetTest::RunTest( const FString& Paramete
     Task.AssetHapiName = AssetHapiName;
     FHoudiniEngine::Get().AddTask( Task );
 
-    AddCommand( new FDelayedFunctionLatentCommand( [=] {
+    Test->AddCommand( new FDelayedFunctionLatentCommand( [=]() {
         // check back on status on Instantiate
-        FHoudiniEngineTaskInfo InstantiateTaskInfo;
+        FHoudiniEngineTaskInfo InstantiateTaskInfo = {};
+        InstantiateTaskInfo.AssetId = -1;
         if( FHoudiniEngine::Get().RetrieveTaskInfo( InstGUID, InstantiateTaskInfo ) )
         {
             if( InstantiateTaskInfo.TaskState != EHoudiniEngineTaskState::FinishedInstantiation )
             {
-                AddError( FString::Printf( TEXT( "InstantiateTask.Result: %d" ), (int32)InstantiateTaskInfo.Result ) );
+                Test->AddError( FString::Printf( TEXT( "AssetInstantiation failed" ) ) );
             }
             UE_LOG( LogHoudiniTests, Log, TEXT( "InstantiateTask.StatusText: %s" ), *InstantiateTaskInfo.StatusText.ToString() );
-            
+
             FHoudiniEngine::Get().RemoveTaskInfo( InstGUID );
 
-            // Cook asset
-            auto CookGUID = FGuid::NewGuid();
-            FHoudiniEngineTask CookTask( EHoudiniEngineTaskType::AssetCooking, CookGUID );
-            CookTask.AssetId = InstantiateTaskInfo.AssetId;
-            
-            FHoudiniEngine::Get().AddTask( CookTask );
+            OnFinishedInstantiate( InstantiateTaskInfo, TestAsset );
+        }
+    }, 1.f ));
+}
 
-            AddCommand( new FDelayedFunctionLatentCommand( [=] {
-                FHoudiniEngineTaskInfo CookTaskInfo;
-                if( FHoudiniEngine::Get().RetrieveTaskInfo( CookGUID, CookTaskInfo ) )
+void HelperDeleteAsset( FAutomationTestBase* Test, HAPI_NodeId AssetId )
+{
+    // Now destroy asset
+    auto DelGUID = FGuid::NewGuid();
+    FHoudiniEngineTask DeleteTask( EHoudiniEngineTaskType::AssetDeletion, DelGUID );
+    DeleteTask.AssetId = AssetId;
+    FHoudiniEngine::Get().AddTask( DeleteTask );
+
+    Test->AddCommand( new FDelayedFunctionLatentCommand( [=] {
+        FHoudiniEngineTaskInfo DeleteTaskInfo;
+        if( FHoudiniEngine::Get().RetrieveTaskInfo( DelGUID, DeleteTaskInfo ) )
+        {
+            // we don't have a task state to check since it's fire and forget
+            if( DeleteTaskInfo.Result != HAPI_RESULT_SUCCESS )
+            {
+                Test->AddError( FString::Printf( TEXT( "DeleteTask.Result: %d" ), (int32)DeleteTaskInfo.Result ) );
+            }
+            UE_LOG( LogHoudiniTests, Log, TEXT( "DeleteTask.StatusText: %s" ), *DeleteTaskInfo.StatusText.ToString() );
+
+            FHoudiniEngine::Get().RemoveTaskInfo( DelGUID );
+        }
+
+    }, 1.f ) );
+}
+
+
+void HelperCookAsset( 
+    FAutomationTestBase* Test, 
+    class UHoudiniAsset* InHoudiniAsset, 
+    HAPI_NodeId AssetId,
+    TFunction<void( bool, TMap< FHoudiniGeoPartObject, UStaticMesh * > )> OnFinishedCook )
+{
+    auto CookGUID = FGuid::NewGuid();
+    FHoudiniEngineTask CookTask( EHoudiniEngineTaskType::AssetCooking, CookGUID );
+    CookTask.AssetId = AssetId;
+
+    FHoudiniEngine::Get().AddTask( CookTask );
+
+    Test->AddCommand( new FDelayedFunctionLatentCommand( [=] {
+        FHoudiniEngineTaskInfo CookTaskInfo;
+        if( FHoudiniEngine::Get().RetrieveTaskInfo( CookGUID, CookTaskInfo ) )
+        {
+            if( CookTaskInfo.TaskState != EHoudiniEngineTaskState::FinishedCooking )
+            {
+                Test->AddError( FString::Printf( TEXT( "CookTaskInfo.Result: %d" ), (int32)CookTaskInfo.Result ) );
+            }
+            else
+            {
+                // Marshal the static mesh data
+                float GeoScale = 1.f;
+                if( const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >() )
                 {
-                    if( CookTaskInfo.TaskState != EHoudiniEngineTaskState::FinishedCooking )
+                    GeoScale = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+                }
+                TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesIn;
+                TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
+                FTestCookHandler CookHandler ( InHoudiniAsset );
+                CookHandler.HoudiniCookManager = &CookHandler;
+                CookHandler.StaticMeshBakeMode = EBakeMode::CookToTemp;
+                FTransform AssetTransform;
+                bool Result = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+                    AssetId,
+                    CookHandler,
+                    false, false, StaticMeshesIn, StaticMeshesOut, AssetTransform );
+
+                OnFinishedCook( Result, StaticMeshesOut );
+            }
+        }
+    }, 2.f ));
+}
+
+void HelperTestMeshEqual( FAutomationTestBase* Test, UStaticMesh* MeshA, UStaticMesh* MeshB )
+{
+    int32 InputNumVerts = 0;
+    int32 InputNumTris = 0;
+    
+    Test->TestTrue( TEXT( "MeshA Valid" ), MeshA->RenderData->LODResources.Num() > 0 );
+
+    if( MeshA->RenderData->LODResources.Num() > 0 )
+    {
+        FPositionVertexBuffer& VB = MeshA->RenderData->LODResources[ 0 ].PositionVertexBuffer;
+        InputNumVerts = VB.GetNumVertices();
+        InputNumTris = MeshA->RenderData->LODResources[ 0 ].GetNumTriangles();
+    }
+
+    Test->TestTrue( TEXT( "MeshB Valid" ), MeshB->RenderData->LODResources.Num() > 0 );
+    if( MeshB->RenderData->LODResources.Num() > 0 )
+    {
+        Test->TestEqual( TEXT( "Num Triangles" ), InputNumTris, MeshB->RenderData->LODResources[ 0 ].GetNumTriangles() );
+        FPositionVertexBuffer& VB = MeshB->RenderData->LODResources[ 0 ].PositionVertexBuffer;
+        Test->TestEqual( TEXT( "Num Verts" ), VB.GetNumVertices(), InputNumVerts );
+    }
+}
+
+bool FHoudiniEngineRuntimeActorTest::RunTest( const FString& Paramters )
+{
+    AHoudiniAssetActor* Actor = HelperInstantiateAssetActor( this, TEXT( "/HoudiniEngine/Test/InputEcho" ) );
+    AddCommand( new FDelayedFunctionLatentCommand( [=] {
+        if( Actor && Actor->GetHoudiniAssetComponent() )
+        {
+            UHoudiniAssetComponent* Comp = Actor->GetHoudiniAssetComponent();
+            TestEqual( TEXT( "Done Cooking" ), Comp->IsInstantiatingOrCooking(), false );
+
+            FPropertyEditorModule & PropertyModule =
+                FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
+
+            // Locate the details panel.
+            FName DetailsPanelName = "LevelEditorSelectionDetails";
+            TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
+
+            if( DetailsView.IsValid() )
+            {
+                auto DetailsW = StaticCastSharedRef<SWidget>( DetailsView->AsShared() );
+                if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
+                {
+                    FString ScreenshotFileName;
+                    const FString TestName = TEXT( "HoudiniEngineRuntimeActorTest_0.png" );
+//                    AutomationCommon::GetScreenshotPath( TestName, ScreenshotFileName );
+                    TArray<FColor> OutImageData;
+                    FIntVector OutImageSize;
+                    if( FSlateApplication::Get().TakeScreenshot( DetailsW, OutImageData, OutImageSize ) )
                     {
-                        AddError( FString::Printf( TEXT( "CookTaskInfo.Result: %d" ), (int32)CookTaskInfo.Result ) );
+                        FAutomationScreenshotData Data;
+                        Data.Width = OutImageSize.X;
+                        Data.Height = OutImageSize.Y;
+                        Data.Path = TestName;
+                        FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound( OutImageData, Data );
                     }
-                    else
-                    {
-                        // Marshal the static mesh data
-                        float GeoScale = 1.f;
-                        if( const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >() )
-                        {
-                            GeoScale = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
-                        }
-                        TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesIn;
-                        TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
-                        FTestCookHandler CookHandler ( TestAsset );
-                        CookHandler.HoudiniCookManager = &CookHandler;
-                        CookHandler.StaticMeshBakeMode = EBakeMode::CookToTemp;
-                        FTransform AssetTransform;
-                        bool Result = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset( 
-                            InstantiateTaskInfo.AssetId,
-                            CookHandler,
-                            false, false, StaticMeshesIn, StaticMeshesOut, AssetTransform );
+                }
+            }
+
+        }
+    }, 1.5f ));
+    return true;
+}
+
+bool FHoudiniEngineRuntimeUploadStaticMeshTest::RunTest( const FString& Parameters )
+{
+    HelperInstantiateAsset( this, TEXT( "/HoudiniEngine/Test/InputEcho"), 
+        [=]( FHoudiniEngineTaskInfo InstantiateTaskInfo, UHoudiniAsset* HoudiniAsset ) 
+    {
+        HAPI_NodeId AssetId = InstantiateTaskInfo.AssetId;
+
+        if( AssetId < 0 )
+        {
+            return;
+        }
+
+        TArray<UObject *> InputObjects;
+        HAPI_NodeId ConnectedAssetId;
+        TArray< HAPI_NodeId > GeometryInputAssetIds;
+
+        UStaticMesh * GeoInput = Cast<UStaticMesh>( StaticLoadObject(
+                UObject::StaticClass(), nullptr, TEXT( "StaticMesh'/Engine/BasicShapes/Cube.Cube'" ), nullptr, LOAD_None, nullptr ));
+
+        TestTrue( TEXT("Load Input Mesh"), GeoInput != nullptr );
+        if( ! GeoInput )
+            return;
+
+        InputObjects.Add( GeoInput );
+
+        if( ! FHoudiniEngineUtils::HapiCreateInputNodeForData( AssetId, InputObjects, ConnectedAssetId, GeometryInputAssetIds ) )
+        {
+            AddError( FString::Printf( TEXT( "HapiCreateInputNodeForData failed" )));
+        }
+
+        // Now connect the input
+        int32 InputIndex = 0;
+        HAPI_Result Result = FHoudiniApi::ConnectNodeInput(
+            FHoudiniEngine::Get().GetSession(), AssetId, InputIndex,
+            ConnectedAssetId );
+
+        TestEqual( TEXT("ConnectNodeInput"), HAPI_RESULT_SUCCESS, Result );
+
+        HelperCookAsset( this, HoudiniAsset, AssetId, 
+            [=]( bool Ok, TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut )
+        {
+
+            if( Ok )
+            {
+                TestEqual( TEXT( "Num Mesh" ), StaticMeshesOut.Num(), 1 );
+            }
+
+            for( auto GeoPartSM : StaticMeshesOut )
+            {
+                FHoudiniGeoPartObject& Part = GeoPartSM.Key;
+                if( UStaticMesh* NewSM = GeoPartSM.Value )
+                {
+                    HelperTestMeshEqual( this, GeoInput, NewSM );
+                }
+                break;
+            }
+
+            HelperDeleteAsset( this, AssetId );
+        } );
+
+    } );
+    return true;
+}
+
+bool FHoudiniEngineRuntimeMeshMarshalTest::RunTest( const FString& Parameters )
+{
+    HelperInstantiateAsset( this, TEXT( "/HoudiniEngine/Test/TestBox" ),
+        [=]( FHoudiniEngineTaskInfo InstantiateTaskInfo, UHoudiniAsset* HoudiniAsset )
+    {
+        HAPI_NodeId AssetId = InstantiateTaskInfo.AssetId;
+
+        if( AssetId < 0 )
+        {
+            return;
+        }
+
+        HelperCookAsset( this, HoudiniAsset, AssetId,
+            [=]( bool Ok, TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut )
+        {
+
+            if( !Ok )
+            {
+                return;
+            }
 
 #define ExpectedNumVerts 24
 #define ExpectedNumPoints 8
 #define ExpectedNumTris 12
 
-                        FHVert ExpectedVerts[ ExpectedNumVerts ] = {
-                           {1, -0.0, -0.0, -1.0, 0.333333, 0.666667, 0.0},
-                           {5, -0.0, 0.0, -1.0, 0.333333, 0.982283, 0.0},
-                           {4, -0.0, -0.0, -1.0, 0.64895, 0.982283, 0.0},
-                           {0, 0.0, -0.0, -1.0, 0.64895, 0.666667, 0.0},
-                           {2, 1.0, -0.0, -0.0, 0.0, 0.666667, 0.0},
-                           {6, 1.0, -0.0, -0.0, 0.0, 0.982283, 0.0},
-                           {5, 1.0, 0.0, 0.0, 0.315616, 0.982283, 0.0},
-                           {1, 1.0, -0.0, -0.0, 0.315616, 0.666667, 0.0},
-                           {3, -0.0, -0.0, 1.0, 0.0, 0.333333, 0.0},
-                           {7, -0.0, -0.0, 1.0, 0.0, 0.64895, 0.0},
-                           {6, -0.0, -0.0, 1.0, 0.315616, 0.64895, 0.0},
-                           {2, 0.0, 0.0, 1.0, 0.315616, 0.333333, 0.0},
-                           {0, -1.0, 0.0, -0.0, 0.333333, 0.333333, 0.0},
-                           {4, -1.0, -0.0, -0.0, 0.333333, 0.64895, 0.0},
-                           {7, -1.0, -0.0, 0.0, 0.64895, 0.64895, 0.0},
-                           {3, -1.0, -0.0, -0.0, 0.64895, 0.333333, 0.0},
-                           {2, 0.0, -1.0, -0.0, 0.64895, 0.315616, 0.0},
-                           {1, -0.0, -1.0, -0.0, 0.64895, 0.0, 0.0},
-                           {0, -0.0, -1.0, 0.0, 0.333333, 0.0, 0.0},
-                           {3, -0.0, -1.0, -0.0, 0.333333, 0.315616, 0.0},
-                           {5, -0.0, 1.0, -0.0, 0.315616, 0.315616, 0.0},
-                           {6, -0.0, 1.0, -0.0, 0.315616, 0.0, 0.0},
-                           {7, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-                           {4, -0.0, 1.0, -0.0, 0.0, 0.315616, 0.0},
-                        };
+            FHVert ExpectedVerts[ ExpectedNumVerts ] = {
+                {1, -0.0, -0.0, -1.0, 0.333333, 0.666667, 0.0},
+                {5, -0.0, 0.0, -1.0, 0.333333, 0.982283, 0.0},
+                {4, -0.0, -0.0, -1.0, 0.64895, 0.982283, 0.0},
+                {0, 0.0, -0.0, -1.0, 0.64895, 0.666667, 0.0},
+                {2, 1.0, -0.0, -0.0, 0.0, 0.666667, 0.0},
+                {6, 1.0, -0.0, -0.0, 0.0, 0.982283, 0.0},
+                {5, 1.0, 0.0, 0.0, 0.315616, 0.982283, 0.0},
+                {1, 1.0, -0.0, -0.0, 0.315616, 0.666667, 0.0},
+                {3, -0.0, -0.0, 1.0, 0.0, 0.333333, 0.0},
+                {7, -0.0, -0.0, 1.0, 0.0, 0.64895, 0.0},
+                {6, -0.0, -0.0, 1.0, 0.315616, 0.64895, 0.0},
+                {2, 0.0, 0.0, 1.0, 0.315616, 0.333333, 0.0},
+                {0, -1.0, 0.0, -0.0, 0.333333, 0.333333, 0.0},
+                {4, -1.0, -0.0, -0.0, 0.333333, 0.64895, 0.0},
+                {7, -1.0, -0.0, 0.0, 0.64895, 0.64895, 0.0},
+                {3, -1.0, -0.0, -0.0, 0.64895, 0.333333, 0.0},
+                {2, 0.0, -1.0, -0.0, 0.64895, 0.315616, 0.0},
+                {1, -0.0, -1.0, -0.0, 0.64895, 0.0, 0.0},
+                {0, -0.0, -1.0, 0.0, 0.333333, 0.0, 0.0},
+                {3, -0.0, -1.0, -0.0, 0.333333, 0.315616, 0.0},
+                {5, -0.0, 1.0, -0.0, 0.315616, 0.315616, 0.0},
+                {6, -0.0, 1.0, -0.0, 0.315616, 0.0, 0.0},
+                {7, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                {4, -0.0, 1.0, -0.0, 0.0, 0.315616, 0.0},
+            };
 
-                        FVector ExpectedPoints[ ExpectedNumPoints ] = {
-                           {-0.5, -0.5, -0.5},
-                           {0.5, -0.5, -0.5},
-                           {0.5, -0.5, 0.5},
-                           {-0.5, -0.5, 0.5},
-                           {-0.5, 0.5, -0.5},
-                           {0.5, 0.5, -0.5},
-                           {0.5, 0.5, 0.5},
-                           {-0.5, 0.5, 0.5}
-                        };
+            FVector ExpectedPoints[ ExpectedNumPoints ] = {
+                {-0.5, -0.5, -0.5},
+                {0.5, -0.5, -0.5},
+                {0.5, -0.5, 0.5},
+                {-0.5, -0.5, 0.5},
+                {-0.5, 0.5, -0.5},
+                {0.5, 0.5, -0.5},
+                {0.5, 0.5, 0.5},
+                {-0.5, 0.5, 0.5}
+            };
 
-                        for( int32 Ix = 0; Ix < ExpectedNumPoints; ++Ix )
+            // Scale our expected data into unreal space
+            float GeoScale = 1.f;
+            if( const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >() )
+            {
+                GeoScale = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+            }
+            for( int32 Ix = 0; Ix < ExpectedNumPoints; ++Ix )
+            {
+                ExpectedPoints[ Ix ] *= GeoScale;
+            }
+
+
+            TestEqual( TEXT( "Num Mesh" ), StaticMeshesOut.Num(), 1 );
+            for( auto GeoPartSM : StaticMeshesOut )
+            {
+                FHoudiniGeoPartObject& Part = GeoPartSM.Key;
+                if( UStaticMesh* NewSM = GeoPartSM.Value )
+                {
+                    if( NewSM->RenderData->LODResources.Num() > 0 )
+                    {
+                        TestEqual( TEXT( "Num Triangles" ), ExpectedNumTris, NewSM->RenderData->LODResources[ 0 ].GetNumTriangles() );
+                        FPositionVertexBuffer& VB = NewSM->RenderData->LODResources[ 0 ].PositionVertexBuffer;
+                        const int32 VertexCount = VB.GetNumVertices();
+                        if( VertexCount !=  ExpectedNumVerts )
                         {
-                            ExpectedPoints[ Ix ] *= GeoScale;
+                            TestEqual( TEXT( "Num Verts" ), VertexCount, ExpectedNumVerts );
+                            break;
+                        }
+                        TArray<FVector> GeneratedPoints, ExpectedVertPositions;
+                        GeneratedPoints.SetNumUninitialized( VertexCount );
+                        ExpectedVertPositions.SetNumUninitialized( VertexCount );
+                        for( int32 Index = 0; Index < VertexCount; Index++ )
+                        {
+                            GeneratedPoints[ Index ] = VB.VertexPosition( Index );
+                            ExpectedVertPositions[ Index ] = ExpectedPoints[ ExpectedVerts[ Index ].PointNum ];
                         }
 
-                        if( Result )
-                        {
-                            TestEqual( TEXT( "Num Mesh" ), StaticMeshesOut.Num(), 1 );
-                            for( auto GeoPartSM : StaticMeshesOut )
-                            {
-                                FHoudiniGeoPartObject& Part = GeoPartSM.Key;
-                                if( UStaticMesh* NewSM = GeoPartSM.Value )
-                                {
-                                    if( NewSM->RenderData->LODResources.Num() > 0 )
-                                    {
-                                        TestEqual( TEXT( "Num Triangles" ), ExpectedNumTris, NewSM->RenderData->LODResources[ 0 ].GetNumTriangles() );
-                                        FPositionVertexBuffer& VB = NewSM->RenderData->LODResources[ 0 ].PositionVertexBuffer;
-                                        const int32 VertexCount = VB.GetNumVertices();
-                                        if( VertexCount !=  ExpectedNumVerts )
-                                        {
-                                            TestEqual(TEXT("Num Verts"), VertexCount, ExpectedNumVerts );
-                                            break;
-                                        }
-                                        TArray<FVector> GeneratedPoints, ExpectedVertPositions;
-                                        GeneratedPoints.SetNumUninitialized( VertexCount );
-                                        ExpectedVertPositions.SetNumUninitialized( VertexCount );
-                                        for( int32 Index = 0; Index < VertexCount; Index++ )
-                                        {
-                                            GeneratedPoints[Index] = VB.VertexPosition( Index );
-                                            ExpectedVertPositions[ Index ] = ExpectedPoints[ ExpectedVerts[ Index ].PointNum ];
-                                        }
+                        GeneratedPoints.Sort( FSortVectors() );
+                        ExpectedVertPositions.Sort( FSortVectors() );
 
-                                        GeneratedPoints.Sort( FSortVectors() );
-                                        ExpectedVertPositions.Sort( FSortVectors() );
-                                        
-                                        for( int32 Index = 0; Index < VertexCount; Index++ )
-                                        {
-                                            TestEqual( TEXT( "Points match" ), GeneratedPoints[Index], ExpectedVertPositions[Index] );
-                                        }
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        else
+                        for( int32 Index = 0; Index < VertexCount; Index++ )
                         {
-                            AddError( FString::Printf( TEXT( "CreateStaticMeshesFromHoudiniAsset failed" )) );
+                            TestEqual( TEXT( "Points match" ), GeneratedPoints[ Index ], ExpectedVertPositions[ Index ] );
                         }
-
                     }
-                    UE_LOG( LogHoudiniTests, Log, TEXT( "CookTaskInfo.StatusText: %s" ), *CookTaskInfo.StatusText.ToString() );
-
-
-                    FHoudiniEngine::Get().RemoveTaskInfo( CookGUID );
-#if 1
-                    // Now destroy asset
-                    auto DelGUID = FGuid::NewGuid();
-                    FHoudiniEngineTask DeleteTask( EHoudiniEngineTaskType::AssetDeletion, DelGUID );
-                    DeleteTask.AssetId = InstantiateTaskInfo.AssetId;
-                    FHoudiniEngine::Get().AddTask( DeleteTask );
-
-                    AddCommand( new FDelayedFunctionLatentCommand( [=] {
-                        FHoudiniEngineTaskInfo DeleteTaskInfo;
-                        if( FHoudiniEngine::Get().RetrieveTaskInfo( DelGUID, DeleteTaskInfo ) )
-                        {
-                            // we don't have a task state to check since it's fire and forget
-                            if( DeleteTaskInfo.Result != HAPI_RESULT_SUCCESS )
-                            {
-                                AddError( FString::Printf( TEXT( "DeleteTask.Result: %d" ), (int32)DeleteTaskInfo.Result ) );
-                            }
-                            UE_LOG( LogHoudiniTests, Log, TEXT( "DeleteTask.StatusText: %s" ), *DeleteTaskInfo.StatusText.ToString() );
-
-                            FHoudiniEngine::Get().RemoveTaskInfo( DelGUID );
-                        }
-
-                    }, TestTickDelay ) );
-#endif
                 }
+                break;
+            }
 
-            }, TestTickDelay ) );
-
-        }
-    }, TestTickDelay ) );
-
+            HelperDeleteAsset( this, AssetId );
+        } );
+    });
     return true;
 }
 
