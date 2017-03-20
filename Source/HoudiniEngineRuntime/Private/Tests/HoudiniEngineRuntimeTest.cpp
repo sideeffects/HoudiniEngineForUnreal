@@ -1,3 +1,4 @@
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniApi.h"
 #if WITH_EDITOR
 #include "CoreMinimal.h"
