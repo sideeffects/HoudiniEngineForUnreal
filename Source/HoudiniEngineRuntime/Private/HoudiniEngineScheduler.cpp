@@ -258,24 +258,13 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
         return;
     }
 
-    if ( !Task.AssetComponent.IsValid() )
-    {
-        // Asset component is no longer valid, return.
-        AddResponseMessageTaskInfo(
-            HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetCooking,
-            EHoudiniEngineTaskState::FinishedCookingWithErrors,
-            -1, Task, TEXT( "Asset is no longer valid." ) );
-
-        return;
-    }
-
     // Retrieve asset id.
-    HAPI_NodeId AssetId = Task.AssetComponent->GetAssetId();
+    HAPI_NodeId AssetId = Task.AssetId;
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Cooking Started for %s. Component = 0x%x, AssetId = %d" ),
-        *Task.ActorName, Task.AssetComponent.Get(), AssetId );
+        TEXT( "HAPI Asynchronous Cooking Started for %s., AssetId = %d" ),
+        *Task.ActorName, AssetId );
 
     if ( AssetId == -1 )
     {
@@ -315,16 +304,6 @@ FHoudiniEngineScheduler::TaskCookAsset( const FHoudiniEngineTask & Task )
         int32 Status = HAPI_STATE_STARTING_COOK;
         HOUDINI_CHECK_ERROR( &Result, FHoudiniApi::GetStatus(
             FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_STATE, &Status ) );
-
-        if ( !Task.AssetComponent.IsValid() )
-        {
-            AddResponseMessageTaskInfo(
-                HAPI_RESULT_FAILURE, EHoudiniEngineTaskType::AssetCooking,
-                EHoudiniEngineTaskState::FinishedCookingWithErrors, AssetId, Task,
-                TEXT( "Component is no longer valid." ) );
-
-            break;
-        }
 
         if ( Status == HAPI_STATE_READY )
         {
@@ -371,9 +350,9 @@ void
 FHoudiniEngineScheduler::TaskDeleteAsset( const FHoudiniEngineTask & Task )
 {
     HOUDINI_LOG_MESSAGE(
-        TEXT( "HAPI Asynchronous Destruction Started for %s. Component = 0x%x" )
+        TEXT( "HAPI Asynchronous Destruction Started for %s. " )
         TEXT( "AssetId = %d" ),
-        *Task.ActorName, Task.AssetComponent.Get(), Task.AssetId );
+        *Task.ActorName, Task.AssetId );
 
     if ( FHoudiniEngineUtils::IsHoudiniAssetValid( Task.AssetId ) )
         FHoudiniEngineUtils::DestroyHoudiniAsset( Task.AssetId );

@@ -1187,7 +1187,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
                     OutStaticMesh =
                         FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
                             Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetOriginalObject() ),
-                            HoudiniAssetComponent, ItemHoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
+                            HoudiniAssetComponent, ItemHoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
                 HasBakedOriginalStaticMesh = true;
                 if ( OutStaticMesh )

@@ -773,6 +773,10 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 
                     FHoudiniEngineUtils::AddActorsToMeshSocket( StaticMesh->Sockets[nSocket], StaticMeshComponent );
                 }
+
+                // Try to update uproperty atributes
+				// TODO: Disable this WIP feature
+                // FHoudiniEngineUtils::UpdateUPropertyAttributes(StaticMeshComponent, HoudiniGeoPartObject);
             }
         }
     }
@@ -1199,8 +1203,18 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
 
     FTransform ComponentTransform;
     TMap< FHoudiniGeoPartObject, UStaticMesh * > NewStaticMeshes;
+    
+    FHoudiniCookParams HoudiniCookParams( this );
+    HoudiniCookParams.StaticMeshBakeMode = FHoudiniEngineUtils::GetStaticMeshesCookMode();
+    HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+
     if ( FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
-        this, StaticMeshes, NewStaticMeshes, ComponentTransform) )
+        GetAssetId(),
+        HoudiniCookParams,
+        !CheckGlobalSettingScaleFactors(), bManualRecookRequested,
+        StaticMeshes, 
+        NewStaticMeshes, 
+        ComponentTransform ) )
     {
         // Remove all duplicates. After this operation, old map will have meshes which we need
         // to deallocate.
@@ -1960,7 +1974,7 @@ UHoudiniAssetComponent::StartTaskAssetCooking( bool bStartTicking )
 
         FHoudiniEngineTask Task( EHoudiniEngineTaskType::AssetCooking, HapiGUID );
         Task.ActorName = GetOuter()->GetName();
-        Task.AssetComponent = this;
+        Task.AssetId = GetAssetId();
         FHoudiniEngine::Get().AddTask( Task );
 
         if ( bStartTicking )
@@ -2089,6 +2103,8 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
             {
                 UStaticMesh * StaticMesh = Iter.Key();
+		if ( !StaticMesh )
+		    continue;
 
                 SetStaticMeshGenerationParameters( StaticMesh );
                 FHoudiniScopedGlobalSilence ScopedGlobalSilence;
@@ -2468,6 +2484,28 @@ UHoudiniAssetComponent::CheckedUploadTransform()
     }
 }
 
+void 
+UHoudiniAssetComponent::SetBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject, const FString& BaseName )
+{
+    if( const FString* FoundOverride = BakeNameOverrides.Find( GeoPartObject ) )
+    {
+        // forget the last baked package since we changed the name
+        if( *FoundOverride != BaseName )
+        {
+            BakedStaticMeshPackagesForParts.Remove( GeoPartObject );
+        }
+    }
+    BakeNameOverrides.Add( GeoPartObject, BaseName );
+}
+
+bool 
+UHoudiniAssetComponent::RemoveBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject )
+{
+    return BakeNameOverrides.Remove( GeoPartObject ) > 0;
+}
+
+#endif  // WITH_EDITOR
+
 FText 
 UHoudiniAssetComponent::GetBakeFolder() const
 {
@@ -2517,36 +2555,11 @@ FString UHoudiniAssetComponent::GetBakingBaseName( const FHoudiniGeoPartObject& 
         return GeoPartObject.PartName;
     }
 
-    if( HoudiniAsset )
-    {
         return FString::Printf( TEXT("%s_%d_%d_%d_%d"), *GetOwner()->GetName(),
             GeoPartObject.ObjectId, GeoPartObject.GeoId, GeoPartObject.PartId, GeoPartObject.SplitId);
-    }
 
     return FString();
 }
-
-void 
-UHoudiniAssetComponent::SetBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject, const FString& BaseName )
-{
-    if( const FString* FoundOverride = BakeNameOverrides.Find( GeoPartObject ) )
-    {
-        // forget the last baked package since we changed the name
-        if( *FoundOverride != BaseName )
-        {
-            BakedStaticMeshPackagesForParts.Remove( GeoPartObject );
-        }
-    }
-    BakeNameOverrides.Add( GeoPartObject, BaseName );
-}
-
-bool 
-UHoudiniAssetComponent::RemoveBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject )
-{
-    return BakeNameOverrides.Remove( GeoPartObject ) > 0;
-}
-
-#endif  // WITH_EDITOR
 
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds( const FTransform & LocalToWorld ) const
@@ -3138,11 +3151,10 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
     }
 }
 
-#if WITH_EDITOR
-
 void
 UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticMesh ) const
 {
+#if WITH_EDITOR
     if ( !StaticMesh )
         return;
 
@@ -3189,7 +3201,10 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticM
 
     // We want to use all of geometry for collision detection purposes.
     BodySetup->bMeshCollideAll = true;
+#endif
 }
+
+#if WITH_EDITOR
 
 AActor *
 UHoudiniAssetComponent::CloneComponentsAndCreateActor()
@@ -3232,7 +3247,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
 
             // Bake the referenced static mesh.
             UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
-                StaticMesh, this, HoudiniGeoPartObject, FHoudiniEngineUtils::EBakeMode::CreateNewAssets );
+                StaticMesh, this, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
             if ( OutStaticMesh )
                 FAssetRegistryModule::AssetCreated( OutStaticMesh );
@@ -5797,6 +5812,23 @@ UHoudiniAssetComponent::GetAssignmentMaterial( const FString & MaterialName )
     }
 
     return Material;
+}
+
+void UHoudiniAssetComponent::ClearAssignmentMaterials()
+{
+    if( HoudiniAssetComponentMaterials )
+    {
+        HoudiniAssetComponentMaterials->Assignments.Empty();
+    }
+}
+
+void 
+UHoudiniAssetComponent::AddAssignmentMaterial( const FString& MaterialName, UMaterialInterface* MaterialInterface )
+{
+    if( HoudiniAssetComponentMaterials )
+    {
+        HoudiniAssetComponentMaterials->Assignments.Add( MaterialName, MaterialInterface );
+    }
 }
 
 bool

@@ -66,10 +66,7 @@ struct FHoudiniEngineTask
     EHoudiniEngineTaskType::Type TaskType;
 
     /** Houdini asset for instantiation. **/
-    TWeakObjectPtr< UHoudiniAsset > Asset;
-
-    /** Houdini asset component for cooking. **/
-    TWeakObjectPtr< UHoudiniAssetComponent > AssetComponent;
+    TWeakObjectPtr< class UHoudiniAsset > Asset;
 
     /** Name of the actor requesting this task. **/
     FString ActorName;

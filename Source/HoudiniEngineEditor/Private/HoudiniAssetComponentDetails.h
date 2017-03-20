@@ -41,6 +41,8 @@ class FAssetData;
 class UStaticMesh;
 class IDetailLayoutBuilder;
 class UHoudiniAssetComponent;
+class ALandscape;
+
 
 /** Hashing function for our pair. **/
 uint32 GetTypeHash( TPair< UStaticMesh *, int32 > Pair );
