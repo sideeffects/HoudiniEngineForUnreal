@@ -4775,7 +4775,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
 
     // If we have multiple heightfields, we want to convert them using the same Z range
     float fGlobalMin = 0.0f, fGlobalMax = 0.0f; 
-    if ( FoundHeightfields.Num() > 0 )
+    if ( FoundHeightfields.Num() > 1 )
         FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax( FoundHeightfields, fGlobalMin, fGlobalMax );
 
     // Try to create a Landscape for each HeightData found
