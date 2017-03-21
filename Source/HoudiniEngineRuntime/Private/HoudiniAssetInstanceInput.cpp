@@ -62,7 +62,7 @@ UHoudiniAssetInstanceInput::~UHoudiniAssetInstanceInput()
 
 UHoudiniAssetInstanceInput *
 UHoudiniAssetInstanceInput::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetComponent * InPrimaryObject,
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject )
 {
     UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = nullptr;
@@ -97,11 +97,11 @@ UHoudiniAssetInstanceInput::Create(
         return HoudiniAssetInstanceInput;
 
     HoudiniAssetInstanceInput = NewObject< UHoudiniAssetInstanceInput >(
-        InHoudiniAssetComponent, 
+        InPrimaryObject, 
         UHoudiniAssetInstanceInput::StaticClass(),
         NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
+    HoudiniAssetInstanceInput->PrimaryObject = InPrimaryObject;
     HoudiniAssetInstanceInput->HoudiniGeoPartObject = InHoudiniGeoPartObject;
     HoudiniAssetInstanceInput->SetNameAndLabel( InHoudiniGeoPartObject.ObjectName );
     HoudiniAssetInstanceInput->ObjectToInstanceId = ObjectToInstance;
@@ -118,33 +118,33 @@ UHoudiniAssetInstanceInput::Create(
 
 UHoudiniAssetInstanceInput *
 UHoudiniAssetInstanceInput::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UHoudiniAssetComponent * InPrimaryObject,
     const UHoudiniAssetInstanceInput * OtherInstanceInput )
 {
     UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput = 
-        DuplicateObject( OtherInstanceInput, InHoudiniAssetComponent );
+        DuplicateObject( OtherInstanceInput, InPrimaryObject );
 
     // We need to duplicate field objects manually
     HoudiniAssetInstanceInput->InstanceInputFields.Empty();
     for ( const auto& OtherField : OtherInstanceInput->InstanceInputFields )
     {
         UHoudiniAssetInstanceInputField * NewField =
-            UHoudiniAssetInstanceInputField::Create( InHoudiniAssetComponent, OtherField );
+            UHoudiniAssetInstanceInputField::Create( InPrimaryObject, OtherField );
 
         HoudiniAssetInstanceInput->InstanceInputFields.Add( NewField );
     }
     // Fix the back-reference to the component
-    HoudiniAssetInstanceInput->HoudiniAssetComponent = InHoudiniAssetComponent;
+    HoudiniAssetInstanceInput->PrimaryObject = InPrimaryObject;
     return HoudiniAssetInstanceInput;
 }
 
 bool
 UHoudiniAssetInstanceInput::CreateInstanceInput()
 {
-    if ( !HoudiniAssetComponent )
+    if ( !PrimaryObject )
         return false;
 
-    HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId AssetId = GetAssetId();
 
     // Retrieve instance transforms (for each point).
     TArray< FTransform > AllTransforms;
@@ -222,25 +222,28 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
         TArray< FTransform > InstanceTransforms;
         for ( int32 InstancedObjectId : UniqueInstancedObjectIds )
         {
-            TArray< FHoudiniGeoPartObject > PartsToInstance;
-            if ( HoudiniAssetComponent->LocateStaticMeshes( InstancedObjectId, PartsToInstance ) )
+            if( UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
             {
-                // copy out the transforms for this instance id
-                InstanceTransforms.Empty();
-                for ( int32 Ix = 0; Ix < InstancedObjectIds.Num(); ++Ix )
+                TArray< FHoudiniGeoPartObject > PartsToInstance;
+                if( Comp->LocateStaticMeshes( InstancedObjectId, PartsToInstance ) )
                 {
-                    if ( InstancedObjectIds[Ix] == InstancedObjectId )
+                    // copy out the transforms for this instance id
+                    InstanceTransforms.Empty();
+                    for( int32 Ix = 0; Ix < InstancedObjectIds.Num(); ++Ix )
                     {
-                        InstanceTransforms.Add( AllTransforms[Ix] );
+                        if( InstancedObjectIds[ Ix ] == InstancedObjectId )
+                        {
+                            InstanceTransforms.Add( AllTransforms[ Ix ] );
+                        }
                     }
-                }
 
-                // Locate or create an instance input field for each part for this instanced object id
-                for ( FHoudiniGeoPartObject& Part : PartsToInstance )
-                {
-                    // Change the transform of the part being instanced to match the instancer
-                    Part.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
-                    CreateInstanceInputField( Part, InstanceTransforms, InstanceInputFields, NewInstanceInputFields );
+                    // Locate or create an instance input field for each part for this instanced object id
+                    for( FHoudiniGeoPartObject& Part : PartsToInstance )
+                    {
+                        // Change the transform of the part being instanced to match the instancer
+                        Part.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
+                        CreateInstanceInputField( Part, InstanceTransforms, InstanceInputFields, NewInstanceInputFields );
+                    }
                 }
             }
         }
@@ -371,7 +374,10 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
 
         // Locate all geo objects requiring instancing (can be multiple if geo / part / object split took place).
         TArray< FHoudiniGeoPartObject > ObjectsToInstance;
-        HoudiniAssetComponent->LocateStaticMeshes( ObjectToInstanceId, ObjectsToInstance );
+        if( UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
+        {
+            Comp->LocateStaticMeshes( ObjectToInstanceId, ObjectsToInstance );
+        }
 
         // Process each existing detected object that needs to be instanced.
         for ( int32 GeoIdx = 0; GeoIdx < ObjectsToInstance.Num(); ++GeoIdx )
@@ -428,6 +434,26 @@ UHoudiniAssetInstanceInput::CleanInstanceInputFields( TArray< UHoudiniAssetInsta
     InInstanceInputFields.Empty();
 }
 
+UHoudiniAssetComponent*
+UHoudiniAssetInstanceInput::GetHoudiniAssetComponent()
+{
+    return Cast<UHoudiniAssetComponent>( PrimaryObject );
+}
+
+const UHoudiniAssetComponent*
+UHoudiniAssetInstanceInput::GetHoudiniAssetComponent() const
+{
+    return Cast<const UHoudiniAssetComponent>( PrimaryObject );
+}
+
+HAPI_NodeId
+UHoudiniAssetInstanceInput::GetAssetId() const
+{
+    if( const UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
+        return Comp->GetAssetId();
+    return -1;
+}
+
 void
 UHoudiniAssetInstanceInput::CreateInstanceInputField(
     const FHoudiniGeoPartObject & InHoudiniGeoPartObject,
@@ -435,8 +461,11 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
     const TArray< UHoudiniAssetInstanceInputField * > & OldInstanceInputFields,
     TArray<UHoudiniAssetInstanceInputField * > & NewInstanceInputFields)
 {
+    UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent();
+    UStaticMesh * StaticMesh = Comp ? Comp->LocateStaticMesh( InHoudiniGeoPartObject ) : nullptr;
+
     // Locate static mesh for this geo part.  
-    if ( UStaticMesh * StaticMesh = HoudiniAssetComponent->LocateStaticMesh( InHoudiniGeoPartObject ) )
+    if ( StaticMesh )
     {
         // Locate corresponding input field.
         UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField =
@@ -446,7 +475,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         {
             // Input field does not exist, we need to create it.
             HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
-                HoudiniAssetComponent, this, InHoudiniGeoPartObject );
+                PrimaryObject, this, InHoudiniGeoPartObject );
 
             // Assign original and static mesh.
             HoudiniAssetInstanceInputField->OriginalObject = StaticMesh;
@@ -525,7 +554,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
             
             // find static mesh for this instancer
             FHoudiniGeoPartObject TempInstancedPart( InHoudiniGeoPartObject.AssetId, InHoudiniGeoPartObject.ObjectId, InHoudiniGeoPartObject.GeoId, InstancedPartId );
-            if ( UStaticMesh* FoundStaticMesh = HoudiniAssetComponent->LocateStaticMesh( TempInstancedPart ) )
+            if ( UStaticMesh* FoundStaticMesh = Comp->LocateStaticMesh( TempInstancedPart ) )
             {
                 // Build the list of transforms for this instancer
                 TArray< FTransform > AllTransforms;
@@ -601,7 +630,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
         InstancedPart.TransformMatrix = HoudiniGeoPartObject.TransformMatrix;
 
         HoudiniAssetInstanceInputField = UHoudiniAssetInstanceInputField::Create(
-            HoudiniAssetComponent, this, InstancedPart );
+            PrimaryObject, this, InstancedPart );
 
         // Assign original and static mesh.
         HoudiniAssetInstanceInputField->OriginalObject = InstancedObject;
@@ -646,7 +675,7 @@ void UHoudiniAssetInstanceInput::SetGeoPartObject( const FHoudiniGeoPartObject& 
 
 bool
 UHoudiniAssetInstanceInput::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
@@ -662,8 +691,7 @@ UHoudiniAssetInstanceInput::OnAddInstanceVariation( UHoudiniAssetInstanceInputFi
 {
     InstanceInputField->AddInstanceVariation( InstanceInputField->GetInstanceVariation( Index ), Index );
 
-    if ( HoudiniAssetComponent )
-        HoudiniAssetComponent->UpdateEditorProperties( false );
+    OnParamStateChanged();
 }
 
 void
@@ -671,8 +699,7 @@ UHoudiniAssetInstanceInput::OnRemoveInstanceVariation( UHoudiniAssetInstanceInpu
 {
     InstanceInputField->RemoveInstanceVariation( Index );
 
-    if ( HoudiniAssetComponent )
-        HoudiniAssetComponent->UpdateEditorProperties( false );
+    OnParamStateChanged();
 }
 
 FString UHoudiniAssetInstanceInput::GetFieldLabel( int32 FieldIdx, int32 VariationIdx ) const
@@ -1015,13 +1042,13 @@ UHoudiniAssetInstanceInput::BeginDestroy()
 }
 
 void
-UHoudiniAssetInstanceInput::SetHoudiniAssetComponent( UHoudiniAssetComponent * InHoudiniAssetComponent )
+UHoudiniAssetInstanceInput::SetHoudiniAssetComponent( UHoudiniAssetComponent * InComponent )
 {
-    UHoudiniAssetParameter::SetHoudiniAssetComponent( InHoudiniAssetComponent );
+    UHoudiniAssetParameter::SetHoudiniAssetComponent( InComponent );
 
     for ( int32 Idx = 0; Idx < InstanceInputFields.Num(); ++Idx )
     {
-        InstanceInputFields[ Idx ]->HoudiniAssetComponent = InHoudiniAssetComponent;
+        InstanceInputFields[ Idx ]->HoudiniAssetComponent = InComponent;
         InstanceInputFields[ Idx ]->HoudiniAssetInstanceInput = this;
     }
 }
@@ -1186,19 +1213,24 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
             // If original static mesh is used, then we need to bake it.
             if ( HoudiniAssetInstanceInputField->IsOriginalObjectUsed( VariationIdx ) && !HasBakedOriginalStaticMesh )
             {
-                const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject =
-                    HoudiniAssetComponent->LocateGeoPartObject(
-                        Cast<UStaticMesh>(HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) ));
+                if( UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
+                {
+                    const FHoudiniGeoPartObject & ItemHoudiniGeoPartObject =
+                        Comp->LocateGeoPartObject(
+                            Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetInstanceVariation( VariationIdx ) ) );
 
                     // Bake the referenced static mesh.
                     OutStaticMesh =
                         FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
                             Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetOriginalObject() ),
-                            HoudiniAssetComponent, ItemHoudiniGeoPartObject, EBakeMode::CreateNewAssets );
+                            Comp, ItemHoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
-                HasBakedOriginalStaticMesh = true;
-                if ( OutStaticMesh )
-                    FAssetRegistryModule::AssetCreated( OutStaticMesh );
+                    HasBakedOriginalStaticMesh = true;
+                    if( OutStaticMesh )
+                        FAssetRegistryModule::AssetCreated( OutStaticMesh );
+                    else
+                        continue;
+                }
                 else
                     continue;
             }
@@ -1269,13 +1301,12 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         HoudiniAssetInstanceInputField->Modify();
 
         HoudiniAssetInstanceInputField->ReplaceInstanceVariation( InObject, VariationIdx );
 
-        if ( HoudiniAssetComponent )
-            HoudiniAssetComponent->UpdateEditorProperties( false );
+        OnParamStateChanged();
     }
 }
 
@@ -1336,8 +1367,7 @@ UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton(
     if ( !bOpened )
     {
         // If combo button has been closed, update the UI.
-        if ( HoudiniAssetComponent )
-            HoudiniAssetComponent->UpdateEditorProperties( false );
+        OnParamStateChanged();
     }
 }
 
@@ -1388,7 +1418,7 @@ UHoudiniAssetInstanceInput::SetRotationRoll(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
     FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset( VariationIdx );
@@ -1404,7 +1434,7 @@ UHoudiniAssetInstanceInput::SetRotationPitch(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
     FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset( VariationIdx );
@@ -1420,7 +1450,7 @@ UHoudiniAssetInstanceInput::SetRotationYaw(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
     FRotator Rotator = HoudiniAssetInstanceInputField->GetRotationOffset( VariationIdx );
@@ -1460,7 +1490,7 @@ UHoudiniAssetInstanceInput::SetScaleX(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
     FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
@@ -1483,7 +1513,7 @@ UHoudiniAssetInstanceInput::SetScaleY(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
     FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
@@ -1506,7 +1536,7 @@ UHoudiniAssetInstanceInput::SetScaleZ(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
     FVector Scale3D = HoudiniAssetInstanceInputField->GetScaleOffset( VariationIdx );
@@ -1529,7 +1559,7 @@ UHoudiniAssetInstanceInput::CheckStateChanged(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInstanceInputChange", "Houdini Instance Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
     HoudiniAssetInstanceInputField->SetLinearOffsetScale( NewState == ECheckBoxState::Checked, VariationIdx );

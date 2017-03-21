@@ -45,11 +45,11 @@ UHoudiniAssetParameterButton::~UHoudiniAssetParameterButton()
 
 UHoudiniAssetParameterButton *
 UHoudiniAssetParameterButton::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -63,18 +63,18 @@ UHoudiniAssetParameterButton::Create(
     UHoudiniAssetParameterButton * HoudiniAssetParameterButton = NewObject< UHoudiniAssetParameterButton >(
         Outer, UHoudiniAssetParameterButton::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterButton->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterButton->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterButton;
 }
 
 bool
 UHoudiniAssetParameterButton::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId,
     const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle button type.

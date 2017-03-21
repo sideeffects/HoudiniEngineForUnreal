@@ -60,11 +60,11 @@ UHoudiniAssetParameterInt::~UHoudiniAssetParameterInt()
 
 UHoudiniAssetParameterInt *
 UHoudiniAssetParameterInt::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -78,17 +78,17 @@ UHoudiniAssetParameterInt::Create(
     UHoudiniAssetParameterInt * HoudiniAssetParameterInt = NewObject< UHoudiniAssetParameterInt >(
         Outer, UHoudiniAssetParameterInt::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterInt->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterInt->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterInt;
 }
 
 bool
 UHoudiniAssetParameterInt::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle integer type.
@@ -275,7 +275,7 @@ UHoudiniAssetParameterInt::SetParameterVariantValue( const FVariant & Variant, i
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
 
     Modify();
 
@@ -309,7 +309,7 @@ UHoudiniAssetParameterInt::SetValue( int32 InValue, int32 Idx, bool bTriggerModi
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniAssetParameterIntChange", "Houdini Parameter Integer: Changing a value" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         if ( !bRecordUndo )
@@ -345,7 +345,7 @@ UHoudiniAssetParameterInt::OnSliderMovingBegin( int32 Idx )
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniAssetParameterIntChange", "Houdini Parameter Float: Changing a value" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
 
     Modify();
 }

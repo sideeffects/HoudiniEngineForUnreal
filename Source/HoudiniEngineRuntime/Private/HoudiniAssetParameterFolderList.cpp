@@ -45,11 +45,11 @@ UHoudiniAssetParameterFolderList::~UHoudiniAssetParameterFolderList()
 
 UHoudiniAssetParameterFolderList *
 UHoudiniAssetParameterFolderList::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -66,18 +66,18 @@ UHoudiniAssetParameterFolderList::Create(
             RF_Public | RF_Transactional );
 
     HoudiniAssetParameterFolderList->CreateParameter(
-        InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+        InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
 
     return HoudiniAssetParameterFolderList;
 }
 
 bool
 UHoudiniAssetParameterFolderList::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle folder and folder list types.
@@ -146,8 +146,7 @@ UHoudiniAssetParameterFolderList::OnButtonClick( int32 ParameterIdx )
 {
     ActiveChildParameter = ParameterIdx;
 
-    if ( HoudiniAssetComponent )
-        HoudiniAssetComponent->UpdateEditorProperties( false );
+    OnParamStateChanged();
 
     return FReply::Handled();
 }
