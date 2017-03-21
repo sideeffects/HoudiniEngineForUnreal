@@ -1,5 +1,6 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniApi.h"
+#if 0
 #if WITH_EDITOR
 #include "Misc/AutomationTest.h"
 #include "FileCacheUtilities.h"
@@ -343,3 +344,4 @@ bool FHoudiniEngineRuntimeInstantiateAssetTest::RunTest( const FString& Paramete
 }
 
 #endif // WITH_EDITOR
+#endif // 0
