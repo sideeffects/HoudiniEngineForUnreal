@@ -476,19 +476,33 @@ public:
         /** Create handles.**/
         bool CreateHandles();
 
-        /** Create all landscapes **/
-        bool CreateAllLandscapes(const TArray< FHoudiniGeoPartObject > & FoundCurves);
+        /** Create all landscapes in the GeoPartObject array **/
+        bool CreateAllLandscapes(const TArray< FHoudiniGeoPartObject > & FoundVolumes );
 
-        /** Creates a single landscape and its corresponding layers **/
-        bool CreateLandscape(
-            const FHoudiniGeoPartObject* HeightField,
+        /** Create all the landscapes layers for a given hieghtfield from the GeoPartObject array **/
+        bool CreateLandscapeLayers(
             const TArray< const FHoudiniGeoPartObject* >& FoundLayers,
-            TMap< FHoudiniGeoPartObject, ALandscape * >& NewLandscapes,
-            UMaterialInterface* LandscapeMaterial,
-            UMaterialInterface* LandscapeHoleMaterial );
+            const FHoudiniGeoPartObject& Heightfield,
+            const int32& XSize, const int32& YSize,
+            TArray<FLandscapeImportLayerInfo>& ImportLayerInfos);
 
-        /** Creates a LandscapeInfoObject in the TempCook folder **/
+        /** Create a Landscape actor from the data extracted from heightfield nodes **/
+        ALandscape* CreateLandscape(
+            const TArray<uint16>& IntHeightData,
+            const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos,
+            const FTransform& LandscapeTransform,
+            const int32& XSize, const int32& YSize,
+            const int32& NumSectionPerLandscapeComponent, const int32& NumQuadsPerLandscapeSection,
+            UMaterialInterface* LandscapeMaterial, UMaterialInterface* LandscapeHoleMaterial);
+
+        /** Creates a LandscapeLayerInfoObject in the TempCook folder **/
         ULandscapeLayerInfoObject * CreateLandscapeLayerInfoObject( const TCHAR* LayerName, UPackage*& Package );
+
+        /** Find the materials used by a heighfield / landscape **/
+        void GetHeightFieldLandscapeMaterials(
+            const FHoudiniGeoPartObject& Heightfield,
+            UMaterialInterface*& LandscapeMaterial,
+            UMaterialInterface*& LandscapeHoleMaterial);
 
         /** Resizes the HeightData so that it matches Unreal's requirement for Landscape import **/
         void ResizeHeightDataForLandscape(
