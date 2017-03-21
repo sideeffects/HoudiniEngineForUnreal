@@ -1,7 +1,6 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniApi.h"
 #if WITH_EDITOR
-#include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"
 #include "FileCacheUtilities.h"
 #include "StaticMeshResources.h"
