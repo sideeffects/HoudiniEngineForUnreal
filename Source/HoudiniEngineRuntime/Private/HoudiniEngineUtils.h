@@ -38,6 +38,7 @@
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Engine/StaticMeshSocket.h"
+#include "Landscape.h"
 
 
 class AActor;
@@ -176,19 +177,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool GetAssetNames(
             UHoudiniAsset * HoudiniAsset, HAPI_AssetLibraryId & AssetLibraryId,
             TArray< HAPI_StringHandle > & AssetNames );
-
-        /** Resizes the HeightData so that it fits to UE4's size requirements **/
-        static bool ResizeHeightDataForLandscape(
-            TArray<uint16>& HeightData,
-            int32& SizeX, int32& SizeY,
-            int32& NumberOfSectionsPerComponent,
-            int32& NumberOfQuadsPerSection );
-
-        /** Resizes LayerData so that it fits the Landscape size **/
-        static bool ResizeLayerDataForLandscape(
-            TArray<uint8>& LayerData,
-            const int32& SizeX, const int32& SizeY,
-            const int32& NewSizeX, const int32& NewSizeY );
 
         /** HAPI : Return true if given asset id is valid. **/
         static bool IsValidAssetId( HAPI_NodeId AssetId );
