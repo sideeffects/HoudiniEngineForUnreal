@@ -506,7 +506,7 @@ public:
         ULandscapeLayerInfoObject * CreateLandscapeLayerInfoObject( const TCHAR* LayerName, UPackage*& Package );
 
         /** Find the materials used by a heighfield / landscape **/
-        void UHoudiniAssetComponent::GetHeightFieldLandscapeMaterials(
+        void GetHeightFieldLandscapeMaterials(
             const FHoudiniGeoPartObject& Heightfield,
             UMaterialInterface*& LandscapeMaterial,
             UMaterialInterface*& LandscapeHoleMaterial);
