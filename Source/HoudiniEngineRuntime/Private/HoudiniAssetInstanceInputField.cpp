@@ -64,7 +64,7 @@ UHoudiniAssetInstanceInputField::UHoudiniAssetInstanceInputField( const FObjectI
 
 UHoudiniAssetInstanceInputField *
 UHoudiniAssetInstanceInputField::Create(
-    UHoudiniAssetComponent * HoudiniAssetComponent,
+    UObject * HoudiniAssetComponent,
     UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
     const FHoudiniGeoPartObject & HoudiniGeoPartObject )
 {
@@ -84,22 +84,25 @@ UHoudiniAssetInstanceInputField::Create(
 
 UHoudiniAssetInstanceInputField *
 UHoudiniAssetInstanceInputField::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     const UHoudiniAssetInstanceInputField * OtherInputField )
 {
-    UHoudiniAssetInstanceInputField * InputField = DuplicateObject< UHoudiniAssetInstanceInputField >( OtherInputField, InHoudiniAssetComponent );
+    UHoudiniAssetInstanceInputField * InputField = DuplicateObject< UHoudiniAssetInstanceInputField >( OtherInputField, InPrimaryObject );
 
-    InputField->HoudiniAssetComponent = InHoudiniAssetComponent;
+    InputField->HoudiniAssetComponent = InPrimaryObject;
 
     InputField->InstancerComponents.Empty();
 
     // Duplicate the given field's InstancedStaticMesh components
-    for ( const USceneComponent* OtherISMC : OtherInputField->InstancerComponents )
+    if( USceneComponent* InRootComp = Cast<USceneComponent>( InPrimaryObject ) )
     {
-        USceneComponent* NewISMC = DuplicateObject< USceneComponent >( OtherISMC, InHoudiniAssetComponent );
-        NewISMC->RegisterComponent();
-        NewISMC->AttachToComponent( InHoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
-        InputField->InstancerComponents.Add( NewISMC );
+        for( const USceneComponent* OtherISMC : OtherInputField->InstancerComponents )
+        {
+            USceneComponent* NewISMC = DuplicateObject< USceneComponent >( OtherISMC, InRootComp );
+            NewISMC->RegisterComponent();
+            NewISMC->AttachToComponent( InRootComp, FAttachmentTransformRules::KeepRelativeTransform );
+            InputField->InstancerComponents.Add( NewISMC );
+        }
     }
 
     return InputField;
@@ -195,8 +198,8 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 
     UpdateInstanceTransforms( true );
 
-    if ( HoudiniAssetComponent )
-        HoudiniAssetComponent->UpdateEditorProperties( false );
+    if ( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>(HoudiniAssetComponent) )
+        Comp->UpdateEditorProperties( false );
 }
 
 #endif // WITH_EDITOR
@@ -206,21 +209,25 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
 {
     check( InstancedObjects.Num() > 0 && ( VariationIdx < InstancedObjects.Num() ) );
     check( HoudiniAssetComponent );
+    UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>( HoudiniAssetComponent );
+    if( !Comp )
+        return;
+    USceneComponent* RootComp = Comp;
 
     if ( UStaticMesh * StaticMesh = Cast<UStaticMesh>( InstancedObjects[ VariationIdx ] ) )
     {
         UInstancedStaticMeshComponent * InstancedStaticMeshComponent =
             NewObject< UInstancedStaticMeshComponent >(
-                HoudiniAssetComponent->GetOwner(),
+                RootComp->GetOwner(),
                 UInstancedStaticMeshComponent::StaticClass(),
                 NAME_None, RF_Transactional );
 
         InstancerComponents.Insert( InstancedStaticMeshComponent, VariationIdx );
 
         InstancedStaticMeshComponent->SetStaticMesh( StaticMesh );
-        InstancedStaticMeshComponent->SetMobility( HoudiniAssetComponent->Mobility );
+        InstancedStaticMeshComponent->SetMobility( RootComp->Mobility );
         InstancedStaticMeshComponent->AttachToComponent(
-            HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
+            RootComp, FAttachmentTransformRules::KeepRelativeTransform );
         InstancedStaticMeshComponent->RegisterComponent();
         InstancedStaticMeshComponent->GetBodyInstance()->bAutoWeld = false;
 
@@ -236,13 +243,13 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
             // We check attribute material first.
             if ( InstancerHoudiniGeoPartObject.bInstancerAttributeMaterialAvailable )
             {
-                InstancerMaterial = HoudiniAssetComponent->GetAssignmentMaterial(
+                InstancerMaterial = Comp->GetAssignmentMaterial(
                     InstancerHoudiniGeoPartObject.InstancerAttributeMaterialName );
             }
 
             // If attribute material was not found, we check for presence of shop instancer material.
             if ( !InstancerMaterial && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable )
-                InstancerMaterial = HoudiniAssetComponent->GetAssignmentMaterial(
+                InstancerMaterial = Comp->GetAssignmentMaterial(
                     InstancerHoudiniGeoPartObject.InstancerMaterialName );
 
             if ( InstancerMaterial )
@@ -260,15 +267,15 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         // Create the actor instancer component
         UHoudiniInstancedActorComponent * InstancedObjectComponent =
             NewObject< UHoudiniInstancedActorComponent >(
-                HoudiniAssetComponent->GetOwner(),
+                RootComp->GetOwner(),
                 UHoudiniInstancedActorComponent::StaticClass(),
                 NAME_None, RF_Transactional );
 
         InstancerComponents.Insert( InstancedObjectComponent, VariationIdx );
         InstancedObjectComponent->InstancedAsset = InstancedObjects[ VariationIdx ];
-        InstancedObjectComponent->SetMobility( HoudiniAssetComponent->Mobility );
+        InstancedObjectComponent->SetMobility( RootComp->Mobility );
         InstancedObjectComponent->AttachToComponent(
-            HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
+            RootComp, FAttachmentTransformRules::KeepRelativeTransform );
         InstancedObjectComponent->RegisterComponent();
     }
 

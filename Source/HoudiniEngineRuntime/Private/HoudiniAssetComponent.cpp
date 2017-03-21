@@ -667,7 +667,7 @@ UHoudiniAssetComponent::AddDownstreamAsset( UHoudiniAssetComponent * InDownstrea
 void
 UHoudiniAssetComponent::RemoveDownstreamAsset( UHoudiniAssetComponent * InDownstreamAssetComponent, int32 InInputIndex )
 {
-    if ( DownstreamAssetConnections.Contains( InDownstreamAssetComponent ) )
+    if ( InDownstreamAssetComponent && DownstreamAssetConnections.Contains( InDownstreamAssetComponent ) )
     {
         TSet< int32 > & InputIndicesSet = DownstreamAssetConnections[ InDownstreamAssetComponent ];
         if ( InputIndicesSet.Contains( InInputIndex ) )
@@ -5719,17 +5719,6 @@ UHoudiniAssetComponent::PostLoadInitializeParameters()
             UHoudiniAssetParameter * const * FoundParentParameter = Parameters.Find( ParentParameterId );
             if ( FoundParentParameter )
                 HoudiniAssetParameter->SetParentParameter( *FoundParentParameter );
-        }
-    }
-
-    // Notify all parameters that have children that loading is complete.
-    for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
-    {
-        UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-        if ( HoudiniAssetParameter )
-        {
-            if ( HoudiniAssetParameter->HasChildParameters() )
-                HoudiniAssetParameter->NotifyChildParametersLoaded();
         }
     }
 }

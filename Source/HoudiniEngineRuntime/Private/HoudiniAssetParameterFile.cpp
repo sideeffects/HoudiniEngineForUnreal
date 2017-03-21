@@ -56,12 +56,12 @@ UHoudiniAssetParameterFile::~UHoudiniAssetParameterFile()
 
 UHoudiniAssetParameterFile *
 UHoudiniAssetParameterFile::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId,
     const HAPI_ParmInfo& ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -75,18 +75,18 @@ UHoudiniAssetParameterFile::Create(
     UHoudiniAssetParameterFile * HoudiniAssetParameterFile = NewObject< UHoudiniAssetParameterFile >(
         Outer, UHoudiniAssetParameterFile::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterFile->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterFile->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterFile;
 }
 
 bool
 UHoudiniAssetParameterFile::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId,
     const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle file types.
@@ -248,7 +248,7 @@ UHoudiniAssetParameterFile::SetParameterVariantValue(
             FScopedTransaction Transaction(
                 TEXT( HOUDINI_MODULE_RUNTIME ),
                 LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
-                HoudiniAssetComponent );
+                PrimaryObject );
 
             if ( !bRecordUndo )
                 Transaction.Cancel();
@@ -282,7 +282,7 @@ UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked( const FString & Pick
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -299,18 +299,20 @@ UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked( const FString & Pick
 FString
 UHoudiniAssetParameterFile::UpdateCheckRelativePath( const FString & PickedPath ) const
 {
-    if ( HoudiniAssetComponent && !PickedPath.IsEmpty() && FPaths::IsRelative( PickedPath ) )
+    if ( PrimaryObject && !PickedPath.IsEmpty() && FPaths::IsRelative( PickedPath ) )
     {
-        const UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
-        if ( HoudiniAsset )
+        if ( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>(PrimaryObject) )
         {
-            FString AssetFilePath = FPaths::GetPath( HoudiniAsset->AssetFileName );
-            if ( FPaths::FileExists( AssetFilePath ) )
+            if( Comp->HoudiniAsset )
             {
-                FString UpdatedFileWidgetPath = FPaths::Combine( *AssetFilePath, *PickedPath );
-                if ( FPaths::FileExists( UpdatedFileWidgetPath ) )
+                FString AssetFilePath = FPaths::GetPath( Comp->HoudiniAsset->AssetFileName );
+                if( FPaths::FileExists( AssetFilePath ) )
                 {
-                    return UpdatedFileWidgetPath;
+                    FString UpdatedFileWidgetPath = FPaths::Combine( *AssetFilePath, *PickedPath );
+                    if( FPaths::FileExists( UpdatedFileWidgetPath ) )
+                    {
+                        return UpdatedFileWidgetPath;
+                    }
                 }
             }
         }
@@ -353,7 +355,7 @@ UHoudiniAssetParameterFile::SetParameterValue( const FString& InValue, int32 Idx
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniAssetParameterFileChange", "Houdini Parameter File: Changing a value" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
 
         Modify();
 

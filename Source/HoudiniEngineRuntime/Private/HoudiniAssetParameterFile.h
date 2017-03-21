@@ -49,7 +49,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFile : public UHoudiniAsset
 
         /** Create instance of this class. **/
         static UHoudiniAssetParameterFile* Create(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo );
@@ -58,7 +58,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterFile : public UHoudiniAsset
 
         /** Create this parameter from HAPI information. **/
         virtual bool CreateParameter(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo ) override;

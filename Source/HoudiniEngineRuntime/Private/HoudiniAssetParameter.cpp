@@ -57,7 +57,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter( const FObjectInitializer & Objec
 #if WITH_EDITOR
     , DetailCategoryBuilder( nullptr )
 #endif
-    , HoudiniAssetComponent( nullptr )
+    , PrimaryObject( nullptr )
     , HoudiniAssetInstance( nullptr )
     , ParentParameter( nullptr )
     , NodeId( -1 )
@@ -80,7 +80,7 @@ UHoudiniAssetParameter::~UHoudiniAssetParameter()
 
 bool
 UHoudiniAssetParameter::CreateParameter(
-    UHoudiniAssetInstance * InHoudiniAssetInstance,
+    UObject * InHoudiniAssetInstance,
     const FHoudiniParameterObject & HoudiniParameterObject )
 {
     return true;
@@ -88,7 +88,7 @@ UHoudiniAssetParameter::CreateParameter(
 
 bool
 UHoudiniAssetParameter::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId,
     const HAPI_ParmInfo & ParmInfo )
@@ -136,7 +136,7 @@ UHoudiniAssetParameter::CreateParameter(
     bIsChildOfMultiparm = ParmInfo.isChildOfMultiParm;
 
     // Set component.
-    HoudiniAssetComponent = InHoudiniAssetComponent;
+    PrimaryObject = InPrimaryObject;
 
     // Store parameter parent.
     ParentParameter = InParentParameter;
@@ -145,7 +145,7 @@ UHoudiniAssetParameter::CreateParameter(
 }
 
 UHoudiniAssetParameter * 
-UHoudiniAssetParameter::Duplicate( UHoudiniAssetComponent* InOuter )
+UHoudiniAssetParameter::Duplicate( UObject* InOuter )
 {
     return DuplicateObject<UHoudiniAssetParameter>(this, InOuter );
 }
@@ -198,12 +198,6 @@ UHoudiniAssetParameter::NotifyChildParametersCreated()
     // Default implementation does nothing.
 }
 
-void
-UHoudiniAssetParameter::NotifyChildParametersLoaded()
-{
-    // Default implementation does nothing.
-}
-
 bool
 UHoudiniAssetParameter::UploadParameterValue()
 {
@@ -226,9 +220,9 @@ UHoudiniAssetParameter::HasChanged() const
 }
 
 void
-UHoudiniAssetParameter::SetHoudiniAssetComponent( UHoudiniAssetComponent * InHoudiniAssetComponent )
+UHoudiniAssetParameter::SetHoudiniAssetComponent( UHoudiniAssetComponent * InComponent )
 {
-    HoudiniAssetComponent = InHoudiniAssetComponent;
+    PrimaryObject = InComponent;
 }
 
 void
@@ -292,9 +286,8 @@ UHoudiniAssetParameter::AddReferencedObjects( UObject * InThis, FReferenceCollec
     UHoudiniAssetParameter * HoudiniAssetParameter = Cast< UHoudiniAssetParameter >( InThis );
     if ( HoudiniAssetParameter )
     {
-        UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetParameter->HoudiniAssetComponent;
-        if ( HoudiniAssetComponent )
-            Collector.AddReferencedObject( HoudiniAssetComponent, InThis );
+        if ( HoudiniAssetParameter->PrimaryObject )
+            Collector.AddReferencedObject( HoudiniAssetParameter->PrimaryObject, InThis );
     }
 
     // Call base implementation.
@@ -335,7 +328,7 @@ UHoudiniAssetParameter::Serialize( FArchive & Ar )
 
     if ( Ar.IsTransacting() )
     {
-        Ar << HoudiniAssetComponent;
+        Ar << PrimaryObject;
         Ar << ParentParameter;
     }
 }
@@ -422,12 +415,15 @@ UHoudiniAssetParameter::MarkChanged( bool bMarkAndTriggerUpdate )
 #if WITH_EDITOR
 
     // Notify component about change.
-    if ( HoudiniAssetComponent && bMarkAndTriggerUpdate )
-        HoudiniAssetComponent->NotifyParameterChanged( this );
+    if( bMarkAndTriggerUpdate )
+    {
+        if( UHoudiniAssetComponent* Component = Cast<UHoudiniAssetComponent>(PrimaryObject) )
+            Component->NotifyParameterChanged( this );
 
-    // Notify parent parameter about change.
-    if ( ParentParameter && bMarkAndTriggerUpdate )
-        ParentParameter->NotifyChildParameterChanged( this );
+        // Notify parent parameter about change.
+        if( ParentParameter )
+            ParentParameter->NotifyChildParameterChanged( this );
+    }
 
 #endif // WITH_EDITOR
 }
@@ -468,6 +464,16 @@ UHoudiniAssetParameter::GetActiveChildParameter() const
     return ActiveChildParameter;
 }
 
+void UHoudiniAssetParameter::OnParamStateChanged()
+{
+#if WITH_EDITOR
+    if( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>( PrimaryObject ) )
+    {
+        Comp->UpdateEditorProperties( false );
+    }
+#endif
+}
+
 bool
 UHoudiniAssetParameter::HasChildParameters() const
 {
@@ -487,12 +493,6 @@ UHoudiniAssetParameter::IsActiveChildParameter( UHoudiniAssetParameter * ChildPa
         return ChildParameters[ ActiveChildParameter ] == ChildParam;
 
     return false;
-}
-
-UHoudiniAssetComponent *
-UHoudiniAssetParameter::GetHoudiniAssetComponent() const
-{
-    return HoudiniAssetComponent;
 }
 
 UHoudiniAssetParameter *
