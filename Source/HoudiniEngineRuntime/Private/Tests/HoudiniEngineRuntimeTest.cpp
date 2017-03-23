@@ -14,16 +14,22 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniParamUtils.h"
 #include "HoudiniCookHandler.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngineRuntimeTest.h"
+#include "HoudiniAssetParameterInt.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogHoudiniTests, Log, All );
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeMeshMarshalTest, "Houdini.Runtime.MeshMarshalTest", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeUploadStaticMeshTest, "Houdini.Runtime.UploadStaticMesh", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeActorTest, "Houdini.Runtime.ActorTest", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter )
+static constexpr int32 kTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter;
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeMeshMarshalTest, "Houdini.Runtime.MeshMarshalTest", kTestFlags )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeUploadStaticMeshTest, "Houdini.Runtime.UploadStaticMesh", kTestFlags )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeActorTest, "Houdini.Runtime.ActorTest", kTestFlags )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeParamTest, "Houdini.Runtime.ParamTest", kTestFlags )
 
 static float TestTickDelay = 1.0f;
 
@@ -318,6 +324,95 @@ void HelperTestMeshEqual( FAutomationTestBase* Test, UStaticMesh* MeshA, UStatic
     }
 }
 
+bool FHoudiniEngineRuntimeParamTest::RunTest( const FString& Paramters )
+{
+    HelperInstantiateAsset( this, TEXT( "/HoudiniEngine/Test/TestParams" ),
+        [=]( FHoudiniEngineTaskInfo InstantiateTaskInfo, UHoudiniAsset* HoudiniAsset )
+    {
+        HAPI_NodeId AssetId = InstantiateTaskInfo.AssetId;
+        if( AssetId < 0 )
+            return;
+
+        UTestHoudiniParameterBuilder * Builder = NewObject<UTestHoudiniParameterBuilder>( HelperGetWorld(), TEXT("ParmBuilder"), RF_Standalone );
+        bool NewParametersCreated = false;
+        bool Ok = FHoudiniParamUtils::Build( AssetId, Builder, Builder->CurrentParameters, Builder->NewParameters, NewParametersCreated );
+        TestTrue( TEXT( "Build success" ), Ok );
+        TestTrue( TEXT( "New Parm" ), NewParametersCreated );
+        if ( Ok )
+        {
+            // Look at old params
+            TestEqual( TEXT( "No Old Parms" ), Builder->CurrentParameters.Num(), 0 );
+            TestEqual( TEXT( "New Parms" ), Builder->NewParameters.Num(), 1 );
+
+            // Look at new params
+            for( auto& ParamPair : Builder->NewParameters )
+            {
+                UHoudiniAssetParameter* Param = ParamPair.Value;
+                UE_LOG( LogHoudiniTests, Log, TEXT( "New Parm: %s" ), *Param->GetParameterName() );
+                if( UHoudiniAssetParameterInt* ParamInt = Cast<UHoudiniAssetParameterInt>( Param ) )
+                {
+                    // Change a parameter
+
+                    int32 Val = ParamInt->GetParameterValue( 0, -1 );
+                    TestEqual( TEXT("GetParamterValue"), Val, 1 );
+                    ParamInt->SetValue( 2, 0, false, false );
+                    ParamInt->UploadParameterValue();
+                    /*
+                    ADD_LATENT_AUTOMATION_COMMAND( FTakeActiveEditorScreenshotCommand( TEXT( "FHoudiniEngineRuntimeParamTest_0.png" ) ));
+                    //Wait so the screenshots have a chance to save
+                    ADD_LATENT_AUTOMATION_COMMAND( FWaitLatentCommand( 0.1f ) );
+                    */
+                    break;
+                }
+                AddError( TEXT( "Didn't find Int Param" ) );
+            }
+
+            // Requery and verify param
+            Builder->CurrentParameters = Builder->NewParameters;
+            Builder->NewParameters.Empty();
+            NewParametersCreated = false;
+            Ok = FHoudiniParamUtils::Build( AssetId, Builder, Builder->CurrentParameters, Builder->NewParameters, NewParametersCreated );
+            TestTrue( TEXT( "Build success2" ), Ok );
+            TestFalse( TEXT( "New Parm2" ), NewParametersCreated );
+
+            if( Ok ) 
+            {
+                TestEqual( TEXT( "No Old Parms2" ), Builder->CurrentParameters.Num(), 0 );
+                TestEqual( TEXT( "New Parms1" ), Builder->NewParameters.Num(), 1 );
+                for( auto& ParamPair : Builder->NewParameters )
+                {
+                    UHoudiniAssetParameter* Param = ParamPair.Value;
+                    UE_LOG( LogHoudiniTests, Log, TEXT( "New Parm: %s" ), *Param->GetParameterName() );
+                    if( UHoudiniAssetParameterInt* ParamInt = Cast<UHoudiniAssetParameterInt>( Param ) )
+                    {
+                        int32 Val = ParamInt->GetParameterValue( 0, 0 );
+                        TestEqual( TEXT( "GetParamterValue2" ), Val, 2 );
+                        break;
+                    }
+                    AddError( TEXT("Didn't find Int Param2") );
+                }
+            }
+        }
+
+        Builder->ConditionalBeginDestroy();
+        
+        HelperCookAsset( this, HoudiniAsset, AssetId,
+            [=]( bool Ok, TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut )
+        {
+            if( Ok )
+            {
+                TestEqual( TEXT( "Num Mesh" ), StaticMeshesOut.Num(), 1 );
+            }
+
+            HelperDeleteAsset( this, AssetId );
+        } );
+
+
+    } );
+
+    return true;
+}
+
 bool FHoudiniEngineRuntimeActorTest::RunTest( const FString& Paramters )
 {
     AHoudiniAssetActor* Actor = HelperInstantiateAssetActor( this, TEXT( "/HoudiniEngine/Test/InputEcho" ) );
@@ -336,12 +431,11 @@ bool FHoudiniEngineRuntimeActorTest::RunTest( const FString& Paramters )
 
             if( DetailsView.IsValid() )
             {
+                /*
                 auto DetailsW = StaticCastSharedRef<SWidget>( DetailsView->AsShared() );
                 if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
                 {
-                    FString ScreenshotFileName;
                     const FString TestName = TEXT( "HoudiniEngineRuntimeActorTest_0.png" );
-//                    AutomationCommon::GetScreenshotPath( TestName, ScreenshotFileName );
                     TArray<FColor> OutImageData;
                     FIntVector OutImageSize;
                     if( FSlateApplication::Get().TakeScreenshot( DetailsW, OutImageData, OutImageSize ) )
@@ -353,6 +447,7 @@ bool FHoudiniEngineRuntimeActorTest::RunTest( const FString& Paramters )
                         FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound( OutImageData, Data );
                     }
                 }
+                */
             }
 
         }

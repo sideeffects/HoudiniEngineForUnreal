@@ -478,7 +478,7 @@ public:
         void CreateCurves( const TArray< FHoudiniGeoPartObject > & Curves );
 
         /** Create new parameters and attempt to reuse existing ones. **/
-        bool CreateParameters();
+        void CreateParameters();
 
         /** Create handles.**/
         bool CreateHandles();
