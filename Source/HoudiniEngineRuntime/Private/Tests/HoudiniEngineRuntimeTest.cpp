@@ -398,9 +398,9 @@ bool FHoudiniEngineRuntimeParamTest::RunTest( const FString& Paramters )
         Builder->ConditionalBeginDestroy();
         
         HelperCookAsset( this, HoudiniAsset, AssetId,
-            [=]( bool Ok, TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut )
+            [=]( bool CookOk, TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut )
         {
-            if( Ok )
+            if( CookOk )
             {
                 TestEqual( TEXT( "Num Mesh" ), StaticMeshesOut.Num(), 1 );
             }
