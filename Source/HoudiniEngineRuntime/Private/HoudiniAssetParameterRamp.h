@@ -162,7 +162,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAsset
 
         /** Create instance of this class. **/
         static UHoudiniAssetParameterRamp * Create(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo );
 
@@ -170,7 +170,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAsset
 
         /** Create this parameter from HAPI information. **/
         virtual bool CreateParameter(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo) override;
 
@@ -178,7 +178,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAsset
         virtual void NotifyChildParametersCreated();
 
         /** Duplicates this object as well as owned subobjects */
-        virtual UHoudiniAssetParameter * Duplicate( UHoudiniAssetComponent* InOuter ) override;
+        virtual UHoudiniAssetParameter * Duplicate( UObject* InOuter ) override;
 
     /** UObject methods. **/
     public:

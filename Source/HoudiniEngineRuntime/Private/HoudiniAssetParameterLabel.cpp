@@ -42,11 +42,11 @@ UHoudiniAssetParameterLabel::~UHoudiniAssetParameterLabel()
 
 UHoudiniAssetParameterLabel *
 UHoudiniAssetParameterLabel::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -60,17 +60,17 @@ UHoudiniAssetParameterLabel::Create(
     UHoudiniAssetParameterLabel * HoudiniAssetParameterLabel = NewObject< UHoudiniAssetParameterLabel >(
         Outer, UHoudiniAssetParameterLabel::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterLabel->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterLabel->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterLabel;
 }
 
 bool
 UHoudiniAssetParameterLabel::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle label type.

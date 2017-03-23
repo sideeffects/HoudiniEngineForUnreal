@@ -120,10 +120,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
     public:
 
         /** Create instance of this class for use as an input **/
-        static UHoudiniAssetInput * Create( UHoudiniAssetComponent * InHoudiniAssetComponent, int32 InInputIndex );
+        static UHoudiniAssetInput * Create( UObject * InPrimaryObject, int32 InInputIndex );
         /** Create instance of this class for use as parameter **/
         static UHoudiniAssetInput* Create(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo);
@@ -132,7 +132,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
         virtual bool CreateParameter(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo) override;
@@ -311,6 +311,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Returns the input object at index or nullptr */
         UObject* GetInputObject( int32 AtIndex ) const;
+
+        /** Returns primary object cast to HoudiniAssetComponent  */
+        class UHoudiniAssetComponent* GetHoudiniAssetComponent();
+        const class UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
+
+        /** Get the node id of the asset we are associated with */
+        HAPI_NodeId GetAssetId() const;
 
     protected:
 

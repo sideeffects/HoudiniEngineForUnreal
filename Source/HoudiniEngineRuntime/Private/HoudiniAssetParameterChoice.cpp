@@ -50,12 +50,12 @@ UHoudiniAssetParameterChoice::~UHoudiniAssetParameterChoice()
 
 UHoudiniAssetParameterChoice *
 UHoudiniAssetParameterChoice::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId,
     const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -69,18 +69,18 @@ UHoudiniAssetParameterChoice::Create(
     UHoudiniAssetParameterChoice * HoudiniAssetParameterChoice = NewObject<UHoudiniAssetParameterChoice>(
         Outer, UHoudiniAssetParameterChoice::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterChoice->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterChoice->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterChoice;
 }
 
 bool
 UHoudiniAssetParameterChoice::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId,
     const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // Choice lists can be only integer or string.
@@ -291,7 +291,7 @@ UHoudiniAssetParameterChoice::SetValueInt( int32 Value, bool bTriggerModify, boo
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     Modify();
 
     if ( !bRecordUndo )
@@ -397,7 +397,7 @@ UHoudiniAssetParameterChoice::SetParameterVariantValue( const FVariant & Variant
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
 
     Modify();
 
@@ -507,7 +507,7 @@ UHoudiniAssetParameterChoice::OnChoiceChange( TSharedPtr< FString > NewChoice, E
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniAssetParameterChoiceChange", "Houdini Parameter Choice: Changing a value" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();

@@ -56,12 +56,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Create instance of this class. **/
         static UHoudiniAssetInstanceInput * Create(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetComponent * InPrimaryObject,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject );
 
         /** Create instance from another input. **/
         static UHoudiniAssetInstanceInput * Create(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UHoudiniAssetComponent * InPrimaryObject,
             const UHoudiniAssetInstanceInput * OtherInstanceInput );
 
     public:
@@ -98,12 +98,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         /** Create this parameter from HAPI information - this implementation does nothing as this is not   **/
         /** a true parameter.                                                                               **/
         virtual bool CreateParameter(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo );
 
         /** Set component for this parameter. **/
-        virtual void SetHoudiniAssetComponent( UHoudiniAssetComponent * InHoudiniAssetComponent ) override;
+        virtual void SetHoudiniAssetComponent( UHoudiniAssetComponent * InComponent ) override;
 
 #if WITH_EDITOR
 
@@ -169,6 +169,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Clean unused input fields. **/
         void CleanInstanceInputFields( TArray< UHoudiniAssetInstanceInputField * > & InInstanceInputFields );
+
+        /** Returns primary object cast to HoudiniAssetComponent  */
+        class UHoudiniAssetComponent* GetHoudiniAssetComponent();
+        const class UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
+
+        /** Get the node id of the asset we are associated with */
+        HAPI_NodeId GetAssetId() const;
 
     protected:
 

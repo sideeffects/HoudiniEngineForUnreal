@@ -49,13 +49,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
 
         /** Create an instance of input field. **/
         static UHoudiniAssetInstanceInputField * Create(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetInstanceInput * InHoudiniAssetInstanceInput,
             const FHoudiniGeoPartObject & HoudiniGeoPartObject );
 
         /** Create an instance of input field from another input field. **/
         static UHoudiniAssetInstanceInputField * Create(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             const UHoudiniAssetInstanceInputField * OtherInputField );
 
     /** UObject methods. **/
@@ -194,7 +194,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         TArray< USceneComponent * > InstancerComponents;
 
         /** Parent Houdini asset component. **/
-        UHoudiniAssetComponent * HoudiniAssetComponent;
+        UObject * HoudiniAssetComponent;
 
         /** Owner input. **/
         UHoudiniAssetInstanceInput * HoudiniAssetInstanceInput;

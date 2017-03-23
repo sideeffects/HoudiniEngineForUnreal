@@ -372,7 +372,7 @@ UHoudiniAssetParameterRamp::~UHoudiniAssetParameterRamp()
 {}
 
 UHoudiniAssetParameter * 
-UHoudiniAssetParameterRamp::Duplicate( UHoudiniAssetComponent* InOuter )
+UHoudiniAssetParameterRamp::Duplicate( UObject* InOuter )
 {
     if( UHoudiniAssetParameterRamp* NewParm = Cast<UHoudiniAssetParameterRamp>( Super::Duplicate( InOuter ) ) )
     {
@@ -397,11 +397,11 @@ UHoudiniAssetParameterRamp::Duplicate( UHoudiniAssetComponent* InOuter )
 
 UHoudiniAssetParameterRamp *
 UHoudiniAssetParameterRamp::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -415,18 +415,18 @@ UHoudiniAssetParameterRamp::Create(
     UHoudiniAssetParameterRamp * HoudiniAssetParameterRamp = NewObject< UHoudiniAssetParameterRamp >(
         Outer, UHoudiniAssetParameterRamp::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterRamp->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterRamp->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
 
     return HoudiniAssetParameterRamp;
 }
 
 bool
 UHoudiniAssetParameterRamp::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     if ( ParmInfo.rampType == HAPI_RAMPTYPE_FLOAT )
@@ -461,7 +461,7 @@ UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
 #if WITH_EDITOR
 
         if ( HoudiniAssetParameterRampCurveColor )
-            HoudiniAssetComponent->UpdateEditorProperties( false );
+            OnParamStateChanged();
 
 #endif
 
@@ -535,7 +535,7 @@ UHoudiniAssetParameterRamp::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
         {
             HoudiniAssetParameterRampCurveFloat = Cast< UHoudiniAssetParameterRampCurveFloat >(
                 NewObject< UHoudiniAssetParameterRampCurveFloat >(
-                    HoudiniAssetComponent, UHoudiniAssetParameterRampCurveFloat::StaticClass(),
+                    PrimaryObject, UHoudiniAssetParameterRampCurveFloat::StaticClass(),
                     NAME_None, RF_Transactional | RF_Public ) );
 
             HoudiniAssetParameterRampCurveFloat->SetParentRampParameter( this );
@@ -553,7 +553,7 @@ UHoudiniAssetParameterRamp::CreateWidget( IDetailCategoryBuilder & LocalDetailCa
         {
             HoudiniAssetParameterRampCurveColor = Cast< UHoudiniAssetParameterRampCurveColor >(
                 NewObject< UHoudiniAssetParameterRampCurveColor >(
-                    HoudiniAssetComponent, UHoudiniAssetParameterRampCurveColor::StaticClass(),
+                    PrimaryObject, UHoudiniAssetParameterRampCurveColor::StaticClass(),
                     NAME_None, RF_Transactional | RF_Public ) );
 
             HoudiniAssetParameterRampCurveColor->SetParentRampParameter( this );

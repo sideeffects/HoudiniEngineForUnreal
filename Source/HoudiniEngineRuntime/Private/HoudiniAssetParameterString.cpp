@@ -48,11 +48,11 @@ UHoudiniAssetParameterString::~UHoudiniAssetParameterString()
 
 UHoudiniAssetParameterString *
 UHoudiniAssetParameterString::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -66,17 +66,17 @@ UHoudiniAssetParameterString::Create(
     UHoudiniAssetParameterString * HoudiniAssetParameterString = NewObject< UHoudiniAssetParameterString >(
         Outer, UHoudiniAssetParameterString::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterString->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterString->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterString;
 }
 
 bool
 UHoudiniAssetParameterString::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle string type.
@@ -194,7 +194,7 @@ UHoudiniAssetParameterString::SetParameterVariantValue(
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
 
         Modify();
 
@@ -230,7 +230,7 @@ UHoudiniAssetParameterString::SetValueCommitted( const FText & InValue, ETextCom
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniAssetParameterStringChange", "Houdini Parameter String: Changing a value" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();

@@ -197,27 +197,33 @@ UHoudiniAssetInput::~UHoudiniAssetInput()
 {}
 
 UHoudiniAssetInput *
-UHoudiniAssetInput::Create( UHoudiniAssetComponent * InHoudiniAssetComponent, int32 InInputIndex )
+UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex )
 {
     UHoudiniAssetInput * HoudiniAssetInput = nullptr;
 
     // Get name of this input.
+    HAPI_NodeId AssetId = -1;
+    if( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>( InPrimaryObject ) )
+    {
+        AssetId = Comp->GetAssetId();
+    }
+
     HAPI_StringHandle InputStringHandle;
     if ( FHoudiniApi::GetNodeInputName(
         FHoudiniEngine::Get().GetSession(),
-        InHoudiniAssetComponent->GetAssetId(),
+        AssetId,
         InInputIndex, &InputStringHandle ) != HAPI_RESULT_SUCCESS )
     {
         return HoudiniAssetInput;
     }
 
     HoudiniAssetInput = NewObject< UHoudiniAssetInput >(
-        InHoudiniAssetComponent,
+        InPrimaryObject,
         UHoudiniAssetInput::StaticClass(),
         NAME_None, RF_Public | RF_Transactional );
 
     // Set component and other information.
-    HoudiniAssetInput->HoudiniAssetComponent = InHoudiniAssetComponent;
+    HoudiniAssetInput->PrimaryObject = InPrimaryObject;
     HoudiniAssetInput->InputIndex = InInputIndex;
 
     // Get input string from handle.
@@ -234,11 +240,11 @@ UHoudiniAssetInput::Create( UHoudiniAssetComponent * InHoudiniAssetComponent, in
 
 UHoudiniAssetInput *
 UHoudiniAssetInput::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if (!Outer)
     {
         Outer = InParentParameter;
@@ -261,7 +267,7 @@ UHoudiniAssetInput::Create(
     // Create necessary widget resources.
     HoudiniAssetInput->CreateWidgetResources();
 
-    HoudiniAssetInput->CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo);
+    HoudiniAssetInput->CreateParameter(InPrimaryObject, InParentParameter, InNodeId, ParmInfo);
     return HoudiniAssetInput;
 }
 
@@ -322,7 +328,7 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
                 ParmId, 0 );
         }
         if ( InputAssetComponent )
-            InputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
+            InputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
 
         InputAssetComponent = nullptr;
         bInputAssetConnectedInHoudini = false;
@@ -330,12 +336,9 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
     }
     else
     {
-        if ( HoudiniAssetComponent )
-        {
-            HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
-            if (FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId) && FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
-                FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
-        }
+        HAPI_NodeId HostAssetId = GetAssetId();
+        if( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
+            FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
 
         if (ChoiceIndex == EHoudiniAssetInputType::WorldInput)
         {
@@ -370,14 +373,14 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
 
 bool
 UHoudiniAssetInput::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo)
 {
     // Inputs should never call this
     check(bIsObjectPathParameter);
 
-    if (!Super::CreateParameter(InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo))
+    if (!Super::CreateParameter(InPrimaryObject, InParentParameter, InNodeId, ParmInfo))
         return false;
 
     // We can only handle node type.
@@ -948,13 +951,13 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
                 FScopedTransaction Transaction(
                     TEXT( HOUDINI_MODULE_RUNTIME ),
                     LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
-                    HoudiniAssetComponent );
+                    PrimaryObject );
                 Modify();
                 MarkPreChanged();
                 InputObjects.Insert( nullptr, AtIndex );
                 bStaticMeshChanged = true;
                 MarkChanged();
-                HoudiniAssetComponent->UpdateEditorProperties( false );
+                OnParamStateChanged();
                 } 
             ),
             FExecuteAction::CreateLambda( [this, AtIndex]() {
@@ -963,13 +966,13 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
                         FScopedTransaction Transaction(
                             TEXT( HOUDINI_MODULE_RUNTIME ),
                             LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
-                            HoudiniAssetComponent );
+                            PrimaryObject );
                         Modify();
                         MarkPreChanged();
                         InputObjects.RemoveAt( AtIndex );
                         bStaticMeshChanged = true;
                         MarkChanged();
-                        HoudiniAssetComponent->UpdateEditorProperties( false );
+                        OnParamStateChanged();
                     }
                 } 
             ),
@@ -979,14 +982,14 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
                         FScopedTransaction Transaction(
                             TEXT( HOUDINI_MODULE_RUNTIME ),
                             LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
-                            HoudiniAssetComponent );
+                            PrimaryObject );
                         Modify();
                         MarkPreChanged();
                         UObject* Dupe = InputObjects[ AtIndex ];
                         InputObjects.Insert( Dupe , AtIndex );
                         bStaticMeshChanged = true;
                         MarkChanged();
-                        HoudiniAssetComponent->UpdateEditorProperties( false );
+                        OnParamStateChanged();
                     }
                 } 
             ) )
@@ -1000,12 +1003,15 @@ UHoudiniAssetInput::PostEditUndo()
 
     if ( InputCurve && ChoiceIndex == EHoudiniAssetInputType::CurveInput )
     {
-        auto * owner = HoudiniAssetComponent->GetOwner();
-        owner->AddOwnedComponent( InputCurve );
+        if( USceneComponent* RootComp = GetHoudiniAssetComponent() )
+        {
+            AActor* Owner = RootComp->GetOwner();
+            Owner->AddOwnedComponent( InputCurve );
 
-        InputCurve->AttachToComponent( HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform );
-        InputCurve->RegisterComponent();
-        InputCurve->SetVisibility( true );
+            InputCurve->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform );
+            InputCurve->RegisterComponent();
+            InputCurve->SetVisibility( true );
+        }
     }
 }
 
@@ -1019,7 +1025,7 @@ UHoudiniAssetInput::ConnectInputNode()
     {
         // Now we can connect input node to the asset node.
         HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-            FHoudiniEngine::Get().GetSession(), HoudiniAssetComponent->GetAssetId(), InputIndex,
+            FHoudiniEngine::Get().GetSession(), GetAssetId(), InputIndex,
             ConnectedAssetId), false);
     }
     else
@@ -1038,10 +1044,10 @@ UHoudiniAssetInput::UploadParameterValue()
 {
     bool Success = true;
 
-    if (HoudiniAssetComponent == nullptr)
+    if (PrimaryObject == nullptr)
         return false;
     
-    HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId HostAssetId = GetAssetId();
 
     switch ( ChoiceIndex )
     {
@@ -1293,10 +1299,30 @@ UHoudiniAssetInput::GetInputObject( int32 AtIndex ) const
     return InputObjects.IsValidIndex( AtIndex ) ? InputObjects[ AtIndex ] : nullptr;
 }
 
+UHoudiniAssetComponent* 
+UHoudiniAssetInput::GetHoudiniAssetComponent()
+{
+    return Cast<UHoudiniAssetComponent>( PrimaryObject );
+}
+
+const UHoudiniAssetComponent*
+UHoudiniAssetInput::GetHoudiniAssetComponent() const
+{
+    return Cast<const UHoudiniAssetComponent>( PrimaryObject );
+}
+
+HAPI_NodeId 
+UHoudiniAssetInput::GetAssetId() const
+{
+    if( const UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
+        return Comp->GetAssetId();
+    return -1;
+}
+
 bool
 UHoudiniAssetInput::UpdateObjectMergeTransformType()
 {
-    if (HoudiniAssetComponent == nullptr)
+    if (PrimaryObject == nullptr)
         return false;
 
     uint32 nTransformType = -1;
@@ -1309,7 +1335,7 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
 
     // Get the Input node ID from the host ID
     HAPI_NodeId InputNodeId = -1;
-    HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
+    HAPI_NodeId HostAssetId = GetAssetId();
 
     bool bSuccess = false;
     const std::string sXformType = "xformtype";
@@ -1389,7 +1415,10 @@ UHoudiniAssetInput::PostLoad()
         {
             // Set input callback object for this curve.
             InputCurve->SetHoudiniAssetInput(this);
-            InputCurve->AttachToComponent(HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform);
+            if( USceneComponent* RootComp = GetHoudiniAssetComponent() )
+            {
+                InputCurve->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform );
+            }
         }
         else
         {
@@ -1479,7 +1508,7 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
                     bInputAssetConnectedInHoudini = false;
 
                 if ( LocalInputAssetComponent )
-                    LocalInputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
+                    LocalInputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
             }
         }
         else
@@ -1581,7 +1610,7 @@ UHoudiniAssetInput::OnStaticMeshDropped( UObject * InObject, int32 AtIndex )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -1597,7 +1626,7 @@ UHoudiniAssetInput::OnStaticMeshDropped( UObject * InObject, int32 AtIndex )
         bStaticMeshChanged = true;
         MarkChanged();
 
-        HoudiniAssetComponent->UpdateEditorProperties( false );
+        OnParamStateChanged();
     }
 }
 
@@ -1671,7 +1700,7 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInputChange", "Houdini Input Type Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     Modify();
 
     // Switch mode.
@@ -1764,18 +1793,22 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 	    // We are switching to curve input.
 
 	    // Create new spline component if necessary.
-	    if (!InputCurve)
-		InputCurve = NewObject< UHoudiniSplineComponent >(
-		    HoudiniAssetComponent->GetOwner(), UHoudiniSplineComponent::StaticClass(),
-		    NAME_None, RF_Public | RF_Transactional);
+            if( USceneComponent* RootComp = GetHoudiniAssetComponent() )
+            {
+                if( !InputCurve )
+                {
+                    InputCurve = NewObject< UHoudiniSplineComponent >(
+                        RootComp->GetOwner(), UHoudiniSplineComponent::StaticClass(),
+                        NAME_None, RF_Public | RF_Transactional );
+                }
+                // Attach or re-attach curve component to asset.
+                InputCurve->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform );
+                InputCurve->RegisterComponent();
+                InputCurve->SetVisibility( true );
+                InputCurve->SetHoudiniAssetInput( this );
 
-	    // Attach or re-attach curve component to asset.
-	    InputCurve->AttachToComponent(HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform);
-	    InputCurve->RegisterComponent();
-	    InputCurve->SetVisibility(true);
-	    InputCurve->SetHoudiniAssetInput(this);
-
-	    bSwitchedToCurve = true;
+                bSwitchedToCurve = true;
+            }
 	    break;
 	}
 
@@ -1793,7 +1826,7 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 	    StartWorldOutlinerTicking();
 
 	    // Force recook and reconnect of the input assets.
-	    HAPI_NodeId HostAssetId = HoudiniAssetComponent->GetAssetId();
+	    HAPI_NodeId HostAssetId = GetAssetId();
 	    if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
 		HostAssetId, InputOutlinerMeshArray,
 		ConnectedAssetId, UnrealSplineResolution))
@@ -1828,18 +1861,20 @@ UHoudiniAssetInput::OnShouldFilterActor( const AActor * const Actor ) const
     if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
         // Only return HoudiniAssetActors
-        if ( Actor->IsA(AHoudiniAssetActor::StaticClass() ) )
+        if ( Actor->IsA<AHoudiniAssetActor>() )
         {
             // But not our own Asset Actor
-            if ( HoudiniAssetComponent && ( HoudiniAssetComponent->GetHoudiniAssetActorOwner() != Actor ) )
-                return true;
-            else
-                return false;
+            if( const USceneComponent* RootComp = Cast<const USceneComponent>( GetHoudiniAssetComponent() ))
+            {
+                if( RootComp && Cast<AHoudiniAssetActor>( RootComp->GetOwner() ) != Actor )
+                    return true;
+            }
+            return false;
         }
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
     {
-        return Actor->IsA( ALandscapeProxy::StaticClass() );
+        return Actor->IsA<ALandscapeProxy>();
     }        
     else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
@@ -1870,11 +1905,11 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Input Asset Change" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         // Tell the old input asset we are no longer connected.
-        InputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
+        InputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
 
         // We cleared the selection so just reset all the values.
         InputAssetComponent = nullptr;
@@ -1893,18 +1928,18 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
             return;
 
         // Do not allow the input asset to be ourself!
-        if ( ConnectedHoudiniAssetComponent == HoudiniAssetComponent )
+        if ( ConnectedHoudiniAssetComponent == PrimaryObject )
             return;
 
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Input Asset Change" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         // Tell the old input asset we are no longer connected.
         if ( InputAssetComponent)
-            InputAssetComponent->RemoveDownstreamAsset( HoudiniAssetComponent, InputIndex );
+            InputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
 
         InputAssetComponent = ConnectedHoudiniAssetComponent;
         ConnectedAssetId = InputAssetComponent->GetAssetId();
@@ -1930,7 +1965,7 @@ UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Input Landscape Change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         // Store new landscape.
@@ -1941,7 +1976,7 @@ UHoudiniAssetInput::OnLandscapeActorSelected( AActor * Actor )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Input Landscape Change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         InputLandscapeProxy = nullptr;
@@ -2055,7 +2090,7 @@ UHoudiniAssetInput::ConnectInputAssetActor()
     {
 
         ConnectInputNode();
-        InputAssetComponent->AddDownstreamAsset( HoudiniAssetComponent, InputIndex );
+        InputAssetComponent->AddDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
         bInputAssetConnectedInHoudini = true;
     }
 }
@@ -2075,7 +2110,7 @@ UHoudiniAssetInput::DisconnectInputAssetActor()
         }
         else
         {
-            FHoudiniEngineUtils::HapiDisconnectAsset( HoudiniAssetComponent->GetAssetId(), InputIndex );
+            FHoudiniEngineUtils::HapiDisconnectAsset( GetAssetId(), InputIndex );
         }
         bInputAssetConnectedInHoudini = false;
     }
@@ -2382,7 +2417,7 @@ UHoudiniAssetInput::UpdateInputCurve()
 
 #if WITH_EDITOR
         // We need to trigger details panel update.
-        HoudiniAssetComponent->UpdateEditorProperties( false );
+        OnParamStateChanged();
 
         // The editor caches the current selection visualizer, so we need to trick
         // and pretend the selection has changed so that the HSplineVisualizer can be drawn immediately
@@ -2414,7 +2449,7 @@ UHoudiniAssetInput::CheckStateChangedExportOnlySelected( ECheckBoxState NewState
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Selection mode change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -2446,7 +2481,7 @@ UHoudiniAssetInput::CheckStateChangedExportCurves( ECheckBoxState NewState )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Curve mode change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -2478,7 +2513,7 @@ UHoudiniAssetInput::CheckStateChangedExportAsMesh( ECheckBoxState NewState )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape As Mesh mode change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -2510,7 +2545,7 @@ UHoudiniAssetInput::CheckStateChangedExportMaterials( ECheckBoxState NewState )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Materials mode change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -2542,7 +2577,7 @@ UHoudiniAssetInput::CheckStateChangedExportLighting( ECheckBoxState NewState )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Lighting mode change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -2574,7 +2609,7 @@ UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs( ECheckBoxState NewStat
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Normalized UVs mode change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -2606,7 +2641,7 @@ UHoudiniAssetInput::CheckStateChangedExportTileUVs( ECheckBoxState NewState )
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Tile UVs mode change." ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
@@ -2641,7 +2676,7 @@ UHoudiniAssetInput::CheckStateChangedKeepWorldTransform(ECheckBoxState NewState)
     FScopedTransaction Transaction(
 	TEXT(HOUDINI_MODULE_RUNTIME),
 	LOCTEXT("HoudiniInputChange", "Houdini Input Transform Type change."),
-	HoudiniAssetComponent);
+	PrimaryObject);
     Modify();
 
     MarkPreChanged();
@@ -2711,7 +2746,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
         check( DetailsView->IsLocked() );
 
         // Force refresh of details view.
-        HoudiniAssetComponent->UpdateEditorProperties( false );
+        OnParamStateChanged();
 
         // Select the previously chosen input Actors from the World Outliner.
         GEditor->SelectNone( false, true );
@@ -2732,7 +2767,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInputChange", "Houdini World Outliner Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     Modify();
 
     MarkPreChanged();
@@ -2753,7 +2788,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
             continue;
 
         // Don't allow selection of ourselves. Bad things happen if we do.
-        if ( Actor == HoudiniAssetComponent->GetOwner() )
+        if ( Actor == GetHoudiniAssetComponent()->GetOwner() )
             continue;
 
 	// Looking for StaticMeshes
@@ -2805,7 +2840,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
 
     MarkChanged();
 
-    AHoudiniAssetActor * HoudiniAssetActor = HoudiniAssetComponent->GetHoudiniAssetActorOwner();
+    AActor* HoudiniAssetActor = GetHoudiniAssetComponent()->GetOwner();
 
     if ( DetailsView->IsLocked() )
     {
@@ -2826,7 +2861,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
     GEditor->SelectActor( HoudiniAssetActor, true, true );
 
     // Update parameter layout.
-    HoudiniAssetComponent->UpdateEditorProperties( false );
+    OnParamStateChanged();
 
     // Start or stop the tick timer to check if the selected Actors have been transformed.
     if ( InputOutlinerMeshArray.Num() > 0 )
@@ -2874,6 +2909,10 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
     if (!InputCurve || !OriginalInput)
         return;
 
+    USceneComponent* RootComp = GetHoudiniAssetComponent();
+    if( !RootComp )
+        return;
+
     // The previous call to DuplicateObject did not duplicate the curves properly
     // Both the original and duplicated Inputs now share the same InputCurve, so we 
     // need to create a proper copy of that curve
@@ -2883,11 +2922,11 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
 
     // Creates a new Curve
     InputCurve = NewObject< UHoudiniSplineComponent >(
-        HoudiniAssetComponent->GetOwner(), UHoudiniSplineComponent::StaticClass(),
+        RootComp->GetOwner(), UHoudiniSplineComponent::StaticClass(),
         NAME_None, RF_Public | RF_Transactional);
 
     // Attach curve component to asset.
-    InputCurve->AttachToComponent(HoudiniAssetComponent, FAttachmentTransformRules::KeepRelativeTransform);
+    InputCurve->AttachToComponent( RootComp, FAttachmentTransformRules::KeepRelativeTransform);
     InputCurve->RegisterComponent();
     InputCurve->SetVisibility(true);
 
@@ -2912,7 +2951,7 @@ UHoudiniAssetInput::RemoveWorldOutlinerInput( int32 AtIndex )
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInputChange", "Houdini World Outliner Input Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     Modify();
 
     MarkPreChanged();
@@ -2941,13 +2980,13 @@ void UHoudiniAssetInput::OnAddToInputObjects()
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     Modify();
     MarkPreChanged();
     InputObjects.Add( nullptr );
     MarkChanged();
     bStaticMeshChanged = true;
-    HoudiniAssetComponent->UpdateEditorProperties( false );
+    OnParamStateChanged();
 }
 
 void UHoudiniAssetInput::OnEmptyInputObjects()
@@ -2955,13 +2994,13 @@ void UHoudiniAssetInput::OnEmptyInputObjects()
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
     Modify();
     MarkPreChanged();
     InputObjects.Empty();
     MarkChanged();
     bStaticMeshChanged = true;
-    HoudiniAssetComponent->UpdateEditorProperties( false );
+    OnParamStateChanged();
 }
 
 

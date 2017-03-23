@@ -42,11 +42,11 @@ UHoudiniAssetParameterSeparator::~UHoudiniAssetParameterSeparator()
 
 UHoudiniAssetParameterSeparator *
 UHoudiniAssetParameterSeparator::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -60,17 +60,17 @@ UHoudiniAssetParameterSeparator::Create(
     UHoudiniAssetParameterSeparator * HoudiniAssetParameterSeparator = NewObject< UHoudiniAssetParameterSeparator >(
         Outer, UHoudiniAssetParameterSeparator::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterSeparator->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterSeparator->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterSeparator;
 }
 
 bool
 UHoudiniAssetParameterSeparator::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle separator type.

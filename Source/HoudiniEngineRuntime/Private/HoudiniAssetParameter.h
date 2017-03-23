@@ -36,9 +36,7 @@
 class FArchive;
 class FVariant;
 class FReferenceCollector;
-class UHoudiniAssetInstance;
 class IDetailCategoryBuilder;
-class UHoudiniAssetComponent;
 
 UCLASS( config = Editor )
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
@@ -54,33 +52,30 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Create this parameter from parameter info and asset instance. **/
         virtual bool CreateParameter(
-            UHoudiniAssetInstance * InHoudiniAssetInstance,
+            UObject * InHoudiniAssetInstance,
             const FHoudiniParameterObject & HoudiniParameterObject );
 
         /** Create this parameter from HAPI information. **/
         virtual bool CreateParameter(
-            UHoudiniAssetComponent * InHoudiniAssetComponent,
+            UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo );
 
         /** Create a duplicate of this parameter for the given parent component, takes care of any subobjects */
-        virtual UHoudiniAssetParameter * Duplicate( UHoudiniAssetComponent* InOuter );
+        virtual UHoudiniAssetParameter * Duplicate( UObject* InOuter );
 
         /** Set component for this parameter. **/
-        virtual void SetHoudiniAssetComponent( UHoudiniAssetComponent * InHoudiniAssetComponent );
+        virtual void SetHoudiniAssetComponent( class UHoudiniAssetComponent * InComponent );
 
         /** Set parent parameter for this parameter. **/
         void SetParentParameter( UHoudiniAssetParameter * InParentParameter );
-
-        /** Return component associated with this parameter, if there's one. **/
-        UHoudiniAssetComponent * GetHoudiniAssetComponent() const;
 
         /** Return parent parameter for this parameter, if there's one. **/
         UHoudiniAssetParameter * GetParentParameter() const;
 
         /** Return asset instance associated with this parameter, if there's one. **/
-        UHoudiniAssetInstance * GetAssetInstance() const;
+        class UHoudiniAssetInstance * GetAssetInstance() const;
 
 #if WITH_EDITOR
 
@@ -105,14 +100,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
             bool bTriggerModify = true,
             bool bRecordUndo = true );
 
-        /** Notifaction from a child parameter about its change. **/
+        /** Notification from a child parameter about its change. **/
         virtual void NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter );
 
         /** Notification from component that all child parameters have been created. **/
         virtual void NotifyChildParametersCreated();
-
-        /** Notification from component that all child parameters have been loaded. **/
-        virtual void NotifyChildParametersLoaded();
 
     public:
 
@@ -208,6 +200,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
         /** Return index of active child parameter. **/
         int32 GetActiveChildParameter() const;
 
+        /** Called when state of the parameter changes as side-effect of some action */
+        void OnParamStateChanged();
+
 #if WITH_EDITOR
 
         /** Assigns a unique parameter name. **/
@@ -237,10 +232,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 #endif // WITH_EDITOR
 
         /** Owner component. **/
-        UHoudiniAssetComponent * HoudiniAssetComponent;
+        UObject * PrimaryObject;
 
         /** Associated asset instance. **/
-        UHoudiniAssetInstance * HoudiniAssetInstance;
+        class UHoudiniAssetInstance * HoudiniAssetInstance;
 
         /** Parent parameter. **/
         UHoudiniAssetParameter * ParentParameter;

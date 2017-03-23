@@ -43,12 +43,12 @@ UHoudiniAssetParameterFolder::~UHoudiniAssetParameterFolder()
 
 UHoudiniAssetParameterFolder *
 UHoudiniAssetParameterFolder::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId,
     const HAPI_ParmInfo & ParmInfo)
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -63,17 +63,17 @@ UHoudiniAssetParameterFolder::Create(
         NewObject< UHoudiniAssetParameterFolder >(
             Outer, UHoudiniAssetParameterFolder::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterFolder->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterFolder->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterFolder;
 }
 
 bool
 UHoudiniAssetParameterFolder::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle folder and folder list types.

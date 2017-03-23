@@ -47,11 +47,11 @@ UHoudiniAssetParameterToggle::~UHoudiniAssetParameterToggle()
 
 UHoudiniAssetParameterToggle *
 UHoudiniAssetParameterToggle::Create(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    UObject * Outer = InHoudiniAssetComponent;
+    UObject * Outer = InPrimaryObject;
     if ( !Outer )
     {
         Outer = InParentParameter;
@@ -65,17 +65,17 @@ UHoudiniAssetParameterToggle::Create(
     UHoudiniAssetParameterToggle * HoudiniAssetParameterToggle = NewObject< UHoudiniAssetParameterToggle >(
         Outer, UHoudiniAssetParameterToggle::StaticClass(), NAME_None, RF_Public | RF_Transactional );
 
-    HoudiniAssetParameterToggle->CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo );
+    HoudiniAssetParameterToggle->CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo );
     return HoudiniAssetParameterToggle;
 }
 
 bool
 UHoudiniAssetParameterToggle::CreateParameter(
-    UHoudiniAssetComponent * InHoudiniAssetComponent,
+    UObject * InPrimaryObject,
     UHoudiniAssetParameter * InParentParameter,
     HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo )
 {
-    if ( !Super::CreateParameter( InHoudiniAssetComponent, InParentParameter, InNodeId, ParmInfo ) )
+    if ( !Super::CreateParameter( InPrimaryObject, InParentParameter, InNodeId, ParmInfo ) )
         return false;
 
     // We can only handle toggle type.
@@ -237,7 +237,7 @@ UHoudiniAssetParameterToggle::SetParameterVariantValue(
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
         LOCTEXT( "HoudiniAssetParameterToggleChange", "Houdini Parameter Toggle: Changing a value" ),
-        HoudiniAssetComponent );
+        PrimaryObject );
 
     Modify();
 
@@ -277,7 +277,7 @@ UHoudiniAssetParameterToggle::CheckStateChanged( ECheckBoxState NewState, int32 
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
             LOCTEXT( "HoudiniAssetParameterToggleChange", "Houdini Parameter Toggle: Changing a value" ),
-            HoudiniAssetComponent );
+            PrimaryObject );
         Modify();
 
         MarkPreChanged();
