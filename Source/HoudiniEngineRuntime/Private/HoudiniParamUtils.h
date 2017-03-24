@@ -35,11 +35,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniParamUtils
     @NewParameters: new params added to this
 
     On Return: CurrentParameters are the old parameters that are no longer valid, 
-        NewParameters are new and re-used parameters, NewParametersCreated is true if at least
-        one parameters was created (and not re-used).
+        NewParameters are new and re-used parameters.
     */
     static bool Build( HAPI_NodeId AssetId, class UObject* PrimaryObject, 
         TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& CurrentParameters,
-        TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& NewParameters,
-        bool& NewParametersCreated );
+        TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& NewParameters );
 };

@@ -52,8 +52,7 @@
 bool 
 FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
     TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& CurrentParameters,
-    TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& NewParameters,
-    bool& NewParametersCreated )
+    TMap< HAPI_ParmId, class UHoudiniAssetParameter * >& NewParameters )
 {
     if( !FHoudiniEngineUtils::IsValidAssetId( AssetId ) )
     {
@@ -369,9 +368,6 @@ FHoudiniParamUtils::Build( HAPI_NodeId AssetId, class UObject* PrimaryObject,
             
             // Add this parameter to the map.
             NewParameters.Add( ParmInfo.id, HoudiniAssetParameter );
-
-            // If we ever get here, it means we are creating new parameters so we'll need a full UI update
-            NewParametersCreated = true;
         }
 
         // We a pass over the new params to patch parent links.
