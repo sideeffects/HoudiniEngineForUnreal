@@ -3707,11 +3707,10 @@ UHoudiniAssetComponent::CreateParameters()
 {
     TMap< HAPI_ParmId, class UHoudiniAssetParameter * > NewParameters;
 
-    bool NewParametersAdded = false;
-    bool Ok = FHoudiniParamUtils::Build( AssetId, this, Parameters, NewParameters, NewParametersAdded );
+    bool Ok = FHoudiniParamUtils::Build( AssetId, this, Parameters, NewParameters );
     if( Ok )
     {
-        bEditorPropertiesNeedFullUpdate = NewParametersAdded;
+        bEditorPropertiesNeedFullUpdate = true;
 
         // Remove all unused parameters.
         ClearParameters();
