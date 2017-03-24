@@ -335,10 +335,8 @@ bool FHoudiniEngineRuntimeParamTest::RunTest( const FString& Paramters )
             return;
 
         UTestHoudiniParameterBuilder * Builder = NewObject<UTestHoudiniParameterBuilder>( HelperGetWorld(), TEXT("ParmBuilder"), RF_Standalone );
-        bool NewParametersCreated = false;
-        bool Ok = FHoudiniParamUtils::Build( AssetId, Builder, Builder->CurrentParameters, Builder->NewParameters, NewParametersCreated );
+        bool Ok = FHoudiniParamUtils::Build( AssetId, Builder, Builder->CurrentParameters, Builder->NewParameters );
         TestTrue( TEXT( "Build success" ), Ok );
-        TestTrue( TEXT( "New Parm" ), NewParametersCreated );
         if ( Ok )
         {
             // Look at old params
@@ -371,11 +369,8 @@ bool FHoudiniEngineRuntimeParamTest::RunTest( const FString& Paramters )
             // Requery and verify param
             Builder->CurrentParameters = Builder->NewParameters;
             Builder->NewParameters.Empty();
-            NewParametersCreated = false;
-            Ok = FHoudiniParamUtils::Build( AssetId, Builder, Builder->CurrentParameters, Builder->NewParameters, NewParametersCreated );
+            Ok = FHoudiniParamUtils::Build( AssetId, Builder, Builder->CurrentParameters, Builder->NewParameters );
             TestTrue( TEXT( "Build success2" ), Ok );
-            TestFalse( TEXT( "New Parm2" ), NewParametersCreated );
-
             if( Ok ) 
             {
                 TestEqual( TEXT( "No Old Parms2" ), Builder->CurrentParameters.Num(), 0 );
