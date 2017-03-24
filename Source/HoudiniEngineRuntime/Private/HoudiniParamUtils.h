@@ -25,13 +25,6 @@
 
 #include "HAPI_Common.h"
 
-struct HOUDINIENGINERUNTIME_API IHoudiniParameterBuilder
-{
-    virtual class UHoudiniAssetParameter* FindExisting( const FString& ParameterName ) = 0;
-    virtual void ReplaceExisting( const HAPI_ParmId ParmId, class UHoudiniAssetParameter* NewParameter ) = 0;
-    virtual void AddNew( const HAPI_ParmId ParmId, class UHoudiniAssetParameter* NewParameter ) = 0;
-};
-
 struct HOUDINIENGINERUNTIME_API FHoudiniParamUtils
 {
 
