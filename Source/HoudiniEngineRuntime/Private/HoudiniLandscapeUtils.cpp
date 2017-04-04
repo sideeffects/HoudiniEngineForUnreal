@@ -397,12 +397,13 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     int32 YSize = HoudiniXSize;
     IntHeightData.SetNumUninitialized( SizeInPoints );
 
+    int32 nUnreal = 0;
     for ( int32 nY = 0; nY < YSize; nY++ )
     {
         for ( int32 nX = 0; nX < XSize; nX++ )
         {
             // We need to invert X/Y when reading the value from Houdini
-            int32 nUnreal = nX + nY * XSize;
+            // int32 nUnreal = nX + nY * XSize;
             int32 nHoudini = nY + nX * HoudiniXSize;
 
             // Get the double values in [0 - ZRange]
@@ -412,7 +413,7 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
             DoubleValue = DoubleValue * ZSpacing + DigitCenterOffset;
 
             //dValue = FMath::Clamp(dValue, 0.0, 65535.0);
-            IntHeightData[ nUnreal ] = FMath::RoundToInt( DoubleValue );
+            IntHeightData[ nUnreal++ ] = FMath::RoundToInt( DoubleValue );
         }
     }
 
@@ -546,11 +547,14 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
 
 bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
     const TArray<float>& FloatLayerData,
-    const int32& LayerXSize, const int32& LayerYSize,
+    const int32& HoudiniXSize, const int32& HoudiniYSize,
     const float& LayerMin, const float& LayerMax,
     const int32& LandscapeXSize, const int32& LandscapeYSize,
     TArray<uint8>& LayerData )
 {
+    int32 LayerXSize = HoudiniYSize;
+    int32 LayerYSize = HoudiniXSize;
+    
     // Convert the float data to uint8
     LayerData.SetNumUninitialized( LayerXSize * LayerYSize );
 
@@ -563,8 +567,8 @@ bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
     {
         for ( int32 nX = 0; nX < LayerXSize; nX++ )
         {
-            // Inverts the values from Houdini
-            int32 nHoudini = ( LayerXSize - 1 - nX ) + ( ( nY )* LayerXSize );
+            // We need to invert X/Y when reading the value from Houdini
+            int32 nHoudini = nY + nX * HoudiniXSize;
 
             // Get the double values in [0 - ZRange]
             double DoubleValue = (double)FloatLayerData[ nHoudini ] - (double)LayerMin;
