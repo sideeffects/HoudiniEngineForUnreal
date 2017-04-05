@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2017> Side Effects Software Inc. 
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -576,7 +576,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(
-            const TArray< FStaticMaterial > & Materials,
+            const TArray< UMaterialInterface* > & Materials,
             const TArray< int32 > & FaceMaterialIndices,
             TArray< char * > & OutStaticMeshFaceMaterials );
 

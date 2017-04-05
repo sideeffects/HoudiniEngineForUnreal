@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2017> Side Effects Software Inc. 
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -903,7 +903,7 @@ UHoudiniAssetComponent::CleanUpAttachedStaticMeshComponents()
             continue;
 
         bool bNeedToCleanMeshComponent = false;
-        UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
+        UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
 
         if (AllSMC.Find(StaticMeshComponent) == nullptr)
             bNeedToCleanMeshComponent = true;
@@ -2365,7 +2365,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
             UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
             if ( OverridenMaterial && OverridenMaterial == Material )
             {
-                if ( MaterialIdx < StaticMesh->StaticMaterials.Num() )
+                if ( MaterialIdx < StaticMesh->Materials.Num() )
                     MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
             }
         }
@@ -2390,7 +2390,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         int32 MaterialIdx = Iter.Value();
 
         // Get old material.
-        UMaterialInterface * OldMaterial = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
+        UMaterialInterface * OldMaterial = StaticMesh->Materials[ MaterialIdx ];
 
         // Locate geo part object.
         FHoudiniGeoPartObject HoudiniGeoPartObject = LocateGeoPartObject( StaticMesh );
@@ -2400,7 +2400,7 @@ UHoudiniAssetComponent::OnApplyObjectToActor( UObject* ObjectToApply, AActor * A
         if ( ReplaceMaterial( HoudiniGeoPartObject, Material, OldMaterial, MaterialIdx ) )
         {
             StaticMesh->Modify();
-            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = Material;
+            StaticMesh->Materials[ MaterialIdx ] = Material;
 
             StaticMesh->PreEditChange( nullptr );
             StaticMesh->PostEditChange();
@@ -3410,13 +3410,13 @@ void UHoudiniAssetComponent::SanitizePostLoad()
         UMeshComponent* SMC = SMCElem.Value;
         if( SM && SMC )
         {
-            auto& StaticMeshMaterials = SM->StaticMaterials;
+            auto& StaticMeshMaterials = SM->Materials;
             for( int32 MaterialIdx = 0; MaterialIdx < StaticMeshMaterials.Num(); ++MaterialIdx )
             {
-                if( nullptr == StaticMeshMaterials[ MaterialIdx ].MaterialInterface )
+                if( nullptr == StaticMeshMaterials[ MaterialIdx ] )
                 {
                     auto DefaultMI = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
-                    StaticMeshMaterials[ MaterialIdx ].MaterialInterface = DefaultMI;
+                    StaticMeshMaterials[ MaterialIdx ] = DefaultMI;
                     SMC->SetMaterial( MaterialIdx, DefaultMI );
                 }
             }

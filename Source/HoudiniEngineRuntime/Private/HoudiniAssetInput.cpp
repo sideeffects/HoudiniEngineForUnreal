@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2017> Side Effects Software Inc. 
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -2798,7 +2798,7 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
             if ( !StaticMeshComponent )
                 continue;
 
-            UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
+            UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
             if ( !StaticMesh )
                 continue;
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2017> Side Effects Software Inc. 
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -104,10 +104,10 @@ UHoudiniAssetComponentMaterials::Duplicate( class UHoudiniAssetComponent* InOute
         UStaticMesh* NewSM = Cast<UStaticMesh>( ReplacementPair.Value );
         if( OriginalSM && NewSM )
         {
-            for( int32 Ix = 0; Ix < OriginalSM->StaticMaterials.Num(); ++Ix )
+            for( int32 Ix = 0; Ix < OriginalSM->Materials.Num(); ++Ix )
             {
-                MatReplacements.Add( OriginalSM->StaticMaterials[ Ix ].MaterialInterface,
-                    NewSM->StaticMaterials[ Ix ].MaterialInterface);
+                MatReplacements.Add( OriginalSM->Materials[ Ix ],
+                    NewSM->Materials[ Ix ]);
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2017> Side Effects Software Inc. 
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,7 @@ FHoudiniAttributePaintEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitTo
                 AActor* SelectedActor = CastChecked<AActor>(*Iter);
                 if ( auto Comp = SelectedActor->FindComponentByClass< UStaticMeshComponent >() )
                 {
-                    if ( Comp->GetStaticMesh() )
+                    if ( Comp->StaticMesh )
                         Selection.Add( SelectedActor );
                 }
             }
@@ -81,7 +81,7 @@ FHoudiniAttributePaintEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitTo
                 if ( ensure( DataComponent ) )
                 {
                     UStaticMeshComponent* SMC = SelectedActor->FindComponentByClass< UStaticMeshComponent >();
-                    FStaticMeshSourceModel & SrcModel = SMC->GetStaticMesh()->SourceModels[ 0 ];
+                    FStaticMeshSourceModel & SrcModel = SMC->StaticMesh->SourceModels[ 0 ];
                     FRawMesh RawMesh;
                     SrcModel.RawMeshBulkData->LoadRawMesh( RawMesh );
                     DataComponent->SetAttributeData( FHoudiniPointAttributeData( TEXT( "test_attr" ), SMC, EHoudiniVertexAttributeDataType::VADT_Float, RawMesh.VertexPositions.Num(), 1) );

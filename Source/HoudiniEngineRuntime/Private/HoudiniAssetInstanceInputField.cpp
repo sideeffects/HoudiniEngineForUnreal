@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2017> Side Effects Software Inc.
+* Copyright (c) <2017> Side Effects Software Inc. 
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -255,7 +255,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
             {
                 InstancedStaticMeshComponent->OverrideMaterials.Empty();
 
-                int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
+                int32 MeshMaterialCount = StaticMesh->Materials.Num();
                 for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
                     InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
             }
@@ -600,7 +600,7 @@ UHoudiniAssetInstanceInputField::GetMaterialReplacementMeshes(
                     UMaterialInterface * OverridenMaterial = OverrideMaterials[ MaterialIdx ];
                     if ( OverridenMaterial && OverridenMaterial == Material )
                     {
-                        if ( MaterialIdx < StaticMesh->StaticMaterials.Num() )
+                        if ( MaterialIdx < StaticMesh->Materials.Num() )
                         {
                             MaterialReplacementsMap.Add( StaticMesh, MaterialIdx );
                             bResult = true;
