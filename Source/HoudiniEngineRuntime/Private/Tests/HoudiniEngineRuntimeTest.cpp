@@ -1,4 +1,6 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
+
+#if (ENGINE_MINOR_VERSION > 15)
 #include "HoudiniApi.h"
 
 #if WITH_EDITOR
@@ -634,3 +636,4 @@ bool FHoudiniEngineRuntimeMeshMarshalTest::RunTest( const FString& Parameters )
 }
 
 #endif // WITH_EDITOR
+#endif
