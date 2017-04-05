@@ -4421,6 +4421,42 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         if ( !CurrentHeightfield )
             continue;
 
+        bool bLandscapeNeedsRecreate = true;
+        if ( !CurrentHeightfield->bHasGeoChanged )
+        {
+            // The Heightfield Geo has not changed, do we need to recreate the landscape?
+            ALandscape * FoundLandscape = LandscapeComponents.FindChecked( *CurrentHeightfield );
+            if ( FoundLandscape )
+            {
+                // Check that all layers/masks have not changed too
+                TArray< const FHoudiniGeoPartObject* > FoundLayers;
+                FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray( FoundVolumes, *CurrentHeightfield, FoundLayers );
+
+                bool bLayersHaveChanged = false;
+                for ( int32 n = 0; n < FoundLayers.Num(); n++ )
+                {
+                    if ( FoundLayers[ n ] && FoundLayers[ n ]->bHasGeoChanged )
+                    {
+                        bLayersHaveChanged = true;
+                        break;
+                    }
+                }
+
+                if ( !bLayersHaveChanged )
+                {
+                    // Height and layers/masks have not changed, there is no need to reimport the landscape
+                    bLandscapeNeedsRecreate = false;
+
+                    // We can add the landscape to the map and remove it from the old one to avoid its destruction
+                    NewLandscapes.Add( *CurrentHeightfield, FoundLandscape );
+                    LandscapeComponents.Remove( *CurrentHeightfield );
+                }
+            }
+        }
+
+        if ( !bLandscapeNeedsRecreate )
+            continue;
+
         HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId( AssetId );
         HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
 
