@@ -1,8 +1,7 @@
 #pragma once
 
-#include "UObject/ObjectMacros.h"
-#include "UObject/Object.h"
-#include "UObject/Class.h"
+#include "CoreUObject.h"
+
 
 #include "HoudiniEngineRuntimeTest.generated.h"
 
