@@ -1219,12 +1219,21 @@ UHoudiniAssetInput::UploadParameterValue()
                 // Disconnect and destroy currently connected asset, if there's one.
                 DisconnectAndDestroyInputAsset();
 
+                UHoudiniAssetComponent* AssetComponent = ( UHoudiniAssetComponent* )PrimaryObject;
+                if ( !AssetComponent )
+                    AssetComponent = InputAssetComponent;
+
+                // We need to get the asset bounds, without this input
+                FBox Bounds(0);
+                if ( AssetComponent )
+                    Bounds = AssetComponent->GetAssetBounds( this );
+
                 // Connect input and create connected asset. Will return by reference.
                 if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
                         HostAssetId, InputLandscapeProxy,
                         ConnectedAssetId, bLandscapeExportSelectionOnly, bLandscapeExportCurves,
                         bLandscapeExportMaterials, bLandscapeExportAsMesh, bLandscapeExportLighting,
-                        bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs ) )
+                        bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs, Bounds ) )
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
@@ -3161,5 +3170,50 @@ operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOut
     HoudiniAssetInputOutlinerMesh.Serialize( Ar );
     return Ar;
 }
+
+FBox
+UHoudiniAssetInput::GetInputBounds()
+{
+    FBox Bounds( 0 );
+
+    if ( IsCurveAssetConnected() && InputCurve )
+    {
+        TArray<FVector> CurvePositions;
+        InputCurve->GetCurvePositions( CurvePositions );
+
+        for ( int32 n = 0; n < CurvePositions.Num(); n++ )
+            Bounds += CurvePositions[ n ];
+    }
+
+    if ( IsWorldInputAssetConnected() )
+    {
+        for (int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
+        {
+            if (!InputOutlinerMeshArray[ n ].Actor)
+                continue;
+
+            FVector Origin, Extent;
+            InputOutlinerMeshArray[ n ].Actor->GetActorBounds( false, Origin, Extent );
+
+            Bounds += FBox::BuildAABB( Origin, Extent );
+        }
+    }
+
+    if ( IsInputAssetConnected() && InputAssetComponent )
+    {
+        Bounds += InputAssetComponent->GetAssetBounds();
+    }
+
+    if ( IsLandscapeAssetConnected() && InputLandscapeProxy )
+    {
+        FVector Origin, Extent;
+        InputLandscapeProxy->GetActorBounds( false, Origin, Extent );
+
+        Bounds += FBox::BuildAABB( Origin, Extent );
+    }
+
+    return Bounds;
+}
+
 
 #undef LOCTEXT_NAMESPACE

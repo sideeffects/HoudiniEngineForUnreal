@@ -224,6 +224,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         FText GetCurrentSelectionText() const;
 
+        // Return the bounds of this input
+        FBox GetInputBounds();
+
     protected:
 
 #if WITH_EDITOR

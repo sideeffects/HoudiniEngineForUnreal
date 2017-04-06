@@ -40,6 +40,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniAttributeDataComponent.h"
+#include "HoudiniLandscapeUtils.h"
 #include "Components/SplineComponent.h"
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
@@ -2409,12 +2410,12 @@ FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_NodeId AssetId, TArray< HAPI_
 
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_NodeId HostAssetId,
+    const HAPI_NodeId& HostAssetId,
     ALandscapeProxy * LandscapeProxy, HAPI_NodeId & ConnectedAssetId,
-    bool bExportOnlySelected, bool bExportCurves,
-    bool bExportMaterials, bool bExportGeometryAsMesh,
-    bool bExportLighting, bool bExportNormalizedUVs,
-    bool bExportTileUVs )
+    bool bExportOnlySelected, const bool& bExportCurves,
+    const bool& bExportMaterials, const bool& bExportGeometryAsMesh,
+    const bool& bExportLighting, const bool& bExportNormalizedUVs,
+    const bool& bExportTileUVs, const FBox& AssetBounds )
 {
 #if WITH_EDITOR
 
@@ -2458,7 +2459,63 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     if ( bExportOnlySelected && LandscapeInfo )
         SelectedComponents = LandscapeInfo->GetSelectedComponents();
 
+    if ( bExportOnlySelected && SelectedComponents.Num() <= 0 && AssetBounds.IsValid )
+    {
+        // We'll try to use the asset bounds to automatically "select" the components
+        for ( int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
+        {
+            ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
+            if ( !LandscapeComponent )
+                continue;
+
+            FBoxSphereBounds WorldBounds = LandscapeComponent->CalcBounds( LandscapeComponent->ComponentToWorld );
+
+            if ( AssetBounds.IntersectXY( WorldBounds.GetBox() ) )
+                SelectedComponents.Add( LandscapeComponent );
+        }
+    }
+
     bExportOnlySelected = bExportOnlySelected && SelectedComponents.Num() > 0;
+
+    //-----------------------------------------------------------------------------------------------------------------
+    // EXPORT TO HEIGHTFIELD
+    //-----------------------------------------------------------------------------------------------------------------
+
+    /*
+    bool bHeightfieldCreated = false;
+    if (!bExportOnlySelected)
+    {
+        // Export the whole landscape and its layer as a single heightfield
+        ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
+        if ( !Landscape )
+            return false;
+
+        bHeightfieldCreated = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(Landscape, ConnectedAssetId);
+    }
+    else
+    {
+        // Each selected component will be exported as a heightfield
+        bHeightfieldCreated = true;
+        for (int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++)
+        {
+            ULandscapeComponent * CurrentComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
+            if ( !CurrentComponent)
+                continue;
+
+            if ( !SelectedComponents.Contains( CurrentComponent ) )
+                continue;
+
+           if ( !FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent( CurrentComponent, ConnectedAssetId ) )
+               bHeightfieldCreated = false;
+        }
+    }
+
+    //if ( bHeightfieldCreated )
+    //	return true;
+
+    */
+
+    //-----------------------------------------------------------------------------------------------------------------
 
     int32 MinX = TNumericLimits< int32 >::Max();
     int32 MinY = TNumericLimits< int32 >::Max();
@@ -4720,9 +4777,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HoudiniGeoPartObject.bIsInstancer = false;
                     HoudiniGeoPartObject.bIsCurve = false;
                     HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
-                    HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
                     HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = false;
                     HoudiniGeoPartObject.bIsVolume = true;
+
+                    // We'll set the GeoChanged flag to true if we want to force the landscape reimport
+                    HoudiniGeoPartObject.bHasGeoChanged = ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll );
+
                     StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
 
                     continue;

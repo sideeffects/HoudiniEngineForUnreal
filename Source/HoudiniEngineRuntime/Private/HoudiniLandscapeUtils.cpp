@@ -36,6 +36,10 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
+#include "LandscapeInfo.h"
+#include "LandscapeComponent.h"
+#include "LandscapeEdit.h"
+#include "LandscapeLayerInfoObject.h"
 
 void
 FHoudiniLandscapeUtils::GetHeightfieldsInArray(
@@ -271,7 +275,7 @@ FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax(
     }
 }
 
-bool FHoudiniLandscapeUtils::ExtractHeightfieldData(
+bool FHoudiniLandscapeUtils::GetHeightfieldData(
     const FHoudiniGeoPartObject& Heightfield,
     TArray<float>& FloatValues,
     HAPI_VolumeInfo& VolumeInfo,
@@ -397,12 +401,12 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
     int32 YSize = HoudiniXSize;
     IntHeightData.SetNumUninitialized( SizeInPoints );
 
+    int32 nUnreal = 0;
     for ( int32 nY = 0; nY < YSize; nY++ )
     {
         for ( int32 nX = 0; nX < XSize; nX++ )
         {
             // We need to invert X/Y when reading the value from Houdini
-            int32 nUnreal = nX + nY * XSize;
             int32 nHoudini = nY + nX * HoudiniXSize;
 
             // Get the double values in [0 - ZRange]
@@ -412,7 +416,7 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
             DoubleValue = DoubleValue * ZSpacing + DigitCenterOffset;
 
             //dValue = FMath::Clamp(dValue, 0.0, 65535.0);
-            IntHeightData[ nUnreal ] = FMath::RoundToInt( DoubleValue );
+            IntHeightData[ nUnreal++ ] = FMath::RoundToInt( DoubleValue );
         }
     }
 
@@ -546,25 +550,28 @@ FHoudiniLandscapeUtils::ConvertHeightfieldDataToLandscapeData(
 
 bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
     const TArray<float>& FloatLayerData,
-    const int32& LayerXSize, const int32& LayerYSize,
+    const int32& HoudiniXSize, const int32& HoudiniYSize,
     const float& LayerMin, const float& LayerMax,
     const int32& LandscapeXSize, const int32& LandscapeYSize,
     TArray<uint8>& LayerData )
 {
+    int32 LayerXSize = HoudiniYSize;
+    int32 LayerYSize = HoudiniXSize;
+
     // Convert the float data to uint8
     LayerData.SetNumUninitialized( LayerXSize * LayerYSize );
 
     // Calculating the factor used to convert from Houdini's ZRange to [0 255]
     double LayerZRange = ( LayerMax - LayerMin );
-    double LayerZSpacing = ( LayerZRange != 0.0 ) ? ( 255.0 / (double)( LayerMax - LayerMin ) ) : 0.0;
+    double LayerZSpacing = ( LayerZRange != 0.0 ) ? ( 255.0 / (double)( LayerZRange ) ) : 0.0;
 
     int32 nUnrealIndex = 0;
     for ( int32 nY = 0; nY < LayerYSize; nY++ )
     {
         for ( int32 nX = 0; nX < LayerXSize; nX++ )
         {
-            // Inverts the values from Houdini
-            int32 nHoudini = ( LayerXSize - 1 - nX ) + ( ( nY )* LayerXSize );
+            // We need to invert X/Y when reading the value from Houdini
+            int32 nHoudini = nY + nX * HoudiniXSize;
 
             // Get the double values in [0 - ZRange]
             double DoubleValue = (double)FloatLayerData[ nHoudini ] - (double)LayerMin;
@@ -582,6 +589,7 @@ bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
         LayerData, LayerXSize, LayerYSize,
         LandscapeXSize, LandscapeYSize );
 }
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // From LandscapeEditorUtils.h
@@ -883,10 +891,649 @@ FHoudiniLandscapeUtils::ResizeLayerDataForLandscape(
     return true;
 }
 
+#if WITH_EDITOR
+bool
+FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
+    ALandscape* Landscape, const HAPI_NodeId& AssetId )
+{
+    if ( !Landscape )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 1. Extracting the height data
+    //--------------------------------------------------------------------------------------------------
+    TArray<uint16> HeightData;
+    int32 XSize, YSize;
+    FVector Min, Max;
+
+    if ( !GetLandscapeData( Landscape, HeightData, XSize, YSize, Min, Max ) )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 2. Convert the height uint16 data to float
+    //--------------------------------------------------------------------------------------------------
+    TArray<float> HeightfieldFloatValues;
+    HAPI_VolumeInfo HeightfieldVolumeInfo;
+    FTransform LandscapeTransform = Landscape->GetActorTransform();
+
+    if ( !ConvertLandscapeDataToHeightfieldData(
+        HeightData, XSize, YSize, Min, Max, LandscapeTransform,
+        HeightfieldFloatValues, HeightfieldVolumeInfo ) )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 3. Set the HeightfieldData in Houdini
+    //--------------------------------------------------------------------------------------------------
+    HAPI_PartId PartId = 0;
+    FString Name = TEXT("height");
+    if ( !SetHeighfieldData( AssetId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, Name ) )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 4. Extract and convert all the layers
+    //--------------------------------------------------------------------------------------------------
+    ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+    if ( !LandscapeInfo )
+        return false;
+
+    int32 NumLayers = LandscapeInfo->Layers.Num();    
+    for ( int32 n = 0; n < NumLayers; n++ )
+    {
+        // 1. Extract the uint8 values from the layer
+        TArray<uint8> CurrentLayerIntData;
+        FLinearColor LayerUsageDebugColor;
+        FString LayerName;
+        if ( !GetLandscapeLayerData( LandscapeInfo, n, CurrentLayerIntData, LayerUsageDebugColor, LayerName ) )
+            continue;
+
+        // 2. Convert unreal uint8 to float
+        // If the layer came from Houdini, additionnal info might have been stored in the DebugColor
+        HAPI_VolumeInfo CurrentLayerVolumeInfo;
+        TArray < float > CurrentLayerFloatData;
+        if ( !ConvertLandscapeLayerDataToHeightfieldData(
+            CurrentLayerIntData, XSize, YSize, LayerUsageDebugColor,
+            CurrentLayerFloatData, CurrentLayerVolumeInfo ) )
+            continue;
+
+        // We reuse the height's transform
+        CurrentLayerVolumeInfo.transform = HeightfieldVolumeInfo.transform;
+
+        // 3. Set the heighfield data in Houdini
+        PartId += 1;
+        if ( !SetHeighfieldData( AssetId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
+            continue;
+    }
+
+    // Commit the geo.
+    HAPI_GeoInfo DisplayGeoInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId, &DisplayGeoInfo), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId), false);
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
+    ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& AssetId)
+{
+    if ( !LandscapeComponent )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 1. Extracting the height data
+    //--------------------------------------------------------------------------------------------------
+    int32 MinX = MAX_int32;
+    int32 MinY = MAX_int32;
+    int32 MaxX = -MAX_int32;
+    int32 MaxY = -MAX_int32;
+    LandscapeComponent->GetComponentExtent( MinX, MinY, MaxX, MaxY );
+    
+    ULandscapeInfo* LandscapeInfo = LandscapeComponent->GetLandscapeInfo();
+    if ( !LandscapeInfo )
+        return false;
+
+    TArray<uint16> HeightData;
+    int32 XSize, YSize;
+    if ( !GetLandscapeData( LandscapeInfo, MinX, MinY, MaxX, MaxY, HeightData, XSize, YSize ) )
+        return false;
+
+    FVector Origin = LandscapeComponent->Bounds.Origin;
+    FVector Extents = LandscapeComponent->Bounds.BoxExtent;
+    FVector Min = Origin - Extents;
+    FVector Max = Origin + Extents;
+
+    //--------------------------------------------------------------------------------------------------
+    // 2. Convert the height uint16 data to float
+    //--------------------------------------------------------------------------------------------------
+    TArray<float> HeightfieldFloatValues;
+    HAPI_VolumeInfo HeightfieldVolumeInfo;
+
+    FTransform LandscapeTransform = LandscapeComponent->GetComponentTransform();
+
+    if ( !ConvertLandscapeDataToHeightfieldData(
+        HeightData, XSize, YSize, Min, Max, LandscapeTransform,
+        HeightfieldFloatValues, HeightfieldVolumeInfo ) )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 3. Set the HeightfieldData in Houdini
+    //--------------------------------------------------------------------------------------------------
+    HAPI_PartId PartId = 0;
+    FString Name = TEXT("height");
+    if (!SetHeighfieldData(AssetId, PartId, HeightfieldFloatValues, HeightfieldVolumeInfo, Name))
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 4. Extract and convert all the layers
+    //--------------------------------------------------------------------------------------------------
+    int32 NumLayers = LandscapeInfo->Layers.Num();
+    for (int32 n = 0; n < NumLayers; n++)
+    {
+        // 1. Extract the uint8 values from the layer
+        TArray<uint8> CurrentLayerIntData;
+        FLinearColor LayerUsageDebugColor;
+        FString LayerName;
+        if ( !GetLandscapeLayerData(LandscapeInfo, n, MinX, MinY, MaxX, MaxY, CurrentLayerIntData, LayerUsageDebugColor, LayerName) )
+            continue;
+
+        // 2. Convert unreal uint8 to float
+        // If the layer came from Houdini, additional info might have been stored in the DebugColor
+        HAPI_VolumeInfo CurrentLayerVolumeInfo;
+        TArray < float > CurrentLayerFloatData;
+        if ( !ConvertLandscapeLayerDataToHeightfieldData(
+            CurrentLayerIntData, XSize, YSize, LayerUsageDebugColor,
+            CurrentLayerFloatData, CurrentLayerVolumeInfo))
+            continue;
+
+        // We reuse the height's transform
+        CurrentLayerVolumeInfo.transform = HeightfieldVolumeInfo.transform;
+
+        // 3. Set the heighfield data in Houdini
+        PartId += 1;
+        if ( !SetHeighfieldData( AssetId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
+            continue;
+    }
+
+    // Commit the geo.
+    HAPI_GeoInfo DisplayGeoInfo;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId, &DisplayGeoInfo ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::GetLandscapeData(
+    ALandscape* Landscape,
+    TArray<uint16>& HeightData,
+    int32& XSize, int32& YSize,
+    FVector& Min, FVector& Max )
+{
+    if ( !Landscape )
+        return false;
+
+    ULandscapeInfo* LandscapeInfo = Landscape->GetLandscapeInfo();
+    if (!LandscapeInfo)
+        return false;
+
+    // Get the landscape extents to get its size
+    int32 MinX = MAX_int32;
+    int32 MinY = MAX_int32;
+    int32 MaxX = -MAX_int32;
+    int32 MaxY = -MAX_int32;
+
+    if (!LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
+        return false;
+
+    if ( !GetLandscapeData( LandscapeInfo, MinX, MinY, MaxX, MaxY, HeightData, XSize, YSize ) )
+        return false;
+
+    // Get the landscape Min/Max values
+    FVector Origin, Extent;
+    Landscape->GetActorBounds(false, Origin, Extent);
+
+    Min = Origin - Extent;
+    Max = Origin + Extent;
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::GetLandscapeData(
+    ULandscapeInfo* LandscapeInfo,
+    const int32& MinX, const int32& MinY,
+    const int32& MaxX, const int32& MaxY,
+    TArray<uint16>& HeightData,
+    int32& XSize, int32& YSize )
+{
+    if (!LandscapeInfo)
+        return false;
+
+    // Get the X/Y size in points
+    XSize = (MaxX - MinX + 1);
+    YSize = (MaxY - MinY + 1);
+
+    if ((XSize < 2) || (YSize < 2))
+        return false;
+
+    // Extracting the uint16 values from the landscape
+    FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+    HeightData.AddZeroed(XSize * YSize);
+    LandscapeEdit.GetHeightDataFast(MinX, MinY, MaxX, MaxY, HeightData.GetData(), 0);
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::GetLandscapeLayerData(
+    ULandscapeInfo* LandscapeInfo, const int32& LayerIndex,
+    TArray<uint8>& LayerData, FLinearColor& LayerUsageDebugColor,
+    FString& LayerName )
+{
+    if ( !LandscapeInfo )
+        return false;
+
+    // Get the landscape X/Y Size
+    int32 MinX = MAX_int32;
+    int32 MinY = MAX_int32;
+    int32 MaxX = -MAX_int32;
+    int32 MaxY = -MAX_int32;
+    if ( !LandscapeInfo->GetLandscapeExtent( MinX, MinY, MaxX, MaxY ) )
+        return false;
+
+    if ( !GetLandscapeLayerData(
+        LandscapeInfo, LayerIndex,
+        MinX, MinY, MaxX, MaxY,
+        LayerData, LayerUsageDebugColor, LayerName ) )
+        return false;
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::GetLandscapeLayerData(
+    ULandscapeInfo* LandscapeInfo,
+    const int32& LayerIndex,
+    const int32& MinX, const int32& MinY,
+    const int32& MaxX, const int32& MaxY,
+    TArray<uint8>& LayerData,
+    FLinearColor& LayerUsageDebugColor,
+    FString& LayerName )
+{
+    if ( !LandscapeInfo )
+        return false;
+
+    if ( !LandscapeInfo->Layers.IsValidIndex( LayerIndex ) )
+        return false;
+
+    FLandscapeInfoLayerSettings LayersSetting = LandscapeInfo->Layers[LayerIndex];
+    ULandscapeLayerInfoObject* LayerInfo = LayersSetting.LayerInfoObj;
+    if (!LayerInfo)
+        return false;
+
+    // Calc the X/Y size in points
+    int32 XSize = (MaxX - MinX + 1);
+    int32 YSize = (MaxY - MinY + 1);
+    if ( (XSize < 2) || (YSize < 2) )
+        return false;
+
+    // extracting the uint8 values from the layer
+    FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+    LayerData.AddZeroed(XSize * YSize);
+    LandscapeEdit.GetWeightDataFast(LayerInfo, MinX, MinY, MaxX, MaxY, LayerData.GetData(), 0);
+
+    LayerUsageDebugColor = LayerInfo->LayerUsageDebugColor;
+
+    LayerName = LayersSetting.GetLayerName().ToString();
+
+    return true;
+}
+#endif
+
+bool
+FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
+    const TArray<uint16>& IntHeightData,
+    const int32& XSize, const int32& YSize,
+    FVector Min, FVector Max, 
+    const FTransform& LandscapeTransform,
+    TArray<float>& HeightfieldFloatValues,
+    HAPI_VolumeInfo& HeightfieldVolumeInfo)
+{
+    HeightfieldFloatValues.Empty();
+
+    int32 HoudiniXSize = YSize;
+    int32 HoudiniYSize = XSize;
+    int32 SizeInPoints = HoudiniXSize * HoudiniYSize;
+    if ( (HoudiniXSize < 2) || (HoudiniYSize < 2) )
+        return false;
+
+    if ( IntHeightData.Num() != SizeInPoints )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 1. Convert values to float
+    //--------------------------------------------------------------------------------------------------
+
+    // We need the ZMin / ZMax int16 value
+    uint16 IntMin = IntHeightData[ 0 ];
+    uint16 IntMax = IntMin;
+    for ( int32 n = 0; n < IntHeightData.Num(); n++ )
+    {
+        if ( IntHeightData[ n ] < IntMin )
+            IntMin = IntHeightData[ n ];
+        if ( IntHeightData[ n ] > IntMax )
+            IntMax = IntHeightData[ n ];
+    }
+
+    // The range in Digits
+    double DigitRange = (double)IntMax - (double)IntMin;
+
+    // Convert the min/max values from cm to meters
+    Min /= 100.0;
+    Max /= 100.0;
+
+    // The desired range in meter
+    double ZMin = (double)Min.Z; 
+    double FloatRange = (double)Max.Z - ZMin;
+
+    // The factor used to convert from unreal digit range to Houdini's float Range
+    double ZSpacing = ( DigitRange != 0.0 ) ? ( FloatRange / DigitRange) : 0.0;
+
+    // Convert the Int data to Float
+    HeightfieldFloatValues.SetNumUninitialized( SizeInPoints );
+    
+    for ( int32 nY = 0; nY < HoudiniYSize; nY++ )
+    {
+        for ( int32 nX = 0; nX < HoudiniXSize; nX++ )
+        {
+            // We need to invert X/Y when reading the value from Unreal
+            int32 nHoudini = nX + nY * HoudiniXSize;
+            int32 nUnreal = nY + nX * XSize;
+
+            // Convert the int values to meter
+            // Unreal's digit value have a zero value of 32768
+            double DoubleValue = ( (double)IntHeightData[ nUnreal ] - (double)IntMin ) * ZSpacing + ZMin;
+            HeightfieldFloatValues[ nHoudini ] = (float)DoubleValue;
+        }
+    }
+    
+    // Verifying the converted ZMin / ZMax
+    float FloatMin = HeightfieldFloatValues[ 0 ];
+    float FloatMax = FloatMin;
+
+    for ( int32 n = 0; n < HeightfieldFloatValues.Num(); n++ )
+    {
+        if (HeightfieldFloatValues[n] < FloatMin)
+            FloatMin = HeightfieldFloatValues[n];
+        if (HeightfieldFloatValues[n] > FloatMax)
+            FloatMax = HeightfieldFloatValues[n];
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    // 2. Convert the Unreal Transform to a HAPI_transform
+    //--------------------------------------------------------------------------------------------------
+    HAPI_Transform HapiTransform{};
+    {
+        FQuat Rotation = LandscapeTransform.GetRotation();
+        if ( Rotation != FQuat::Identity )
+        {
+            //Swap(ObjectRotation.Y, ObjectRotation.Z);
+            HapiTransform.rotationQuaternion[0] = Rotation.X;
+            HapiTransform.rotationQuaternion[1] = Rotation.Z;//Rotation.Y;
+            HapiTransform.rotationQuaternion[2] = Rotation.Y;//Rotation.Z;
+            HapiTransform.rotationQuaternion[3] = -Rotation.W;
+        }
+        else
+        {
+            HapiTransform.rotationQuaternion[0] = 0;
+            HapiTransform.rotationQuaternion[1] = 0;
+            HapiTransform.rotationQuaternion[2] = 0;
+            HapiTransform.rotationQuaternion[3] = 1;
+        }
+
+        FVector Position = LandscapeTransform.GetLocation() / 100.0f;
+        HapiTransform.position[0] = Position.X;
+        HapiTransform.position[1] = Position.Y;
+        HapiTransform.position[2] = 0.0f;
+
+        FVector Scale = LandscapeTransform.GetScale3D() / 100.0f;
+        //Swap(ObjectScale3D.X, ObjectScale3D.Y);
+        //Swap(ObjectScale3D.Y, ObjectScale3D.Z);
+        HapiTransform.scale[0] = Scale.Y * 0.5f;//Scale.X;
+        HapiTransform.scale[1] = 1.0f;//Scale.Z;//Scale.Y;
+        HapiTransform.scale[2] = Scale.X / 0.5f;//Scale.Z;
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    // 3. Fill the volume info
+    //--------------------------------------------------------------------------------------------------
+
+    HeightfieldVolumeInfo.nameSH;
+
+    HeightfieldVolumeInfo.xLength = HoudiniXSize;
+    HeightfieldVolumeInfo.yLength = HoudiniYSize;
+    HeightfieldVolumeInfo.zLength = 1;
+
+    HeightfieldVolumeInfo.minX = 0;
+    HeightfieldVolumeInfo.minY = 0;
+    HeightfieldVolumeInfo.minZ = 0;
+    
+    HeightfieldVolumeInfo.transform = HapiTransform;
+    
+    HeightfieldVolumeInfo.type = HAPI_VOLUMETYPE_HOUDINI;
+    HeightfieldVolumeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+    HeightfieldVolumeInfo.tupleSize = 1;
+    HeightfieldVolumeInfo.tileSize = 16;
+    
+    HeightfieldVolumeInfo.hasTaper = false;
+    HeightfieldVolumeInfo.xTaper = 0.0;
+    HeightfieldVolumeInfo.yTaper = 0.0;
+
+    return true;
+}
+
+
+// Converts Unreal uint16 values to Houdini Float
+bool
+FHoudiniLandscapeUtils::ConvertLandscapeLayerDataToHeightfieldData(
+    const TArray<uint8>& IntHeightData,
+    const int32& XSize, const int32& YSize,
+    const FLinearColor& LayerUsageDebugColor,
+    TArray<float>& LayerFloatValues,
+    HAPI_VolumeInfo& LayerVolumeInfo)
+{
+    LayerFloatValues.Empty();
+
+    int32 HoudiniXSize = YSize;
+    int32 HoudiniYSize = XSize;
+    int32 SizeInPoints = HoudiniXSize * HoudiniYSize;
+    if ( ( HoudiniXSize < 2 ) || ( HoudiniYSize < 2 ) )
+        return false;
+
+    if ( IntHeightData.Num() != SizeInPoints )
+        return false;
+
+    //--------------------------------------------------------------------------------------------------
+    // 1. Convert values to float
+    //--------------------------------------------------------------------------------------------------
+
+    // We need the ZMin / ZMax unt8 values
+    uint8 IntMin = IntHeightData[ 0 ];
+    uint8 IntMax = IntMin;
+
+    for ( int n = 0; n < IntHeightData.Num(); n++ )
+    {
+        if ( IntHeightData[ n ] < IntMin )
+            IntMin = IntHeightData[ n ];
+        if ( IntHeightData[ n ] > IntMax )
+            IntMax = IntHeightData[ n ];
+    }
+
+    // The range in Digits
+    double DigitRange = (double)IntMax - (double)IntMin;
+
+    // By default, the values will be converted to [0, 1]
+    float LayerMin = 0.0f;
+    float LayerMax = 1.0f;
+    float LayerSpacing = 1.0f / DigitRange;
+
+    // If this layer came from Houdini, its alpha value should be PI
+    // So we can extract the additionnal infos stored its debug usage color
+    if ( LayerUsageDebugColor.A == PI )
+    {
+        LayerMin = LayerUsageDebugColor.R;
+        LayerMax = LayerUsageDebugColor.G;
+        LayerSpacing = LayerUsageDebugColor.B;
+    }
+
+    LayerSpacing = ( LayerMax - LayerMin ) / DigitRange;
+
+    // Convert the Int data to Float
+    LayerFloatValues.SetNumUninitialized( SizeInPoints );
+
+    for ( int32 nY = 0; nY < HoudiniYSize; nY++ )
+    {
+        for ( int32 nX = 0; nX < HoudiniXSize; nX++ )
+        {
+            // We need to invert X/Y when reading the value from Unreal
+            int32 nHoudini = nX + nY * HoudiniXSize;
+            int32 nUnreal = nY + nX * XSize;
+
+            // Convert the int values to meter
+            // Unreal's digit value have a zero value of 32768
+            double DoubleValue = ( (double)IntHeightData[ nUnreal ] - (double)IntMin ) * LayerSpacing + LayerMin;
+            LayerFloatValues[ nHoudini ] = (float)DoubleValue;
+        }
+    }
+
+    // Verifying the converted ZMin / ZMax
+    float FloatMin = LayerFloatValues[ 0 ];
+    float FloatMax = FloatMin;
+    for ( int32 n = 0; n < LayerFloatValues.Num(); n++ )
+    {
+        if ( LayerFloatValues[ n ] < FloatMin )
+            FloatMin = LayerFloatValues[ n ];
+        if ( LayerFloatValues[ n ] > FloatMax )
+            FloatMax = LayerFloatValues[ n ];
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    // 2. Fill the volume info
+    //--------------------------------------------------------------------------------------------------
+
+    LayerVolumeInfo.nameSH;
+
+    LayerVolumeInfo.xLength = HoudiniXSize;
+    LayerVolumeInfo.yLength = HoudiniYSize;
+    LayerVolumeInfo.zLength = 1;
+
+    LayerVolumeInfo.minX = 0;
+    LayerVolumeInfo.minY = 0;
+    LayerVolumeInfo.minZ = 0;
+
+    LayerVolumeInfo.type = HAPI_VOLUMETYPE_HOUDINI;
+    LayerVolumeInfo.storage = HAPI_STORAGETYPE_FLOAT;
+    LayerVolumeInfo.tupleSize = 1;
+    LayerVolumeInfo.tileSize = 16;
+
+    LayerVolumeInfo.hasTaper = false;
+    LayerVolumeInfo.xTaper = 0.0;
+    LayerVolumeInfo.yTaper = 0.0;
+
+    // The layer transform will have to be copied from the main heightfield's transform
+
+    return true;
+}
+
+bool
+FHoudiniLandscapeUtils::SetHeighfieldData(
+    const HAPI_NodeId& AssetId, const HAPI_PartId& PartId,
+    const TArray<float>& FloatValues,
+    const HAPI_VolumeInfo& VolumeInfo,
+    const FString& HeightfieldName )
+{
+    // Creating the part and sending the data through HAPI
+    HAPI_PartInfo Part;
+    FMemory::Memzero< HAPI_PartInfo >(Part);
+    Part.id = PartId;
+    Part.nameSH = 0;
+    Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
+    Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 1;
+    Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
+    Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
+    Part.vertexCount = 0;
+    Part.faceCount = 0;
+    Part.pointCount = 0;
+    Part.type = HAPI_PARTTYPE_VOLUME;
+
+    HAPI_GeoInfo DisplayGeoInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
+        FHoudiniEngine::Get().GetSession(), AssetId, &DisplayGeoInfo ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, Part.id, &Part ), false );
+
+    // Retrieve the VolumeInfo
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVolumeInfo(
+        FHoudiniEngine::Get().GetSession(),
+        DisplayGeoInfo.nodeId, Part.id, &VolumeInfo), false);
+
+    HAPI_VolumeTileInfo TileInfo;
+    TileInfo.isValid = true;
+    TileInfo.minX = 0;
+    TileInfo.minY = 0;
+    TileInfo.minZ = 0;
+
+    int SizeInPoints = VolumeInfo.xLength * VolumeInfo.yLength;
+
+    // TODO: Waiting for proper HAPI function
+    SizeInPoints = 4096;
+    
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVolumeTileFloatData(
+        FHoudiniEngine::Get().GetSession(),
+        DisplayGeoInfo.nodeId, Part.id,
+        &TileInfo, FloatValues.GetData(), SizeInPoints ), false );
+
+    // Add a name primitive attribute
+    std::string NameStr;
+    FHoudiniEngineUtils::ConvertUnrealString( HeightfieldName, NameStr );
+    const char* NameRaw = NameStr.c_str();
+    
+    std::string MarshallingAttributeName;
+    FHoudiniEngineUtils::ConvertUnrealString(
+        _TEXT( "name" ), MarshallingAttributeName );
+
+    HAPI_AttributeInfo AttributeInfo{};
+    AttributeInfo.count = 1;
+    AttributeInfo.tupleSize = 1;
+    AttributeInfo.exists = true;
+    AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+    AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    /*
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+        0, MarshallingAttributeName.c_str(), &AttributeInfo ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+        FHoudiniEngine::Get().GetSession(),
+        DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
+        (const char **)(&NameRaw), 0, 1 ), false);
+    */
+
+    return true;
+}
 
 /*
 ALandscape *
-FHoudiniEngineUtils::DuplicateLandscapeAndCreatePackage(
+FHoudiniLandscapeUtils::DuplicateLandscapeAndCreatePackage(
 const ALandscape * Landscape, UHoudiniAssetComponent * Component,
 const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode)
 {

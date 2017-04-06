@@ -636,6 +636,12 @@ public:
         /** Remove static mesh and associated component and deallocate corresponding resources. **/
         void RemoveStaticMeshComponent( UStaticMesh * StaticMesh );
 
+        /** Updates the bounds of the asset **/
+        void UpdateAssetBounds();
+
+        /** Returns the AABB for the asset component and its inputs **/
+        FBox GetAssetBounds( UHoudiniAssetInput* IgnoreInput = nullptr );
+
     private:
 
         /** This flag is used when Houdini engine is not initialized to display a popup message once. **/

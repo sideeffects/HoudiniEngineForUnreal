@@ -1275,6 +1275,9 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             DownstreamAsset->NotifyParameterChanged( nullptr );
         }
     }
+
+    // We can update the asset's boundaries
+    UpdateAssetBounds();
 }
 
 void
@@ -4420,6 +4423,42 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         if ( !CurrentHeightfield )
             continue;
 
+        bool bLandscapeNeedsRecreate = true;
+        if ( !CurrentHeightfield->bHasGeoChanged )
+        {
+            // The Geo has not changed, do we need to recreate the landscape?
+            ALandscape * FoundLandscape = LandscapeComponents.FindChecked( *CurrentHeightfield );
+            if ( FoundLandscape )
+            {
+                // Check that all layers/mask have not changed too
+                TArray< const FHoudiniGeoPartObject* > FoundLayers;
+                FHoudiniLandscapeUtils::GetHeightfieldsLayersInArray(FoundVolumes, *CurrentHeightfield, FoundLayers);
+
+                bool bLayersHaveChanged = false;
+                for ( int32 n = 0; n < FoundLayers.Num(); n++ )
+                {
+                    if ( FoundLayers[n] && FoundLayers[n]->bHasGeoChanged )
+                    {
+                        bLayersHaveChanged = true;
+                        break;
+                    }
+                }
+
+                if ( !bLayersHaveChanged )
+                {
+                    // Height and layers/masks have not changed, there is no need to reimport the landscape
+                    bLandscapeNeedsRecreate = false;
+
+                    // We can add the landscape to the map and remove it from the old one to avoid its destruction
+                    NewLandscapes.Add( *CurrentHeightfield, FoundLandscape );
+                    LandscapeComponents.Remove( *CurrentHeightfield );
+                }
+            }
+        }
+
+        if ( !bLandscapeNeedsRecreate )
+            continue;
+
         HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId( AssetId );
         HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
 
@@ -4432,7 +4471,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         TArray< float > FloatValues;
         HAPI_VolumeInfo VolumeInfo;
         float FloatMin, FloatMax;
-        if ( !FHoudiniLandscapeUtils::ExtractHeightfieldData( *CurrentHeightfield, FloatValues, VolumeInfo, FloatMin, FloatMax ) )
+        if ( !FHoudiniLandscapeUtils::GetHeightfieldData( *CurrentHeightfield, FloatValues, VolumeInfo, FloatMin, FloatMax ) )
             continue;
 
         // Do we need to convert the heightfields using the same global Min/Max
@@ -4515,7 +4554,7 @@ bool UHoudiniAssetComponent::CreateLandscapeLayers(
         float LayerMin = 0;
         float LayerMax = 0;
 
-        if ( !FHoudiniLandscapeUtils::ExtractHeightfieldData( *LayerGeoPartObject, FloatLayerData, LayerVolumeInfo, LayerMin, LayerMax ) )
+        if ( !FHoudiniLandscapeUtils::GetHeightfieldData( *LayerGeoPartObject, FloatLayerData, LayerVolumeInfo, LayerMin, LayerMax ) )
             continue;
 
         // No need to create flat layers as Unreal will remove them afterwards..
@@ -4542,6 +4581,14 @@ bool UHoudiniAssetComponent::CreateLandscapeLayers(
             LandscapeXSize, LandscapeYSize,
             currentLayerInfo.LayerData ) )
             continue;
+
+        // We will store the data used to convert from Houdini values to int in the DebugColor
+        // This is the only way we'll be able to reconvert those values back to their houdini equivalent afterwards...
+        // R = Min, G = Max, B = Spacing, A = ?
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.R = LayerMin;
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.G = LayerMax;
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.B = ( LayerMax - LayerMin) / 255.0f;
+        currentLayerInfo.LayerInfo->LayerUsageDebugColor.A = PI;
 
         // Should remove package if convert fail!
         CookedTemporaryLandscapeLayers.Add( Package, Heightfield );
@@ -5404,6 +5451,84 @@ UHoudiniAssetComponent::GetSocketTransform( FName InSocketName, ERelativeTransfo
     }
 
     return Super::GetSocketTransform( InSocketName, TransformSpace );
+}
+
+void
+UHoudiniAssetComponent::UpdateAssetBounds()
+{
+    Bounds = FBoxSphereBounds( GetAssetBounds() );
+}
+
+FBox
+UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput )
+{
+    FBox BoxBounds(0);
+
+    // Query the bounds of all our static mesh components..
+    for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
+    {
+        UStaticMeshComponent * StaticMeshComponent = Iter.Value();
+        if ( !StaticMeshComponent )
+            continue;
+
+        FBox StaticMeshBounds = StaticMeshComponent->Bounds.GetBox();
+        BoxBounds += StaticMeshBounds;
+    }
+
+    //... all our Handles
+    for ( TMap< FString, UHoudiniHandleComponent * >::TConstIterator Iter( HandleComponents ); Iter; ++Iter )
+    {
+        UHoudiniHandleComponent * HandleComponent = Iter.Value();
+        if ( !HandleComponent )
+            continue;
+
+        BoxBounds += HandleComponent->GetComponentLocation();
+    }
+
+    // ... all our curves
+    for ( TMap< FHoudiniGeoPartObject, UHoudiniSplineComponent * >::TConstIterator Iter( SplineComponents ); Iter; ++Iter )
+    {
+        UHoudiniSplineComponent * SplineComponent = Iter.Value();
+        if ( !SplineComponent )
+            continue;
+
+        TArray<FVector> SplinePositions;
+        SplineComponent->GetCurvePositions( SplinePositions );
+
+        for (int32 n = 0; n < SplinePositions.Num(); n++)
+        {
+            BoxBounds += SplinePositions[ n ];
+        }
+    }
+    
+    // ... and inputs
+    for ( int32 n = 0; n < Inputs.Num(); n++ )
+    {
+        UHoudiniAssetInput* CurrentInput = Inputs[ n ];
+        if ( !CurrentInput )
+            continue;
+
+        if ( CurrentInput == IgnoreInput )
+            continue;
+
+        BoxBounds += CurrentInput->GetInputBounds();
+    }
+
+    // ... all our landscapes
+    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter( LandscapeComponents); Iter; ++Iter )
+    {
+        ALandscape * Landscape = Iter.Value();
+        if ( !Landscape )
+            continue;
+
+        FVector Origin, Extent;
+        Landscape->GetActorBounds( false, Origin, Extent );
+
+        FBox LandscapeBounds = FBox::BuildAABB( Origin, Extent );
+        BoxBounds += LandscapeBounds;
+    }
+
+    return BoxBounds;
 }
 
 #undef LOCTEXT_NAMESPACE
