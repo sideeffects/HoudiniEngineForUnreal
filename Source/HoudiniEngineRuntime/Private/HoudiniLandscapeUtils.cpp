@@ -1507,7 +1507,7 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
     
     std::string MarshallingAttributeName;
     FHoudiniEngineUtils::ConvertUnrealString(
-        _TEXT( "name" ), MarshallingAttributeName );
+        TEXT( "name" ), MarshallingAttributeName );
 
     HAPI_AttributeInfo AttributeInfo{};
     AttributeInfo.count = 1;
