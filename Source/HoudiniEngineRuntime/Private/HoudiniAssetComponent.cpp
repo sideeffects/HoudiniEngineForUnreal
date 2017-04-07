@@ -3817,14 +3817,12 @@ UHoudiniAssetComponent::UploadChangedParameters()
 void
 UHoudiniAssetComponent::UpdateLoadedParameters()
 {
-    HAPI_AssetInfo AssetInfo;
-    if ( FHoudiniApi::GetAssetInfo( FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo ) != HAPI_RESULT_SUCCESS )
-        return;
+    check( AssetId >= 0 );
 
     for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
     {
         UHoudiniAssetParameter * HoudiniAssetParameter = IterParams.Value();
-        HoudiniAssetParameter->SetNodeId( AssetInfo.nodeId );
+        HoudiniAssetParameter->SetNodeId( AssetId );
     }
 }
 
@@ -3967,7 +3965,7 @@ UHoudiniAssetComponent::CreateInputs()
         {
             int32 NumNewInputs = InputCount - Inputs.Num();
             for( int32 InputIdx = Inputs.Num(); InputIdx < InputCount; ++InputIdx )
-                Inputs.Add( UHoudiniAssetInput::Create( this, InputIdx ) );
+                Inputs.Add( UHoudiniAssetInput::Create( this, InputIdx, AssetId ) );
         }
         else
         {
@@ -3985,6 +3983,7 @@ UHoudiniAssetComponent::CreateInputs()
 void
 UHoudiniAssetComponent::UpdateLoadedInputs()
 {
+    check( AssetId >= 0 );
     bool Success = true;
     for ( TArray< UHoudiniAssetInput * >::TIterator IterInputs( Inputs ); IterInputs; ++IterInputs )
     {
@@ -3992,6 +3991,7 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
         if (!HoudiniAssetInput)
             continue;
 
+        HoudiniAssetInput->SetNodeId( AssetId );
         Success &= HoudiniAssetInput->ChangeInputType(HoudiniAssetInput->GetChoiceIndex());
         Success &= HoudiniAssetInput->UploadParameterValue();
     }

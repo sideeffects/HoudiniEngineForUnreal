@@ -210,21 +210,15 @@ UHoudiniAssetInput::~UHoudiniAssetInput()
 {}
 
 UHoudiniAssetInput *
-UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex )
+UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_NodeId InNodeId )
 {
     UHoudiniAssetInput * HoudiniAssetInput = nullptr;
 
     // Get name of this input.
-    HAPI_NodeId AssetId = -1;
-    if( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>( InPrimaryObject ) )
-    {
-        AssetId = Comp->GetAssetId();
-    }
-
     HAPI_StringHandle InputStringHandle;
     if ( FHoudiniApi::GetNodeInputName(
         FHoudiniEngine::Get().GetSession(),
-        AssetId,
+        InNodeId,
         InInputIndex, &InputStringHandle ) != HAPI_RESULT_SUCCESS )
     {
         return HoudiniAssetInput;
@@ -247,6 +241,8 @@ UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex )
 
     // Create necessary widget resources.
     HoudiniAssetInput->CreateWidgetResources();
+
+    HoudiniAssetInput->SetNodeId( InNodeId );
 
     return HoudiniAssetInput;
 }
@@ -281,6 +277,9 @@ UHoudiniAssetInput::Create(
     HoudiniAssetInput->CreateWidgetResources();
 
     HoudiniAssetInput->CreateParameter(InPrimaryObject, InParentParameter, InNodeId, ParmInfo);
+
+    HoudiniAssetInput->SetNodeId( InNodeId );
+
     return HoudiniAssetInput;
 }
 
@@ -1028,6 +1027,88 @@ UHoudiniAssetInput::PostEditUndo()
     }
 }
 
+// Note: This method is only used for testing
+void 
+UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool CommitChange )
+{
+    if( AActor* Actor = Cast<AActor>( InObject ) )
+    {
+        for( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
+        {
+            UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
+            if( !StaticMeshComponent )
+                continue;
+
+            UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
+            if( !StaticMesh )
+                continue;
+
+            // Add the mesh to the array
+            FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+
+            OutlinerMesh.Actor = Actor;
+            OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
+            OutlinerMesh.StaticMesh = StaticMesh;
+            OutlinerMesh.SplineComponent = nullptr;
+            OutlinerMesh.AssetId = -1;
+
+            UpdateWorldOutlinerTransforms( OutlinerMesh );
+
+            InputOutlinerMeshArray.Add( OutlinerMesh );
+        }
+
+        // Looking for Splines
+        for( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
+        {
+            USplineComponent * SplineComponent = CastChecked< USplineComponent >( Component );
+            if( !SplineComponent )
+                continue;
+
+            // Add the spline to the array
+            FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+
+            OutlinerMesh.Actor = Actor;
+            OutlinerMesh.StaticMeshComponent = nullptr;
+            OutlinerMesh.StaticMesh = nullptr;
+            OutlinerMesh.SplineComponent = SplineComponent;
+            OutlinerMesh.AssetId = -1;
+
+            UpdateWorldOutlinerTransforms( OutlinerMesh );
+
+            InputOutlinerMeshArray.Add( OutlinerMesh );
+        }
+    }
+
+    if( InputObjects.IsValidIndex( AtIndex ) )
+    {
+        InputObjects[ AtIndex ] = InObject;
+    }
+    else
+    {
+        InputObjects.Insert( InObject, AtIndex );
+    }
+
+    if( CommitChange )
+    {
+        if( InputOutlinerMeshArray.Num() > 0 )
+            ChangeInputType( EHoudiniAssetInputType::WorldInput );
+        else
+            ChangeInputType( EHoudiniAssetInputType::GeometryInput );
+
+        MarkChanged();
+    }
+}
+
+// Note: This method is only used for testing
+void 
+UHoudiniAssetInput::ClearInputs()
+{
+    ChangeInputType( EHoudiniAssetInputType::GeometryInput );
+    InputOutlinerMeshArray.Empty();
+    InputObjects.Empty();
+    MarkChanged();
+}
+
 #endif
 
 bool
@@ -1336,9 +1417,7 @@ UHoudiniAssetInput::GetHoudiniAssetComponent() const
 HAPI_NodeId 
 UHoudiniAssetInput::GetAssetId() const
 {
-    if( const UHoudiniAssetComponent* Comp = GetHoudiniAssetComponent() )
-        return Comp->GetAssetId();
-    return -1;
+    return NodeId;
 }
 
 bool
