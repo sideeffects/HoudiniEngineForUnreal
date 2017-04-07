@@ -311,6 +311,11 @@ UHoudiniAssetParameter::Serialize( FArchive & Ar )
     Ar << ParameterLabel;
 
     Ar << NodeId;
+    if( !Ar.IsTransacting() && Ar.IsLoading() )
+    {
+        // NodeId is invalid after load
+        NodeId = -1;
+    }
     Ar << ParmId;
 
     Ar << ParmParentId;
