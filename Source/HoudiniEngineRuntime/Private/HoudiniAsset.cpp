@@ -31,7 +31,6 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAsset.h"
-#include "HoudiniAssetInstance.h"
 
 
 const uint32
@@ -187,10 +186,4 @@ bool
 UHoudiniAsset::IsAssetNonCommercial() const
 {
     return bAssetNonCommercial;
-}
-
-UHoudiniAssetInstance *
-UHoudiniAsset::CreateHoudiniAssetInstance( UObject * Outer )
-{
-    return UHoudiniAssetInstance::CreateAssetInstance( Outer, this );
 }

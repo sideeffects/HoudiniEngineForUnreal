@@ -34,7 +34,6 @@
 
 class UThumbnailInfo;
 class UAssetImportData;
-class UHoudiniAssetInstance;
 class UHoudiniAssetComponent;
 
 UCLASS( EditInlineNew, config = Engine )
@@ -71,11 +70,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAsset : public UObject
 
         /** Return true if this asset is a non commercial asset. **/
         bool IsAssetNonCommercial() const;
-
-    public:
-
-        /** Create an asset instance. **/
-        UHoudiniAssetInstance * CreateHoudiniAssetInstance( UObject * Outer );
 
     public:
 
