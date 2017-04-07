@@ -22,6 +22,7 @@
 #include "HoudiniEngineRuntimeTest.h"
 #include "HoudiniAssetParameterInt.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC( LogHoudiniTests, Log, All );
 
 static constexpr int32 kTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter;
@@ -471,7 +472,7 @@ bool FHoudiniEngineRuntimeBatchTest::RunTest( const FString& Paramters )
                             TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
                             if( CookTaskInfo.TaskState == EHoudiniEngineTaskState::Processing )
                             {
-                                FWindowsPlatformProcess::Sleep( 1 );
+                                FPlatformProcess::Sleep( 1 );
                                 continue;
                             }
                             else if( CookTaskInfo.TaskState == EHoudiniEngineTaskState::FinishedCookingWithErrors )
