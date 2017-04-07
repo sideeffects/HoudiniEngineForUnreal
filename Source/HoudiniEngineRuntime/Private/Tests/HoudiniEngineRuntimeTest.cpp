@@ -25,6 +25,7 @@
 #include "HoudiniEngineRuntimeTest.h"
 #include "HoudiniAssetParameterInt.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC( LogHoudiniTests, Log, All );
 
 static constexpr int32 kTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter;
@@ -33,6 +34,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeMeshMarshalTest, "Houdini
 IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeUploadStaticMeshTest, "Houdini.Runtime.UploadStaticMesh", kTestFlags )
 IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeActorTest, "Houdini.Runtime.ActorTest", kTestFlags )
 IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeParamTest, "Houdini.Runtime.ParamTest", kTestFlags )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FHoudiniEngineRuntimeBatchTest, "Houdini.Runtime.BatchTest", kTestFlags )
 
 static float TestTickDelay = 1.0f;
 
@@ -172,7 +174,8 @@ UObject* FindAssetUObject( FName AssetUObjectPath )
     return nullptr;
 }
 
-AHoudiniAssetActor* HelperInstantiateAssetActor(
+template<typename T>
+T* HelperInstantiateAssetActor(
     FAutomationTestBase* Test,
     FName AssetPath )
 {
@@ -185,7 +188,7 @@ AHoudiniAssetActor* HelperInstantiateAssetActor(
         Test->TestTrue( TEXT( "Placed Actor" ), NewActors.Num() > 0 );
         if( NewActors.Num() > 0 )
         {
-            return Cast<AHoudiniAssetActor>( NewActors[ 0 ] );
+            return Cast<T>( NewActors[ 0 ] );
         }
     }
     return nullptr;
@@ -275,9 +278,11 @@ void HelperCookAsset(
         FHoudiniEngineTaskInfo CookTaskInfo;
         if( FHoudiniEngine::Get().RetrieveTaskInfo( CookGUID, CookTaskInfo ) )
         {
+            bool CookSuccess = false;
+            TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
             if( CookTaskInfo.TaskState != EHoudiniEngineTaskState::FinishedCooking )
             {
-                Test->AddError( FString::Printf( TEXT( "CookTaskInfo.Result: %d" ), (int32)CookTaskInfo.Result ) );
+                Test->AddError( FString::Printf( TEXT( "CookTaskInfo.Result: %d, TaskState: %d" ), (int32)CookTaskInfo.Result, (int32)CookTaskInfo.TaskState ) );
             }
             else
             {
@@ -288,18 +293,16 @@ void HelperCookAsset(
                     GeoScale = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
                 }
                 TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesIn;
-                TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
                 FTestCookHandler CookHandler ( InHoudiniAsset );
                 CookHandler.HoudiniCookManager = &CookHandler;
                 CookHandler.StaticMeshBakeMode = EBakeMode::CookToTemp;
                 FTransform AssetTransform;
-                bool Result = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+                CookSuccess = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     AssetId,
                     CookHandler,
                     false, false, StaticMeshesIn, StaticMeshesOut, AssetTransform );
-
-                OnFinishedCook( Result, StaticMeshesOut );
             }
+            OnFinishedCook( CookSuccess, StaticMeshesOut );
         }
     }, 2.f ));
 }
@@ -411,9 +414,127 @@ bool FHoudiniEngineRuntimeParamTest::RunTest( const FString& Paramters )
     return true;
 }
 
+bool FHoudiniEngineRuntimeBatchTest::RunTest( const FString& Paramters )
+{
+    HelperInstantiateAsset( this, TEXT( "/HoudiniEngine/Test/TestPolyReduce" ),
+        [=]( FHoudiniEngineTaskInfo InstantiateTaskInfo, UHoudiniAsset* HoudiniAsset )
+    {
+        HAPI_NodeId AssetId = InstantiateTaskInfo.AssetId;
+        if( AssetId < 0 )
+            return;
+
+        UTestHoudiniParameterBuilder * Builder = NewObject<UTestHoudiniParameterBuilder>( HelperGetWorld(), TEXT( "ParmBuilder" ), RF_Standalone );
+        bool Ok = FHoudiniParamUtils::Build( AssetId, Builder, Builder->CurrentParameters, Builder->NewParameters );
+        TestTrue( TEXT( "Build success" ), Ok );
+        if( Ok )
+        {
+            // Build the inputs
+            UHoudiniAssetInput* GeoInputParm = UHoudiniAssetInput::Create( Builder, 0, AssetId );
+            TestTrue( TEXT( "Found Input" ), GeoInputParm != nullptr );
+
+            int32 InputNumTris = 0;
+            UStaticMesh * GeoInput = Cast<UStaticMesh>( StaticLoadObject(
+                UObject::StaticClass(), nullptr, TEXT( "StaticMesh'/Engine/BasicShapes/Cube.Cube'" ), nullptr, LOAD_None, nullptr ) );
+
+            TestTrue( TEXT( "Load Input Mesh" ), GeoInput != nullptr );
+            if( ! GeoInput )
+                return;
+
+            if( GeoInput->RenderData->LODResources.Num() > 0 )
+            {
+                InputNumTris = GeoInput->RenderData->LODResources[ 0 ].GetNumTriangles();
+            }
+            TestTrue( TEXT( "Find Geo Input" ), GeoInputParm != nullptr );
+
+            for( int32 Ix = 0; Ix < 3; ++Ix )
+            {
+                GEditor->ClickLocation = FVector(0, Ix * 200, 0);
+                GEditor->ClickPlane = FPlane( GEditor->ClickLocation, FVector::UpVector );
+
+                TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject( HelperGetWorld()->GetLevel( 0 ), GeoInput, true, RF_Transactional, nullptr );
+                TestTrue( TEXT( "Placed Actor" ), NewActors.Num() > 0 );
+
+                if( GeoInputParm && NewActors.Num() > 0 )
+                {
+                    AActor* SMActor = NewActors.Pop();
+                    GeoInputParm->ClearInputs();
+                    GeoInputParm->ForceSetInputObject( SMActor, 0, true );  // triggers upload of data
+
+                    auto CookGUID = FGuid::NewGuid();
+                    FHoudiniEngineTask CookTask( EHoudiniEngineTaskType::AssetCooking, CookGUID );
+                    CookTask.AssetId = AssetId;
+
+                    FHoudiniEngine::Get().AddTask( CookTask );
+
+                    while( true )
+                    {
+                        FHoudiniEngineTaskInfo CookTaskInfo;
+                        if( FHoudiniEngine::Get().RetrieveTaskInfo( CookGUID, CookTaskInfo ) )
+                        {
+                            bool CookSuccess = false;
+                            TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesOut;
+                            if( CookTaskInfo.TaskState == EHoudiniEngineTaskState::Processing )
+                            {
+                                FPlatformProcess::Sleep( 1 );
+                                continue;
+                            }
+                            else if( CookTaskInfo.TaskState == EHoudiniEngineTaskState::FinishedCookingWithErrors )
+                            {
+                                AddError( FString::Printf( TEXT( "CookTaskInfo.Result: %d, TaskState: %d" ), (int32)CookTaskInfo.Result, (int32)CookTaskInfo.TaskState ) );
+                                break;
+                            }
+                            else
+                            {
+                                // Marshal the static mesh data
+                                float GeoScale = 1.f;
+                                if( const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >() )
+                                {
+                                    GeoScale = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+                                }
+                                TMap< FHoudiniGeoPartObject, UStaticMesh * > StaticMeshesIn;
+                                FTestCookHandler CookHandler ( HoudiniAsset );
+                                CookHandler.HoudiniCookManager = &CookHandler;
+                                CookHandler.StaticMeshBakeMode = EBakeMode::CookToTemp;
+                                FTransform AssetTransform;
+                                CookSuccess = FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+                                    AssetId,
+                                    CookHandler,
+                                    false, false, StaticMeshesIn, StaticMeshesOut, AssetTransform );
+
+                                if( CookSuccess && StaticMeshesOut.Num() > 0)
+                                {
+                                    for( auto SMPair : StaticMeshesOut )
+                                    {
+                                        int32 OutputNumTris = SMPair.Value->RenderData->LODResources[ 0 ].GetNumTriangles();
+                                        TestTrue( TEXT( "reduce worked" ), OutputNumTris < InputNumTris );
+                                    }
+                                }
+                                else
+                                {
+                                    AddError( TEXT( "Failed to get static mesh output" ) );
+                                }
+                            }
+                            break;
+                        }
+                        else
+                        {
+                            AddError( TEXT( "Failed to get task state" ) );
+                            break;
+                        }
+                    }
+                }
+            }
+            Builder->ConditionalBeginDestroy();
+            HelperDeleteAsset( this, AssetId );
+        }
+    } );
+
+    return true;
+}
+
 bool FHoudiniEngineRuntimeActorTest::RunTest( const FString& Paramters )
 {
-    AHoudiniAssetActor* Actor = HelperInstantiateAssetActor( this, TEXT( "/HoudiniEngine/Test/InputEcho" ) );
+    AHoudiniAssetActor* Actor = HelperInstantiateAssetActor<AHoudiniAssetActor>( this, TEXT( "/HoudiniEngine/Test/InputEcho" ) );
     AddCommand( new FDelayedFunctionLatentCommand( [=] {
         if( Actor && Actor->GetHoudiniAssetComponent() )
         {

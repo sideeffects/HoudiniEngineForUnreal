@@ -117,10 +117,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Destructor. **/
         virtual ~UHoudiniAssetInput();
 
-    public:
+public:
 
         /** Create instance of this class for use as an input **/
-        static UHoudiniAssetInput * Create( UObject * InPrimaryObject, int32 InInputIndex );
+        static UHoudiniAssetInput * Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_NodeId InNodeId );
         /** Create instance of this class for use as parameter **/
         static UHoudiniAssetInput* Create(
             UObject * InPrimaryObject,
@@ -146,12 +146,15 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         virtual void PostEditUndo() override;
 
+        /** Directly set the input (for testing ) */
+        void ForceSetInputObject( UObject * InObject, int32 AtIndex, bool CommitChange );
+        void ClearInputs();
 #endif
 
         /** Upload parameter value to HAPI. **/
         virtual bool UploadParameterValue() override;
 
-        /** Notifaction from a child parameter about its change. **/
+        /** Notification from a child parameter about its change. **/
         virtual void NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter ) override;
 
     /** UObject methods. **/
