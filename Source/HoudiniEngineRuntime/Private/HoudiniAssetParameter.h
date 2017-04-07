@@ -49,16 +49,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
     public:
 
-        /** Destructor. **/
-        virtual ~UHoudiniAssetParameter();
-
-    public:
-
-        /** Create this parameter from parameter info and asset instance. **/
-        virtual bool CreateParameter(
-            UObject * InHoudiniAssetInstance,
-            const FHoudiniParameterObject & HoudiniParameterObject );
-
         /** Create this parameter from HAPI information. **/
         virtual bool CreateParameter(
             UObject * InPrimaryObject,
@@ -77,9 +67,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Return parent parameter for this parameter, if there's one. **/
         UHoudiniAssetParameter * GetParentParameter() const;
-
-        /** Return asset instance associated with this parameter, if there's one. **/
-        class UHoudiniAssetInstance * GetAssetInstance() const;
 
 #if WITH_EDITOR
 
@@ -237,9 +224,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Owner component. **/
         UObject * PrimaryObject;
-
-        /** Associated asset instance. **/
-        class UHoudiniAssetInstance * HoudiniAssetInstance;
 
         /** Parent parameter. **/
         UHoudiniAssetParameter * ParentParameter;
