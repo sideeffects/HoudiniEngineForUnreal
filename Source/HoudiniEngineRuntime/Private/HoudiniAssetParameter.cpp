@@ -314,7 +314,7 @@ UHoudiniAssetParameter::Serialize( FArchive & Ar )
 
     if( HoudiniAssetParameterVersion >= VER_HOUDINI_ENGINE_PARAM_ASSET_INSTANCE_MEMBER )
     {
-        UObject* Dummy;
+        UObject* Dummy = nullptr;
         Ar << Dummy;
     }
 
