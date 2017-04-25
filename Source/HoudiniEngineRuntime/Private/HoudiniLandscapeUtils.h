@@ -38,19 +38,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 {
     public:
 
-        // Resizes the HeightData so that it fits to UE4's size requirements.
-        static bool ResizeHeightDataForLandscape(
-            TArray< uint16 >& HeightData,
-            int32& SizeX, int32& SizeY,
-            int32& NumberOfSectionsPerComponent,
-            int32& NumberOfQuadsPerSection,
-            FVector& LandscapeResizeFactor );
-
-        // Resizes LayerData so that it fits the Landscape size
-        static bool ResizeLayerDataForLandscape(
-            TArray< uint8 >& LayerData,
-            const int32& SizeX, const int32& SizeY,
-            const int32& NewSizeX, const int32& NewSizeY );
+        //--------------------------------------------------------------------------------------------------
+        // Houdini to Unreal
+        //--------------------------------------------------------------------------------------------------
 
         // Returns Heightfield contained in the GeoPartObject array
         static void GetHeightfieldsInArray(
@@ -63,13 +53,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const FHoudiniGeoPartObject& Heightfield,
             TArray< const FHoudiniGeoPartObject* >& FoundLayers );
 
-        // Returns the global ZMin/ZMax value of all heightfield contained in the array
+        // Returns the global ZMin/ZMax value of all heightfields contained in the array
         static void CalcHeightfieldsArrayGlobalZMinZMax(
             const TArray< const FHoudiniGeoPartObject* >& InHeightfieldArray,
             float& fGlobalMin, float& fGlobalMax );
 
         // Extract the float values of a given heightfield
-        static bool ExtractHeightfieldData(
+        static bool GetHeightfieldData(
             const FHoudiniGeoPartObject& Heightfield,
             TArray< float >& FloatValues,
             HAPI_VolumeInfo& VolumeInfo,
@@ -86,12 +76,119 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             int32& NumSectionPerLandscapeComponent,
             int32& NumQuadsPerLandscapeSection );
 
+        // Converts the Houdini float layer values to Unreal uint8
         static bool ConvertHeightfieldLayerToLandscapeLayer(
             const TArray< float >& FloatLayerData,
             const int32& LayerXSize, const int32& LayerYSize,
             const float& LayerMin, const float& LayerMax,
             const int32& LandscapeXSize, const int32& LandscapeYSize,
             TArray< uint8 >& LayerData );
+
+        // Resizes the HeightData so that it fits to UE4's size requirements.
+        static bool ResizeHeightDataForLandscape(
+            TArray< uint16 >& HeightData,
+            int32& SizeX, int32& SizeY,
+            int32& NumberOfSectionsPerComponent,
+            int32& NumberOfQuadsPerSection,
+            FVector& LandscapeResizeFactor );
+
+        // Resizes LayerData so that it fits the Landscape size
+        static bool ResizeLayerDataForLandscape(
+            TArray< uint8 >& LayerData,
+            const int32& SizeX, const int32& SizeY,
+            const int32& NewSizeX, const int32& NewSizeY );
+
+        //--------------------------------------------------------------------------------------------------
+        // Unreal to Houdini
+        //--------------------------------------------------------------------------------------------------
+#if WITH_EDITOR
+        // Creates a heightfield from a Landscape
+        static bool CreateHeightfieldFromLandscape(
+            ALandscape* Landscape, HAPI_NodeId& AssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
+
+        // Creates multiple heightfield from an array of Landscape Components
+        static bool CreateHeightfieldFromLandscapeComponentArray(
+            ALandscapeProxy* LandscapeProxy, TSet< ULandscapeComponent * >& LandscapeComponentArray,
+            HAPI_NodeId& ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds );
+
+        // Creates a Heightfield from a Landscape Component
+        static bool CreateHeightfieldFromLandscapeComponent(
+            ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& AssetId,
+            const float& fGlobalZMin, const float& fGlobalZMax,
+            TArray< HAPI_NodeId >& OutCreatedNodeIds, int32& MergeInputIndex );
+
+        // Extracts the uint16 values of a given landscape
+        static bool GetLandscapeData(
+            ALandscape* Landscape,
+            TArray<uint16>& HeightData,
+            int32& XSize, int32& YSize,
+            FVector& Min, FVector& Max );
+
+        static bool GetLandscapeData(
+            ULandscapeInfo* LandscapeInfo,
+            const int32& MinX, const int32& MinY,
+            const int32& MaxX, const int32& MaxY,
+            TArray<uint16>& HeightData,
+            int32& XSize, int32& YSize );
+
+        static bool GetLandscapeLayerData(
+            ULandscapeInfo* LandscapeInfo, const int32& LayerIndex,
+            TArray<uint8>& LayerData, FLinearColor& LayerUsageDebugColor,
+            FString& LayerName );
+
+        static bool GetLandscapeLayerData(
+            ULandscapeInfo* LandscapeInfo,
+            const int32& LayerIndex,
+            const int32& MinX, const int32& MinY,
+            const int32& MaxX, const int32& MaxY,
+            TArray<uint8>& LayerData,
+            FLinearColor& LayerUsageDebugColor,
+            FString& LayerName );
+#endif
+
+        // Converts Unreal uint16 values to Houdini Float
+        static bool ConvertLandscapeDataToHeightfieldData(
+            const TArray<uint16>& IntHeightData,
+            const int32& XSize, const int32& YSize,
+            FVector Min, FVector Max,
+            const FTransform& LandscapeTransform,
+            TArray<float>& HeightfieldFloatValues,
+            HAPI_VolumeInfo& HeightfieldVolumeInfo );
+
+        // Converts Unreal uint16 values to Houdini Float
+        static bool ConvertLandscapeLayerDataToHeightfieldData(
+            const TArray<uint8>& IntHeightData,
+            const int32& XSize, const int32& YSize,
+            const FLinearColor& LayerUsageDebugColor,
+            TArray<float>& LayerFloatValues,
+            HAPI_VolumeInfo& LayerVolumeInfo);
+
+        // Set the volume float value for a heightfield
+        static bool SetHeighfieldData(
+            const HAPI_NodeId& AssetId, const HAPI_PartId& PartId,
+            TArray< float >& FloatValues,
+            const HAPI_VolumeInfo& VolumeInfo,
+            const FString& HeightfieldName );
+
+        // Creates an input node for Heightfields (this will be a SOP/merge node)
+        static bool CreateHeightfieldInputNode( HAPI_NodeId& InAssetId, const FString& NodeName );
+
+        // Creates an input node for a single heightfield layer (height/mask...) 
+        static bool CreateVolumeInputNode( HAPI_NodeId& InAssetId, const FString& NodeName );
+
+        // Commits the volume node
+        static bool CommitVolumeInputNode(
+            const HAPI_NodeId& NodeToCommit, const HAPI_NodeId& NodeToConnectTo, const int32& InputToConnect );
+
+        // Helper function creating a default "mask" volumes for heightfield
+        static bool CreateDefaultHeightfieldMask(
+            const HAPI_VolumeInfo& HeightVolumeInfo,
+            const HAPI_NodeId& AssetId, 
+            int32& MergeInputIndex,
+            HAPI_NodeId& OutCreatedNodeId );
+
+        // Landscape nodes clean up
+        static bool DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId, TArray<HAPI_NodeId>& CreatedInputAssetIds );
 
         /*
         // Duplicate a given Landscape. This will create a new package for it. This will also create necessary
@@ -100,5 +197,4 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         const ALandscape * Landscape, UHoudiniAssetComponent * Component,
         const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode );
         */
-
 };

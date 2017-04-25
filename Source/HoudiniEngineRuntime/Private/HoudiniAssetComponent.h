@@ -617,8 +617,8 @@ public:
         /** Serialize instance inputs. **/
         void SerializeInstanceInputs( FArchive & Ar );
 
-	/** Serialize parameters. **/
-	void SerializeParameters( FArchive & Ar );
+        /** Serialize parameters. **/
+        void SerializeParameters( FArchive & Ar );
 
         /** Used to perform post loading initialization on instance inputs. **/
         void PostLoadInitializeInstanceInputs();
@@ -628,6 +628,12 @@ public:
 
         /** Remove static mesh and associated component and deallocate corresponding resources. **/
         void RemoveStaticMeshComponent( UStaticMesh * StaticMesh );
+
+        /** Returns the AABB for the asset component and its inputs **/
+        FBox GetAssetBounds( UHoudiniAssetInput* IgnoreInput = nullptr, const bool& bIgnoreGeneratedLandscape = false) const;
+
+        /** Returns true if the landscape actor has been created by this asset **/
+        bool HasLandscapeActor(ALandscape* LandscapeActor) const;
 
     private:
 
