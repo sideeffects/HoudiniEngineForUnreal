@@ -1029,7 +1029,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
 
         if ( Min.Z < fGlobalZMin )
             fGlobalZMin = Min.Z;
-        else if ( Max.Z  > fGlobalZMax )
+        if ( Max.Z  > fGlobalZMax )
             fGlobalZMax = Max.Z;
     }
 
@@ -1040,7 +1040,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
     bool bAllComponentCreated = true;
     for (int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++)
     {
-        ULandscapeComponent * CurrentComponent = LandscapeProxy->LandscapeComponents[ComponentIdx];
+        ULandscapeComponent * CurrentComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
         if ( !CurrentComponent )
             continue;
 
