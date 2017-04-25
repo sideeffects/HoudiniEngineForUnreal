@@ -32,8 +32,8 @@
 
 /*
 
-    Houdini Version: 16.5.80
-    Houdini Engine Version: 3.1.1
+    Houdini Version: 16.5.93
+    Houdini Engine Version: 3.1.2
     Unreal Version: 4.15.0
 
 */
@@ -48,7 +48,7 @@ public class HoudiniEngineRuntime : ModuleRules
 		PCHUsage = PCHUsageMode.UseSharedPCHs;
 		bool bIsRelease = true;
 		string HFSPath = "";
-		string HoudiniVersion = "16.5.80";
+		string HoudiniVersion = "16.5.93";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&

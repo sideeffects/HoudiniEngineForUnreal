@@ -4500,6 +4500,180 @@ HAPI_DECL HAPI_SetVolumeTileIntData( const HAPI_Session * session,
                                      const int * values_array,
                                      int length );
 
+/// @brief  Set the values of a float voxel in the volume.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      x_index
+///                 The x index/coordinate of the voxel.
+///
+/// @param[in]      y_index
+///                 The y index/coordinate of the voxel.
+///
+/// @param[in]      z_index
+///                 The z index/coordinate of the voxel.
+///
+/// @param[out]     values_array
+///                 The values of the voxel.
+///
+/// @param[in]      value_count
+///                 Should be equal to the volume's
+///                 ::HAPI_VolumeInfo::tupleSize.
+///
+HAPI_DECL HAPI_SetVolumeVoxelFloatData( const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_PartId part_id,
+                                        int x_index,
+                                        int y_index,
+                                        int z_index,
+                                        float * values_array,
+                                        int value_count );
+
+/// @brief  Set the values of a integer voxel in the volume.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[in]      x_index
+///                 The x index/coordinate of the voxel.
+///
+/// @param[in]      y_index
+///                 The y index/coordinate of the voxel.
+///
+/// @param[in]      z_index
+///                 The z index/coordinate of the voxel.
+///
+/// @param[out]     values_array
+///                 The values of the voxel.
+///
+/// @param[in]      value_count
+///                 Should be equal to the volume's
+///                 ::HAPI_VolumeInfo::tupleSize.
+///
+HAPI_DECL HAPI_SetVolumeVoxelIntData(   const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_PartId part_id,
+                                        int x_index,
+                                        int y_index,
+                                        int z_index,
+                                        int * values_array,
+                                        int value_count );
+
+/// @brief  Get the bounding values of a volume.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[out]     x_min
+///                 The minimum x value of the volume's bounding box.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     y_min
+///                 The minimum y value of the volume's bounding box.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     z_min
+///                 The minimum z value of the volume's bounding box.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     x_max
+///                 The maximum x value of the volume's bounding box.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     y_max
+///                 The maximum y value of the volume's bounding box.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     z_max
+///                 The maximum z value of the volume's bounding box.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     x_center
+///                 The x value of the volume's bounding box center.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     y_center
+///                 The y value of the volume's bounding box center.
+///                 Can be null if you do not want this value.
+///
+/// @param[out]     z_center
+///                 The z value of the volume's bounding box center.
+///                 Can be null if you do not want this value.
+///
+HAPI_DECL HAPI_GetVolumeBounds( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                HAPI_PartId part_id,
+                                float * x_min, float * y_min, float * z_min,
+                                float * x_max, float * y_max, float * z_max,
+                                float * x_center, float * y_center, float * z_center );
+
+/// @brief  Set the height field data for a terrain volume with the values from
+///         a flattened 2D array of float.
+///         ::HAPI_SetVolumeInfo() should be called first to make sure that the 
+///         volume and its info are initialized.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id.
+///
+/// @param[int]     values_array
+///                 Heightfield flattened array. Should be at least the size of
+///                 @p start + @p length.
+///
+/// @param[in]      start
+///                 The start at least 0 and at most
+///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 - @p length.
+///
+/// @param[in]      length
+///                 The length should be at least 1 or at most
+///                 ( ::HAPI_VolumeInfo.xLength * ::HAPI_VolumeInfo::yLength )
+///                 - @p start.
+///
+/// @param[in]      name
+///                 The name of the volume used for the heightfield.
+///                 If set to "height" the values will be used for height information,
+///                 if not, the data will used as a mask.
+///
+HAPI_DECL HAPI_SetHeightFieldData(  const HAPI_Session * session,
+                                    HAPI_NodeId node_id,
+                                    HAPI_PartId part_id,
+                                    float * values_array,
+                                    int start, int length,
+                                    const char * name );
+
 // CURVES -------------------------------------------------------------------
 
 /// @brief  Retrieve any meta-data about the curves, including the
