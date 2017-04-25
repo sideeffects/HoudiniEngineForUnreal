@@ -201,10 +201,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** HAPI : Marshalling, extract landscape geometry and upload it. Return true on success. **/
         static bool HapiCreateInputNodeForData(
-            HAPI_NodeId HostAssetId,
-            ALandscapeProxy * LandscapeProxy, HAPI_NodeId & ConnectedAssetId, bool bExportOnlySelected, bool bExportCurves,
-            bool bExportMaterials, bool bExportFullGeometry, bool bExportLighting, bool bExportNormalizedUVs,
-            bool bExportTileUVs );
+            const HAPI_NodeId& HostAssetId, ALandscapeProxy * LandscapeProxy,
+            HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds,
+            const bool& bExportOnlySelected, const bool& bExportCurves, const bool& bExportMaterials,
+            const bool& bExportAsMesh, const bool& bExportLighting, const bool& bExportNormalizedUVs,
+            const bool& bExportTileUVs, const FBox& AssetBounds, const bool& bExportAsHeightfield,
+            const bool& bAutoSelectComponents );
 
         /** HAPI : Marshaling, extract geometry and create input asset for it - return true on success **/
         static bool HapiCreateInputNodeForData(

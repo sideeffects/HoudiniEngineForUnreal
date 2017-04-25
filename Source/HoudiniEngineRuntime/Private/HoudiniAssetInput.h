@@ -227,6 +227,9 @@ public:
 
         FText GetCurrentSelectionText() const;
 
+        // Return the bounds of this input
+        FBox GetInputBounds();
+
     protected:
 
 #if WITH_EDITOR
@@ -353,17 +356,35 @@ public:
         /** Return checked state of landscape selection checkbox. **/
         ECheckBoxState IsCheckedExportOnlySelected() const;
 
+        /** Check if state of landscape auto selection checkbox has changed. **/
+        void CheckStateChangedAutoSelectLandscape(ECheckBoxState NewState);
+
+        /** Return checked state of landscape auto selection checkbox. **/
+        ECheckBoxState IsCheckedAutoSelectLandscape() const;
+
         /** Check if state of landscape curves checkbox has changed. **/
         void CheckStateChangedExportCurves( ECheckBoxState NewState );
 
         /** Return checked state of landscape curves checkbox. **/
         ECheckBoxState IsCheckedExportCurves() const;
 
-        /** Check if state of landscape full geometry checkbox has changed. **/
+        /** Check if the state of the export landscape as mesh checkbox has changed. **/
         void CheckStateChangedExportAsMesh( ECheckBoxState NewState );
 
-        /** Return checked state of landscape full geometry checkbox. **/
+        /** Return checked state of the export landscape as mesh checkbox. **/
         ECheckBoxState IsCheckedExportAsMesh() const;
+
+        /** Check if the state of the export landscape as heightfield checkbox has changed. **/
+        void CheckStateChangedExportAsHeightfield( ECheckBoxState NewState );
+
+        /** Return checked state of the export landscape as heightfield checkbox. **/
+        ECheckBoxState IsCheckedExportAsHeightfield() const;
+
+        /** Check if the state of the export landscape as points checkbox has changed. **/
+        void CheckStateChangedExportAsPoints( ECheckBoxState NewState );
+
+        /** Return checked state of the export landscape as points checkbox. **/
+        ECheckBoxState IsCheckedExportAsPoints() const;
 
         /** Check if state of landscape materials checkbox has changed. **/
         void CheckStateChangedExportMaterials( ECheckBoxState NewState );
@@ -443,7 +464,8 @@ public:
         HAPI_NodeId ConnectedAssetId;
 
         /** The ids of the assets connected to the input for GeometryInput mode */
-        TArray< HAPI_NodeId > GeometryInputAssetIds;
+        /** or the ids of the volume connected to the input for Landscape mode (heightfield) */
+        TArray< HAPI_NodeId > CreatedInputDataAssetIds;
 
         /** Index of this input. **/
         int32 InputIndex;
@@ -502,6 +524,12 @@ public:
 
                 /** Is set to true when this input's Transform Type is set to NONE, 2 will use the input's default value **/
                 uint32 bKeepWorldTransform : 2;
+
+                /** Is set to true when the landscape is to be exported as a heightfield **/
+                uint32 bLandscapeExportAsHeightfield : 1;
+
+                /** Is set to true when the automatic selection of landscape component is active **/
+                uint32 bLandscapeAutoSelectComponent : 1;
             };
 
             uint32 HoudiniAssetInputFlagsPacked;

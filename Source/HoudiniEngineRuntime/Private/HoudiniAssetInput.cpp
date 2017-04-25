@@ -42,6 +42,7 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniLandscapeUtils.h"
 #include "Components/SplineComponent.h"
 #include "Engine/Selection.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
@@ -50,6 +51,7 @@
 #include "Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
 
 #if WITH_EDITOR
     #include "UnrealEdGlobals.h"
@@ -202,6 +204,8 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     // flags
     bLandscapeExportMaterials = true;
     bKeepWorldTransform = 2;
+    bLandscapeExportAsHeightfield = true;
+    bLandscapeAutoSelectComponent = true;
 
     ChoiceStringValue = TEXT( "" );
 }
@@ -352,15 +356,15 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         if( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
             FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
 
-        if (ChoiceIndex == EHoudiniAssetInputType::WorldInput)
+        if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
         {
             // World Input Actors' Meshes need to have their corresponding Input Assets destroyed too.
-            for (int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
+            for ( int32 n = 0; n < InputOutlinerMeshArray.Num(); n++ )
             {
-                if (FHoudiniEngineUtils::IsValidAssetId(InputOutlinerMeshArray[n].AssetId))
+                if ( FHoudiniEngineUtils::IsValidAssetId( InputOutlinerMeshArray[n].AssetId ) )
                 {
-                    FHoudiniEngineUtils::HapiDisconnectAsset(ConnectedAssetId, InputOutlinerMeshArray[n].AssetId);
-                    FHoudiniEngineUtils::DestroyHoudiniAsset(InputOutlinerMeshArray[n].AssetId);
+                    FHoudiniEngineUtils::HapiDisconnectAsset( ConnectedAssetId, n );//InputOutlinerMeshArray[n].AssetId);
+                    FHoudiniEngineUtils::DestroyHoudiniAsset( InputOutlinerMeshArray[n].AssetId );
                     InputOutlinerMeshArray[n].AssetId = -1;
                 }
             }
@@ -368,16 +372,22 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         else if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
         {
             // Destroy all the geo input assets
-            for ( HAPI_NodeId AssetNodeId : GeometryInputAssetIds )
+            for ( HAPI_NodeId AssetNodeId : CreatedInputDataAssetIds )
             {
                 FHoudiniEngineUtils::DestroyHoudiniAsset( AssetNodeId );
             }
-            GeometryInputAssetIds.Empty();
+            CreatedInputDataAssetIds.Empty();
+        }
+        else if (ChoiceIndex == EHoudiniAssetInputType::LandscapeInput)
+        {
+            // Destroy the landscape node
+            // If the landscape was sent as a heightfield, also destroy the heightfield's input node
+            FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( ConnectedAssetId, CreatedInputDataAssetIds );
         }
 
-        if (FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+        if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
         {
-            FHoudiniEngineUtils::DestroyHoudiniAsset(ConnectedAssetId);
+            FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
             ConnectedAssetId = -1;
         }
     }
@@ -537,7 +547,141 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             MenuBuilder.MakeWidget()
         ];
 
-        // CheckBox : Export Selected Only
+        // Checkboxes : Export Landscape As
+        //		Heightfield Mesh Points
+        {
+            // Label
+            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            [
+                SNew(STextBlock)
+                .Text(LOCTEXT("LandscapeExportAs", "Export Landscape As"))
+                .ToolTipText(LOCTEXT("LandscapeExportAsTooltip", "Choose the type of data you want the landscape to be exported to:\n * Heightfield\n * Mesh\n * Points"))
+                .Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+            ];
+
+            //
+            TSharedPtr<SUniformGridPanel> ButtonOptionsPanel;
+            VerticalBox->AddSlot().Padding(5, 2, 5, 2).AutoHeight()
+            [
+                SAssignNew(ButtonOptionsPanel, SUniformGridPanel)
+            ];
+
+            // Heightfield
+            FText HeightfieldTooltip = LOCTEXT("LandscapeExportAsHeightfieldTooltip", "If enabled, the landscape will be exported to Houdini as a heighfield.");
+            ButtonOptionsPanel->AddSlot(0, 0)
+            [
+                SNew(SCheckBox)
+                .Style(FEditorStyle::Get(), "Property.ToggleButton.Start")
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::IsCheckedExportAsHeightfield ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportAsHeightfield ) )
+                .ToolTipText( HeightfieldTooltip )
+                [
+                    SNew(SHorizontalBox)
+
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .VAlign(VAlign_Center)
+                    .Padding(2, 2)
+                    [
+                        SNew(SImage)
+                        .Image(FEditorStyle::GetBrush("ClassIcon.LandscapeComponent"))
+                    ]
+
+                    + SHorizontalBox::Slot()
+                    .FillWidth(1.0f)
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Padding(2, 2)
+                    [
+                        SNew(STextBlock)
+                        .Text( LOCTEXT( "LandscapeExportAsHeightfieldCheckbox", "Heightfield" ) )
+                        .ToolTipText( HeightfieldTooltip )
+                        .Font( IDetailLayoutBuilder::GetDetailFont() )
+                    ]
+                ]
+            ];
+
+            // Mesh
+            FText MeshTooltip = LOCTEXT("LandscapeExportAsHeightfieldTooltip", "If enabled, the landscape will be exported to Houdini as a heighfield.");
+            ButtonOptionsPanel->AddSlot(1, 0)
+            [
+                SNew(SCheckBox)
+                .Style(FEditorStyle::Get(), "Property.ToggleButton.Middle")
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::IsCheckedExportAsMesh ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportAsMesh ) )
+                .ToolTipText( MeshTooltip )
+                [
+                    SNew(SHorizontalBox)
+
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .VAlign(VAlign_Center)
+                    .Padding(2, 2)
+                    [
+                        SNew(SImage)
+                        .Image(FEditorStyle::GetBrush( "ClassIcon.StaticMeshComponent" ) )
+                    ]
+
+                    + SHorizontalBox::Slot()
+                    .FillWidth(1.0f)
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Padding(2, 2)
+                    [
+                        SNew( STextBlock )
+                        .Text( LOCTEXT( "LandscapeExportAsMeshCheckbox", "Mesh" ) )
+                        .ToolTipText( MeshTooltip )
+                        .Font( IDetailLayoutBuilder::GetDetailFont() )
+                    ]
+                ]
+            ];
+
+            // Points
+            FText PointsTooltip = LOCTEXT( "LandscapeExportAsPointsTooltip", "If enabled, the landscape will be exported to Houdini as points." );
+            ButtonOptionsPanel->AddSlot(2, 0)
+            [
+                SNew(SCheckBox)
+                .Style(FEditorStyle::Get(), "Property.ToggleButton.End")
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::IsCheckedExportAsPoints ) ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChangedExportAsPoints ) )
+                .ToolTipText( PointsTooltip )
+                [
+                     SNew(SHorizontalBox)
+
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .VAlign(VAlign_Center)
+                    .Padding(2, 2)
+                    [
+                        SNew(SImage)
+                        .Image(FEditorStyle::GetBrush("Mobility.Static"))
+                    ]
+
+                    + SHorizontalBox::Slot()
+                    .FillWidth(1.0f)
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Padding(2, 2)
+                    [
+                        SNew(STextBlock)
+                        .Text( LOCTEXT( "LandscapeExportAsPointsCheckbox", "Points" ) )
+                        .ToolTipText( PointsTooltip )
+                        .Font( IDetailLayoutBuilder::GetDetailFont() )
+                    ]
+                ]
+            ];
+        }
+
+        // CheckBox : Export selected components only
         {
             TSharedPtr< SCheckBox > CheckBoxExportSelected;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -556,30 +700,39 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportOnlySelected ) )
             ];
+
+            // Disable when exporting heightfields
+            if ( bLandscapeExportAsHeightfield )
+                CheckBoxExportSelected->SetEnabled(false);
         }
 
-	// Checkbox : Export full geometry
+        // Checkboxes auto select components
         {
-            TSharedPtr< SCheckBox > CheckBoxExportGeometryAsMesh;
-            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+            TSharedPtr< SCheckBox > CheckBoxAutoSelectComponents;
+            VerticalBox->AddSlot().Padding(10, 2, 5, 2).AutoHeight()
             [
-                SAssignNew( CheckBoxExportGeometryAsMesh, SCheckBox )
+                SAssignNew( CheckBoxAutoSelectComponents, SCheckBox )
                 .Content()
                 [
-                    SNew( STextBlock )
-                    .Text( LOCTEXT( "LandscapeExportAsMeshCheckbox", "Export Landscape As Mesh" ) )
-                    .ToolTipText( LOCTEXT( "LandscapeExportAsMeshTooltip", "If enabled, the landscape will be exported as a mesh. If not, the landscape points will be exported as points only." ) )
-                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+                    SNew(STextBlock)
+                    .Text( LOCTEXT( "AutoSelectComponentCheckbox", "Auto-select component in asset bounds" ) )
+                    .ToolTipText( LOCTEXT( "AutoSelectComponentCheckboxTooltip", "If enabled, when no Landscape components are curremtly selected, the one within the asset's bounding box will be exported." ) )
+                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont") ) )
                 ]
-                .IsChecked(TAttribute< ECheckBoxState >::Create(
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
                     TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        this, &UHoudiniAssetInput::IsCheckedExportAsMesh ) ) )
+                    this, &UHoudiniAssetInput::IsCheckedAutoSelectLandscape ) ) )
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                    this, &UHoudiniAssetInput::CheckStateChangedExportAsMesh ) )
+                    this, &UHoudiniAssetInput::CheckStateChangedAutoSelectLandscape) )
             ];
+
+            // Enable only when exporting selection
+            // or when exporting heighfield (for now)
+            if ( !bLandscapeExportSelectionOnly || bLandscapeExportAsHeightfield )
+                CheckBoxAutoSelectComponents->SetEnabled( false );
         }
 
-	// Checkbox : Export materials
+        // Checkbox : Export materials
         {
             TSharedPtr< SCheckBox > CheckBoxExportMaterials;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -598,9 +751,13 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportMaterials ) )
             ];
+
+            // Disable when exporting heightfields
+            if ( bLandscapeExportAsHeightfield )
+                CheckBoxExportMaterials->SetEnabled( false );
         }
 
-	// Checkbox : Export Tile UVs
+        // Checkbox : Export Tile UVs
         {
             TSharedPtr< SCheckBox > CheckBoxExportTileUVs;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -619,9 +776,13 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportTileUVs ) )
             ];
+
+            // Disable when exporting heightfields
+            if ( bLandscapeExportAsHeightfield )
+                CheckBoxExportTileUVs->SetEnabled( false );
         }
 
-	// Checkbox : Export normalized UVs
+        // Checkbox : Export normalized UVs
         {
             TSharedPtr< SCheckBox > CheckBoxExportNormalizedUVs;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -640,9 +801,13 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .OnCheckStateChanged(FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportNormalizedUVs ) )
             ];
+
+            // Disable when exporting heightfields
+            if ( bLandscapeExportAsHeightfield )
+                CheckBoxExportNormalizedUVs->SetEnabled( false );
         }
 
-	// Checkbox : Export lighting
+        // Checkbox : Export lighting
         {
             TSharedPtr< SCheckBox > CheckBoxExportLighting;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -661,9 +826,13 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportLighting ) )
             ];
+
+            // Disable when exporting heightfields
+            if ( bLandscapeExportAsHeightfield )
+                CheckBoxExportLighting->SetEnabled( false );
         }
 
-	// Checkbox : Export landscape curves
+        // Checkbox : Export landscape curves
         {
             TSharedPtr< SCheckBox > CheckBoxExportCurves;
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
@@ -688,7 +857,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 CheckBoxExportCurves->SetEnabled( false );
         }
 
-	// Button : Recommit
+        // Button : Recommit
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
             SNew( SHorizontalBox )
@@ -1160,7 +1329,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     DisconnectAndDestroyInputAsset();
 
                     // Connect input and create connected asset. Will return by reference.
-                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( HostAssetId, InputObjects, ConnectedAssetId, GeometryInputAssetIds ) )
+                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( HostAssetId, InputObjects, ConnectedAssetId, CreatedInputDataAssetIds ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -1300,12 +1469,23 @@ UHoudiniAssetInput::UploadParameterValue()
                 // Disconnect and destroy currently connected asset, if there's one.
                 DisconnectAndDestroyInputAsset();
 
+                UHoudiniAssetComponent* AssetComponent = ( UHoudiniAssetComponent* )PrimaryObject;
+                if ( !AssetComponent )
+                    AssetComponent = InputAssetComponent;
+
+                // We need to get the asset bounds, without this input
+                FBox Bounds(0);
+                if ( AssetComponent )
+                    Bounds = AssetComponent->GetAssetBounds( this, true );
+
                 // Connect input and create connected asset. Will return by reference.
                 if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData(
                         HostAssetId, InputLandscapeProxy,
-                        ConnectedAssetId, bLandscapeExportSelectionOnly, bLandscapeExportCurves,
+                        ConnectedAssetId, CreatedInputDataAssetIds,
+                        bLandscapeExportSelectionOnly, bLandscapeExportCurves,
                         bLandscapeExportMaterials, bLandscapeExportAsMesh, bLandscapeExportLighting,
-                        bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs ) )
+                        bLandscapeExportNormalizedUVs, bLandscapeExportTileUVs, Bounds,
+                        bLandscapeExportAsHeightfield, bLandscapeAutoSelectComponent ) )
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
@@ -1966,7 +2146,16 @@ UHoudiniAssetInput::OnShouldFilterActor( const AActor * const Actor ) const
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::LandscapeInput )
     {
-        return Actor->IsA<ALandscapeProxy>();
+        // Only returns Landscape
+        if ( Actor->IsA<ALandscapeProxy>() )
+        {
+            ALandscapeProxy* LandscapeProxy = const_cast<ALandscapeProxy *>(Cast<const ALandscapeProxy>(Actor));
+            // But not a landscape generated by this asset
+            const UHoudiniAssetComponent * HoudiniAssetComponent = GetHoudiniAssetComponent();
+            if (HoudiniAssetComponent && LandscapeProxy && !HoudiniAssetComponent->HasLandscapeActor( LandscapeProxy->GetLandscapeActor() ) )
+                return true;
+        }
+        return false;
     }        
     else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
@@ -2540,7 +2729,7 @@ UHoudiniAssetInput::CheckStateChangedExportOnlySelected( ECheckBoxState NewState
         // Record undo information.
         FScopedTransaction Transaction(
             TEXT( HOUDINI_MODULE_RUNTIME ),
-            LOCTEXT( "HoudiniInputChange", "Houdini Export Landscape Selection mode change." ),
+            LOCTEXT( "HoudiniInputChange", "Houdini Export Selected Landscape Components mode change." ),
             PrimaryObject );
         Modify();
 
@@ -2557,6 +2746,38 @@ ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportOnlySelected() const
 {
     if ( bLandscapeExportSelectionOnly )
+        return ECheckBoxState::Checked;
+
+    return ECheckBoxState::Unchecked;
+}
+
+void
+UHoudiniAssetInput::CheckStateChangedAutoSelectLandscape( ECheckBoxState NewState )
+{
+    int32 bState = (NewState == ECheckBoxState::Checked);
+
+    if (bLandscapeAutoSelectComponent != bState)
+    {
+        // Record undo information.
+        FScopedTransaction Transaction(
+            TEXT(HOUDINI_MODULE_RUNTIME),
+            LOCTEXT("HoudiniInputChange", "Houdini Export Auto-Select Landscape Components mode change."),
+            PrimaryObject);
+        Modify();
+
+        MarkPreChanged();
+
+        bLandscapeAutoSelectComponent = bState;
+
+        // Mark this parameter as changed.
+        MarkChanged();
+    }
+}
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedAutoSelectLandscape() const
+{
+    if ( bLandscapeAutoSelectComponent )
         return ECheckBoxState::Checked;
 
     return ECheckBoxState::Unchecked;
@@ -2612,6 +2833,9 @@ UHoudiniAssetInput::CheckStateChangedExportAsMesh( ECheckBoxState NewState )
 
         bLandscapeExportAsMesh = bState;
 
+        if ( bState )
+            bLandscapeExportAsHeightfield = false;
+
         // Mark this parameter as changed.
         MarkChanged();
     }
@@ -2621,6 +2845,84 @@ ECheckBoxState
 UHoudiniAssetInput::IsCheckedExportAsMesh() const
 {
     if ( bLandscapeExportAsMesh )
+        return ECheckBoxState::Checked;
+
+    return ECheckBoxState::Unchecked;
+}
+
+void
+UHoudiniAssetInput::CheckStateChangedExportAsHeightfield( ECheckBoxState NewState ) 
+{
+    int32 bState = ( NewState == ECheckBoxState::Checked );
+
+    if ( bLandscapeExportAsHeightfield != bState )
+    {
+        // Record undo information.
+        FScopedTransaction Transaction(
+            TEXT(HOUDINI_MODULE_RUNTIME),
+            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape As Heightfield mode change."),
+            PrimaryObject);
+        Modify();
+
+        MarkPreChanged();
+
+        bLandscapeExportAsHeightfield = bState;
+        if ( bState )
+            bLandscapeExportAsMesh = false;
+        else
+            bLandscapeExportAsMesh = true;
+
+        // Mark this parameter as changed.
+        MarkChanged();
+    }
+}
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportAsHeightfield() const
+{
+    if ( bLandscapeExportAsHeightfield )
+        return ECheckBoxState::Checked;
+
+    return ECheckBoxState::Unchecked;
+}
+
+void
+UHoudiniAssetInput::CheckStateChangedExportAsPoints( ECheckBoxState NewState )
+{
+    int32 bState = (NewState == ECheckBoxState::Checked);
+
+    uint32 bExportAsPoints = !bLandscapeExportAsHeightfield && !bLandscapeExportAsMesh;
+    if (bExportAsPoints != bState)
+    {
+        // Record undo information.
+        FScopedTransaction Transaction(
+            TEXT(HOUDINI_MODULE_RUNTIME),
+            LOCTEXT("HoudiniInputChange", "Houdini Export Landscape As Points mode change."),
+            PrimaryObject);
+        Modify();
+
+        MarkPreChanged();
+
+        if ( bState )
+        {
+            bLandscapeExportAsHeightfield = false;
+            bLandscapeExportAsMesh = false;
+        }
+        else
+        {
+            bLandscapeExportAsHeightfield = true;
+            bLandscapeExportAsMesh = false;
+        }
+
+        // Mark this parameter as changed.
+        MarkChanged();
+    }
+}
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedExportAsPoints() const
+{
+    if ( !bLandscapeExportAsHeightfield && !bLandscapeExportAsMesh )
         return ECheckBoxState::Checked;
 
     return ECheckBoxState::Unchecked;
@@ -3240,5 +3542,50 @@ operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOut
     HoudiniAssetInputOutlinerMesh.Serialize( Ar );
     return Ar;
 }
+
+FBox
+UHoudiniAssetInput::GetInputBounds()
+{
+    FBox Bounds( 0 );
+
+    if ( IsCurveAssetConnected() && InputCurve )
+    {
+        TArray<FVector> CurvePositions;
+        InputCurve->GetCurvePositions( CurvePositions );
+
+        for ( int32 n = 0; n < CurvePositions.Num(); n++ )
+            Bounds += CurvePositions[ n ];
+    }
+
+    if ( IsWorldInputAssetConnected() )
+    {
+        for (int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
+        {
+            if (!InputOutlinerMeshArray[ n ].Actor)
+                continue;
+
+            FVector Origin, Extent;
+            InputOutlinerMeshArray[ n ].Actor->GetActorBounds( false, Origin, Extent );
+
+            Bounds += FBox::BuildAABB( Origin, Extent );
+        }
+    }
+
+    if ( IsInputAssetConnected() && InputAssetComponent )
+    {
+        Bounds += InputAssetComponent->GetAssetBounds();
+    }
+
+    if ( IsLandscapeAssetConnected() && InputLandscapeProxy )
+    {
+        FVector Origin, Extent;
+        InputLandscapeProxy->GetActorBounds( false, Origin, Extent );
+
+        Bounds += FBox::BuildAABB( Origin, Extent );
+    }
+
+    return Bounds;
+}
+
 
 #undef LOCTEXT_NAMESPACE
