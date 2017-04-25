@@ -231,7 +231,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInput()
                     InstanceTransforms.Empty();
                     for( int32 Ix = 0; Ix < InstancedObjectIds.Num(); ++Ix )
                     {
-                        if( InstancedObjectIds[ Ix ] == InstancedObjectId )
+                        if( ( InstancedObjectIds[ Ix ] == InstancedObjectId ) && ( AllTransforms.IsValidIndex( Ix ) ) )
                         {
                             InstanceTransforms.Add( AllTransforms[ Ix ] );
                         }

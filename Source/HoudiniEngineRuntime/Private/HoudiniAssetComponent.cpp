@@ -363,6 +363,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     ComponentGUID = FGuid::NewGuid();
 
     bEditorPropertiesNeedFullUpdate = true;
+
+    Bounds = FBox(0);
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -1275,9 +1277,6 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
             DownstreamAsset->NotifyParameterChanged( nullptr );
         }
     }
-
-    // We can update the asset's boundaries
-    UpdateAssetBounds();
 }
 
 void
@@ -2582,20 +2581,21 @@ FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds( const FTransform & LocalToWorld ) const
 {
     FBoxSphereBounds LocalBounds;
+    FBox BoundingBox = GetAssetBounds();
+    if ( BoundingBox.GetExtent() == FVector::ZeroVector )
+        BoundingBox.ExpandBy( 1.0f );
+
+    LocalBounds = FBoxSphereBounds( BoundingBox );
 
     const auto & LocalAttachedChildren = GetAttachChildren();
-
-    if ( LocalAttachedChildren.Num() == 0 )
-        LocalBounds = FBoxSphereBounds( FBox(
-            -FVector( 1.0f, 1.0f, 1.0f ) * HALF_WORLD_MAX,
-            FVector( 1.0f, 1.0f, 1.0f ) * HALF_WORLD_MAX ) );
-    else if ( LocalAttachedChildren[ 0 ] )
-        LocalBounds = LocalAttachedChildren[ 0 ]->CalcBounds( LocalToWorld );
-
-    for ( int32 Idx = 1; Idx < LocalAttachedChildren.Num(); ++Idx )
+    for (int32 Idx = 0; Idx < LocalAttachedChildren.Num(); ++Idx)
     {
-        if ( LocalAttachedChildren[ Idx ] )
-            LocalBounds = LocalBounds + LocalAttachedChildren[ Idx ]->CalcBounds( LocalToWorld );
+        if ( !LocalAttachedChildren[ Idx ] )
+            continue;
+
+        FBoxSphereBounds ChildBounds = LocalAttachedChildren[ Idx ]->CalcBounds( LocalToWorld );
+        if ( !ChildBounds.ContainsNaN() )
+            LocalBounds = LocalBounds + ChildBounds;
     }
 
     return LocalBounds;
@@ -4796,6 +4796,9 @@ UHoudiniAssetComponent::ClearLandscapes()
         if ( !HoudiniLandscape )
             continue;
 
+        if ( !IsValid( HoudiniLandscape ) )
+            continue;
+
         //HoudiniLandscape->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
         HoudiniLandscape->UnregisterAllComponents();
         HoudiniLandscape->Destroy();
@@ -5453,16 +5456,11 @@ UHoudiniAssetComponent::GetSocketTransform( FName InSocketName, ERelativeTransfo
     return Super::GetSocketTransform( InSocketName, TransformSpace );
 }
 
-void
-UHoudiniAssetComponent::UpdateAssetBounds()
-{
-    Bounds = FBoxSphereBounds( GetAssetBounds() );
-}
-
 FBox
-UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput )
+UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const bool& bIgnoreGeneratedLandscape ) const
 {
     FBox BoxBounds(0);
+    BoxBounds += GetComponentLocation();
 
     // Query the bounds of all our static mesh components..
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
@@ -5515,20 +5513,37 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput )
     }
 
     // ... all our landscapes
-    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter( LandscapeComponents); Iter; ++Iter )
+    if (!bIgnoreGeneratedLandscape)
     {
-        ALandscape * Landscape = Iter.Value();
-        if ( !Landscape )
-            continue;
+        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter( LandscapeComponents); Iter; ++Iter )
+        {
+            ALandscape * Landscape = Iter.Value();
+            if ( !Landscape )
+                continue;
 
-        FVector Origin, Extent;
-        Landscape->GetActorBounds( false, Origin, Extent );
+            FVector Origin, Extent;
+            Landscape->GetActorBounds( false, Origin, Extent );
 
-        FBox LandscapeBounds = FBox::BuildAABB( Origin, Extent );
-        BoxBounds += LandscapeBounds;
+            FBox LandscapeBounds = FBox::BuildAABB( Origin, Extent );
+            BoxBounds += LandscapeBounds;
+        }
     }
 
     return BoxBounds;
+}
+
+bool UHoudiniAssetComponent::HasLandscapeActor( ALandscape* LandscapeActor ) const
+{
+    // Check if we created the landscape
+    for (TMap< FHoudiniGeoPartObject, ALandscape * >::TConstIterator Iter(LandscapeComponents); Iter; ++Iter)
+    {
+        ALandscape * HoudiniLandscape = Iter.Value();
+
+        if ( HoudiniLandscape == LandscapeActor )
+            return true;
+    }
+
+    return false;
 }
 
 #undef LOCTEXT_NAMESPACE
