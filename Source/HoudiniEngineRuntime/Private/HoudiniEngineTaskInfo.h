@@ -49,7 +49,7 @@ namespace EHoudiniEngineTaskState
     };
 }
 
-struct FHoudiniEngineTaskInfo
+struct HOUDINIENGINERUNTIME_API FHoudiniEngineTaskInfo
 {
     /** Constructors. **/
     FHoudiniEngineTaskInfo();

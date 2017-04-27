@@ -53,7 +53,7 @@ namespace EHoudiniEngineTaskType
     };
 }
 
-struct FHoudiniEngineTask
+struct HOUDINIENGINERUNTIME_API FHoudiniEngineTask
 {
     /** Constructors. **/
     FHoudiniEngineTask();
