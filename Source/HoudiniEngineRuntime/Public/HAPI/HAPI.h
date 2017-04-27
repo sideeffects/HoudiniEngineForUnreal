@@ -5151,4 +5151,344 @@ HAPI_DECL HAPI_LoadGeoFromMemory( const HAPI_Session * session,
                                   const char * buffer,
                                   int length );
 
+
+// @brief  Starts cooking of a top node.  This is asynchronous.  Progress can 
+///        be checked with HAPI_GetPDGState.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id of the pdg network node
+///
+HAPI_DECL HAPI_CookPDGTopNode( const HAPI_Session * session,
+                               HAPI_NodeId node_id );
+
+// @brief  Starts execution of a top node graph
+///
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id of the pdg network node
+///
+/// @param[out]     event_infos
+///                 buffer of HAPI_PDG_EventInfo of size at least #length
+///
+/// @param[in]      length
+///                 The size of the buffer passed in.
+///
+/// @param[out]     event_count
+///                 Number of events removed from queue and copied to buffer.
+///
+/// @param[out]     remaining_events
+///                 Number of queued events remaining after this operation.
+///
+HAPI_DECL HAPI_GetPDGEvents( const HAPI_Session * session,
+                             HAPI_NodeId node_id,
+                             HAPI_PDG_EventInfo * event_array,
+                             int length,
+                             int * event_count,
+                             int * remaining_events );
+
+// @brief  Gets the state of the PDG graph
+///
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id of the pdg network node
+///
+/// @param[out]     pdg_state
+///                 One of ::HAPI_PDGState.
+///
+HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session, 
+                            HAPI_NodeId node_id, int * pdg_state );
+
+
+// @brief  Creates a new workitem for the given node.  The workitem
+///        will not be activated until it is commited.          
+///
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     workitem_id
+///                 The id of the created workitem
+///
+HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
+                               HAPI_NodeId node_id,
+                               HAPI_PDG_WorkitemId * workitem_id );
+
+// @brief  Adds integer data to a PDG workitem data member for the given node.
+///
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     workitem_id
+///                 The id of the created workitem
+///
+/// @param[in]      data_member_name
+///                 null-terminated name of the data member
+///
+/// @param[in]      values_array
+///                 array of integer values
+///
+/// @param[in]      length
+///                 number of values to copy from values_array to the parameter
+///
+HAPI_DECL HAPI_AddWorkitemIntData( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_PDG_WorkitemId workitem_id,
+                                   const char * data_member_name,
+                                   const int * values_array,
+                                   int length );
+
+// @brief  Adds float data to a PDG workitem data member for the given node.
+///
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     workitem_id
+///                 The id of the created workitem
+///
+/// @param[in]      data_member_name
+///                 null-terminated name of the workitem data member
+///
+/// @param[in]      values_array
+///                 array of float values
+///
+/// @param[in]      length
+///                 number of values to copy from values_array to the parameter
+///
+HAPI_DECL HAPI_AddWorkitemFloatData( const HAPI_Session * session,
+                                     HAPI_NodeId node_id,
+                                     HAPI_PDG_WorkitemId workitem_id,
+                                     const char * data_member_name,
+                                     const float * values_array,
+                                     int length );
+
+// @brief  Adds integer data to a PDG workitem data member for the given node.
+///
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     workitem_id
+///                 The id of the created workitem
+///
+/// @param[in]      data_member_name
+///                 null-terminated name of the data member
+///
+/// @param[in]      value
+///                 null-terminated string to copy to the workitem data member
+///
+HAPI_DECL HAPI_AddWorkitemStringData( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PDG_WorkitemId workitem_id,
+                                      const char * data_member_name,
+                                      const char * value );
+
+// @brief  Gets the number of workitems that are availible on the given node.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     num
+///                 The number of workitems, should be used with HAPI_GetWorkitems.
+///
+HAPI_DECL HAPI_GetNumWorkitems( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                int * num );
+
+// @brief  Gets the list of work item ids for the given node
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[out]     workitem_ids
+///                 buffer for resulting array of HAPI_Workitem_Id
+///
+/// @param[in]      length
+///                 The length of the workitem_ids buffer
+///
+HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
+                             HAPI_NodeId node_id,
+                             int * workitem_ids, int length );
+
+// @brief  Gets the length of the workitem data member.
+///        In the case of string data, this is the length of the string
+///        including the null terminator.  In the case of other types, 
+///        it is the length of the array.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      workitem_id
+///                 The id of the workitem
+///
+/// @param[in]      data_name
+///                 The name of the data member
+///
+/// @param[out]     length
+///                 The length of the data member array or string buffer length
+///
+HAPI_DECL HAPI_GetWorkitemDataLength( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PDG_WorkitemId workitem_id,
+                                      const char * data_name,
+                                      int * length );
+
+// @brief  Gets int data from a work item member.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      workitem_id
+///                 The id of the workitem
+///
+/// @param[in]      data_name
+///                 The name of the data member
+///
+/// @param[out]     data_array
+///                 buffer of at least size #length to copy the data into.  The required
+///                 length should be determined by HAPI_GetWorkitemDataLength.
+///
+/// @param[in]      length
+///                 The length of the supplied buffer
+///
+HAPI_DECL HAPI_GetWorkitemIntData( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_PDG_WorkitemId workitem_id,
+                                   const char* data_name,
+                                   int * data_array,
+                                   int length );
+
+// @brief  Gets float data from a work item member.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      workitem_id
+///                 The id of the workitem
+///
+/// @param[in]      data_name
+///                 The name of the data member
+///
+/// @param[out]     data_array
+///                 buffer of at least size #length to copy the data into.  The required
+///                 length should be determined by HAPI_GetWorkitemDataLength.
+///
+/// @param[in]      length
+///                 The length of the supplied buffer
+///
+HAPI_DECL HAPI_GetWorkitemFloatData( const HAPI_Session * session,
+                                     HAPI_NodeId node_id,
+                                     HAPI_PDG_WorkitemId workitem_id,
+                                     const char * data_name,
+                                     float * data_array,
+                                     int length );
+
+// @brief  Gets string data from a work item member.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      workitem_id
+///                 The id of the workitem
+///
+/// @param[in]      data_name
+///                 The name of the data member
+///
+/// @param[out]     data_array
+///                 buffer of at least size length to copy the data into.  The required
+///                 length should be determined by HAPI_GetWorkitemDataLength.  This length
+///                 includes the null-terminator.
+///
+/// @param[in]      length
+///                 The length of the supplied buffer
+///
+HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
+                                      HAPI_NodeId node_id,
+                                      HAPI_PDG_WorkitemId workitem_id,
+                                      const char * data_name,
+                                      char * data_array,
+                                      int length );
+
+// @brief  Commits any created but uncommited workitems.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+HAPI_DECL HAPI_CommitWorkitems( const HAPI_Session * session,
+                                HAPI_NodeId node_id );
+
+
+                                
+
 #endif // __HAPI_h__

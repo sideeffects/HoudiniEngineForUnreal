@@ -373,7 +373,8 @@ enum HAPI_NodeType
     HAPI_NODETYPE_SHOP      = 1 << 5,
     HAPI_NODETYPE_COP       = 1 << 6,
     HAPI_NODETYPE_VOP       = 1 << 7,
-    HAPI_NODETYPE_DOP       = 1 << 8
+    HAPI_NODETYPE_DOP       = 1 << 8,
+    HAPI_NODETYPE_TOP       = 1 << 9
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeType )
 typedef int HAPI_NodeTypeBits;
@@ -1447,5 +1448,41 @@ struct HAPI_API HAPI_SphereInfo
     float radius;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
+
+// PDG ----------------------------------------------------------------------
+
+/// See @ref HAPI_PDG_Basics
+typedef int HAPI_PDG_WorkitemId;
+
+enum HAPI_PDG_State
+{
+    HAPI_PDG_STATE_READY,
+    HAPI_PDG_STATE_COOKING,
+    HAPI_PDG_STATE_MAX,
+
+    HAPI_PDG_STATE_MAX_READY_STATE = HAPI_PDG_STATE_READY
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_PDG_State )
+
+enum HAPI_PDG_EventType
+{
+    HAPI_PDG_EVENT_WORKITEM_ADD,
+    HAPI_PDG_EVENT_WORKITEM_REMOVE,
+    HAPI_PDG_EVENT_WORKITEM_DIRTYING,
+    HAPI_PDG_EVENT_WORKITEM_DIRTIED,
+
+    HAPI_PDG_EVENT_WORKITEM_SUCCEEDED,
+    HAPI_PDG_EVENT_WORKITEM_CANCELED,
+    HAPI_PDG_EVENT_WORKITEM_FAILED
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
+
+struct HAPI_API HAPI_PDG_EventInfo
+{
+    HAPI_NodeId node_id;                /// id of related node
+    HAPI_PDG_WorkitemId workitem_id;    /// id of related workitem
+    int event_type;                     /// HAPI_PDG_EventType
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
 #endif // __HAPI_COMMON_h__
