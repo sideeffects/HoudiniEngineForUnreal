@@ -4592,10 +4592,8 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
             {
                 GeoInfos.Add(DisplayGeoInfo);
             }
-        }
 
-        // Then get all the GeoInfos for all the editable nodes
-        {
+            // Then get all the GeoInfos for all the editable nodes
             int32 EditableNodeCount = 0;
             HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
                 FHoudiniEngine::Get().GetSession(), ObjectInfo.nodeId,
@@ -4612,6 +4610,10 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                 for (int nEditable = 0; nEditable < EditableNodeCount; nEditable++)
                 {
+                    // don't add editable node if we already have it
+                    if ( DisplayGeoInfo.nodeId == EditableNodeIds[nEditable] )
+                        continue;
+
                     HAPI_GeoInfo CurrentEditableGeoInfo;
 
                     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
@@ -4621,7 +4623,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     GeoInfos.Add(CurrentEditableGeoInfo);
                 }
-
             }
         }
 
