@@ -1156,7 +1156,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
 
         // 3. Set the heighfield data in Houdini
         HAPI_PartId CurrentPartId = 0;
-        if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
+        if ( !SetHeighfieldData( LayerVolumeNodeId, CurrentPartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
             continue;
 
         if ( !CommitVolumeInputNode( LayerVolumeNodeId, ConnectedAssetId, MergeInputIndex ) )
