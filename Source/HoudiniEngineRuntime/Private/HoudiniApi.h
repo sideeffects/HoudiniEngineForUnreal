@@ -29,9 +29,9 @@ public:
 
 	typedef HAPI_Result (*AddAttributeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info);
 	typedef HAPI_Result (*AddGroupFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name);
-	typedef HAPI_Result (*AddWorkitemFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const float * values_array, int length);
-	typedef HAPI_Result (*AddWorkitemIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const int * values_array, int length);
-	typedef HAPI_Result (*AddWorkitemStringDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const char * value);
+	typedef HAPI_Result (*AddWorkitemFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const float * values_array, int length);
+	typedef HAPI_Result (*AddWorkitemIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const int * values_array, int length);
+	typedef HAPI_Result (*AddWorkitemStringDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const char * value);
 	typedef HAPI_Result (*BindCustomImplementationFuncPtr)(HAPI_SessionType session_type, const char * dll_path);
 	typedef HAPI_Result (*CheckForSpecificErrorsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ErrorCodeBits errors_to_look_for, HAPI_ErrorCodeBits * errors_found);
 	typedef HAPI_Result (*CleanupFuncPtr)(const HAPI_Session * session);
@@ -55,7 +55,7 @@ public:
 	typedef HAPI_Result (*CreateNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
 	typedef HAPI_Result (*CreateThriftNamedPipeSessionFuncPtr)(HAPI_Session * session, const char * pipe_name);
 	typedef HAPI_Result (*CreateThriftSocketSessionFuncPtr)(HAPI_Session * session, const char * host_name, int port);
-	typedef HAPI_Result (*CreateWorkitemFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id);
+	typedef HAPI_Result (*CreateWorkitemFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index, HAPI_PDG_WorkitemState state);
 	typedef HAPI_Result (*DeleteNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
 	typedef HAPI_Result (*DisconnectNodeInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
 	typedef HAPI_Result (*ExtractImageToFileFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);
@@ -419,9 +419,9 @@ public:
 
 	static HAPI_Result AddAttributeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, const char * name, const HAPI_AttributeInfo * attr_info);
 	static HAPI_Result AddGroupEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, HAPI_GroupType group_type, const char * group_name);
-	static HAPI_Result AddWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const float * values_array, int length);
-	static HAPI_Result AddWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const int * values_array, int length);
-	static HAPI_Result AddWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const char * value);
+	static HAPI_Result AddWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const float * values_array, int length);
+	static HAPI_Result AddWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const int * values_array, int length);
+	static HAPI_Result AddWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const char * value);
 	static HAPI_Result BindCustomImplementationEmptyStub(HAPI_SessionType session_type, const char * dll_path);
 	static HAPI_Result CheckForSpecificErrorsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ErrorCodeBits errors_to_look_for, HAPI_ErrorCodeBits * errors_found);
 	static HAPI_Result CleanupEmptyStub(const HAPI_Session * session);
@@ -445,7 +445,7 @@ public:
 	static HAPI_Result CreateNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * operator_name, const char * node_label, HAPI_Bool cook_on_creation, HAPI_NodeId * new_node_id);
 	static HAPI_Result CreateThriftNamedPipeSessionEmptyStub(HAPI_Session * session, const char * pipe_name);
 	static HAPI_Result CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const char * host_name, int port);
-	static HAPI_Result CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id);
+	static HAPI_Result CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index, HAPI_PDG_WorkitemState state);
 	static HAPI_Result DeleteNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
 	static HAPI_Result DisconnectNodeInputEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int input_index);
 	static HAPI_Result ExtractImageToFileEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, const char * image_file_format_name, const char * image_planes, const char * destination_folder_path, const char * destination_file_name, int * destination_file_path);

@@ -26,6 +26,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
+
 FHoudiniApi::AddAttributeFuncPtr
 FHoudiniApi::AddAttribute = &FHoudiniApi::AddAttributeEmptyStub;
 
@@ -1023,21 +1024,21 @@ FHoudiniApi::AddGroupEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id
 
 
 HAPI_Result
-FHoudiniApi::AddWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const float * values_array, int length)
+FHoudiniApi::AddWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const float * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::AddWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const int * values_array, int length)
+FHoudiniApi::AddWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const int * values_array, int length)
 {
 	return HAPI_RESULT_FAILURE;
 }
 
 
 HAPI_Result
-FHoudiniApi::AddWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_member_name, const char * value)
+FHoudiniApi::AddWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, const char * value)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -1205,7 +1206,7 @@ FHoudiniApi::CreateThriftSocketSessionEmptyStub(HAPI_Session * session, const ch
 
 
 HAPI_Result
-FHoudiniApi::CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id)
+FHoudiniApi::CreateWorkitemEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId * workitem_id, const char * name, int index, HAPI_PDG_WorkitemState state)
 {
 	return HAPI_RESULT_FAILURE;
 }
