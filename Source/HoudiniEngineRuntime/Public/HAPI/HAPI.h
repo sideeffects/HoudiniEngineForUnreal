@@ -5214,9 +5214,9 @@ HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session,
                             HAPI_NodeId node_id, int * pdg_state );
 
 
-// @brief  Creates a new workitem for the given node.  The workitem
-///        will not be activated until it is commited.          
-///
+// @brief  Creates a new pending workitem for the given node.  The workitem
+///        will not be submitted to the graph until it is committed with 
+///        HAPI_CommitWorkitems.  The node is expected to be a generator type.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5227,13 +5227,27 @@ HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     workitem_id
-///                 The id of the created workitem
+///                 The id of the pending workitem.
+///
+/// @param[in]      name
+///                 The null-terminated name of the workitem.  The name will
+///                 be automatically suffixed to make it unique.
+///
+/// @param[in]      index
+///                 The index of the workitem.  The semantics of this index depend
+///                 on the graph.
+///
+/// @param[in]      state
+///                 The initial state of the workitem.
 ///
 HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
                                HAPI_NodeId node_id,
-                               HAPI_PDG_WorkitemId * workitem_id );
+                               HAPI_PDG_WorkitemId * workitem_id,
+                               const char * name,
+                               int index,
+                               HAPI_PDG_WorkitemState state );
 
-// @brief  Adds integer data to a PDG workitem data member for the given node.
+// @brief  Adds integer data to a pending PDG workitem data member for the given node.
 ///
 ///
 /// @param[in]      session
@@ -5245,9 +5259,9 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     workitem_id
-///                 The id of the created workitem
+///                 The id of the pending workitem returned by HAPI_CreateWorkitem
 ///
-/// @param[in]      data_member_name
+/// @param[in]      data_name
 ///                 null-terminated name of the data member
 ///
 /// @param[in]      values_array
@@ -5259,11 +5273,11 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
 HAPI_DECL HAPI_AddWorkitemIntData( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
                                    HAPI_PDG_WorkitemId workitem_id,
-                                   const char * data_member_name,
+                                   const char * data_name,
                                    const int * values_array,
                                    int length );
 
-// @brief  Adds float data to a PDG workitem data member for the given node.
+// @brief  Adds float data to a pending PDG workitem data member for the given node.
 ///
 ///
 /// @param[in]      session
@@ -5275,9 +5289,9 @@ HAPI_DECL HAPI_AddWorkitemIntData( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     workitem_id
-///                 The id of the created workitem
+///                 The id of the pending workitem returned by HAPI_CreateWorkitem
 ///
-/// @param[in]      data_member_name
+/// @param[in]      data_name
 ///                 null-terminated name of the workitem data member
 ///
 /// @param[in]      values_array
@@ -5289,11 +5303,11 @@ HAPI_DECL HAPI_AddWorkitemIntData( const HAPI_Session * session,
 HAPI_DECL HAPI_AddWorkitemFloatData( const HAPI_Session * session,
                                      HAPI_NodeId node_id,
                                      HAPI_PDG_WorkitemId workitem_id,
-                                     const char * data_member_name,
+                                     const char * data_name,
                                      const float * values_array,
                                      int length );
 
-// @brief  Adds integer data to a PDG workitem data member for the given node.
+// @brief  Adds integer data to a pending PDG workitem data member for the given node.
 ///
 ///
 /// @param[in]      session
@@ -5305,9 +5319,9 @@ HAPI_DECL HAPI_AddWorkitemFloatData( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     workitem_id
-///                 The id of the created workitem
+///                 The id of the created workitem returned by HAPI_CreateWorkitem
 ///
-/// @param[in]      data_member_name
+/// @param[in]      data_name
 ///                 null-terminated name of the data member
 ///
 /// @param[in]      value
@@ -5316,8 +5330,21 @@ HAPI_DECL HAPI_AddWorkitemFloatData( const HAPI_Session * session,
 HAPI_DECL HAPI_AddWorkitemStringData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
                                       HAPI_PDG_WorkitemId workitem_id,
-                                      const char * data_member_name,
+                                      const char * data_name,
                                       const char * value );
+
+// @brief  Commits any created but uncommited workitems.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+HAPI_DECL HAPI_CommitWorkitems( const HAPI_Session * session,
+                                HAPI_NodeId node_id );
 
 // @brief  Gets the number of workitems that are availible on the given node.
 ///
@@ -5373,7 +5400,7 @@ HAPI_DECL HAPI_GetWorkitems( const HAPI_Session * session,
 ///                 The id of the workitem
 ///
 /// @param[in]      data_name
-///                 The name of the data member
+///                 null-terminated name of the data member
 ///
 /// @param[out]     length
 ///                 The length of the data member array or string buffer length
@@ -5398,7 +5425,7 @@ HAPI_DECL HAPI_GetWorkitemDataLength( const HAPI_Session * session,
 ///                 The id of the workitem
 ///
 /// @param[in]      data_name
-///                 The name of the data member
+///                 null-terminated name of the data member
 ///
 /// @param[out]     data_array
 ///                 buffer of at least size #length to copy the data into.  The required
@@ -5428,7 +5455,7 @@ HAPI_DECL HAPI_GetWorkitemIntData( const HAPI_Session * session,
 ///                 The id of the workitem
 ///
 /// @param[in]      data_name
-///                 The name of the data member
+///                 null-terminated name of the data member
 ///
 /// @param[out]     data_array
 ///                 buffer of at least size #length to copy the data into.  The required
@@ -5458,7 +5485,7 @@ HAPI_DECL HAPI_GetWorkitemFloatData( const HAPI_Session * session,
 ///                 The id of the workitem
 ///
 /// @param[in]      data_name
-///                 The name of the data member
+///                 null-terminated name of the data member
 ///
 /// @param[out]     data_array
 ///                 buffer of at least size length to copy the data into.  The required
@@ -5473,22 +5500,6 @@ HAPI_DECL HAPI_GetWorkitemStringData( const HAPI_Session * session,
                                       HAPI_PDG_WorkitemId workitem_id,
                                       const char * data_name,
                                       char * data_array,
-                                      int length );
-
-// @brief  Commits any created but uncommited workitems.
-///
-/// @param[in]      session
-///                 The session of Houdini you are interacting with.
-///                 See @ref HAPI_Sessions for more on sessions.
-///                 Pass NULL to just use the default in-process session.
-///
-/// @param[in]      node_id
-///                 The node id.
-///
-HAPI_DECL HAPI_CommitWorkitems( const HAPI_Session * session,
-                                HAPI_NodeId node_id );
-
-
-                                
+                                      int length );                               
 
 #endif // __HAPI_h__

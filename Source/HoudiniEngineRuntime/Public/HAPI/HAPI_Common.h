@@ -1477,6 +1477,13 @@ enum HAPI_PDG_EventType
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
 
+enum HAPI_PDG_WorkitemState
+{
+    HAPI_PDG_WORKITEM_NEEDS_COOK = 0,
+    HAPI_PDG_WORKITEM_COOKED = 4
+};
+HAPI_C_ENUM_TYPEDEF( HAPI_PDG_WorkitemState )
+
 struct HAPI_API HAPI_PDG_EventInfo
 {
     HAPI_NodeId node_id;                /// id of related node
