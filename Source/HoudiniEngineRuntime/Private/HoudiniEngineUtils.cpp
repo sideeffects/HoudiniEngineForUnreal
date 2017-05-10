@@ -40,6 +40,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniAttributeDataComponent.h"
+#include "HoudiniLandscapeUtils.h"
 #include "Components/SplineComponent.h"
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
@@ -2382,36 +2383,19 @@ FHoudiniEngineUtils::HapiGetObjectTransforms( HAPI_NodeId AssetId, TArray< HAPI_
 
 bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
-    HAPI_NodeId HostAssetId,
-    ALandscapeProxy * LandscapeProxy, HAPI_NodeId & ConnectedAssetId,
-    bool bExportOnlySelected, bool bExportCurves,
-    bool bExportMaterials, bool bExportGeometryAsMesh,
-    bool bExportLighting, bool bExportNormalizedUVs,
-    bool bExportTileUVs )
+    const HAPI_NodeId& HostAssetId, ALandscapeProxy * LandscapeProxy,
+    HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds,
+    const bool& bExportOnlySelected, const bool& bExportCurves,
+    const bool& bExportMaterials, const bool& bExportGeometryAsMesh,
+    const bool& bExportLighting, const bool& bExportNormalizedUVs,
+    const bool& bExportTileUVs, const FBox& AssetBounds,
+    const bool& bExportAsHeighfield, const bool& bAutoSelectComponents)
 {
 #if WITH_EDITOR
 
     // If we don't have any landscapes or host asset is invalid then there's nothing to do.
     if ( !LandscapeProxy || !FHoudiniEngineUtils::IsHoudiniAssetValid( HostAssetId ) )
         return false;
-
-    // Check if connected asset id is invalid, if it is not, we need to create an input asset.
-    if ( ConnectedAssetId < 0 )
-    {
-        HAPI_NodeId AssetId = -1;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateInputNode(
-            FHoudiniEngine::Get().GetSession(), &AssetId, nullptr ), false );
-
-        // Check if we have a valid id for this new input asset.
-        if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
-            return false;
-
-        // We now have a valid id.
-        ConnectedAssetId = AssetId;
-
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
-            FHoudiniEngine::Get().GetSession(), AssetId, nullptr ), false );
-    }
 
     // Get runtime settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
@@ -2428,10 +2412,87 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     const ULandscapeInfo * LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
 
     TSet< ULandscapeComponent * > SelectedComponents;
-    if ( bExportOnlySelected && LandscapeInfo )
-        SelectedComponents = LandscapeInfo->GetSelectedComponents();
+    if ( bExportOnlySelected )
+    {
+        if (LandscapeInfo)
+        {
+            // Get the currently selected components
+            SelectedComponents = LandscapeInfo->GetSelectedComponents();
+        }
 
-    bExportOnlySelected = bExportOnlySelected && SelectedComponents.Num() > 0;
+        if ( bAutoSelectComponents && SelectedComponents.Num() <= 0 && AssetBounds.IsValid )
+        {
+            // We'll try to use the asset bounds to automatically "select" the components
+            for ( int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
+            {
+                ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
+                if ( !LandscapeComponent )
+                    continue;
+
+                FBoxSphereBounds WorldBounds = LandscapeComponent->CalcBounds( LandscapeComponent->ComponentToWorld );
+
+                if ( AssetBounds.IntersectXY( WorldBounds.GetBox() ) )
+                    SelectedComponents.Add( LandscapeComponent );
+            }
+
+            int32 Num = SelectedComponents.Num();
+            HOUDINI_LOG_MESSAGE( TEXT("Landscape input: automatically selected %d components within the asset's bounds."), Num );
+        }
+    }
+
+    //-----------------------------------------------------------------------------------------------------------------
+    // EXPORT TO HEIGHTFIELD
+    //-----------------------------------------------------------------------------------------------------------------
+    if ( bExportAsHeighfield )
+    {
+        // Export the whole landscape and its layer as a single heightfield
+        ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
+        if (!Landscape)
+            return false;
+
+        return FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(Landscape, ConnectedAssetId, OutCreatedNodeIds);
+
+        /*
+        if ( SelectedComponents.Num() <= 0 )
+        {
+            // Export the whole landscape and its layer as a single heightfield
+            ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
+            if ( !Landscape )
+                return false;
+
+            return FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( Landscape, ConnectedAssetId, OutCreatedNodeIds );
+        }
+        else
+        {
+            // Each selected landscape component will be exported as a separate heightfield
+            return FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, ConnectedAssetId, OutCreatedNodeIds );
+        }
+        */
+    }
+
+    //-----------------------------------------------------------------------------------------------------------------
+    // EXPORT TO MESH / POINTS
+    //-----------------------------------------------------------------------------------------------------------------
+
+    // Check if connected asset id is invalid, if it is not, we need to create an input asset.
+    if ( ConnectedAssetId < 0 )
+    {
+        HAPI_NodeId AssetId = -1;
+
+        // Create the curve SOP Node
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateInputNode(
+            FHoudiniEngine::Get().GetSession(), &AssetId, nullptr ), false );
+
+        // Check if we have a valid id for this new input asset.
+        if ( !FHoudiniEngineUtils::IsHoudiniAssetValid( AssetId ) )
+            return false;
+
+        // We now have a valid id.
+        ConnectedAssetId = AssetId;
+
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CookNode(
+            FHoudiniEngine::Get().GetSession(), AssetId, nullptr ), false );
+    }
 
     int32 MinX = TNumericLimits< int32 >::Max();
     int32 MinY = TNumericLimits< int32 >::Max();
@@ -4292,7 +4353,7 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
         // Sanitize package name.
         PackageName = PackageTools::SanitizePackageName( PackageName );
 
-        UObject * OuterPackage = nullptr;	
+        UObject * OuterPackage = nullptr;
         if ( BakeMode == EBakeMode::Intermediate )
         {
             // If we are not baking, then use outermost package, since objects within our package need to be visible
@@ -4315,8 +4376,6 @@ FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
             break;
         }
     }
-
-
 
     if( PackageNew && ( ( BakeMode == EBakeMode::ReplaceExisitingAssets ) || ( BakeMode == EBakeMode::CookToTemp ) ) )
     {
@@ -4692,9 +4751,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     HoudiniGeoPartObject.bIsInstancer = false;
                     HoudiniGeoPartObject.bIsCurve = false;
                     HoudiniGeoPartObject.bIsEditable = GeoInfo.isEditable;
-                    HoudiniGeoPartObject.bHasGeoChanged = GeoInfo.hasGeoChanged;
                     HoudiniGeoPartObject.bIsPackedPrimitiveInstancer = false;
                     HoudiniGeoPartObject.bIsVolume = true;
+
+                    // We'll set the GeoChanged flag to true if we want to force the landscape reimport
+                    HoudiniGeoPartObject.bHasGeoChanged = ( GeoInfo.hasGeoChanged || ForceRebuildStaticMesh || ForceRecookAll );
+
                     StaticMeshesOut.Add(HoudiniGeoPartObject, nullptr);
 
                     continue;
