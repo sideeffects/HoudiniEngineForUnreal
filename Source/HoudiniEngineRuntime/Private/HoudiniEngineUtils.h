@@ -466,6 +466,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Helper function used get the desired cook behavior forStatic Meshes **/
         static EBakeMode GetStaticMeshesCookMode();
 
+        /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
+        static char * ExtractRawName(const FString & Name);
+
 #if WITH_EDITOR
 
         /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
@@ -572,9 +575,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static bool ContainsInvalidLightmapFaces( const FRawMesh & RawMesh, int32 LightmapSourceIdx );
 
 #endif // WITH_EDITOR
-
-        /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
-        static char * ExtractRawName( const FString & Name );
 
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(

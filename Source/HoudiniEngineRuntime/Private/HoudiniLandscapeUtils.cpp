@@ -40,6 +40,7 @@
 #include "LandscapeComponent.h"
 #include "LandscapeEdit.h"
 #include "LandscapeLayerInfoObject.h"
+#include "LightMap.h"
 
 void
 FHoudiniLandscapeUtils::GetHeightfieldsInArray(
@@ -853,17 +854,14 @@ FHoudiniLandscapeUtils::ResizeLayerDataForLandscape(
 #if WITH_EDITOR
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
-    ALandscape* Landscape, HAPI_NodeId& AssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
+    ALandscapeProxy* LandscapeProxy, const HAPI_NodeId& InputMergeNodeId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
 {
-    if ( !Landscape )
+    if ( !LandscapeProxy )
         return false;
 
-    //--------------------------------------------------------------------------------------------------
-    // 0. Create A Merge node, this will be our connected asset ID
-    //--------------------------------------------------------------------------------------------------
-    HAPI_NodeId ConnectedAssetId = -1;
-    FString LandscapeName = Landscape->GetName() + TEXT("_Merge");
-    if ( !CreateHeightfieldInputNode( ConnectedAssetId, LandscapeName ) )
+    // Export the whole landscape and its layer as a single heightfield
+    ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
+    if (!Landscape)
         return false;
 
     //--------------------------------------------------------------------------------------------------
@@ -906,7 +904,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 
     // Commit the landscape and connect it to the parent merge node
     int32 MergeInputIndex = 0;
-    if ( !CommitVolumeInputNode(VolumeNodeId, ConnectedAssetId, MergeInputIndex++ ) )
+    if ( !CommitVolumeInputNode(VolumeNodeId, InputMergeNodeId, MergeInputIndex++ ) )
         return false;
 
     //--------------------------------------------------------------------------------------------------
@@ -951,7 +949,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
         if ( !SetHeighfieldData( LayerVolumeNodeId, PartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
             continue;
 
-        if ( !CommitVolumeInputNode( LayerVolumeNodeId, ConnectedAssetId, MergeInputIndex ) )
+        if ( !CommitVolumeInputNode( LayerVolumeNodeId, InputMergeNodeId, MergeInputIndex ) )
             continue;
 
         MergeInputIndex++;
@@ -961,12 +959,12 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
             bMaskCreated = true;
     }
 
-    // We need to have a mask layer as it is required for proper heightfield functionnalities
+    // We need to have a mask layer as it is required for proper heightfield functionalities
     // If we didn't create one, we'll send a fully measured mask now
     if ( !bMaskCreated )
     {
         HAPI_NodeId MaskNodeId = -1;
-        bMaskCreated = CreateDefaultHeightfieldMask( HeightfieldVolumeInfo, ConnectedAssetId, MergeInputIndex, MaskNodeId );
+        bMaskCreated = CreateDefaultHeightfieldMask( HeightfieldVolumeInfo, InputMergeNodeId, MergeInputIndex, MaskNodeId );
 
         MergeInputIndex++;
 
@@ -976,17 +974,12 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
     if ( !bMaskCreated )
         return false;
 
-    AssetId = ConnectedAssetId;
-
-    /*
-    // Commit the geo.
-    HAPI_GeoInfo DisplayGeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, &DisplayGeoInfo), false);
-
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId), false);
-    */
+    // If we are marshalling material information.
+    /*if (bExportMaterials)
+    {
+        if ( !FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( InputMergeNodeId, LandscapeProxy ) )
+            return false;
+    }*/
 
     return true;
 }
@@ -994,21 +987,13 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape(
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
     ALandscapeProxy* LandscapeProxy, TSet< ULandscapeComponent * >& LandscapeComponentArray, 
-    HAPI_NodeId& ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds)
+    const HAPI_NodeId& InputMergeNodeId, TArray< HAPI_NodeId >& OutCreatedNodeIds)
 {
     if ( LandscapeComponentArray.Num() <= 0 )
         return false;
 
     //--------------------------------------------------------------------------------------------------
-    // 1. Create A Merge node, this will be our connected asset ID
-    //--------------------------------------------------------------------------------------------------
-    /*HAPI_NodeId*/ ConnectedAssetId = -1;
-    FString LandscapeName = LandscapeProxy->GetName() + TEXT("_Merge");
-    if (!CreateHeightfieldInputNode(ConnectedAssetId, LandscapeName))
-        return false;
-
-    //--------------------------------------------------------------------------------------------------
-    // 2. Get the global min/max values of the heightfield
+    // 1. Get the global min/max values of the heightfield
     //--------------------------------------------------------------------------------------------------    
     float fGlobalZMin = MAX_FLT;
     float fGlobalZMax = -MAX_FLT;
@@ -1033,7 +1018,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
     }
 
     //--------------------------------------------------------------------------------------------------
-    // 3. Each selected component will be exported as a heightfield
+    // 2. Each selected component will be exported as heightfield volumes
     //--------------------------------------------------------------------------------------------------    
     int32 MergeInputIndex = 0;
     bool bAllComponentCreated = true;
@@ -1046,7 +1031,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
         if ( !LandscapeComponentArray.Contains( CurrentComponent ) )
             continue;
 
-        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, ConnectedAssetId, fGlobalZMin, fGlobalZMax, OutCreatedNodeIds, MergeInputIndex ) )
+        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, InputMergeNodeId, fGlobalZMin, fGlobalZMax, OutCreatedNodeIds, MergeInputIndex ) )
             bAllComponentCreated = false;
     }
 
@@ -1056,7 +1041,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
 
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
-    ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& ConnectedAssetId, 
+    ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& InputMergeNodeId,
     const float& fGlobalZMin, const float& fGlobalZMax,
     TArray< HAPI_NodeId >& OutCreatedNodeIds, int32& MergeInputIndex )
 {
@@ -1117,7 +1102,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
         return false;
 
     // Commit the landscape and connect it to the parent merge node
-    if ( !CommitVolumeInputNode( VolumeNodeId, ConnectedAssetId, MergeInputIndex++ ) )
+    if ( !CommitVolumeInputNode( VolumeNodeId, InputMergeNodeId, MergeInputIndex++ ) )
         return false;
 
     //--------------------------------------------------------------------------------------------------
@@ -1147,7 +1132,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
         CurrentLayerVolumeInfo.transform = HeightfieldVolumeInfo.transform;
 
         HAPI_NodeId LayerVolumeNodeId = -1;
-        if (!CreateVolumeInputNode(LayerVolumeNodeId, LayerName))
+        if ( !CreateVolumeInputNode( LayerVolumeNodeId, LayerName ) )
             continue;
 
         // Add the node to the array so we can destroy it later
@@ -1158,7 +1143,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
         if ( !SetHeighfieldData( LayerVolumeNodeId, CurrentPartId, CurrentLayerFloatData, CurrentLayerVolumeInfo, LayerName ) )
             continue;
 
-        if ( !CommitVolumeInputNode( LayerVolumeNodeId, ConnectedAssetId, MergeInputIndex ) )
+        if ( !CommitVolumeInputNode( LayerVolumeNodeId, InputMergeNodeId, MergeInputIndex ) )
             continue;
 
         MergeInputIndex++;
@@ -1170,29 +1155,18 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
 
     // We need to have a mask layer as it is required for proper heightfield functionnalities
     // If we didn't create one, we'll send a fully measured mask now
-    if (!bMaskCreated)
+    if ( !bMaskCreated )
     {
         HAPI_NodeId MaskNodeId = -1;
-        bMaskCreated = CreateDefaultHeightfieldMask(HeightfieldVolumeInfo, ConnectedAssetId, MergeInputIndex, MaskNodeId);
+        bMaskCreated = CreateDefaultHeightfieldMask( HeightfieldVolumeInfo, InputMergeNodeId, MergeInputIndex, MaskNodeId );
 
         MergeInputIndex++;
 
-        OutCreatedNodeIds.Add(MaskNodeId);
+        OutCreatedNodeIds.Add( MaskNodeId );
     }
 
-    if (!bMaskCreated)
+    if ( !bMaskCreated )
         return false;
-
-    // AssetId = ConnectedAssetId;
-    /*
-    // Commit the geo.
-    HAPI_GeoInfo DisplayGeoInfo;
-    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetDisplayGeoInfo(
-        FHoudiniEngine::Get().GetSession(), AssetId, &DisplayGeoInfo ), false );
-
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-        FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
-    */
 
     return true;
 }
@@ -1890,4 +1864,675 @@ const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode)
     return DuplicatedLandscape;
 }
 */
+
+FColor
+FHoudiniLandscapeUtils::PickVertexColorFromTextureMip(
+    const uint8 * MipBytes, FVector2D & UVCoord, int32 MipWidth, int32 MipHeight)
+{
+    check(MipBytes);
+
+    FColor ResultColor(0, 0, 0, 255);
+
+    if (UVCoord.X >= 0.0f && UVCoord.X < 1.0f && UVCoord.Y >= 0.0f && UVCoord.Y < 1.0f)
+    {
+        const int32 X = MipWidth * UVCoord.X;
+        const int32 Y = MipHeight * UVCoord.Y;
+
+        const int32 Index = ((Y * MipWidth) + X) * 4;
+
+        ResultColor.B = MipBytes[Index + 0];
+        ResultColor.G = MipBytes[Index + 1];
+        ResultColor.R = MipBytes[Index + 2];
+        ResultColor.A = MipBytes[Index + 3];
+    }
+
+    return ResultColor;
+}
+
+#if WITH_EDITOR
+bool 
+FHoudiniLandscapeUtils::ExtractLandscapeData(
+    ALandscapeProxy * LandscapeProxy, TSet<ULandscapeComponent *>& SelectedComponents,
+    const bool& bExportLighting, const bool& bExportTileUVs, const bool& bExportNormalizedUVs,
+    TArray<FVector>& LandscapePositionArray,
+    TArray<FVector>& LandscapeNormalArray,
+    TArray<FVector>& LandscapeUVArray, 
+    TArray<FIntPoint>& LandscapeComponentVertexIndicesArray, 
+    TArray<const char *>& LandscapeComponentNameArray,	    
+    TArray<FLinearColor>& LandscapeLightmapValues )
+{
+    if ( !LandscapeProxy )
+        return false;
+
+    if ( SelectedComponents.Num() < 1 )
+        return false;
+
+    // Get runtime settings.
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+
+    float GeneratedGeometryScaleFactor = HAPI_UNREAL_SCALE_FACTOR_POSITION;
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+
+    if (HoudiniRuntimeSettings)
+    {
+        GeneratedGeometryScaleFactor = HoudiniRuntimeSettings->GeneratedGeometryScaleFactor;
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+    }
+
+    // Calc all the needed sizes
+    int32 ComponentSizeQuads = ((LandscapeProxy->ComponentSizeQuads + 1) >> LandscapeProxy->ExportLOD) - 1;
+    float ScaleFactor = (float)LandscapeProxy->ComponentSizeQuads / (float)ComponentSizeQuads;
+
+    int32 NumComponents = SelectedComponents.Num();
+    bool bExportOnlySelected = NumComponents != LandscapeProxy->LandscapeComponents.Num();
+
+    int32 VertexCountPerComponent = FMath::Square(ComponentSizeQuads + 1);
+    int32 VertexCount = NumComponents * VertexCountPerComponent;
+    if (!VertexCount)
+        return false;
+
+    // Initialize the data arrays    
+    LandscapePositionArray.SetNumUninitialized( VertexCount );
+    LandscapeNormalArray.SetNumUninitialized( VertexCount );
+    LandscapeUVArray.SetNumUninitialized( VertexCount );
+    LandscapeComponentNameArray.SetNumUninitialized( VertexCount );
+    LandscapeComponentVertexIndicesArray.SetNumUninitialized( VertexCount );    
+    if ( bExportLighting )
+        LandscapeLightmapValues.SetNumUninitialized( VertexCount );
+
+    //-----------------------------------------------------------------------------------------------------------------
+    // EXTRACT THE LANDSCAPE DATA
+    //-----------------------------------------------------------------------------------------------------------------
+    FIntPoint IntPointMax = FIntPoint::ZeroValue;
+
+    int32 AllPositionsIdx = 0;
+    for ( int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
+    {
+        ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
+        if ( bExportOnlySelected && !SelectedComponents.Contains( LandscapeComponent ) )
+            continue;
+
+        TArray< uint8 > LightmapMipData;
+        int32 LightmapMipSizeX = 0;
+        int32 LightmapMipSizeY = 0;
+
+        // See if we need to export lighting information.
+        if ( bExportLighting )
+        {
+	    FLightMap2D * LightMap2D = LandscapeComponent->LightMap->GetLightMap2D();
+            if ( LightMap2D && LightMap2D->IsValid( 0 ) )
+            {
+                UTexture2D * TextureLightmap = LightMap2D->GetTexture( 0 );
+                if ( TextureLightmap )
+                {
+                    if ( TextureLightmap->Source.GetMipData( LightmapMipData, 0 ) )
+                    {
+                        LightmapMipSizeX = TextureLightmap->Source.GetSizeX();
+                        LightmapMipSizeY = TextureLightmap->Source.GetSizeY();
+                    }
+                    else
+                    {
+                        LightmapMipData.Empty();
+                    }
+                }
+            }
+        }
+
+        // Construct landscape component data interface to access raw data.
+        FLandscapeComponentDataInterface CDI( LandscapeComponent, LandscapeProxy->ExportLOD );
+
+        // Get name of this landscape component.
+        char * LandscapeComponentNameStr = FHoudiniEngineUtils::ExtractRawName( LandscapeComponent->GetName() );
+
+        for ( int32 VertexIdx = 0; VertexIdx < VertexCountPerComponent; VertexIdx++ )
+        {
+            int32 VertX = 0;
+            int32 VertY = 0;
+            CDI.VertexIndexToXY( VertexIdx, VertX, VertY );
+
+            // Get position.
+            FVector PositionVector = CDI.GetWorldVertex( VertX, VertY );
+
+            // Get normal / tangent / binormal.
+            FVector Normal = FVector::ZeroVector;
+            FVector TangentX = FVector::ZeroVector;
+            FVector TangentY = FVector::ZeroVector;
+            CDI.GetLocalTangentVectors( VertX, VertY, TangentX, TangentY, Normal );
+
+            // Export UVs.
+            FVector TextureUV = FVector::ZeroVector;
+            if ( bExportTileUVs )
+            {
+                // We want to export uvs per tile.
+                TextureUV = FVector( VertX, VertY, 0.0f );
+
+                // If we need to normalize UV space.
+                if ( bExportNormalizedUVs )
+                    TextureUV /= ComponentSizeQuads;
+            }
+            else
+            {
+                // We want to export global uvs (default).
+                FIntPoint IntPoint = LandscapeComponent->GetSectionBase();
+                TextureUV = FVector( VertX * ScaleFactor + IntPoint.X, VertY * ScaleFactor + IntPoint.Y, 0.0f );
+
+                // Keep track of max offset.
+                IntPointMax = IntPointMax.ComponentMax( IntPoint );
+            }
+
+            if ( bExportLighting )
+            {
+                FLinearColor VertexLightmapColor( 0.0f, 0.0f, 0.0f, 1.0f );
+                if ( LightmapMipData.Num() > 0 )
+                {
+                    FVector2D UVCoord( VertX, VertY );
+                    UVCoord /= ( ComponentSizeQuads + 1 );
+
+                    FColor LightmapColorRaw = PickVertexColorFromTextureMip(
+                        LightmapMipData.GetData(), UVCoord, LightmapMipSizeX, LightmapMipSizeY );
+
+                    VertexLightmapColor = LightmapColorRaw.ReinterpretAsLinear();
+                }
+
+                LandscapeLightmapValues[ AllPositionsIdx ] = VertexLightmapColor;
+            }
+
+            // Retrieve component transform.
+            const FTransform & ComponentTransform = LandscapeComponent->ComponentToWorld;
+
+            // Retrieve component scale.
+            const FVector & ScaleVector = ComponentTransform.GetScale3D();
+
+            // Perform normalization.
+            Normal /= ScaleVector;
+            Normal.Normalize();
+
+            TangentX /= ScaleVector;
+            TangentX.Normalize();
+
+            TangentY /= ScaleVector;
+            TangentY.Normalize();
+
+            // Perform position scaling.
+            FVector PositionTransformed = PositionVector / GeneratedGeometryScaleFactor;
+            if ( ImportAxis == HRSAI_Unreal )
+            {
+                LandscapePositionArray[ AllPositionsIdx ].X = PositionTransformed.X;
+                LandscapePositionArray[ AllPositionsIdx ].Y = PositionTransformed.Z;
+                LandscapePositionArray[ AllPositionsIdx ].Z = PositionTransformed.Y;
+
+                Swap( Normal.Y, Normal.Z );
+            }
+            else if ( ImportAxis == HRSAI_Houdini )
+            {
+                LandscapePositionArray[ AllPositionsIdx ].X = PositionTransformed.X;
+                LandscapePositionArray[ AllPositionsIdx ].Y = PositionTransformed.Y;
+                LandscapePositionArray[ AllPositionsIdx ].Z = PositionTransformed.Z;
+            }
+            else
+            {
+                // Not a valid enum value.
+                check( 0 );
+            }
+
+            // Store landscape component name for this point.
+            LandscapeComponentNameArray[ AllPositionsIdx ] = LandscapeComponentNameStr;
+
+            // Store vertex index (x,y) for this point.
+            LandscapeComponentVertexIndicesArray[ AllPositionsIdx ].X = VertX;
+            LandscapeComponentVertexIndicesArray[ AllPositionsIdx ].Y = VertY;
+
+            // Store point normal.
+            LandscapeNormalArray[ AllPositionsIdx ] = Normal;
+
+            // Store uv.
+            LandscapeUVArray[ AllPositionsIdx ] = TextureUV;
+
+            AllPositionsIdx++;
+        }
+    }
+
+    // If we need to normalize UV space and we are doing global UVs.
+    if ( !bExportTileUVs && bExportNormalizedUVs )
+    {
+        IntPointMax += FIntPoint( ComponentSizeQuads, ComponentSizeQuads );
+        IntPointMax = IntPointMax.ComponentMax( FIntPoint( 1, 1 ) );
+
+        for ( int32 UVIdx = 0; UVIdx < VertexCount; ++UVIdx )
+        {
+            FVector & PositionUV = LandscapeUVArray[ UVIdx ];
+            PositionUV.X /= IntPointMax.X;
+            PositionUV.Y /= IntPointMax.Y;
+        }
+    }
+
+    return true;
+}
+#endif
+
+bool FHoudiniLandscapeUtils::AddLandscapePositionAttribute( const HAPI_NodeId& NodeId, const TArray< FVector >& LandscapePositionArray )
+{
+    int32 VertexCount = LandscapePositionArray.Num();
+    if ( VertexCount < 3 )
+        return false;
+
+    // Create point attribute info containing positions.    
+    HAPI_AttributeInfo AttributeInfoPointPosition;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointPosition );
+    AttributeInfoPointPosition.count = VertexCount;
+    AttributeInfoPointPosition.tupleSize = 3;
+    AttributeInfoPointPosition.exists = true;
+    AttributeInfoPointPosition.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPointPosition.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoPointPosition.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointPosition ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPointPosition,
+        (const float *)LandscapePositionArray.GetData(),
+        0, AttributeInfoPointPosition.count ), false );
+
+    return true;
+}
+
+bool FHoudiniLandscapeUtils::AddLandscapeNormalAttribute( const HAPI_NodeId& NodeId, const TArray<FVector>& LandscapeNormalArray )
+{
+    int32 VertexCount = LandscapeNormalArray.Num();
+    if ( VertexCount < 3 )
+        return false;
+
+    HAPI_AttributeInfo AttributeInfoPointNormal;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointNormal );
+    AttributeInfoPointNormal.count = VertexCount;
+    AttributeInfoPointNormal.tupleSize = 3;
+    AttributeInfoPointNormal.exists = true;
+    AttributeInfoPointNormal.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPointNormal.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoPointNormal.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoPointNormal ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoPointNormal,
+        (const float *)LandscapeNormalArray.GetData(), 0, AttributeInfoPointNormal.count ), false );
+
+    return true;
+}
+
+bool FHoudiniLandscapeUtils::AddLandscapeUVAttribute( const HAPI_NodeId& NodeId, const TArray<FVector>& LandscapeUVArray )
+{
+    int32 VertexCount = LandscapeUVArray.Num();
+    if ( VertexCount < 3 )
+        return false;
+
+    HAPI_AttributeInfo AttributeInfoPointUV;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointUV );
+    AttributeInfoPointUV.count = VertexCount;
+    AttributeInfoPointUV.tupleSize = 3;
+    AttributeInfoPointUV.exists = true;
+    AttributeInfoPointUV.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPointUV.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoPointUV.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoPointUV ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoPointUV,
+        (const float *)LandscapeUVArray.GetData(), 0, AttributeInfoPointUV.count ), false );
+
+    return true;
+}
+
+bool FHoudiniLandscapeUtils::AddLandscapeComponentVertexIndicesAttribute( const HAPI_NodeId& NodeId, const TArray<FIntPoint>& LandscapeComponentVertexIndicesArray )
+{
+    int32 VertexCount = LandscapeComponentVertexIndicesArray.Num();
+    if ( VertexCount < 3 )
+        return false;
+
+    HAPI_AttributeInfo AttributeInfoPointLandscapeComponentVertexIndices;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLandscapeComponentVertexIndices );
+    AttributeInfoPointLandscapeComponentVertexIndices.count = VertexCount;
+    AttributeInfoPointLandscapeComponentVertexIndices.tupleSize = 2;
+    AttributeInfoPointLandscapeComponentVertexIndices.exists = true;
+    AttributeInfoPointLandscapeComponentVertexIndices.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPointLandscapeComponentVertexIndices.storage = HAPI_STORAGETYPE_INT;
+    AttributeInfoPointLandscapeComponentVertexIndices.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        0, HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX,
+        &AttributeInfoPointLandscapeComponentVertexIndices ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeIntData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, HAPI_UNREAL_ATTRIB_LANDSCAPE_VERTEX_INDEX,
+        &AttributeInfoPointLandscapeComponentVertexIndices,
+        (const int * )LandscapeComponentVertexIndicesArray.GetData(), 0,
+        AttributeInfoPointLandscapeComponentVertexIndices.count ), false );
+
+    return true;
+}
+
+bool FHoudiniLandscapeUtils::AddLandscapeComponentNameAttribute( const HAPI_NodeId& NodeId, const TArray<const char *>& LandscapeComponentNameArray )
+{
+    int32 VertexCount = LandscapeComponentNameArray.Num();
+    if ( VertexCount < 3 )
+        return false;
+
+    // Create point attribute containing landscape component name.
+    HAPI_AttributeInfo AttributeInfoPointLandscapeComponentNames;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLandscapeComponentNames );
+    AttributeInfoPointLandscapeComponentNames.count = VertexCount;
+    AttributeInfoPointLandscapeComponentNames.tupleSize = 1;
+    AttributeInfoPointLandscapeComponentNames.exists = true;
+    AttributeInfoPointLandscapeComponentNames.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPointLandscapeComponentNames.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfoPointLandscapeComponentNames.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME,
+        &AttributeInfoPointLandscapeComponentNames), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_NAME,
+        &AttributeInfoPointLandscapeComponentNames,
+        (const char **)LandscapeComponentNameArray.GetData(),
+        0, AttributeInfoPointLandscapeComponentNames.count ), false );
+
+    return true;
+}
+
+bool FHoudiniLandscapeUtils::AddLandscapeLightmapColorAttribute( const HAPI_NodeId& NodeId, const TArray<FLinearColor>& LandscapeLightmapValues )
+{
+    int32 VertexCount = LandscapeLightmapValues.Num();
+
+    HAPI_AttributeInfo AttributeInfoPointLightmapColor;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPointLightmapColor );
+    AttributeInfoPointLightmapColor.count = VertexCount;
+    AttributeInfoPointLightmapColor.tupleSize = 4;
+    AttributeInfoPointLightmapColor.exists = true;
+    AttributeInfoPointLightmapColor.owner = HAPI_ATTROWNER_POINT;
+    AttributeInfoPointLightmapColor.storage = HAPI_STORAGETYPE_FLOAT;
+    AttributeInfoPointLightmapColor.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, &AttributeInfoPointLightmapColor ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR, &AttributeInfoPointLightmapColor,
+        (const float *)LandscapeLightmapValues.GetData(), 0,
+        AttributeInfoPointLightmapColor.count ), false );
+
+    return true;
+}
+
+bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute( 
+    const HAPI_NodeId& NodeId, const bool& bExportMaterials,
+    const int32& ComponentSizeQuads, const int32& QuadCount,
+    ALandscapeProxy * LandscapeProxy,
+    const TSet< ULandscapeComponent * >& SelectedComponents )
+{
+    if ( !LandscapeProxy )
+        return false;
+
+    // Compute number of necessary indices.
+    int32 IndexCount = QuadCount * 4;
+    if ( IndexCount < 0 )
+        return false;
+
+    int32 VertexCountPerComponent = FMath::Square( ComponentSizeQuads + 1 );
+
+    // Get runtime settings.
+    EHoudiniRuntimeSettingsAxisImport ImportAxis = HRSAI_Unreal;
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+    if ( HoudiniRuntimeSettings )
+        ImportAxis = HoudiniRuntimeSettings->ImportAxis;
+
+    // Array holding indices data.
+    TArray< int32 > LandscapeIndices;
+    LandscapeIndices.SetNumUninitialized( IndexCount );
+
+    // Allocate space for face names.
+    // The LandscapeMaterial and HoleMaterial per point
+    TArray< const char * > FaceMaterials;
+    TArray< const char * > FaceHoleMaterials;
+    FaceMaterials.SetNumUninitialized( QuadCount );
+    FaceHoleMaterials.SetNumUninitialized( QuadCount );
+
+    int32 VertIdx = 0;
+    int32 QuadIdx = 0;
+
+    char * MaterialRawStr = nullptr;
+    char * MaterialHoleRawStr = nullptr;
+
+    const int32 QuadComponentCount = ComponentSizeQuads + 1;
+    for ( int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
+    {
+        ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
+        if ( !SelectedComponents.Contains( LandscapeComponent ) )
+            continue;
+
+        // If component has an override material, we need to get the raw name (if exporting materials).
+        if ( bExportMaterials && LandscapeComponent->OverrideMaterial )
+        {
+            MaterialRawStr = FHoudiniEngineUtils::ExtractRawName( LandscapeComponent->OverrideMaterial->GetName() );	    
+        }
+
+        // If component has an override hole material, we need to get the raw name (if exporting materials).
+        if ( bExportMaterials && LandscapeComponent->OverrideHoleMaterial )
+        {
+            MaterialHoleRawStr = FHoudiniEngineUtils::ExtractRawName( LandscapeComponent->OverrideHoleMaterial->GetName() );
+        }
+
+        int32 BaseVertIndex = ComponentIdx * VertexCountPerComponent;
+        for ( int32 YIdx = 0; YIdx < ComponentSizeQuads; YIdx++ )
+        {
+            for ( int32 XIdx = 0; XIdx < ComponentSizeQuads; XIdx++ )
+            {
+                if ( ImportAxis == HRSAI_Unreal )
+                {
+                    LandscapeIndices[ VertIdx + 0 ] = BaseVertIndex + ( XIdx + 0 ) + ( YIdx + 0 ) * QuadComponentCount;
+                    LandscapeIndices[ VertIdx + 1 ] = BaseVertIndex + ( XIdx + 1 ) + ( YIdx + 0 ) * QuadComponentCount;
+                    LandscapeIndices[ VertIdx + 2 ] = BaseVertIndex + ( XIdx + 1 ) + ( YIdx + 1 ) * QuadComponentCount;
+                    LandscapeIndices[ VertIdx + 3 ] = BaseVertIndex + ( XIdx + 0 ) + ( YIdx + 1 ) * QuadComponentCount;
+                }
+                else if (ImportAxis == HRSAI_Houdini)
+                {
+                    LandscapeIndices[ VertIdx + 0 ] = BaseVertIndex + ( XIdx + 0 ) + ( YIdx + 0 ) * QuadComponentCount;
+                    LandscapeIndices[ VertIdx + 1 ] = BaseVertIndex + ( XIdx + 0 ) + ( YIdx + 1 ) * QuadComponentCount;
+                    LandscapeIndices[ VertIdx + 2 ] = BaseVertIndex + ( XIdx + 1 ) + ( YIdx + 1 ) * QuadComponentCount;
+                    LandscapeIndices[ VertIdx + 3 ] = BaseVertIndex + ( XIdx + 1 ) + ( YIdx + 0 ) * QuadComponentCount;
+                }
+                else
+                {
+                   // Not a valid enum value.
+                    check( 0 );
+                }
+
+                // Store override materials (if exporting materials).
+                if ( bExportMaterials )
+                {
+                    FaceMaterials[ QuadIdx ] = MaterialRawStr;
+                    FaceHoleMaterials[ QuadIdx ] = MaterialHoleRawStr;
+                }
+
+                VertIdx += 4;
+                QuadIdx++;
+            }
+        }
+    }
+
+    // We can now set vertex list.
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetVertexList(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        0, LandscapeIndices.GetData(), 0, LandscapeIndices.Num() ), false );
+
+    // We need to generate array of face counts.
+    TArray< int32 > LandscapeFaces;
+    LandscapeFaces.Init( 4, QuadCount );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetFaceCounts(
+        FHoudiniEngine::Get().GetSession(), NodeId,
+        0, LandscapeFaces.GetData(), 0, LandscapeFaces.Num() ), false );
+
+    // Get name of attribute used for marshalling materials.
+    std::string MarshallingAttributeMaterialName = HAPI_UNREAL_ATTRIB_MATERIAL;
+    if ( HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty() )
+    {
+        FHoudiniEngineUtils::ConvertUnrealString(
+            HoudiniRuntimeSettings->MarshallingAttributeMaterial,
+            MarshallingAttributeMaterialName );
+    }
+
+    // Get name of attribute used for marshalling hole materials.
+    std::string MarshallingAttributeMaterialHoleName = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
+    if ( HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterialHole.IsEmpty() )
+    {
+        FHoudiniEngineUtils::ConvertUnrealString(
+            HoudiniRuntimeSettings->MarshallingAttributeMaterialHole,
+            MarshallingAttributeMaterialHoleName );
+    }
+
+    // Marshall in override primitive material names.
+    HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterial );
+    AttributeInfoPrimitiveMaterial.count = FaceMaterials.Num();
+    AttributeInfoPrimitiveMaterial.tupleSize = 1;
+    AttributeInfoPrimitiveMaterial.exists = true;
+    AttributeInfoPrimitiveMaterial.owner = HAPI_ATTROWNER_PRIM;
+    AttributeInfoPrimitiveMaterial.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfoPrimitiveMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        MarshallingAttributeMaterialName.c_str(), &AttributeInfoPrimitiveMaterial,
+        (const char **)FaceMaterials.GetData(), 0, AttributeInfoPrimitiveMaterial.count ), false );
+
+    // Marshall in override primitive material hole names.
+    HAPI_AttributeInfo AttributeInfoPrimitiveMaterialHole;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPrimitiveMaterialHole );
+    AttributeInfoPrimitiveMaterialHole.count = FaceHoleMaterials.Num();
+    AttributeInfoPrimitiveMaterialHole.tupleSize = 1;
+    AttributeInfoPrimitiveMaterialHole.exists = true;
+    AttributeInfoPrimitiveMaterialHole.owner = HAPI_ATTROWNER_PRIM;
+    AttributeInfoPrimitiveMaterialHole.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfoPrimitiveMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
+        &AttributeInfoPrimitiveMaterialHole ), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
+        &AttributeInfoPrimitiveMaterialHole, (const char **) FaceHoleMaterials.GetData(), 0,
+        AttributeInfoPrimitiveMaterialHole.count ), false );
+
+    return true;
+}
+
+#if WITH_EDITOR
+bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_NodeId& NodeId, ALandscapeProxy * LandscapeProxy )
+{
+    if ( !LandscapeProxy )
+        return false;
+
+    const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+
+    // Get name of attribute used for marshalling materials.
+    std::string MarshallingAttributeMaterialName = HAPI_UNREAL_ATTRIB_MATERIAL;
+    if ( HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterial.IsEmpty() )
+    {
+        FHoudiniEngineUtils::ConvertUnrealString(
+            HoudiniRuntimeSettings->MarshallingAttributeMaterial,
+            MarshallingAttributeMaterialName );
+    }
+
+    // If there's a global landscape material, we marshall it as detail.
+    UMaterialInterface * MaterialInterface = LandscapeProxy->GetLandscapeMaterial();
+    const char * MaterialNameStr = "";
+    if ( MaterialInterface )
+    {
+        FString FullMaterialName = MaterialInterface->GetPathName();
+        MaterialNameStr = TCHAR_TO_UTF8(*FullMaterialName);
+    }
+
+    HAPI_AttributeInfo AttributeInfoDetailMaterial;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoDetailMaterial );
+    AttributeInfoDetailMaterial.count = 1;
+    AttributeInfoDetailMaterial.tupleSize = 1;
+    AttributeInfoDetailMaterial.exists = true;
+    AttributeInfoDetailMaterial.owner = HAPI_ATTROWNER_DETAIL;
+    AttributeInfoDetailMaterial.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfoDetailMaterial.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial ), false);
+
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeStringData(
+        FHoudiniEngine::Get().GetSession(), NodeId, 0,
+        MarshallingAttributeMaterialName.c_str(), &AttributeInfoDetailMaterial,
+        (const char**)&MaterialNameStr, 0, AttributeInfoDetailMaterial.count ), false );
+
+    // Get name of attribute used for marshalling hole materials.
+    std::string MarshallingAttributeMaterialHoleName = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
+    if ( HoudiniRuntimeSettings && !HoudiniRuntimeSettings->MarshallingAttributeMaterialHole.IsEmpty() )
+    {
+        FHoudiniEngineUtils::ConvertUnrealString(
+            HoudiniRuntimeSettings->MarshallingAttributeMaterialHole,
+            MarshallingAttributeMaterialHoleName );
+    }
+
+    // If there's a global landscape hole material, we marshall it as detail.
+    UMaterialInterface * HoleMaterialInterface = LandscapeProxy->GetLandscapeHoleMaterial();
+    const char * HoleMaterialNameStr = "";
+    if ( HoleMaterialInterface )
+    {
+        FString FullMaterialName = HoleMaterialInterface->GetPathName();
+        MaterialNameStr = TCHAR_TO_UTF8( *FullMaterialName );
+    }
+
+    HAPI_AttributeInfo AttributeInfoDetailMaterialHole;
+    FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoDetailMaterialHole );
+    AttributeInfoDetailMaterialHole.count = 1;
+    AttributeInfoDetailMaterialHole.tupleSize = 1;
+    AttributeInfoDetailMaterialHole.exists = true;
+    AttributeInfoDetailMaterialHole.owner = HAPI_ATTROWNER_DETAIL;
+    AttributeInfoDetailMaterialHole.storage = HAPI_STORAGETYPE_STRING;
+    AttributeInfoDetailMaterialHole.originalOwner = HAPI_ATTROWNER_INVALID;
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
+        &AttributeInfoDetailMaterialHole), false );
+
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+        FHoudiniEngine::Get().GetSession(),
+        NodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
+        &AttributeInfoDetailMaterialHole, (const char **)&HoleMaterialNameStr, 0,
+        AttributeInfoDetailMaterialHole.count ), false );
+    
+    return true;
+}
+#endif
 
