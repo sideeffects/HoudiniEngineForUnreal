@@ -4648,7 +4648,7 @@ HAPI_DECL HAPI_GetVolumeBounds( const HAPI_Session * session,
 /// @param[in]      part_id
 ///                 The part id.
 ///
-/// @param[int]     values_array
+/// @param[out]     values_array
 ///                 Heightfield flattened array. Should be at least the size of
 ///                 @p start + @p length.
 ///
