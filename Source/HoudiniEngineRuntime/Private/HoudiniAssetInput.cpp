@@ -45,7 +45,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniLandscapeUtils.h"
 #include "Components/SplineComponent.h"
-#include "Widgets/Layout/SUniformGridPanel.h"
+#include "SlateBasics.h"
 
 void
 FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
