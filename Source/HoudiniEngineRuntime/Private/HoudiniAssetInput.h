@@ -117,8 +117,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Destructor. **/
         virtual ~UHoudiniAssetInput();
 
-public:
-
         /** Create instance of this class for use as an input **/
         static UHoudiniAssetInput * Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_NodeId InNodeId );
         /** Create instance of this class for use as parameter **/
@@ -128,8 +126,6 @@ public:
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo);
 
-    public:
-
         /** Create this parameter from HAPI information - this implementation does nothing as this is not a true parameter. **/
         virtual bool CreateParameter(
             UObject * InPrimaryObject,
@@ -137,8 +133,10 @@ public:
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo) override;
 
-#if WITH_EDITOR
+        /** Sets the default input type from the input/parameter label **/
+        void SetDefaultInputTypeFromLabel();
 
+#if WITH_EDITOR
         /** Create widget for this parameter and add it to a given category. **/
         virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
         /** Create a single geometry widget for the given input object */
@@ -157,15 +155,11 @@ public:
         /** Notification from a child parameter about its change. **/
         virtual void NotifyChildParameterChanged( UHoudiniAssetParameter * HoudiniAssetParameter ) override;
 
-    /** UObject methods. **/
-    public:
-
+        /** UObject methods. **/
         virtual void BeginDestroy() override;
         virtual void Serialize( FArchive & Ar ) override;
         virtual void PostLoad() override;
         static void AddReferencedObjects( UObject * InThis, FReferenceCollector& Collector );
-
-    public:
 
         /** Return id of connected asset id. **/
         HAPI_NodeId GetConnectedAssetId() const;

@@ -227,13 +227,13 @@ UHoudiniAssetInput::Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_
     // Get input string from handle.
     HoudiniAssetInput->SetNameAndLabel( InputStringHandle );
 
-    // By default geometry input is chosen.
-    HoudiniAssetInput->ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
+    HoudiniAssetInput->SetNodeId( InNodeId );
+
+    // Set the default input type from the input's label
+    HoudiniAssetInput->SetDefaultInputTypeFromLabel();
 
     // Create necessary widget resources.
     HoudiniAssetInput->CreateWidgetResources();
-
-    HoudiniAssetInput->SetNodeId( InNodeId );
 
     return HoudiniAssetInput;
 }
@@ -261,15 +261,15 @@ UHoudiniAssetInput::Create(
     // This is being used as a parameter
     HoudiniAssetInput->bIsObjectPathParameter = true;
 
-    // By default geometry input is chosen.
-    HoudiniAssetInput->ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
-
-    // Create necessary widget resources.
-    HoudiniAssetInput->CreateWidgetResources();
-
     HoudiniAssetInput->CreateParameter(InPrimaryObject, InParentParameter, InNodeId, ParmInfo);
 
     HoudiniAssetInput->SetNodeId( InNodeId );
+
+    // Set the default input type from the input's label
+    HoudiniAssetInput->SetDefaultInputTypeFromLabel();
+
+    // Create necessary widget resources.
+    HoudiniAssetInput->CreateWidgetResources();
 
     return HoudiniAssetInput;
 }
@@ -3573,4 +3573,45 @@ UHoudiniAssetInput::GetInputBounds()
 
     return Bounds;
 }
+
+void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
+{
+    // Look if we can find an input type prefix in the input name
+    FString inputName = GetParameterLabel();
+
+    // We'll try to find these magic words to try to detect the default input type
+    //FString geoPrefix = TEXT("geo");
+    FString curvePrefix		= TEXT( "curve" );
+    FString landscapePrefix	= TEXT( "landscape" );
+    FString landscapePrefix2	= TEXT( "terrain" );
+    FString landscapePrefix3	= TEXT( "heightfield" );
+    FString worldPrefix		= TEXT( "world" );
+    FString worldPrefix2	= TEXT( "outliner" );
+    FString assetPrefix		= TEXT( "asset" );
+    FString assetPrefix2	= TEXT( "hda" );
+
+    if ( inputName.Contains( curvePrefix, ESearchCase::IgnoreCase ) )
+        ChangeInputType(EHoudiniAssetInputType::CurveInput);
+
+    else if ( ( inputName.Contains( landscapePrefix, ESearchCase::IgnoreCase ) ) 
+            || ( inputName.Contains( landscapePrefix2, ESearchCase::IgnoreCase ) )
+            || ( inputName.Contains( landscapePrefix3, ESearchCase::IgnoreCase ) ) )
+        ChangeInputType(EHoudiniAssetInputType::LandscapeInput);
+
+    else if ( ( inputName.Contains( worldPrefix, ESearchCase::IgnoreCase ) )
+            || ( inputName.Contains( worldPrefix2, ESearchCase::IgnoreCase ) ) )
+        ChangeInputType(EHoudiniAssetInputType::WorldInput);
+
+    else if ( ( inputName.Contains( assetPrefix, ESearchCase::IgnoreCase ) )
+            || ( inputName.Contains( assetPrefix, ESearchCase::IgnoreCase ) ) )
+        ChangeInputType(EHoudiniAssetInputType::AssetInput);
+
+    else
+    {
+        // By default, geometry input is chosen.
+        ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
+    }
+}
+
+#undef LOCTEXT_NAMESPACE
 
