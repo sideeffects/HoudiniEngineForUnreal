@@ -1967,7 +1967,6 @@ UHoudiniAssetInput::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo
     ChangeInputType(newChoice);
 }
 
-
 bool
 UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 {
@@ -3576,6 +3575,7 @@ UHoudiniAssetInput::GetInputBounds()
 
 void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
 {
+#if WITH_EDITOR
     // Look if we can find an input type prefix in the input name
     FString inputName = GetParameterLabel();
 
@@ -3591,7 +3591,7 @@ void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
     FString assetPrefix2	= TEXT( "hda" );
 
     if ( inputName.Contains( curvePrefix, ESearchCase::IgnoreCase ) )
-        ChangeInputType(EHoudiniAssetInputType::CurveInput);
+        ChangeInputType( EHoudiniAssetInputType::CurveInput );
 
     else if ( ( inputName.Contains( landscapePrefix, ESearchCase::IgnoreCase ) ) 
             || ( inputName.Contains( landscapePrefix2, ESearchCase::IgnoreCase ) )
@@ -3611,6 +3611,9 @@ void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
         // By default, geometry input is chosen.
         ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
     }
+#else
+    ChoiceIndex = EHoudiniAssetInputType::GeometryInput;
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE
