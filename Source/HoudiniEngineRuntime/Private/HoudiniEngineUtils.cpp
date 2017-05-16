@@ -2485,11 +2485,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         if ( !FHoudiniLandscapeUtils::CreateHeightfieldInputNode( ConnectedAssetId, LandscapeName ) )
             return false;
 
-        if ( !FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, ConnectedAssetId, OutCreatedNodeIds ) )
-            return false;
-
-        /*
-        if ( SelectedComponents.Num() <= 1 )
+        int32 NumComponents = LandscapeProxy->LandscapeComponents.Num();
+        if ( !bExportOnlySelected || ( SelectedComponents.Num() == NumComponents ) )
         {
             // Export the whole landscape and its layer as a single heightfield
             return FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, ConnectedAssetId, OutCreatedNodeIds );
@@ -2499,8 +2496,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             // Each selected landscape component will be exported as a separate heightfield
             return FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, ConnectedAssetId, OutCreatedNodeIds );
         }
-        */
-
+        
         /*
         // Create part info
         HAPI_PartInfo Part;
