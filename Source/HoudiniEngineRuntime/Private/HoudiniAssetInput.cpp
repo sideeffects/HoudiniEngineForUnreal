@@ -700,10 +700,6 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
                     this, &UHoudiniAssetInput::CheckStateChangedExportOnlySelected ) )
             ];
-
-            // Disable when exporting heightfields
-            if ( bLandscapeExportAsHeightfield )
-                CheckBoxExportSelected->SetEnabled(false);
         }
 
         // Checkboxes auto select components
@@ -728,7 +724,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
 
             // Enable only when exporting selection
             // or when exporting heighfield (for now)
-            if ( !bLandscapeExportSelectionOnly || bLandscapeExportAsHeightfield )
+            if ( !bLandscapeExportSelectionOnly )
                 CheckBoxAutoSelectComponents->SetEnabled( false );
         }
 
