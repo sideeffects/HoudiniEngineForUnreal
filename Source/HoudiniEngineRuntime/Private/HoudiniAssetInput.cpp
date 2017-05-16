@@ -1968,50 +1968,54 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 {
     switch (ChoiceIndex)
     {
-	case EHoudiniAssetInputType::GeometryInput:
-	{
-	    // We are switching away from geometry input.
-	    break;
-	}
+        case EHoudiniAssetInputType::GeometryInput:
+        {
+            // We are switching away from geometry input.
+            break;
+        }
 
-	case EHoudiniAssetInputType::AssetInput:
-	{
-	    // We are switching away from asset input.  WIll be handled in DisconnectAndDestroyInputAsset
-	    break;
-	}
+        case EHoudiniAssetInputType::AssetInput:
+        {
+            // We are switching away from asset input.  WIll be handled in DisconnectAndDestroyInputAsset
+            break;
+        }
 
-	case EHoudiniAssetInputType::CurveInput:
-	{
-	    // We are switching away from curve input.
-	    DisconnectInputCurve();
-	    break;
-	}
+        case EHoudiniAssetInputType::CurveInput:
+        {
+            // We are switching away from curve input.
+            DisconnectInputCurve();
+            break;
+        }
 
-	case EHoudiniAssetInputType::LandscapeInput:
-	{
-	    // We are switching away from landscape input.
+        case EHoudiniAssetInputType::LandscapeInput:
+        {
+            /*
+            // We are switching away from landscape input.
+            if ( newType != ChoiceIndex )
+            {
+                // Reset selected landscape.
+                InputLandscapeProxy = nullptr;
+            }
+            */
+            break;
+        }
 
-	    // Reset selected landscape.
-	    InputLandscapeProxy = nullptr;
-	    break;
-	}
+        case EHoudiniAssetInputType::WorldInput:
+        {
+            // We are switching away from World Outliner input.
 
-	case EHoudiniAssetInputType::WorldInput:
-	{
-	    // We are switching away from World Outliner input.
+            // Stop monitoring the Actors for transform changes.
+            StopWorldOutlinerTicking();
 
-	    // Stop monitoring the Actors for transform changes.
-	    StopWorldOutlinerTicking();
+            break;
+        }
 
-	    break;
-	}
-
-	default:
-	{
-	    // Unhandled new input type?
-	    check(0);
-	    break;
-	}
+        default:
+        {
+            // Unhandled new input type?
+            check(0);
+            break;
+        }
     }
 
     // Disconnect currently connected asset.
@@ -2027,26 +2031,26 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
     // Switch mode.
     switch (newType)
     {
-	case EHoudiniAssetInputType::GeometryInput:
-	{
-	    // We are switching to geometry input.
-	    if (InputObjects.Num())
-		bStaticMeshChanged = true;
-	    break;
-	}
+        case EHoudiniAssetInputType::GeometryInput:
+        {
+            // We are switching to geometry input.
+            if (InputObjects.Num())
+                bStaticMeshChanged = true;
+            break;
+        }
 
-	case EHoudiniAssetInputType::AssetInput:
-	{
-	    // We are switching to asset input.
-	    ConnectInputAssetActor();
-	    break;
-	}
+        case EHoudiniAssetInputType::AssetInput:
+        {
+            // We are switching to asset input.
+            ConnectInputAssetActor();
+            break;
+        }
 
-	case EHoudiniAssetInputType::CurveInput:
-	{
-	    // We are switching to curve input.
+        case EHoudiniAssetInputType::CurveInput:
+        {
+            // We are switching to curve input.
 
-	    // Create new spline component if necessary.
+            // Create new spline component if necessary.
             if( USceneComponent* RootComp = GetHoudiniAssetComponent() )
             {
                 if( !InputCurve )
@@ -2063,40 +2067,40 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
 
                 bSwitchedToCurve = true;
             }
-	    break;
-	}
+            break;
+        }
 
-	case EHoudiniAssetInputType::LandscapeInput:
-	{
-	    // We are switching to Landscape input.
-	    break;
-	}
+        case EHoudiniAssetInputType::LandscapeInput:
+        {
+            // We are switching to Landscape input.
+            break;
+        }
 
-	case EHoudiniAssetInputType::WorldInput:
-	{
-	    // We are switching to World Outliner input.
+        case EHoudiniAssetInputType::WorldInput:
+        {
+            // We are switching to World Outliner input.
 
-	    // Start monitoring the Actors for transform changes.
-	    StartWorldOutlinerTicking();
+            // Start monitoring the Actors for transform changes.
+            StartWorldOutlinerTicking();
 
-	    // Force recook and reconnect of the input assets.
-	    HAPI_NodeId HostAssetId = GetAssetId();
-	    if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
-		HostAssetId, InputOutlinerMeshArray,
-		ConnectedAssetId, UnrealSplineResolution))
-	    {
-		ConnectInputNode();
-	    }
+            // Force recook and reconnect of the input assets.
+            HAPI_NodeId HostAssetId = GetAssetId();
+            if (FHoudiniEngineUtils::HapiCreateInputNodeForData(
+                HostAssetId, InputOutlinerMeshArray,
+                ConnectedAssetId, UnrealSplineResolution))
+            {
+                ConnectInputNode();
+            }
 
-	    break;
-	}
+            break;
+        }
 
-	default:
-	{
-	    // Unhandled new input type?
-	    check(0);
-	    break;
-	}
+        default:
+        {
+            // Unhandled new input type?
+            check(0);
+            break;
+        }
     }
 
     // If we have input object and geometry asset, we need to connect it back.
@@ -2396,7 +2400,7 @@ UHoudiniAssetInput::GetConnectedAssetId() const
 bool
 UHoudiniAssetInput::IsGeometryAssetConnected() const
 {
-    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
+    if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput ) )
     {
         for ( auto InputObject : InputObjects )
         {
@@ -2412,7 +2416,10 @@ bool
 UHoudiniAssetInput::IsInputAssetConnected() const
 {
     if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && InputAssetComponent && bInputAssetConnectedInHoudini )
-        return true;
+    {
+        if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
+            return true;
+    }
 
     return false;
 }
