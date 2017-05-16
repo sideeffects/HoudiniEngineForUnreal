@@ -3632,4 +3632,11 @@ void UHoudiniAssetInput::SetDefaultInputTypeFromLabel()
 #endif
 }
 
+bool
+UHoudiniAssetInput::HasChanged() const
+{
+    // Inputs should be considered changed after being loaded
+    return bChanged || bLoadedParameter || !bInputAssetConnectedInHoudini;
+}
+
 #undef LOCTEXT_NAMESPACE
