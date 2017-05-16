@@ -212,6 +212,14 @@ FHoudiniLandscapeUtils::CalcHeightfieldsArrayGlobalZMinZMax(
         if ( NodeId == -1 )
             continue;
 
+        // Retrieve the VolumeInfo
+        HAPI_VolumeInfo CurrentVolumeInfo;
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeInfo(
+            FHoudiniEngine::Get().GetSession(),
+            NodeId, CurrentHeightfield->PartId,
+            &CurrentVolumeInfo ) )
+            continue;
+
         float ymin, ymax;
         if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeBounds( FHoudiniEngine::Get().GetSession(),
             NodeId, CurrentHeightfield->PartId,
@@ -993,32 +1001,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
         return false;
 
     //--------------------------------------------------------------------------------------------------
-    // 1. Get the global min/max values of the heightfield
-    //--------------------------------------------------------------------------------------------------    
-    float fGlobalZMin = MAX_FLT;
-    float fGlobalZMax = -MAX_FLT;
-    for (int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++)
-    {
-        ULandscapeComponent * CurrentComponent = LandscapeProxy->LandscapeComponents[ComponentIdx];
-        if (!CurrentComponent)
-            continue;
-
-        if (!LandscapeComponentArray.Contains(CurrentComponent))
-            continue;
-
-        FVector Origin = CurrentComponent->Bounds.Origin;
-        FVector Extents = CurrentComponent->Bounds.BoxExtent;
-        FVector Min = Origin - Extents;
-        FVector Max = Origin + Extents;
-
-        if ( Min.Z < fGlobalZMin )
-            fGlobalZMin = Min.Z;
-        if ( Max.Z  > fGlobalZMax )
-            fGlobalZMax = Max.Z;
-    }
-
-    //--------------------------------------------------------------------------------------------------
-    // 2. Each selected component will be exported as heightfield volumes
+    //  Each selected component will be exported as a heightfield volume
     //--------------------------------------------------------------------------------------------------    
     int32 MergeInputIndex = 0;
     bool bAllComponentCreated = true;
@@ -1031,7 +1014,7 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
         if ( !LandscapeComponentArray.Contains( CurrentComponent ) )
             continue;
 
-        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, InputMergeNodeId, fGlobalZMin, fGlobalZMax, OutCreatedNodeIds, MergeInputIndex ) )
+        if ( !CreateHeightfieldFromLandscapeComponent( CurrentComponent, InputMergeNodeId, OutCreatedNodeIds, MergeInputIndex ) )
             bAllComponentCreated = false;
     }
 
@@ -1042,7 +1025,6 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray(
 bool
 FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& InputMergeNodeId,
-    const float& fGlobalZMin, const float& fGlobalZMax,
     TArray< HAPI_NodeId >& OutCreatedNodeIds, int32& MergeInputIndex )
 {
     if ( !LandscapeComponent )
@@ -1070,8 +1052,6 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     FVector Extents = LandscapeComponent->Bounds.BoxExtent;
     FVector Min = Origin - Extents;
     FVector Max = Origin + Extents;
-    Min.Z = fGlobalZMin;
-    Max.Z = fGlobalZMax;
 
     //--------------------------------------------------------------------------------------------------
     // 2. Convert the height uint16 data to float
@@ -1404,6 +1384,7 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
         FVector CenterOffset = ( Max - Min ) * 0.5f;
 
         FVector Position = LandscapeTransform.GetLocation() / 100.0f;
+        Swap( Position.X, Position.Y );
         HapiTransform.position[ 0 ] = Position.X + CenterOffset.X;
         HapiTransform.position[ 1 ] = Position.Y + CenterOffset.Y;
         HapiTransform.position[ 2 ] = 0.0f;// Position.Z;// +CenterOffset.Z;
@@ -1412,6 +1393,10 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
         HapiTransform.scale[ 0 ] = Scale.X * 0.5f * HoudiniXSize;
         HapiTransform.scale[ 1 ] = Scale.Y * 0.5f * HoudiniYSize;
         HapiTransform.scale[ 2 ] = 0.5f;
+
+        HapiTransform.shear[ 0 ] = 0.0f;
+        HapiTransform.shear[ 1 ] = 0.0f;
+        HapiTransform.shear[ 2 ] = 0.0f;
     }
 
     //--------------------------------------------------------------------------------------------------

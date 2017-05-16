@@ -115,7 +115,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
         // Creates a Heightfield from a Landscape Component
         static bool CreateHeightfieldFromLandscapeComponent(
             ULandscapeComponent * LandscapeComponent, const HAPI_NodeId& InputMergeNodeId,
-            const float& fGlobalZMin, const float& fGlobalZMax,
             TArray< HAPI_NodeId >& OutCreatedNodeIds, int32& MergeInputIndex );
 
         // Extracts the uint16 values of a given landscape
