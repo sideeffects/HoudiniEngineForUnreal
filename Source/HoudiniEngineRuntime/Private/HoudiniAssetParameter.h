@@ -96,7 +96,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
     public:
 
         /** Return true if this parameter has been changed. **/
-        bool HasChanged() const;
+        virtual bool HasChanged() const;
 
         /** Return hash value for this object, used when using this object as a key inside hashing containers. **/
         uint32 GetTypeHash() const;
