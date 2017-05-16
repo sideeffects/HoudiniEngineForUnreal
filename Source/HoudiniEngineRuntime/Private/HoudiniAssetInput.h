@@ -215,6 +215,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         // Return the bounds of this input
         FBox GetInputBounds();
 
+        /** Return true if this parameter has been changed. **/
+        bool HasChanged() const override;
+
     protected:
 
 #if WITH_EDITOR
