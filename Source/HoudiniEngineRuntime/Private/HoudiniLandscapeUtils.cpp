@@ -1062,6 +1062,9 @@ FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponent(
     HAPI_VolumeInfo HeightfieldVolumeInfo;
 
     FTransform LandscapeTransform = LandscapeComponent->GetComponentTransform();
+    FVector Position = LandscapeTransform.GetLocation();
+    Swap( Position.X, Position.Y );
+    LandscapeTransform.SetLocation( Position );
 
     if ( !ConvertLandscapeDataToHeightfieldData(
         HeightData, XSize, YSize, Min, Max, LandscapeTransform,
@@ -1386,7 +1389,6 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
         FVector CenterOffset = ( Max - Min ) * 0.5f;
 
         FVector Position = LandscapeTransform.GetLocation() / 100.0f;
-        Swap( Position.X, Position.Y );
         HapiTransform.position[ 0 ] = Position.X + CenterOffset.X;
         HapiTransform.position[ 1 ] = Position.Y + CenterOffset.Y;
         HapiTransform.position[ 2 ] = 0.0f;// Position.Z;// +CenterOffset.Z;
