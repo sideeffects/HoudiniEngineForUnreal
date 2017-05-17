@@ -460,12 +460,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
 
-        /** Helper function used get the desired cook behavior for Materials and textures **/
-        static EBakeMode GetMaterialAndTextureCookMode();
-
-        /** Helper function used get the desired cook behavior forStatic Meshes **/
-        static EBakeMode GetStaticMeshesCookMode();
-
         /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
         static char * ExtractRawName(const FString & Name);
 
@@ -531,18 +525,15 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
         /** and their corresponding packages. **/
         static UMaterial * DuplicateMaterialAndCreatePackage(
-            UMaterial * Material, FHoudiniCookParams& HoudiniCookParams,
-            const FString & SubMaterialName, EBakeMode BakeMode );
+            UMaterial * Material, FHoudiniCookParams& HoudiniCookParams, const FString & SubMaterialName );
 
         /** Duplicate a given texture. This will create a new package for it. **/
         static UTexture2D * DuplicateTextureAndCreatePackage(
-            UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams,
-            const FString & SubTextureName, EBakeMode BakeMode );
+            UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams, const FString & SubTextureName );
 
         /** Replace duplicated texture with a new copy within a given sampling expression. **/
         static void ReplaceDuplicatedMaterialTextureSample(
-            UMaterialExpression * MaterialExpression,
-            FHoudiniCookParams& HoudiniCookParams, EBakeMode BakeMode );
+            UMaterialExpression * MaterialExpression, FHoudiniCookParams& HoudiniCookParams );
 
         /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
         static bool StaticMeshRequiresBake( const UStaticMesh * StaticMesh );

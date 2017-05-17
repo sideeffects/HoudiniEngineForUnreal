@@ -1209,8 +1209,8 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
     TMap< FHoudiniGeoPartObject, UStaticMesh * > NewStaticMeshes;
     
     FHoudiniCookParams HoudiniCookParams( this );
-    HoudiniCookParams.StaticMeshBakeMode = FHoudiniEngineUtils::GetStaticMeshesCookMode();
-    HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniEngineUtils::GetMaterialAndTextureCookMode();
+    HoudiniCookParams.StaticMeshBakeMode = FHoudiniCookParams::GetDefaultStaticMeshesCookMode();
+    HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
 
     if ( FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         GetAssetId(),
@@ -2248,7 +2248,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
 
         // Duplicate static mesh and all related generated Houdini materials and textures.
         UStaticMesh * DuplicatedStaticMesh =
-            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniEngineUtils::GetStaticMeshesCookMode() );
+            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniCookParams::GetDefaultStaticMeshesCookMode() );
 
         if( DuplicatedStaticMesh )
         {
