@@ -9325,11 +9325,18 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 {
     UStaticMesh * DuplicatedStaticMesh = nullptr;
 
-    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() && !HoudiniGeoPartObject.IsVolume())
+    if ( !HoudiniGeoPartObject.IsCurve() && !HoudiniGeoPartObject.IsInstancer() && !HoudiniGeoPartObject.IsPackedPrimitiveInstancer() && !HoudiniGeoPartObject.IsVolume() )
     {
         // Create package for this duplicated mesh.
         FHoudiniCookParams HoudiniCookParams( Component );
+        // Transferring the CookMode to the materials
+        // We're either using the default one, or a custom one
         HoudiniCookParams.StaticMeshBakeMode = BakeMode;
+        if ( BakeMode == FHoudiniCookParams::GetDefaultStaticMeshesCookMode() )
+            HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
+        else
+            HoudiniCookParams.MaterialAndTextureBakeMode = BakeMode;
+
         FString MeshName;
         FGuid MeshGuid;
 
@@ -9374,7 +9381,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
                         {
                             // Duplicate material resource.
                             UMaterial * DuplicatedMaterial = FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-                                Material, HoudiniCookParams, MaterialName, FHoudiniEngineUtils::GetMaterialAndTextureCookMode() );
+                                Material, HoudiniCookParams, MaterialName );
 
                             if( !DuplicatedMaterial )
                                 continue;
@@ -9407,8 +9414,7 @@ FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
 
 UMaterial *
 FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
-    UMaterial * Material, FHoudiniCookParams& HoudiniCookParams,
-    const FString & SubMaterialName, EBakeMode BakeMode )
+    UMaterial * Material, FHoudiniCookParams& HoudiniCookParams, const FString & SubMaterialName )
 {
     UMaterial * DuplicatedMaterial = nullptr;
 
@@ -9423,7 +9429,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
     // Clone material.
     DuplicatedMaterial = DuplicateObject< UMaterial >( Material, MaterialPackage, *MaterialName );
 
-    if ( BakeMode != EBakeMode::Intermediate )
+    if ( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
         DuplicatedMaterial->SetFlags( RF_Public | RF_Standalone );
 
     // Add meta information.
@@ -9439,7 +9445,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
     for ( auto& Expression : DuplicatedMaterial->Expressions )
     {
         FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-            Expression, HoudiniCookParams, BakeMode );
+            Expression, HoudiniCookParams );
     }
 
     // Notify registry that we have created a new duplicate material.
@@ -9456,8 +9462,7 @@ FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
 
 void
 FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
-    UMaterialExpression * MaterialExpression,
-    FHoudiniCookParams& HoudiniCookParams, EBakeMode BakeMode )
+    UMaterialExpression * MaterialExpression, FHoudiniCookParams& HoudiniCookParams )
 {
     UMaterialExpressionTextureSample * TextureSample = Cast< UMaterialExpressionTextureSample >( MaterialExpression );
     if ( TextureSample )
@@ -9474,7 +9479,7 @@ FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
                 {
                     // Duplicate texture.
                     UTexture2D * DuplicatedTexture = FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
-                        Texture, HoudiniCookParams, GeneratedTextureName, BakeMode );
+                        Texture, HoudiniCookParams, GeneratedTextureName );
 
                     // Re-assign generated texture.
                     TextureSample->Texture = DuplicatedTexture;
@@ -9486,8 +9491,7 @@ FHoudiniEngineUtils::ReplaceDuplicatedMaterialTextureSample(
 
 UTexture2D *
 FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
-    UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams,
-    const FString & SubTextureName, EBakeMode BakeMode )
+    UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams, const FString & SubTextureName )
 {
     UTexture2D* DuplicatedTexture = nullptr;
 
@@ -9516,7 +9520,7 @@ FHoudiniEngineUtils::DuplicateTextureAndCreatePackage(
                 // Clone texture.
                 DuplicatedTexture = DuplicateObject< UTexture2D >( Texture, NewTexturePackage, *TextureName );
 
-                if ( BakeMode != EBakeMode::Intermediate )
+                if ( HoudiniCookParams.MaterialAndTextureBakeMode != EBakeMode::Intermediate )
                     DuplicatedTexture->SetFlags( RF_Public | RF_Standalone );
 
                 // Add meta information.
@@ -10382,18 +10386,6 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
             //StringProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< FString >( SMC ), Value );
         }
     }
-}
-
-EBakeMode
-FHoudiniEngineUtils::GetMaterialAndTextureCookMode()
-{
-    return EBakeMode::CookToTemp; //Intermediate;
-}
-
-EBakeMode
-FHoudiniEngineUtils::GetStaticMeshesCookMode()
-{
-    return EBakeMode::Intermediate; // CookToTemp;
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
