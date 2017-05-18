@@ -5189,7 +5189,29 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             }
                         }
 
-                        // Transfer indices.
+                        //
+                        // Transfer indices:
+                        //
+                        // Because of the split, we don't need to declare all the vertices in the mesh,
+                        // but only the one that are currently used by the split's faces.
+                        // We need the indicesMapper array to map those indices from all the vertices
+                        // in the part to only the one we need
+                        // We also keep track of the needed vertices index to declare them properly afterwards.
+                        //
+
+                        // IndicesMapper:
+                        // Contains "AllVertices" values
+                        // -1 for unused vertices or the "NewIndex" for used vertices
+                        // IndicesMapper[ oldIndex ] => newIndex
+                        TArray< int32 > IndicesMapper;
+                        IndicesMapper.Init( -1, SplitGroupVertexList.Num() );
+                        int32 CurrentMapperIndex = 0;
+
+                        // Neededvertices:
+                        // Contains the old index of the needed vertices for the current split
+                        // NeededVertices[ newIndex ] => oldIndex
+                        TArray< int32 > NeededVertices;
+
                         RawMesh.WedgeIndices.SetNumZeroed( SplitGroupVertexListCount );
                         int32 ValidVertexId = 0;
                         for ( int32 VertexIdx = 0; VertexIdx < SplitGroupVertexList.Num(); VertexIdx += 3 )
@@ -5203,6 +5225,22 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 SplitGroupVertexList[ VertexIdx + 1 ],
                                 SplitGroupVertexList[ VertexIdx + 2 ]
                             };
+
+                            // Converting Old Indices to New Indices:
+                            for ( int32 n = 0; n < 3; n++ )
+                            {
+                                if ( IndicesMapper[ WedgeIndices[ n ] ] < 0 )
+                                {
+                                    // This old index was not yet "converted" to a new index
+                                    NeededVertices.Add( WedgeIndices[ n ] );
+
+                                    IndicesMapper[ WedgeIndices[ n ] ] = CurrentMapperIndex;
+                                    CurrentMapperIndex++;
+                                }
+                               
+                                // Replace the old index with the new one
+                                WedgeIndices[ n ] = IndicesMapper[ WedgeIndices[ n ] ];
+                            }
 
                             if ( ValidVertexId >= SplitGroupVertexListCount )
                                 continue;
@@ -5257,25 +5295,33 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             ValidVertexId += 3;
                         }
 
-                        // Transfer vertex positions.
-                        int32 VertexPositionsCount = Positions.Num() / 3;
+                        //
+                        // Transfer vertex positions:
+                        //
+                        // Because of the split, we're only interested in the needed vertices.
+                        // Instead of declaring all the Positions, we'll only declare the vertices
+                        // needed by the current split.
+                        //
+                        int32 VertexPositionsCount = NeededVertices.Num();// Positions.Num() / 3;
                         RawMesh.VertexPositions.SetNumZeroed( VertexPositionsCount );
                         for ( int32 VertexPositionIdx = 0; VertexPositionIdx < VertexPositionsCount; ++VertexPositionIdx )
                         {
+                            int32 NeededVertexIndex = NeededVertices[ VertexPositionIdx ];
+
                             FVector VertexPosition;
                             if ( ImportAxis == HRSAI_Unreal )
                             {
                                 // We need to swap Z and Y coordinate here.
-                                VertexPosition.X = Positions[ VertexPositionIdx * 3 + 0 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Y = Positions[ VertexPositionIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Z = Positions[ VertexPositionIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.X = Positions[ NeededVertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Y = Positions[ NeededVertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Z = Positions[ NeededVertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
                             }
                             else if ( ImportAxis == HRSAI_Houdini )
                             {
                                 // No swap required.
-                                VertexPosition.X = Positions[ VertexPositionIdx * 3 + 0 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Y = Positions[ VertexPositionIdx * 3 + 1 ] * GeneratedGeometryScaleFactor;
-                                VertexPosition.Z = Positions[ VertexPositionIdx * 3 + 2 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.X = Positions[ NeededVertexIndex * 3 + 0 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Y = Positions[ NeededVertexIndex * 3 + 1 ] * GeneratedGeometryScaleFactor;
+                                VertexPosition.Z = Positions[ NeededVertexIndex * 3 + 2 ] * GeneratedGeometryScaleFactor;
                             }
                             else
                             {
