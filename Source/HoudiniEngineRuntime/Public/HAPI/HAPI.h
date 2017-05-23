@@ -5151,22 +5151,78 @@ HAPI_DECL HAPI_LoadGeoFromMemory( const HAPI_Session * session,
                                   const char * buffer,
                                   int length );
 
-
-// @brief  Starts cooking of a top node.  This is asynchronous.  Progress can 
-///        be checked with HAPI_GetPDGState.
+// @brief  Return an array of PDG graph context names and ids, the first 
+///        count names will be returned.  These ids can be used 
+///        with ::HAPI_GetPDGEvents and ::HAPI_GetPDGState.  The values
+///        of the names can be retrieved with ::HAPI_GetString.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      node_id
-///                 The node id of the pdg network node
+/// @param[out]     num_contexts
+///                 Total number of PDG graph contexts found.
 ///
-HAPI_DECL HAPI_CookPDGTopNode( const HAPI_Session * session,
-                               HAPI_NodeId node_id );
+/// @param[out]     context_names_array
+///                 Array of int (string handles) to house the
+///                 context names.  These handles are valid until the next
+///                 call to this function.
+///
+/// @param[out]     context_id_array
+///                 Array of graph context ids.
+///
+/// @param[in]      count
+///                 Length of context_names_array and context_id_array
+///
+HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
+                                    int * num_contexts,
+                                    HAPI_StringHandle * context_names_array,
+                                    HAPI_PDG_GraphContextId * context_id_array,
+                                    int count );
 
-// @brief  Starts execution of a top node graph
+// @brief  Starts a PDG cooking operation.  This can be asynchronous.  
+///        Progress can be checked with ::HAPI_GetPDGState and ::HAPI_GetPDGState.
+///        Events generated during this cook can be collected with ::HAPI_GetPDGEvents.
+///        Any uncollected events will be discarded at the start of the cook.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      graph_context_id
+///                 The id of the graph context 
+///
+/// @param[in]      cook_node_id
+///                 The node id of the TOP node for the cook operation.  This is relevant for
+///                 cook_type HAPI_PDG_COOK_PUSH, HAPI_PDG_COOK_NODE, and HAPI_PDG_COOK_NODEGEN
+///
+/// @param[in]      cook_type
+///                 The ::HAPI_PDG_CookType cooking mode to perform.
+///
+/// @param[in]      workitem_id_array
+///                 The workitems the cook is relative to.  This is relevant for
+///                 cook_type HAPI_PDG_COOK_PUSH, HAPI_PDG_COOK_NODE, and HAPI_PDG_COOK_NODEGEN
+///
+/// @param[in]      workitem_id_array_count
+///                 The length of workitem_id_array.
+///
+/// @param[in]      blocking
+///                 0 means return immediately and cooking will be done 
+///                 asynchronously.   1 means return when cooking completes.
+///
+HAPI_DECL HAPI_CookPDG( const HAPI_Session * session,
+                        HAPI_PDG_GraphContextId graph_context_id,
+                        HAPI_NodeId cook_node_id,
+                        HAPI_PDG_CookType cook_type,
+                        const int * workitem_id_array,
+                        int workitem_id_array_count,
+                        int blocking );
+
+// @brief  Returns PDG events that have been collected.  Calling this function
+///        will remove those events from the queue.  Events collection is restarted
+///        by calls to ::HAPI_CookPDG.
 ///
 ///
 /// @param[in]      session
@@ -5174,11 +5230,11 @@ HAPI_DECL HAPI_CookPDGTopNode( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      node_id
-///                 The node id of the pdg network node
+/// @param[in]      graph_context_id
+///                 The id of the graph context 
 ///
 /// @param[out]     event_infos
-///                 buffer of HAPI_PDG_EventInfo of size at least #length
+///                 buffer of ::HAPI_PDG_EventInfo of size at least length.
 ///
 /// @param[in]      length
 ///                 The size of the buffer passed in.
@@ -5190,13 +5246,13 @@ HAPI_DECL HAPI_CookPDGTopNode( const HAPI_Session * session,
 ///                 Number of queued events remaining after this operation.
 ///
 HAPI_DECL HAPI_GetPDGEvents( const HAPI_Session * session,
-                             HAPI_NodeId node_id,
+                             HAPI_PDG_GraphContextId graph_context_id,
                              HAPI_PDG_EventInfo * event_array,
                              int length,
                              int * event_count,
                              int * remaining_events );
 
-// @brief  Gets the state of the PDG graph
+// @brief  Gets the state of a PDG graph
 ///
 ///
 /// @param[in]      session
@@ -5204,19 +5260,20 @@ HAPI_DECL HAPI_GetPDGEvents( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      node_id
-///                 The node id of the pdg network node
+/// @param[in]      graph_context_id
+///                 The graph context id
 ///
 /// @param[out]     pdg_state
 ///                 One of ::HAPI_PDGState.
 ///
 HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session, 
-                            HAPI_NodeId node_id, int * pdg_state );
+                            HAPI_PDG_GraphContextId graph_context_id, 
+                            int * pdg_state );
 
 
 // @brief  Creates a new pending workitem for the given node.  The workitem
 ///        will not be submitted to the graph until it is committed with 
-///        HAPI_CommitWorkitems.  The node is expected to be a generator type.
+///        ::HAPI_CommitWorkitems.  The node is expected to be a generator type.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5234,8 +5291,8 @@ HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session,
 ///                 be automatically suffixed to make it unique.
 ///
 /// @param[in]      index
-///                 The index of the workitem.  The semantics of this index depend
-///                 on the graph.
+///                 The index of the workitem.  The semantics of the index
+///                 are user defined.
 ///
 /// @param[in]      state
 ///                 The initial state of the workitem.
@@ -5246,6 +5303,29 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
                                const char * name,
                                int index,
                                HAPI_PDG_WorkitemState state );
+
+// @brief  Retrieves the info of a given workitem by id.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      workitem_id
+///                 The id of the workitem.
+///
+/// @param[out]     workitem_info
+///                 The returned ::HAPI_PDG_WorkitemInfo for the workitem.  Note
+///                 that the enclosed string handle is only valid until the next
+///                 call to this function.
+///
+HAPI_DECL HAPI_GetWorkitemInfo( const HAPI_Session * session,
+                                HAPI_NodeId node_id,
+                                HAPI_PDG_WorkitemId workitem_id,
+                                HAPI_PDG_WorkitemInfo * workitem_info );
 
 // @brief  Adds integer data to a pending PDG workitem data member for the given node.
 ///
@@ -5259,7 +5339,7 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     workitem_id
-///                 The id of the pending workitem returned by HAPI_CreateWorkitem
+///                 The id of the pending workitem returned by ::HAPI_CreateWorkitem
 ///
 /// @param[in]      data_name
 ///                 null-terminated name of the data member
@@ -5270,7 +5350,7 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
 /// @param[in]      length
 ///                 number of values to copy from values_array to the parameter
 ///
-HAPI_DECL HAPI_AddWorkitemIntData( const HAPI_Session * session,
+HAPI_DECL HAPI_SetWorkitemIntData( const HAPI_Session * session,
                                    HAPI_NodeId node_id,
                                    HAPI_PDG_WorkitemId workitem_id,
                                    const char * data_name,
@@ -5289,7 +5369,7 @@ HAPI_DECL HAPI_AddWorkitemIntData( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     workitem_id
-///                 The id of the pending workitem returned by HAPI_CreateWorkitem
+///                 The id of the pending workitem returned by ::HAPI_CreateWorkitem
 ///
 /// @param[in]      data_name
 ///                 null-terminated name of the workitem data member
@@ -5300,7 +5380,7 @@ HAPI_DECL HAPI_AddWorkitemIntData( const HAPI_Session * session,
 /// @param[in]      length
 ///                 number of values to copy from values_array to the parameter
 ///
-HAPI_DECL HAPI_AddWorkitemFloatData( const HAPI_Session * session,
+HAPI_DECL HAPI_SetWorkitemFloatData( const HAPI_Session * session,
                                      HAPI_NodeId node_id,
                                      HAPI_PDG_WorkitemId workitem_id,
                                      const char * data_name,
@@ -5327,13 +5407,13 @@ HAPI_DECL HAPI_AddWorkitemFloatData( const HAPI_Session * session,
 /// @param[in]      value
 ///                 null-terminated string to copy to the workitem data member
 ///
-HAPI_DECL HAPI_AddWorkitemStringData( const HAPI_Session * session,
+HAPI_DECL HAPI_SetWorkitemStringData( const HAPI_Session * session,
                                       HAPI_NodeId node_id,
                                       HAPI_PDG_WorkitemId workitem_id,
                                       const char * data_name,
                                       const char * value );
 
-// @brief  Commits any created but uncommited workitems.
+// @brief  Commits any pending workitems.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5341,12 +5421,14 @@ HAPI_DECL HAPI_AddWorkitemStringData( const HAPI_Session * session,
 ///                 Pass NULL to just use the default in-process session.
 ///
 /// @param[in]      node_id
-///                 The node id.
+///                 The node id for which the pending workitems have been
+///                 created but not yet injected.
 ///
 HAPI_DECL HAPI_CommitWorkitems( const HAPI_Session * session,
                                 HAPI_NodeId node_id );
 
-// @brief  Gets the number of workitems that are availible on the given node.
+// @brief  Gets the number of workitems that are available on the given node.
+///        Should be used with ::HAPI_GetWorkitems.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -5357,7 +5439,7 @@ HAPI_DECL HAPI_CommitWorkitems( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     num
-///                 The number of workitems, should be used with HAPI_GetWorkitems.
+///                 The number of workitems.
 ///
 HAPI_DECL HAPI_GetNumWorkitems( const HAPI_Session * session,
                                 HAPI_NodeId node_id,
@@ -5374,7 +5456,7 @@ HAPI_DECL HAPI_GetNumWorkitems( const HAPI_Session * session,
 ///                 The node id.
 ///
 /// @param[out]     workitem_ids
-///                 buffer for resulting array of HAPI_Workitem_Id
+///                 buffer for resulting array of ::HAPI_PDG_WorkitemId
 ///
 /// @param[in]      length
 ///                 The length of the workitem_ids buffer
@@ -5428,7 +5510,7 @@ HAPI_DECL HAPI_GetWorkitemDataLength( const HAPI_Session * session,
 ///                 null-terminated name of the data member
 ///
 /// @param[out]     data_array
-///                 buffer of at least size #length to copy the data into.  The required
+///                 buffer of at least size length to copy the data into.  The required
 ///                 length should be determined by HAPI_GetWorkitemDataLength.
 ///
 /// @param[in]      length
@@ -5458,7 +5540,7 @@ HAPI_DECL HAPI_GetWorkitemIntData( const HAPI_Session * session,
 ///                 null-terminated name of the data member
 ///
 /// @param[out]     data_array
-///                 buffer of at least size #length to copy the data into.  The required
+///                 buffer of at least size length to copy the data into.  The required
 ///                 length should be determined by HAPI_GetWorkitemDataLength.
 ///
 /// @param[in]      length
