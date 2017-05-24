@@ -5233,7 +5233,7 @@ HAPI_DECL HAPI_CookPDG( const HAPI_Session * session,
 /// @param[in]      graph_context_id
 ///                 The id of the graph context 
 ///
-/// @param[out]     event_infos
+/// @param[out]     event_array
 ///                 buffer of ::HAPI_PDG_EventInfo of size at least length.
 ///
 /// @param[in]      length
@@ -5264,7 +5264,7 @@ HAPI_DECL HAPI_GetPDGEvents( const HAPI_Session * session,
 ///                 The graph context id
 ///
 /// @param[out]     pdg_state
-///                 One of ::HAPI_PDGState.
+///                 One of ::HAPI_PDG_State.
 ///
 HAPI_DECL HAPI_GetPDGState( const HAPI_Session * session, 
                             HAPI_PDG_GraphContextId graph_context_id, 
@@ -5311,8 +5311,8 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
 ///                 See @ref HAPI_Sessions for more on sessions.
 ///                 Pass NULL to just use the default in-process session.
 ///
-/// @param[in]      node_id
-///                 The node id.
+/// @param[in]      graph_context_id
+///                 The graph context that the workitem is in.
 ///
 /// @param[in]      workitem_id
 ///                 The id of the workitem.
@@ -5323,7 +5323,7 @@ HAPI_DECL HAPI_CreateWorkitem( const HAPI_Session * session,
 ///                 call to this function.
 ///
 HAPI_DECL HAPI_GetWorkitemInfo( const HAPI_Session * session,
-                                HAPI_NodeId node_id,
+                                HAPI_PDG_GraphContextId graph_context_id,
                                 HAPI_PDG_WorkitemId workitem_id,
                                 HAPI_PDG_WorkitemInfo * workitem_info );
 
