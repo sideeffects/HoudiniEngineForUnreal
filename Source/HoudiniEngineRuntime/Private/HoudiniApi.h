@@ -154,7 +154,7 @@ public:
 	typedef HAPI_Result (*GetVolumeVoxelIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count);
 	typedef HAPI_Result (*GetWorkitemDataLengthFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int * length);
 	typedef HAPI_Result (*GetWorkitemFloatDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, float * data_array, int length);
-	typedef HAPI_Result (*GetWorkitemInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info);
+	typedef HAPI_Result (*GetWorkitemInfoFuncPtr)(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info);
 	typedef HAPI_Result (*GetWorkitemIntDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char* data_name, int * data_array, int length);
 	typedef HAPI_Result (*GetWorkitemStringDataFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, char * data_array, int length);
 	typedef HAPI_Result (*GetWorkitemsFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids, int length);
@@ -548,7 +548,7 @@ public:
 	static HAPI_Result GetVolumeVoxelIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PartId part_id, int x_index, int y_index, int z_index, int * values_array, int value_count);
 	static HAPI_Result GetWorkitemDataLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, int * length);
 	static HAPI_Result GetWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, float * data_array, int length);
-	static HAPI_Result GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info);
+	static HAPI_Result GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info);
 	static HAPI_Result GetWorkitemIntDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char* data_name, int * data_array, int length);
 	static HAPI_Result GetWorkitemStringDataEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, const char * data_name, char * data_array, int length);
 	static HAPI_Result GetWorkitemsEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, int * workitem_ids, int length);

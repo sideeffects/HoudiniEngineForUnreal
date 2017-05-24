@@ -15,7 +15,6 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
-
 FHoudiniApi::AddAttributeFuncPtr
 FHoudiniApi::AddAttribute = &FHoudiniApi::AddAttributeEmptyStub;
 
@@ -1898,7 +1897,7 @@ FHoudiniApi::GetWorkitemFloatDataEmptyStub(const HAPI_Session * session, HAPI_No
 
 
 HAPI_Result
-FHoudiniApi::GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info)
+FHoudiniApi::GetWorkitemInfoEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_PDG_WorkitemId workitem_id, HAPI_PDG_WorkitemInfo * workitem_info)
 {
 	return HAPI_RESULT_FAILURE;
 }
