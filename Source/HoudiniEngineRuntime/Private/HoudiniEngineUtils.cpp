@@ -5252,19 +5252,19 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                             };
 
                             // Converting Old Indices to New Indices:
-                            for ( int32 n = 0; n < 3; n++ )
+                            for ( int32 i = 0; i < 3; i++ )
                             {
-                                if ( IndicesMapper[ WedgeIndices[ n ] ] < 0 )
+                                if ( IndicesMapper[ WedgeIndices[ i ] ] < 0 )
                                 {
                                     // This old index was not yet "converted" to a new index
-                                    NeededVertices.Add( WedgeIndices[ n ] );
+                                    NeededVertices.Add( WedgeIndices[ i ] );
 
-                                    IndicesMapper[ WedgeIndices[ n ] ] = CurrentMapperIndex;
+                                    IndicesMapper[ WedgeIndices[ i ] ] = CurrentMapperIndex;
                                     CurrentMapperIndex++;
                                 }
                                
                                 // Replace the old index with the new one
-                                WedgeIndices[ n ] = IndicesMapper[ WedgeIndices[ n ] ];
+                                WedgeIndices[ i ] = IndicesMapper[ WedgeIndices[ i ] ];
                             }
 
                             if ( ValidVertexId >= SplitGroupVertexListCount )
