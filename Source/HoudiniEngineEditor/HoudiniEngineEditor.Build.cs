@@ -43,7 +43,7 @@ using System.IO;
 
 public class HoudiniEngineEditor : ModuleRules
 {
-	public HoudiniEngineEditor( TargetInfo Target )
+	public HoudiniEngineEditor( ReadOnlyTargetRules Target ) : base( Target )
 	{
 		PCHUsage = PCHUsageMode.UseSharedPCHs;
 		bool bIsRelease = true;

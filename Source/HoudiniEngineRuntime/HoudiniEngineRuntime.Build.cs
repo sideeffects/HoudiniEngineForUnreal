@@ -43,7 +43,7 @@ using System.IO;
 
 public class HoudiniEngineRuntime : ModuleRules
 {
-	public HoudiniEngineRuntime( TargetInfo Target )
+	public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
 	{
 		PCHUsage = PCHUsageMode.UseSharedPCHs;
 		bool bIsRelease = true;
