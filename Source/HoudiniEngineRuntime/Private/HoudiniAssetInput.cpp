@@ -1470,7 +1470,7 @@ UHoudiniAssetInput::UploadParameterValue()
                     AssetComponent = InputAssetComponent;
 
                 // We need to get the asset bounds, without this input
-                FBox Bounds(0);
+                FBox Bounds( ForceInitToZero );
                 if ( AssetComponent )
                     Bounds = AssetComponent->GetAssetBounds( this, true );
 
@@ -3548,7 +3548,7 @@ operator<<( FArchive & Ar, FHoudiniAssetInputOutlinerMesh & HoudiniAssetInputOut
 FBox
 UHoudiniAssetInput::GetInputBounds()
 {
-    FBox Bounds( 0 );
+    FBox Bounds( ForceInitToZero );
 
     if ( IsCurveAssetConnected() && InputCurve )
     {
