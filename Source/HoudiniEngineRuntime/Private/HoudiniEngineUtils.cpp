@@ -4713,7 +4713,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     Rotation.Z = BoxInfo.rotation[2];
                                 }
 
-                                BoxCollision.Orientation = FQuat::MakeFromEuler( Rotation );
+                                BoxCollision.Rotation = FRotator::MakeFromEuler( Rotation );
 
                                 AggregateCollisionGeo.BoxElems.Add( BoxCollision );
 

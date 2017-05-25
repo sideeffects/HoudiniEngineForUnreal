@@ -364,7 +364,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
 
     bEditorPropertiesNeedFullUpdate = true;
 
-    Bounds = FBox(0);
+    Bounds = FBox( ForceInitToZero );
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -5460,7 +5460,7 @@ UHoudiniAssetComponent::GetSocketTransform( FName InSocketName, ERelativeTransfo
 FBox
 UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const bool& bIgnoreGeneratedLandscape ) const
 {
-    FBox BoxBounds(0);
+    FBox BoxBounds( ForceInitToZero );
     BoxBounds += GetComponentLocation();
 
     // Query the bounds of all our static mesh components..
