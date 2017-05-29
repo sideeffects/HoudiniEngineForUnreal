@@ -5195,8 +5195,7 @@ HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
 ///                 The id of the graph context 
 ///
 /// @param[in]      cook_node_id
-///                 The node id of the TOP node for the cook operation.  This is relevant for
-///                 cook_type HAPI_PDG_COOK_PUSH, HAPI_PDG_COOK_NODE, and HAPI_PDG_COOK_NODEGEN
+///                 The node id of the TOP node for the cook operation.
 ///
 /// @param[in]      cook_type
 ///                 The ::HAPI_PDG_CookType cooking mode to perform.
