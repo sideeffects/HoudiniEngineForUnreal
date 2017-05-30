@@ -1827,7 +1827,7 @@ const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode)
                 if ( Material )
                 {
                     // Duplicate material resource.
-                    UMaterial * DuplicatedMaterial = FHoudiniEngineUtils::DuplicateMaterialAndCreatePackage(
+                    UMaterial * DuplicatedMaterial = FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
                         Material, Component, MaterialName, FHoudiniEngineUtils::GetMaterialAndTextureCookMode() );
 
                     if ( !DuplicatedMaterial )

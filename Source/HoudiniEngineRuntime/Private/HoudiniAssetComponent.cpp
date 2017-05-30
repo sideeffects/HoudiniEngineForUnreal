@@ -33,6 +33,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
@@ -82,6 +83,7 @@
 #endif
 
 #include "Internationalization.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 #if WITH_EDITOR
@@ -2260,7 +2262,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
 
         // Duplicate static mesh and all related generated Houdini materials and textures.
         UStaticMesh * DuplicatedStaticMesh =
-            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniCookParams::GetDefaultStaticMeshesCookMode() );
+            FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniCookParams::GetDefaultStaticMeshesCookMode() );
 
         if( DuplicatedStaticMesh )
         {
@@ -3267,7 +3269,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
                 continue;
 
             // Bake the referenced static mesh.
-            UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+            UStaticMesh * OutStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
                 StaticMesh, this, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
             if ( OutStaticMesh )
