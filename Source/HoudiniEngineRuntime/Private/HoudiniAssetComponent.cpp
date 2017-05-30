@@ -73,6 +73,7 @@
 #include "Engine/StaticMeshSocket.h"
 #include "MessageDialog.h"
 #include "Widgets/Input/SButton.h"
+#include "HoudiniCookHandler.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"

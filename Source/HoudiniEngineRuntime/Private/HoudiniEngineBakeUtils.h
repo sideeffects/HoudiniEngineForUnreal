@@ -24,6 +24,7 @@
 #pragma once
 
 #include "HoudiniGeoPartObject.h"
+#include "HoudiniCookHandler.h"
 
 class UHoudiniAssetComponent;
 struct FHoudiniCookParams;

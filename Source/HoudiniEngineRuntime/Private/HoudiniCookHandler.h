@@ -24,7 +24,7 @@ public:
     virtual class UMaterialInterface * GetReplacementMaterial( const struct FHoudiniGeoPartObject& GeoPartObject, const FString& MaterialName) = 0;
 };
 
-struct FHoudiniCookParams
+struct HOUDINIENGINERUNTIME_API FHoudiniCookParams
 {
     FHoudiniCookParams(class UHoudiniAsset* InHoudiniAsset);
     FHoudiniCookParams(class UHoudiniAssetComponent* HoudiniAssetComponent);
