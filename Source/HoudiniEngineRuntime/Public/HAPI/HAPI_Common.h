@@ -3,14 +3,6 @@
  * Side Effects Software Inc., and is not to be reproduced,
  * transmitted, or disclosed in any way without written permission.
  *
- * Produced by:
- *      Side Effects Software Inc
- *      123 Front Street West, Suite 1401
- *      Toronto, Ontario
- *      Canada   M5J 2M2
- *      416-504-9876
- *
- * COMMENTS:
  */
 
 #ifndef __HAPI_COMMON_h__
@@ -706,8 +698,10 @@ enum HAPI_PDG_EventType
 
     HAPI_PDG_EVENT_WORKITEM_ADD,
     HAPI_PDG_EVENT_WORKITEM_REMOVE,
-    HAPI_PDG_EVENT_WORKITEM_DIRTYING,
-    HAPI_PDG_EVENT_WORKITEM_DIRTIED,
+    HAPI_PDG_EVENT_WORKITEM_STATE_CHANGE,
+
+    HAPI_PDG_EVENT_WORKITEM_ADD_DEP,
+    HAPI_PDG_EVENT_WORKITEM_REMOVE_DEP,
 
     HAPI_PDG_EVENT_WORKITEM_SUCCEEDED,
     HAPI_PDG_EVENT_WORKITEM_CANCELED,
