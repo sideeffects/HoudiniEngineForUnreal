@@ -3632,6 +3632,7 @@ UHoudiniAssetInput::HasChanged() const
     return bChanged || bLoadedParameter || !bInputAssetConnectedInHoudini;
 }
 
+#if WITH_EDITOR
 bool
 UHoudiniAssetInput::UpdateInputOulinerArray()
 {
@@ -3755,5 +3756,6 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         InputOutlinerMeshArray.Add( OutlinerMesh );
     }
 }
+#endif
 
 #undef LOCTEXT_NAMESPACE

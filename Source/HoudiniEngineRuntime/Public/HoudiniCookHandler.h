@@ -25,6 +25,7 @@
 
 #include "CoreGlobals.h"
 #include "UnrealString.h"
+#include "Guid.h"
 
 /** Used to control behavior of package baking helper functions */
 enum class EBakeMode

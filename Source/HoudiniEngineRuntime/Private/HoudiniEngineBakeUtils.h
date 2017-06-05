@@ -29,6 +29,9 @@
 class UHoudiniAssetComponent;
 struct FHoudiniCookParams;
 class UStaticMesh;
+class AActor;
+class UStaticMeshComponent;
+class UTexture2D;
 
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineBakeUtils
 {
