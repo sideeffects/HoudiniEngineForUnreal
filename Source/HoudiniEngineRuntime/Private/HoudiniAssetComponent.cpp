@@ -3995,7 +3995,7 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
             continue;
 
         HoudiniAssetInput->SetNodeId( AssetId );
-        Success &= HoudiniAssetInput->ChangeInputType(HoudiniAssetInput->GetChoiceIndex());
+        Success &= HoudiniAssetInput->ChangeInputType( HoudiniAssetInput->GetChoiceIndex() );
         Success &= HoudiniAssetInput->UploadParameterValue();
     }
 
@@ -5463,7 +5463,6 @@ FBox
 UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const bool& bIgnoreGeneratedLandscape ) const
 {
     FBox BoxBounds( ForceInitToZero );
-    BoxBounds += GetComponentLocation();
 
     // Query the bounds of all our static mesh components..
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
@@ -5531,6 +5530,10 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
             BoxBounds += LandscapeBounds;
         }
     }
+
+    // If nothing was found, init with the asset's location
+    if ( BoxBounds.GetVolume() == 0.0f )
+        BoxBounds += GetComponentLocation();
 
     return BoxBounds;
 }

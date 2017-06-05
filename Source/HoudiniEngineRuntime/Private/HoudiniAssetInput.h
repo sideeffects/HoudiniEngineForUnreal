@@ -75,9 +75,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     /** rebuilds the SplineTransform array after reloading the asset **/
     void RebuildSplineTransformsArrayIfNeeded();
 
-    /** Selected mesh's Actor, for reference. **/
-    AActor * Actor = nullptr;
+    /** Indicates that the components used are no longer valid and should be updated from the actor **/
+    bool NeedsComponentUpdate() const;
 
+    /** Selected mesh's Actor, for reference. **/
+    TWeakObjectPtr<AActor> ActorPtr = nullptr;
     /** Selected mesh's component, for reference. **/
     UStaticMeshComponent * StaticMeshComponent = nullptr;
 
@@ -273,6 +275,14 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Update WorldOutliners Transform after they changed **/
         void UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh);
 
+        /** Removes invalid inputs or updates inputs with invalid components in InputOutlinerArray. **/
+        /** Returns true when a change was made **/
+        bool UpdateInputOulinerArray();
+
+        /** Update InputOutlinerArray with the components found on actor **/
+        /** NeedCleanUp indicates that existing inputs from Actor needs to be removed **/
+        void UpdateInputOulinerArrayFromActor( AActor * Actor, const bool& NeedCleanUp );
+
         /** Called to append a slot to the list of input objects */
         void OnAddToInputObjects();
         /** Called to empty the list of input objects */
@@ -282,8 +292,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Called to retrieve the name of selected item. **/
         FText HandleChoiceContentText() const;
-
-    protected:
 
         /** Connect the input asset in Houdini. **/
         void ConnectInputAssetActor();
@@ -330,8 +338,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Get the node id of the asset we are associated with */
         HAPI_NodeId GetAssetId() const;
-
-    protected:
 
         /** Parameters used by a curve input asset. **/
         TMap< FString, UHoudiniAssetParameter * > InputCurveParameters;
@@ -477,6 +483,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FTimerDelegate WorldOutlinerTimerDelegate;
 
         float UnrealSplineResolution;
+
+        /** Indicates that the OutlinerInputs have just been loaded and needs to be updated **/
+        bool OutlinerInputsNeedPostLoadInit;
 
         /** Flags used by this input. **/
         union
