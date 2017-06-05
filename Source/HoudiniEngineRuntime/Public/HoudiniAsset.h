@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -73,6 +65,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAsset : public UObject
 
         /** Return true if this asset is a non commercial asset. **/
         bool IsAssetNonCommercial() const;
+        
+        /** Retrieves list of asset names contained within the HDA. **/
+        bool GetAssetNames( HAPI_AssetLibraryId & AssetLibraryId, TArray< HAPI_StringHandle > & AssetNames );
 
     public:
 
