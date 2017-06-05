@@ -322,7 +322,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceTransforms( bool RecomputeVariati
 
     for ( int32 Idx = 0; Idx < VariationCount; Idx++ )
     {
-        FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(
+        UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
             InstancerComponents[ Idx ],
             VariationTransformsArray[ Idx ],
             RotationOffsets[ Idx ],

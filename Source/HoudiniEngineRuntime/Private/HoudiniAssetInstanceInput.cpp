@@ -45,6 +45,7 @@
 #include "Engine/SkeletalMesh.h"
 
 #include "Internationalization.h"
+#include "HoudiniEngineBakeUtils.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 
@@ -1221,7 +1222,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
 
                     // Bake the referenced static mesh.
                     OutStaticMesh =
-                        FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+                        FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
                             Cast<UStaticMesh>( HoudiniAssetInstanceInputField->GetOriginalObject() ),
                             Comp, ItemHoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
@@ -1253,7 +1254,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
                 const TArray< FTransform > & InstancedTransforms =
                     HoudiniAssetInstanceInputField->GetInstancedTransforms( VariationIdx );
 
-                FHoudiniEngineUtils::UpdateInstancedStaticMeshComponentInstances(
+                UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
                     DuplicatedComponent, InstancedTransforms, RotationOffset, ScaleOffset );
             }
 
