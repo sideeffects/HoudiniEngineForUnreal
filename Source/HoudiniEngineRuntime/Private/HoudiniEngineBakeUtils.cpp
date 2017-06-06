@@ -31,10 +31,9 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniInstancedActorComponent.h"
 
 #include "CoreMinimal.h"
-#include "RawMesh.h"
-#include "MeshUtilities.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
 #include "Materials/Material.h"

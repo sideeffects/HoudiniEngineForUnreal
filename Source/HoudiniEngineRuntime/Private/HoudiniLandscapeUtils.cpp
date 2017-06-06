@@ -1854,6 +1854,7 @@ const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode)
 }
 */
 
+
 FColor
 FHoudiniLandscapeUtils::PickVertexColorFromTextureMip(
     const uint8 * MipBytes, FVector2D & UVCoord, int32 MipWidth, int32 MipHeight)
@@ -2525,4 +2526,3 @@ bool FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute( const HAPI_Nod
     return true;
 }
 #endif
-
