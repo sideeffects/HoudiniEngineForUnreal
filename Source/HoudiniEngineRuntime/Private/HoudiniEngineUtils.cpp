@@ -5584,6 +5584,15 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 TEXT( "- skipping." ),
                                 ObjectInfo.nodeId, *ObjectName, GeoId, PartIdx, *PartName );
                         }
+
+                        if( LightMapResolutions.Num() > 0 )
+                        {
+                            int32 LightMapResolutionOverride = LightMapResolutions[0];
+                            if( LightMapResolutionOverride > 0 )
+                            {
+                                SrcModel->BuildSettings.MinLightmapResolution = LightMapResolutionOverride;
+                            }
+                        }
                     }
 
                     // Store the new raw mesh.
@@ -5609,14 +5618,6 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     // Assign generation parameters for this static mesh.
                     HoudiniCookParams.HoudiniCookManager->SetStaticMeshGenerationParameters( StaticMesh );
-
-                    // If we have an override for lightmap resolution.
-                    if ( LightMapResolutions.Num() > 0 )
-                    {
-                        int32 LightMapResolutionOverride = LightMapResolutions[ 0 ];
-                        if ( LightMapResolutionOverride > 0 )
-                            StaticMesh->LightMapResolution = LightMapResolutionOverride;
-                    }
 
                     // Make sure we remove the old simple colliders if needed
                     if( UBodySetup * BodySetup = StaticMesh->BodySetup )
