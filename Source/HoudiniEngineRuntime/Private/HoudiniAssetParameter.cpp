@@ -36,6 +36,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAssetParameterMultiparm.h"
+#include "HoudiniAssetParameterRamp.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
 
@@ -530,6 +531,7 @@ UHoudiniAssetParameter::CreateNameWidget( FDetailWidgetRow & Row, bool bLabel )
 {
     FText ParameterLabelText = FText::FromString( GetParameterLabel() );
     const FText & FinalParameterLabelText = bLabel ? ParameterLabelText : FText::GetEmpty();
+    FText ParameterTooltip = bLabel ? FText::FromString( GetParameterName() ) : FText::FromString( GetParameterLabel() + TEXT(" (") + GetParameterName() + TEXT(")") );
 
     if ( bIsChildOfMultiparm && ParentParameter )
     {
@@ -554,6 +556,16 @@ UHoudiniAssetParameter::CreateNameWidget( FDetailWidgetRow & Row, bool bLabel )
             ClearButton.Get().SetVisibility( EVisibility::Hidden );
         }
 
+        // Adding eventual padding for nested multiparams
+        UHoudiniAssetParameter* currentParentParameter = ParentParameter;
+        while ( currentParentParameter && currentParentParameter->bIsChildOfMultiparm )
+        {
+            if ( static_cast< UHoudiniAssetParameterMultiparm *>( currentParentParameter ) )
+                HorizontalBox->AddSlot().MaxWidth( 16.0f ); 
+
+            currentParentParameter = currentParentParameter->ParentParameter;
+        }
+
         HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
         [
             ClearButton
@@ -568,7 +580,7 @@ UHoudiniAssetParameter::CreateNameWidget( FDetailWidgetRow & Row, bool bLabel )
         [
             SNew( STextBlock )
             .Text( FinalParameterLabelText )
-            .ToolTipText( ParameterLabelText )
+            .ToolTipText( bLabel ? ParameterTooltip : ParameterLabelText )
             .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
         ];
 
