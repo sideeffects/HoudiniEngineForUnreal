@@ -703,10 +703,6 @@ enum HAPI_PDG_EventType
     HAPI_PDG_EVENT_WORKITEM_ADD_DEP,
     HAPI_PDG_EVENT_WORKITEM_REMOVE_DEP,
 
-    HAPI_PDG_EVENT_WORKITEM_SUCCEEDED,
-    HAPI_PDG_EVENT_WORKITEM_CANCELED,
-    HAPI_PDG_EVENT_WORKITEM_FAILED,
-
     HAPI_PDG_EVENT_NODE_CLEAR,
 
     HAPI_PDG_EVENT_COOK_ERROR,
@@ -717,8 +713,14 @@ HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
 /// Used with PDG functions
 enum HAPI_PDG_WorkitemState
 {
-    HAPI_PDG_WORKITEM_NEEDS_COOK = 0,
-    HAPI_PDG_WORKITEM_COOKED = 4
+    HAPI_PDG_WORKITEM_NEEDS_COOK,
+    HAPI_PDG_WORKITEM_WAITING,
+    HAPI_PDG_WORKITEM_NEEDS_SCHEDULE,
+    HAPI_PDG_WORKITEM_SCHEDULED,
+    HAPI_PDG_WORKITEM_COOKED,
+    HAPI_PDG_WORKITEM_FAILED,
+    HAPI_PDG_WORKITEM_NEEDS_DIRTY,
+    HAPI_PDG_WORKITEM_UNDEFINED
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_WorkitemState )
 
@@ -1505,9 +1507,12 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
 
 struct HAPI_API HAPI_PDG_EventInfo
 {
-    HAPI_NodeId node_id;                /// id of related node
-    HAPI_PDG_WorkitemId workitem_id;    /// id of related workitem
-    int event_type;                     /// HAPI_PDG_EventType
+    HAPI_NodeId node_id;                     /// id of related node
+    HAPI_PDG_WorkitemId workitem_id;         /// id of related workitem
+    HAPI_PDG_WorkitemId dependency_id;       /// id of related workitem dependency
+    int current_state;                       /// (HAPI_PDG_WorkItemState) value of current state for state change
+    int last_state;                          /// (HAPI_PDG_WorkItemState) value of last state for state change
+    int event_type;                          /// (HAPI_PDG_EventType) event type
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_PDG_EventInfo )
 
