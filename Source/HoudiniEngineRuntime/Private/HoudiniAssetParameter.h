@@ -276,6 +276,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
                 /** Is set to true if this parameter is a Substance parameter. **/
                 uint32 bIsSubstanceParameter : 1;
+
+                /** Is set to true if this parameter is a multiparm **/
+                uint32 bIsMultiparm : 1;
             };
 
             uint32 HoudiniAssetParameterFlagsPacked;

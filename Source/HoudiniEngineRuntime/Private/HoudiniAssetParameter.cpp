@@ -120,6 +120,9 @@ UHoudiniAssetParameter::CreateParameter(
     // Set child of multiparm flag.
     bIsChildOfMultiparm = ParmInfo.isChildOfMultiParm;
 
+    // Set ismultiparmflag
+    bIsMultiparm = ( ParmInfo.type == HAPI_PARMTYPE_MULTIPARMLIST );
+
     // Set component.
     PrimaryObject = InPrimaryObject;
 
@@ -534,15 +537,25 @@ UHoudiniAssetParameter::CreateNameWidget( FDetailWidgetRow & Row, bool bLabel )
     {
         TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
 
+        // We have to make sure the ParentParameter is a multiparm, as folders will cause issues here
+        // ( we want to call RemoveMultiParmInstance or AddMultiParmInstance on the parent multiparm, not just the parent)
+        UHoudiniAssetParameter * ParentMultiparm = ParentParameter;
+        while ( ParentMultiparm && !ParentMultiparm->bIsMultiparm )
+            ParentMultiparm = ParentMultiparm->ParentParameter;
+
+        // Failed to find the multiparm parent, better have the original parent than nullptr
+        if ( !ParentMultiparm )
+            ParentMultiparm = ParentParameter;
+
         TSharedRef< SWidget > ClearButton = PropertyCustomizationHelpers::MakeClearButton(
             FSimpleDelegate::CreateUObject(
-                (UHoudiniAssetParameterMultiparm *) ParentParameter,
+                (UHoudiniAssetParameterMultiparm *) ParentMultiparm,
                 &UHoudiniAssetParameterMultiparm::RemoveMultiparmInstance,
                 MultiparmInstanceIndex ),
             LOCTEXT( "RemoveMultiparmInstanceToolTip", "Remove" ) );
         TSharedRef< SWidget > AddButton = PropertyCustomizationHelpers::MakeAddButton(
             FSimpleDelegate::CreateUObject(
-                (UHoudiniAssetParameterMultiparm *) ParentParameter,
+                (UHoudiniAssetParameterMultiparm *) ParentMultiparm,
                 &UHoudiniAssetParameterMultiparm::AddMultiparmInstance,
                 MultiparmInstanceIndex ),
             LOCTEXT( "InsertBeforeMultiparmInstanceToolTip", "Insert Before" ) );
@@ -554,10 +567,10 @@ UHoudiniAssetParameter::CreateNameWidget( FDetailWidgetRow & Row, bool bLabel )
         }
 
         // Adding eventual padding for nested multiparams
-        UHoudiniAssetParameter* currentParentParameter = ParentParameter;
+        UHoudiniAssetParameter* currentParentParameter = ParentMultiparm;
         while ( currentParentParameter && currentParentParameter->bIsChildOfMultiparm )
         {
-            if ( static_cast< UHoudiniAssetParameterMultiparm *>( currentParentParameter ) )
+            if ( currentParentParameter->bIsMultiparm )
                 HorizontalBox->AddSlot().MaxWidth( 16.0f ); 
 
             currentParentParameter = currentParentParameter->ParentParameter;
