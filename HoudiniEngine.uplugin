@@ -1,8 +1,8 @@
 {
 	"FileVersion" : 3,
 	"FriendlyName" : "Houdini Engine",
-	"Version" : 16000640,
-	"VersionName" : "16.0.640",
+	"Version" : 16000641,
+	"VersionName" : "16.0.641",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL" : "http://www.sidefx.com",
 	"DocsURL" : "http://www.sidefx.com/docs/unreal16.0",
@@ -25,5 +25,6 @@
 		}
 	],
 
-	"CanContainContent" : true
+	"CanContainContent" : true,
+	"Installed": true
 }
