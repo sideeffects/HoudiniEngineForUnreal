@@ -49,11 +49,13 @@ UHoudiniAssetThumbnailRenderer::Draw(
     UHoudiniAsset * HoudiniAsset = Cast< UHoudiniAsset >( Object );
     if ( HoudiniAsset && !HoudiniAsset->IsPendingKill() )
     {
-        if ( !ThumbnailScene )
+        if ( !ThumbnailScene || !ThumbnailScene->IsValid() )
             ThumbnailScene = new FHoudiniAssetThumbnailScene();
 
         ThumbnailScene->SetHoudiniAsset( HoudiniAsset );
-        ThumbnailScene->GetScene()->UpdateSpeedTreeWind( 0.0 );
+
+        if ( ThumbnailScene->GetScene() )
+            ThumbnailScene->GetScene()->UpdateSpeedTreeWind( 0.0 );
 
         FSceneViewFamilyContext ViewFamily(
             FSceneViewFamily::ConstructionValues(
@@ -65,7 +67,9 @@ UHoudiniAssetThumbnailRenderer::Draw(
         ViewFamily.EngineShowFlags.MotionBlur = 0;
         ViewFamily.EngineShowFlags.LOD = 0;
 
-        ThumbnailScene->GetView( &ViewFamily, X, Y, Width, Height );
+        if ( ThumbnailScene )
+            ThumbnailScene->GetView( &ViewFamily, X, Y, Width, Height );
+
         GetRendererModule().BeginRenderingViewFamily( Canvas, &ViewFamily );
     }
 }
