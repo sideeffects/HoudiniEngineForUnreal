@@ -71,41 +71,43 @@ FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(
 
 #if WITH_EDITOR
 
-    UHoudiniAsset * HoudiniAsset = HoudiniAssetComponent->HoudiniAsset;
+    FString HoudiniAssetName;
+    if ( HoudiniAssetComponent->HoudiniAsset )
+        HoudiniAssetName = HoudiniAssetComponent->HoudiniAsset->GetName();
+    else if ( HoudiniAssetComponent->GetOwner() )
+        HoudiniAssetName = HoudiniAssetComponent->GetOwner()->GetName();
+    else
+        HoudiniAssetName = HoudiniAssetComponent->GetName();
+
     FGuid BakeGUID = FGuid::NewGuid();
 
-    while( true )
+    if( !BakeGUID.IsValid() )
+        BakeGUID = FGuid::NewGuid();
+
+    // We only want half of generated guid string.
+    FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
+
+    // Generate Blueprint name.
+    BlueprintName = HoudiniAssetName + TEXT( "_" ) + BakeGUIDString;
+
+    // Generate unique package name.
+    FString PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + BlueprintName;
+
+    PackageName = PackageTools::SanitizePackageName( PackageName );
+
+    // See if package exists, if it does, we need to regenerate the name.
+    Package = FindPackage( nullptr, *PackageName );
+
+    if( Package )
     {
-        if( !BakeGUID.IsValid() )
-            BakeGUID = FGuid::NewGuid();
-
-        // We only want half of generated guid string.
-        FString BakeGUIDString = BakeGUID.ToString().Left( FHoudiniEngineUtils::PackageGUIDItemNameLength );
-
-        // Generate Blueprint name.
-        BlueprintName = HoudiniAsset->GetName() + TEXT( "_" ) + BakeGUIDString;
-
-        // Generate unique package name.
-        FString PackageName = HoudiniAssetComponent->GetBakeFolder().ToString() + TEXT( "/" ) + BlueprintName;
-
-        PackageName = PackageTools::SanitizePackageName( PackageName );
-
-        // See if package exists, if it does, we need to regenerate the name.
-        Package = FindPackage( nullptr, *PackageName );
-
-        if( Package )
-        {
-            // Package does exist, there's a collision, we need to generate a new name.
-            BakeGUID.Invalidate();
-        }
-        else
-        {
-            // Create actual package.
-            Package = CreatePackage( nullptr, *PackageName );
-            break;
-        }
+        // Package does exist, there's a collision, we need to generate a new name.
+        BakeGUID.Invalidate();
     }
-
+    else
+    {
+        // Create actual package.
+        Package = CreatePackage( nullptr, *PackageName );
+    }
 #endif
 
     return Package;
