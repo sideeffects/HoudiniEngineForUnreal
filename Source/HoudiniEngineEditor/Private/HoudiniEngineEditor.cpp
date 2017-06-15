@@ -47,6 +47,7 @@
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniAttributePaintEdMode.h"
+#include "HoudiniAssetActor.h"
 
 #include "Textures/SlateIcon.h"
 #include "UnrealEdGlobals.h"
@@ -331,6 +332,14 @@ FHoudiniEngineEditor::AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder )
         FUIAction(
             FExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CleanUpTempFolder ),
             FCanExecuteAction::CreateRaw( this, &FHoudiniEngineEditor::CanCleanUpTempFolder ) ) );
+
+    MenuBuilder.AddMenuEntry(
+        LOCTEXT( "HoudiniMenuEntryTitleBakeAll", "Bake And Replace All Houdini Assets" ),
+        LOCTEXT( "HoudiniMenuEntryToolTipBakeAll", "Bakes and replaces with blueprints all Houdini Assets in the scene." ),
+        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo" ),
+        FUIAction(
+            FExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::BakeAllAssets ),
+            FCanExecuteAction::CreateRaw(this, &FHoudiniEngineEditor::CanBakeAllAssets ) ) );
 
     MenuBuilder.EndSection();
 }
@@ -655,6 +664,46 @@ bool
 FHoudiniEngineEditor::CanCleanUpTempFolder() const
 {
     return FHoudiniEngine::IsInitialized();
+}
+
+void
+FHoudiniEngineEditor::BakeAllAssets()
+{
+    // Rebuilds all instances of that asset in the scene
+    //for ( TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr )
+    for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+    {
+        UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
+        if ( !HoudiniAssetComponent )
+        {
+            HOUDINI_LOG_ERROR( TEXT( "Failed to export a Houdini Asset in the scene!" ) );
+            continue;
+        }
+
+        bool bInvalidComponent = false;
+        if ( !HoudiniAssetComponent->GetHoudiniAssetActorOwner() || !HoudiniAssetComponent->GetHoudiniAssetActorOwner()->GetLevel() )
+            bInvalidComponent = true;
+
+        if ( bInvalidComponent )
+        {
+            FString AssetName = HoudiniAssetComponent->GetOwner() ? HoudiniAssetComponent->GetOwner()->GetName() : HoudiniAssetComponent->GetName();
+            HOUDINI_LOG_ERROR(TEXT("Failed to export Houdini Asset: %s in the scene!"), *AssetName );
+            continue;
+        }
+
+        // If component is not cooking or instancing, we can bake blueprint.
+        if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
+            FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent );
+    }
+}
+
+bool
+FHoudiniEngineEditor::CanBakeAllAssets() const
+{
+    if ( !FHoudiniEngine::IsInitialized() )
+        return false;
+    
+    return true;
 }
 
 #undef LOCTEXT_NAMESPACE
