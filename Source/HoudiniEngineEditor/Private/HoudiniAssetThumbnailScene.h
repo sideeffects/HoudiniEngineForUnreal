@@ -45,6 +45,8 @@ class FHoudiniAssetThumbnailScene : public FThumbnailPreviewScene
         /** Sets the houdini asset to use in the next GetView(). **/
         void SetHoudiniAsset( UHoudiniAsset * HoudiniAsset );
 
+	bool IsValid() const;
+
     /** FThumbnailPreviewScene methods. **/
     protected:
 
