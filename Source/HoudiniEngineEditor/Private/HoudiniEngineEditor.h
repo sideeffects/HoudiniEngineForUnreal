@@ -117,6 +117,12 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if Clean up temp can be executed. **/
         bool CanCleanUpTempFolder() const;
 
+        /** Menua action to bake/replace all current Houdini Assets with blueprints **/
+        void BakeAllAssets();
+
+        /** Helper delegate used to determine if BakeAllAssets can be executed. **/
+        bool CanBakeAllAssets() const;
+
     protected:
 
         /** Register AssetType action. **/
