@@ -225,8 +225,8 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , InputIndex( 0 )
     , ChoiceIndex( EHoudiniAssetInputType::GeometryInput )
     , UnrealSplineResolution( -1.0f )
-    , HoudiniAssetInputFlagsPacked( 0u )
     , OutlinerInputsNeedPostLoadInit( false )
+    , HoudiniAssetInputFlagsPacked( 0u )
 {
     // flags
     bLandscapeExportMaterials = true;
