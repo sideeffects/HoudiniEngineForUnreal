@@ -186,7 +186,6 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , InputIndex( 0 )
     , ChoiceIndex( EHoudiniAssetInputType::GeometryInput )
     , UnrealSplineResolution( -1.0f )
-    , OutlinerInputsNeedPostLoadInit( false )
     , HoudiniAssetInputFlagsPacked( 0u )
 {
     // flags
