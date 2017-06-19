@@ -10431,4 +10431,3 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
     GeneratedDistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 }
 
-#undef LOCTEXT_NAMESPACE

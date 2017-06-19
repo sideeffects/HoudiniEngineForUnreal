@@ -3626,4 +3626,3 @@ UHoudiniAssetInput::HasChanged() const
     return bChanged || bLoadedParameter || !bInputAssetConnectedInHoudini;
 }
 
-#undef LOCTEXT_NAMESPACE

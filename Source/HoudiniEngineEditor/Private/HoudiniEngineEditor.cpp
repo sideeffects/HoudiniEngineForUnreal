@@ -694,4 +694,3 @@ FHoudiniEngineEditor::CanBakeAllAssets() const
     return true;
 }
 
-#undef LOCTEXT_NAMESPACE
