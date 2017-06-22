@@ -3645,8 +3645,8 @@ FHoudiniEngineUtils::BakeCreateBlueprintPackageForComponent(
     FString HoudiniAssetName;
     if ( HoudiniAssetComponent->HoudiniAsset )
         HoudiniAssetName = HoudiniAssetComponent->HoudiniAsset->GetName();
-    else if ( HoudiniAssetComponent->GetOwner() )
-        HoudiniAssetName = HoudiniAssetComponent->GetOwner()->GetName();
+    else if ( HoudiniAssetComponent->GetOuter() )
+        HoudiniAssetName = HoudiniAssetComponent->GetOuter()->GetName();
     else
         HoudiniAssetName = HoudiniAssetComponent->GetName();
 
@@ -6288,6 +6288,9 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponent * 
 
     if ( Package )
     {
+        //Bake the asset's landscape
+        BakeLandscape( HoudiniAssetComponent );
+
         AActor * ClonedActor = HoudiniAssetComponent->CloneComponentsAndCreateActor();
         if ( ClonedActor )
         {
@@ -6365,6 +6368,8 @@ FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponent * 
                 }
 
                 UWorld * World = HoudiniAssetActor->GetWorld();
+                if ( !World )
+                    World = GWorld;
                 World->EditorDestroyActor( HoudiniAssetActor, false );
             }
             else
@@ -10431,3 +10436,67 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
     GeneratedDistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 }
 
+<<<<<<< .working
+||||||| .merge-left.r281824
+#undef LOCTEXT_NAMESPACE=======
+bool
+FHoudiniEngineUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape )
+{
+#if WITH_EDITOR
+    if ( !HoudiniAssetComponent )
+        return false;
+
+    if ( !HoudiniAssetComponent->HasLandscape() )
+        return false;
+
+    TMap< FHoudiniGeoPartObject, ALandscape * > * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
+    if ( !LandscapeComponentsPtr )
+        return false;
+
+    TArray<UPackage *> LayerPackages;
+    bool bNeedToUpdateProperties = false;
+    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
+    {
+        ALandscape * CurrentLandscape = Iter.Value();
+        if ( !CurrentLandscape )
+            continue;
+
+        // If we only want to bake a single landscape
+        if ( OnlyBakeThisLandscape && CurrentLandscape != OnlyBakeThisLandscape )
+            continue;
+
+        // Simply remove the landscape from the map
+        FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+        LandscapeComponentsPtr->Remove( HoudiniGeoPartObject );
+
+        CurrentLandscape->DetachFromActor( FDetachmentTransformRules::KeepWorldTransform );
+
+        // And save its layers to prevent them from being removed
+        for ( TMap< TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage( HoudiniAssetComponent->CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
+        {
+            if ( !( HoudiniGeoPartObject == IterPackage.Value() ) )
+                continue;
+
+            UPackage * Package = IterPackage.Key().Get();
+            if ( Package )
+                LayerPackages.Add( Package );
+        }
+
+        bNeedToUpdateProperties = true;
+
+        // If we only wanted to bake a single landscape, we're done
+        if ( OnlyBakeThisLandscape )
+            break;
+    }
+
+    if ( LayerPackages.Num() > 0 )
+        FEditorFileUtils::PromptForCheckoutAndSave( LayerPackages, true, false );
+
+    return bNeedToUpdateProperties;
+#else
+    return false;
+#endif
+}
+
+
+#undef LOCTEXT_NAMESPACE>>>>>>> .merge-right.r281825

@@ -657,24 +657,29 @@ FHoudiniEngineEditor::CanCleanUpTempFolder() const
 void
 FHoudiniEngineEditor::BakeAllAssets()
 {
-    // Rebuilds all instances of that asset in the scene
-    //for ( TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr )
+    // Bakes and replaces with blueprints all Houdini Assets in the current level
     for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
     {
         UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-        if ( !HoudiniAssetComponent )
+        if ( !HoudiniAssetComponent || !HoudiniAssetComponent->IsValidLowLevel() )
         {
             HOUDINI_LOG_ERROR( TEXT( "Failed to export a Houdini Asset in the scene!" ) );
             continue;
         }
 
+        if ( HoudiniAssetComponent->IsTemplate() )
+            continue;
+
+        if ( HoudiniAssetComponent->IsPendingKillOrUnreachable() )
+            continue;
+
         bool bInvalidComponent = false;
-        if ( !HoudiniAssetComponent->GetHoudiniAssetActorOwner() || !HoudiniAssetComponent->GetHoudiniAssetActorOwner()->GetLevel() )
+        if ( !HoudiniAssetComponent->GetOuter() )//|| !HoudiniAssetComponent->GetOuter()->GetLevel() )
             bInvalidComponent = true;
 
         if ( bInvalidComponent )
         {
-            FString AssetName = HoudiniAssetComponent->GetOwner() ? HoudiniAssetComponent->GetOwner()->GetName() : HoudiniAssetComponent->GetName();
+            FString AssetName = HoudiniAssetComponent->GetOuter() ? HoudiniAssetComponent->GetOuter()->GetName() : HoudiniAssetComponent->GetName();
             HOUDINI_LOG_ERROR(TEXT("Failed to export Houdini Asset: %s in the scene!"), *AssetName );
             continue;
         }

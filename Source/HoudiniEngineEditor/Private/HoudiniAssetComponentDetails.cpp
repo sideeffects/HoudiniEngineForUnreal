@@ -35,7 +35,6 @@
 #include "HoudiniEngineString.h"
 #include "Landscape.h"
 #include "ContentBrowserModule.h"
-#include "FileHelpers.h"
 
 uint32
 GetTypeHash( TPair< UStaticMesh *, int32 > Pair )
@@ -1172,48 +1171,15 @@ FHoudiniAssetComponentDetails::OnRemoveBakingBaseNameOverride( UHoudiniAssetComp
 FReply
 FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniAssetComponent * HoudiniAssetComponent)
 {
-    if (HoudiniAssetComponent && Landscape)
+    bool bNeedToUpdateProperties = false;
+    if ( HoudiniAssetComponent && Landscape )
+        bNeedToUpdateProperties = FHoudiniEngineUtils::BakeLandscape( HoudiniAssetComponent, Landscape );
+    
+    // Modify the component GUID to avoid overwriting the layers
+    if ( bNeedToUpdateProperties )
     {
-        bool bNeedToUpdateProperties = false;
-        TArray<UPackage *> LayerPackages;
-
-        // We just need to "separate" the landscape and the Asset component
-        for (TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator
-            IterLandscapes(HoudiniAssetComponent->LandscapeComponents); IterLandscapes; ++IterLandscapes)
-        {
-            ALandscape * CurrentLandscape = IterLandscapes.Value();
-            if (CurrentLandscape != Landscape)
-                continue;
-
-            // Simply remove the landscape from the map
-            FHoudiniGeoPartObject & HoudiniGeoPartObject = IterLandscapes.Key();
-            HoudiniAssetComponent->LandscapeComponents.Remove( HoudiniGeoPartObject );
-
-            CurrentLandscape->DetachFromActor( FDetachmentTransformRules::KeepWorldTransform );
-
-            // And save its layers to prevent them from being removed
-            for (TMap< TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage(HoudiniAssetComponent->CookedTemporaryLandscapeLayers); IterPackage; ++IterPackage)
-            {
-                if ( !(HoudiniGeoPartObject == IterPackage.Value() ) )
-                    continue;
-
-                UPackage * Package = IterPackage.Key().Get();
-                if ( Package )
-                    LayerPackages.Add(Package);
-            }
-
-            // Modify the component GUID to avoid overwriting the layers
-            HoudiniAssetComponent->ComponentGUID = FGuid::NewGuid();
-
-            bNeedToUpdateProperties = true;
-            break;
-        }
-
-        if (LayerPackages.Num() > 0 )
-            FEditorFileUtils::PromptForCheckoutAndSave(LayerPackages, true, false );
-
-        if (bNeedToUpdateProperties)
-            HoudiniAssetComponent->UpdateEditorProperties(false);
+        HoudiniAssetComponent->ComponentGUID = FGuid::NewGuid();
+        HoudiniAssetComponent->UpdateEditorProperties(false);
     }
 
     return FReply::Handled();

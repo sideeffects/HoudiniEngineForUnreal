@@ -632,8 +632,14 @@ public:
         /** Returns the AABB for the asset component and its inputs **/
         FBox GetAssetBounds( UHoudiniAssetInput* IgnoreInput = nullptr, const bool& bIgnoreGeneratedLandscape = false) const;
 
+        /** Return true if this Houdini asset component has a landscape **/
+        bool HasLandscape() const { return ( LandscapeComponents.Num() > 0 ); }
+
         /** Returns true if the landscape actor has been created by this asset **/
         bool HasLandscapeActor(ALandscape* LandscapeActor) const;
+
+        /** Returns a pointer to the landscape component map **/
+        TMap< FHoudiniGeoPartObject, ALandscape * > * GetLandscapeComponents();
 
     private:
 
