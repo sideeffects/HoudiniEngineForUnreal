@@ -10436,9 +10436,6 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
     GeneratedDistanceFieldResolutionScale = HoudiniAssetComponent->GeneratedDistanceFieldResolutionScale;
 }
 
-<<<<<<< .working
-||||||| .merge-left.r281824
-#undef LOCTEXT_NAMESPACE=======
 bool
 FHoudiniEngineUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape )
 {
@@ -10497,6 +10494,3 @@ FHoudiniEngineUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponen
     return false;
 #endif
 }
-
-
-#undef LOCTEXT_NAMESPACE>>>>>>> .merge-right.r281825
