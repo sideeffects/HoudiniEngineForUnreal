@@ -490,6 +490,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
 #endif
 
+        /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
+        static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape = nullptr );
+
     protected:
 
 #if PLATFORM_WINDOWS
