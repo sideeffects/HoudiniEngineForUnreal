@@ -3238,6 +3238,9 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
     FScopedBusyCursor ScopedBusyCursor;
 
     ULevel * Level = GetHoudiniAssetActorOwner()->GetLevel();
+    if ( !Level )
+        Level = GWorld->GetCurrentLevel();
+
     AActor * Actor = NewObject< AActor >( Level, NAME_None );
     Actor->AddToRoot();
 
@@ -5551,6 +5554,12 @@ bool UHoudiniAssetComponent::HasLandscapeActor( ALandscape* LandscapeActor ) con
     }
 
     return false;
+}
+
+TMap< FHoudiniGeoPartObject, ALandscape * > *
+UHoudiniAssetComponent::GetLandscapeComponents()
+{
+    return &LandscapeComponents;
 }
 
 #undef LOCTEXT_NAMESPACE

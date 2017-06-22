@@ -94,4 +94,6 @@ public:
     /** Bakes output meshes and materials to packages and sets them on an input */
     static void BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent );
 
+    /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
+    static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape = nullptr );
 };
