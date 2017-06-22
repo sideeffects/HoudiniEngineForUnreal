@@ -37,7 +37,6 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
 #include "Materials/Material.h"
-#include "FileHelpers.h"
 
 #if WITH_EDITOR
     #include "ActorFactories/ActorFactory.h"
@@ -46,6 +45,7 @@
     #include "ActorFactories/ActorFactoryStaticMesh.h"
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
+    #include "FileHelpers.h"
 #endif
 #include "EngineUtils.h"
 #include "MetaData.h"
@@ -982,56 +982,60 @@ FHoudiniCookParams::FHoudiniCookParams( UHoudiniAssetComponent* HoudiniAssetComp
 bool
 FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape )
 {
+#if WITH_EDITOR
     if ( !HoudiniAssetComponent )
-	return false;
+        return false;
 
     if ( !HoudiniAssetComponent->HasLandscape() )
-	return false;
+        return false;
 
     TMap< FHoudiniGeoPartObject, ALandscape * > * LandscapeComponentsPtr = HoudiniAssetComponent->GetLandscapeComponents();
     if ( !LandscapeComponentsPtr )
-	return false;
+        return false;
 
     TArray<UPackage *> LayerPackages;
     bool bNeedToUpdateProperties = false;
     for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter(* LandscapeComponentsPtr ); Iter; ++Iter)
     {
-	ALandscape * CurrentLandscape = Iter.Value();
-	if ( !CurrentLandscape )
-	    continue;
+        ALandscape * CurrentLandscape = Iter.Value();
+        if ( !CurrentLandscape )
+            continue;
 
-	// If we only want to bake a single landscape
-	if ( OnlyBakeThisLandscape && CurrentLandscape != OnlyBakeThisLandscape )
-	    continue;
+        // If we only want to bake a single landscape
+        if ( OnlyBakeThisLandscape && CurrentLandscape != OnlyBakeThisLandscape )
+            continue;
 
-	// Simply remove the landscape from the map
-	FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
-	LandscapeComponentsPtr->Remove( HoudiniGeoPartObject );
+        // Simply remove the landscape from the map
+        FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
+        LandscapeComponentsPtr->Remove( HoudiniGeoPartObject );
 
-	CurrentLandscape->DetachFromActor( FDetachmentTransformRules::KeepWorldTransform );
+        CurrentLandscape->DetachFromActor( FDetachmentTransformRules::KeepWorldTransform );
 
-	// And save its layers to prevent them from being removed
-	for ( TMap< TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage( HoudiniAssetComponent->CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
-	{
-	    if ( !( HoudiniGeoPartObject == IterPackage.Value() ) )
-		continue;
+        // And save its layers to prevent them from being removed
+        for ( TMap< TWeakObjectPtr< UPackage >, FHoudiniGeoPartObject > ::TIterator IterPackage( HoudiniAssetComponent->CookedTemporaryLandscapeLayers ); IterPackage; ++IterPackage )
+        {
+            if ( !( HoudiniGeoPartObject == IterPackage.Value() ) )
+                continue;
 
-	    UPackage * Package = IterPackage.Key().Get();
-	    if ( Package )
-		LayerPackages.Add( Package );
-	}
+            UPackage * Package = IterPackage.Key().Get();
+            if ( Package )
+                LayerPackages.Add( Package );
+        }
 
-	bNeedToUpdateProperties = true;
+        bNeedToUpdateProperties = true;
 
-	// If we only wanted to bake a single landscape, we're done
-	if ( OnlyBakeThisLandscape )
-	    break;
+        // If we only wanted to bake a single landscape, we're done
+        if ( OnlyBakeThisLandscape )
+            break;
     }
 
     if ( LayerPackages.Num() > 0 )
-	FEditorFileUtils::PromptForCheckoutAndSave( LayerPackages, true, false );
+        FEditorFileUtils::PromptForCheckoutAndSave( LayerPackages, true, false );
 
     return bNeedToUpdateProperties;
+#else
+    return false;
+#endif
 }
 
 
