@@ -38,23 +38,13 @@
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Engine/StaticMeshSocket.h"
-#include "Landscape.h"
 
-
-class AActor;
-class UClass;
-class FArchive;
 class UTexture2D;
-class UBlueprint;
 class UStaticMesh;
 class UHoudiniAsset;
 class ALandscapeProxy;
 class AHoudiniAssetActor;
 class UMaterialExpression;
-class UHoudiniAssetMaterial;
-class UHoudiniAssetComponent;
-class FHoudiniAssetObjectGeo;
-class UInstancedStaticMeshComponent;
 class USplineComponent;
 
 struct FRawMesh;
@@ -132,18 +122,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
             TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform );
 
-        /** Bake static mesh. **/
-        static UStaticMesh * BakeStaticMesh(
-            UHoudiniAssetComponent * HoudiniAssetComponent,
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            UStaticMesh * StaticMesh );
-
-        /** Bake blueprint. **/
-        static UBlueprint * BakeBlueprint( UHoudiniAssetComponent * HoudiniAssetComponent );
-
-        /** Bake blueprint, instantiate and replace Houdini actor. **/
-        static AActor * ReplaceHoudiniActorWithBlueprint( UHoudiniAssetComponent * HoudiniAssetComponent );
-
         /** Extract position information from coords string. **/
         static void ExtractStringPositions( const FString & Positions, TArray< FVector > & OutPositions );
 
@@ -165,13 +143,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Helper function to extract copied Houdini actor from clipboard. **/
         static AHoudiniAssetActor * LocateClipboardActor( const AActor* IgnoreActor, const FString & ClipboardText );
-
-        /** Update instances of a given instanced static mesh component. **/
-        static void UpdateInstancedStaticMeshComponentInstances(
-            USceneComponent * Component,
-            const TArray< FTransform > & InstancedTransforms,
-            const FRotator & RotationOffset,
-            const FVector & ScaleOffset );
 
         /** Retrieves list of asset names contained within the HDA. **/
         static bool GetAssetNames(
@@ -404,6 +375,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
+        /** Helper routine to check invalid lightmap faces. **/
+        static bool ContainsInvalidLightmapFaces( const FRawMesh & RawMesh, int32 LightmapSourceIdx );
+
 #endif // WITH_EDITOR
 
         /** HAPI : Retrieve instance transforms for a specified geo object. **/
@@ -468,31 +442,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
         static char * ExtractRawName(const FString & Name);
 
-#if WITH_EDITOR
-
-        /** Duplicate a given static mesh. This will create a new package for it. This will also create necessary       **/
-        /** materials and textures and their corresponding packages. **/
-        static UStaticMesh * DuplicateStaticMeshAndCreatePackage(
-            const UStaticMesh * StaticMesh, UHoudiniAssetComponent * Component,
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject, EBakeMode BakeMode );
-
-        /** Bake output meshes and materials to packages and create corresponding actors in the scene */
-        static void BakeHoudiniActorToActors( UHoudiniAssetComponent * HoudiniAssetComponent, bool SelectNewActors );
-
-        /** Get a candidate for baking to outliner input workflow */
-        static class UHoudiniAssetInput* GetInputForBakeHoudiniActorToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
-
-        /** Returns true if the conditions are met for Bake to Input action ( 1 static mesh output and first input is world outliner with a static mesh) */
-        static bool GetCanComponentBakeToOutlinerInput( const UHoudiniAssetComponent * HoudiniAssetComponent );
-
-        /** Bakes output meshes and materials to packages and sets them on an input */
-        static void BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent * HoudiniAssetComponent );
-
-#endif
-
-        /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
-        static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, ALandscape * OnlyBakeThisLandscape = nullptr );
-
     protected:
 
 #if PLATFORM_WINDOWS
@@ -500,13 +449,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Attempt to locate libHAPI on Windows in the registry. Return handle if located and return location. **/
         static void* LocateLibHAPIInRegistry(
             const FString & HoudiniInstallationType, const FString & HoudiniVersionString, FString & StoredLibHAPILocation );
-
 #endif
-
-        /** Create a package for given component for blueprint baking. **/
-        static UPackage * BakeCreateBlueprintPackageForComponent(
-            UHoudiniAssetComponent * HoudiniAssetComponent, FString & BlueprintName );
-
+    public:
         /** Create a package for a given component for material. **/
         static UPackage * BakeCreateMaterialPackageForComponent(
             FHoudiniCookParams& HoudiniCookParams,
@@ -528,32 +472,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const TArray< int32 > & VertexList,
             const HAPI_AttributeInfo & AttribInfo, TArray< float > & Data );
 
-#if WITH_EDITOR
-
-        /** Duplicate a given material. This will create a new package for it. This will also create necessary textures **/
-        /** and their corresponding packages. **/
-        static UMaterial * DuplicateMaterialAndCreatePackage(
-            UMaterial * Material, FHoudiniCookParams& HoudiniCookParams, const FString & SubMaterialName );
-
-        /** Duplicate a given texture. This will create a new package for it. **/
-        static UTexture2D * DuplicateTextureAndCreatePackage(
-            UTexture2D * Texture, FHoudiniCookParams& HoudiniCookParams, const FString & SubTextureName );
-
-        /** Replace duplicated texture with a new copy within a given sampling expression. **/
-        static void ReplaceDuplicatedMaterialTextureSample(
-            UMaterialExpression * MaterialExpression, FHoudiniCookParams& HoudiniCookParams );
-
-        /** Returns true if the supplied static mesh has unbaked (not backed by a .uasset) mesh or material */
-        static bool StaticMeshRequiresBake( const UStaticMesh * StaticMesh );
-
-        /** Helper for baking to actors */
-        static TArray< AActor* > BakeHoudiniActorToActors_StaticMeshes( UHoudiniAssetComponent * HoudiniAssetComponent, 
-            TMap< const UStaticMeshComponent*, FHoudiniGeoPartObject >& SMComponentToPart );
-        /** Helper for baking to actors */
-        static TArray< AActor* > BakeHoudiniActorToActors_InstancedActors( UHoudiniAssetComponent * HoudiniAssetComponent,
-            TMap< const class UHoudiniInstancedActorComponent*, FHoudiniGeoPartObject >& ComponentToPart );
-#endif
-
         /** Add Houdini meta information to package for a given object. **/
         static void AddHoudiniMetaInformationToPackage(
             UPackage * Package, UObject * Object, const TCHAR * Key, const TCHAR * Value );
@@ -569,9 +487,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Helper routine to count number of degenerate triangles. **/
         static int32 CountDegenerateTriangles( const FRawMesh & RawMesh );
-
-        /** Helper routine to check invalid lightmap faces. **/
-        static bool ContainsInvalidLightmapFaces( const FRawMesh & RawMesh, int32 LightmapSourceIdx );
 
 #endif // WITH_EDITOR
 

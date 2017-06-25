@@ -59,6 +59,13 @@ public:
     /** Spawn a single instance */
     AActor* SpawnInstancedActor( const FTransform& InstancedTransform ) const;
 
+    /** Update instances of a given instanced static mesh component. **/
+    static void UpdateInstancedStaticMeshComponentInstances(
+        USceneComponent * Component,
+        const TArray< FTransform > & InstancedTransforms,
+        const FRotator & RotationOffset,
+        const FVector & ScaleOffset );
+
     UPROPERTY( SkipSerialization, VisibleAnywhere, Category = Instances )
     UObject* InstancedAsset;
 
