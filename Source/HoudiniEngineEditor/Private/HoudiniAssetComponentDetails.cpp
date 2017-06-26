@@ -25,14 +25,15 @@
 #include "HoudiniAssetComponentDetails.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInstanceInput.h"
-#include "HoudiniApi.h"
 #include "HoudiniAssetLogWidget.h"
 #include "HoudiniEngineString.h"
+
 #include "Landscape.h"
 #include "ContentBrowserModule.h"
 
@@ -1048,7 +1049,7 @@ FHoudiniAssetComponentDetails::CreateHoudiniAssetWidget( IDetailCategoryBuilder 
     ];
 
     BakeToInputButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([=] {
-        return FHoudiniEngineUtils::GetCanComponentBakeToOutlinerInput(HoudiniAssetComponent);
+        return FHoudiniEngineBakeUtils::GetCanComponentBakeToOutlinerInput(HoudiniAssetComponent);
     })));
 
     IDetailGroup& HelpGroup = DetailCategoryBuilder.AddGroup(TEXT("Help"), LOCTEXT("Help", "Help and Debugging"));
@@ -1136,7 +1137,7 @@ FHoudiniAssetComponentDetails::OnBakeStaticMesh( UStaticMesh * StaticMesh, UHoud
         // We need to locate corresponding geo part object in component.
         const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( StaticMesh );
 
-        (void) FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+        (void) FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
             StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::ReplaceExisitingAssets );
     }
 
@@ -1173,7 +1174,7 @@ FHoudiniAssetComponentDetails::OnBakeLandscape(ALandscape * Landscape, UHoudiniA
 {
     bool bNeedToUpdateProperties = false;
     if ( HoudiniAssetComponent && Landscape )
-        bNeedToUpdateProperties = FHoudiniEngineUtils::BakeLandscape( HoudiniAssetComponent, Landscape );
+        bNeedToUpdateProperties = FHoudiniEngineBakeUtils::BakeLandscape( HoudiniAssetComponent, Landscape );
     
     // Modify the component GUID to avoid overwriting the layers
     if ( bNeedToUpdateProperties )
@@ -1258,7 +1259,7 @@ FHoudiniAssetComponentDetails::OnBakeBlueprint()
 
         // If component is not cooking or instancing, we can bake blueprint.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
-            FHoudiniEngineUtils::BakeBlueprint( HoudiniAssetComponent );
+            FHoudiniEngineBakeUtils::BakeBlueprint( HoudiniAssetComponent );
     }
 
     return FReply::Handled();
@@ -1273,7 +1274,7 @@ FHoudiniAssetComponentDetails::OnBakeBlueprintReplace()
 
         // If component is not cooking or instancing, we can bake blueprint.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
-            FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent );
+            FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent );
     }
 
     return FReply::Handled();
@@ -1289,7 +1290,7 @@ FHoudiniAssetComponentDetails::OnBakeToActors()
         // If component is not cooking or instancing, we can bake.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
         {
-            FHoudiniEngineUtils::BakeHoudiniActorToActors( HoudiniAssetComponent, true );
+            FHoudiniEngineBakeUtils::BakeHoudiniActorToActors( HoudiniAssetComponent, true );
         }
     }
 
@@ -1306,7 +1307,7 @@ FHoudiniAssetComponentDetails::OnBakeToInput()
         // If component is not cooking or instancing, we can bake.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
         {
-            FHoudiniEngineUtils::BakeHoudiniActorToOutlinerInput( HoudiniAssetComponent );
+            FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( HoudiniAssetComponent );
         }
     }
 

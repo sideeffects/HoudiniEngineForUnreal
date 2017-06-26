@@ -31,6 +31,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAsset.h"
+#include "HoudiniEngineUtils.h"
 
 
 const uint32
@@ -186,4 +187,10 @@ bool
 UHoudiniAsset::IsAssetNonCommercial() const
 {
     return bAssetNonCommercial;
+}
+
+bool 
+UHoudiniAsset::GetAssetNames( HAPI_AssetLibraryId & AssetLibraryId, TArray< HAPI_StringHandle > & AssetNames )
+{
+    return FHoudiniEngineUtils::GetAssetNames( this, AssetLibraryId, AssetNames );
 }

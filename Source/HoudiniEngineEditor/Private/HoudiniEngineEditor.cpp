@@ -48,6 +48,7 @@
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetActorFactory.h"
 #include "HoudiniAttributePaintEdMode.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniAssetActor.h"
 
 const FName
@@ -686,7 +687,7 @@ FHoudiniEngineEditor::BakeAllAssets()
 
         // If component is not cooking or instancing, we can bake blueprint.
         if ( !HoudiniAssetComponent->IsInstantiatingOrCooking() )
-            FHoudiniEngineUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent );
+            FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithBlueprint( HoudiniAssetComponent );
     }
 }
 

@@ -131,6 +131,16 @@
 #include "HAPI.h"
 #include "HAPI_Version.h"
 
+#if PLATFORM_WINDOWS
+    #include "WindowsHWrapper.h"
+
+    // Of course, Windows defines its own GetGeoInfo,
+    // So we need to undefine that before including HoudiniApi.h to avoid collision...
+    #ifdef GetGeoInfo
+	#undef GetGeoInfo
+    #endif
+#endif
+
 /** Whether to enable logging. **/
 #define HOUDINI_ENGINE_LOGGING 1
 

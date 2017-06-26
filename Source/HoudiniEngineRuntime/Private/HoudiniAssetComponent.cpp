@@ -31,6 +31,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
@@ -70,6 +71,8 @@
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Engine/StaticMeshSocket.h"
+#include "HoudiniCookHandler.h"
+
 
 #if WITH_EDITOR
 
@@ -351,7 +354,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
 
     bEditorPropertiesNeedFullUpdate = true;
 
-    Bounds = FBox(0);
+    Bounds = FBox( ForceInitToZero );
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -2248,7 +2251,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
 
         // Duplicate static mesh and all related generated Houdini materials and textures.
         UStaticMesh * DuplicatedStaticMesh =
-            FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniCookParams::GetDefaultStaticMeshesCookMode() );
+            FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage( StaticMesh, this, HoudiniGeoPartObject, FHoudiniCookParams::GetDefaultStaticMeshesCookMode() );
 
         if( DuplicatedStaticMesh )
         {
@@ -3258,7 +3261,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
                 continue;
 
             // Bake the referenced static mesh.
-            UStaticMesh * OutStaticMesh = FHoudiniEngineUtils::DuplicateStaticMeshAndCreatePackage(
+            UStaticMesh * OutStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
                 StaticMesh, this, HoudiniGeoPartObject, EBakeMode::CreateNewAssets );
 
             if ( OutStaticMesh )
@@ -3983,7 +3986,7 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
             continue;
 
         HoudiniAssetInput->SetNodeId( AssetId );
-        Success &= HoudiniAssetInput->ChangeInputType(HoudiniAssetInput->GetChoiceIndex());
+        Success &= HoudiniAssetInput->ChangeInputType( HoudiniAssetInput->GetChoiceIndex() );
         Success &= HoudiniAssetInput->UploadParameterValue();
     }
 
@@ -5450,8 +5453,7 @@ UHoudiniAssetComponent::GetSocketTransform( FName InSocketName, ERelativeTransfo
 FBox
 UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const bool& bIgnoreGeneratedLandscape ) const
 {
-    FBox BoxBounds(0);
-    BoxBounds += GetComponentLocation();
+    FBox BoxBounds( ForceInitToZero );
 
     // Query the bounds of all our static mesh components..
     for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TConstIterator Iter( StaticMeshComponents ); Iter; ++Iter )
@@ -5519,6 +5521,10 @@ UHoudiniAssetComponent::GetAssetBounds( UHoudiniAssetInput* IgnoreInput, const b
             BoxBounds += LandscapeBounds;
         }
     }
+
+    // If nothing was found, init with the asset's location
+    if ( BoxBounds.GetVolume() == 0.0f )
+        BoxBounds += GetComponentLocation();
 
     return BoxBounds;
 }

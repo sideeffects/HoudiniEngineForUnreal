@@ -151,3 +151,60 @@ UHoudiniInstancedActorComponent::OnComponentCreated()
         }
     }
 }
+
+void
+UHoudiniInstancedActorComponent::UpdateInstancedStaticMeshComponentInstances(
+    USceneComponent * Component,
+    const TArray< FTransform > & InstancedTransforms,
+    const FRotator & RotationOffset, const FVector & ScaleOffset )
+{
+    UInstancedStaticMeshComponent* ISMC = Cast<UInstancedStaticMeshComponent>( Component );
+    UHoudiniInstancedActorComponent* IAC = Cast<UHoudiniInstancedActorComponent>( Component );
+
+    check( ISMC || IAC );
+
+    auto ProcessOffsets = [&]() {
+        TArray<FTransform> ProcessedTransforms;
+        ProcessedTransforms.Reserve( InstancedTransforms.Num() );
+
+        for( int32 InstanceIdx = 0; InstanceIdx < InstancedTransforms.Num(); ++InstanceIdx )
+        {
+            FTransform Transform = InstancedTransforms[InstanceIdx];
+
+            // Compute new rotation and scale.
+            FQuat TransformRotation = Transform.GetRotation() * RotationOffset.Quaternion();
+            FVector TransformScale3D = Transform.GetScale3D() * ScaleOffset;
+
+            // Make sure inverse matrix exists - seems to be a bug in Unreal when submitting instances.
+            // Happens in blueprint as well.
+            if( TransformScale3D.X < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.X = HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+            if( TransformScale3D.Y < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Y = HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+            if( TransformScale3D.Z < HAPI_UNREAL_SCALE_SMALL_VALUE )
+                TransformScale3D.Z = HAPI_UNREAL_SCALE_SMALL_VALUE;
+
+            Transform.SetRotation( TransformRotation );
+            Transform.SetScale3D( TransformScale3D );
+
+            ProcessedTransforms.Add( Transform );
+        }
+        return ProcessedTransforms;
+    };
+
+    if( ISMC )
+    {
+        ISMC->ClearInstances();
+        for( const auto& Transform : ProcessOffsets() )
+        {
+            ISMC->AddInstance( Transform );
+        }
+    }
+    else if( IAC )
+    {
+        IAC->SetInstances( ProcessOffsets() );
+    }
+}
+

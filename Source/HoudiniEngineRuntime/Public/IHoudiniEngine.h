@@ -19,18 +19,12 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Damian Campeanu, Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
 
+#include "HAPI_Common.h"
+#include "HoudiniGeoPartObject.h"
 
 class UMaterial;
 class UStaticMesh;
@@ -40,6 +34,7 @@ struct FHoudiniEngineNotificationInfo;
 struct FHoudiniEngineTask;
 struct FHoudiniEngineTaskInfo;
 struct HAPI_Session;
+struct FHoudiniCookParams;
 
 
 class IHoudiniEngine : public IModuleInterface
@@ -88,4 +83,11 @@ public:
 
     /** Retrieve HAPI session. **/
     virtual const HAPI_Session* GetSession() const = 0;
+
+    /** Construct static meshes for a given Houdini asset. **/
+    virtual bool CookNode(
+        HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
+        bool ForceRebuildStaticMesh, bool ForceRecookAll,
+        const TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesIn,
+        TMap< FHoudiniGeoPartObject, class UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform ) = 0;
 };

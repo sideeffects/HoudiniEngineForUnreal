@@ -481,3 +481,15 @@ FHoudiniEngine::RetrieveTaskInfo( const FGuid HapIGUID, FHoudiniEngineTaskInfo &
 
     return false;
 }
+
+bool 
+FHoudiniEngine::CookNode(
+    HAPI_NodeId AssetId, FHoudiniCookParams& HoudiniCookParams,
+    bool ForceRebuildStaticMesh, bool ForceRecookAll,
+    const TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesIn,
+    TMap< FHoudiniGeoPartObject, UStaticMesh * > & StaticMeshesOut, FTransform & ComponentTransform )
+{
+    return FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
+        AssetId, HoudiniCookParams, ForceRebuildStaticMesh, 
+        ForceRecookAll, StaticMeshesIn, StaticMeshesOut, ComponentTransform );
+}

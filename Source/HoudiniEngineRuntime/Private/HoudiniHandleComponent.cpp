@@ -30,6 +30,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniHandleComponent.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
