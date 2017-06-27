@@ -111,8 +111,10 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 
     /** Custom Houdini location. **/
     bUseCustomHoudiniLocation = false;
-
     CustomHoudiniLocation.Path = TEXT( "" );
+
+    /** Arguments for HAPI_Initialize */
+    CookingThreadStackSize = -1;
 }
 
 UHoudiniRuntimeSettings::~UHoudiniRuntimeSettings()
