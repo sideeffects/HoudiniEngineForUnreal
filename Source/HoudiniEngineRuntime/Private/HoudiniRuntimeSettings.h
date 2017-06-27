@@ -409,4 +409,24 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
             Meta = ( DisplayName = "Custom Houdini location" ) )
         FDirectoryPath CustomHoudiniLocation;
 
+    /** Arguments for HAPI_Initialize */
+    public:
+        // Evaluation thread stack size in bytes.  -1 for default 
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = HoudiniEngineInitialization )
+            int32 CookingThreadStackSize;
+        // List of paths to Houdini-compatible .env files (; separated on Windows, : otherwise)
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = HoudiniEngineInitialization )
+            FString HoudiniEnvironmentFiles;
+        // Path to find other OTL/HDA files
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = HoudiniEngineInitialization )
+            FString OtlSearchPath;
+        // Sets HOUDINI_DSO_PATH
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = HoudiniEngineInitialization )
+            FString DsoSearchPath;
+        // Sets HOUDINI_IMAGE_DSO_PATH
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = HoudiniEngineInitialization )
+            FString ImageDsoSearchPath;
+        // Sets HOUDINI_AUDIO_DSO_PATH
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = HoudiniEngineInitialization )
+            FString AudioDsoSearchPath;
 };

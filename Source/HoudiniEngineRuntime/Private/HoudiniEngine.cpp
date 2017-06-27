@@ -348,7 +348,13 @@ FHoudiniEngine::StartupModule()
             CookOptions.splitPointsByVertexAttributes = false;
             CookOptions.packedPrimInstancingMode = HAPI_PACKEDPRIM_INSTANCING_MODE_FLAT;
 
-            HAPI_Result Result = FHoudiniApi::Initialize( SessionPtr, &CookOptions, true, -1, "", "", "", "", "" );
+            HAPI_Result Result = FHoudiniApi::Initialize( SessionPtr, &CookOptions, true,
+                HoudiniRuntimeSettings->CookingThreadStackSize, 
+                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->HoudiniEnvironmentFiles),
+                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->OtlSearchPath), 
+                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->DsoSearchPath),
+                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->ImageDsoSearchPath), 
+                TCHAR_TO_UTF8( *HoudiniRuntimeSettings->AudioDsoSearchPath) );
             if ( Result == HAPI_RESULT_SUCCESS )
             {
                 HOUDINI_LOG_MESSAGE( TEXT( "Successfully intialized the Houdini Engine API module." ) );
