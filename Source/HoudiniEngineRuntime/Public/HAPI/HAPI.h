@@ -5200,13 +5200,6 @@ HAPI_DECL HAPI_GetPDGGraphContexts( const HAPI_Session * session,
 /// @param[in]      cook_type
 ///                 The ::HAPI_PDG_CookType cooking mode to perform.
 ///
-/// @param[in]      workitem_id_array
-///                 The workitems the cook is relative to.  This is relevant for
-///                 cook_type HAPI_PDG_COOK_PUSH, HAPI_PDG_COOK_NODE, and HAPI_PDG_COOK_NODEGEN
-///
-/// @param[in]      workitem_id_array_count
-///                 The length of workitem_id_array.
-///
 /// @param[in]      blocking
 ///                 0 means return immediately and cooking will be done 
 ///                 asynchronously.   1 means return when cooking completes.
@@ -5215,8 +5208,6 @@ HAPI_DECL HAPI_CookPDG( const HAPI_Session * session,
                         HAPI_PDG_GraphContextId graph_context_id,
                         HAPI_NodeId cook_node_id,
                         HAPI_PDG_CookType cook_type,
-                        const int * workitem_id_array,
-                        int workitem_id_array_count,
                         int blocking );
 
 // @brief  Returns PDG events that have been collected.  Calling this function
