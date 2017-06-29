@@ -1146,7 +1146,7 @@ FHoudiniApi::CookNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id
 
 
 HAPI_Result
-FHoudiniApi::CookPDGEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_NodeId cook_node_id, HAPI_PDG_CookType cook_type, const int * workitem_id_array, int workitem_id_array_count, int blocking)
+FHoudiniApi::CookPDGEmptyStub(const HAPI_Session * session, HAPI_PDG_GraphContextId graph_context_id, HAPI_NodeId cook_node_id, HAPI_PDG_CookType cook_type, int blocking)
 {
 	return HAPI_RESULT_FAILURE;
 }
