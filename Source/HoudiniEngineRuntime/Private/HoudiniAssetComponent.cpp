@@ -320,7 +320,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent( const FObjectInitializer & Objec
     }
 
     // Set component properties.
-    Mobility = EComponentMobility::Movable;
+    Mobility = EComponentMobility::Static;
     PrimaryComponentTick.bCanEverTick = true;
     bTickInEditor = true;
     bGenerateOverlapEvents = false;
