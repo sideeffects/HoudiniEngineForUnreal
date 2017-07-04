@@ -1030,7 +1030,15 @@ FHoudiniEngineBakeUtils::BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComp
     }
 
     if ( LayerPackages.Num() > 0 )
+    {
+        // Save the layer info's package
         FEditorFileUtils::PromptForCheckoutAndSave( LayerPackages, true, false );
+
+        // Remove the packages from the asset component, or the asset component might 
+        // destroy them when it is being destroyed
+        for ( int32 n = 0; n < LayerPackages.Num(); n++ )
+            HoudiniAssetComponent->CookedTemporaryLandscapeLayers.Remove( LayerPackages[n] );
+    }
 
     return bNeedToUpdateProperties;
 #else
