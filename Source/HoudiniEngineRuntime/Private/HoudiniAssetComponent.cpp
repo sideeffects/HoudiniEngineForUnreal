@@ -3076,6 +3076,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 if ( !PackageFile.IsEmpty() )
                     Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
 
+                if ( !Package )
+                    continue;
+
                 CookedTemporaryPackages.Add( sKey, Package );
             }
         }
@@ -3115,6 +3118,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 if ( !PackageFile.IsEmpty() )
                     Package = LoadPackage(nullptr, *PackageFile, LOAD_None);
 
+                if ( !Package )
+                    continue;
+
                 CookedTemporaryStaticMeshPackages.Add( Key, Package );
             }
         }
@@ -3150,6 +3156,9 @@ UHoudiniAssetComponent::Serialize( FArchive & Ar )
                 UPackage * Package = nullptr;
                 if ( !PackageFile.IsEmpty() )
                     Package = LoadPackage( nullptr, *PackageFile, LOAD_None );
+
+                if ( !Package )
+                    continue;
 
                 CookedTemporaryLandscapeLayers.Add( Package, Value );
             }
