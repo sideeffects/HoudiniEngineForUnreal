@@ -186,4 +186,18 @@ HAPI_DECL_RETURN( void )
 HAPI_DECL_RETURN( HAPI_CurveInfo )
     HAPI_CurveInfo_Create();
 
+// TRANSFORMS ---------------------------------------------------------------
+
+HAPI_DECL_RETURN( void )
+    HAPI_Transform_Init( HAPI_Transform * in );
+
+HAPI_DECL_RETURN( HAPI_Transform )
+    HAPI_Transform_Create();
+
+HAPI_DECL_RETURN( void )
+    HAPI_TransformEuler_Init( HAPI_TransformEuler * in );
+
+HAPI_DECL_RETURN( HAPI_TransformEuler )
+    HAPI_TransformEuler_Create();
+
 #endif // __HAPI_HELPERS_h__
