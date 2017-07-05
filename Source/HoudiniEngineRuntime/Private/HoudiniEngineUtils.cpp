@@ -5550,6 +5550,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     // We need to check light map uv set for correctness. Unreal seems to have occasional issues with
                     // zero UV sets when building lightmaps.
+                    int32 LightMapResolutionOverride = -1;
                     if ( SrcModel->BuildSettings.bGenerateLightmapUVs )
                     {
                         // See if we need to disable lightmap generation because of bad UVs.
@@ -5565,11 +5566,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                         if( LightMapResolutions.Num() > 0 )
                         {
-                            int32 LightMapResolutionOverride = LightMapResolutions[0];
-                            if( LightMapResolutionOverride > 0 )
-                            {
-                                SrcModel->BuildSettings.MinLightmapResolution = LightMapResolutionOverride;
-                            }
+                            LightMapResolutionOverride = LightMapResolutions[0];
                         }
                     }
 
@@ -5596,6 +5593,12 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
 
                     // Assign generation parameters for this static mesh.
                     HoudiniCookParams.HoudiniCookManager->SetStaticMeshGenerationParameters( StaticMesh );
+
+                    // Apply lightmap resolution override if it has been specified
+                    if( LightMapResolutionOverride > 0 )
+                    {
+                        StaticMesh->LightMapResolution = LightMapResolutionOverride;
+                    }
 
                     // Make sure we remove the old simple colliders if needed
                     if( UBodySetup * BodySetup = StaticMesh->BodySetup )
