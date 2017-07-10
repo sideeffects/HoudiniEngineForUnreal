@@ -2298,7 +2298,8 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
             UpdateWorldOutlinerTransforms(OutlinerMesh);
 
             HAPI_TransformEuler HapiTransform;
-            FHoudiniEngineUtils::TranslateUnrealTransform(OutlinerMesh.ComponentTransform, HapiTransform);
+            FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+            FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerInput.ComponentTransform, HapiTransform );
 
             HAPI_NodeInfo LocalAssetNodeInfo;
             const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(

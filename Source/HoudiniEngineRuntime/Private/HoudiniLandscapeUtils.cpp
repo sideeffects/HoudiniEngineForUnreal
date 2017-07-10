@@ -1364,7 +1364,8 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     //--------------------------------------------------------------------------------------------------
     // 2. Convert the Unreal Transform to a HAPI_transform
     //--------------------------------------------------------------------------------------------------
-    HAPI_Transform HapiTransform{};
+    HAPI_Transform HapiTransform;
+    FMemory::Memzero< HAPI_Transform >( HapiTransform );
     {
         FQuat Rotation = LandscapeTransform.GetRotation();
         if ( Rotation != FQuat::Identity )
