@@ -2312,7 +2312,7 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
 
             HAPI_TransformEuler HapiTransform;
             FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
-            FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerInput.ComponentTransform, HapiTransform );
+            FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
 
             HAPI_NodeInfo LocalAssetNodeInfo;
             const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
