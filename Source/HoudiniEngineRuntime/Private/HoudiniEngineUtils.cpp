@@ -459,6 +459,7 @@ FHoudiniEngineUtils::TranslateHapiTransform( const HAPI_TransformEuler & HapiTra
     FHoudiniApi::ConvertTransformEulerToMatrix( FHoudiniEngine::Get().GetSession(), &HapiTransformEuler, HapiMatrix );
 
     HAPI_Transform HapiTransformQuat;
+    FMemory::Memzero< HAPI_Transform >( HapiTransformQuat );
     FHoudiniApi::ConvertMatrixToQuat( FHoudiniEngine::Get().GetSession(), HapiMatrix, HAPI_SRT, &HapiTransformQuat );
 
     FHoudiniEngineUtils::TranslateHapiTransform( HapiTransformQuat, UnrealTransform );
@@ -2247,6 +2248,7 @@ FHoudiniEngineUtils::HapiGetAssetTransform( HAPI_NodeId AssetId, FTransform & In
         &LocalAssetNodeInfo ), false );
 
     HAPI_Transform LocalHapiTransform;
+    FMemory::Memzero< HAPI_Transform >( LocalHapiTransform );
 
     if ( LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP )
     {
@@ -3333,6 +3335,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         
         // Updating the Transform
         HAPI_TransformEuler HapiTransform;
+        FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
         FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
 
         HAPI_NodeInfo LocalAssetNodeInfo;
@@ -3407,6 +3410,7 @@ FHoudiniEngineUtils::HapiSetAssetTransform( HAPI_NodeId AssetId, const FTransfor
 
     // Translate Unreal transform to HAPI Euler one.
     HAPI_TransformEuler TransformEuler;
+    FMemory::Memzero< HAPI_TransformEuler >( TransformEuler );
     FHoudiniEngineUtils::TranslateUnrealTransform( Transform, TransformEuler );
     
     // Get the NodeInfo
@@ -9305,7 +9309,7 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
     // to avoid finding "deleted" assets with the same name
     //UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
     UWorld* editorWorld = StaticMeshComponent->GetOwner()->GetWorld();
-    for (TActorIterator<AActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
+    for ( TActorIterator<AActor> ActorItr( editorWorld ); ActorItr; ++ActorItr )
     {
         // Same as with the Object Iterator, access the subclass instance with the * or -> operators.
         AActor *Actor = *ActorItr;
@@ -9314,7 +9318,8 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
 
         for ( int32 StringIdx = 0; StringIdx < ActorStringArray.Num(); StringIdx++ )
         {
-            if ( Actor->GetName() != ActorStringArray[ StringIdx ] )
+            if ( Actor->GetName() != ActorStringArray[ StringIdx ]
+                 && Actor->GetActorLabel() != ActorStringArray[ StringIdx ] )
                 continue;
 
             if ( Actor->IsPendingKillOrUnreachable() )
