@@ -9357,7 +9357,7 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
     // to avoid finding "deleted" assets with the same name
     //UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
     UWorld* editorWorld = StaticMeshComponent->GetOwner()->GetWorld();
-    for (TActorIterator<AActor> ActorItr(editorWorld); ActorItr; ++ActorItr)
+    for ( TActorIterator<AActor> ActorItr( editorWorld ); ActorItr; ++ActorItr )
     {
         // Same as with the Object Iterator, access the subclass instance with the * or -> operators.
         AActor *Actor = *ActorItr;
@@ -9366,7 +9366,8 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
 
         for ( int32 StringIdx = 0; StringIdx < ActorStringArray.Num(); StringIdx++ )
         {
-            if ( Actor->GetName() != ActorStringArray[ StringIdx ] )
+            if ( Actor->GetName() != ActorStringArray[ StringIdx ]
+                 && Actor->GetActorLabel() != ActorStringArray[ StringIdx ] )
                 continue;
 
             if ( Actor->IsPendingKillOrUnreachable() )
