@@ -2800,6 +2800,7 @@ bool
 FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId, 
     UStaticMesh * StaticMesh,
+    const FTransform& InputTransform,
     HAPI_NodeId & ConnectedAssetId,
     UStaticMeshComponent* StaticMeshComponent /* = nullptr */)
 {
@@ -3318,12 +3319,11 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 HOUDINI_LOG_ERROR( TEXT( "Upload of attribute data for %s failed" ), *StaticMeshComponent->GetOwner()->GetName() );
             }
         }
-    }
+    } 
 
     // Commit the geo.
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CommitGeo(
         FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId ), false );
-
 #endif
 
     return true;
@@ -3356,6 +3356,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             bInputCreated = HapiCreateInputNodeForData(
                 ConnectedAssetId,
                 OutlinerMesh.StaticMesh,
+                FTransform::Identity,
                 OutlinerMesh.AssetId,
                 OutlinerMesh.StaticMeshComponent );
         }
@@ -3400,7 +3401,9 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 }
 
 bool 
-FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
+FHoudiniEngineUtils::HapiCreateInputNodeForData( 
+    HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, const TArray< FTransform >& InputTransforms,
+    HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
 {
     if ( ensure( InputObjects.Num() ) )
     {
@@ -3415,13 +3418,18 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_NodeId HostAssetId, TArray
         {
             if ( UStaticMesh* InputStaticMesh = Cast< UStaticMesh >( InputObjects[ InputIdx ] ) )
             {
+                FTransform InputTransform = FTransform::Identity;
+                if ( InputTransforms.IsValidIndex( InputIdx ) )
+                    InputTransform = InputTransforms[ InputIdx ];
+
                 HAPI_NodeId MeshAssetNodeId = -1;
                 // Creating an Input Node for Mesh Data
-                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, MeshAssetNodeId, nullptr );
+                bool bInputCreated = HapiCreateInputNodeForData( ConnectedAssetId, InputStaticMesh, InputTransform, MeshAssetNodeId, nullptr );
                 if ( !bInputCreated )
                 {
                     HOUDINI_LOG_WARNING( TEXT( "Error creating input index %d on %d" ), InputIdx, ConnectedAssetId );
                 }
+
                 if ( MeshAssetNodeId >= 0 )
                 {
                     OutCreatedNodeIds.Add( MeshAssetNodeId );
@@ -3430,6 +3438,38 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData( HAPI_NodeId HostAssetId, TArray
                     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::ConnectNodeInput(
                         FHoudiniEngine::Get().GetSession(), ConnectedAssetId, InputIdx,
                         MeshAssetNodeId ), false );
+
+                    if ( !InputTransform.Equals( FTransform::Identity ) )
+                    {
+                        // Updating the Transform
+                        HAPI_TransformEuler HapiTransform;
+                        FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
+                        FHoudiniEngineUtils::TranslateUnrealTransform( InputTransform, HapiTransform );
+
+                        /*
+                        FVector InputPosition = InputTransform.GetLocation() / 100.0f;
+                        HapiTransform.position[ 0 ] = InputPosition.X;
+                        HapiTransform.position[ 1 ] = InputPosition.Y;
+                        HapiTransform.position[ 2 ] = InputPosition.Z;
+
+                        FRotator InputRotator = InputTransform.Rotator();
+                        HapiTransform.rotationEuler[ 0 ] = InputRotator.Pitch;
+                        HapiTransform.rotationEuler[ 1 ] = InputRotator.Yaw;
+                        HapiTransform.rotationEuler[ 2 ] = InputRotator.Roll;
+
+                        FVector InputScale = InputTransform.GetScale3D();
+                        HapiTransform.scale[ 0 ] = InputScale.X;
+                        HapiTransform.scale[ 1 ] = InputScale.Y;
+                        HapiTransform.scale[ 2 ] = InputScale.Z;
+                        */
+
+                        HAPI_NodeInfo LocalAssetNodeInfo;
+                        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetNodeInfo(
+                            FHoudiniEngine::Get().GetSession(), MeshAssetNodeId, &LocalAssetNodeInfo), false);
+
+                        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetObjectTransform(
+                            FHoudiniEngine::Get().GetSession(), LocalAssetNodeInfo.parentId, &HapiTransform ), false);
+                    }
                 }
             }
         }
