@@ -55,17 +55,22 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     HoudiniAssetParameterVersion = VER_HOUDINI_PLUGIN_SERIALIZATION_AUTOMATIC_VERSION;
     Ar << HoudiniAssetParameterVersion;
 
-    Ar << Actor;
+    Ar << ActorPtr;
 
-    Ar << StaticMeshComponent;
-    Ar << StaticMesh;
+    if ( HoudiniAssetParameterVersion < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_ONLY )
+    {
+        Ar << StaticMeshComponent;
+        Ar << StaticMesh;
+    }
+
     Ar << ActorTransform;
 
     Ar << AssetId;
-    if (Ar.IsLoading() && !Ar.IsTransacting())
+    if ( Ar.IsLoading() && !Ar.IsTransacting() )
         AssetId = -1;
 
-    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE )
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_UNREAL_SPLINE 
+        && HoudiniAssetParameterVersion < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_OUTLINER_INPUT_SAVE_ACTOR_ONLY )
     {
         Ar << SplineComponent;
         Ar << NumberOfSplineControlPoints;
@@ -75,7 +80,7 @@ FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
     }
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_KEEP_TRANSFORM )
-	Ar << KeepWorldTransform;
+        Ar << KeepWorldTransform;
 }
 
 void 
@@ -85,44 +90,44 @@ FHoudiniAssetInputOutlinerMesh::RebuildSplineTransformsArrayIfNeeded()
     // This is required to properly detect Transform changes after loading the asset.
 
     // We need an Unreal spline
-    if (!SplineComponent)
+    if ( !SplineComponent )
         return;
 
     // If those are different, the input component has changed
-    if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
+    if ( NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints() )
         return;
 
     // If those are equals, there's no need to rebuild the array
-    if (SplineControlPointsTransform.Num() == SplineComponent->GetNumberOfSplinePoints())
+    if ( SplineControlPointsTransform.Num() == SplineComponent->GetNumberOfSplinePoints() )
         return;
 
     SplineControlPointsTransform.SetNumUninitialized(SplineComponent->GetNumberOfSplinePoints());
-    for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
-        SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint(n, ESplineCoordinateSpace::Local, true);
+    for ( int32 n = 0; n < SplineControlPointsTransform.Num(); n++ )
+        SplineControlPointsTransform[n] = SplineComponent->GetTransformAtSplinePoint( n, ESplineCoordinateSpace::Local, true );
 }
 
 bool
 FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged(float fCurrentSplineResolution) const
 {
-    if (!SplineComponent)
+    if ( !SplineComponent )
         return false;
 
     // Total length of the spline has changed ?
-    if (SplineComponent->GetSplineLength() != SplineLength)
+    if ( SplineComponent->GetSplineLength() != SplineLength )
         return true;
 
     // Number of CVs has changed ?
-    if (NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints())
+    if ( NumberOfSplineControlPoints != SplineComponent->GetNumberOfSplinePoints() )
         return true;
 
-    if (SplineControlPointsTransform.Num() != SplineComponent->GetNumberOfSplinePoints())
+    if ( SplineControlPointsTransform.Num() != SplineComponent->GetNumberOfSplinePoints() )
         return true;
 
     // Current Spline resolution has changed?
-    if (fCurrentSplineResolution == -1.0)
+    if ( fCurrentSplineResolution == -1.0 && SplineResolution != -1.0)
     {
         const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-        if (HoudiniRuntimeSettings)
+        if ( HoudiniRuntimeSettings )
             fCurrentSplineResolution = HoudiniRuntimeSettings->MarshallingSplineResolution;
         else
             fCurrentSplineResolution = HAPI_UNREAL_PARAM_SPLINE_RESOLUTION_DEFAULT;
@@ -132,15 +137,15 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged(float fCurrentSplineRe
         return true;
 
     // Has any of the CV's transform been modified?
-    for (int32 n = 0; n < SplineControlPointsTransform.Num(); n++)
+    for ( int32 n = 0; n < SplineControlPointsTransform.Num(); n++ )
     {
-        if ( !SplineControlPointsTransform[n].GetLocation().Equals(SplineComponent->GetLocationAtSplinePoint(n, ESplineCoordinateSpace::Local) ) )
+        if ( !SplineControlPointsTransform[ n ].GetLocation().Equals( SplineComponent->GetLocationAtSplinePoint( n, ESplineCoordinateSpace::Local) ) )
             return true;
 
-        if ( !SplineControlPointsTransform[n].GetRotation().Equals(SplineComponent->GetQuaternionAtSplinePoint(n, ESplineCoordinateSpace::World) ) )
+        if ( !SplineControlPointsTransform[ n ].GetRotation().Equals( SplineComponent->GetQuaternionAtSplinePoint( n, ESplineCoordinateSpace::World ) ) )
             return true;
 
-        if (!SplineControlPointsTransform[n].GetScale3D().Equals(SplineComponent->GetScaleAtSplinePoint(n) ) )
+        if ( !SplineControlPointsTransform[ n ].GetScale3D().Equals( SplineComponent->GetScaleAtSplinePoint( n ) ) )
             return true;
     }
 
@@ -151,11 +156,11 @@ FHoudiniAssetInputOutlinerMesh::HasSplineComponentChanged(float fCurrentSplineRe
 bool 
 FHoudiniAssetInputOutlinerMesh::HasActorTransformChanged() const
 {
-    if (!Actor)
-	return false;
+    if ( !ActorPtr.IsValid() )
+        return false;
 
-    if (!ActorTransform.Equals(Actor->GetTransform()))
-	return true;
+    if ( !ActorTransform.Equals( ActorPtr->GetTransform() ) )
+        return true;
 
     return false;
 }
@@ -164,17 +169,38 @@ FHoudiniAssetInputOutlinerMesh::HasActorTransformChanged() const
 bool
 FHoudiniAssetInputOutlinerMesh::HasComponentTransformChanged() const
 {
-    if (!SplineComponent && !StaticMeshComponent)
-	return false;
+    if ( !SplineComponent && !StaticMeshComponent )
+        return false;
 
-    if (SplineComponent)
-	return !ComponentTransform.Equals(SplineComponent->GetComponentTransform());
+    if ( SplineComponent )
+        return !ComponentTransform.Equals( SplineComponent->GetComponentTransform() );
 
-    if (StaticMeshComponent)
-	return !ComponentTransform.Equals(StaticMeshComponent->GetComponentTransform());
+    if ( StaticMeshComponent )
+        return !ComponentTransform.Equals( StaticMeshComponent->GetComponentTransform() );
 
     return false;
 
+}
+
+bool
+FHoudiniAssetInputOutlinerMesh::NeedsComponentUpdate() const 
+{
+    if ( !ActorPtr.IsValid() || ActorPtr->IsPendingKill() )
+        return false;
+
+    if ( StaticMesh && ( !StaticMesh->IsValidLowLevel() || StaticMesh->IsPendingKill() ) )
+        return true;
+
+    if ( StaticMeshComponent && ( !StaticMeshComponent->IsValidLowLevel() || StaticMeshComponent->IsPendingKill() ) )
+        return true;
+
+    if ( SplineComponent && ( !SplineComponent->IsValidLowLevel() || SplineComponent->IsPendingKill() ) )
+        return true;
+
+    if ( !StaticMeshComponent && !StaticMeshComponent && !SplineComponent )
+        return true;
+
+    return false;
 }
 
 UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitializer )
@@ -187,6 +213,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     , ChoiceIndex( EHoudiniAssetInputType::GeometryInput )
     , UnrealSplineResolution( -1.0f )
     , HoudiniAssetInputFlagsPacked( 0u )
+    , OutlinerInputsNeedPostLoadInit( false )
 {
     // flags
     bLandscapeExportMaterials = true;
@@ -1337,7 +1364,7 @@ UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool
             // Add the mesh to the array
             FHoudiniAssetInputOutlinerMesh OutlinerMesh;
 
-            OutlinerMesh.Actor = Actor;
+            OutlinerMesh.ActorPtr = Actor;
             OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
             OutlinerMesh.StaticMesh = StaticMesh;
             OutlinerMesh.SplineComponent = nullptr;
@@ -1358,7 +1385,7 @@ UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool
             // Add the spline to the array
             FHoudiniAssetInputOutlinerMesh OutlinerMesh;
 
-            OutlinerMesh.Actor = Actor;
+            OutlinerMesh.ActorPtr = Actor;
             OutlinerMesh.StaticMeshComponent = nullptr;
             OutlinerMesh.StaticMesh = nullptr;
             OutlinerMesh.SplineComponent = SplineComponent;
@@ -1840,14 +1867,14 @@ UHoudiniAssetInput::PostLoad()
 
     if (InputOutlinerMeshArray.Num() > 0)
     {
-        // The spline Transform array might need to be rebuilt after loading
-        for (auto & OutlinerMesh : InputOutlinerMeshArray)
-            OutlinerMesh.RebuildSplineTransformsArrayIfNeeded();
+        // Proper initialization of the outliner inputs is delayed to the first WorldTick,
+        // As some of the Actors' components might not be preoperly initalized yet
+        OutlinerInputsNeedPostLoadInit = true;
+
 #if WITH_EDITOR
         StartWorldOutlinerTicking();
 #endif
     }
-	
 }
 
 void
@@ -1961,6 +1988,17 @@ UHoudiniAssetInput::AddReferencedObjects( UObject * InThis, FReferenceCollector 
         // Add reference to held landscape.
         if ( HoudiniAssetInput->InputLandscapeProxy )
             Collector.AddReferencedObject( HoudiniAssetInput->InputLandscapeProxy, InThis );
+
+        // Add reference for the WorldInputs' Actors
+        for ( auto & OutlinerInput : HoudiniAssetInput->InputOutlinerMeshArray )
+        {
+            // Add the outliner input's actor
+            AActor * OutlinerInputActor = OutlinerInput.ActorPtr.IsValid() ? OutlinerInput.ActorPtr.Get() : nullptr;
+            if ( !OutlinerInputActor )
+                continue;
+
+            Collector.AddReferencedObject( OutlinerInputActor, InThis );
+        }
 
         // Add references for all curve input parameters.
         for ( TMap< FString, UHoudiniAssetParameter * >::TIterator IterParams( HoudiniAssetInput->InputCurveParameters );
@@ -2312,7 +2350,7 @@ UHoudiniAssetInput::OnShouldFilterActor( const AActor * const Actor ) const
     else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
         for ( auto & OutlinerMesh : InputOutlinerMeshArray )
-            if ( OutlinerMesh.Actor == Actor )
+            if ( OutlinerMesh.ActorPtr.Get() == Actor )
                 return true;
     }
 
@@ -2428,68 +2466,80 @@ UHoudiniAssetInput::OnWorldOutlinerActorSelected( AActor * )
 void
 UHoudiniAssetInput::TickWorldOutlinerInputs()
 {
-    bool bLocalChanged = false;
-    TArray< UStaticMeshComponent * > InputOutlinerMeshArrayPendingKill;
-    for ( auto & OutlinerMesh : InputOutlinerMeshArray )
+    // PostLoad initialization must be done on the first tick
+    // as some components might now have been fully initialized at PostLoad()
+    if (OutlinerInputsNeedPostLoadInit)
     {
-        if ( OutlinerMesh.Actor->IsPendingKill() )
+        UpdateInputOulinerArray();
+
+        // The spline Transform array might need to be rebuilt after loading
+        for (auto & OutlinerInput : InputOutlinerMeshArray)
         {
-            if ( !bLocalChanged )
-            {
-                Modify();
-                MarkPreChanged();
-                bLocalChanged = true;
-            }
-
-            // Destroy Houdini asset.
-            if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerMesh.AssetId ) )
-            {
-                FHoudiniEngineUtils::DestroyHoudiniAsset( OutlinerMesh.AssetId );
-                OutlinerMesh.AssetId = -1;
-            }
-
-            // Mark mesh for deletion.
-            InputOutlinerMeshArrayPendingKill.Add( OutlinerMesh.StaticMeshComponent );
+            OutlinerInput.RebuildSplineTransformsArrayIfNeeded();
+            OutlinerInput.KeepWorldTransform = bKeepWorldTransform;
+            OutlinerInput.SplineResolution = UnrealSplineResolution;
         }
-        else if ( OutlinerMesh.HasActorTransformChanged() && (OutlinerMesh.AssetId >= 0))
+
+        OutlinerInputsNeedPostLoadInit = false;
+        return;
+    }
+
+    // Lambda use to Modify / Prechange only once
+    bool bLocalChanged = false;
+    auto MarkLocalChanged = [&]()
+    {
+        if ( !bLocalChanged )
         {
-            if (!bLocalChanged)
-            {
-                Modify();
-                MarkPreChanged();
-                bLocalChanged = true;
-            }
+            Modify();
+            MarkPreChanged();
+            bLocalChanged = true;
+        }
+    };
+    
+    // Refresh the input's component from the actor
+    // If the Actor is a blueprint, its component are recreated for every modification
+    if ( UpdateInputOulinerArray() )
+        MarkLocalChanged();
+
+    //
+    if ( bStaticMeshChanged )
+        return;
+
+    // Check for destroyed / modified outliner inputs
+    for ( auto & OutlinerInput : InputOutlinerMeshArray )
+    {
+        if ( !OutlinerInput.ActorPtr.IsValid() )
+            continue;
+
+        if ( OutlinerInput.HasActorTransformChanged() && ( OutlinerInput.AssetId >= 0 ) )
+        {
+            MarkLocalChanged();
 
             // Updates to the new Transform
-            UpdateWorldOutlinerTransforms(OutlinerMesh);
+            UpdateWorldOutlinerTransforms( OutlinerInput );
 
             HAPI_TransformEuler HapiTransform;
             FMemory::Memzero< HAPI_TransformEuler >( HapiTransform );
-            FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerMesh.ComponentTransform, HapiTransform );
+            FHoudiniEngineUtils::TranslateUnrealTransform( OutlinerInput.ComponentTransform, HapiTransform );
 
             HAPI_NodeInfo LocalAssetNodeInfo;
             const HAPI_Result LocalResult = FHoudiniApi::GetNodeInfo(
-                FHoudiniEngine::Get().GetSession(), OutlinerMesh.AssetId,
+                FHoudiniEngine::Get().GetSession(), OutlinerInput.AssetId,
                 &LocalAssetNodeInfo);
 
-            if (LocalResult == HAPI_RESULT_SUCCESS)
+            if ( LocalResult == HAPI_RESULT_SUCCESS )
                 FHoudiniApi::SetObjectTransform(
-                FHoudiniEngine::Get().GetSession(),
-                LocalAssetNodeInfo.parentId, &HapiTransform);
+                    FHoudiniEngine::Get().GetSession(),
+                    LocalAssetNodeInfo.parentId, &HapiTransform );
         }
-        else if ( OutlinerMesh.HasComponentTransformChanged() 
-                || OutlinerMesh.HasSplineComponentChanged(UnrealSplineResolution)
-                || (OutlinerMesh.KeepWorldTransform != bKeepWorldTransform) )
+        else if ( OutlinerInput.HasComponentTransformChanged() 
+                || ( OutlinerInput.HasSplineComponentChanged( UnrealSplineResolution ) )
+                || ( OutlinerInput.KeepWorldTransform != bKeepWorldTransform ) )
         {
-            if ( !bLocalChanged )
-            {
-                Modify();
-                MarkPreChanged();
-                bLocalChanged = true;
-            }
+            MarkLocalChanged();
 
             // Update to the new Transforms
-            UpdateWorldOutlinerTransforms(OutlinerMesh);
+            UpdateWorldOutlinerTransforms( OutlinerInput );
 
             // The component or spline has been modified so so we need to indicate that the "static mesh" 
             // has changed in order to rebuild the asset properly in UploadParameterValue()
@@ -2498,20 +2548,7 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
     }
 
     if ( bLocalChanged )
-    {
-        // Delete all tracked meshes slated for deletion above.
-        while ( InputOutlinerMeshArrayPendingKill.Num() > 0 )
-        {
-            auto OutlinerMeshToKill = InputOutlinerMeshArrayPendingKill.Pop( false );
-
-            InputOutlinerMeshArray.RemoveAll( [ & ]( FHoudiniAssetInputOutlinerMesh & Element )
-            {
-                return Element.StaticMeshComponent == OutlinerMeshToKill;
-            } );
-        }
-
         MarkChanged();
-    }
 }
 
 #endif
@@ -3302,8 +3339,8 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
         GEditor->SelectNone( false, true );
         for ( auto & OutlinerMesh : InputOutlinerMeshArray )
         {
-            if ( OutlinerMesh.Actor )
-                GEditor->SelectActor( OutlinerMesh.Actor, true, true );
+            if ( OutlinerMesh.ActorPtr.IsValid() )
+                GEditor->SelectActor( OutlinerMesh.ActorPtr.Get(), true, true );
         }
 
         return FReply::Handled();
@@ -3338,54 +3375,10 @@ UHoudiniAssetInput::OnButtonClickSelectActors()
             continue;
 
         // Don't allow selection of ourselves. Bad things happen if we do.
-        if ( Actor == GetHoudiniAssetComponent()->GetOwner() )
+        if ( GetHoudiniAssetComponent() && ( Actor == GetHoudiniAssetComponent()->GetOwner() ) )
             continue;
 
-	// Looking for StaticMeshes
-        for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
-        {
-            UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
-            if ( !StaticMeshComponent )
-                continue;
-
-            UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
-            if ( !StaticMesh )
-                continue;
-
-	    // Add the mesh to the array
-	    FHoudiniAssetInputOutlinerMesh OutlinerMesh;
-
-	    OutlinerMesh.Actor = Actor;
-	    OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
-	    OutlinerMesh.StaticMesh = StaticMesh;
-	    OutlinerMesh.SplineComponent = nullptr;
-	    OutlinerMesh.AssetId = -1;
-
-	    UpdateWorldOutlinerTransforms(OutlinerMesh);
-
-	    InputOutlinerMeshArray.Add(OutlinerMesh);
-        }
-
-	// Looking for Splines
-	for (UActorComponent * Component : Actor->GetComponentsByClass(USplineComponent::StaticClass()))
-	{
-	    USplineComponent * SplineComponent = CastChecked< USplineComponent >(Component);
-	    if (!SplineComponent)
-		continue;
-
-	    // Add the spline to the array
-	    FHoudiniAssetInputOutlinerMesh OutlinerMesh;
-
-	    OutlinerMesh.Actor = Actor;
-	    OutlinerMesh.StaticMeshComponent = nullptr;
-	    OutlinerMesh.StaticMesh = nullptr;
-	    OutlinerMesh.SplineComponent = SplineComponent;
-	    OutlinerMesh.AssetId = -1;
-
-	    UpdateWorldOutlinerTransforms(OutlinerMesh);
-
-	    InputOutlinerMeshArray.Add(OutlinerMesh);
-	}
+        UpdateInputOulinerArrayFromActor( Actor, false );
     }
 
     MarkChanged();
@@ -3514,13 +3507,13 @@ void
 UHoudiniAssetInput::UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh)
 {
     // Update to the new Transforms
-    OutlinerMesh.ActorTransform = OutlinerMesh.Actor->GetTransform();
+    OutlinerMesh.ActorTransform = OutlinerMesh.ActorPtr->GetTransform();
 
     if (OutlinerMesh.StaticMeshComponent)
-	OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
+        OutlinerMesh.ComponentTransform = OutlinerMesh.StaticMeshComponent->GetComponentTransform();
 
     if (OutlinerMesh.SplineComponent)
-	OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
+        OutlinerMesh.ComponentTransform = OutlinerMesh.SplineComponent->GetComponentTransform();
 
     OutlinerMesh.KeepWorldTransform = bKeepWorldTransform;
 }
@@ -3719,11 +3712,11 @@ UHoudiniAssetInput::GetInputBounds()
     {
         for (int32 n = 0; n < InputOutlinerMeshArray.Num(); n++)
         {
-            if (!InputOutlinerMeshArray[ n ].Actor)
+            if ( !InputOutlinerMeshArray[ n ].ActorPtr.IsValid() )
                 continue;
 
             FVector Origin, Extent;
-            InputOutlinerMeshArray[ n ].Actor->GetActorBounds( false, Origin, Extent );
+            InputOutlinerMeshArray[ n ].ActorPtr->GetActorBounds( false, Origin, Extent );
 
             Bounds += FBox::BuildAABB( Origin, Extent );
         }
@@ -3796,6 +3789,129 @@ UHoudiniAssetInput::HasChanged() const
 }
 
 #if WITH_EDITOR
+bool
+UHoudiniAssetInput::UpdateInputOulinerArray()
+{
+    bool bChanged = false;
+
+    // See if some outliner inputs need to be updated, or removed
+    // If an input's Actor is no longer valid, then when need to remove that input.
+    // If an input's Components needs to be updated (are no longer valid), then all the components 
+    // from the same actor needs to be updated as well.
+    // This can happen for example when a blueprint actor is modified/serialized etc..
+    TArray<AActor *> ActorToUpdateArray;
+    for ( int32 n = InputOutlinerMeshArray.Num() - 1; n >= 0; n-- )
+    {
+        FHoudiniAssetInputOutlinerMesh OutlinerInput = InputOutlinerMeshArray[ n ];
+        if ( !OutlinerInput.ActorPtr.IsValid() )
+        {
+            // This input has an invalid actor: destroy it and its asset
+            bChanged = true;
+
+            // Destroy Houdini asset
+            if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerInput.AssetId ) )
+            {
+                FHoudiniEngineUtils::DestroyHoudiniAsset( OutlinerInput.AssetId );
+                OutlinerInput.AssetId = -1;
+            }
+
+            // Remove that input
+            InputOutlinerMeshArray.RemoveAt( n );
+        }
+        else
+        {
+            // This input has a valid actor, see if its component needs to be updated
+            if ( !OutlinerInput.NeedsComponentUpdate() )
+                continue;
+
+            if ( ActorToUpdateArray.Contains( OutlinerInput.ActorPtr.Get() ) )
+                continue;
+
+            ActorToUpdateArray.Add( OutlinerInput.ActorPtr.Get() );
+
+            bChanged = true;
+        }
+    }
+
+    // Creates the inputs from the actors
+    for ( auto & CurrentActor : ActorToUpdateArray )
+        UpdateInputOulinerArrayFromActor( CurrentActor, true );
+
+    return bChanged;
+}
+
+void
+UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool& NeedCleanUp )
+{
+    if ( !Actor )
+        return;
+
+    // Don't allow selection of ourselves. Bad things happen if we do.
+    if ( GetHoudiniAssetComponent() && ( Actor == GetHoudiniAssetComponent()->GetOwner() ) )
+        return;
+
+    // Destroy previous outliner inputs from this actor if needed
+    if ( NeedCleanUp )
+    {
+        for ( int32 n = InputOutlinerMeshArray.Num() - 1; n >= 0; n-- )
+        {
+            if ( InputOutlinerMeshArray[ n ].ActorPtr.Get() != Actor )
+                continue;
+
+            InputOutlinerMeshArray.RemoveAt( n );
+        }
+    }
+
+    // Looking for StaticMeshes
+    for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
+    {
+        UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
+        if ( !StaticMeshComponent )
+            continue;
+
+        UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
+        if ( !StaticMesh )
+            continue;
+
+        // Add the mesh to the array
+        FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+        OutlinerMesh.ActorPtr = Actor;
+        OutlinerMesh.StaticMeshComponent = StaticMeshComponent;
+        OutlinerMesh.StaticMesh = StaticMesh;
+        OutlinerMesh.SplineComponent = nullptr;
+        OutlinerMesh.AssetId = -1;
+
+        UpdateWorldOutlinerTransforms( OutlinerMesh );
+
+        InputOutlinerMeshArray.Add( OutlinerMesh );
+    }
+
+    // Looking for Splines
+    for ( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
+    {
+        USplineComponent * SplineComponent = CastChecked< USplineComponent >( Component );
+        if ( !SplineComponent )
+            continue;
+
+        // Add the spline to the array
+        FHoudiniAssetInputOutlinerMesh OutlinerMesh;
+
+        OutlinerMesh.ActorPtr = Actor;
+        OutlinerMesh.StaticMeshComponent = nullptr;
+        OutlinerMesh.StaticMesh = nullptr;
+        OutlinerMesh.SplineComponent = SplineComponent;
+        OutlinerMesh.AssetId = -1;
+
+        UpdateWorldOutlinerTransforms( OutlinerMesh );
+
+        // Updating the OutlinerMesh's struct infos
+        OutlinerMesh.SplineResolution = UnrealSplineResolution;
+        OutlinerMesh.SplineLength = SplineComponent->GetSplineLength();
+        OutlinerMesh.NumberOfSplineControlPoints = SplineComponent->GetNumberOfSplinePoints();
+
+        InputOutlinerMeshArray.Add( OutlinerMesh );
+    }
+}
 
 TOptional< float >
 UHoudiniAssetInput::GetPositionX( int32 AtIndex ) const

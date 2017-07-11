@@ -700,7 +700,7 @@ FHoudiniEngineBakeUtils::GetInputForBakeHoudiniActorToOutlinerInput( const UHoud
         if( FirstInput->GetChoiceIndex() == EHoudiniAssetInputType::WorldInput && FirstInput->GetWorldOutlinerInputs().Num() == 1 )
         {
             const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[0];
-            if( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
+            if( InputOutlinerMesh.ActorPtr.IsValid() && InputOutlinerMesh.StaticMeshComponent )
             {
                 Result = FirstInput;
             }
@@ -768,10 +768,10 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToOutlinerInput( UHoudiniAssetComponent
             if( UHoudiniAssetInput* FirstInput = GetInputForBakeHoudiniActorToOutlinerInput( HoudiniAssetComponent ) )
             {
                 const FHoudiniAssetInputOutlinerMesh& InputOutlinerMesh = FirstInput->GetWorldOutlinerInputs()[0];
-                if( InputOutlinerMesh.Actor && InputOutlinerMesh.StaticMeshComponent )
+                if( InputOutlinerMesh.ActorPtr.IsValid() && InputOutlinerMesh.StaticMeshComponent )
                 {
                     UStaticMeshComponent* InOutSMC = InputOutlinerMesh.StaticMeshComponent;
-                    InputOutlinerMesh.Actor->Modify();
+                    InputOutlinerMesh.ActorPtr->Modify();
                     InOutSMC->SetStaticMesh( Iter.Value );
                     InOutSMC->InvalidateLightingCache();
                     InOutSMC->MarkPackageDirty();
