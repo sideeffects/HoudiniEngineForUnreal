@@ -1000,7 +1000,9 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
 
 
 void 
-UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox )
+UHoudiniAssetInput::CreateGeometryWidget( 
+    int32 AtIndex, UObject* InputObject,
+    TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox )
 {
     // Create thumbnail for this static mesh.
     TSharedPtr< FAssetThumbnail > StaticMeshThumbnail = MakeShareable(
@@ -1151,21 +1153,24 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
         .AutoWidth()
         [
             PropertyCustomizationHelpers::MakeInsertDeleteDuplicateButton(
-            FExecuteAction::CreateLambda( [this, AtIndex]() {
-                FScopedTransaction Transaction(
-                    TEXT( HOUDINI_MODULE_RUNTIME ),
-                    LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
-                    PrimaryObject );
-                Modify();
-                MarkPreChanged();
-                InputObjects.Insert( nullptr, AtIndex );
-                bStaticMeshChanged = true;
-                MarkChanged();
-                OnParamStateChanged();
+            FExecuteAction::CreateLambda( [ this, AtIndex ]() 
+                {
+                    FScopedTransaction Transaction(
+                        TEXT( HOUDINI_MODULE_RUNTIME ),
+                        LOCTEXT( "HoudiniInputChange", "Houdini Input Geometry Change" ),
+                        PrimaryObject );
+                    Modify();
+                    MarkPreChanged();
+                    InputObjects.Insert( nullptr, AtIndex );
+                    InputTransforms.Insert( FTransform::Identity, AtIndex );
+                    bStaticMeshChanged = true;
+                    MarkChanged();
+                    OnParamStateChanged();
                 } 
             ),
-            FExecuteAction::CreateLambda( [this, AtIndex]() {
-                    if ( ensure(InputObjects.IsValidIndex( AtIndex ) ) )
+            FExecuteAction::CreateLambda( [ this, AtIndex ]()
+                {
+                    if ( ensure( InputObjects.IsValidIndex( AtIndex ) && InputTransforms.IsValidIndex( AtIndex ) ) )
                     {
                         FScopedTransaction Transaction(
                             TEXT( HOUDINI_MODULE_RUNTIME ),
@@ -1174,14 +1179,16 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
                         Modify();
                         MarkPreChanged();
                         InputObjects.RemoveAt( AtIndex );
+                        InputTransforms.RemoveAt( AtIndex );
                         bStaticMeshChanged = true;
                         MarkChanged();
                         OnParamStateChanged();
                     }
                 } 
             ),
-            FExecuteAction::CreateLambda( [this, AtIndex]() {
-                    if ( ensure( InputObjects.IsValidIndex( AtIndex ) ) )
+            FExecuteAction::CreateLambda( [ this, AtIndex ]()
+                {
+                    if ( ensure( InputObjects.IsValidIndex( AtIndex ) ) && InputTransforms.IsValidIndex( AtIndex ) )
                     {
                         FScopedTransaction Transaction(
                             TEXT( HOUDINI_MODULE_RUNTIME ),
@@ -1191,6 +1198,8 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
                         MarkPreChanged();
                         UObject* Dupe = InputObjects[ AtIndex ];
                         InputObjects.Insert( Dupe , AtIndex );
+                        FTransform DupeTransform = InputTransforms[ AtIndex ];
+                        InputTransforms.Insert( DupeTransform, AtIndex );
                         bStaticMeshChanged = true;
                         MarkChanged();
                         OnParamStateChanged();
@@ -1198,6 +1207,136 @@ UHoudiniAssetInput::CreateGeometryWidget( int32 AtIndex, UObject* InputObject, T
                 } 
             ) )
         ];
+
+    // TRANSFORM
+    // Position
+    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+    [
+        SNew( SHorizontalBox )
+        +SHorizontalBox::Slot()
+        .Padding( 1.0f )
+        .VAlign( VAlign_Center )
+        .AutoWidth()
+        [
+            SNew(STextBlock)
+            .Text( LOCTEXT("GeoInputTranslate", "T") )
+            .ToolTipText( LOCTEXT( "GeoInputTranslateTooltip", "Translate" ) )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+        ]
+        + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+        [
+            SNew( SVectorInputBox )
+            .bColorAxisLabels( true )
+            .X( TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetPositionX, AtIndex ) ) )
+            .Y( TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float> >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetPositionY, AtIndex ) ) )
+            .Z( TAttribute< TOptional< float> >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetPositionZ, AtIndex ) ) )
+            .OnXChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetPositionX, AtIndex ) )
+            .OnYChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetPositionY, AtIndex ) )
+            .OnZChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetPositionZ, AtIndex ) )
+        ]
+    ];
+
+    // Rotation
+    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+    [
+        SNew( SHorizontalBox )
+        +SHorizontalBox::Slot()
+        .Padding(1.0f)
+        .VAlign(VAlign_Center)
+        .AutoWidth()
+        [
+            SNew(STextBlock)
+            .Text( LOCTEXT("GeoInputRotate", "R") )
+            .ToolTipText( LOCTEXT( "GeoInputRotateTooltip", "Rotate" ) )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+        ]
+        + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+        [
+            SNew( SRotatorInputBox )
+            .AllowSpin( true )
+            .bColorAxisLabels( true )
+            .Roll( TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetRotationRoll, AtIndex ) ) )
+            .Pitch( TAttribute< TOptional< float> >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetRotationPitch, AtIndex) ) )
+            .Yaw( TAttribute<TOptional< float > >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetRotationYaw, AtIndex) ) )
+            .OnRollChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetRotationRoll, AtIndex) )
+            .OnPitchChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetRotationPitch, AtIndex) )
+            .OnYawChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetRotationYaw, AtIndex) )
+        ]
+    ];
+
+    // Scale
+    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+    [
+        SNew( SHorizontalBox )
+        +SHorizontalBox::Slot()
+        .Padding( 1.0f )
+        .VAlign( VAlign_Center )
+        .AutoWidth()
+        [
+            SNew( STextBlock )
+            .Text( LOCTEXT( "GeoInputScale", "S" ) )
+            .ToolTipText( LOCTEXT( "GeoInputScaleTooltip", "Scale" ) )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+        ]
+        + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+        [
+            SNew( SVectorInputBox )
+            .bColorAxisLabels( true )
+            .X( TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetScaleX, AtIndex ) ) )
+            .Y( TAttribute< TOptional< float > >::Create(
+                TAttribute< TOptional< float> >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetScaleY, AtIndex ) ) )
+            .Z( TAttribute< TOptional< float> >::Create(
+                TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::GetScaleZ, AtIndex ) ) )
+            .OnXChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetScaleX, AtIndex ) )
+            .OnYChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetScaleY, AtIndex ) )
+            .OnZChanged( FOnFloatValueChanged::CreateUObject(
+                this, &UHoudiniAssetInput::SetScaleZ, AtIndex ) )
+        ]
+        /*
+        + SHorizontalBox::Slot().AutoWidth()
+        [
+            // Add a checkbox to toggle between preserving the ratio of x,y,z components of scale when a value is entered
+            SNew( SCheckBox )
+            .Style( FEditorStyle::Get(), "TransparentCheckBox" )
+            .ToolTipText( LOCTEXT( "PreserveScaleToolTip", "When locked, scales uniformly based on the current xyz scale values so the object maintains its shape in each direction when scaled" ) )
+            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                this, &UHoudiniAssetInput::CheckStateChanged, AtIndex ) )
+            .IsChecked( TAttribute< ECheckBoxState >::Create(
+                TAttribute<ECheckBoxState>::FGetter::CreateUObject(
+                    this, &UHoudiniAssetInput::IsChecked, AtIndex ) ) )
+            [
+                SNew( SImage )
+                .Image( TAttribute<const FSlateBrush*>::Create(
+                    TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetPreserveScaleRatioImage, AtIndex ) ) )
+                .ColorAndOpacity( FSlateColor::UseForeground() )
+            ]
+        ]*/
+    ];
 }
 
 void
@@ -1280,6 +1419,11 @@ UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool
         InputObjects.Insert( InObject, AtIndex );
     }
 
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+    {
+        InputTransforms.Insert( FTransform::Identity, AtIndex );
+    }
+
     if( CommitChange )
     {
         if( InputOutlinerMeshArray.Num() > 0 )
@@ -1298,6 +1442,7 @@ UHoudiniAssetInput::ClearInputs()
     ChangeInputType( EHoudiniAssetInputType::GeometryInput );
     InputOutlinerMeshArray.Empty();
     InputObjects.Empty();
+    InputTransforms.Empty();
     MarkChanged();
 }
 
@@ -1352,7 +1497,9 @@ UHoudiniAssetInput::UploadParameterValue()
                     DisconnectAndDestroyInputAsset();
 
                     // Connect input and create connected asset. Will return by reference.
-                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( HostAssetId, InputObjects, ConnectedAssetId, CreatedInputDataAssetIds ) )
+                    if ( !FHoudiniEngineUtils::HapiCreateInputNodeForData( 
+                        HostAssetId, InputObjects, InputTransforms,
+                        ConnectedAssetId, CreatedInputDataAssetIds ) )
                     {
                         bChanged = false;
                         ConnectedAssetId = -1;
@@ -1596,6 +1743,12 @@ UHoudiniAssetInput::GetInputObject( int32 AtIndex ) const
     return InputObjects.IsValidIndex( AtIndex ) ? InputObjects[ AtIndex ] : nullptr;
 }
 
+FTransform
+UHoudiniAssetInput::GetInputTransform( int32 AtIndex ) const
+{
+    return InputTransforms.IsValidIndex( AtIndex ) ? InputTransforms[ AtIndex ] : FTransform::Identity;
+}
+
 UHoudiniAssetComponent* 
 UHoudiniAssetInput::GetHoudiniAssetComponent()
 {
@@ -1816,6 +1969,15 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_UNREAL_SPLINE_RESOLUTION_PER_INPUT )
         Ar << UnrealSplineResolution;
+
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_GEOMETRY_INPUT_TRANSFORMS )
+        Ar << InputTransforms;
+    else
+    {
+        InputTransforms.SetNum( InputObjects.Num() );
+        for( int32 n = 0; n < InputTransforms.Num(); n++ )
+            InputTransforms[ n ] = FTransform::Identity;
+    }
 }
 
 void
@@ -1929,6 +2091,10 @@ UHoudiniAssetInput::OnStaticMeshDropped( UObject * InObject, int32 AtIndex )
             check( AtIndex == 0 );
             InputObjects.Add( InObject );
         }
+
+        if ( !InputTransforms.IsValidIndex( AtIndex ) )
+            InputTransforms.Add( FTransform::Identity );
+
         bStaticMeshChanged = true;
         MarkChanged();
 
@@ -2085,7 +2251,7 @@ UHoudiniAssetInput::ChangeInputType(const EHoudiniAssetInputType::Enum& newType)
         case EHoudiniAssetInputType::GeometryInput:
         {
             // We are switching to geometry input.
-            if (InputObjects.Num())
+            if ( InputObjects.Num() )
                 bStaticMeshChanged = true;
             break;
         }
@@ -3374,6 +3540,7 @@ void UHoudiniAssetInput::OnAddToInputObjects()
     Modify();
     MarkPreChanged();
     InputObjects.Add( nullptr );
+    InputTransforms.Add( FTransform::Identity );
     MarkChanged();
     bStaticMeshChanged = true;
     OnParamStateChanged();
@@ -3388,6 +3555,7 @@ void UHoudiniAssetInput::OnEmptyInputObjects()
     Modify();
     MarkPreChanged();
     InputObjects.Empty();
+    InputTransforms.Empty();
     MarkChanged();
     bStaticMeshChanged = true;
     OnParamStateChanged();
@@ -3757,6 +3925,314 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         InputOutlinerMeshArray.Add( OutlinerMesh );
     }
 }
+
+TOptional< float >
+UHoudiniAssetInput::GetPositionX( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.GetLocation().X;
+}
+
+TOptional< float >
+UHoudiniAssetInput::GetPositionY( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.GetLocation().Y;
+}
+
+TOptional< float >
+UHoudiniAssetInput::GetPositionZ( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.GetLocation().Z;
+}
+
+void 
+UHoudiniAssetInput::SetPositionX( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FVector Position = InputTransforms[ AtIndex ].GetLocation();
+    if ( Position.X == Value )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+
+    Modify();
+
+    Position.X = Value;
+    InputTransforms[ AtIndex ].SetLocation( Position );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+void 
+UHoudiniAssetInput::SetPositionY( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FVector Position = InputTransforms[ AtIndex ].GetLocation();
+    if ( Position.Y == Value )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+
+    Modify();
+
+    Position.Y = Value;
+    InputTransforms[ AtIndex ].SetLocation( Position );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+void 
+UHoudiniAssetInput::SetPositionZ( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FVector Position = InputTransforms[ AtIndex ].GetLocation();
+    if ( Position.Z == Value )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+
+    Modify();
+
+    Position.Z = Value;
+    InputTransforms[ AtIndex ].SetLocation( Position );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+TOptional< float >
+UHoudiniAssetInput::GetRotationRoll( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.Rotator().Roll;
+}
+
+TOptional< float >
+UHoudiniAssetInput::GetRotationPitch( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.Rotator().Pitch;
+}
+
+TOptional< float >
+UHoudiniAssetInput::GetRotationYaw( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.Rotator().Yaw;
+}
+
+void
+UHoudiniAssetInput::SetRotationRoll( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FRotator Rotator = InputTransforms[ AtIndex ].Rotator();    
+    if ( FMath::IsNearlyEqual( Rotator.Roll, Value, SMALL_NUMBER ) )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+    
+    Modify();
+
+    Rotator.Roll = Value;
+    InputTransforms[ AtIndex ].SetRotation( Rotator.Quaternion() );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+void
+UHoudiniAssetInput::SetRotationPitch( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FRotator Rotator = InputTransforms[ AtIndex ].Rotator();    
+    if ( FMath::IsNearlyEqual( Rotator.Pitch, Value, SMALL_NUMBER ) )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this);
+
+    Modify();
+
+    Rotator.Pitch = Value;
+    InputTransforms[ AtIndex ].SetRotation( Rotator.Quaternion() );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+void
+UHoudiniAssetInput::SetRotationYaw( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FRotator Rotator = InputTransforms[ AtIndex ].Rotator();    
+    if ( FMath::IsNearlyEqual( Rotator.Yaw, Value, SMALL_NUMBER ) )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+
+    Modify();
+
+    Rotator.Yaw = Value;
+    InputTransforms[ AtIndex ].SetRotation( Rotator.Quaternion() );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+/** Returns the input's transform scale values **/
+TOptional< float > 
+UHoudiniAssetInput::GetScaleX( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.GetScale3D().X;
+}
+
+TOptional< float >
+UHoudiniAssetInput::GetScaleY( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.GetScale3D().Y;
+}
+
+TOptional< float >
+UHoudiniAssetInput::GetScaleZ( int32 AtIndex ) const
+{
+    FTransform transform = FTransform::Identity;
+    if ( InputTransforms.IsValidIndex( AtIndex ) )
+        transform = InputTransforms[ AtIndex ];
+
+    return transform.GetScale3D().Z;
+}
+
+void 
+UHoudiniAssetInput::SetScaleX( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FVector Scale = InputTransforms[ AtIndex ].GetScale3D();
+    if ( Scale.X == Value )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+
+    Modify();
+
+    Scale.X = Value;
+    InputTransforms[ AtIndex ].SetScale3D( Scale );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+void
+UHoudiniAssetInput::SetScaleY( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FVector Scale = InputTransforms[ AtIndex ].GetScale3D();
+    if ( Scale.Y == Value )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+
+    Modify();
+    
+    Scale.Y = Value;
+    InputTransforms[ AtIndex ].SetScale3D( Scale );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
+void
+UHoudiniAssetInput::SetScaleZ( float Value, int32 AtIndex )
+{
+    if ( !InputTransforms.IsValidIndex( AtIndex ) )
+        return;
+
+    FVector Scale = InputTransforms[ AtIndex ].GetScale3D();
+    if ( Scale.Z == Value )
+        return;
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Change" ),
+        this );
+
+    Modify();
+
+    Scale.Z = Value;
+    InputTransforms[ AtIndex ].SetScale3D( Scale );
+
+    MarkChanged( true );
+    bStaticMeshChanged = true;
+}
+
 #endif
 
 #undef LOCTEXT_NAMESPACE
