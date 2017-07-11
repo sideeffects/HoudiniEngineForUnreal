@@ -227,6 +227,36 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Return true if this parameter has been changed. **/
         bool HasChanged() const override;
 
+        /** Returns the input's transform scale values **/
+        TOptional< float > GetPositionX( int32 AtIndex ) const;
+        TOptional< float > GetPositionY( int32 AtIndex ) const;
+        TOptional< float > GetPositionZ( int32 AtIndex ) const;
+
+        /** Sets the input's transform scale values **/
+        void SetPositionX( float Value, int32 AtIndex );
+        void SetPositionY( float Value, int32 AtIndex );
+        void SetPositionZ( float Value, int32 AtIndex );
+
+        /** Returns the input's transform rotation values **/
+        TOptional< float > GetRotationRoll(int32 AtIndex) const;
+        TOptional< float > GetRotationPitch(int32 AtIndex) const;
+        TOptional< float > GetRotationYaw(int32 AtIndex) const;
+
+        /** Sets the input's transform rotation value **/
+        void SetRotationRoll(float Value, int32 AtIndex);
+        void SetRotationPitch(float Value, int32 AtIndex);
+        void SetRotationYaw(float Value, int32 AtIndex);
+
+        /** Returns the input's transform scale values **/
+        TOptional< float > GetScaleX(int32 AtIndex) const;
+        TOptional< float > GetScaleY(int32 AtIndex) const;
+        TOptional< float > GetScaleZ(int32 AtIndex) const;
+
+        /** Sets the input's transform scale values **/
+        void SetScaleX(float Value, int32 AtIndex);
+        void SetScaleY(float Value, int32 AtIndex);
+        void SetScaleZ(float Value, int32 AtIndex);
+
     protected:
 
 #if WITH_EDITOR
@@ -323,6 +353,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Returns the input object at index or nullptr */
         UObject* GetInputObject( int32 AtIndex ) const;
+
+        /** Returns the input transform at index or the identity transform */
+        FTransform GetInputTransform( int32 AtIndex ) const;
 
         /** Returns primary object cast to HoudiniAssetComponent  */
         class UHoudiniAssetComponent* GetHoudiniAssetComponent();
@@ -477,6 +510,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FTimerDelegate WorldOutlinerTimerDelegate;
 
         float UnrealSplineResolution;
+
+        /** Array containing the transform corrections for the assets in a geometry input **/
+        TArray< FTransform > InputTransforms;
 
         /** Flags used by this input. **/
         union

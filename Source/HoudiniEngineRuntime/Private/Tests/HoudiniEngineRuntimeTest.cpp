@@ -584,6 +584,8 @@ bool FHoudiniEngineRuntimeUploadStaticMeshTest::RunTest( const FString& Paramete
         }
 
         TArray<UObject *> InputObjects;
+        TArray< FTransform > InputTransforms;
+
         HAPI_NodeId ConnectedAssetId;
         TArray< HAPI_NodeId > GeometryInputAssetIds;
 
@@ -595,8 +597,9 @@ bool FHoudiniEngineRuntimeUploadStaticMeshTest::RunTest( const FString& Paramete
             return;
 
         InputObjects.Add( GeoInput );
+        InputTransforms.Add( FTransform::Identity );
 
-        if( ! FHoudiniEngineUtils::HapiCreateInputNodeForData( AssetId, InputObjects, ConnectedAssetId, GeometryInputAssetIds ) )
+        if( ! FHoudiniEngineUtils::HapiCreateInputNodeForData( AssetId, InputObjects, InputTransforms, ConnectedAssetId, GeometryInputAssetIds ) )
         {
             AddError( FString::Printf( TEXT( "HapiCreateInputNodeForData failed" )));
         }
