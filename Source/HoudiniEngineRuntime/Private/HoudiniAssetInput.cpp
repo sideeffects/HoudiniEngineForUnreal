@@ -222,6 +222,14 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     bLandscapeAutoSelectComponent = true;
 
     ChoiceStringValue = TEXT( "" );
+
+    // Initialize the arraysc
+    InputObjects.SetNumUninitialized( 1 );
+    InputObjects[ 0 ] = nullptr;
+    InputTransforms.SetNumUninitialized( 1 );
+    InputTransforms[ 0 ] = FTransform::Identity;
+    TransformUIExpanded.SetNumUninitialized( 1 );
+    TransformUIExpanded[ 0 ] = false;
 }
 
 UHoudiniAssetInput::~UHoudiniAssetInput()
@@ -525,11 +533,12 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 PropertyCustomizationHelpers::MakeEmptyButton( FSimpleDelegate::CreateUObject( this, &UHoudiniAssetInput::OnEmptyInputObjects ), LOCTEXT( "EmptyInputs", "Removes All Inputs" ), true )
             ]
         ];
-        do
+
+        for ( int32 Ix = 0; Ix < NumInputs; Ix++ )
         {
             UObject* InputObject = GetInputObject( Ix );
             CreateGeometryWidget( Ix, InputObject, AssetThumbnailPool, VerticalBox );
-        } while ( ++Ix < NumInputs );
+        }
     }
     else if ( ChoiceIndex == EHoudiniAssetInputType::AssetInput )
     {
@@ -577,7 +586,7 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
             TSharedPtr<SUniformGridPanel> ButtonOptionsPanel;
             VerticalBox->AddSlot().Padding(5, 2, 5, 2).AutoHeight()
             [
-                SAssignNew(ButtonOptionsPanel, SUniformGridPanel)
+                SAssignNew( ButtonOptionsPanel, SUniformGridPanel )
             ];
 
             // Heightfield
@@ -985,7 +994,6 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
-
 void 
 UHoudiniAssetInput::CreateGeometryWidget( 
     int32 AtIndex, UObject* InputObject,
@@ -1150,6 +1158,7 @@ UHoudiniAssetInput::CreateGeometryWidget(
                     MarkPreChanged();
                     InputObjects.Insert( nullptr, AtIndex );
                     InputTransforms.Insert( FTransform::Identity, AtIndex );
+                    TransformUIExpanded.Insert( false , AtIndex );
                     bStaticMeshChanged = true;
                     MarkChanged();
                     OnParamStateChanged();
@@ -1167,6 +1176,7 @@ UHoudiniAssetInput::CreateGeometryWidget(
                         MarkPreChanged();
                         InputObjects.RemoveAt( AtIndex );
                         InputTransforms.RemoveAt( AtIndex );
+                        TransformUIExpanded.RemoveAt( AtIndex );
                         bStaticMeshChanged = true;
                         MarkChanged();
                         OnParamStateChanged();
@@ -1187,6 +1197,8 @@ UHoudiniAssetInput::CreateGeometryWidget(
                         InputObjects.Insert( Dupe , AtIndex );
                         FTransform DupeTransform = InputTransforms[ AtIndex ];
                         InputTransforms.Insert( DupeTransform, AtIndex );
+                        bool DupeUIExpanded = TransformUIExpanded[ AtIndex ];
+                        TransformUIExpanded.Insert( DupeUIExpanded, AtIndex );
                         bStaticMeshChanged = true;
                         MarkChanged();
                         OnParamStateChanged();
@@ -1195,135 +1207,178 @@ UHoudiniAssetInput::CreateGeometryWidget(
             ) )
         ];
 
-    // TRANSFORM
-    // Position
-    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
-    [
-        SNew( SHorizontalBox )
-        +SHorizontalBox::Slot()
-        .Padding( 1.0f )
-        .VAlign( VAlign_Center )
-        .AutoWidth()
-        [
-            SNew(STextBlock)
-            .Text( LOCTEXT("GeoInputTranslate", "T") )
-            .ToolTipText( LOCTEXT( "GeoInputTranslateTooltip", "Translate" ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-        + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
-        [
-            SNew( SVectorInputBox )
-            .bColorAxisLabels( true )
-            .X( TAttribute< TOptional< float > >::Create(
-                TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetPositionX, AtIndex ) ) )
-            .Y( TAttribute< TOptional< float > >::Create(
-                TAttribute< TOptional< float> >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetPositionY, AtIndex ) ) )
-            .Z( TAttribute< TOptional< float> >::Create(
-                TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetPositionZ, AtIndex ) ) )
-            .OnXChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetPositionX, AtIndex ) )
-            .OnYChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetPositionY, AtIndex ) )
-            .OnZChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetPositionZ, AtIndex ) )
-        ]
-    ];
 
-    // Rotation
-    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
-    [
-        SNew( SHorizontalBox )
-        +SHorizontalBox::Slot()
-        .Padding(1.0f)
-        .VAlign(VAlign_Center)
-        .AutoWidth()
+    
+    {
+        //TSharedPtr<SButton> ExpanderArrow;
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
         [
-            SNew(STextBlock)
-            .Text( LOCTEXT("GeoInputRotate", "R") )
-            .ToolTipText( LOCTEXT( "GeoInputRotateTooltip", "Rotate" ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-        + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
-        [
-            SNew( SRotatorInputBox )
-            .AllowSpin( true )
-            .bColorAxisLabels( true )
-            .Roll( TAttribute< TOptional< float > >::Create(
-                TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetRotationRoll, AtIndex ) ) )
-            .Pitch( TAttribute< TOptional< float> >::Create(
-                TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetRotationPitch, AtIndex) ) )
-            .Yaw( TAttribute<TOptional< float > >::Create(
-                TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetRotationYaw, AtIndex) ) )
-            .OnRollChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetRotationRoll, AtIndex) )
-            .OnPitchChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetRotationPitch, AtIndex) )
-            .OnYawChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetRotationYaw, AtIndex) )
-        ]
-    ];
-
-    // Scale
-    VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
-    [
-        SNew( SHorizontalBox )
-        +SHorizontalBox::Slot()
-        .Padding( 1.0f )
-        .VAlign( VAlign_Center )
-        .AutoWidth()
-        [
-            SNew( STextBlock )
-            .Text( LOCTEXT( "GeoInputScale", "S" ) )
-            .ToolTipText( LOCTEXT( "GeoInputScaleTooltip", "Scale" ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-        + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
-        [
-            SNew( SVectorInputBox )
-            .bColorAxisLabels( true )
-            .X( TAttribute< TOptional< float > >::Create(
-                TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetScaleX, AtIndex ) ) )
-            .Y( TAttribute< TOptional< float > >::Create(
-                TAttribute< TOptional< float> >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetScaleY, AtIndex ) ) )
-            .Z( TAttribute< TOptional< float> >::Create(
-                TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::GetScaleZ, AtIndex ) ) )
-            .OnXChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetScaleX, AtIndex ) )
-            .OnYChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetScaleY, AtIndex ) )
-            .OnZChanged( FOnFloatValueChanged::CreateUObject(
-                this, &UHoudiniAssetInput::SetScaleZ, AtIndex ) )
-        ]
-        /*
-        + SHorizontalBox::Slot().AutoWidth()
-        [
-            // Add a checkbox to toggle between preserving the ratio of x,y,z components of scale when a value is entered
-            SNew( SCheckBox )
-            .Style( FEditorStyle::Get(), "TransparentCheckBox" )
-            .ToolTipText( LOCTEXT( "PreserveScaleToolTip", "When locked, scales uniformly based on the current xyz scale values so the object maintains its shape in each direction when scaled" ) )
-            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                this, &UHoudiniAssetInput::CheckStateChanged, AtIndex ) )
-            .IsChecked( TAttribute< ECheckBoxState >::Create(
-                TAttribute<ECheckBoxState>::FGetter::CreateUObject(
-                    this, &UHoudiniAssetInput::IsChecked, AtIndex ) ) )
+            SNew( SHorizontalBox )
+            +SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
             [
-                SNew( SImage )
-                .Image( TAttribute<const FSlateBrush*>::Create(
-                    TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
-                        this, &UHoudiniAssetInput::GetPreserveScaleRatioImage, AtIndex ) ) )
-                .ColorAndOpacity( FSlateColor::UseForeground() )
+                SAssignNew( ExpanderArrow, SButton )
+                .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+                .ClickMethod( EButtonClickMethod::MouseDown )
+                    .Visibility( EVisibility::Visible )
+                .OnClicked( FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnExpandInputTransform, AtIndex ) )
+                [
+                    SNew( SImage )
+                    .Image( FEditorStyle::GetBrush( TEXT( "TreeArrow_Collapsed" ) ) )
+                    .Image( TAttribute<const FSlateBrush*>::Create(
+                        TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetExpanderImage, AtIndex ) ) )
+                    .ColorAndOpacity( FSlateColor::UseForeground() )
+                ]
             ]
-        ]*/
-    ];
+            +SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT("GeoInputTransform", "Transform Offset") )
+                .ToolTipText( LOCTEXT( "GeoInputTransformTooltip", "Transform offset used for correction before sending the asset to Houdini" ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+        ];
+    }
+
+    // TRANSFORM 
+    if ( TransformUIExpanded[ AtIndex ] )
+    {
+        // Position
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            +SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SNew(STextBlock)
+                .Text( LOCTEXT("GeoInputTranslate", "T") )
+                .ToolTipText( LOCTEXT( "GeoInputTranslateTooltip", "Translate" ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+            [
+                SNew( SVectorInputBox )
+                .bColorAxisLabels( true )
+                .X( TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetPositionX, AtIndex ) ) )
+                .Y( TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float> >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetPositionY, AtIndex ) ) )
+                .Z( TAttribute< TOptional< float> >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetPositionZ, AtIndex ) ) )
+                .OnXChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetPositionX, AtIndex ) )
+                .OnYChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetPositionY, AtIndex ) )
+                .OnZChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetPositionZ, AtIndex ) )
+            ]
+        ];
+
+        // Rotation
+        VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            +SHorizontalBox::Slot()
+            .Padding(1.0f)
+            .VAlign(VAlign_Center)
+            .AutoWidth()
+            [
+                SNew(STextBlock)
+                .Text( LOCTEXT("GeoInputRotate", "R") )
+                .ToolTipText( LOCTEXT( "GeoInputRotateTooltip", "Rotate" ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+            [
+                SNew( SRotatorInputBox )
+                .AllowSpin( true )
+                .bColorAxisLabels( true )
+                .Roll( TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetRotationRoll, AtIndex ) ) )
+                .Pitch( TAttribute< TOptional< float> >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetRotationPitch, AtIndex) ) )
+                .Yaw( TAttribute<TOptional< float > >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetRotationYaw, AtIndex) ) )
+                .OnRollChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetRotationRoll, AtIndex) )
+                .OnPitchChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetRotationPitch, AtIndex) )
+                .OnYawChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetRotationYaw, AtIndex) )
+            ]
+        ];
+
+        // Scale
+	VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
+        [
+            SNew( SHorizontalBox )
+            +SHorizontalBox::Slot()
+            .Padding( 1.0f )
+            .VAlign( VAlign_Center )
+            .AutoWidth()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT( "GeoInputScale", "S" ) )
+                .ToolTipText( LOCTEXT( "GeoInputScaleTooltip", "Scale" ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            + SHorizontalBox::Slot().MaxWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH )
+            [
+                SNew( SVectorInputBox )
+                .bColorAxisLabels( true )
+                .X( TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetScaleX, AtIndex ) ) )
+                .Y( TAttribute< TOptional< float > >::Create(
+                    TAttribute< TOptional< float> >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetScaleY, AtIndex ) ) )
+                .Z( TAttribute< TOptional< float> >::Create(
+                    TAttribute< TOptional< float > >::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::GetScaleZ, AtIndex ) ) )
+                .OnXChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetScaleX, AtIndex ) )
+                .OnYChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetScaleY, AtIndex ) )
+                .OnZChanged( FOnFloatValueChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::SetScaleZ, AtIndex ) )
+            ]
+            /*
+            + SHorizontalBox::Slot().AutoWidth()
+            [
+                // Add a checkbox to toggle between preserving the ratio of x,y,z components of scale when a value is entered
+                SNew( SCheckBox )
+                .Style( FEditorStyle::Get(), "TransparentCheckBox" )
+                .ToolTipText( LOCTEXT( "PreserveScaleToolTip", "When locked, scales uniformly based on the current xyz scale values so the object maintains its shape in each direction when scaled" ) )
+                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                    this, &UHoudiniAssetInput::CheckStateChanged, AtIndex ) )
+                .IsChecked( TAttribute< ECheckBoxState >::Create(
+                    TAttribute<ECheckBoxState>::FGetter::CreateUObject(
+                        this, &UHoudiniAssetInput::IsChecked, AtIndex ) ) )
+                [
+                    SNew( SImage )
+                    .Image( TAttribute<const FSlateBrush*>::Create(
+                        TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
+                            this, &UHoudiniAssetInput::GetPreserveScaleRatioImage, AtIndex ) ) )
+                    .ColorAndOpacity( FSlateColor::UseForeground() )
+                ]
+            ]
+            */
+        ];
+    }
 }
 
 void
@@ -1411,6 +1466,11 @@ UHoudiniAssetInput::ForceSetInputObject( UObject * InObject, int32 AtIndex, bool
         InputTransforms.Insert( FTransform::Identity, AtIndex );
     }
 
+    if ( !TransformUIExpanded.IsValidIndex( AtIndex ) )
+    {
+        TransformUIExpanded.Insert( false, AtIndex );
+    }
+
     if( CommitChange )
     {
         if( InputOutlinerMeshArray.Num() > 0 )
@@ -1430,6 +1490,7 @@ UHoudiniAssetInput::ClearInputs()
     InputOutlinerMeshArray.Empty();
     InputObjects.Empty();
     InputTransforms.Empty();
+    TransformUIExpanded.Empty();
     MarkChanged();
 }
 
@@ -1858,7 +1919,7 @@ UHoudiniAssetInput::PostLoad()
         else
         {
             // Manually destroying the "ghost" curve
-            InputCurve->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+            InputCurve->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
             InputCurve->UnregisterComponent();
             InputCurve->DestroyComponent();
             InputCurve = nullptr;
@@ -1875,6 +1936,9 @@ UHoudiniAssetInput::PostLoad()
         StartWorldOutlinerTicking();
 #endif
     }
+
+    // Also set the expanded ui
+    TransformUIExpanded.SetNumZeroed( InputObjects.Num() );
 }
 
 void
@@ -1958,7 +2022,9 @@ UHoudiniAssetInput::Serialize( FArchive & Ar )
         Ar << UnrealSplineResolution;
 
     if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_GEOMETRY_INPUT_TRANSFORMS )
+    {
         Ar << InputTransforms;
+    }
     else
     {
         InputTransforms.SetNum( InputObjects.Num() );
@@ -2081,6 +2147,9 @@ UHoudiniAssetInput::OnStaticMeshDropped( UObject * InObject, int32 AtIndex )
 
         if ( !InputTransforms.IsValidIndex( AtIndex ) )
             InputTransforms.Add( FTransform::Identity );
+
+        if ( !TransformUIExpanded.IsValidIndex( AtIndex ) )
+            TransformUIExpanded.Add( false );
 
         bStaticMeshChanged = true;
         MarkChanged();
@@ -3528,6 +3597,7 @@ void UHoudiniAssetInput::OnAddToInputObjects()
     MarkPreChanged();
     InputObjects.Add( nullptr );
     InputTransforms.Add( FTransform::Identity );
+    TransformUIExpanded.Add( false );
     MarkChanged();
     bStaticMeshChanged = true;
     OnParamStateChanged();
@@ -3541,8 +3611,16 @@ void UHoudiniAssetInput::OnEmptyInputObjects()
         PrimaryObject );
     Modify();
     MarkPreChanged();
+
+    // Empty the arrays
     InputObjects.Empty();
     InputTransforms.Empty();
+    TransformUIExpanded.Empty();
+
+    // To avoid displaying 0 elements when there's one (empty), initialize the array
+    InputObjects.Add( nullptr );
+    InputTransforms.Add( FTransform::Identity );
+    TransformUIExpanded.Add( false );
     MarkChanged();
     bStaticMeshChanged = true;
     OnParamStateChanged();
@@ -3911,6 +3989,48 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
 
         InputOutlinerMeshArray.Add( OutlinerMesh );
     }
+}
+
+/** Delegate: Gets the image for the expander button */
+const FSlateBrush* UHoudiniAssetInput::GetExpanderImage( int32 AtIndex ) const
+{
+    FName ResourceName;
+    if ( TransformUIExpanded[ AtIndex ] )
+    {
+        if ( ExpanderArrow->IsHovered() )
+        {
+            ResourceName = "TreeArrow_Expanded_Hovered";
+        }
+        else
+        {
+            ResourceName = "TreeArrow_Expanded";
+        }
+    }
+    else
+    {
+        if ( ExpanderArrow->IsHovered() )
+        {
+            ResourceName = "TreeArrow_Collapsed_Hovered";
+        }
+        else
+        {
+            ResourceName = "TreeArrow_Collapsed";
+        }
+    }
+
+    return FEditorStyle::GetBrush( ResourceName );
+}
+
+FReply
+UHoudiniAssetInput::OnExpandInputTransform( int32 AtIndex )
+{
+    if ( TransformUIExpanded.IsValidIndex( AtIndex ) )
+    {
+        TransformUIExpanded[ AtIndex ] = !TransformUIExpanded[ AtIndex ];
+        OnParamStateChanged();
+    }
+
+    return FReply::Handled();
 }
 
 TOptional< float >
