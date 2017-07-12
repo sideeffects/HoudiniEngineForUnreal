@@ -3947,7 +3947,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
         if ( !StaticMeshComponent )
             continue;
 
-        UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
+        UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
         if ( !StaticMesh )
             continue;
 
