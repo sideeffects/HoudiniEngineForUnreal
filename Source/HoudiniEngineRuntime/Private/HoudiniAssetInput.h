@@ -151,7 +151,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Create widget for this parameter and add it to a given category. **/
         virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
         /** Create a single geometry widget for the given input object */
-        void CreateGeometryWidget( int32 AtIndex, UObject* InputObject, TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox );
+        void CreateGeometryWidget( 
+            int32 AtIndex, UObject* InputObject, 
+            TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool, TSharedRef< SVerticalBox > VerticalBox );
 
         virtual void PostEditUndo() override;
 
@@ -258,6 +260,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleX(float Value, int32 AtIndex);
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
+
+        const FSlateBrush* GetExpanderImage( int32 AtIndex ) const;
+        FReply OnExpandInputTransform( int32 AtIndex );
 
     protected:
 
@@ -522,6 +527,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Array containing the transform corrections for the assets in a geometry input **/
         TArray< FTransform > InputTransforms;
+
+        /** Is the transform UI expanded ? **/
+        TArray< bool > TransformUIExpanded;
+
+        /** Widget for the expander arrow */
+        TSharedPtr< SButton > ExpanderArrow;
 
         /** Flags used by this input. **/
         union
