@@ -199,7 +199,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId HostAssetId,
             TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
             HAPI_NodeId & ConnectedAssetId,
-            const float& SplineResolution = -1.0f);
+            const float& SplineResolution = -1.0f );
 
         /** HAPI : Marshaling, extract points from the Unreal Spline and create an input curve for it - return true on success **/
         static bool HapiCreateInputNodeForData(

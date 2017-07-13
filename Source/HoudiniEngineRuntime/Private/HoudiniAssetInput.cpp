@@ -220,6 +220,7 @@ UHoudiniAssetInput::UHoudiniAssetInput( const FObjectInitializer & ObjectInitial
     bKeepWorldTransform = 2;
     bLandscapeExportAsHeightfield = true;
     bLandscapeAutoSelectComponent = true;
+    bPackBeforeMerge = false;
 
     ChoiceStringValue = TEXT( "" );
 
@@ -497,10 +498,32 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
         ];
 
         // Checkbox is read only if the input is an object-path parameter
-        if ( bIsObjectPathParameter )
-            CheckBoxTranformType->SetEnabled(false);
+        //if ( bIsObjectPathParameter )
+        //    CheckBoxTranformType->SetEnabled(false);
     }
 
+    // Checkbox Pack before merging
+    if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput 
+        || ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+    {
+        TSharedPtr< SCheckBox > CheckBoxPackBeforeMerge;
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
+        [
+            SAssignNew( CheckBoxPackBeforeMerge, SCheckBox )
+            .Content()
+            [
+                SNew( STextBlock )
+                .Text( LOCTEXT( "PackBeforeMergeCheckbox", "Pack Geometry before merging" ) )
+                .ToolTipText( LOCTEXT( "PackBeforeMergeCheckboxTip", "Pack each separate piece of geometry before merging them into the input." ) )
+                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            ]
+            .IsChecked( TAttribute< ECheckBoxState >::Create(
+                TAttribute< ECheckBoxState >::FGetter::CreateUObject(
+                this, &UHoudiniAssetInput::IsCheckedPackBeforeMerge ) ) )
+            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
+                this, &UHoudiniAssetInput::CheckStateChangedPackBeforeMerge ) )
+        ];
+    }
 
     if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
     {
@@ -898,35 +921,35 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
         {
             TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
             FPropertyEditorModule & PropertyModule =
-                FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
+                FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
 
             // Locate the details panel.
             FName DetailsPanelName = "LevelEditorSelectionDetails";
-            TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView(DetailsPanelName);
+            TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
 
-            auto ButtonLabel = LOCTEXT("WorldInputStartSelection", "Start Selection (Lock Details Panel)");
-            if (DetailsView->IsLocked())
-                ButtonLabel = LOCTEXT("WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)");
+            auto ButtonLabel = LOCTEXT( "WorldInputStartSelection", "Start Selection (Lock Details Panel)" );
+            if ( DetailsView->IsLocked() )
+                ButtonLabel = LOCTEXT( "WorldInputUseCurrentSelection", "Use Current Selection (Unlock Details Panel)" );
 
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
-                SAssignNew(HorizontalBox, SHorizontalBox)
+                SAssignNew( HorizontalBox, SHorizontalBox )
                 + SHorizontalBox::Slot()
                 [
-                    SNew(SButton)
-                    .VAlign(VAlign_Center)
-                    .HAlign(HAlign_Center)
-                    .Text(ButtonLabel)
-                    .OnClicked(FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickSelectActors))		    
+                    SNew( SButton )
+                    .VAlign( VAlign_Center )
+                    .HAlign( HAlign_Center )
+                    .Text( ButtonLabel )
+                    .OnClicked( FOnClicked::CreateUObject(this, &UHoudiniAssetInput::OnButtonClickSelectActors ) )
                 ]
             ];
         }
 
         // ActorPicker : World Outliner
         {
-            FMenuBuilder MenuBuilder = CreateCustomActorPickerWidget( LOCTEXT( "WorldInputSelectedActors", "Currently Selected Actors"), false );
+            FMenuBuilder MenuBuilder = CreateCustomActorPickerWidget( LOCTEXT( "WorldInputSelectedActors", "Currently Selected Actors" ), false );
             
-            VerticalBox->AddSlot().Padding(2, 2, 5, 2).AutoHeight()
+            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
             [
                 MenuBuilder.MakeWidget()
             ];
@@ -1523,7 +1546,7 @@ UHoudiniAssetInput::UploadParameterValue()
 {
     bool Success = true;
 
-    if (PrimaryObject == nullptr)
+    if ( PrimaryObject == nullptr )
         return false;
     
     HAPI_NodeId HostAssetId = GetAssetId();
@@ -1562,8 +1585,9 @@ UHoudiniAssetInput::UploadParameterValue()
                 }
 
                 Success &= UpdateObjectMergeTransformType();
+                Success &= UpdateObjectMergePackBeforeMerge();
             }
-	    break;
+            break;
         }
     
         case EHoudiniAssetInputType::AssetInput:
@@ -1590,11 +1614,11 @@ UHoudiniAssetInput::UploadParameterValue()
 
         case EHoudiniAssetInputType::CurveInput:
         {
-	    // If we have no curve node, create it.
+            // If we have no curve node, create it.
             bool bCreated = false;
-            if (!FHoudiniEngineUtils::IsValidAssetId(ConnectedAssetId))
+            if ( !FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) )
             {
-                if (!FHoudiniEngineUtils::HapiCreateCurveNode(ConnectedAssetId))
+                if ( !FHoudiniEngineUtils::HapiCreateCurveNode( ConnectedAssetId ) )
                 {
                     bChanged = false;
                     ConnectedAssetId = -1;
@@ -1607,7 +1631,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 bCreated = true;
             }
 
-            if ( bLoadedParameter || bCreated)
+            if ( bLoadedParameter || bCreated )
             {
                 // If we just loaded or created our curve, we need to set parameters.
                 for (TMap< FString, UHoudiniAssetParameter * >::TIterator
@@ -1625,7 +1649,7 @@ UHoudiniAssetInput::UploadParameterValue()
                 }
             }
 
-            if (ConnectedAssetId != -1 && InputCurve)
+            if ( ConnectedAssetId != -1 && InputCurve )
             {
                 // The curve node has now been created and set up, we can upload points and rotation/scale attributes
                 const TArray< FTransform > & CurvePoints = InputCurve->GetCurvePoints();
@@ -1749,6 +1773,8 @@ UHoudiniAssetInput::UploadParameterValue()
 
                     Success &= UpdateObjectMergeTransformType();
                 }
+
+                Success &= UpdateObjectMergePackBeforeMerge();
             }
             break;
         }
@@ -1818,13 +1844,13 @@ UHoudiniAssetInput::GetAssetId() const
 bool
 UHoudiniAssetInput::UpdateObjectMergeTransformType()
 {
-    if (PrimaryObject == nullptr)
+    if ( PrimaryObject == nullptr )
         return false;
 
     uint32 nTransformType = -1;
-    if (bKeepWorldTransform == 2)
+    if ( bKeepWorldTransform == 2 )
         nTransformType = GetDefaultTranformTypeValue();
-    else if (bKeepWorldTransform)
+    else if ( bKeepWorldTransform )
         nTransformType = 1; 
     else
         nTransformType = 0;
@@ -1836,20 +1862,39 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
     bool bSuccess = false;
     const std::string sXformType = "xformtype";
 
-    if ( HAPI_RESULT_SUCCESS == FHoudiniApi::QueryNodeInput(
-        FHoudiniEngine::Get().GetSession(),
-        HostAssetId, InputIndex, &InputNodeId ) )
+    if ( bIsObjectPathParameter )
     {
-        // Change Parameter xformtype
+        // Directly change the Parameter xformtype
         if ( HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
-            FHoudiniEngine::Get().GetSession(), 
-            InputNodeId, sXformType.c_str(), 0, nTransformType ) )
+            FHoudiniEngine::Get().GetSession(),
+            NodeId, sXformType.c_str(), 0, nTransformType ) )
             bSuccess = true;
     }
+    else
+    {
+        // Query the object merge's node ID via the input
+        if ( HAPI_RESULT_SUCCESS == FHoudiniApi::QueryNodeInput(
+            FHoudiniEngine::Get().GetSession(),
+            HostAssetId, InputIndex, &InputNodeId ) )
+        {
+            // Change Parameter xformtype
+            if ( HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
+                FHoudiniEngine::Get().GetSession(), 
+                InputNodeId, sXformType.c_str(), 0, nTransformType ) )
+                bSuccess = true;
+        }
+    }
+
+    // Going through each input asset plugged in the geometry input,
+    // or through each input asset select in a world input.    
+    int32 NumberOfInputObjects = 0;
+    if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
+        NumberOfInputObjects = InputObjects.Num();
+    else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
+        NumberOfInputObjects = InputOutlinerMeshArray.Num();
     
-    // If the input is a world outliner, we also need to modify
-    // the transform types of the merge node's inputs
-    for (int n = 0; n < InputOutlinerMeshArray.Num(); n++)
+    // We also need to modify the transform types of the merge node's inputs
+    for ( int32 n = 0; n < NumberOfInputObjects; n++ )
     {
         // Get the Input node ID from the host ID
         InputNodeId = -1;
@@ -1862,7 +1907,7 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
             continue;
 
         // Change Parameter xformtype
-        if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
             FHoudiniEngine::Get().GetSession(), InputNodeId,
             sXformType.c_str(), 0, nTransformType ) )
             bSuccess =  false;
@@ -1871,6 +1916,64 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
     return bSuccess;
 }
 
+
+bool
+UHoudiniAssetInput::UpdateObjectMergePackBeforeMerge()
+{
+    if ( PrimaryObject == nullptr )
+        return false;
+
+    uint32 nPackValue = bPackBeforeMerge ? 1 : 0;
+
+    // Get the Input node ID from the host ID
+    HAPI_NodeId InputNodeId = -1;
+    HAPI_NodeId HostAssetId = GetAssetId();
+
+    bool bSuccess = false;
+    const std::string sPack = "pack";
+    /*
+    if ( HAPI_RESULT_SUCCESS == FHoudiniApi::QueryNodeInput(
+        FHoudiniEngine::Get().GetSession(),
+        HostAssetId, InputIndex, &InputNodeId))
+    {
+        // Change Parameter xformtype
+        if ( HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(),
+            InputNodeId, sPack.c_str(), 0, nPackValue ) )
+            bSuccess = true;
+    }
+    */
+
+    // Going through each input asset plugged in the geometry input,
+    // or through each input asset select in a world input.    
+    int32 NumberOfInputObjects = 0;
+    if (ChoiceIndex == EHoudiniAssetInputType::GeometryInput)
+        NumberOfInputObjects = InputObjects.Num();
+    else if (ChoiceIndex == EHoudiniAssetInputType::WorldInput)
+        NumberOfInputObjects = InputOutlinerMeshArray.Num();
+
+    // We also need to modify the transform types of the merge node's inputs
+    for ( int n = 0; n < NumberOfInputObjects; n++ )
+    {
+        // Get the Input node ID from the host ID
+        InputNodeId = -1;
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
+            FHoudiniEngine::Get().GetSession(),
+            ConnectedAssetId, n, &InputNodeId ) )
+            continue;
+
+        if ( InputNodeId == -1 )
+            continue;
+
+        // Change Parameter xformtype
+        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(), InputNodeId,
+            sPack.c_str(), 0, nPackValue ) )
+            bSuccess = false;
+    }
+
+    return bSuccess;
+}
 
 void
 UHoudiniAssetInput::BeginDestroy()
@@ -2537,7 +2640,7 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
 {
     // PostLoad initialization must be done on the first tick
     // as some components might now have been fully initialized at PostLoad()
-    if (OutlinerInputsNeedPostLoadInit)
+    if ( OutlinerInputsNeedPostLoadInit )
     {
         UpdateInputOulinerArray();
 
@@ -3319,20 +3422,19 @@ UHoudiniAssetInput::IsCheckedExportTileUVs() const
     return ECheckBoxState::Unchecked;
 }
 
-
 void
 UHoudiniAssetInput::CheckStateChangedKeepWorldTransform(ECheckBoxState NewState)
 { 
-    int32 bState = (NewState == ECheckBoxState::Checked);
+    int32 bState = ( NewState == ECheckBoxState::Checked );
 
-    if (bKeepWorldTransform == bState)
-	return;
+    if ( bKeepWorldTransform == bState )
+        return;
 
     // Record undo information.
     FScopedTransaction Transaction(
-	TEXT(HOUDINI_MODULE_RUNTIME),
-	LOCTEXT("HoudiniInputChange", "Houdini Input Transform Type change."),
-	PrimaryObject);
+        TEXT(HOUDINI_MODULE_RUNTIME),
+        LOCTEXT("HoudiniInputChange", "Houdini Input Transform Type change."),
+        PrimaryObject);
     Modify();
 
     MarkPreChanged();
@@ -3343,23 +3445,55 @@ UHoudiniAssetInput::CheckStateChangedKeepWorldTransform(ECheckBoxState NewState)
     MarkChanged();
 }
 
-
 ECheckBoxState
 UHoudiniAssetInput::IsCheckedKeepWorldTransform() const
 {
-    if (bKeepWorldTransform == 2)
+    if ( bKeepWorldTransform == 2 )
     {
-	if (GetDefaultTranformTypeValue())
-	    return ECheckBoxState::Checked;
-	else
-	    return ECheckBoxState::Unchecked;
+        if (GetDefaultTranformTypeValue())
+            return ECheckBoxState::Checked;
+        else
+            return ECheckBoxState::Unchecked;
     }
-    else if (bKeepWorldTransform)
-	return ECheckBoxState::Checked;
+    else if ( bKeepWorldTransform )
+        return ECheckBoxState::Checked;
     
     return ECheckBoxState::Unchecked;
 }
 
+
+void
+UHoudiniAssetInput::CheckStateChangedPackBeforeMerge( ECheckBoxState NewState )
+{
+    int32 bState = ( NewState == ECheckBoxState::Checked );
+
+    if ( bPackBeforeMerge == bState )
+        return;
+
+    // Record undo information.
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini Input Pack Before Merge changed." ),
+        PrimaryObject );
+    Modify();
+
+    MarkPreChanged();
+
+    bPackBeforeMerge = bState;
+
+    // Mark this parameter as changed.
+    MarkChanged( true );
+}
+
+
+ECheckBoxState
+UHoudiniAssetInput::IsCheckedPackBeforeMerge() const
+{
+    if ( bPackBeforeMerge )
+        return ECheckBoxState::Checked;
+    else
+        return ECheckBoxState::Unchecked;
+}
 
 FReply
 UHoudiniAssetInput::OnButtonClickRecommit()
@@ -3370,8 +3504,6 @@ UHoudiniAssetInput::OnButtonClickRecommit()
 
     return FReply::Handled();
 }
-
-
 
 FReply
 UHoudiniAssetInput::OnButtonClickSelectActors()
@@ -3556,7 +3688,6 @@ void UHoudiniAssetInput::DuplicateCurves(UHoudiniAssetInput * OriginalInput)
     bSwitchedToCurve = true;
 }
 
-
 void 
 UHoudiniAssetInput::RemoveWorldOutlinerInput( int32 AtIndex )
 {
@@ -3573,7 +3704,7 @@ UHoudiniAssetInput::RemoveWorldOutlinerInput( int32 AtIndex )
 }
 
 void
-UHoudiniAssetInput::UpdateWorldOutlinerTransforms(FHoudiniAssetInputOutlinerMesh& OutlinerMesh)
+UHoudiniAssetInput::UpdateWorldOutlinerTransforms( FHoudiniAssetInputOutlinerMesh& OutlinerMesh )
 {
     // Update to the new Transforms
     OutlinerMesh.ActorTransform = OutlinerMesh.ActorPtr->GetTransform();
