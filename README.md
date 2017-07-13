@@ -3,7 +3,12 @@ Houdini Engine for Unreal Engine is a plug-in that allows integration of Houdini
 
 This plug-in brings Houdini's powerful and flexible procedural workflow into Unreal Engine through Houdini Digital Assets. Artists can interactively adjust asset parameters inside the editor and use Unreal geometries as asset inputs. Houdini's procedural engine will then "cook" the asset and the results will be available in the editor without the need for baking.
 
-You can use the [Houdini Engine for UE4 Forum](http://www.sidefx.com/forum/51/) on the SideFX website to ask questions, discuss new features work, and share your ideas.
+You can use the [Houdini Engine for UE4 Forum](http://www.sidefx.com/forum/51/) on the SideFX website, or the [Think Procedural](https://discord.gg/b8U5Hdy) discord server to ask questions, discuss new features, and share your ideas.
+
+For more information on the plug-in's functionnalities, you can consult the plug-in's [Documentation](http://www.sidefx.com/docs/unreal/) on the SideFX website.
+
+# What's new
+You can see the latest updates and bug fixes made to the plugin in the [Daily Changelog](https://www.sidefx.com/changelog/?journal=16.0&categories=52&body=&version=&build_0=&build_1=&show_versions=on&show_compatibility=on&items_per_page=100).
 
 # Installing from Source
 01. Get the UE4 source code from: https://github.com/EpicGames/UnrealEngine/releases
