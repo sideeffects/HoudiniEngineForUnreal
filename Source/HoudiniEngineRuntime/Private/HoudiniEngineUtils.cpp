@@ -3334,7 +3334,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId,
     TArray< FHoudiniAssetInputOutlinerMesh > & OutlinerMeshArray,
     HAPI_NodeId & ConnectedAssetId,
-    const float& SplineResolution)
+    const float& SplineResolution )
 {
     if ( OutlinerMeshArray.Num() <= 0 )
         return false;
@@ -3350,7 +3350,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
 
         bool bInputCreated = false;
 
-        if (OutlinerMesh.StaticMesh != nullptr)
+        if ( OutlinerMesh.StaticMesh != nullptr )
         {
             // Creating an Input Node for Mesh Data
             bInputCreated = HapiCreateInputNodeForData(
@@ -3360,7 +3360,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 OutlinerMesh.AssetId,
                 OutlinerMesh.StaticMeshComponent );
         }
-        else if (OutlinerMesh.SplineComponent != nullptr)
+        else if ( OutlinerMesh.SplineComponent != nullptr )
         {
             // Creating an input node for spline data
             bInputCreated = HapiCreateInputNodeForData(
@@ -3368,7 +3368,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
                 OutlinerMesh.SplineComponent,
                 OutlinerMesh.AssetId,
                 OutlinerMesh,
-                SplineResolution);
+                SplineResolution );
         }
 
         if ( !bInputCreated )

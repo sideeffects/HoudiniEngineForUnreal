@@ -361,6 +361,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Updates the input's Object Merge Transform type  **/
         bool UpdateObjectMergeTransformType();
 
+        /** Update's the input's object merge Pack before merging value **/
+        bool UpdateObjectMergePackBeforeMerge();
+
         /** Returns the default value for this input Transform Type, 0 = none / 1 = IntoThisObject **/
         uint32 GetDefaultTranformTypeValue() const;
 
@@ -481,6 +484,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Reset the spline resolution to default **/
         FReply OnResetSplineResolutionClicked();
 
+        /** Check if state of the transform type checkbox has changed. **/
+        void CheckStateChangedPackBeforeMerge( ECheckBoxState NewState );
+
+        /** Return checked state of landscape tile uv checkbox. **/
+        ECheckBoxState IsCheckedPackBeforeMerge() const;
+
 #endif
 
         /** Value of choice option. **/
@@ -583,6 +592,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
                 /** Is set to true when the automatic selection of landscape component is active **/
                 uint32 bLandscapeAutoSelectComponent : 1;
+
+                /** Indicates that the geometry must be packed before merging it into the input**/
+                uint32 bPackBeforeMerge : 1;
             };
 
             uint32 HoudiniAssetInputFlagsPacked;
