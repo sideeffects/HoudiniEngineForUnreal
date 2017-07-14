@@ -795,7 +795,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 }
 
                 // Try to update uproperty atributes
-                FHoudiniEngineUtils::UpdateUPropertyAttributes(StaticMeshComponent, HoudiniGeoPartObject);
+                FHoudiniEngineUtils::UpdateUPropertyAttributes( StaticMeshComponent, HoudiniGeoPartObject );
             }
         }
     }
