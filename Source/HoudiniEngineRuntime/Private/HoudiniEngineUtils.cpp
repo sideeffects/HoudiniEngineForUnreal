@@ -9512,8 +9512,8 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
                 for( int32 IdxSH = 0; IdxSH < HapiSHArray.Num(); IdxSH++ )
                 {
                     FString CurrentString;
-                    FHoudiniEngineString HoudiniEngineString( HapiSHArray[ IdxSH ] );
-                    HoudiniEngineString.ToFString( CurrentString );
+                    FHoudiniEngineString HEngineString( HapiSHArray[ IdxSH ] );
+                    HEngineString.ToFString( CurrentString );
 
                     CurrentUProperty.StringValues[ IdxSH ] = CurrentString;
                 }
@@ -9774,6 +9774,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
                 : FoundProperty->ContainerPtrToValuePtr< bool >( SMC ),
                 Value );
         }
+        /*
         else if ( UTextProperty* TextProperty = Cast< UTextProperty >( FoundProperty ) )
         {
             // TEXT PROPERTY
@@ -9793,6 +9794,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
                 : FoundProperty->ContainerPtrToValuePtr< bool >( SMC ),
                 Value );
         }
+        */
         else if ( UByteProperty* ByteProperty = Cast< UByteProperty >( FoundProperty ) )
         {
             // BYTE (UINT8) PROPERTY
