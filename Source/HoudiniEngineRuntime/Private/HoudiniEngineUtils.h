@@ -50,6 +50,18 @@ struct FRawMesh;
 
 DECLARE_STATS_GROUP( TEXT( "HoudiniEngine" ), STATGROUP_HoudiniEngine, STATCAT_Advanced );
 
+struct HOUDINIENGINERUNTIME_API UPropertyAttribute
+{
+    FString PropertyName;
+
+    HAPI_StorageType PropertyType;
+    int32 PropertyTupleSize;
+
+    TArray< float > FloatValues;
+    TArray< int32 > IntValues;
+    TArray< FString > StringValues;
+};
+
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 {
     public:
@@ -432,8 +444,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Return a list with all the UProperty attributes found **/
         static int32 GetUPropertyAttributesList(
-            const HAPI_NodeId& NodeId,  const HAPI_PartId& PartId, HAPI_PartInfo* PartInfo, 
-            TArray< FString >& AllUPropsNames,  TArray< float >& AllUPropsValue );
+            const HAPI_NodeId& NodeId,  const HAPI_PartId& PartId, 
+            HAPI_PartInfo* PartInfo, TArray< UPropertyAttribute >& AllUProps );
 
         /** Try to update values from all the UProperty attributes found for this object **/
         static void UpdateUPropertyAttributes( 
