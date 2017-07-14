@@ -9380,8 +9380,7 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
     const HAPI_NodeId& NodeId,
     const HAPI_PartId& PartId,
     HAPI_PartInfo* PartInfo,
-    TArray< FString >& AllUPropsNames,
-    TArray< float >& AllUPropsValue)
+    TArray< UPropertyAttribute >& AllUProps )
 {
     if ( !PartInfo )
         return 0;
@@ -9408,31 +9407,81 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
 
         if ( HapiString.StartsWith( "unreal_uproperty_",  ESearchCase::IgnoreCase ) )
         {
+            UPropertyAttribute CurrentUProperty;
+
             // Extract the name of the UProperty from the attribute name
-            FString UPropName = HapiString.Right( HapiString.Len() - 17 );
+            CurrentUProperty.PropertyName = HapiString.Right( HapiString.Len() - 17 );
 
             // Get the Attribute Info
             HAPI_AttributeInfo AttribInfo;
-
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
                 FHoudiniEngine::Get().GetSession(),
                 NodeId, PartId, TCHAR_TO_UTF8( *HapiString ),
                 HAPI_ATTROWNER_DETAIL, &AttribInfo ), false );
 
-            // and its value
-            float Value;
-            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeFloatData(
-                FHoudiniEngine::Get().GetSession(),
-                NodeId, PartId, 
-                TCHAR_TO_UTF8( *HapiString) ,&AttribInfo,
-                0, &Value, 0, 1 ), false );
+            // Get the attribute type and tuple size
+            CurrentUProperty.PropertyType = AttribInfo.storage;
+            CurrentUProperty.PropertyTupleSize = AttribInfo.tupleSize;
 
-            // Add to the array
-            AllUPropsNames.Add( UPropName );
-            AllUPropsValue.Add( Value );
+            if ( CurrentUProperty.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+            {
+                // Initialize the value array
+                CurrentUProperty.FloatValues.SetNumZeroed( CurrentUProperty.PropertyTupleSize );
+
+                // Get the value(s)
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeFloatData(
+                    FHoudiniEngine::Get().GetSession(),
+                    NodeId, PartId, TCHAR_TO_UTF8( *HapiString) ,&AttribInfo,
+                    0, CurrentUProperty.FloatValues.GetData(), 0, CurrentUProperty.PropertyTupleSize ), false );
+
+            }
+            else if ( CurrentUProperty.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+            {
+                // Initialize the value array
+                CurrentUProperty.IntValues.SetNumZeroed( CurrentUProperty.PropertyTupleSize );
+
+                // Get the value(s)
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeIntData(
+                    FHoudiniEngine::Get().GetSession(),
+                    NodeId, PartId, TCHAR_TO_UTF8( *HapiString) ,&AttribInfo,
+                    0, CurrentUProperty.IntValues.GetData(), 0, CurrentUProperty.PropertyTupleSize ), false );
+            }
+            else if ( CurrentUProperty.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                // Initialize a string handle array
+                TArray< HAPI_StringHandle > HapiSHArray;
+                HapiSHArray.SetNumZeroed( CurrentUProperty.PropertyTupleSize );
+
+                // Get the string handle(s)
+                HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeStringData(
+                    FHoudiniEngine::Get().GetSession(),
+                    NodeId, PartId, TCHAR_TO_UTF8( *HapiString) ,&AttribInfo,
+                    HapiSHArray.GetData(), 0, CurrentUProperty.PropertyTupleSize ), false );
+
+                // Convert them to FString
+                CurrentUProperty.StringValues.SetNumZeroed( CurrentUProperty.PropertyTupleSize );
+
+                for( int32 IdxSH = 0; IdxSH < HapiSHArray.Num(); IdxSH++ )
+                {
+                    FString CurrentString;
+                    FHoudiniEngineString HoudiniEngineString( HapiSHArray[ IdxSH ] );
+                    HoudiniEngineString.ToFString( CurrentString );
+
+                    CurrentUProperty.StringValues[ IdxSH ] = CurrentString;
+                }
+            }
+            else
+            {
+                // Unsupported type, skipping!
+                continue;
+            }
+
+            // We can add the UPropertyAttribute to the array
+            AllUProps.Add( CurrentUProperty );
+            nUPropCount++;
         }
     }
-    
+
     return nUPropCount;
 }
 
@@ -9447,23 +9496,17 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
     if ( !GeoPartObject.HapiPartGetInfo(PartInfo) )
         return;
 
-    TArray< FString > AllUPropsNames;
-    TArray< float > AllUPropsValue;
+    TArray< UPropertyAttribute > AllUProps;
 
-    FHoudiniEngineUtils::GetUPropertyAttributesList(
-        NodeId,
-        GeoPartObject.PartId,
-        &PartInfo,
-        AllUPropsNames,
-        AllUPropsValue );
-
-    if ( ( AllUPropsNames.Num() <= 0 ) || ( AllUPropsValue.Num() <= 0 ) )
+    int nUPropsCount = FHoudiniEngineUtils::GetUPropertyAttributesList( NodeId, GeoPartObject.PartId, &PartInfo, AllUProps );
+    if ( nUPropsCount <= 0 )
         return;
 
     // Trying to find the UProps in the object 
-    for ( int32 nIdx = 0; nIdx < AllUPropsNames.Num(); nIdx++ )
+    for ( int32 nIdx = 0; nIdx < nUPropsCount; nIdx++ )
     {
-        FString CurrentUPropertyName = AllUPropsNames[nIdx];
+        UPropertyAttribute CurrentPropAttribute = AllUProps[ nIdx ];
+        FString CurrentUPropertyName = CurrentPropAttribute.PropertyName;
 
         // We have to iterate manually on the properties, in order to handle structProperties correctly
         void* StructContainer = nullptr;
@@ -9477,7 +9520,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
                 break;
             }
 
-            // StructProperty need to be  a nested struct
+            // StructProperty need to be a nested struct
             if ( UStructProperty* StructProperty = Cast< UStructProperty >( CurrentProperty ) )
             {
                 // Walk the structs' properties and try to find the one we're looking for
@@ -9487,8 +9530,8 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
                     UProperty* Property = *It;
                     if ( It->GetName() == CurrentUPropertyName )
                     {
-                        // We found the property in the strcut property, we need to kep the ValuePtr in the object
-                        // of the structProp in order to be able to acces the property value afterwards...
+                        // We found the property in the struct property, we need to keep the ValuePtr in the object
+                        // of the structProp in order to be able to access the property value afterwards...
                         FoundProperty = Property;
                         StructContainer = StructProperty->ContainerPtrToValuePtr< void >( SMC, 0 );
                         break;
@@ -9500,44 +9543,251 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UStaticMeshComponent* SMC, FHoud
                 break;
         }
 
-        // Couldn.t Find the property
         if ( !FoundProperty )
-            continue;
-
-        if ( UFloatProperty* FloatProperty = Cast< UFloatProperty >( FoundProperty ) )
         {
-            float Value = AllUPropsValue[ nIdx ];
-            if ( !StructContainer )
-                FloatProperty->SetFloatingPointPropertyValue( FoundProperty->ContainerPtrToValuePtr< float >( SMC ), Value );
-            else
-                FloatProperty->SetFloatingPointPropertyValue( FoundProperty->ContainerPtrToValuePtr< float >( ( uint8* )StructContainer ), Value );
+            // Property not found
+            HOUDINI_LOG_MESSAGE( TEXT( "Could not find UProperty: %s"), *( CurrentPropAttribute.PropertyName ) );
+        }
+
+        if ( UNumericProperty *NumericProperty = Cast< UNumericProperty >( FoundProperty ) )
+        {
+            // NUMERIC PROPERTY
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+            {
+                float Value = CurrentPropAttribute.FloatValues[ 0 ];
+                NumericProperty->SetFloatingPointPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+            {
+                int32 Value = CurrentPropAttribute.IntValues[ 0 ];
+                NumericProperty->SetIntPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8* )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    ( int64 ) Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.StringValues[ 0 ];
+                NumericProperty->SetNumericPropertyValueFromString(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    *Value );
+            }
+        }
+        else if ( UFloatProperty* FloatProperty = Cast< UFloatProperty >( FoundProperty ) )
+        {
+            // FLOAT PROPERTY
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+            {
+                float Value = CurrentPropAttribute.FloatValues[ 0 ];
+                FloatProperty->SetFloatingPointPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+            {
+                int32 Value = CurrentPropAttribute.IntValues[ 0 ];
+                FloatProperty->SetIntPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8* )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    ( int64 ) Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.StringValues[ 0 ];
+                FloatProperty->SetNumericPropertyValueFromString(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    * Value );
+            }
         }
         else if ( UIntProperty* IntProperty = Cast< UIntProperty >( FoundProperty ) )
         {
-            int32 Value = ( int32 )AllUPropsValue[ nIdx ];
-            if ( !StructContainer )
-                IntProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< int32 >( SMC ), Value );
-            else
-                IntProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< int32 >( ( uint8* )StructContainer ), Value );
-            
+            // INT PROPERTY
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+            {
+                float Value = CurrentPropAttribute.FloatValues[ 0 ];
+                IntProperty->SetFloatingPointPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+            {
+                int32 Value = CurrentPropAttribute.IntValues[ 0 ];
+                IntProperty->SetIntPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8* )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    ( int64 ) Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.StringValues[ 0 ];
+                IntProperty->SetNumericPropertyValueFromString(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    * Value );
+            }
         }
         else if ( UBoolProperty* BoolProperty = Cast< UBoolProperty >( FoundProperty ) )
         {
-            bool Value = AllUPropsValue[ nIdx ] == 0 ? false : true;
-            if ( !StructContainer )
-                BoolProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< bool >( SMC ), Value );
-            else
-                BoolProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< bool >( ( uint8* ) StructContainer ), Value );
+            // BOOL PROPERTY
+            bool Value = false;
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+                Value = CurrentPropAttribute.FloatValues[ 0 ] == 0 ? false : true;
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+                Value = CurrentPropAttribute.IntValues[ 0 ] == 0 ? false : true;
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+                Value = CurrentPropAttribute.StringValues[ 0 ].Equals( TEXT( "true" ), ESearchCase::IgnoreCase ) ? true : false;
+
+            BoolProperty->SetPropertyValue(
+                StructContainer ?
+                FoundProperty->ContainerPtrToValuePtr< bool >( ( uint8* )StructContainer )
+                : FoundProperty->ContainerPtrToValuePtr< bool >( SMC ),
+                Value );
         }
+        else if ( UStrProperty* StringProperty = Cast< UStrProperty >( FoundProperty ) )
+        {
+            // STRING PROPERTY
+            FString Value;
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+                Value = CurrentPropAttribute.StringValues[ 0 ];
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+                Value = FString::SanitizeFloat( CurrentPropAttribute.FloatValues[ 0 ] );
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+                Value = FString::FromInt( CurrentPropAttribute.IntValues[ 0 ] );
+
+            StringProperty->SetPropertyValue(
+                StructContainer ?
+                FoundProperty->ContainerPtrToValuePtr< bool >( ( uint8* )StructContainer )
+                : FoundProperty->ContainerPtrToValuePtr< bool >( SMC ),
+                Value );
+        }
+        else if ( UDoubleProperty* DoubleProperty = Cast< UDoubleProperty >( FoundProperty ) )
+        {
+            // FLOAT PROPERTY
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+            {
+                double Value = ( double ) CurrentPropAttribute.FloatValues[ 0 ];
+                DoubleProperty->SetFloatingPointPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+            {
+                int64 Value = ( int64 ) CurrentPropAttribute.IntValues[ 0 ];
+                DoubleProperty->SetIntPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8* )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.StringValues[ 0 ];
+                DoubleProperty->SetNumericPropertyValueFromString(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    * Value );
+            }
+        }
+        else if ( UNameProperty* NameProperty = Cast< UNameProperty >( FoundProperty ) )
+        {
+            // NAME PROPERTY
+            FString StringValue;
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+                StringValue = CurrentPropAttribute.StringValues[ 0 ];
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+                StringValue = FString::SanitizeFloat( CurrentPropAttribute.FloatValues[ 0 ] );
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+                StringValue = FString::FromInt( CurrentPropAttribute.IntValues[ 0 ] );
+
+            FName Value = FName( *StringValue );
+
+            NameProperty->SetPropertyValue(
+                StructContainer ?
+                FoundProperty->ContainerPtrToValuePtr< bool >( ( uint8* )StructContainer )
+                : FoundProperty->ContainerPtrToValuePtr< bool >( SMC ),
+                Value );
+        }
+        else if ( UTextProperty* TextProperty = Cast< UTextProperty >( FoundProperty ) )
+        {
+            // TEXT PROPERTY
+            FString StringValue;
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+                StringValue = CurrentPropAttribute.StringValues[ 0 ];
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+                StringValue = FString::SanitizeFloat( CurrentPropAttribute.FloatValues[ 0 ] );
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+                StringValue = FString::FromInt( CurrentPropAttribute.IntValues[ 0 ] );
+
+            FText Value = FText::FromString( StringValue );
+
+            TextProperty->SetPropertyValue(
+                StructContainer ?
+                FoundProperty->ContainerPtrToValuePtr< bool >( ( uint8* )StructContainer )
+                : FoundProperty->ContainerPtrToValuePtr< bool >( SMC ),
+                Value );
+        }
+        else if ( UByteProperty* ByteProperty = Cast< UByteProperty >( FoundProperty ) )
+        {
+            // BYTE (UINT8) PROPERTY
+            if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_FLOAT )
+            {
+                float Value = CurrentPropAttribute.FloatValues[ 0 ];
+                ByteProperty->SetFloatingPointPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_INT )
+            {
+                uint8 Value = (uint8)CurrentPropAttribute.IntValues[ 0 ];
+                ByteProperty->SetIntPropertyValue(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8* )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    ( int64 ) Value );
+            }
+            else if ( CurrentPropAttribute.PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+            {
+                FString Value = CurrentPropAttribute.StringValues[ 0 ];
+                ByteProperty->SetNumericPropertyValueFromString(
+                    StructContainer ?
+                    FoundProperty->ContainerPtrToValuePtr< float >( ( uint8 * )StructContainer )
+                    : FoundProperty->ContainerPtrToValuePtr< float >( SMC ),
+                    * Value );
+            }
+        }
+        /*
         else if ( UObjectProperty* ObjectProperty = Cast< UObjectProperty >( FoundProperty ) )
         {
             //UObject* Value = nullptr;
             //ObjectProperty->SetObjectPropertyValue( FoundProperty->ContainerPtrToValuePtr< UObject* >( SMC ), Value );
         }
-        else if ( UStrProperty* StringProperty = Cast< UStrProperty >( FoundProperty ) )
+        */
+        else
         {
-            //FString Value;
-            //StringProperty->SetPropertyValue( FoundProperty->ContainerPtrToValuePtr< FString >( SMC ), Value );
+            // Property was found, but is of an unsupporterd type
+            UClass* PropertyClass = FoundProperty->GetClass();
+            HOUDINI_LOG_MESSAGE( TEXT("Unsupported UProperty Class: %s found for uproperty %s" ), *PropertyClass->GetName(), *CurrentPropAttribute.PropertyName );
         }
     }
 }
