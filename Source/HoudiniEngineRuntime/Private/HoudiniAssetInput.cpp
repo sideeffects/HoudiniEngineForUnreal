@@ -1929,20 +1929,8 @@ UHoudiniAssetInput::UpdateObjectMergePackBeforeMerge()
     HAPI_NodeId InputNodeId = -1;
     HAPI_NodeId HostAssetId = GetAssetId();
 
-    bool bSuccess = false;
+    bool bSuccess = true;
     const std::string sPack = "pack";
-    /*
-    if ( HAPI_RESULT_SUCCESS == FHoudiniApi::QueryNodeInput(
-        FHoudiniEngine::Get().GetSession(),
-        HostAssetId, InputIndex, &InputNodeId))
-    {
-        // Change Parameter xformtype
-        if ( HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
-            FHoudiniEngine::Get().GetSession(),
-            InputNodeId, sPack.c_str(), 0, nPackValue ) )
-            bSuccess = true;
-    }
-    */
 
     // Going through each input asset plugged in the geometry input,
     // or through each input asset select in a world input.    
