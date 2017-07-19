@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -308,7 +300,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
             Meta = ( DisplayName = "Collision Complexity" ) )
         TEnumAsByte< enum ECollisionTraceFlag > CollisionTraceFlag;
 
-        // Resolution of lightmap for new Houdini Assets.
+        // Resolution of lightmap for baked lighting.
         UPROPERTY(
             GlobalConfig, EditAnywhere, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Light Map Resolution", FixedIncrement = "4.0" ) )
@@ -332,7 +324,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
             Meta = ( DisplayName = "Walkable Slope Override" ) )
         FWalkableSlopeOverride WalkableSlopeOverride;
 
-        // The light map coordinate index for new Houdini Assets.
+        // The UV coordinate index of lightmap 
         UPROPERTY(
             GlobalConfig, EditAnywhere, AdvancedDisplay, Category = GeneratedStaticMeshSettings,
             Meta = ( DisplayName = "Light map coordinate index" ) )
@@ -369,15 +361,15 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
         bool bUseFullPrecisionUVs;
 
-        // Source UV set for lightmaps.
+        // Source UV set for generated lightmap.
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Source Lightmap Index" ) )
         int32 SrcLightmapIndex;
 
-        // Destination UV set for lightmap.
+        // Destination UV set for generated lightmap.
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Destination Lightmap Index" ) )
         int32 DstLightmapIndex;
 
-        // Min lightmap resolution value.
+        // Target lightmap resolution to for generated lightmap.  Determines the padding between UV shells in a packed lightmap.
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
         int32 MinLightmapResolution;
 
@@ -385,21 +377,25 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
         bool bRemoveDegenerates;
 
-        // Action to take when lightmaps are missing.
+        // Lightmap UV generation
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName = "Generate Lightmap UVs" ) )
         TEnumAsByte< enum EHoudiniRuntimeSettingsRecomputeFlag > GenerateLightmapUVsFlag;
 
-        // Action to take when normals are missing.
+        // Normals generation
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Recompute Normals" ) )
         TEnumAsByte< enum EHoudiniRuntimeSettingsRecomputeFlag > RecomputeNormalsFlag;
 
-        // Action to take when tangents are missing.
+        // Tangents generation
         UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Recompute Tangents" ) )
         TEnumAsByte< enum EHoudiniRuntimeSettingsRecomputeFlag > RecomputeTangentsFlag;
 
-        // If true, recomputed tangents and normals will be calculated using Mikk T Space
-        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
+        // If true, recomputed tangents and normals will be calculated using MikkT Space.  This method does require properly laid out UVs though otherwise you'll get a degenerate tangent warning
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings, Meta = ( DisplayName="Generate Using MikkT Space" ) )
         bool bUseMikkTSpace;
+
+        // Required for PNT tessellation but can be slow. Recommend disabling for larger meshes.
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = StaticMeshBuildSettings )
+        bool bBuildAdjacencyBuffer;
 
     /** Custom Houdini location. **/
     public:

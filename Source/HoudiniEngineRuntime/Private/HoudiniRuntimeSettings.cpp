@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -109,6 +101,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     RecomputeNormalsFlag = HRSRF_OnlyIfMissing;
     RecomputeTangentsFlag = HRSRF_OnlyIfMissing;
     bUseMikkTSpace = true;
+    bBuildAdjacencyBuffer = false;
 
     /** Custom Houdini location. **/
     bUseCustomHoudiniLocation = false;
@@ -304,9 +297,13 @@ UHoudiniRuntimeSettings::PostEditChangeProperty( struct FPropertyChangedEvent & 
 void
 UHoudiniRuntimeSettings::SetMeshBuildSettings( FMeshBuildSettings & MeshBuildSettings, FRawMesh & RawMesh ) const
 {
-    // Removing degenerate triangles.
     MeshBuildSettings.bRemoveDegenerates = bRemoveDegenerates;
     MeshBuildSettings.bUseMikkTSpace = bUseMikkTSpace;
+    MeshBuildSettings.bBuildAdjacencyBuffer = bBuildAdjacencyBuffer;
+    MeshBuildSettings.MinLightmapResolution = MinLightmapResolution;
+    MeshBuildSettings.bUseFullPrecisionUVs = bUseFullPrecisionUVs;
+    MeshBuildSettings.SrcLightmapIndex = SrcLightmapIndex;
+    MeshBuildSettings.DstLightmapIndex = DstLightmapIndex;
 
     // Recomputing normals.
     switch ( RecomputeNormalsFlag )
