@@ -9428,7 +9428,8 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
     const HAPI_NodeId& NodeId,
     const HAPI_PartId& PartId,
     HAPI_PartInfo* PartInfo,
-    TArray< UPropertyAttribute >& AllUProps )
+    TArray< UPropertyAttribute >& AllUProps,
+    const HAPI_AttributeOwner& AttributeOwner )
 {
     if ( !PartInfo )
         return 0;
@@ -9436,14 +9437,14 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
     int32 nUPropCount = 0;
 
     // Get All Detail attribute names for that part
-    int32 nAttribCount = PartInfo->attributeCounts[ HAPI_ATTROWNER_DETAIL ];
+    int32 nAttribCount = PartInfo->attributeCounts[ AttributeOwner ];
 
     TArray<HAPI_StringHandle> AttribNameSHArray;
     AttribNameSHArray.SetNum( nAttribCount );
 
     if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeNames(
         FHoudiniEngine::Get().GetSession(),
-        NodeId, PartId, HAPI_ATTROWNER_DETAIL, 
+        NodeId, PartId, AttributeOwner,
         AttribNameSHArray.GetData(), nAttribCount ) )
         return 0;
 
@@ -9465,7 +9466,7 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
             HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
                 FHoudiniEngine::Get().GetSession(),
                 NodeId, PartId, TCHAR_TO_UTF8( *HapiString ),
-                HAPI_ATTROWNER_DETAIL, &AttribInfo ), false );
+                AttributeOwner, &AttribInfo ), false );
 
             // Get the attribute type and tuple size
             CurrentUProperty.PropertyType = AttribInfo.storage;
@@ -9592,8 +9593,11 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudini
         return;
 
     TArray< UPropertyAttribute > AllUProps;
-
+    // Get the detail uprop attributes
     int nUPropsCount = FHoudiniEngineUtils::GetUPropertyAttributesList( NodeId, GeoPartObject.PartId, &PartInfo, AllUProps );
+    // Then the primitive uprop attributes
+    //nUPropsCount += FHoudiniEngineUtils::GetUPropertyAttributesList( NodeId, GeoPartObject.PartId, &PartInfo, AllUProps, HAPI_ATTROWNER_PRIM );
+
     if ( nUPropsCount <= 0 )
         return;
 
