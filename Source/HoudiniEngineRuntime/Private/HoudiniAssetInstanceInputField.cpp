@@ -256,15 +256,9 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         {
             InstancedStaticMeshComponent->OverrideMaterials.Empty();
 
-            int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
+            int32 MeshMaterialCount = StaticMesh->Materials.Num();
             for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
                 InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
-        }
-
-                int32 MeshMaterialCount = StaticMesh->Materials.Num();
-                for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
-                    InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
-            }
         }
 
         FHoudiniEngineUtils::UpdateUPropertyAttributes( InstancedStaticMeshComponent, InstancerHoudiniGeoPartObject);
