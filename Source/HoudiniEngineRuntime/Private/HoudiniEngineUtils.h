@@ -552,7 +552,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Return a list with all the UProperty attributes found **/
         static int32 GetUPropertyAttributesList(
             const HAPI_NodeId& NodeId,  const HAPI_PartId& PartId, 
-            HAPI_PartInfo* PartInfo, TArray< UPropertyAttribute >& AllUProps );
+            HAPI_PartInfo* PartInfo, TArray< UPropertyAttribute >& AllUProps,
+            const HAPI_AttributeOwner& AttributeOwner = HAPI_ATTROWNER_DETAIL );
 
         /** Try to update values from all the UProperty attributes found for this object **/
         static void UpdateUPropertyAttributes( 
