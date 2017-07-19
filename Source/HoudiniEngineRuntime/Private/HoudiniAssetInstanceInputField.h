@@ -160,6 +160,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         /** Recreates physics states for instanced static mesh component. **/
         void RecreatePhysicsState();
 
+        /** Updates the uproperty attributes for the generated instanced components **/
+        void UpdateInstanceUPropertyAttributes();
+
     protected:
 
         /** Create instanced component for this field. **/
