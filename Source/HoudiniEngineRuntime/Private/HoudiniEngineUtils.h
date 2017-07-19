@@ -55,11 +55,117 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
     FString PropertyName;
 
     HAPI_StorageType PropertyType;
+    int32 PropertyCount;
     int32 PropertyTupleSize;
 
-    TArray< float > FloatValues;
-    TArray< int32 > IntValues;
+    TArray< double > DoubleValues;
+    TArray< int64 > IntValues;
     TArray< FString > StringValues;
+
+    double GetDoubleValue( int32 index = 0 )
+    {
+        if ( ( PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        {
+            if ( DoubleValues.IsValidIndex( index ) )
+                return DoubleValues[ index ];
+        }
+        else if  ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        {
+            if ( IntValues.IsValidIndex( index ) )
+                return (double)IntValues[ index ];
+        }
+        else if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        {
+            if ( StringValues.IsValidIndex( index ) )
+                return FCString::Atod( *StringValues[ index ] );
+        }
+
+        return 0.0f;
+    }
+
+    int64 GetIntValue( int32 index = 0 )
+    {
+        if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        {
+            if ( IntValues.IsValidIndex( index ) )
+                return IntValues[ index ];
+        }
+        else if ( ( PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        {
+            if ( DoubleValues.IsValidIndex( index ) )
+                return (int64)DoubleValues[ index ];
+        }
+        else if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        {
+            if ( StringValues.IsValidIndex( index ) )
+                return FCString::Atoi64( *StringValues[ index ] );
+        }
+
+        return 0;
+    }
+
+    FString GetStringValue( int32 index = 0 )
+    {
+        if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        {
+            if ( StringValues.IsValidIndex( index ) )
+                return StringValues[ index ];
+        }
+        else if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        {
+            if ( IntValues.IsValidIndex( index ) )
+                return FString::FromInt( (int32) IntValues[ index ] );
+        }
+        else if ( (PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        {
+            if ( DoubleValues.IsValidIndex( index ) )
+                return FString::SanitizeFloat( DoubleValues[ index ] );
+        }
+
+        return FString();
+    }
+
+    bool GetBoolValue( int32 index = 0 )
+    {
+        if ( (PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        {
+            if ( DoubleValues.IsValidIndex( index ) )
+                return DoubleValues[ index ] == 0.0 ? false : true;
+        }
+        else if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        {
+            if ( IntValues.IsValidIndex( index ) )
+                return IntValues[ index ] == 0 ? false : true;
+        }
+        else if ( PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+        {
+            if ( StringValues.IsValidIndex( index ) )
+                return StringValues[ index ].Equals( TEXT( "true" ), ESearchCase::IgnoreCase ) ? true : false;
+        }
+
+        return false;
+    }
+
+    void* GetData()
+    {
+        if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        {
+            if ( StringValues.Num() > 0 )
+                return StringValues.GetData();
+        }
+        else if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        {
+            if ( IntValues.Num() > 0 )
+                return IntValues.GetData();
+        }
+        else if ( ( PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        {
+            if ( DoubleValues.Num() > 0 )
+                return DoubleValues.GetData();
+        }
+
+        return nullptr;
+    }
 };
 
 struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
@@ -449,7 +555,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Try to update values from all the UProperty attributes found for this object **/
         static void UpdateUPropertyAttributes( 
-            UStaticMeshComponent* SMC, FHoudiniGeoPartObject GeoPartObject );
+            UObject* MeshComponent, FHoudiniGeoPartObject GeoPartObject );
 
         static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
 

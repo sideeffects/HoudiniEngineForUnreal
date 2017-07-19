@@ -500,6 +500,7 @@ UHoudiniAssetInstanceInput::CreateInstanceInputField(
 
         // Set transforms for this input.
         HoudiniAssetInstanceInputField->SetInstanceTransforms( ObjectTransforms );
+        HoudiniAssetInstanceInputField->UpdateInstanceUPropertyAttributes();
 
         // Add field to list of fields.
         NewInstanceInputFields.Add( HoudiniAssetInstanceInputField );

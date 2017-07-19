@@ -199,6 +199,8 @@ UHoudiniAssetInstanceInputField::PostEditUndo()
 
     if ( UHoudiniAssetComponent* Comp = Cast<UHoudiniAssetComponent>(HoudiniAssetComponent) )
         Comp->UpdateEditorProperties( false );
+
+    UpdateInstanceUPropertyAttributes();
 }
 
 #endif // WITH_EDITOR
@@ -212,6 +214,9 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
     if( !Comp )
         return;
     USceneComponent* RootComp = Comp;
+
+    // Check if instancer material is available.
+    const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
 
     if ( UStaticMesh * StaticMesh = Cast<UStaticMesh>( InstancedObjects[ VariationIdx ] ) )
     {
@@ -233,33 +238,36 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         // We want to make this invisible if it's a collision instancer.
         InstancedStaticMeshComponent->SetVisibility( !HoudiniGeoPartObject.bIsCollidable );
 
-        // Check if instancer material is available.
-        const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
-        if ( StaticMesh )
+        UMaterialInterface * InstancerMaterial = nullptr;
+
+        // We check attribute material first.
+        if ( InstancerHoudiniGeoPartObject.bInstancerAttributeMaterialAvailable )
         {
-            UMaterialInterface * InstancerMaterial = nullptr;
+            InstancerMaterial = Comp->GetAssignmentMaterial(
+                InstancerHoudiniGeoPartObject.InstancerAttributeMaterialName );
+        }
 
-            // We check attribute material first.
-            if ( InstancerHoudiniGeoPartObject.bInstancerAttributeMaterialAvailable )
-            {
-                InstancerMaterial = Comp->GetAssignmentMaterial(
-                    InstancerHoudiniGeoPartObject.InstancerAttributeMaterialName );
-            }
+        // If attribute material was not found, we check for presence of shop instancer material.
+        if ( !InstancerMaterial && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable )
+            InstancerMaterial = Comp->GetAssignmentMaterial(
+                InstancerHoudiniGeoPartObject.InstancerMaterialName );
 
-            // If attribute material was not found, we check for presence of shop instancer material.
-            if ( !InstancerMaterial && InstancerHoudiniGeoPartObject.bInstancerMaterialAvailable )
-                InstancerMaterial = Comp->GetAssignmentMaterial(
-                    InstancerHoudiniGeoPartObject.InstancerMaterialName );
+        if ( InstancerMaterial )
+        {
+            InstancedStaticMeshComponent->OverrideMaterials.Empty();
 
-            if ( InstancerMaterial )
-            {
-                InstancedStaticMeshComponent->OverrideMaterials.Empty();
+            int32 MeshMaterialCount = StaticMesh->StaticMaterials.Num();
+            for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
+                InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
+        }
 
                 int32 MeshMaterialCount = StaticMesh->Materials.Num();
                 for ( int32 Idx = 0; Idx < MeshMaterialCount; ++Idx )
                     InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
             }
         }
+
+        FHoudiniEngineUtils::UpdateUPropertyAttributes( InstancedStaticMeshComponent, InstancerHoudiniGeoPartObject);
     }
     else
     {
@@ -276,6 +284,8 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
         InstancedObjectComponent->AttachToComponent(
             RootComp, FAttachmentTransformRules::KeepRelativeTransform );
         InstancedObjectComponent->RegisterComponent();
+
+        FHoudiniEngineUtils::UpdateUPropertyAttributes( InstancedObjectComponent, HoudiniGeoPartObject );
     }
 
     UpdateRelativeTransform();
@@ -337,6 +347,20 @@ UHoudiniAssetInstanceInputField::UpdateRelativeTransform()
         InstancerComponents[ Idx ]->SetRelativeTransform( HoudiniGeoPartObject.TransformMatrix );
 }
 
+void
+UHoudiniAssetInstanceInputField::UpdateInstanceUPropertyAttributes()
+{
+    if ( !HoudiniAssetInstanceInput )
+        return;
+
+    // Check if instancer material is available.
+    const FHoudiniGeoPartObject & InstancerHoudiniGeoPartObject = HoudiniAssetInstanceInput->HoudiniGeoPartObject;
+
+    int32 VariationCount = InstanceVariationCount();
+    for ( int32 Idx = 0; Idx < VariationCount; Idx++ )
+        FHoudiniEngineUtils::UpdateUPropertyAttributes(InstancerComponents[ Idx ], InstancerHoudiniGeoPartObject );
+}
+
 const FHoudiniGeoPartObject &
 UHoudiniAssetInstanceInputField::GetHoudiniGeoPartObject() const
 {
@@ -378,6 +402,7 @@ UHoudiniAssetInstanceInputField::AddInstanceVariation( UObject * InObject, int32
 
     AddInstanceComponent( VariationIdx );
     UpdateInstanceTransforms( true );
+    UpdateInstanceUPropertyAttributes();
 }
 
 void
@@ -450,6 +475,7 @@ UHoudiniAssetInstanceInputField::ReplaceInstanceVariation( UObject * InObject, i
     }
 
     UpdateInstanceTransforms( false );
+    UpdateInstanceUPropertyAttributes();
 }
 
 void
