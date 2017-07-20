@@ -2109,12 +2109,22 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
         // Location has changed
         CheckedUploadTransform();
     }
+    else if ( Property->GetName() == TEXT( "bHiddenInGame" ) )
+    {
+        // Visibility has changed, propagate it to children.
+        SetHiddenInGame( bHiddenInGame, true );
+        return;
+    }
 
     if ( Property->HasMetaData( TEXT( "Category" ) ) )
     {
         const FString & Category = Property->GetMetaData( TEXT( "Category" ) );
         static const FString CategoryHoudiniGeneratedStaticMeshSettings = TEXT( "HoudiniGeneratedStaticMeshSettings" );
         static const FString CategoryLighting = TEXT( "Lighting" );
+        static const FString CategoryRendering = TEXT( "Rendering" );
+        static const FString CategoryCollision = TEXT( "Collision" );
+        static const FString CategoryPhysics = TEXT("Physics");
+        static const FString CategoryLOD = TEXT("LOD");
 
         if ( CategoryHoudiniGeneratedStaticMeshSettings == Category )
         {
@@ -2122,8 +2132,8 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             for ( TMap< UStaticMesh *, UStaticMeshComponent * >::TIterator Iter( StaticMeshComponents ); Iter; ++Iter )
             {
                 UStaticMesh * StaticMesh = Iter.Key();
-		if ( !StaticMesh )
-		    continue;
+                if ( !StaticMesh )
+                    continue;
 
                 SetStaticMeshGenerationParameters( StaticMesh );
                 FHoudiniScopedGlobalSilence ScopedGlobalSilence;
@@ -2174,6 +2184,150 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             else if ( Property->GetName() == TEXT( "IndirectLightingCacheQuality" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, IndirectLightingCacheQuality );
+            }
+        }
+        else if ( CategoryRendering == Category )
+        {
+            if ( Property->GetName() == TEXT( "bVisibleInReflectionCaptures" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bVisibleInReflectionCaptures );
+            }
+            else if ( Property->GetName() == TEXT( "bRenderInMainPass" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMainPass );
+            }
+            else if ( Property->GetName() == TEXT( "bRenderInMono" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMono );
+            }
+            else if ( Property->GetName() == TEXT( "bOwnerNoSee" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bOwnerNoSee );
+            }
+            else if ( Property->GetName() == TEXT( "bOnlyOwnerSee" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bOnlyOwnerSee );
+            }
+            else if ( Property->GetName() == TEXT( "bTreatAsBackgroundForOcclusion" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bTreatAsBackgroundForOcclusion );
+            }
+            else if ( Property->GetName() == TEXT( "bUseAsOccluder" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bUseAsOccluder );
+            }
+            else if ( Property->GetName() == TEXT( "bRenderCustomDepth" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderCustomDepth );
+            }
+            else if ( Property->GetName() == TEXT( "CustomDepthStencilValue" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CustomDepthStencilValue );
+            }
+            else if ( Property->GetName() == TEXT( "CustomDepthStencilWriteMask" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CustomDepthStencilWriteMask );
+            }
+            else if ( Property->GetName() == TEXT( "TranslucencySortPriority" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, TranslucencySortPriority );
+            }
+            else if ( Property->GetName() == TEXT( "LpvBiasMultiplier" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, LpvBiasMultiplier );
+            }
+            else if ( Property->GetName() == TEXT( "bReceivesDecals" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bReceivesDecals );
+            }
+            else if ( Property->GetName() == TEXT( "BoundsScale" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, BoundsScale );
+            }
+            else if ( Property->GetName() == TEXT( "bUseAttachParentBound" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, bUseAttachParentBound);
+            }
+        }
+        else if ( CategoryCollision == Category )
+        {
+            if ( Property->GetName() == TEXT( "bAlwaysCreatePhysicsState" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bAlwaysCreatePhysicsState );
+            }
+            else if ( Property->GetName() == TEXT( "bGenerateOverlapEvents" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bGenerateOverlapEvents );
+            }
+            else if ( Property->GetName() == TEXT( "bMultiBodyOverlap" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bMultiBodyOverlap );
+            }
+            else if ( Property->GetName() == TEXT( "bCheckAsyncSceneOnMove" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bCheckAsyncSceneOnMove );
+            }
+            else if ( Property->GetName() == TEXT( "bTraceComplexOnMove" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bTraceComplexOnMove );
+            }
+            else if ( Property->GetName() == TEXT( "bReturnMaterialOnMove" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bReturnMaterialOnMove );
+            }
+            else if ( Property->GetName() == TEXT( "BodyInstance" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, BodyInstance );
+            }
+            else if ( Property->GetName() == TEXT( "CanCharacterStepUpOn" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CanCharacterStepUpOn );
+            }
+            /*else if ( Property->GetName() == TEXT( "bCanEverAffectNavigation" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UActorComponent, bCanEverAffectNavigation );
+            }*/
+        }
+        else if ( CategoryPhysics == Category )
+        {
+            if ( Property->GetName() == TEXT( "bIgnoreRadialImpulse" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bIgnoreRadialImpulse );
+            }
+            else if ( Property->GetName() == TEXT( "bIgnoreRadialForce" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bIgnoreRadialForce );
+            }
+            else if ( Property->GetName() == TEXT( "bApplyImpulseOnDamage" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bApplyImpulseOnDamage );
+            }
+            else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, bShouldUpdatePhysicsVolume );
+            }
+        }
+        else if ( CategoryLOD == Category )
+        {
+            if ( Property->GetName() == TEXT( "MinDrawDistance" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, MinDrawDistance );
+            }
+            else if ( Property->GetName() == TEXT( "LDMaxDrawDistance" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, LDMaxDrawDistance );
+            }
+            else if ( Property->GetName() == TEXT( "CachedMaxDrawDistance" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CachedMaxDrawDistance );
+            }
+            else if ( Property->GetName() == TEXT( "bAllowCullDistanceVolume" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bAllowCullDistanceVolume );
+            }
+            else if ( Property->GetName() == TEXT( "DetailMode" ) )
+            {
+                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( USceneComponent, DetailMode );
             }
         }
     }
