@@ -540,7 +540,6 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
 
     if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
     {
-        int32 Ix = 0;
         const int32 NumInputs = InputObjects.Num();
         VerticalBox->AddSlot().Padding( 2, 2, 5, 2 ).AutoHeight()
         [
