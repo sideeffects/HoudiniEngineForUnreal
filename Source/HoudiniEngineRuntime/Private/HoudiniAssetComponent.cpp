@@ -2224,10 +2224,6 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CustomDepthStencilValue );
             }
-            else if ( Property->GetName() == TEXT( "CustomDepthStencilWriteMask" ) )
-            {
-                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, CustomDepthStencilWriteMask );
-            }
             else if ( Property->GetName() == TEXT( "TranslucencySortPriority" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, TranslucencySortPriority );
@@ -2297,10 +2293,6 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
             else if ( Property->GetName() == TEXT( "bIgnoreRadialForce" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bIgnoreRadialForce );
-            }
-            else if ( Property->GetName() == TEXT( "bApplyImpulseOnDamage" ) )
-            {
-                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bApplyImpulseOnDamage );
             }
             else if ( Property->GetName() == TEXT( "bShouldUpdatePhysicsVolume" ) )
             {
