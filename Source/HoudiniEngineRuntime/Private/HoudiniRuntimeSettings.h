@@ -259,7 +259,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         UPROPERTY( GlobalConfig, EditAnywhere, Category = GeometryMarshalling )
         FString MarshallingAttributeInputMeshName;
 
-        // Default resolution used when marshalling the Unreal Splines to HoudiniEngine (step in cm betweem CVs)
+        // Name of attribute set to the asset's source file path for inputs when marshalled to Houdini.
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = GeometryMarshalling )
+        FString MarshallingAttributeInputSourceFile;
+
+        // Default resolution used when marshalling the Unreal Splines to HoudiniEngine (step in cm between CVs)
         UPROPERTY(GlobalConfig, EditAnywhere, Category = GeometryMarshalling)
         float MarshallingSplineResolution;
 

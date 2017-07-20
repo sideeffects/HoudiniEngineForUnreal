@@ -50,6 +50,7 @@
 #include "Engine/StaticMeshSocket.h"
 #if WITH_EDITOR
     #include "Editor.h"
+    #include "EditorFramework/AssetImportData.h"
     #include "Factories/MaterialFactoryNew.h"
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
@@ -69,6 +70,7 @@
 #endif
 
 #include "Internationalization.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 DECLARE_CYCLE_STAT( TEXT( "Houdini: Build Static Mesh" ), STAT_BuildStaticMesh, STATGROUP_HoudiniEngine );
@@ -3225,8 +3227,6 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     if ( !HoudiniRuntimeSettings->MarshallingAttributeInputMeshName.IsEmpty() )
     {
         // Create primitive attribute with mesh asset path
-
-        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
         const FString MeshAssetPath = StaticMesh->GetPathName();
         std::string MeshAssetPathCStr = TCHAR_TO_ANSI( *MeshAssetPath );
         const char* MeshAssetPathRaw = MeshAssetPathCStr.c_str();
@@ -3258,6 +3258,54 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             FHoudiniEngine::Get().GetSession(),
             DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
             PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
+    }
+
+    if( !HoudiniRuntimeSettings->MarshallingAttributeInputSourceFile.IsEmpty() )
+    {
+        FString Filename;
+        // Create primitive attribute with mesh asset path
+        if( UAssetImportData* ImportData = StaticMesh->AssetImportData )
+        {
+            for( const auto& SourceFile : ImportData->SourceData.SourceFiles )
+            {
+                Filename = UAssetImportData::ResolveImportFilename( SourceFile.RelativeFilename, ImportData->GetOutermost() );
+                break;
+            }
+        }
+
+        if( !Filename.IsEmpty() )
+        {
+            std::string FilenameCStr = TCHAR_TO_ANSI( *Filename );
+            const char* FilenameCStrRaw = FilenameCStr.c_str();
+            TArray<const char*> PrimitiveAttrs;
+            PrimitiveAttrs.AddUninitialized( Part.faceCount );
+            for( int32 Ix = 0; Ix < Part.faceCount; ++Ix )
+            {
+                PrimitiveAttrs[Ix] = FilenameCStrRaw;
+            }
+
+            std::string MarshallingAttributeName;
+            FHoudiniEngineUtils::ConvertUnrealString(
+                HoudiniRuntimeSettings->MarshallingAttributeInputSourceFile,
+                MarshallingAttributeName );
+
+            HAPI_AttributeInfo AttributeInfo{};
+            AttributeInfo.count = Part.faceCount;
+            AttributeInfo.tupleSize = 1;
+            AttributeInfo.exists = true;
+            AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
+            AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
+            AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                0, MarshallingAttributeName.c_str(), &AttributeInfo ), false );
+
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeStringData(
+                FHoudiniEngine::Get().GetSession(),
+                DisplayGeoInfo.nodeId, 0, MarshallingAttributeName.c_str(), &AttributeInfo,
+                PrimitiveAttrs.GetData(), 0, PrimitiveAttrs.Num() ), false );
+        }
     }
 
     // Check if we have vertex attribute data to add
