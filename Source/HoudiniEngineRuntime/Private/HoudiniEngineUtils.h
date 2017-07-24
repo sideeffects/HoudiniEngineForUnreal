@@ -83,6 +83,14 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
         return 0.0f;
     }
 
+    void GetDoubleTuple( TArray<double>& TupleValues, int32 index = 0 )
+    {
+        TupleValues.SetNumZeroed( PropertyTupleSize );
+
+        for ( int32 n = 0; n < PropertyTupleSize; n++ )
+            TupleValues[ n ] = GetDoubleValue( index * PropertyTupleSize + n );
+    }
+
     int64 GetIntValue( int32 index = 0 )
     {
         if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
@@ -102,6 +110,14 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
         }
 
         return 0;
+    }
+
+    void GetIntTuple( TArray<int64>& TupleValues, int32 index = 0 )
+    {
+        TupleValues.SetNumZeroed( PropertyTupleSize );
+
+        for ( int32 n = 0; n < PropertyTupleSize; n++ )
+            TupleValues[ n ] = GetIntValue( index * PropertyTupleSize + n );
     }
 
     FString GetStringValue( int32 index = 0 )
@@ -125,6 +141,14 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
         return FString();
     }
 
+    void GetStringTuple( TArray<FString>& TupleValues, int32 index = 0 )
+    {
+        TupleValues.SetNumZeroed( PropertyTupleSize );
+
+        for ( int32 n = 0; n < PropertyTupleSize; n++ )
+            TupleValues[ n ] = GetStringValue( index * PropertyTupleSize + n );
+    }
+
     bool GetBoolValue( int32 index = 0 )
     {
         if ( (PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
@@ -144,6 +168,14 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
         }
 
         return false;
+    }
+
+    void GetBoolTuple( TArray<bool>& TupleValues, int32 index = 0 )
+    {
+        TupleValues.SetNumZeroed( PropertyTupleSize );
+
+        for ( int32 n = 0; n < PropertyTupleSize; n++ )
+            TupleValues[ n ] = GetBoolValue( index * PropertyTupleSize + n );
     }
 
     void* GetData()
@@ -550,8 +582,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Return a list with all the UProperty attributes found **/
         static int32 GetUPropertyAttributesList(
-            const HAPI_NodeId& NodeId,  const HAPI_PartId& PartId, 
-            HAPI_PartInfo* PartInfo, TArray< UPropertyAttribute >& AllUProps,
+            const FHoudiniGeoPartObject& GeoPartObject,
+            TArray< UPropertyAttribute >& AllUProps,
             const HAPI_AttributeOwner& AttributeOwner = HAPI_ATTROWNER_DETAIL );
 
         /** Try to update values from all the UProperty attributes found for this object **/
