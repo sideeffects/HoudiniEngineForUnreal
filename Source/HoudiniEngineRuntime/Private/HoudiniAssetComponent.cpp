@@ -2175,17 +2175,9 @@ UHoudiniAssetComponent::PostEditChangeProperty( FPropertyChangedEvent & Property
         }
         else if ( CategoryRendering == Category )
         {
-            if ( Property->GetName() == TEXT( "bVisibleInReflectionCaptures" ) )
-            {
-                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bVisibleInReflectionCaptures );
-            }
-            else if ( Property->GetName() == TEXT( "bRenderInMainPass" ) )
+            if ( Property->GetName() == TEXT( "bRenderInMainPass" ) )
             {
                 HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMainPass );
-            }
-            else if ( Property->GetName() == TEXT( "bRenderInMono" ) )
-            {
-                HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( UPrimitiveComponent, bRenderInMono );
             }
             else if ( Property->GetName() == TEXT( "bOwnerNoSee" ) )
             {
