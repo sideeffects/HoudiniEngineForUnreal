@@ -483,7 +483,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             HAPI_NodeId AssetId,
             FHoudiniCookParams& HoudiniCookParams, const HAPI_AssetInfo & AssetInfo,
             const TSet< HAPI_NodeId > & UniqueMaterialIds, const TSet< HAPI_NodeId > & UniqueInstancerMaterialIds,
-            TMap< FString, UMaterialInterface * > & Materials );
+            TMap< FString, UMaterialInterface * > & Materials, const bool& bForceRecookAll );
 
 #if WITH_EDITOR
 
