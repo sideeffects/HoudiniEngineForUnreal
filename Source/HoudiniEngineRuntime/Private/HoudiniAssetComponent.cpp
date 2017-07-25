@@ -1217,7 +1217,8 @@ UHoudiniAssetComponent::PostCook( bool bCookError )
     if ( FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
         GetAssetId(),
         HoudiniCookParams,
-        !CheckGlobalSettingScaleFactors(), bManualRecookRequested,
+        !CheckGlobalSettingScaleFactors(),
+        bManualRecookRequested,
         StaticMeshes, 
         NewStaticMeshes, 
         ComponentTransform ) )
@@ -1944,6 +1945,7 @@ UHoudiniAssetComponent::StartTaskAssetRebuildManual()
             // If this is a loaded component, then we just need to instantiate.
             bLoadedComponentRequiresInstantiation = true;
             bParametersChanged = true;
+            bManualRecookRequested = true;
 
             StartHoudiniTicking();
         }

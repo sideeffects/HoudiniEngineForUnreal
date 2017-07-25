@@ -3993,7 +3993,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     // Create materials.
     FHoudiniEngineUtils::HapiCreateMaterials(
         AssetId, HoudiniCookParams, AssetInfo, UniqueMaterialIds,
-        UniqueInstancerMaterialIds, Materials );
+        UniqueInstancerMaterialIds, Materials, ForceRecookAll );
 
     // Replace all material assignments
     HoudiniCookParams.HoudiniCookManager->ClearAssignmentMaterials();
@@ -6106,7 +6106,8 @@ FHoudiniEngineUtils::HapiCreateMaterials(
     const HAPI_AssetInfo & AssetInfo,
     const TSet< HAPI_NodeId > & UniqueMaterialIds,
     const TSet< HAPI_NodeId > & UniqueInstancerMaterialIds,
-    TMap< FString, UMaterialInterface * > & Materials )
+    TMap< FString, UMaterialInterface * > & Materials,
+    const bool& bForceRecookAll )
 {
 #if WITH_EDITOR
 
@@ -6160,7 +6161,7 @@ FHoudiniEngineUtils::HapiCreateMaterials(
             if ( Material )
             {
                 // If cached material exists and has not changed, we can reuse it.
-                if ( !MaterialInfo.hasChanged )
+                if ( !MaterialInfo.hasChanged && !bForceRecookAll )
                 {
                     // We found cached material, we can reuse it.
                     Materials.Add( MaterialShopName, Material );
