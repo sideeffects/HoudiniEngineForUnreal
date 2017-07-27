@@ -1,8 +1,8 @@
 {
 	"FileVersion" : 3,
 	"FriendlyName" : "Houdini Engine",
-	"Version" : 16050183,
-	"VersionName" : "16.5.183",
+	"Version" : 16050185,
+	"VersionName" : "16.5.185",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL" : "http://www.sidefx.com",
 	"DocsURL" : "http://www.sidefx.com/docs/unreal16.0",
@@ -15,12 +15,10 @@
 		{
 			"Name" : "HoudiniEngineRuntime",
 			"Type" : "Runtime",
-			"WhitelistPlatforms" : [ "Win64", "Mac", "Linux" ]
 		},
 		{
 			"Name" : "HoudiniEngineEditor",
 			"Type" : "Editor",
-			"WhitelistPlatforms" : [ "Win64", "Mac", "Linux" ],
 			"LoadingPhase" : "PostEngineInit"
 		}
 	],
