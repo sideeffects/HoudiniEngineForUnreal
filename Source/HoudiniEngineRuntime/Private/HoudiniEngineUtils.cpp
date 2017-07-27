@@ -3336,6 +3336,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId & ConnectedAssetId,
     const float& SplineResolution )
 {
+#if WITH_EDITOR
     if ( OutlinerMeshArray.Num() <= 0 )
         return false;
 
@@ -3396,7 +3397,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             FHoudiniEngine::Get().GetSession(),
             LocalAssetNodeInfo.parentId, &HapiTransform ), false );
     }
-
+#endif
     return true;
 }
 
@@ -3405,6 +3406,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, const TArray< FTransform >& InputTransforms,
     HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
 {
+#if WITH_EDITOR
     if ( ensure( InputObjects.Num() ) )
     {
         // TODO: No need to merge if there is only one input object if ( InputObjects.Num() == 1 )
@@ -3474,6 +3476,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             }
         }
     }
+#endif
     return true;
 }
 
@@ -5719,7 +5722,9 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     {
                         if( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
                         {
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
                             BodySetup->RemoveSimpleCollision();
+#endif
                         }
 
                         // See if we need to enable collisions on the whole mesh.
@@ -8409,16 +8414,15 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     void * HAPILibraryHandle = nullptr;
 
     // Before doing anything platform specific, check if HFS environment variable is defined.
-    TCHAR HFS_ENV_VARIABLE[ MAX_PATH ];
-    FMemory::Memzero( &HFS_ENV_VARIABLE[ 0 ], sizeof( TCHAR ) * MAX_PATH );
+    TCHAR HFS_ENV_VARIABLE[PLATFORM_MAX_FILEPATH_LENGTH] = { 0 };
 
     // Look up HAPI_PATH environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ), HFS_ENV_VARIABLE, MAX_PATH );
+    FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ), HFS_ENV_VARIABLE, PLATFORM_MAX_FILEPATH_LENGTH );
     if ( *HFS_ENV_VARIABLE )
         HFSPath = &HFS_ENV_VARIABLE[ 0 ];
 
     // Look up environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ), HFS_ENV_VARIABLE, MAX_PATH );
+    FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ), HFS_ENV_VARIABLE, PLATFORM_MAX_FILEPATH_LENGTH );
     if ( *HFS_ENV_VARIABLE )
         HFSPath = &HFS_ENV_VARIABLE[ 0 ];
 
@@ -8513,12 +8517,11 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         HoudiniVersionString = FString::Printf( TEXT( "%s.%d" ), *HoudiniVersionString, HAPI_VERSION_HOUDINI_PATCH );
 
     // Otherwise, we will attempt to detect Houdini installation.
+    FString HoudiniLocation = HOUDINI_ENGINE_HFS_PATH;
 
 #if PLATFORM_WINDOWS
 
     // On Windows, we have also hardcoded HFS path in plugin configuration file; attempt to load from it.
-    HFSPath = HOUDINI_ENGINE_HFS_PATH;
-
     if ( !HFSPath.IsEmpty() )
     {
         HFSPath += FString::Printf( TEXT( "/%s" ), HAPI_HFS_SUBFOLDER_WINDOWS );
@@ -8554,7 +8557,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         return HAPILibraryHandle;
 
     // As a fourth attempt, we will try to load from hardcoded program files path.
-    FString HoudiniLocation = FString::Printf(
+    HoudiniLocation = FString::Printf(
         TEXT( "C:\\Program Files\\Side Effects Software\\Houdini %s\\%s" ), *HoudiniVersionString, HAPI_HFS_SUBFOLDER_WINDOWS );
 
 #else
@@ -8562,16 +8565,15 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 #   if PLATFORM_MAC
 
     // Attempt to load from standard Mac OS X installation.
-    FString HoudiniLocation = FString::Printf(
+    HoudiniLocation = FString::Printf(
         TEXT("/Applications/Houdini/Houdini%s/Frameworks/Houdini.framework/Versions/%s/Libraries"), *HoudiniVersionString, *HoudiniVersionString );
 
 #   elif PLATFORM_LINUX
 
     // Attempt to load from standard Linux installation.
     // TODO: Support this.
-    //FString HoudiniLocation = FString::Printf(
+    //HoudiniLocation = FString::Printf(
         //TEXT( "/opt/dev%s/" ) + HAPI_HFS_SUBFOLDER_LINUX, *HoudiniVersionString );
-    FString HoudiniLocation = HOUDINI_ENGINE_HFS_PATH;
 
 #   endif
 
@@ -9348,14 +9350,18 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
         return false;
 
     // Do we need to remove the old collisions from the previous cook
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
     if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
         BodySetup->RemoveSimpleCollision();
+#endif
 
     BodySetup->AddCollisionFrom( AggregateCollisionGeo );
     BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
 
     BodySetup->ClearPhysicsMeshes();
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
     BodySetup->InvalidatePhysicsData();
+#endif
 
 #if WITH_EDITOR
     RefreshCollisionChange( *StaticMesh );
