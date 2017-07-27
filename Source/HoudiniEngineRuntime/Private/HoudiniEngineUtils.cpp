@@ -8518,29 +8518,27 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 
     // Otherwise, we will attempt to detect Houdini installation.
     FString HoudiniLocation = HOUDINI_ENGINE_HFS_PATH;
+    FString LibHAPIPath;
 
 #if PLATFORM_WINDOWS
 
     // On Windows, we have also hardcoded HFS path in plugin configuration file; attempt to load from it.
-    if ( !HFSPath.IsEmpty() )
+    HFSPath = FString::Printf( TEXT( "%s/%s" ), *HoudiniLocation, HAPI_HFS_SUBFOLDER_WINDOWS );
+
+    // Create full path to libHAPI binary.
+    LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HFSPath, *LibHAPIName );
+
+    if ( FPaths::FileExists( LibHAPIPath ) )
     {
-        HFSPath += FString::Printf( TEXT( "/%s" ), HAPI_HFS_SUBFOLDER_WINDOWS );
+        FPlatformProcess::PushDllDirectory( *HFSPath );
+        HAPILibraryHandle = FPlatformProcess::GetDllHandle( *LibHAPIName );
+        FPlatformProcess::PopDllDirectory( *HFSPath );
 
-        // Create full path to libHAPI binary.
-        FString LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HFSPath, *LibHAPIName );
-
-        if ( FPaths::FileExists( LibHAPIPath ) )
+        if ( HAPILibraryHandle )
         {
-            FPlatformProcess::PushDllDirectory( *HFSPath );
-            HAPILibraryHandle = FPlatformProcess::GetDllHandle( *LibHAPIName );
-            FPlatformProcess::PopDllDirectory( *HFSPath );
-
-            if ( HAPILibraryHandle )
-            {
-                HOUDINI_LOG_MESSAGE( TEXT( "Loaded %s from Plugin defined HFS path %s" ), *LibHAPIName, *HFSPath );
-                StoredLibHAPILocation = HFSPath;
-                return HAPILibraryHandle;
-            }
+            HOUDINI_LOG_MESSAGE( TEXT( "Loaded %s from Plugin defined HFS path %s" ), *LibHAPIName, *HFSPath );
+            StoredLibHAPILocation = HFSPath;
+            return HAPILibraryHandle;
         }
     }
 
@@ -8580,7 +8578,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 #endif
 
     // Create full path to libHAPI binary.
-    FString LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HoudiniLocation, *LibHAPIName );
+    LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HoudiniLocation, *LibHAPIName );
 
     if ( FPaths::FileExists( LibHAPIPath ) )
     {
