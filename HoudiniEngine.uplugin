@@ -14,7 +14,7 @@
 	[
 		{
 			"Name" : "HoudiniEngineRuntime",
-			"Type" : "Runtime",
+			"Type" : "Runtime"
 		},
 		{
 			"Name" : "HoudiniEngineEditor",
