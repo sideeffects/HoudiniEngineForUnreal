@@ -19,28 +19,20 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Chris Grebeldinger
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 #pragma once
 
 #include "Editor/UnrealEd/Public/Toolkits/BaseToolkit.h"
 
 
-class FHoudiniAttributePaintEdModeToolkit : public FModeToolkit
+class FHoudiniShelfEdModeToolkit : public FModeToolkit
 {
 public:
 
-    FHoudiniAttributePaintEdModeToolkit();
-    
+    FHoudiniShelfEdModeToolkit();
+
     /** FModeToolkit interface */
-    virtual void Init(const TSharedPtr<IToolkitHost>& InitToolkitHost) override;
+    virtual void Init( const TSharedPtr<IToolkitHost>& InitToolkitHost ) override;
 
     /** IToolkit interface */
     virtual FName GetToolkitFName() const override;

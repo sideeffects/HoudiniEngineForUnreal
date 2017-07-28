@@ -19,35 +19,28 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Chris Grebeldinger
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
 
-#include "UnrealEd.h" 
+//#include "UnrealEd.h" 
 #include "Editor.h"
+#include "EdMode.h"
+#include "Toolkits/BaseToolkit.h"
 
-class FHoudiniAttributePaintEdMode : public FEdMode
+class FHoudiniShelfEdMode : public FEdMode
 {
 public:
-	const static FEditorModeID EM_HoudiniAttributePaintEdModeId;
+    const static FEditorModeID EM_HoudiniShelfEdModeId;
 public:
-	FHoudiniAttributePaintEdMode();
-	virtual ~FHoudiniAttributePaintEdMode();
+    FHoudiniShelfEdMode();
 
-	// FEdMode interface
-	virtual void Enter() override;
-	virtual void Exit() override;
-	//virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
-	//virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
-	//virtual void ActorSelectionChangeNotify() override;
-	bool UsesToolkits() const override;
-	// End of FEdMode interface
+    // FEdMode interface
+    virtual void Enter() override;
+    virtual void Exit() override;
+    //virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
+    //virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
+    //virtual void ActorSelectionChangeNotify() override;
+    bool UsesToolkits() const override;
+    // End of FEdMode interface
 };

@@ -46,7 +46,7 @@
 #include "HoudiniAssetTypeActions.h"
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetActorFactory.h"
-#include "HoudiniAttributePaintEdMode.h"
+#include "HoudiniShelfEdMode.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniAssetActor.h"
 
@@ -459,6 +459,9 @@ FHoudiniEngineEditor::RegisterStyleSet()
         StyleSet->Set(
             "ClassIcon.HoudiniAssetActor",
             new FSlateImageBrush( ContentDir + TEXT( "icon_houdini_logo_16.png" ), Icon16x16 ) );
+        StyleSet->Set(
+            "HoudiniEngine.HoudiniEngineLogo40",
+            new FSlateImageBrush( ContentDir + TEXT( "icon_houdini_logo_40.png" ), FVector2D( 40.f, 40.f ) ) );
 
         // Register Slate style.
         FSlateStyleRegistry::RegisterSlateStyle( *StyleSet.Get() );
@@ -496,20 +499,17 @@ FHoudiniEngineEditor::UnregisterForUndo()
 void 
 FHoudiniEngineEditor::RegisterModes()
 {
-#ifdef WANT_PAINT_MODE
-    FEditorModeRegistry::Get().RegisterMode<FHoudiniAttributePaintEdMode>( 
-        FHoudiniAttributePaintEdMode::EM_HoudiniAttributePaintEdModeId, 
-        LOCTEXT( "HoudiniVertexAttributePainting", "Houdini Vertex Attribute Painting" ), 
-        FSlateIcon(), true );
-#endif
+    FEditorModeRegistry::Get().RegisterMode<FHoudiniShelfEdMode>( 
+	    FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId, 
+	    LOCTEXT( "HoudiniMode", "Houdini Tools" ), 
+	    FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo40" ),
+	    true );
 }
 
 void 
 FHoudiniEngineEditor::UnregisterModes()
 {
-#ifdef WANT_PAINT_MODE
-    FEditorModeRegistry::Get().UnregisterMode( FHoudiniAttributePaintEdMode::EM_HoudiniAttributePaintEdModeId );
-#endif
+    FEditorModeRegistry::Get().UnregisterMode( FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId );
 }
 
 TSharedPtr<ISlateStyle>

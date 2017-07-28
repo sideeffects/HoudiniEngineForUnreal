@@ -19,68 +19,51 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Chris Grebeldinger
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
-#include "HoudiniAttributePaintEdMode.h"
+#include "HoudiniShelfEdMode.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
-#include "HoudiniAttributePaintEdModeToolkit.h"
+#include "HoudiniShelfEdModeToolkit.h"
 #include "Toolkits/ToolkitManager.h"
 #include "EdMode.h"
 #include "EditorModeTools.h"
 #include "EditorModeManager.h"
 
-const FEditorModeID FHoudiniAttributePaintEdMode::EM_HoudiniAttributePaintEdModeId = TEXT("EM_HoudiniAttributePaintEdMode");
+const FEditorModeID FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId = TEXT( "EM_HoudiniShelfEdMode" );
 
-FHoudiniAttributePaintEdMode::FHoudiniAttributePaintEdMode()
+FHoudiniShelfEdMode::FHoudiniShelfEdMode()
 {
 
 }
 
-FHoudiniAttributePaintEdMode::~FHoudiniAttributePaintEdMode()
+void
+FHoudiniShelfEdMode::Enter()
 {
+    FEdMode::Enter();
 
+    if ( !Toolkit.IsValid() && UsesToolkits() )
+    {
+        Toolkit = MakeShareable( new FHoudiniShelfEdModeToolkit );
+        Toolkit->Init( Owner->GetToolkitHost() );
+    }
 }
 
-void 
-FHoudiniAttributePaintEdMode::Enter()
+void
+FHoudiniShelfEdMode::Exit()
 {
-        FEdMode::Enter();
+    if ( Toolkit.IsValid() )
+    {
+        FToolkitManager::Get().CloseToolkit( Toolkit.ToSharedRef() );
+        Toolkit.Reset();
+    }
 
-        if (!Toolkit.IsValid() && UsesToolkits())
-        {
-                Toolkit = MakeShareable(new FHoudiniAttributePaintEdModeToolkit);
-                Toolkit->Init(Owner->GetToolkitHost());
-        }
+    // Call base Exit method to ensure proper cleanup
+    FEdMode::Exit();
 }
 
-void 
-FHoudiniAttributePaintEdMode::Exit()
+bool
+FHoudiniShelfEdMode::UsesToolkits() const
 {
-        if (Toolkit.IsValid())
-        {
-                FToolkitManager::Get().CloseToolkit(Toolkit.ToSharedRef());
-                Toolkit.Reset();
-        }
-
-        // Call base Exit method to ensure proper cleanup
-        FEdMode::Exit();
+    return true;
 }
-
-bool 
-FHoudiniAttributePaintEdMode::UsesToolkits() const
-{
-        return true;
-}
-
-
-
-
