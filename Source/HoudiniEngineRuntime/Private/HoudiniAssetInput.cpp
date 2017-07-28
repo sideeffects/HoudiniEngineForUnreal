@@ -502,6 +502,10 @@ UHoudiniAssetInput::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBu
                 this, &UHoudiniAssetInput::CheckStateChangedKeepWorldTransform))
         ];
 
+        // the checkbox is read only for geo inputs
+        if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
+            CheckBoxTranformType->SetEnabled( false );
+
         // Checkbox is read only if the input is an object-path parameter
         //if ( bIsObjectPathParameter )
         //    CheckBoxTranformType->SetEnabled(false);
@@ -1859,6 +1863,10 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
     else
         nTransformType = 0;
 
+    // Geometry inputs are always set to none
+    if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
+        nTransformType = 0;
+
     // Get the Input node ID from the host ID
     HAPI_NodeId InputNodeId = -1;
     HAPI_NodeId HostAssetId = GetAssetId();
@@ -1889,32 +1897,28 @@ UHoudiniAssetInput::UpdateObjectMergeTransformType()
         }
     }
 
-    // Going through each input asset plugged in the geometry input,
-    // or through each input asset select in a world input.    
-    int32 NumberOfInputObjects = 0;
-    if ( ChoiceIndex == EHoudiniAssetInputType::GeometryInput )
-        NumberOfInputObjects = InputObjects.Num();
-    else if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
-        NumberOfInputObjects = InputOutlinerMeshArray.Num();
-    
-    // We also need to modify the transform types of the merge node's inputs
-    for ( int32 n = 0; n < NumberOfInputObjects; n++ )
+   if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
     {
-        // Get the Input node ID from the host ID
-        InputNodeId = -1;
-        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
-            FHoudiniEngine::Get().GetSession(),
-            ConnectedAssetId, n, &InputNodeId ) )
-            continue;
+        // For World Inputs, we need to go through each asset selected
+        // and change the transform type on the merge node's input
+        for ( int32 n = 0; n < InputOutlinerMeshArray.Num(); n++ )
+        {
+            // Get the Input node ID from the host ID
+            InputNodeId = -1;
+            if ( HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
+                FHoudiniEngine::Get().GetSession(),
+                ConnectedAssetId, n, &InputNodeId ) )
+                continue;
 
-        if ( InputNodeId == -1 )
-            continue;
+            if ( InputNodeId == -1 )
+                continue;
 
-        // Change Parameter xformtype
-        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
-            FHoudiniEngine::Get().GetSession(), InputNodeId,
-            sXformType.c_str(), 0, nTransformType ) )
-            bSuccess =  false;
+            // Change Parameter xformtype
+            if ( HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
+                FHoudiniEngine::Get().GetSession(), InputNodeId,
+                sXformType.c_str(), 0, nTransformType ) )
+                bSuccess = false;
+        }
     }
 
     return bSuccess;
