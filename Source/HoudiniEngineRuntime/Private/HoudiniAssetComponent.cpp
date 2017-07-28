@@ -4601,8 +4601,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
         if ( !bLandscapeNeedsRecreate )
             continue;
 
-        HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId( AssetId );
-        HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
+        HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
 
         // We need to see if the current heightfield as an unreal_material or unreal_hole_material assigned to it
         UMaterialInterface* LandscapeMaterial = nullptr;
@@ -4676,8 +4675,11 @@ bool UHoudiniAssetComponent::CreateLandscapeLayers(
 {
     ImportLayerInfos.Empty();
 
-    // Try to create all the layers
+    // Get the names of all the non weight blended layers
+    TArray< FString > NonWeightBlendedLayerNames;
+    FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames( Heightfield, NonWeightBlendedLayerNames );
 
+    // Try to create all the layers
     ELandscapeImportAlphamapType ImportLayerType = ELandscapeImportAlphamapType::Additive;
     for ( TArray<const FHoudiniGeoPartObject *>::TConstIterator IterLayers( FoundLayers ); IterLayers; ++IterLayers )
     {
@@ -4735,7 +4737,10 @@ bool UHoudiniAssetComponent::CreateLandscapeLayers(
         // Should remove package if convert fail!
         CookedTemporaryLandscapeLayers.Add( Package, Heightfield );
 
-        currentLayerInfo.LayerInfo->bNoWeightBlend = false;
+        if ( NonWeightBlendedLayerNames.Contains( LayerString ) )
+            currentLayerInfo.LayerInfo->bNoWeightBlend = true;
+        else
+            currentLayerInfo.LayerInfo->bNoWeightBlend = false;
 
         // Mark the package dirty...
         //Package->MarkPackageDirty();
