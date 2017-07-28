@@ -391,9 +391,19 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
     }
     else
     {
-        HAPI_NodeId HostAssetId = GetAssetId();
-        if( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
-            FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
+        if ( bIsObjectPathParameter )
+        {
+            std::string ParamNameString = TCHAR_TO_UTF8( *GetParameterName() );
+
+            FHoudiniApi::SetParmStringValue(
+                FHoudiniEngine::Get().GetSession(), NodeId, "", ParmId, 0 );
+        }
+        else
+        {
+            HAPI_NodeId HostAssetId = GetAssetId();
+            if ( FHoudiniEngineUtils::IsValidAssetId( ConnectedAssetId ) && FHoudiniEngineUtils::IsValidAssetId( HostAssetId ) )
+                FHoudiniEngineUtils::HapiDisconnectAsset( HostAssetId, InputIndex );
+        }
 
         if ( ChoiceIndex == EHoudiniAssetInputType::WorldInput )
         {
