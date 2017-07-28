@@ -171,7 +171,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
             const FString& HeightfieldName );
 
         // Creates an input node for Heightfields (this will be a SOP/merge node)
-        static bool CreateHeightfieldInputNode( HAPI_NodeId& InAssetId, const FString& NodeName );
+        static bool CreateHeightfieldInputNode(
+            HAPI_NodeId& DisplayNodeId,
+            HAPI_NodeId& MergeNodeId,
+            const FString& NodeName );
 
         // Creates an input node for a single heightfield volume (height/mask...) 
         static bool CreateVolumeInputNode( HAPI_NodeId& InAssetId, const FString& NodeName );
@@ -189,6 +192,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeUtils
 
         // Landscape nodes clean up
         static bool DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId, TArray<HAPI_NodeId>& CreatedInputAssetIds );
+
+        // Returns an array containing the names of the non weightblended layers
+        static bool GetNonWeightBlendedLayerNames( 
+            const FHoudiniGeoPartObject& HeightfieldGeoPartObject, TArray<FString>& NonWeightBlendedLayerNames );
 
         //--------------------------------------------------------------------------------------------------
         // Unreal to Houdini - MESH / POINTS

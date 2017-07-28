@@ -2414,7 +2414,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     const bool& bExportMaterials, const bool& bExportGeometryAsMesh,
     const bool& bExportLighting, const bool& bExportNormalizedUVs,
     const bool& bExportTileUVs, const FBox& AssetBounds,
-    const bool& bExportAsHeighfield, const bool& bAutoSelectComponents)
+    const bool& bExportAsHeighfield, const bool& bAutoSelectComponents )
 {
 #if WITH_EDITOR
 
@@ -2464,67 +2464,50 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     else
     {
         // Add all the components to the selected set
-        for (int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++)
+        for ( int32 ComponentIdx = 0; ComponentIdx < LandscapeProxy->LandscapeComponents.Num(); ComponentIdx++ )
         {
-            ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ComponentIdx];
-            if (!LandscapeComponent)
+            ULandscapeComponent * LandscapeComponent = LandscapeProxy->LandscapeComponents[ ComponentIdx ];
+            if ( !LandscapeComponent )
                 continue;
 
             SelectedComponents.Add( LandscapeComponent );
         }
     }
 
-
     //--------------------------------------------------------------------------------------------------
     // EXPORT TO HEIGHTFIELD
     //--------------------------------------------------------------------------------------------------
     if ( bExportAsHeighfield )
     {
-        // 1. Create the input merge merge node, this will be our connected asset ID
+        // 1. Create the heightfield input node.
+        // We'll use its mergeId to connect all the landscape layers,
+        // while it's displayId will be our connected asset ID
         FString LandscapeName = LandscapeProxy->GetName() + TEXT("_Merge");
-        if ( !FHoudiniLandscapeUtils::CreateHeightfieldInputNode( ConnectedAssetId, LandscapeName ) )
+        HAPI_NodeId MergeId = -1;
+        if ( !FHoudiniLandscapeUtils::CreateHeightfieldInputNode( ConnectedAssetId, MergeId, LandscapeName ) )
             return false;
 
+        bool bSuccess = false;
         int32 NumComponents = LandscapeProxy->LandscapeComponents.Num();
         if ( !bExportOnlySelected || ( SelectedComponents.Num() == NumComponents ) )
         {
             // Export the whole landscape and its layer as a single heightfield
-            return FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, ConnectedAssetId, OutCreatedNodeIds );
+            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscape( LandscapeProxy, MergeId, OutCreatedNodeIds );
         }
         else
         {
             // Each selected landscape component will be exported as a separate heightfield
-            return FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, ConnectedAssetId, OutCreatedNodeIds );
+            bSuccess = FHoudiniLandscapeUtils::CreateHeightfieldFromLandscapeComponentArray( LandscapeProxy, SelectedComponents, MergeId, OutCreatedNodeIds );
         }
         
-        /*
-        // Create part info
-        HAPI_PartInfo Part;
-        FMemory::Memzero< HAPI_PartInfo >(Part);
-        Part.id = 0;
-        Part.nameSH = 0;
-        Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
-        Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
-        Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
-        Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
-        Part.vertexCount = 0;
-        Part.faceCount = 0;
-        Part.pointCount = 0;
-        Part.type = HAPI_PARTTYPE_MESH;
+        // Reconnect the merge and volvis?
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, 0, MergeId ), false);
 
-        // Set the part infos
-        HAPI_GeoInfo DisplayGeoInfo;
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetDisplayGeoInfo(
-            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &DisplayGeoInfo), false);
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+            FHoudiniEngine::Get().GetSession(), ConnectedAssetId, nullptr), false);
 
-        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId, 0, &Part), false);
-
-        if (!FHoudiniLandscapeUtils::AddLandscapeGlobalMaterialAttribute(DisplayGeoInfo.nodeId, LandscapeProxy))
-            return false;
-        */
-
-        return true;
+        return bSuccess;
     }
 
     //--------------------------------------------------------------------------------------------------
