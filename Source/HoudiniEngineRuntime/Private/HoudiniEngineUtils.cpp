@@ -9727,13 +9727,16 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudini
         {
             UProperty* CurrentProperty = *PropIt;
 
+            FString DisplayName = CurrentProperty->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );
+            FString Name = CurrentProperty->GetName();
+
             // If the property name contains the uprop attribute name, we have a candidate
-            if ( CurrentProperty->GetName().Contains( CurrentUPropertyName ) )
+            if ( Name.Contains( CurrentUPropertyName ) || DisplayName.Contains( CurrentUPropertyName ) )
             {
                 FoundProperty = CurrentProperty;
 
                 // If it's an equality, we dont need to keep searching
-                if (CurrentProperty->GetName() == CurrentUPropertyName)
+                if ( ( Name == CurrentUPropertyName ) || ( DisplayName == CurrentUPropertyName ) )
                 {
                     bPropertyHasBeenFound = true;
                     break;
@@ -9749,8 +9752,11 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudini
                 {
                     UProperty* Property = *It;
 
+                    DisplayName = It->GetDisplayNameText().ToString().Replace( TEXT(" "), TEXT("") );		    
+                    Name = It->GetName();
+
                     // If the property name contains the uprop attribute name, we have a candidate
-                    if ( It->GetName().Contains( CurrentUPropertyName ) )
+                    if ( Name.Contains( CurrentUPropertyName ) || DisplayName.Contains( CurrentUPropertyName ) )
                     {
                         // We found the property in the struct property, we need to keep the ValuePtr in the object
                         // of the structProp in order to be able to access the property value afterwards...
@@ -9758,7 +9764,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudini
                         StructContainer = StructProperty->ContainerPtrToValuePtr< void >( MeshComponent, 0 );
 
                         // If it's an equality, we dont need to keep searching
-                        if ( It->GetName().Equals( CurrentUPropertyName, ESearchCase::IgnoreCase ) )
+                        if ( ( Name == CurrentUPropertyName ) || ( DisplayName == CurrentUPropertyName ) )
                         {
                             bPropertyHasBeenFound = true;
                             break;
