@@ -9689,6 +9689,7 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
 void 
 FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudiniGeoPartObject GeoPartObject )
 {
+#if WITH_EDITOR
     if ( !MeshComponent )
         return;
 
@@ -10009,6 +10010,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudini
             }
         }
     }
+#endif
 }
 
 FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
