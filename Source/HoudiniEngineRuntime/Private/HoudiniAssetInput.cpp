@@ -4084,6 +4084,14 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
             if ( InputOutlinerMeshArray[ n ].ActorPtr.Get() != Actor )
                 continue;
 
+            // Destroy/Disconnect the input properly before re;oving it from the array
+            if ( FHoudiniEngineUtils::IsValidAssetId( InputOutlinerMeshArray[n].AssetId ) )
+            {
+                FHoudiniEngineUtils::HapiDisconnectAsset( ConnectedAssetId, n );
+                FHoudiniEngineUtils::DestroyHoudiniAsset( InputOutlinerMeshArray[n].AssetId );
+                InputOutlinerMeshArray[n].AssetId = -1;
+            }
+
             InputOutlinerMeshArray.RemoveAt( n );
         }
     }
