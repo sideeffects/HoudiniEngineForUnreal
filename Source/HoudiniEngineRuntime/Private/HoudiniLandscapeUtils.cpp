@@ -559,6 +559,84 @@ bool FHoudiniLandscapeUtils::ConvertHeightfieldLayerToLandscapeLayer(
         LandscapeXSize, LandscapeYSize );
 }
 
+bool
+FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames( const FHoudiniGeoPartObject& HeightfieldGeoPartObject, TArray<FString>& NonWeightBlendedLayerNames )
+{
+    // See if we can find the NonWeightBlendedLayer prim attribute on the heightfield
+    HAPI_NodeId HeightfieldNodeId = HeightfieldGeoPartObject.HapiGeoGetNodeId();
+
+    HAPI_PartInfo PartInfo;
+    if ( !HeightfieldGeoPartObject.HapiPartGetInfo( PartInfo ) )
+        return false;
+
+    HAPI_PartId PartId = HeightfieldGeoPartObject.GetPartId();
+
+    // Get All attribute names for that part
+    int32 nAttribCount = PartInfo.attributeCounts[ HAPI_ATTROWNER_PRIM ];
+
+    TArray<HAPI_StringHandle> AttribNameSHArray;
+    AttribNameSHArray.SetNum( nAttribCount );
+
+    if ( HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeNames(
+        FHoudiniEngine::Get().GetSession(),
+        HeightfieldNodeId, PartInfo.id, HAPI_ATTROWNER_PRIM,
+        AttribNameSHArray.GetData(), nAttribCount ) )
+        return false;
+
+    // Looking for all the attributes that starts with unreal_landscape_layer_nonweightblended
+    for ( int32 Idx = 0; Idx < AttribNameSHArray.Num(); ++Idx )
+    {
+        FString HapiString = TEXT("");
+        FHoudiniEngineString HoudiniEngineString( AttribNameSHArray[ Idx ] );
+        HoudiniEngineString.ToFString( HapiString );
+
+        if ( !HapiString.StartsWith( "unreal_landscape_layer_nonweightblended", ESearchCase::IgnoreCase ) )
+            continue;
+
+        // Get the Attribute Info
+        HAPI_AttributeInfo AttribInfo;
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeInfo(
+            FHoudiniEngine::Get().GetSession(),
+            HeightfieldNodeId, PartId, TCHAR_TO_UTF8( *HapiString ),
+            HAPI_ATTROWNER_PRIM, &AttribInfo ), false );
+
+        if ( AttribInfo.storage != HAPI_STORAGETYPE_STRING )
+            break;
+
+        //if ( AttribInfo.count != 1 && AttribInfo.tupleSize != 1 )
+        //    break;
+
+        // Initialize a string handle array
+        TArray< HAPI_StringHandle > HapiSHArray;
+        HapiSHArray.SetNumZeroed( AttribInfo.count * AttribInfo.tupleSize );
+
+        // Get the string handle(s)
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAttributeStringData(
+            FHoudiniEngine::Get().GetSession(),
+            HeightfieldNodeId, PartId, TCHAR_TO_UTF8( *HapiString ), &AttribInfo,
+            HapiSHArray.GetData(), 0, AttribInfo.count ), false );
+
+        // Convert them to FString
+        for ( int32 IdxSH = 0; IdxSH < HapiSHArray.Num(); IdxSH++ )
+        {
+            FString CurrentString;
+            FHoudiniEngineString HEngineString( HapiSHArray[ IdxSH ] );
+            HEngineString.ToFString( CurrentString );
+
+            TArray<FString> Tokens;
+            CurrentString.ParseIntoArray( Tokens, TEXT(" "), true );
+
+            for( int32 n = 0; n < Tokens.Num(); n++ )
+                NonWeightBlendedLayerNames.Add( Tokens[ n ] );
+        }
+
+        // We found the attribute, exit
+        break;
+    }
+
+    return true;
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 // From LandscapeEditorUtils.h
 //
@@ -1329,7 +1407,7 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     double FloatRange = (double)Max.Z - ZMin;
 
     // The factor used to convert from unreal digit range to Houdini's float Range
-    double ZSpacing = ( DigitRange != 0.0 ) ? ( FloatRange / DigitRange) : 0.0;
+    double ZSpacing = ( DigitRange != 0.0 ) ? ( FloatRange / DigitRange ) : 0.0;
 
     // Convert the Int data to Float
     HeightfieldFloatValues.SetNumUninitialized( SizeInPoints );
@@ -1589,21 +1667,84 @@ FHoudiniLandscapeUtils::SetHeighfieldData(
 }
 
 bool
-FHoudiniLandscapeUtils::CreateHeightfieldInputNode( HAPI_NodeId& InAssetId, const FString& NodeName )
+FHoudiniLandscapeUtils::CreateHeightfieldInputNode( HAPI_NodeId& DisplayNodeId, HAPI_NodeId& MergeNodeId, const FString& NodeName )
 {
     // Node already exists
     // TODO: Destroy / Cleanup existing node?
-    if ( InAssetId != -1 )
+    if ( DisplayNodeId != -1 )
         return false;
 
     // Converting the Node Name
     std::string NameStr;
     FHoudiniEngineUtils::ConvertUnrealString( NodeName, NameStr );
 
-    // Create the merge SOP asset. This will be our "ConnectedAssetId".
-    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
+    // Start by creating a volvis node
+    HAPI_NodeId VolVisId = -1;
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
         FHoudiniEngine::Get().GetSession(), -1,
-        "SOP/merge", NameStr.c_str(), true, &InAssetId ), false );
+        "SOP/volumevisualization", NameStr.c_str(), false, &VolVisId ), false );
+
+    // Finally we need to setup the volvis node for heightfields
+    // Change the vismode parameter to heightfield
+    const std::string sVismode = "vismode";
+    HAPI_ParmId visId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( VolVisId, sVismode );
+    if ( visId != -1 )
+    {
+        HAPI_ParmInfo ParmInfo;
+        FMemory::Memset< HAPI_ParmInfo >( ParmInfo, 0 );
+        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValue(
+            FHoudiniEngine::Get().GetSession(),
+            VolVisId, sVismode.c_str(), 0, 2 ), false );
+    }
+
+    // And the desnity field parameter to "height"
+    const std::string sDensityField = "densityfield";
+    HAPI_ParmId densId = FHoudiniEngineUtils::HapiFindParameterByNameOrTag( VolVisId, sDensityField );
+    if ( densId != -1 )
+    {
+        HAPI_ParmInfo ParmInfo;
+        FMemory::Memset< HAPI_ParmInfo >( ParmInfo, 0 );
+        if ( FHoudiniApi::GetParmInfo(
+            FHoudiniEngine::Get().GetSession(), VolVisId,
+            densId, &ParmInfo ) == HAPI_RESULT_SUCCESS )
+        {
+            const std::string sHeight = "height";
+            HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
+                FHoudiniEngine::Get().GetSession(),
+                VolVisId, sHeight.c_str(), densId, 0 ), false );
+        }
+    }
+
+    // Cook it
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+        FHoudiniEngine::Get().GetSession(), VolVisId, nullptr ), false );
+
+    // We need to get the volvis NodeInfo to get its parent id
+    HAPI_NodeInfo NodeInfo;
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+        FHoudiniEngine::Get().GetSession(), VolVisId, &NodeInfo ), false );
+
+    // We can now create the merge node, this will our InAssetId since
+    // we will be connecting inputs to it
+    HAPI_NodeId MergeId = -1;
+    FHoudiniEngineUtils::ConvertUnrealString( TEXT( "Heightfield Merge" ), NameStr );
+    HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateNode(
+        FHoudiniEngine::Get().GetSession(), NodeInfo.parentId,
+        "merge", NameStr.c_str(), true, &MergeId), false );
+
+    // Then connect the merge to the volvis node input
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+        FHoudiniEngine::Get().GetSession(), VolVisId, 0, MergeId ), false );
+
+    // Cook it
+    HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+        FHoudiniEngine::Get().GetSession(), VolVisId, nullptr ), false );
+
+    // The volvis node ID will be our connected asset ID
+    DisplayNodeId = VolVisId;
+
+    // We also need the merge node ID to connect all the layers to the merge
+    MergeNodeId = MergeId;
 
     return true;
 }
@@ -1719,42 +1860,56 @@ FHoudiniLandscapeUtils::CreateDefaultHeightfieldMask(
 bool
 FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId, TArray<HAPI_NodeId>& CreatedInputAssetIds )
 {
-    HAPI_AssetInfo AssetNodeInfo;
+    HAPI_AssetInfo NodeAssetInfo;
     HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &AssetNodeInfo ), false );
+        FHoudiniEngine::Get().GetSession(), ConnectedAssetId, &NodeAssetInfo ), false );
 
-    FHoudiniEngineString AssetOpName( AssetNodeInfo.fullOpNameSH );
+    FHoudiniEngineString AssetOpName( NodeAssetInfo.fullOpNameSH );
     FString OpName;
     if ( !AssetOpName.ToFString( OpName ) )
         return false;
-    
-    if ( !OpName.Contains( TEXT("merge") ) )
+
+    if ( !OpName.Contains( TEXT( "volumevisualization") ) )
     {
-        // Not a merge node, so not a Heightfield
+        // Not a volvis node, so not a Heightfield
         // We just need to destroy the landscape asset node
         return FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
     }
 
-    // The landscape was marshalled as a heightfield, so we need to destroy all the merge node's input
-    // (each merge input is a volume for one of the layer/mask of the landscape )
-    int32 nInputCount = AssetNodeInfo.geoInputCount;
+    // The landscape was marshalled as a heightfield, so we need to destroy and disconnect
+    // the volvis nodes, all the merge node's input (each merge input is a volume for one 
+    // of the layer/mask of the landscape )
 
-    HAPI_NodeId InputNodeId = -1;
-    for ( int32 n = 0; n < nInputCount; n++ )
-    {
-        // Get the Input node ID from the host ID
-        InputNodeId = -1;
-        if ( HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
+    // First, destroy the merge node and its inputs
+    // The merge node is in the first input of the volvis node
+    HAPI_NodeId MergeNodeId = -1;
+    FHoudiniApi::QueryNodeInput(
             FHoudiniEngine::Get().GetSession(),
-            ConnectedAssetId, n, &InputNodeId ) )
-            break;
+            ConnectedAssetId, 0, &MergeNodeId );
 
-        if ( InputNodeId == -1 )
-            break;
+    if ( MergeNodeId != -1 )
+    {
+        // Get the merge node info
+        HAPI_NodeInfo NodeInfo;
+        HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+            FHoudiniEngine::Get().GetSession(), MergeNodeId, &NodeInfo ), false );
 
-        // Disconnect and Destroy that input
-        FHoudiniEngineUtils::HapiDisconnectAsset( ConnectedAssetId, n );
-        FHoudiniEngineUtils::DestroyHoudiniAsset( InputNodeId );
+        for ( int32 n = 0; n < NodeInfo.inputCount; n++ )
+        {
+            // Get the Input node ID from the host ID
+            HAPI_NodeId InputNodeId = -1;
+            if ( HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
+                FHoudiniEngine::Get().GetSession(),
+                MergeNodeId, n, &InputNodeId ) )
+                break;
+
+            if ( InputNodeId == -1 )
+                break;
+
+            // Disconnect and Destroy that input
+            FHoudiniEngineUtils::HapiDisconnectAsset( MergeNodeId, n );
+            FHoudiniEngineUtils::DestroyHoudiniAsset( InputNodeId );
+        }
     }
 
     // Second step, destroy all the volumes GEO assets
@@ -1764,7 +1919,10 @@ FHoudiniLandscapeUtils::DestroyLandscapeAssetNode( HAPI_NodeId& ConnectedAssetId
     }
     CreatedInputAssetIds.Empty();
 
-    // Finally destroy the merge node
+    // Finally disconnect and destroy the volvis and merge node
+    FHoudiniEngineUtils::HapiDisconnectAsset( ConnectedAssetId, 0 );
+    FHoudiniEngineUtils::DestroyHoudiniAsset( MergeNodeId );
+
     return FHoudiniEngineUtils::DestroyHoudiniAsset( ConnectedAssetId );
 }
 
