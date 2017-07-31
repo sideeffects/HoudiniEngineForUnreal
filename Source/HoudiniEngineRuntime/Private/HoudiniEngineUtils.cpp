@@ -2827,7 +2827,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     }
 
     // Grab base LOD level.
-    FStaticMeshSourceModel & SrcModel = StaticMesh->SourceModels[ 0 ];
+    static constexpr int32 LODIndex = 0;
+    FStaticMeshSourceModel & SrcModel = StaticMesh->SourceModels[LODIndex];
 
     // Load the existing raw mesh.
     FRawMesh RawMesh;
@@ -3012,48 +3013,94 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             0, AttributeInfoVertex.count ), false );
     }
 
-    // See if we have colors to upload.
-    if ( RawMesh.WedgeColors.Num() > 0 )
     {
+        // If we have instance override vertex colors, first propagate them to our copy of 
+        // the RawMesh Vert Colors
         TArray< FLinearColor > ChangedColors;
-        ChangedColors.SetNumUninitialized( RawMesh.WedgeColors.Num() );
-
-        if ( ImportAxis == HRSAI_Unreal )
+        if ( StaticMeshComponent->LODData.IsValidIndex( LODIndex ) &&
+            StaticMeshComponent->LODData[LODIndex].OverrideVertexColors &&
+            StaticMesh->RenderData &&
+            StaticMesh->RenderData->LODResources.IsValidIndex( LODIndex ) )
         {
-            // We need to re-index colors for wedges we swapped (due to winding differences).
-            for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3 )
+            FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[LODIndex];
+            FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
+            FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
+            FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
+            if ( RenderData.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices() )
             {
-                ChangedColors[ WedgeIdx + 0 ] = FLinearColor( RawMesh.WedgeColors[ WedgeIdx + 0 ] );
-                ChangedColors[ WedgeIdx + 1 ] = FLinearColor( RawMesh.WedgeColors[ WedgeIdx + 2 ] );
-                ChangedColors[ WedgeIdx + 2 ] = FLinearColor( RawMesh.WedgeColors[ WedgeIdx + 1 ] );
+                // Use the wedge map if it is available as it is lossless.
+                int32 NumWedges = RawMesh.WedgeIndices.Num();
+                if ( RenderData.WedgeMap.Num() == NumWedges )
+                {
+                    int32 NumExistingColors = RawMesh.WedgeColors.Num();
+                    if ( NumExistingColors < NumWedges )
+                    {
+                        RawMesh.WedgeColors.AddUninitialized( NumWedges - NumExistingColors );
+                    }
+
+                    // Replace mesh colors with override colors
+                    for ( int32 i = 0; i < NumWedges; ++i )
+                    {
+                        FColor WedgeColor = FColor::White;
+                        int32 Index = RenderData.WedgeMap[i];
+                        if ( Index != INDEX_NONE )
+                        {
+                            WedgeColor = ColorVertexBuffer.VertexColor( Index );
+                        }
+                        RawMesh.WedgeColors[i] = WedgeColor;
+                    }
+                }
             }
         }
-        else if ( ImportAxis == HRSAI_Houdini )
+
+        // See if we have colors to upload.
+        if ( RawMesh.WedgeColors.Num() > 0 )
         {
-            ChangedColors = TArray< FLinearColor >( RawMesh.WedgeColors );
-        }
-        else
-        {
-            // Not valid enum value.
-            check( 0 );
+            ChangedColors.SetNumUninitialized( RawMesh.WedgeColors.Num() );
+
+            if ( ImportAxis == HRSAI_Unreal )
+            {
+                // We need to re-index colors for wedges we swapped (due to winding differences).
+                for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3 )
+                {
+                    ChangedColors[WedgeIdx + 0] = RawMesh.WedgeColors[WedgeIdx + 0].ReinterpretAsLinear();
+                    ChangedColors[WedgeIdx + 1] = RawMesh.WedgeColors[WedgeIdx + 2].ReinterpretAsLinear();
+                    ChangedColors[WedgeIdx + 2] = RawMesh.WedgeColors[WedgeIdx + 1].ReinterpretAsLinear();
+                }
+            }
+            else if ( ImportAxis == HRSAI_Houdini )
+            {
+                for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx )
+                {
+                    ChangedColors[WedgeIdx] = RawMesh.WedgeColors[WedgeIdx].ReinterpretAsLinear();
+                }
+            }
+            else
+            {
+                // Not valid enum value.
+                check( 0 );
+            }
         }
 
-        // Create attribute for colors.
-        HAPI_AttributeInfo AttributeInfoVertex;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
-        AttributeInfoVertex.count = ChangedColors.Num();
-        AttributeInfoVertex.tupleSize = 4;
-        AttributeInfoVertex.exists = true;
-        AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-        AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-        AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
-            0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex ), false );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
-            FHoudiniEngine::Get().GetSession(),
-            DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
-            (const float *) ChangedColors.GetData(), 0, AttributeInfoVertex.count ), false );
+        if ( ChangedColors.Num() > 0 )
+        {
+            // Create attribute for colors.
+            HAPI_AttributeInfo AttributeInfoVertex;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
+            AttributeInfoVertex.count = ChangedColors.Num();
+            AttributeInfoVertex.tupleSize = 4;
+            AttributeInfoVertex.exists = true;
+            AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+            AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex ), false );
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
+                (const float *)ChangedColors.GetData(), 0, AttributeInfoVertex.count ), false );
+        }
     }
 
     // Extract indices from static mesh.
