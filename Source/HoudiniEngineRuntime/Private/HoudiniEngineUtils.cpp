@@ -3017,7 +3017,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
         // If we have instance override vertex colors, first propagate them to our copy of 
         // the RawMesh Vert Colors
         TArray< FLinearColor > ChangedColors;
-        if ( StaticMeshComponent->LODData.IsValidIndex( LODIndex ) &&
+        if ( StaticMeshComponent &&
+            StaticMeshComponent->LODData.IsValidIndex( LODIndex ) &&
             StaticMeshComponent->LODData[LODIndex].OverrideVertexColors &&
             StaticMesh->RenderData &&
             StaticMesh->RenderData->LODResources.IsValidIndex( LODIndex ) )
