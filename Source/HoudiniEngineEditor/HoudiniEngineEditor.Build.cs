@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 16.5.189
+    Houdini Version: 16.5.190
     Houdini Engine Version: 3.1.5
     Unreal Version: 4.16.0
 
@@ -48,7 +48,7 @@ public class HoudiniEngineEditor : ModuleRules
 		PCHUsage = PCHUsageMode.UseSharedPCHs;
 		bool bIsRelease = true;
 		string HFSPath = "";
-		string HoudiniVersion = "16.5.189";
+		string HoudiniVersion = "16.5.190";
 
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
@@ -152,36 +152,36 @@ public class HoudiniEngineEditor : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
-				"Engine",
-				"RenderCore",
-				"ShaderCore",
-				"InputCore",
-				"RHI",
-				"AssetTools",
-				"UnrealEd",
+				"HoudiniEngineRuntime",
 				"Slate",
 				"SlateCore",
-				"Projects",
-				"PropertyEditor",
-				"ContentBrowser",
-				"RawMesh",
-				"TargetPlatform",
-				"LevelEditor",
-				"MainFrame",
-				"EditorStyle",
-				"EditorWidgets",
-				"AppFramework",
-				"DesktopWidgets",
-				"HoudiniEngineRuntime"
 			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				// ... add private dependencies that you statically link with here ...
-			}
-			);
+                "AppFramework",
+                "AssetTools",
+                "ContentBrowser",
+                "DesktopWidgets",
+                "EditorStyle",
+                "EditorWidgets",
+                "Engine",
+                "InputCore",
+                "LevelEditor",
+                "MainFrame",
+                "PlacementMode",
+                "Projects",
+                "PropertyEditor",
+                "RHI",
+                "RawMesh",
+                "RenderCore",
+                "ShaderCore",
+                "TargetPlatform",
+                "UnrealEd"
+            }
+            );
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
