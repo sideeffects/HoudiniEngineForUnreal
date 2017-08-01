@@ -54,8 +54,7 @@ public class HoudiniEngineRuntime : ModuleRules
 		// Check if we are compiling on unsupported platforms.
 		if( Target.Platform != UnrealTargetPlatform.Win64 &&
 		    Target.Platform != UnrealTargetPlatform.Mac &&
-		    Target.Platform != UnrealTargetPlatform.Linux &&
-		    Target.Platform != UnrealTargetPlatform.Switch )
+		    Target.Platform != UnrealTargetPlatform.Linux )
 		{
 			System.Console.WriteLine( string.Format( "Houdini Engine : Compiling on untested platform.  Please let us know how it goes!" ) );
 		}
