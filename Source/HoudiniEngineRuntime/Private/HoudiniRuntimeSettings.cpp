@@ -107,6 +107,9 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
     bUseCustomHoudiniLocation = false;
     CustomHoudiniLocation.Path = TEXT( "" );
 
+    // Placement Mode Tools
+    bHidePlacementModeHoudiniTools = false;
+
     /** Arguments for HAPI_Initialize */
     CookingThreadStackSize = -1;
 }
