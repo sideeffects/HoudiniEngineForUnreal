@@ -603,12 +603,11 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
     ToolArray.Add( FHoudiniTool{
         TEXT( "Rock Generator" ),
         TEXT( "Generates procedural rock meshes" ),
-        FFilePath{ ToolsDir / TEXT( "rock_generator.png" ) },
+        FFilePath{ ToolsDir / TEXT( "rock_generator_40.png" ) },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ) } );
 
     for ( const FHoudiniTool& HoudiniTool : ToolArray )
     {
-        //FString AssetPath = "HoudiniAsset'/Game/HoudiniEngine/Tools/RockGenerator.RockGenerator'";
         FText AssetName = FText::FromString(HoudiniTool.Name);
         FText AssetTip = FText::FromString(HoudiniTool.ToolTip);
 
