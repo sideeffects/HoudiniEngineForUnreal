@@ -47,6 +47,19 @@
 #include "Components/SplineComponent.h"
 #include "SlateBasics.h"
 
+#if WITH_EDITOR
+    #include "UnrealEdGlobals.h"
+    #include "Editor/UnrealEdEngine.h"
+#endif
+
+static FName NAME_HoudiniNoUpload( TEXT( "HoudiniNoUpload" ) );
+
+#ifdef HOUDINI_ENGINE_EDITOR
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
+#else
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
+#endif
+
 void
 FHoudiniAssetInputOutlinerMesh::Serialize( FArchive & Ar )
 {
@@ -4084,7 +4097,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
     {
         UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
-        if ( !StaticMeshComponent )
+        if ( !StaticMeshComponent || StaticMeshComponent->ComponentHasTag(NAME_HoudiniNoUpload) )
             continue;
 
         UStaticMesh * StaticMesh = StaticMeshComponent->StaticMesh;
@@ -4108,7 +4121,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     for ( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
     {
         USplineComponent * SplineComponent = CastChecked< USplineComponent >( Component );
-        if ( !SplineComponent )
+        if ( !SplineComponent || SplineComponent->ComponentHasTag(NAME_HoudiniNoUpload) )
             continue;
 
         // Add the spline to the array
@@ -4482,3 +4495,4 @@ UHoudiniAssetInput::SetScaleZ( float Value, int32 AtIndex )
 
 #endif
 
+#undef LOCTEXT_NAMESPACE

@@ -33,6 +33,13 @@
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniEngineUtils.h"
 
+#ifdef HOUDINI_ENGINE_EDITOR
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
+#else
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
+#endif
+
+
 UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & ObjectInitializer )
 : Super( ObjectInitializer )
 {
@@ -451,3 +458,5 @@ UHoudiniRuntimeSettings::GetSettingsValue( const FString & PropertyName, FString
 
     return false;
 }
+
+#undef LOCTEXT_NAMESPACE

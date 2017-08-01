@@ -73,6 +73,12 @@
 #include "Engine/StaticMeshSocket.h"
 #include "HoudiniCookHandler.h"
 
+#ifdef HOUDINI_ENGINE_EDITOR
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
+#else
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
+#endif
+
 
 #if WITH_EDITOR
 
@@ -5701,4 +5707,6 @@ UHoudiniAssetComponent::GetLandscapeComponents()
 {
     return &LandscapeComponents;
 }
+
+#undef LOCTEXT_NAMESPACE
 

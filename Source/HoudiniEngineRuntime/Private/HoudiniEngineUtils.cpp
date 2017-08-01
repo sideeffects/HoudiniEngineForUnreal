@@ -49,6 +49,12 @@
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Engine/StaticMeshSocket.h"
 
+#ifdef HOUDINI_ENGINE_EDITOR
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_EDITOR
+#else
+    #define LOCTEXT_NAMESPACE HOUDINI_MODULE_RUNTIME
+#endif
+
 DECLARE_CYCLE_STAT( TEXT( "Houdini: Build Static Mesh" ), STAT_BuildStaticMesh, STATGROUP_HoudiniEngine );
 
 const FString kResultStringSuccess( TEXT( "Success" ) );
@@ -2803,7 +2809,8 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     }
 
     // Grab base LOD level.
-    FStaticMeshSourceModel & SrcModel = StaticMesh->SourceModels[ 0 ];
+    static constexpr int32 LODIndex = 0;
+    FStaticMeshSourceModel & SrcModel = StaticMesh->SourceModels[LODIndex];
 
     // Load the existing raw mesh.
     FRawMesh RawMesh;
@@ -2988,48 +2995,94 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             0, AttributeInfoVertex.count ), false );
     }
 
-    // See if we have colors to upload.
-    if ( RawMesh.WedgeColors.Num() > 0 )
     {
+        // If we have instance override vertex colors, first propagate them to our copy of 
+        // the RawMesh Vert Colors
         TArray< FLinearColor > ChangedColors;
-        ChangedColors.SetNumUninitialized( RawMesh.WedgeColors.Num() );
-
-        if ( ImportAxis == HRSAI_Unreal )
+        if ( StaticMeshComponent->LODData.IsValidIndex( LODIndex ) &&
+            StaticMeshComponent->LODData[LODIndex].OverrideVertexColors &&
+            StaticMesh->RenderData &&
+            StaticMesh->RenderData->LODResources.IsValidIndex( LODIndex ) )
         {
-            // We need to re-index colors for wedges we swapped (due to winding differences).
-            for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3 )
+            FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[LODIndex];
+            FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
+            FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
+            FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
+            if ( RenderData.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices() )
             {
-                ChangedColors[ WedgeIdx + 0 ] = FLinearColor( RawMesh.WedgeColors[ WedgeIdx + 0 ] );
-                ChangedColors[ WedgeIdx + 1 ] = FLinearColor( RawMesh.WedgeColors[ WedgeIdx + 2 ] );
-                ChangedColors[ WedgeIdx + 2 ] = FLinearColor( RawMesh.WedgeColors[ WedgeIdx + 1 ] );
+                // Use the wedge map if it is available as it is lossless.
+                int32 NumWedges = RawMesh.WedgeIndices.Num();
+                if ( RenderData.WedgeMap.Num() == NumWedges )
+                {
+                    int32 NumExistingColors = RawMesh.WedgeColors.Num();
+                    if ( NumExistingColors < NumWedges )
+                    {
+                        RawMesh.WedgeColors.AddUninitialized( NumWedges - NumExistingColors );
+                    }
+
+                    // Replace mesh colors with override colors
+                    for ( int32 i = 0; i < NumWedges; ++i )
+                    {
+                        FColor WedgeColor = FColor::White;
+                        int32 Index = RenderData.WedgeMap[i];
+                        if ( Index != INDEX_NONE )
+                        {
+                            WedgeColor = ColorVertexBuffer.VertexColor( Index );
+                        }
+                        RawMesh.WedgeColors[i] = WedgeColor;
+                    }
+                }
             }
         }
-        else if ( ImportAxis == HRSAI_Houdini )
+
+        // See if we have colors to upload.
+        if ( RawMesh.WedgeColors.Num() > 0 )
         {
-            ChangedColors = TArray< FLinearColor >( RawMesh.WedgeColors );
-        }
-        else
-        {
-            // Not valid enum value.
-            check( 0 );
+            ChangedColors.SetNumUninitialized( RawMesh.WedgeColors.Num() );
+
+            if ( ImportAxis == HRSAI_Unreal )
+            {
+                // We need to re-index colors for wedges we swapped (due to winding differences).
+                for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3 )
+                {
+                    ChangedColors[WedgeIdx + 0] = RawMesh.WedgeColors[WedgeIdx + 0].ReinterpretAsLinear();
+                    ChangedColors[WedgeIdx + 1] = RawMesh.WedgeColors[WedgeIdx + 2].ReinterpretAsLinear();
+                    ChangedColors[WedgeIdx + 2] = RawMesh.WedgeColors[WedgeIdx + 1].ReinterpretAsLinear();
+                }
+            }
+            else if ( ImportAxis == HRSAI_Houdini )
+            {
+                for ( int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); ++WedgeIdx )
+                {
+                    ChangedColors[WedgeIdx] = RawMesh.WedgeColors[WedgeIdx].ReinterpretAsLinear();
+                }
+            }
+            else
+            {
+                // Not valid enum value.
+                check( 0 );
+            }
         }
 
-        // Create attribute for colors.
-        HAPI_AttributeInfo AttributeInfoVertex;
-        FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
-        AttributeInfoVertex.count = ChangedColors.Num();
-        AttributeInfoVertex.tupleSize = 4;
-        AttributeInfoVertex.exists = true;
-        AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-        AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-        AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-            FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
-            0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex ), false );
-        HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
-            FHoudiniEngine::Get().GetSession(),
-            DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
-            (const float *) ChangedColors.GetData(), 0, AttributeInfoVertex.count ), false );
+        if ( ChangedColors.Num() > 0 )
+        {
+            // Create attribute for colors.
+            HAPI_AttributeInfo AttributeInfoVertex;
+            FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoVertex );
+            AttributeInfoVertex.count = ChangedColors.Num();
+            AttributeInfoVertex.tupleSize = 4;
+            AttributeInfoVertex.exists = true;
+            AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+            AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+            AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
+                FHoudiniEngine::Get().GetSession(), DisplayGeoInfo.nodeId,
+                0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex ), false );
+            HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetAttributeFloatData(
+                FHoudiniEngine::Get().GetSession(),
+                DisplayGeoInfo.nodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex,
+                (const float *)ChangedColors.GetData(), 0, AttributeInfoVertex.count ), false );
+        }
     }
 
     // Extract indices from static mesh.
@@ -3249,6 +3302,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId & ConnectedAssetId,
     const float& SplineResolution )
 {
+#if WITH_EDITOR
     if ( OutlinerMeshArray.Num() <= 0 )
         return false;
 
@@ -3309,7 +3363,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             FHoudiniEngine::Get().GetSession(),
             LocalAssetNodeInfo.parentId, &HapiTransform ), false );
     }
-
+#endif
     return true;
 }
 
@@ -3318,6 +3372,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
     HAPI_NodeId HostAssetId, TArray<UObject *>& InputObjects, const TArray< FTransform >& InputTransforms,
     HAPI_NodeId & ConnectedAssetId, TArray< HAPI_NodeId >& OutCreatedNodeIds )
 {
+#if WITH_EDITOR
     if ( ensure( InputObjects.Num() ) )
     {
         // TODO: No need to merge if there is only one input object if ( InputObjects.Num() == 1 )
@@ -3387,6 +3442,7 @@ FHoudiniEngineUtils::HapiCreateInputNodeForData(
             }
         }
     }
+#endif
     return true;
 }
 
@@ -5630,18 +5686,20 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     // Make sure we remove the old simple colliders if needed
                     if( UBodySetup * BodySetup = StaticMesh->BodySetup )
                     {
-                    if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
-                    {
-                        BodySetup->RemoveSimpleCollision();
-                    }
+                        if( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
+                        {
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+                            BodySetup->RemoveSimpleCollision();
+#endif
+                        }
 
-                    // See if we need to enable collisions on the whole mesh.
-                    if ( ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
-                        && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !bIsUCXCollidable ) )
-                    {
-                        // Enable collisions for this static mesh.
-                        BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
-                    }
+                        // See if we need to enable collisions on the whole mesh.
+                        if ( ( HoudiniGeoPartObject.IsCollidable() || HoudiniGeoPartObject.IsRenderCollidable() )
+                            && ( !HoudiniGeoPartObject.bIsSimpleCollisionGeo && !bIsUCXCollidable ) )
+                        {
+                            // Enable collisions for this static mesh.
+                            BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseComplexAsSimple;
+                        }
                     }
 
                     // Free any RHI resources.
@@ -8322,16 +8380,15 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
     void * HAPILibraryHandle = nullptr;
 
     // Before doing anything platform specific, check if HFS environment variable is defined.
-    TCHAR HFS_ENV_VARIABLE[ MAX_PATH ];
-    FMemory::Memzero( &HFS_ENV_VARIABLE[ 0 ], sizeof( TCHAR ) * MAX_PATH );
+    TCHAR HFS_ENV_VARIABLE[PLATFORM_MAX_FILEPATH_LENGTH] = { 0 };
 
     // Look up HAPI_PATH environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ), HFS_ENV_VARIABLE, MAX_PATH );
+    FPlatformMisc::GetEnvironmentVariable( TEXT( "HAPI_PATH" ), HFS_ENV_VARIABLE, PLATFORM_MAX_FILEPATH_LENGTH );
     if ( *HFS_ENV_VARIABLE )
         HFSPath = &HFS_ENV_VARIABLE[ 0 ];
 
     // Look up environment variable; if it is not defined, 0 will stored in HFS_ENV_VARIABLE .
-    FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ), HFS_ENV_VARIABLE, MAX_PATH );
+    FPlatformMisc::GetEnvironmentVariable( TEXT( "HFS" ), HFS_ENV_VARIABLE, PLATFORM_MAX_FILEPATH_LENGTH );
     if ( *HFS_ENV_VARIABLE )
         HFSPath = &HFS_ENV_VARIABLE[ 0 ];
 
@@ -8426,31 +8483,28 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         HoudiniVersionString = FString::Printf( TEXT( "%s.%d" ), *HoudiniVersionString, HAPI_VERSION_HOUDINI_PATCH );
 
     // Otherwise, we will attempt to detect Houdini installation.
+    FString HoudiniLocation = HOUDINI_ENGINE_HFS_PATH;
+    FString LibHAPIPath;
 
 #if PLATFORM_WINDOWS
 
     // On Windows, we have also hardcoded HFS path in plugin configuration file; attempt to load from it.
-    HFSPath = HOUDINI_ENGINE_HFS_PATH;
+    HFSPath = FString::Printf( TEXT( "%s/%s" ), *HoudiniLocation, HAPI_HFS_SUBFOLDER_WINDOWS );
 
-    if ( !HFSPath.IsEmpty() )
+    // Create full path to libHAPI binary.
+    LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HFSPath, *LibHAPIName );
+
+    if ( FPaths::FileExists( LibHAPIPath ) )
     {
-        HFSPath += FString::Printf( TEXT( "/%s" ), HAPI_HFS_SUBFOLDER_WINDOWS );
+        FPlatformProcess::PushDllDirectory( *HFSPath );
+        HAPILibraryHandle = FPlatformProcess::GetDllHandle( *LibHAPIName );
+        FPlatformProcess::PopDllDirectory( *HFSPath );
 
-        // Create full path to libHAPI binary.
-        FString LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HFSPath, *LibHAPIName );
-
-        if ( FPaths::FileExists( LibHAPIPath ) )
+        if ( HAPILibraryHandle )
         {
-            FPlatformProcess::PushDllDirectory( *HFSPath );
-            HAPILibraryHandle = FPlatformProcess::GetDllHandle( *LibHAPIName );
-            FPlatformProcess::PopDllDirectory( *HFSPath );
-
-            if ( HAPILibraryHandle )
-            {
-                HOUDINI_LOG_MESSAGE( TEXT( "Loaded %s from Plugin defined HFS path %s" ), *LibHAPIName, *HFSPath );
-                StoredLibHAPILocation = HFSPath;
-                return HAPILibraryHandle;
-            }
+            HOUDINI_LOG_MESSAGE( TEXT( "Loaded %s from Plugin defined HFS path %s" ), *LibHAPIName, *HFSPath );
+            StoredLibHAPILocation = HFSPath;
+            return HAPILibraryHandle;
         }
     }
 
@@ -8467,7 +8521,7 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
         return HAPILibraryHandle;
 
     // As a fourth attempt, we will try to load from hardcoded program files path.
-    FString HoudiniLocation = FString::Printf(
+    HoudiniLocation = FString::Printf(
         TEXT( "C:\\Program Files\\Side Effects Software\\Houdini %s\\%s" ), *HoudiniVersionString, HAPI_HFS_SUBFOLDER_WINDOWS );
 
 #else
@@ -8475,23 +8529,22 @@ FHoudiniEngineUtils::LoadLibHAPI( FString & StoredLibHAPILocation )
 #   if PLATFORM_MAC
 
     // Attempt to load from standard Mac OS X installation.
-    FString HoudiniLocation = FString::Printf(
+    HoudiniLocation = FString::Printf(
         TEXT("/Applications/Houdini/Houdini%s/Frameworks/Houdini.framework/Versions/%s/Libraries"), *HoudiniVersionString, *HoudiniVersionString );
 
 #   elif PLATFORM_LINUX
 
     // Attempt to load from standard Linux installation.
     // TODO: Support this.
-    //FString HoudiniLocation = FString::Printf(
+    //HoudiniLocation = FString::Printf(
         //TEXT( "/opt/dev%s/" ) + HAPI_HFS_SUBFOLDER_LINUX, *HoudiniVersionString );
-    FString HoudiniLocation = HOUDINI_ENGINE_HFS_PATH;
 
 #   endif
 
 #endif
 
     // Create full path to libHAPI binary.
-    FString LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HoudiniLocation, *LibHAPIName );
+    LibHAPIPath = FString::Printf( TEXT( "%s/%s" ), *HoudiniLocation, *LibHAPIName );
 
     if ( FPaths::FileExists( LibHAPIPath ) )
     {
@@ -9261,14 +9314,18 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
         return false;
 
     // Do we need to remove the old collisions from the previous cook
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
     if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
         BodySetup->RemoveSimpleCollision();
+#endif
 
     BodySetup->AddCollisionFrom( AggregateCollisionGeo );
     BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
 
     BodySetup->ClearPhysicsMeshes();
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
     BodySetup->InvalidatePhysicsData();
+#endif
 
 #if WITH_EDITOR
     RefreshCollisionChange( StaticMesh );
@@ -9899,4 +9956,5 @@ FHoudiniCookParams::FHoudiniCookParams( class UHoudiniAsset* InHoudiniAsset )
     TempCookFolder = LOCTEXT( "Temp", "/Game/HoudiniEngine/Temp" );
 }
 
+#undef LOCTEXT_NAMESPACE
 

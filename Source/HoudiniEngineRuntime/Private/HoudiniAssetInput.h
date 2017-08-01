@@ -31,6 +31,7 @@
 
 #pragma once
 #include "HoudiniAssetParameter.h"
+#include "SlateBasics.h"
 #include "HoudiniAssetInput.generated.h"
 
 class ALandscapeProxy;
@@ -252,9 +253,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
 
-        const FSlateBrush* GetExpanderImage( int32 AtIndex ) const;
-        FReply OnExpandInputTransform( int32 AtIndex );
-
     protected:
 
 #if WITH_EDITOR
@@ -313,6 +311,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void OnAddToInputObjects();
         /** Called to empty the list of input objects */
         void OnEmptyInputObjects();
+
+        /** Handles the expander arrow for the input transform offset **/
+        const FSlateBrush* GetExpanderImage(int32 AtIndex) const;
+        FReply OnExpandInputTransform(int32 AtIndex);
 
 #endif
 
