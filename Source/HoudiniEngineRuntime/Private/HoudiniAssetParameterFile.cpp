@@ -18,14 +18,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
- * Produced by:
- *      Mykola Konyk
- *      Side Effects Software Inc
- *      123 Front Street West, Suite 1401
- *      Toronto, Ontario
- *      Canada   M5J 2M2
- *      416-504-9876
  *
  */
 
@@ -37,9 +29,6 @@
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
-#if WITH_EDITOR
-#include "EditorDirectories.h"
-#endif
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -50,9 +39,6 @@ UHoudiniAssetParameterFile::UHoudiniAssetParameterFile( const FObjectInitializer
 {
     Values.Add( TEXT( "" ) );
 }
-
-UHoudiniAssetParameterFile::~UHoudiniAssetParameterFile()
-{}
 
 UHoudiniAssetParameterFile *
 UHoudiniAssetParameterFile::Create(
@@ -166,55 +152,6 @@ UHoudiniAssetParameterFile::Serialize( FArchive & Ar )
     Ar << Filters;
 }
 
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterFile::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    FDetailWidgetRow& Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-
-    TSharedRef<SVerticalBox> VerticalBox = SNew( SVerticalBox );
-    FString FileTypeWidgetFilter = ComputeFiletypeFilter( Filters );
-    FString BrowseWidgetDirectory = FEditorDirectories::Get().GetLastDirectory( ELastDirectory::GENERIC_OPEN );
-
-    for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
-    {
-        FString FileWidgetPath = Values[ Idx ];
-        FString FileWidgetBrowsePath = BrowseWidgetDirectory;
-
-        if ( !FileWidgetPath.IsEmpty() )
-        {
-            FString FileWidgetDirPath = FPaths::GetPath( FileWidgetPath );
-            if ( !FileWidgetDirPath.IsEmpty() )
-                FileWidgetBrowsePath = FileWidgetDirPath;
-        }
-
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-        [
-            SNew( SFilePathPicker )
-            .BrowseButtonImage( FEditorStyle::GetBrush( "PropertyWindow.Button_Ellipsis" ) )
-            .BrowseButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-            .BrowseButtonToolTip( LOCTEXT( "FileButtonToolTipText", "Choose a file" ) )
-            .BrowseDirectory( FileWidgetBrowsePath )
-            .BrowseTitle( LOCTEXT( "PropertyEditorTitle", "File picker..." ) )
-            .FilePath( FileWidgetPath )
-            .FileTypeFilter( FileTypeWidgetFilter )
-            .OnPathPicked(FOnPathPicked::CreateUObject(
-                this, &UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked, Idx ) )
-        ];
-    }
-
-    Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
-
-#endif // WITH_EDITOR
-
 bool
 UHoudiniAssetParameterFile::UploadParameterValue()
 {
@@ -319,17 +256,6 @@ UHoudiniAssetParameterFile::UpdateCheckRelativePath( const FString & PickedPath 
     }
 
     return PickedPath;
-}
-
-FString
-UHoudiniAssetParameterFile::ComputeFiletypeFilter( const FString & FilterList ) const
-{
-    FString FileTypeFilter = TEXT( "All files (*.*)|*.*" );
-
-    if ( !FilterList.IsEmpty() )
-        FileTypeFilter = FString::Printf( TEXT( "%s files (*.%s)|*.%s" ), *FilterList, *FilterList, *FilterList );
-
-    return FileTypeFilter;
 }
 
 const FString &

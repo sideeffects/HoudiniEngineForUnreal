@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -46,6 +38,8 @@ UCLASS( config = Editor )
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 {
     GENERATED_UCLASS_BODY()
+
+    friend struct FHoudiniParameterDetails;
 
     public:
 
@@ -214,13 +208,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Array containing all child parameters. **/
         TArray< UHoudiniAssetParameter * > ChildParameters;
-
-#if WITH_EDITOR
-
-        /** Builder used in construction of this parameter. **/
-        IDetailCategoryBuilder * DetailCategoryBuilder;
-
-#endif // WITH_EDITOR
 
         /** Owner component. **/
         UObject * PrimaryObject;
