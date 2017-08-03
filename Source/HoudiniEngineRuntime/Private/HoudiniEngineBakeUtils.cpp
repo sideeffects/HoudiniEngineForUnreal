@@ -669,7 +669,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                         {
                             if (UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent())
                             {
-                                FHoudiniGeoPartObject GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OtherSMC->GetStaticMesh() );
+                                FHoudiniGeoPartObject GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OtherSMC->StaticMesh );
                                 GeoPartObject.PartId = 0;
                                 FHoudiniEngineUtils::UpdateUPropertyAttributes( SMC, GeoPartObject );
                             }
