@@ -48,7 +48,7 @@
 #include "SlateBasics.h"
 
 #if WITH_EDITOR
-    #include "UnrealEdGlobals.h"
+//    #include "UnrealEdGlobals.h"
     #include "Editor/UnrealEdEngine.h"
 #endif
 

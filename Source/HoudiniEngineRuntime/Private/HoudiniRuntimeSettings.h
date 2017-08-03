@@ -81,6 +81,24 @@ enum EHoudiniRuntimeSettingsAxisImport
     HRSAI_MAX,
 };
 
+USTRUCT( BlueprintType )
+struct FHoudiniTool
+{
+    GENERATED_USTRUCT_BODY()
+
+    UPROPERTY(Category=Shelf, EditAnywhere)
+    FString Name;
+
+    UPROPERTY( Category = Shelf, EditAnywhere )
+    FString ToolTip;
+
+    UPROPERTY( Category = Shelf, EditAnywhere, meta = ( FilePathFilter = "png" ) )
+    FFilePath IconPath;
+
+    UPROPERTY( Category = Shelf, EditAnywhere )
+    TAssetPtr < class UHoudiniAsset > HoudiniAsset;
+};
+
 UCLASS( config = Engine, defaultconfig )
 class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
 {
@@ -408,6 +426,15 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
             GlobalConfig, EditAnywhere, Category = HoudiniLocation,
             Meta = ( DisplayName = "Custom Houdini location" ) )
         FDirectoryPath CustomHoudiniLocation;
+
+    /** Custom Houdini Tools **/
+    public:
+        /** Don't add Houdini Tools to Placement Editor Mode */
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = CustomHoudiniTools )
+        bool bHidePlacementModeHoudiniTools;
+
+        UPROPERTY( GlobalConfig, EditAnywhere, Category = CustomHoudiniTools )
+        TArray<FHoudiniTool> CustomHoudiniTools;
 
     /** Arguments for HAPI_Initialize */
     public:
