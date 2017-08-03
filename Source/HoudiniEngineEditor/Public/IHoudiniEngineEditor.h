@@ -19,14 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * Produced by:
- *      Mykola Konyk
- *      Side Effects Software Inc
- *      123 Front Street West, Suite 1401
- *      Toronto, Ontario
- *      Canada   M5J 2M2
- *      416-504-9876
- *
  */
 
 
@@ -78,4 +70,8 @@ class IHoudiniEngineEditor : public IModuleInterface
         /** Create custom modes **/
         virtual void RegisterModes() {}
         virtual void UnregisterModes() {}
+
+        /** Create custom placement extensions */
+        virtual void RegisterPlacementModeExtensions() {}
+        virtual void UnregisterPlacementModeExtensions() {}
 };

@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -41,6 +33,29 @@ class IAssetTools;
 class IAssetTypeActions;
 class IComponentAssetBroker;
 class UHoudiniAssetComponent;
+
+struct FSlateBrush;
+
+struct FHoudiniToolType
+{
+    FHoudiniToolType( TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InText, const FText& InToolTipText, const FSlateBrush* InIcon )
+        : HoudiniAsset( InHoudiniAsset )
+        , Text( InText )
+        , ToolTipText( InToolTipText )
+        , Icon( InIcon )
+    {
+    }
+    TAssetPtr < class UHoudiniAsset > HoudiniAsset;
+
+    /** The name to be displayed for this builder */
+    FText Text;
+
+    /** The name to be displayed for this builder */
+    FText ToolTipText;
+
+    /** The icon to be displayed for this builder */
+    const FSlateBrush* Icon;
+};
 
 
 class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClient
@@ -76,6 +91,8 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         virtual void UnregisterForUndo() override;
         virtual void RegisterModes() override;
         virtual void UnregisterModes() override;
+        virtual void RegisterPlacementModeExtensions() override;
+        virtual void UnregisterPlacementModeExtensions() override;
 
     /** FEditorUndoClient methods. **/
     public:
@@ -129,6 +146,8 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if BakeAllAssets can be executed. **/
         bool CanBakeAllAssets() const;
 
+        const TArray< TSharedPtr<FHoudiniToolType> >& GetToolTypes() { return ToolTypes; }
+
     protected:
 
         /** Register AssetType action. **/
@@ -164,4 +183,6 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
 
         /** Stored last used Houdini component which was involved in undo. **/
         mutable UHoudiniAssetComponent * LastHoudiniAssetComponentUndoObject;
+        
+        TArray< TSharedPtr<FHoudiniToolType> > ToolTypes;
 };
