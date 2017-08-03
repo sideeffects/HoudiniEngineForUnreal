@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Damian Campeanu, Mykola Konyk, Pavlo Penenko
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -3357,8 +3349,15 @@ UHoudiniAssetComponent::SetStaticMeshGenerationParameters( UStaticMesh * StaticM
     // Set Bias multiplier for Light Propagation Volume lighting.
     StaticMesh->LpvBiasMultiplier = GeneratedLpvBiasMultiplier;
 
-    // Set light map coordinate index.
-    StaticMesh->LightMapCoordinateIndex = GeneratedLightMapCoordinateIndex;
+    // Set the global light map coordinate index if it looks valid
+    if ( StaticMesh->RenderData.IsValid() )
+    {
+        int32 NumUVs = StaticMesh->RenderData->LODResources[0].GetNumTexCoords();
+        if ( NumUVs > GeneratedLightMapCoordinateIndex )
+        {
+            StaticMesh->LightMapCoordinateIndex = GeneratedLightMapCoordinateIndex;
+        }
+    }
 
     // Set method for LOD texture factor computation.
     /* TODO_414
