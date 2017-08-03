@@ -1240,6 +1240,9 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
             Actor->AddInstanceComponent( DuplicatedComponent );
             DuplicatedComponent->SetStaticMesh( OutStaticMesh );
 
+            // Reapply the uproperties modified by attributes on the duplicated component
+            FHoudiniEngineUtils::UpdateUPropertyAttributes( DuplicatedComponent, HoudiniGeoPartObject );
+
             // Set component instances.
             {
                 FRotator RotationOffset = HoudiniAssetInstanceInputField->GetRotationOffset( VariationIdx );

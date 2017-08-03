@@ -3439,6 +3439,9 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
                 DuplicatedComponent->SetCollisionProfileName( FName( TEXT( "InvisibleWall" ) ) );
             }
 
+            // Reapply the uproperties modified by attributes on the duplicated component
+            FHoudiniEngineUtils::UpdateUPropertyAttributes( DuplicatedComponent, HoudiniGeoPartObject );
+
             DuplicatedComponent->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepRelativeTransform );
             DuplicatedComponent->RegisterComponent();
         }
