@@ -48,7 +48,7 @@
 #include "EditorDirectories.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "SHoudiniToolPalette.h"
-#include "IPlacementModeModule.h"
+#include "Editor/PlacementMode/Public/IPlacementModeModule.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
