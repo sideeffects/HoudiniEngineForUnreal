@@ -448,14 +448,6 @@ UHoudiniAssetInput::CreateParameter(
 
 #if WITH_EDITOR
 
-void 
-UHoudiniAssetInput::CreateGeometryWidget( 
-    int32 AtIndex, UObject* InputObject,
-    TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool, TSharedRef<SVerticalBox> VerticalBox )
-{
-
-}
-
 void
 UHoudiniAssetInput::PostEditUndo()
 {
