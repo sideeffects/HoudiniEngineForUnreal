@@ -688,6 +688,8 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
 
     int32 ElementCount = FHoudiniEngineUtils::HapiGetElementCountByGroupType( GroupType, PartInfo );
     std::string ConvertedGroupName = TCHAR_TO_UTF8( *GroupName );
+    if ( ElementCount < 1 )
+        return false;
 
     GroupMembership.SetNumUninitialized( ElementCount );
     HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetGroupMembership(
