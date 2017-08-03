@@ -595,6 +595,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
     for( const auto& Iter : SMComponentToPart )
     {
         const UStaticMeshComponent * OtherSMC = Iter.Key;
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Value;
         UStaticMesh* BakedSM = OriginalToBakedMesh[OtherSMC->GetStaticMesh()];
 
         if( ensure( BakedSM ) )
@@ -603,7 +604,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
             FName BaseName( *( HoudiniAssetComponent->GetOwner()->GetName() + TEXT( "_Baked" ) ) );
             UActorFactory* Factory = GEditor->FindActorFactoryByClass( UActorFactoryStaticMesh::StaticClass() );
 
-            auto PrepNewStaticMeshActor = [&]( AActor* NewActor ) {
+            auto PrepNewStaticMeshActor = [&]( AActor* NewActor )
+            {
                 // The default name will be based on the static mesh package, we would prefer it to be based on the Houdini asset
                 FName NewName = MakeUniqueObjectName( DesiredLevel, Factory->NewActorClass, BaseName );
                 FString NewNameStr = NewName.ToString();
@@ -617,6 +619,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                     if( UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent() )
                     {
                         UStaticMeshComponent* OtherSMC_NonConst = const_cast<UStaticMeshComponent*>( OtherSMC );
+
                         SMC->SetCollisionProfileName( OtherSMC_NonConst->GetCollisionProfileName() );
                         SMC->SetCollisionEnabled( OtherSMC->GetCollisionEnabled() );
                         SMC->LightmassSettings = OtherSMC->LightmassSettings;
@@ -626,6 +629,9 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                             SMC->SetPhysMaterialOverride( OtherSMC_NonConst->GetBodySetup()->GetPhysMaterial() );
                         SMActor->SetActorHiddenInGame( OtherSMC->bHiddenInGame );
                         SMC->SetVisibility( OtherSMC->IsVisible() );
+
+                        // Reapply the uproperties modified by attributes on the new component
+                        FHoudiniEngineUtils::UpdateUPropertyAttributes( SMC, HoudiniGeoPartObject );
                     }
                 }
             };
@@ -672,6 +678,17 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                     if( AActor* NewActor = Factory->CreateActor( BakedSM, DesiredLevel, InstanceTransform, RF_Transactional ) )
                     {
                         PrepNewStaticMeshActor( NewActor );
+
+                        // We need to set the modified uproperty on the created actor
+                        if ( AStaticMeshActor* SMActor = Cast< AStaticMeshActor>(NewActor) )
+                        {
+                            if (UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent())
+                            {
+                                FHoudiniGeoPartObject GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OtherSMC->GetStaticMesh() );
+                                GeoPartObject.PartId = 0;
+                                FHoudiniEngineUtils::UpdateUPropertyAttributes( SMC, GeoPartObject );
+                            }
+                        }
                     }
                 }
 #endif
