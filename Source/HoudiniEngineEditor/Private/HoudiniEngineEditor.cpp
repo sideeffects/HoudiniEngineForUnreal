@@ -42,17 +42,12 @@
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniAssetActor.h"
 
-#include "Textures/SlateIcon.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Engine/ObjectLibrary.h"
 #include "EditorDirectories.h"
-#include "ThumbnailRendering/ThumbnailManager.h"
 #include "Styling/SlateStyleRegistry.h"
 #include "SHoudiniToolPalette.h"
-#include "HoudiniEngineRuntimePrivatePCH.h"
-#include "Internationalization.h"
 #include "IPlacementModeModule.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 

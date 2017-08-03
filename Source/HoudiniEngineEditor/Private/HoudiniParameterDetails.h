@@ -25,6 +25,7 @@
 
 #include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
+#include "MultiBoxBuilder.h"
 
 struct FHoudiniParameterDetails
 {
@@ -32,4 +33,17 @@ struct FHoudiniParameterDetails
 
     static void CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameter* InParam );
     static void CreateWidgetFile( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFile& InParam );
+    static void CreateWidgetButton( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterButton& InParam );
+    static void CreateWidgetChoice( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterChoice& InParam );
+    static void CreateWidgetToggle( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterToggle& InParam );
+    static void CreateWidgetInput( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetInput& InParam );
+
+
+    static void CreateWidget( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameter* InParam );
+    static void CreateWidgetChoice( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameterChoice& InParam );
+    static void CreateWidgetToggle( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameterToggle& InParam );
+private:
+    static FMenuBuilder Helper_CreateCustomActorPickerWidget( UHoudiniAssetInput& InParam, const TAttribute<FText>& HeadingText, const bool& bShowCurrentSelectionSection );
+    static void Helper_CreateGeometryWidget( class UHoudiniAssetInput& InParam, int32 AtIndex, UObject* InputObject,
+                                             TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool, TSharedRef< SVerticalBox > VerticalBox );
 };

@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -40,10 +32,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterChoice : public UHoudiniAss
 {
     GENERATED_UCLASS_BODY()
 
-    public:
-
-        /** Destructor. **/
-        virtual ~UHoudiniAssetParameterChoice();
+    friend struct FHoudiniParameterDetails;
 
     public:
 
@@ -62,16 +51,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterChoice : public UHoudiniAss
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo ) override;
-
-#if WITH_EDITOR
-
-        /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
-
-        /** Create widget for this parameter inside a given box. **/
-        virtual void CreateWidget( TSharedPtr< SVerticalBox > VerticalBox );
-
-#endif // WITH_EDITOR
 
         /** Upload parameter value to HAPI. **/
         virtual bool UploadParameterValue() override;
@@ -109,7 +88,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterChoice : public UHoudiniAss
         TSharedRef< SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
 
         /** Called when change of selection is triggered. **/
-        void OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType );
+        void OnChoiceChange( TSharedPtr< FString > NewChoice );
 
         /** Called to retrieve the name of selected item. **/
         FText HandleChoiceContentText() const;
