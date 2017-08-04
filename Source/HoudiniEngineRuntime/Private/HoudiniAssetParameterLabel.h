@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -40,10 +32,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterLabel : public UHoudiniAsse
 {
     GENERATED_UCLASS_BODY()
 
-    public:
-
-        /** Destructor. **/
-        virtual ~UHoudiniAssetParameterLabel();
+    friend struct FHoudiniParameterDetails;
 
     public:
 
@@ -60,11 +49,4 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterLabel : public UHoudiniAsse
             UObject * InPrimaryObject,
             UHoudiniAssetParameter * InParentParameter,
             HAPI_NodeId InNodeId, const HAPI_ParmInfo & ParmInfo ) override;
-
-#if WITH_EDITOR
-
-        /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
-
-#endif
 };

@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -36,8 +28,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/Input/SEditableTextBox.h"
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -47,9 +37,6 @@ UHoudiniAssetParameterString::UHoudiniAssetParameterString( const FObjectInitial
 {
     Values.Add( TEXT( "" ) );
 }
-
-UHoudiniAssetParameterString::~UHoudiniAssetParameterString()
-{}
 
 UHoudiniAssetParameterString *
 UHoudiniAssetParameterString::Create(
@@ -125,45 +112,6 @@ UHoudiniAssetParameterString::Serialize( FArchive & Ar )
     Ar << Values;
 }
 
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterString::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-
-    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
-
-    for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
-    {
-        TSharedPtr< SEditableTextBox > EditableTextBox;
-
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-        [
-            SAssignNew( EditableTextBox, SEditableTextBox )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-
-            .Text( FText::FromString( Values[ Idx ] ) )
-            .OnTextChanged( FOnTextChanged::CreateUObject( this, &UHoudiniAssetParameterString::SetValue, Idx ) )
-            .OnTextCommitted( FOnTextCommitted::CreateUObject(
-                this, &UHoudiniAssetParameterString::SetValueCommitted, Idx ) )
-        ];
-
-        if ( EditableTextBox.IsValid() )
-            EditableTextBox->SetEnabled( !bIsDisabled );
-    }
-
-    Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
-
-#endif
-
 bool
 UHoudiniAssetParameterString::UploadParameterValue()
 {
@@ -219,10 +167,6 @@ UHoudiniAssetParameterString::SetParameterVariantValue(
 }
 
 #if WITH_EDITOR
-
-void
-UHoudiniAssetParameterString::SetValue( const FText & InValue, int32 Idx )
-{}
 
 void
 UHoudiniAssetParameterString::SetValueCommitted( const FText & InValue, ETextCommit::Type CommitType, int32 Idx )
