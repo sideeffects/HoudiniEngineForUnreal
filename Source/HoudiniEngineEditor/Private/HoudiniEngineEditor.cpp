@@ -608,7 +608,9 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
         TEXT( "Rock Generator" ),
         TEXT( "Generates procedural rock meshes" ),
         FFilePath{ ToolsDir / TEXT( "rock_generator_40.png" ) },
-        TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ) } );
+        TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ),
+        TEXT("http://www.sidefx.com/docs/unreal/")
+    } );
 
     for ( const FHoudiniTool& HoudiniTool : ToolArray )
     {
@@ -626,7 +628,7 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
         {
             CustomIconBrush = StyleSet->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
         }
-        ToolTypes.Add( MakeShareable( new FHoudiniToolType( HoudiniTool.HoudiniAsset, AssetName, AssetTip, CustomIconBrush ) ) );
+        ToolTypes.Add( MakeShareable( new FHoudiniToolType( HoudiniTool.HoudiniAsset, AssetName, AssetTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
     }
 
     FPlacementCategoryInfo Info(

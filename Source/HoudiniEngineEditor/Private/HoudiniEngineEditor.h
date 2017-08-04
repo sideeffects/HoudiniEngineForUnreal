@@ -38,23 +38,27 @@ struct FSlateBrush;
 
 struct FHoudiniToolType
 {
-    FHoudiniToolType( TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InText, const FText& InToolTipText, const FSlateBrush* InIcon )
+    FHoudiniToolType( TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InText, const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL )
         : HoudiniAsset( InHoudiniAsset )
         , Text( InText )
         , ToolTipText( InToolTipText )
         , Icon( InIcon )
+        , HelpURL( InHelpURL )
     {
     }
     TAssetPtr < class UHoudiniAsset > HoudiniAsset;
 
-    /** The name to be displayed for this builder */
+    /** The name to be displayed */
     FText Text;
 
-    /** The name to be displayed for this builder */
+    /** The name to be displayed */
     FText ToolTipText;
 
-    /** The icon to be displayed for this builder */
+    /** The icon to be displayed */
     const FSlateBrush* Icon;
+
+    /** The help URL for this tool */
+    FString HelpURL;
 };
 
 
