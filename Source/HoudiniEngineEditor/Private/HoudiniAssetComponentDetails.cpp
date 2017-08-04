@@ -33,6 +33,7 @@
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetLogWidget.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniParameterDetails.h"
 
 #include "Landscape.h"
 #include "ContentBrowserModule.h"
@@ -139,7 +140,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
                 if ( HoudiniAssetParameter && !HoudiniAssetParameter->IsChildParameter() &&
                     !HoudiniAssetParameter->IsPendingKill() )
                 {
-                    HoudiniAssetParameter->CreateWidget( DetailCategoryBuilder );
+                    FHoudiniParameterDetails::CreateWidget( DetailCategoryBuilder, HoudiniAssetParameter );
                 }
             }
         }
@@ -159,7 +160,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
                 UHoudiniAssetInput * HoudiniAssetInput = *IterInputs;
                 if( HoudiniAssetInput )
                 {
-                    HoudiniAssetInput->CreateWidget( DetailCategoryBuilder );
+                    FHoudiniParameterDetails::CreateWidget( DetailCategoryBuilder, HoudiniAssetInput );
                 }
             }
         }
@@ -177,7 +178,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails( IDetailLayoutBuilder & DetailBu
             {
                 if ( InstanceInput )
                 {
-                    InstanceInput->CreateWidget( DetailCategoryBuilder );
+                    FHoudiniParameterDetails::CreateWidget( DetailCategoryBuilder, InstanceInput );
                 }
             }
         }
