@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -35,11 +27,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
-
-#if WITH_EDITOR
-#include "UnitConversion.h"
-#include "NumericUnitTypeInterface.inl"
-#endif
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -54,9 +41,6 @@ UHoudiniAssetParameterInt::UHoudiniAssetParameterInt( const FObjectInitializer &
     // Parameter will have at least one value.
     Values.AddZeroed( 1 );
 }
-
-UHoudiniAssetParameterInt::~UHoudiniAssetParameterInt()
-{}
 
 UHoudiniAssetParameterInt *
 UHoudiniAssetParameterInt::Create(
@@ -156,76 +140,6 @@ UHoudiniAssetParameterInt::CreateParameter(
 
     return true;
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterInt::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-
-    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
-
-    // Helper function to find a unit from a string (name or abbreviation) 
-    TOptional<EUnit> ParmUnit = FUnitConversion::UnitFromString( *ValueUnit );
-
-    TSharedPtr<INumericTypeInterface<int32>> TypeInterface;
-    if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
-    {
-        TypeInterface = MakeShareable( new TNumericUnitTypeInterface<int32>( ParmUnit.GetValue() ) );
-    }
-
-    for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
-    {
-        TSharedPtr< SNumericEntryBox< int32 > > NumericEntryBox;
-
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-        [
-            SAssignNew( NumericEntryBox, SNumericEntryBox< int32 > )
-            .AllowSpin( true )
-
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-
-            .MinValue( ValueMin )
-            .MaxValue( ValueMax )
-
-            .MinSliderValue( ValueUIMin )
-            .MaxSliderValue( ValueUIMax )
-
-            .Value( TAttribute< TOptional< int32 > >::Create(
-                TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetParameterInt::GetValue, Idx ) ) )
-            .OnValueChanged(SNumericEntryBox< int32 >::FOnValueChanged::CreateLambda(
-                [=]( int32 Val ) {
-                SetValue( Val, Idx, false, false );
-                } ) )
-            .OnValueCommitted( SNumericEntryBox< int32 >::FOnValueCommitted::CreateLambda(
-                [=]( float Val, ETextCommit::Type TextCommitType ) {
-                    SetValue( Val, Idx, true, true );
-                } ) )
-            .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
-                this, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx ) )
-            .OnEndSliderMovement( SNumericEntryBox< int32 >::FOnValueChanged::CreateUObject(
-                this, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx ) )
-
-            .SliderExponent( 1.0f )
-            .TypeInterface( TypeInterface )
-        ];
-
-        if ( NumericEntryBox.IsValid() )
-            NumericEntryBox->SetEnabled( !bIsDisabled );
-    }
-
-    Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
-
-#endif
 
 bool
 UHoudiniAssetParameterInt::UploadParameterValue()

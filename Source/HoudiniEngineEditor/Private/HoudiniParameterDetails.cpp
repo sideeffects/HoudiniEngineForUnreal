@@ -33,8 +33,12 @@
 #include "HoudiniAssetParameterFolder.h"
 #include "HoudiniAssetParameterFolderList.h"
 #include "HoudiniAssetParameterFloat.h"
+#include "HoudiniAssetParameterInt.h"
+#include "HoudiniAssetParameterLabel.h"
 #include "HoudiniAssetParameterMultiparm.h"
 #include "HoudiniAssetParameterRamp.h"
+#include "HoudiniAssetParameterSeparator.h"
+#include "HoudiniAssetParameterString.h"
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniRuntimeSettings.h"
 #include "SNewFilePathPicker.h"
@@ -50,6 +54,8 @@
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -180,6 +186,22 @@ FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCate
     else if ( auto ParamInput = Cast<UHoudiniAssetInput>( InParam ) )
     {
         CreateWidgetInput( LocalDetailCategoryBuilder, *ParamInput );
+    }
+    else if ( auto ParamInt = Cast<UHoudiniAssetParameterInt>( InParam ) )
+    {
+        CreateWidgetInt( LocalDetailCategoryBuilder, *ParamInt );
+    }
+    else if ( auto ParamLabel = Cast<UHoudiniAssetParameterLabel>( InParam ) )
+    {
+        CreateWidgetLabel( LocalDetailCategoryBuilder, *ParamLabel );
+    }
+    else if ( auto ParamString = Cast<UHoudiniAssetParameterString>( InParam ) )
+    {
+        CreateWidgetString( LocalDetailCategoryBuilder, *ParamString );
+    }
+    else if ( auto ParamSeparator = Cast<UHoudiniAssetParameterSeparator>( InParam ) )
+    {
+        CreateWidgetSeparator( LocalDetailCategoryBuilder, *ParamSeparator );
     }
     else if ( auto ParamFile = Cast<UHoudiniAssetParameterFile>( InParam ) )
     {
@@ -970,6 +992,71 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
 
         Row.ValueWidget.Widget = VerticalBox;
     }
+    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+}
+
+void 
+FHoudiniParameterDetails::CreateWidgetInt( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterInt& InParam )
+{
+    TWeakObjectPtr<UHoudiniAssetParameterInt> MyParam( &InParam );
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+
+    // Create the standard parameter name widget.
+    CreateNameWidget( &InParam, Row, true );
+
+    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
+
+    // Helper function to find a unit from a string (name or abbreviation) 
+    TOptional<EUnit> ParmUnit = FUnitConversion::UnitFromString( *InParam.ValueUnit );
+
+    TSharedPtr<INumericTypeInterface<int32>> TypeInterface;
+    if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
+    {
+        TypeInterface = MakeShareable( new TNumericUnitTypeInterface<int32>( ParmUnit.GetValue() ) );
+    }
+
+    for ( int32 Idx = 0; Idx < InParam.GetTupleSize(); ++Idx )
+    {
+        TSharedPtr< SNumericEntryBox< int32 > > NumericEntryBox;
+
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
+            [
+                SAssignNew( NumericEntryBox, SNumericEntryBox< int32 > )
+                .AllowSpin( true )
+
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+
+            .MinValue( InParam.ValueMin )
+            .MaxValue( InParam.ValueMax )
+
+            .MinSliderValue( InParam.ValueUIMin )
+            .MaxSliderValue( InParam.ValueUIMax )
+
+            .Value( TAttribute< TOptional< int32 > >::Create(
+                TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
+                    &InParam, &UHoudiniAssetParameterInt::GetValue, Idx ) ) )
+            .OnValueChanged( SNumericEntryBox< int32 >::FOnValueChanged::CreateLambda(
+                [=]( int32 Val ) {
+                MyParam->SetValue( Val, Idx, false, false );
+            } ) )
+            .OnValueCommitted( SNumericEntryBox< int32 >::FOnValueCommitted::CreateLambda(
+                [=]( float Val, ETextCommit::Type TextCommitType ) {
+                MyParam->SetValue( Val, Idx, true, true );
+            } ) )
+            .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
+                &InParam, &UHoudiniAssetParameterInt::OnSliderMovingBegin, Idx ) )
+            .OnEndSliderMovement( SNumericEntryBox< int32 >::FOnValueChanged::CreateUObject(
+                &InParam, &UHoudiniAssetParameterInt::OnSliderMovingFinish, Idx ) )
+
+            .SliderExponent( 1.0f )
+            .TypeInterface( TypeInterface )
+            ];
+
+        if ( NumericEntryBox.IsValid() )
+            NumericEntryBox->SetEnabled( !InParam.bIsDisabled );
+    }
+
+    Row.ValueWidget.Widget = VerticalBox;
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
@@ -1971,4 +2058,75 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
 
     Row.ValueWidget.Widget = VerticalBox;
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+}
+
+void 
+FHoudiniParameterDetails::CreateWidgetLabel( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterLabel& InParam )
+{
+    TSharedPtr< STextBlock > TextBlock;
+    FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
+
+    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+    [
+        SAssignNew( TextBlock, STextBlock )
+        .Text( ParameterLabelText )
+        .ToolTipText( ParameterLabelText )
+        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+        .WrapTextAt( HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH )
+        .Justification( ETextJustify::Center )
+    ];
+
+    if ( TextBlock.IsValid() )
+        TextBlock->SetEnabled( !InParam.bIsDisabled );
+}
+
+void 
+FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterString& InParam )
+{
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+
+    // Create the standard parameter name widget.
+    CreateNameWidget( &InParam, Row, true );
+
+    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
+
+    for ( int32 Idx = 0; Idx < InParam.GetTupleSize(); ++Idx )
+    {
+        TSharedPtr< SEditableTextBox > EditableTextBox;
+
+        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
+        [
+            SAssignNew( EditableTextBox, SEditableTextBox )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            .Text( FText::FromString( InParam.Values[Idx] ) )
+            .OnTextCommitted( FOnTextCommitted::CreateUObject(
+                &InParam, &UHoudiniAssetParameterString::SetValueCommitted, Idx ) )
+        ];
+
+        if ( EditableTextBox.IsValid() )
+            EditableTextBox->SetEnabled( !InParam.bIsDisabled );
+    }
+
+    Row.ValueWidget.Widget = VerticalBox;
+    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+}
+
+void 
+FHoudiniParameterDetails::CreateWidgetSeparator( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterSeparator& InParam )
+{
+    TSharedPtr< SSeparator > Separator;
+
+    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+    [
+        SNew( SVerticalBox )
+        +SVerticalBox::Slot()
+        .Padding( 0, 0, 5, 0 )
+        [
+            SAssignNew( Separator, SSeparator )
+            .Thickness( 2.0f )
+        ]
+    ];
+
+    if ( Separator.IsValid() )
+        Separator->SetEnabled( !InParam.bIsDisabled );
 }

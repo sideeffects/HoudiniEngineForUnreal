@@ -42,8 +42,11 @@ struct FHoudiniParameterDetails
     static void CreateWidgetColor( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterColor& InParam );
     static void CreateWidgetToggle( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterToggle& InParam );
     static void CreateWidgetFloat( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFloat& InParam );
+    static void CreateWidgetInt( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterInt& InParam );
     static void CreateWidgetInput( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetInput& InParam );
-
+    static void CreateWidgetLabel( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterLabel& InParam );
+    static void CreateWidgetString( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterString& InParam );
+    static void CreateWidgetSeparator( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterSeparator& InParam );
 
     static void CreateWidget( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameter* InParam );
     static void CreateWidgetChoice( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameterChoice& InParam );

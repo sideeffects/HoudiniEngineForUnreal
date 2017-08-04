@@ -19,26 +19,14 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
 #include "HoudiniAssetParameterLabel.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
-#include "HoudiniAssetComponent.h"
 
 UHoudiniAssetParameterLabel::UHoudiniAssetParameterLabel( const FObjectInitializer& ObjectInitializer )
     : Super( ObjectInitializer )
-{}
-
-UHoudiniAssetParameterLabel::~UHoudiniAssetParameterLabel()
 {}
 
 UHoudiniAssetParameterLabel *
@@ -83,29 +71,3 @@ UHoudiniAssetParameterLabel::CreateParameter(
 
     return true;
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterLabel::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    TSharedPtr< STextBlock > TextBlock;
-    FText ParameterLabelText = FText::FromString( GetParameterLabel() );
-
-    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-    [
-        SAssignNew( TextBlock, STextBlock )
-        .Text( ParameterLabelText )
-        .ToolTipText( ParameterLabelText )
-        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        .WrapTextAt( HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH )
-        .Justification( ETextJustify::Center )
-    ];
-
-    if ( TextBlock.IsValid() )
-        TextBlock->SetEnabled( !bIsDisabled );
-}
-
-#endif
