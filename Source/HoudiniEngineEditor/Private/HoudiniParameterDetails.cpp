@@ -27,6 +27,7 @@
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetParameterButton.h"
 #include "HoudiniAssetParameterChoice.h"
+#include "HoudiniAssetParameterColor.h"
 #include "HoudiniAssetParameterFile.h"
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetParameterMultiparm.h"
@@ -41,6 +42,7 @@
 #include "Internationalization.h"
 #include "NumericUnitTypeInterface.inl"
 #include "UnitConversion.h"
+#include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
@@ -144,6 +146,10 @@ FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCate
     else if ( auto ParamChoice = Cast<UHoudiniAssetParameterChoice>( InParam ) )
     {
         CreateWidgetChoice( LocalDetailCategoryBuilder, *ParamChoice );
+    }
+    else if ( auto ParamColor = Cast<UHoudiniAssetParameterColor>( InParam ) )
+    {
+        CreateWidgetColor( LocalDetailCategoryBuilder, *ParamColor );
     }
     else if ( auto ParamToggle = Cast<UHoudiniAssetParameterToggle>( InParam ) )
     {
@@ -353,6 +359,58 @@ FHoudiniParameterDetails::CreateWidgetChoice( TSharedPtr< SVerticalBox > Vertica
             ]
         ]
     ];
+}
+
+void 
+FHoudiniParameterDetails::CreateWidgetColor( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterColor& InParam )
+{
+    TWeakObjectPtr<UHoudiniAssetParameterColor> MyParam( &InParam );
+
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+
+    // Create the standard parameter name widget.
+    CreateNameWidget( &InParam, Row, true );
+
+    TSharedPtr< SColorBlock > ColorBlock;
+    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
+    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
+    [
+        SAssignNew( ColorBlock, SColorBlock )
+        .Color( TAttribute< FLinearColor >::Create( TAttribute< FLinearColor >::FGetter::CreateUObject(
+            &InParam, &UHoudiniAssetParameterColor::GetColor ) ) )
+        .OnMouseButtonDown( FPointerEventHandler::CreateLambda(
+            [=]( const FGeometry & MyGeometry, const FPointerEvent & MouseEvent ) 
+            {
+                if ( MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton || !MyParam.IsValid() )
+                    return FReply::Unhandled();
+
+                FColorPickerArgs PickerArgs;
+                PickerArgs.ParentWidget = ColorBlock;
+                PickerArgs.bUseAlpha = true;
+                PickerArgs.DisplayGamma = TAttribute< float >::Create( TAttribute< float >::FGetter::CreateUObject(
+                    GEngine, &UEngine::GetDisplayGamma ) );
+                PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(
+                    MyParam.Get(), &UHoudiniAssetParameterColor::OnPaintColorChanged, true, true );
+                PickerArgs.InitialColorOverride = MyParam->GetColor();
+                PickerArgs.bOnlyRefreshOnOk = true;
+                PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateLambda(
+                    [=]( const TSharedRef<SWindow>& ) { 
+                        if ( MyParam.IsValid() ) 
+                            MyParam->bIsColorPickerOpen = false;  
+                    } );
+
+                OpenColorPicker( PickerArgs );
+                MyParam->bIsColorPickerOpen = true;
+
+                return FReply::Handled();
+            } ))
+    ];
+
+    if ( ColorBlock.IsValid() )
+        ColorBlock->SetEnabled( !InParam.bIsDisabled );
+
+    Row.ValueWidget.Widget = VerticalBox;
+    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
 void 

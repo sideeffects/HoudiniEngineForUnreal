@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -38,10 +30,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAsse
 {
     GENERATED_UCLASS_BODY()
 
-    public:
-
-        /** Destructor. **/
-        virtual ~UHoudiniAssetParameterColor();
+    friend struct FHoudiniParameterDetails;
 
     public:
 
@@ -62,9 +51,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAsse
             const HAPI_ParmInfo & ParmInfo ) override;
 
 #if WITH_EDITOR
-
-        /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
 
         /** Return true if color picker window is open by this parameter. **/
         virtual bool IsColorPickerWindowOpen() const;
@@ -99,17 +85,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAsse
         /** Called when new color is selected. **/
         void OnPaintColorChanged( FLinearColor InNewColor, bool bTriggerModify = true, bool bRecordUndo = true );
 
-        /** Called when color picker window is closed. **/
-        void OnColorPickerClosed( const TSharedRef< SWindow > & Window );
-
     protected:
-
-#if WITH_EDITOR
-
-        /** Color block widget. **/
-        TSharedPtr< SColorBlock > ColorBlock;
-
-#endif
 
         /** Color for this property. **/
         FLinearColor Color;

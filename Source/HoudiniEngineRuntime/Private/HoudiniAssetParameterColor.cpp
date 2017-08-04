@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -39,9 +31,6 @@ UHoudiniAssetParameterColor::UHoudiniAssetParameterColor( const FObjectInitializ
     : Super( ObjectInitializer )
     , Color( FColor::White )
     , bIsColorPickerOpen( false )
-{}
-
-UHoudiniAssetParameterColor::~UHoudiniAssetParameterColor()
 {}
 
 void
@@ -115,40 +104,6 @@ UHoudiniAssetParameterColor::CreateParameter(
     return true;
 }
 
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterColor::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    ColorBlock.Reset();
-
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-
-    ColorBlock = SNew( SColorBlock );
-    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
-    VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SAssignNew( ColorBlock, SColorBlock )
-        .Color( TAttribute< FLinearColor >::Create( TAttribute< FLinearColor >::FGetter::CreateUObject(
-            this, &UHoudiniAssetParameterColor::GetColor ) ) )
-        .OnMouseButtonDown( FPointerEventHandler::CreateUObject(
-            this, &UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown ) )
-    ];
-
-    if ( ColorBlock.IsValid() )
-        ColorBlock->SetEnabled( !bIsDisabled );
-
-    Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
-
-#endif // WITH_EDITOR
-
 bool
 UHoudiniAssetParameterColor::UploadParameterValue()
 {
@@ -216,30 +171,6 @@ UHoudiniAssetParameterColor::IsColorPickerWindowOpen() const
     return bIsColorPickerOpen;
 }
 
-FReply
-UHoudiniAssetParameterColor::OnColorBlockMouseButtonDown( const FGeometry & MyGeometry, const FPointerEvent & MouseEvent )
-{
-    if ( MouseEvent.GetEffectingButton() != EKeys::LeftMouseButton )
-        return FReply::Unhandled();
-
-    FColorPickerArgs PickerArgs;
-    PickerArgs.ParentWidget = ColorBlock;
-    PickerArgs.bUseAlpha = true;
-    PickerArgs.DisplayGamma = TAttribute< float >::Create( TAttribute< float >::FGetter::CreateUObject(
-        GEngine, &UEngine::GetDisplayGamma ) );
-    PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateUObject(
-        this, &UHoudiniAssetParameterColor::OnPaintColorChanged, true, true );
-    PickerArgs.InitialColorOverride = GetColor();
-    PickerArgs.bOnlyRefreshOnOk = true;
-    PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateUObject(
-        this, &UHoudiniAssetParameterColor::OnColorPickerClosed );
-
-    OpenColorPicker( PickerArgs );
-    bIsColorPickerOpen = true;
-
-    return FReply::Handled();
-}
-
 #endif // WITH_EDITOR
 
 void
@@ -269,10 +200,4 @@ UHoudiniAssetParameterColor::OnPaintColorChanged( FLinearColor InNewColor, bool 
         // Mark this parameter as changed.
         MarkChanged( bTriggerModify );
     }
-}
-
-void
-UHoudiniAssetParameterColor::OnColorPickerClosed( const TSharedRef< SWindow > & Window )
-{
-    bIsColorPickerOpen = false;
 }
