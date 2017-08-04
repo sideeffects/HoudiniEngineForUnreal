@@ -58,13 +58,4 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterButton : public UHoudiniAss
         virtual bool SetParameterVariantValue(
             const FVariant & Variant, int32 Idx = 0, bool bTriggerModify = true,
             bool bRecordUndo = true ) override;
-
-    protected:
-
-#if WITH_EDITOR
-
-        /** Handler for button click. **/
-        FReply OnButtonClick();
-
-#endif // WITH_EDITOR
 };
