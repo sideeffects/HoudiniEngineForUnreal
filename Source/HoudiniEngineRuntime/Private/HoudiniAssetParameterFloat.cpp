@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -36,11 +28,6 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineString.h"
-
-#if WITH_EDITOR
-#include "UnitConversion.h"
-#include "NumericUnitTypeInterface.inl"
-#endif
 
 #include "Internationalization.h"
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -56,9 +43,6 @@ UHoudiniAssetParameterFloat::UHoudiniAssetParameterFloat( const FObjectInitializ
     // Parameter will have at least one value.
     Values.AddZeroed( 1 );
 }
-
-UHoudiniAssetParameterFloat::~UHoudiniAssetParameterFloat()
-{}
 
 void
 UHoudiniAssetParameterFloat::Serialize( FArchive & Ar )
@@ -217,106 +201,6 @@ UHoudiniAssetParameterFloat::CreateParameter(
 
     return true;
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterFloat::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    /** Should we swap Y and Z fields (only relevant for Vector3) */
-    bool bSwappedAxis3Vector = false;
-    if ( auto Settings = GetDefault< UHoudiniRuntimeSettings >() )
-    {
-        bSwappedAxis3Vector = TupleSize == 3 && Settings->ImportAxis == HRSAI_Unreal;
-    }
-
-    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-
-    // Helper function to find a unit from a string (name or abbreviation) 
-    TOptional<EUnit> ParmUnit = FUnitConversion::UnitFromString( *ValueUnit );
-
-    TSharedPtr<INumericTypeInterface<float>> TypeInterface;
-    if ( FUnitConversion::Settings().ShouldDisplayUnits() && ParmUnit.IsSet() )
-    {
-        TypeInterface = MakeShareable(new TNumericUnitTypeInterface<float>( ParmUnit.GetValue() ) );
-    }
-
-    if ( TupleSize == 3 )
-    {
-        Row.ValueWidget.Widget = SNew( SVectorInputBox )
-        .bColorAxisLabels( true )
-        .X( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( this, &UHoudiniAssetParameterFloat::GetValue, 0 ) ) )
-        .Y( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( this, &UHoudiniAssetParameterFloat::GetValue, bSwappedAxis3Vector ? 2 : 1 ) ) )
-        .Z( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( this, &UHoudiniAssetParameterFloat::GetValue, bSwappedAxis3Vector ? 1 : 2 ) ) )
-        .OnXCommitted( FOnFloatValueCommitted::CreateLambda(
-            [=]( float Val, ETextCommit::Type TextCommitType ) {
-                SetValue( Val, 0, true, true );
-        }))
-        .OnYCommitted( FOnFloatValueCommitted::CreateLambda(
-            [=]( float Val, ETextCommit::Type TextCommitType ) {
-                SetValue( Val, bSwappedAxis3Vector ? 2 : 1, true, true );
-        } ) )
-        .OnZCommitted( FOnFloatValueCommitted::CreateLambda(
-            [=]( float Val, ETextCommit::Type TextCommitType ) {
-                SetValue( Val, bSwappedAxis3Vector ? 1 : 2, true, true );
-        } ) )
-        .TypeInterface( TypeInterface );
-    }
-    else
-    {
-        TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
-
-        for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
-        {
-            TSharedPtr< SNumericEntryBox< float > > NumericEntryBox;
-
-            VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-            [
-                SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
-                .AllowSpin( true )
-
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-
-                .MinValue( ValueMin )
-                .MaxValue( ValueMax )
-
-                .MinSliderValue( ValueUIMin )
-                .MaxSliderValue( ValueUIMax )
-
-                .Value( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
-                .OnValueChanged(SNumericEntryBox< float >::FOnValueChanged::CreateLambda(
-                    [=]( float Val ) {
-                    SetValue( Val, Idx, false, false );
-                    } ) )
-                .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateLambda(
-                    [=]( float Val, ETextCommit::Type TextCommitType ) {
-                        SetValue( Val, Idx, true, true );
-                    } ) )
-                .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
-                .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
-                    this, &UHoudiniAssetParameterFloat::OnSliderMovingFinish, Idx ) )
-
-                .SliderExponent( 1.0f )
-                .TypeInterface( TypeInterface )
-            ];
-
-            if ( NumericEntryBox.IsValid() )
-                NumericEntryBox->SetEnabled( !bIsDisabled );
-        }
-
-        Row.ValueWidget.Widget = VerticalBox;
-    }
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
-
-#endif // WITH_EDITOR
 
 bool
 UHoudiniAssetParameterFloat::UploadParameterValue()
