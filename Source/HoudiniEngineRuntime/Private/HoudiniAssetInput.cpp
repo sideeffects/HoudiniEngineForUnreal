@@ -36,10 +36,10 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniLandscapeUtils.h"
 #include "Components/SplineComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/Selection.h"
 #include "Internationalization.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
-#include "Widgets/Input/SButton.h"
 
 #if WITH_EDITOR
     #include "UnrealEdGlobals.h"
@@ -2593,117 +2593,6 @@ UHoudiniAssetInput::OnButtonClickRecommit()
     // There's no undo operation for button.
     MarkPreChanged();
     MarkChanged();
-
-    return FReply::Handled();
-}
-
-FReply
-UHoudiniAssetInput::OnButtonClickSelectActors()
-{
-    // There's no undo operation for button.
-
-    FPropertyEditorModule & PropertyModule =
-        FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
-
-    // Locate the details panel.
-    FName DetailsPanelName = "LevelEditorSelectionDetails";
-    TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
-
-    if ( !DetailsView.IsValid() )
-        return FReply::Handled();
-
-    class SLocalDetailsView : public SDetailsViewBase
-    {
-        public:
-        void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
-        void UnlockDetailsView() { SDetailsViewBase::bIsLocked = false; }
-    };
-    auto * LocalDetailsView = static_cast< SLocalDetailsView * >( DetailsView.Get() );
-
-    if ( !DetailsView->IsLocked() )
-    {
-        LocalDetailsView->LockDetailsView();
-        check( DetailsView->IsLocked() );
-
-        // Force refresh of details view.
-        OnParamStateChanged();
-
-        // Select the previously chosen input Actors from the World Outliner.
-        GEditor->SelectNone( false, true );
-        for ( auto & OutlinerMesh : InputOutlinerMeshArray )
-        {
-            if ( OutlinerMesh.ActorPtr.IsValid() )
-                GEditor->SelectActor( OutlinerMesh.ActorPtr.Get(), true, true );
-        }
-
-        return FReply::Handled();
-    }
-
-    if ( !GEditor || !GEditor->GetSelectedObjects() )
-        return FReply::Handled();
-
-    // If details panel is locked, locate selected actors and check if this component belongs to one of them.
-
-    FScopedTransaction Transaction(
-        TEXT( HOUDINI_MODULE_RUNTIME ),
-        LOCTEXT( "HoudiniInputChange", "Houdini World Outliner Input Change" ),
-        PrimaryObject );
-    Modify();
-
-    MarkPreChanged();
-    bStaticMeshChanged = true;
-
-    // Delete all assets and reset the array.
-    // TODO: Make this process a little more efficient.
-    DisconnectAndDestroyInputAsset();
-    InputOutlinerMeshArray.Empty();
-
-    USelection * SelectedActors = GEditor->GetSelectedActors();
-
-    // If the builder brush is selected, first deselect it.
-    for ( FSelectionIterator It( *SelectedActors ); It; ++It )
-    {
-        AActor * Actor = Cast< AActor >( *It );
-        if ( !Actor )
-            continue;
-
-        // Don't allow selection of ourselves. Bad things happen if we do.
-        if ( GetHoudiniAssetComponent() && ( Actor == GetHoudiniAssetComponent()->GetOwner() ) )
-            continue;
-
-        UpdateInputOulinerArrayFromActor( Actor, false );
-    }
-
-    MarkChanged();
-
-    AActor* HoudiniAssetActor = GetHoudiniAssetComponent()->GetOwner();
-
-    if ( DetailsView->IsLocked() )
-    {
-        LocalDetailsView->UnlockDetailsView();
-        check( !DetailsView->IsLocked() );
-
-        TArray< UObject * > DummySelectedActors;
-        DummySelectedActors.Add( HoudiniAssetActor );
-
-        // Reset selected actor to itself, force refresh and override the lock.
-        DetailsView->SetObjects( DummySelectedActors, true, true );
-    }
-
-    // Reselect the Asset Actor. If we don't do this, our Asset parameters will stop
-    // refreshing and the user will be very confused. It is also resetting the state
-    // of the selection before the input actor selection process was started.
-    GEditor->SelectNone( false, true );
-    GEditor->SelectActor( HoudiniAssetActor, true, true );
-
-    // Update parameter layout.
-    OnParamStateChanged();
-
-    // Start or stop the tick timer to check if the selected Actors have been transformed.
-    if ( InputOutlinerMeshArray.Num() > 0 )
-        StartWorldOutlinerTicking();
-    else if ( InputOutlinerMeshArray.Num() <= 0 )
-        StopWorldOutlinerTicking();
 
     return FReply::Handled();
 }
