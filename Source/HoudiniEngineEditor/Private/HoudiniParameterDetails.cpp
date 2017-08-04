@@ -33,10 +33,12 @@
 #include "HoudiniAssetParameterFolderList.h"
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetParameterMultiparm.h"
+#include "HoudiniAssetParameterRamp.h"
 #include "HoudiniAssetParameterToggle.h"
 #include "HoudiniRuntimeSettings.h"
 #include "SNewFilePathPicker.h"
 
+#include "CurveEditorSettings.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
 #include "EditorDirectories.h"
@@ -103,14 +105,14 @@ FHoudiniParameterDetails::CreateNameWidget( UHoudiniAssetParameter* InParam, FDe
         }
 
         HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
-            [
-                ClearButton
-            ];
+        [
+            ClearButton
+        ];
 
         HorizontalBox->AddSlot().AutoWidth().Padding( 0.0f, 0.0f )
-            [
-                AddButton
-            ];
+        [
+            AddButton
+        ];
 
         HorizontalBox->AddSlot().Padding( 2, 5, 5, 2 )
             [
@@ -149,6 +151,15 @@ FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCate
     {
         CreateWidgetFolderList( LocalDetailCategoryBuilder, *ParamFolderList );
     }
+    // Test Ramp before Multiparm!
+    else if ( auto ParamRamp = Cast<UHoudiniAssetParameterRamp>( InParam ) )
+    {
+        CreateWidgetRamp( LocalDetailCategoryBuilder, *ParamRamp );
+    }
+    else if ( auto ParamMultiparm = Cast<UHoudiniAssetParameterMultiparm>( InParam ) )
+    {
+        CreateWidgetMultiparm( LocalDetailCategoryBuilder, *ParamMultiparm );
+    }
     else if ( auto ParamButton = Cast<UHoudiniAssetParameterButton>( InParam ) )
     {
         CreateWidgetButton( LocalDetailCategoryBuilder, *ParamButton );
@@ -169,7 +180,7 @@ FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCate
     {
         CreateWidgetInput( LocalDetailCategoryBuilder, *ParamInput );
     }
-    if ( auto ParamFile = Cast<UHoudiniAssetParameterFile>( InParam ) )
+    else if ( auto ParamFile = Cast<UHoudiniAssetParameterFile>( InParam ) )
     {
         CreateWidgetFile( LocalDetailCategoryBuilder, *ParamFile );
     }
@@ -319,6 +330,291 @@ FHoudiniParameterDetails::CreateWidgetFolderList( IDetailCategoryBuilder & Local
 }
 
 void 
+FHoudiniParameterDetails::CreateWidgetMultiparm( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterMultiparm& InParam )
+{
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    
+    // Create the standard parameter name widget.
+    CreateNameWidget( &InParam, Row, true );
+
+    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
+
+    TSharedPtr< SNumericEntryBox< int32 > > NumericEntryBox;
+
+    HorizontalBox->AddSlot().Padding( 2, 2, 5, 2 )
+    [
+        SAssignNew( NumericEntryBox, SNumericEntryBox< int32 > )
+        .AllowSpin( true )
+
+        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+
+        .Value( TAttribute< TOptional< int32 > >::Create( TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
+            &InParam, &UHoudiniAssetParameterMultiparm::GetValue ) ) )
+        .OnValueChanged( SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(
+            &InParam, &UHoudiniAssetParameterMultiparm::SetValue ) )
+    ];
+
+    HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
+    [
+        PropertyCustomizationHelpers::MakeAddButton( FSimpleDelegate::CreateUObject(
+            &InParam, &UHoudiniAssetParameterMultiparm::AddElement, true, true ),
+            LOCTEXT( "AddAnotherMultiparmInstanceToolTip", "Add Another Instance" ) )
+    ];
+
+    HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
+    [
+        PropertyCustomizationHelpers::MakeRemoveButton( FSimpleDelegate::CreateUObject(
+            &InParam, &UHoudiniAssetParameterMultiparm::RemoveElement, true, true ),
+            LOCTEXT( "RemoveLastMultiparmInstanceToolTip", "Remove Last Instance" ) )
+    ];
+
+    HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
+    [
+        PropertyCustomizationHelpers::MakeEmptyButton( FSimpleDelegate::CreateUObject(
+            &InParam, &UHoudiniAssetParameterMultiparm::SetValue, 0 ),
+            LOCTEXT( "ClearAllMultiparmInstanesToolTip", "Clear All Instances" ) )
+    ];
+
+    if ( NumericEntryBox.IsValid() )
+        NumericEntryBox->SetEnabled( !InParam.bIsDisabled );
+
+    Row.ValueWidget.Widget = HorizontalBox;
+    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+
+    // Recursively create all child parameters.
+    for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
+        FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+}
+
+/** We need to inherit from curve editor in order to get subscription to mouse events. **/
+class SHoudiniAssetParameterRampCurveEditor : public SCurveEditor
+{
+public:
+
+    SLATE_BEGIN_ARGS( SHoudiniAssetParameterRampCurveEditor )
+        : _ViewMinInput( 0.0f )
+        , _ViewMaxInput( 10.0f )
+        , _ViewMinOutput( 0.0f )
+        , _ViewMaxOutput( 1.0f )
+        , _XAxisName()
+        , _YAxisName()
+        , _HideUI( true )
+        , _DrawCurve( true )
+        , _InputSnap( 0.1f )
+        , _OutputSnap( 0.05f )
+        , _SnappingEnabled( false )
+        , _TimelineLength( 5.0f )
+        , _DesiredSize( FVector2D::ZeroVector )
+        , _AllowZoomOutput( true )
+        , _AlwaysDisplayColorCurves( false )
+        , _ZoomToFitVertical( true )
+        , _ZoomToFitHorizontal( true )
+        , _ShowZoomButtons( true )
+        , _ShowInputGridNumbers( true )
+        , _ShowOutputGridNumbers( true )
+        , _ShowCurveSelector( true )
+        , _GridColor( FLinearColor( 0.0f, 0.0f, 0.0f, 0.3f ) )
+    {}
+
+    SLATE_ATTRIBUTE( float, ViewMinInput )
+    SLATE_ATTRIBUTE( float, ViewMaxInput )
+    SLATE_ATTRIBUTE( float, ViewMinOutput )
+    SLATE_ATTRIBUTE( float, ViewMaxOutput )
+    SLATE_ARGUMENT( TOptional< FString >, XAxisName )
+    SLATE_ARGUMENT( TOptional< FString >, YAxisName )
+    SLATE_ARGUMENT( bool, HideUI )
+    SLATE_ARGUMENT( bool, DrawCurve )
+    SLATE_ATTRIBUTE( float, InputSnap )
+    SLATE_ATTRIBUTE( float, OutputSnap )
+    SLATE_ATTRIBUTE( bool, SnappingEnabled )
+    SLATE_ATTRIBUTE( float, TimelineLength )
+    SLATE_ATTRIBUTE( FVector2D, DesiredSize )
+    SLATE_ARGUMENT( bool, AllowZoomOutput )
+    SLATE_ARGUMENT( bool, AlwaysDisplayColorCurves )
+    SLATE_ARGUMENT( bool, ZoomToFitVertical )
+    SLATE_ARGUMENT( bool, ZoomToFitHorizontal )
+    SLATE_ARGUMENT( bool, ShowZoomButtons )
+    SLATE_ARGUMENT( bool, ShowInputGridNumbers )
+    SLATE_ARGUMENT( bool, ShowOutputGridNumbers )
+    SLATE_ARGUMENT( bool, ShowCurveSelector )
+    SLATE_ARGUMENT( FLinearColor, GridColor )
+    SLATE_END_ARGS()
+
+public:
+
+    /** Widget construction. **/
+    void Construct( const FArguments & InArgs );
+
+protected:
+
+    /** Handle mouse up events. **/
+    virtual FReply OnMouseButtonUp( const FGeometry & MyGeometry, const FPointerEvent & MouseEvent ) override;
+
+public:
+
+    /** Set parent ramp parameter. **/
+    void SetParentRampParameter( UHoudiniAssetParameterRamp * InHoudiniAssetParameterRamp )
+    {
+        HoudiniAssetParameterRamp = InHoudiniAssetParameterRamp;
+    }
+
+protected:
+
+    /** Parent ramp parameter. **/
+    TWeakObjectPtr<UHoudiniAssetParameterRamp> HoudiniAssetParameterRamp;
+};
+
+void
+SHoudiniAssetParameterRampCurveEditor::Construct( const FArguments & InArgs )
+{
+    SCurveEditor::Construct( SCurveEditor::FArguments()
+                             .ViewMinInput( InArgs._ViewMinInput )
+                             .ViewMaxInput( InArgs._ViewMaxInput )
+                             .ViewMinOutput( InArgs._ViewMinOutput )
+                             .ViewMaxOutput( InArgs._ViewMaxOutput )
+                             .XAxisName( InArgs._XAxisName )
+                             .YAxisName( InArgs._YAxisName )
+                             .HideUI( InArgs._HideUI )
+                             .DrawCurve( InArgs._DrawCurve )
+                             .TimelineLength( InArgs._TimelineLength )
+                             .AllowZoomOutput( InArgs._AllowZoomOutput )
+                             .ShowInputGridNumbers( InArgs._ShowInputGridNumbers )
+                             .ShowOutputGridNumbers( InArgs._ShowOutputGridNumbers )
+                             .ShowZoomButtons( InArgs._ShowZoomButtons )
+                             .ZoomToFitHorizontal( InArgs._ZoomToFitHorizontal )
+                             .ZoomToFitVertical( InArgs._ZoomToFitVertical )
+    );
+
+    HoudiniAssetParameterRamp = nullptr;
+
+    UCurveEditorSettings * CurveEditorSettings = GetSettings();
+    if ( CurveEditorSettings )
+    {
+        CurveEditorSettings->SetCurveVisibility( ECurveEditorCurveVisibility::AllCurves );
+        CurveEditorSettings->SetTangentVisibility( ECurveEditorTangentVisibility::NoTangents );
+    }
+}
+
+FReply
+SHoudiniAssetParameterRampCurveEditor::OnMouseButtonUp(
+    const FGeometry & MyGeometry,
+    const FPointerEvent & MouseEvent )
+{
+    FReply Reply = SCurveEditor::OnMouseButtonUp( MyGeometry, MouseEvent );
+
+    if ( HoudiniAssetParameterRamp.IsValid() )
+        HoudiniAssetParameterRamp->OnCurveEditingFinished();
+
+    return Reply;
+}
+
+void 
+FHoudiniParameterDetails::CreateWidgetRamp( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterRamp& InParam )
+{
+    TWeakObjectPtr<UHoudiniAssetParameterRamp> MyParam( &InParam );
+    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
+    
+    // Create the standard parameter name widget.
+    CreateNameWidget( &InParam, Row, true );
+    
+    TSharedPtr<SHoudiniAssetParameterRampCurveEditor> CurveEditor;
+
+    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
+
+    FString CurveAxisTextX = TEXT( "" );
+    FString CurveAxisTextY = TEXT( "" );
+    UClass * CurveClass = nullptr;
+
+    if ( InParam.bIsFloatRamp )
+    {
+        CurveAxisTextX = TEXT( HAPI_UNREAL_RAMP_FLOAT_AXIS_X );
+        CurveAxisTextY = TEXT( HAPI_UNREAL_RAMP_FLOAT_AXIS_Y );
+        CurveClass = UHoudiniAssetParameterRampCurveFloat::StaticClass();
+    }
+    else
+    {
+        CurveAxisTextX = TEXT( HAPI_UNREAL_RAMP_COLOR_AXIS_X );
+        CurveAxisTextY = TEXT( HAPI_UNREAL_RAMP_COLOR_AXIS_Y );
+        CurveClass = UHoudiniAssetParameterRampCurveColor::StaticClass();
+    }
+
+    HorizontalBox->AddSlot().Padding( 2, 2, 5, 2 )
+    [
+        SNew( SBorder )
+        .VAlign( VAlign_Fill )
+        [
+            SAssignNew( CurveEditor, SHoudiniAssetParameterRampCurveEditor )
+            .ViewMinInput( 0.0f )
+            .ViewMaxInput( 1.0f )
+            .HideUI( true )
+            .DrawCurve( true )
+            .ViewMinInput( 0.0f )
+            .ViewMaxInput( 1.0f )
+            .ViewMinOutput( 0.0f )
+            .ViewMaxOutput( 1.0f )
+            .TimelineLength( 1.0f )
+            .AllowZoomOutput( false )
+            .ShowInputGridNumbers( false )
+            .ShowOutputGridNumbers( false )
+            .ShowZoomButtons( false )
+            .ZoomToFitHorizontal( false )
+            .ZoomToFitVertical( false )
+            .XAxisName( CurveAxisTextX )
+            .YAxisName( CurveAxisTextY )
+            .ShowCurveSelector( false )
+        ]
+    ];
+
+    // Set callback for curve editor events.
+    if ( CurveEditor.IsValid() )
+        CurveEditor->SetParentRampParameter( &InParam );
+
+    if ( InParam.bIsFloatRamp )
+    {
+        if ( !InParam.HoudiniAssetParameterRampCurveFloat )
+        {
+            InParam.HoudiniAssetParameterRampCurveFloat = Cast< UHoudiniAssetParameterRampCurveFloat >(
+                NewObject< UHoudiniAssetParameterRampCurveFloat >(
+                    InParam.PrimaryObject, UHoudiniAssetParameterRampCurveFloat::StaticClass(),
+                    NAME_None, RF_Transactional | RF_Public ) );
+
+            InParam.HoudiniAssetParameterRampCurveFloat->SetParentRampParameter( &InParam );
+        }
+
+        // Set curve values.
+        InParam.GenerateCurvePoints();
+
+        // Set the curve that is being edited.
+        CurveEditor->SetCurveOwner( InParam.HoudiniAssetParameterRampCurveFloat, true );
+    }
+    else
+    {
+        if ( !InParam.HoudiniAssetParameterRampCurveColor )
+        {
+            InParam.HoudiniAssetParameterRampCurveColor = Cast< UHoudiniAssetParameterRampCurveColor >(
+                NewObject< UHoudiniAssetParameterRampCurveColor >(
+                    InParam.PrimaryObject, UHoudiniAssetParameterRampCurveColor::StaticClass(),
+                    NAME_None, RF_Transactional | RF_Public ) );
+
+            InParam.HoudiniAssetParameterRampCurveColor->SetParentRampParameter( &InParam );
+        }
+
+        // Set curve values.
+        InParam.GenerateCurvePoints();
+
+        // Set the curve that is being edited.
+        CurveEditor->SetCurveOwner( InParam.HoudiniAssetParameterRampCurveColor, true );
+    }
+
+    Row.ValueWidget.Widget = HorizontalBox;
+    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+
+    // Recursively create all child parameters.
+    for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
+        FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+}
+
+void 
 FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterButton& InParam )
 {
     TWeakObjectPtr<UHoudiniAssetParameterButton> MyParam( &InParam );
@@ -333,22 +629,22 @@ FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDeta
     TSharedPtr< SButton > Button;
 
     HorizontalBox->AddSlot().Padding( 1, 2, 4, 2 )
-        [
-            SAssignNew( Button, SButton )
-            .VAlign( VAlign_Center )
-            .HAlign( HAlign_Center )
-            .Text( ParameterLabelText )
-            .ToolTipText( ParameterLabelText )
-            .OnClicked( FOnClicked::CreateLambda( [=]() {
-                if ( MyParam.IsValid() )
-                {
-                    // There's no undo operation for button.
-                    MyParam->MarkPreChanged();
-                    MyParam->MarkChanged();
-                }
-                return FReply::Handled();
-             }))
-        ];
+    [
+        SAssignNew( Button, SButton )
+        .VAlign( VAlign_Center )
+        .HAlign( HAlign_Center )
+        .Text( ParameterLabelText )
+        .ToolTipText( ParameterLabelText )
+        .OnClicked( FOnClicked::CreateLambda( [=]() {
+            if ( MyParam.IsValid() )
+            {
+                // There's no undo operation for button.
+                MyParam->MarkPreChanged();
+                MyParam->MarkChanged();
+            }
+            return FReply::Handled();
+            }))
+    ];
 
     if ( Button.IsValid() )
         Button->SetEnabled( !InParam.bIsDisabled );

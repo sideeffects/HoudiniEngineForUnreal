@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 
@@ -43,7 +35,6 @@
 
 UHoudiniAssetParameterRampCurveFloat::UHoudiniAssetParameterRampCurveFloat( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
-    , HoudiniAssetParameterRamp( nullptr )
 {}
 
 #if WITH_EDITOR
@@ -53,7 +44,7 @@ UHoudiniAssetParameterRampCurveFloat::OnCurveChanged( const TArray< FRichCurveEd
 {
     Super::OnCurveChanged( ChangedCurveEditInfos );
 
-    if ( HoudiniAssetParameterRamp )
+    if ( HoudiniAssetParameterRamp.IsValid() )
         HoudiniAssetParameterRamp->OnCurveFloatChanged( this );
 }
 
@@ -67,7 +58,6 @@ UHoudiniAssetParameterRampCurveFloat::SetParentRampParameter( UHoudiniAssetParam
 
 UHoudiniAssetParameterRampCurveColor::UHoudiniAssetParameterRampCurveColor( const FObjectInitializer& ObjectInitializer )
     : Super( ObjectInitializer )
-    , HoudiniAssetParameterRamp( nullptr )
     , ColorEvent( EHoudiniAssetParameterRampCurveColorEvent::None )
 {}
 
@@ -78,9 +68,10 @@ UHoudiniAssetParameterRampCurveColor::OnCurveChanged( const TArray< FRichCurveEd
 {
     Super::OnCurveChanged( ChangedCurveEditInfos );
 
-    if ( HoudiniAssetParameterRamp )
+    if ( HoudiniAssetParameterRamp.IsValid() )
         HoudiniAssetParameterRamp->OnCurveColorChanged( this );
 
+    // FIXME
     // Unfortunately this will not work as SColorGradientEditor is missing OnCurveChange callback calls.
     // This is most likely UE4 bug.
 }
@@ -161,7 +152,7 @@ UHoudiniAssetParameterRampCurveColor::IsTickableWhenPaused() const
 void
 UHoudiniAssetParameterRampCurveColor::Tick( float DeltaTime )
 {
-    if ( HoudiniAssetParameterRamp )
+    if ( HoudiniAssetParameterRamp.IsValid() )
     {
 
 #if WITH_EDITOR
@@ -224,135 +215,6 @@ UHoudiniAssetParameterRampCurveColor::IsTickable() const
     return false;
 }
 
-#if WITH_EDITOR
-
-/** We need to inherit from curve editor in order to get subscription to mouse events. **/
-class HOUDINIENGINERUNTIME_API SHoudiniAssetParameterRampCurveEditor : public SCurveEditor
-{
-    public:
-
-        SLATE_BEGIN_ARGS( SHoudiniAssetParameterRampCurveEditor )
-            : _ViewMinInput( 0.0f )
-            , _ViewMaxInput( 10.0f )
-            , _ViewMinOutput( 0.0f )
-            , _ViewMaxOutput( 1.0f )
-            , _XAxisName()
-            , _YAxisName()
-            , _HideUI( true )
-            , _DrawCurve( true )
-            , _InputSnap( 0.1f )
-            , _OutputSnap( 0.05f )
-            , _SnappingEnabled( false )
-            , _TimelineLength( 5.0f )
-            , _DesiredSize( FVector2D::ZeroVector )
-            , _AllowZoomOutput( true )
-            , _AlwaysDisplayColorCurves( false )
-            , _ZoomToFitVertical( true )
-            , _ZoomToFitHorizontal( true )
-            , _ShowZoomButtons( true )
-            , _ShowInputGridNumbers( true )
-            , _ShowOutputGridNumbers( true )
-            , _ShowCurveSelector( true )
-            , _GridColor( FLinearColor( 0.0f, 0.0f, 0.0f, 0.3f ) )
-        {}
-
-        SLATE_ATTRIBUTE( float, ViewMinInput)
-        SLATE_ATTRIBUTE( float, ViewMaxInput)
-        SLATE_ATTRIBUTE( float, ViewMinOutput)
-        SLATE_ATTRIBUTE( float, ViewMaxOutput)
-        SLATE_ARGUMENT( TOptional< FString >, XAxisName)
-        SLATE_ARGUMENT( TOptional< FString >, YAxisName)
-        SLATE_ARGUMENT( bool, HideUI)
-        SLATE_ARGUMENT( bool, DrawCurve)
-        SLATE_ATTRIBUTE( float, InputSnap)
-        SLATE_ATTRIBUTE( float, OutputSnap)
-        SLATE_ATTRIBUTE( bool, SnappingEnabled)
-        SLATE_ATTRIBUTE( float, TimelineLength)
-        SLATE_ATTRIBUTE( FVector2D, DesiredSize )
-        SLATE_ARGUMENT( bool, AllowZoomOutput )
-        SLATE_ARGUMENT( bool, AlwaysDisplayColorCurves )
-        SLATE_ARGUMENT( bool, ZoomToFitVertical )
-        SLATE_ARGUMENT( bool, ZoomToFitHorizontal )
-        SLATE_ARGUMENT( bool, ShowZoomButtons )
-        SLATE_ARGUMENT( bool, ShowInputGridNumbers )
-        SLATE_ARGUMENT( bool, ShowOutputGridNumbers )
-        SLATE_ARGUMENT( bool, ShowCurveSelector )
-        SLATE_ARGUMENT( FLinearColor, GridColor )
-        SLATE_END_ARGS()
-
-    public:
-
-        /** Widget construction. **/
-        void Construct( const FArguments & InArgs );
-
-    protected:
-
-        /** Handle mouse up events. **/
-        virtual FReply OnMouseButtonUp( const FGeometry & MyGeometry, const FPointerEvent & MouseEvent ) override;
-
-    public:
-
-        /** Set parent ramp parameter. **/
-        void SetParentRampParameter( UHoudiniAssetParameterRamp * InHoudiniAssetParameterRamp );
-
-    protected:
-
-        /** Parent ramp parameter. **/
-        UHoudiniAssetParameterRamp * HoudiniAssetParameterRamp;
-};
-
-void
-SHoudiniAssetParameterRampCurveEditor::Construct( const FArguments & InArgs )
-{
-    SCurveEditor::Construct( SCurveEditor::FArguments()
-        .ViewMinInput( InArgs._ViewMinInput )
-        .ViewMaxInput( InArgs._ViewMaxInput )
-        .ViewMinOutput( InArgs._ViewMinOutput )
-        .ViewMaxOutput( InArgs._ViewMaxOutput )
-        .XAxisName( InArgs._XAxisName )
-        .YAxisName( InArgs._YAxisName )
-        .HideUI( InArgs._HideUI )
-        .DrawCurve( InArgs._DrawCurve )
-        .TimelineLength( InArgs._TimelineLength )
-        .AllowZoomOutput( InArgs._AllowZoomOutput )
-        .ShowInputGridNumbers( InArgs._ShowInputGridNumbers )
-        .ShowOutputGridNumbers( InArgs._ShowOutputGridNumbers )
-        .ShowZoomButtons( InArgs._ShowZoomButtons )
-        .ZoomToFitHorizontal( InArgs._ZoomToFitHorizontal )
-        .ZoomToFitVertical( InArgs._ZoomToFitVertical )
-        );
-
-    HoudiniAssetParameterRamp = nullptr;
-
-    UCurveEditorSettings * CurveEditorSettings = GetSettings();
-    if ( CurveEditorSettings )
-    {
-        CurveEditorSettings->SetCurveVisibility( ECurveEditorCurveVisibility::AllCurves );
-        CurveEditorSettings->SetTangentVisibility( ECurveEditorTangentVisibility::NoTangents );
-    }
-}
-
-void
-SHoudiniAssetParameterRampCurveEditor::SetParentRampParameter( UHoudiniAssetParameterRamp * InHoudiniAssetParameterRamp )
-{
-    HoudiniAssetParameterRamp = InHoudiniAssetParameterRamp;
-}
-
-FReply
-SHoudiniAssetParameterRampCurveEditor::OnMouseButtonUp(
-    const FGeometry & MyGeometry,
-    const FPointerEvent & MouseEvent )
-{
-    FReply Reply = SCurveEditor::OnMouseButtonUp( MyGeometry, MouseEvent );
-
-    if ( HoudiniAssetParameterRamp )
-        HoudiniAssetParameterRamp->OnCurveEditingFinished();
-
-    return Reply;
-}
-
-#endif
-
 const EHoudiniAssetParameterRampKeyInterpolation::Type
 UHoudiniAssetParameterRamp::DefaultSplineInterpolation = EHoudiniAssetParameterRampKeyInterpolation::MonotoneCubic;
 
@@ -366,9 +228,6 @@ UHoudiniAssetParameterRamp::UHoudiniAssetParameterRamp( const FObjectInitializer
     , bIsFloatRamp( true )
     , bIsCurveChanged( false )
     , bIsCurveUploadRequired( false )
-{}
-
-UHoudiniAssetParameterRamp::~UHoudiniAssetParameterRamp()
 {}
 
 UHoudiniAssetParameter * 
@@ -467,113 +326,6 @@ UHoudiniAssetParameterRamp::NotifyChildParametersCreated()
 
     }
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterRamp::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-    
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-    CurveEditor.Reset();
-
-    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
-
-    FString CurveAxisTextX = TEXT( "" );
-    FString CurveAxisTextY = TEXT( "" );
-    UClass * CurveClass = nullptr;
-
-    if ( bIsFloatRamp )
-    {
-        CurveAxisTextX = TEXT( HAPI_UNREAL_RAMP_FLOAT_AXIS_X );
-        CurveAxisTextY = TEXT( HAPI_UNREAL_RAMP_FLOAT_AXIS_Y );
-        CurveClass = UHoudiniAssetParameterRampCurveFloat::StaticClass();
-    }
-    else
-    {
-        CurveAxisTextX = TEXT( HAPI_UNREAL_RAMP_COLOR_AXIS_X );
-        CurveAxisTextY = TEXT( HAPI_UNREAL_RAMP_COLOR_AXIS_Y );
-        CurveClass = UHoudiniAssetParameterRampCurveColor::StaticClass();
-    }
-
-    HorizontalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SNew( SBorder )
-        .VAlign( VAlign_Fill )
-        [
-            SAssignNew( CurveEditor, SHoudiniAssetParameterRampCurveEditor )
-            .ViewMinInput( 0.0f )
-            .ViewMaxInput( 1.0f )
-            .HideUI( true )
-            .DrawCurve( true )
-            .ViewMinInput( 0.0f )
-            .ViewMaxInput( 1.0f )
-            .ViewMinOutput( 0.0f )
-            .ViewMaxOutput( 1.0f )
-            .TimelineLength( 1.0f )
-            .AllowZoomOutput( false )
-            .ShowInputGridNumbers( false )
-            .ShowOutputGridNumbers( false )
-            .ShowZoomButtons( false )
-            .ZoomToFitHorizontal( false )
-            .ZoomToFitVertical( false )
-            .XAxisName( CurveAxisTextX )
-            .YAxisName( CurveAxisTextY )
-            .ShowCurveSelector( false )
-        ]
-    ];
-
-    // Set callback for curve editor events.
-    if ( CurveEditor.IsValid() )
-        CurveEditor->SetParentRampParameter( this );
-
-    if ( bIsFloatRamp )
-    {
-        if ( !HoudiniAssetParameterRampCurveFloat )
-        {
-            HoudiniAssetParameterRampCurveFloat = Cast< UHoudiniAssetParameterRampCurveFloat >(
-                NewObject< UHoudiniAssetParameterRampCurveFloat >(
-                    PrimaryObject, UHoudiniAssetParameterRampCurveFloat::StaticClass(),
-                    NAME_None, RF_Transactional | RF_Public ) );
-
-            HoudiniAssetParameterRampCurveFloat->SetParentRampParameter( this );
-        }
-
-        // Set curve values.
-        GenerateCurvePoints();
-
-        // Set the curve that is being edited.
-        CurveEditor->SetCurveOwner( HoudiniAssetParameterRampCurveFloat, true );
-    }
-    else
-    {
-        if ( !HoudiniAssetParameterRampCurveColor )
-        {
-            HoudiniAssetParameterRampCurveColor = Cast< UHoudiniAssetParameterRampCurveColor >(
-                NewObject< UHoudiniAssetParameterRampCurveColor >(
-                    PrimaryObject, UHoudiniAssetParameterRampCurveColor::StaticClass(),
-                    NAME_None, RF_Transactional | RF_Public ) );
-
-            HoudiniAssetParameterRampCurveColor->SetParentRampParameter( this );
-        }
-
-        // Set curve values.
-        GenerateCurvePoints();
-
-        // Set the curve that is being edited.
-        CurveEditor->SetCurveOwner( HoudiniAssetParameterRampCurveColor, true );
-    }
-
-    Row.ValueWidget.Widget = HorizontalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-
-    // Bypass multiparm widget creation.
-    UHoudiniAssetParameter::CreateWidget( LocalDetailCategoryBuilder );
-}
-
-#endif
 
 void
 UHoudiniAssetParameterRamp::OnCurveFloatChanged( UHoudiniAssetParameterRampCurveFloat * CurveFloat )
@@ -770,23 +522,6 @@ UHoudiniAssetParameterRamp::PostLoad()
 
     if ( HoudiniAssetParameterRampCurveColor )
         HoudiniAssetParameterRampCurveColor->SetParentRampParameter( this );
-}
-
-void
-UHoudiniAssetParameterRamp::BeginDestroy()
-{
-
-#if WITH_EDITOR
-
-    if ( CurveEditor.IsValid() )
-    {
-        CurveEditor->SetCurveOwner( nullptr );
-        CurveEditor.Reset();
-    }
-
-#endif
-
-    Super::BeginDestroy();
 }
 
 void

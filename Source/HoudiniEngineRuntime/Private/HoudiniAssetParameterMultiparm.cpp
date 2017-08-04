@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Damian Campeanu
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -43,9 +35,6 @@ UHoudiniAssetParameterMultiparm::UHoudiniAssetParameterMultiparm( const FObjectI
     , MultiparmValue( 0 )
     , LastModificationType( RegularValueChange )
     , LastRemoveAddInstanceIndex( -1 )
-{}
-
-UHoudiniAssetParameterMultiparm::~UHoudiniAssetParameterMultiparm()
 {}
 
 UHoudiniAssetParameterMultiparm *
@@ -97,63 +86,6 @@ UHoudiniAssetParameterMultiparm::CreateParameter(
 }
 
 #if WITH_EDITOR
-
-void
-UHoudiniAssetParameterMultiparm::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-    
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-
-    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
-
-    TSharedPtr< SNumericEntryBox< int32 > > NumericEntryBox;
-
-    HorizontalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SAssignNew( NumericEntryBox, SNumericEntryBox< int32 > )
-        .AllowSpin( true )
-
-        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-
-        .Value( TAttribute< TOptional< int32 > >::Create( TAttribute< TOptional< int32 > >::FGetter::CreateUObject(
-            this, &UHoudiniAssetParameterMultiparm::GetValue ) ) )
-        .OnValueChanged( SNumericEntryBox<int32>::FOnValueChanged::CreateUObject(
-            this, &UHoudiniAssetParameterMultiparm::SetValue ) )
-        .OnValueCommitted( SNumericEntryBox<int32>::FOnValueCommitted::CreateUObject(
-            this, &UHoudiniAssetParameterMultiparm::SetValueCommitted ) )
-    ];
-
-    HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
-    [
-        PropertyCustomizationHelpers::MakeAddButton( FSimpleDelegate::CreateUObject(
-            this, &UHoudiniAssetParameterMultiparm::AddElement, true, true ),
-            LOCTEXT( "AddAnotherMultiparmInstanceToolTip", "Add Another Instance" ) )
-    ];
-
-    HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
-    [
-        PropertyCustomizationHelpers::MakeRemoveButton( FSimpleDelegate::CreateUObject(
-            this, &UHoudiniAssetParameterMultiparm::RemoveElement, true, true ),
-            LOCTEXT( "RemoveLastMultiparmInstanceToolTip", "Remove Last Instance" ) )
-    ];
-
-    HorizontalBox->AddSlot().AutoWidth().Padding( 2.0f, 0.0f )
-    [
-        PropertyCustomizationHelpers::MakeEmptyButton( FSimpleDelegate::CreateUObject(
-            this, &UHoudiniAssetParameterMultiparm::SetValue, 0 ),
-            LOCTEXT( "ClearAllMultiparmInstanesToolTip", "Clear All Instances" ) )
-    ];
-
-    if ( NumericEntryBox.IsValid() )
-        NumericEntryBox->SetEnabled( !bIsDisabled );
-
-    Row.ValueWidget.Widget = HorizontalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-}
 
 void
 UHoudiniAssetParameterMultiparm::AddMultiparmInstance( int32 ChildMultiparmInstanceIndex )
@@ -231,14 +163,6 @@ UHoudiniAssetParameterMultiparm::UploadParameterValue()
 
     return Super::UploadParameterValue();
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterMultiparm::SetValueCommitted( int32 InValue, ETextCommit::Type CommitType )
-{}
-
-#endif
 
 TOptional< int32 >
 UHoudiniAssetParameterMultiparm::GetValue() const
