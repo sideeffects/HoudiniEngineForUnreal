@@ -19,25 +19,13 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetParameterSeparator.h"
-#include "HoudiniAssetComponent.h"
 
 UHoudiniAssetParameterSeparator::UHoudiniAssetParameterSeparator( const FObjectInitializer & ObjectInitializer ) :
     Super(ObjectInitializer)
-{}
-
-UHoudiniAssetParameterSeparator::~UHoudiniAssetParameterSeparator()
 {}
 
 UHoudiniAssetParameterSeparator *
@@ -82,29 +70,3 @@ UHoudiniAssetParameterSeparator::CreateParameter(
 
     return true;
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterSeparator::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    TSharedPtr< SSeparator > Separator;
-
-    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-    [
-        SNew( SVerticalBox )
-        +SVerticalBox::Slot()
-        .Padding( 0, 0, 5, 0 )
-        [
-            SAssignNew( Separator, SSeparator )
-            .Thickness( 2.0f )
-        ]
-    ];
-
-    if ( Separator.IsValid() )
-        Separator->SetEnabled( !bIsDisabled );
-}
-
-#endif
