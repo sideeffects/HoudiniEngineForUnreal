@@ -46,6 +46,7 @@
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
 #include "EditorDirectories.h"
+#include "Engine/Selection.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Internationalization.h"
 #include "NumericUnitTypeInterface.inl"
@@ -1296,7 +1297,8 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
         ];
     
     {
-        //TSharedPtr<SButton> ExpanderArrow;
+        TSharedPtr<SButton> ExpanderArrow;
+        TSharedPtr<SImage> ExpanderImage;
         VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
         [
             SNew( SHorizontalBox )
@@ -1305,17 +1307,13 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
             .VAlign( VAlign_Center )
             .AutoWidth()
             [
-                SAssignNew( InParam.ExpanderArrow, SButton )
+                SAssignNew( ExpanderArrow, SButton )
                 .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
                 .ClickMethod( EButtonClickMethod::MouseDown )
-                    .Visibility( EVisibility::Visible )
+                .Visibility( EVisibility::Visible )
                 .OnClicked( FOnClicked::CreateUObject(&InParam, &UHoudiniAssetInput::OnExpandInputTransform, AtIndex ) )
                 [
-                    SNew( SImage )
-                    .Image( FEditorStyle::GetBrush( TEXT( "TreeArrow_Collapsed" ) ) )
-                    .Image( TAttribute<const FSlateBrush*>::Create(
-                        TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
-                        &InParam, &UHoudiniAssetInput::GetExpanderImage, AtIndex ) ) )
+                    SAssignNew( ExpanderImage, SImage )
                     .ColorAndOpacity( FSlateColor::UseForeground() )
                 ]
             ]
@@ -1330,6 +1328,27 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
                 .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
             ]
         ];
+        // Set delegate for image
+        ExpanderImage->SetImage(
+            TAttribute<const FSlateBrush*>::Create(
+                TAttribute<const FSlateBrush*>::FGetter::CreateLambda( [=]() {
+            FName ResourceName;
+            if ( MyParam->TransformUIExpanded[ AtIndex ] )
+            {
+                if ( ExpanderArrow->IsHovered() )
+                    ResourceName = "TreeArrow_Expanded_Hovered";
+                else
+                    ResourceName = "TreeArrow_Expanded";
+            }
+            else
+            {
+                if ( ExpanderArrow->IsHovered() )
+                    ResourceName = "TreeArrow_Collapsed_Hovered";
+                else
+                    ResourceName = "TreeArrow_Collapsed";
+            }
+            return FEditorStyle::GetBrush( ResourceName );
+        } ) ) );
     }
 
     // TRANSFORM 
@@ -1465,6 +1484,120 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
             */
         ];
     }
+}
+
+FReply
+FHoudiniParameterDetails::Helper_OnButtonClickSelectActors( TWeakObjectPtr<class UHoudiniAssetInput> InParam )
+{
+    if ( !InParam.IsValid() )
+        return FReply::Handled();
+
+    // There's no undo operation for button.
+
+    FPropertyEditorModule & PropertyModule =
+        FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
+
+    // Locate the details panel.
+    FName DetailsPanelName = "LevelEditorSelectionDetails";
+    TSharedPtr< IDetailsView > DetailsView = PropertyModule.FindDetailView( DetailsPanelName );
+
+    if ( !DetailsView.IsValid() )
+        return FReply::Handled();
+
+    class SLocalDetailsView : public SDetailsViewBase
+    {
+    public:
+        void LockDetailsView() { SDetailsViewBase::bIsLocked = true; }
+        void UnlockDetailsView() { SDetailsViewBase::bIsLocked = false; }
+    };
+    auto * LocalDetailsView = static_cast< SLocalDetailsView * >( DetailsView.Get() );
+
+    if ( !DetailsView->IsLocked() )
+    {
+        LocalDetailsView->LockDetailsView();
+        check( DetailsView->IsLocked() );
+
+        // Force refresh of details view.
+        InParam->OnParamStateChanged();
+
+        // Select the previously chosen input Actors from the World Outliner.
+        GEditor->SelectNone( false, true );
+        for ( auto & OutlinerMesh : InParam->InputOutlinerMeshArray )
+        {
+            if ( OutlinerMesh.ActorPtr.IsValid() )
+                GEditor->SelectActor( OutlinerMesh.ActorPtr.Get(), true, true );
+        }
+
+        return FReply::Handled();
+    }
+
+    if ( !GEditor || !GEditor->GetSelectedObjects() )
+        return FReply::Handled();
+
+    // If details panel is locked, locate selected actors and check if this component belongs to one of them.
+
+    FScopedTransaction Transaction(
+        TEXT( HOUDINI_MODULE_RUNTIME ),
+        LOCTEXT( "HoudiniInputChange", "Houdini World Outliner Input Change" ),
+        InParam->PrimaryObject );
+    InParam->Modify();
+
+    InParam->MarkPreChanged();
+    InParam->bStaticMeshChanged = true;
+
+    // Delete all assets and reset the array.
+    // TODO: Make this process a little more efficient.
+    InParam->DisconnectAndDestroyInputAsset();
+    InParam->InputOutlinerMeshArray.Empty();
+
+    USelection * SelectedActors = GEditor->GetSelectedActors();
+
+    // If the builder brush is selected, first deselect it.
+    for ( FSelectionIterator It( *SelectedActors ); It; ++It )
+    {
+        AActor * Actor = Cast< AActor >( *It );
+        if ( !Actor )
+            continue;
+
+        // Don't allow selection of ourselves. Bad things happen if we do.
+        if ( InParam->GetHoudiniAssetComponent() && ( Actor == InParam->GetHoudiniAssetComponent()->GetOwner() ) )
+            continue;
+
+        InParam->UpdateInputOulinerArrayFromActor( Actor, false );
+    }
+
+    InParam->MarkChanged();
+
+    AActor* HoudiniAssetActor = InParam->GetHoudiniAssetComponent()->GetOwner();
+
+    if ( DetailsView->IsLocked() )
+    {
+        LocalDetailsView->UnlockDetailsView();
+        check( !DetailsView->IsLocked() );
+
+        TArray< UObject * > DummySelectedActors;
+        DummySelectedActors.Add( HoudiniAssetActor );
+
+        // Reset selected actor to itself, force refresh and override the lock.
+        DetailsView->SetObjects( DummySelectedActors, true, true );
+    }
+
+    // Reselect the Asset Actor. If we don't do this, our Asset parameters will stop
+    // refreshing and the user will be very confused. It is also resetting the state
+    // of the selection before the input actor selection process was started.
+    GEditor->SelectNone( false, true );
+    GEditor->SelectActor( HoudiniAssetActor, true, true );
+
+    // Update parameter layout.
+    InParam->OnParamStateChanged();
+
+    // Start or stop the tick timer to check if the selected Actors have been transformed.
+    if ( InParam->InputOutlinerMeshArray.Num() > 0 )
+        InParam->StartWorldOutlinerTicking();
+    else if ( InParam->InputOutlinerMeshArray.Num() <= 0 )
+        InParam->StopWorldOutlinerTicking();
+
+    return FReply::Handled();
 }
 
 void 
@@ -1983,7 +2116,9 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
                     .VAlign( VAlign_Center )
                     .HAlign( HAlign_Center )
                     .Text( ButtonLabel )
-                    .OnClicked( FOnClicked::CreateUObject( &InParam, &UHoudiniAssetInput::OnButtonClickSelectActors ) )
+                    .OnClicked( FOnClicked::CreateLambda( [=]() {
+                        return Helper_OnButtonClickSelectActors( MyParam );
+                    }))
                 ]
             ];
         }

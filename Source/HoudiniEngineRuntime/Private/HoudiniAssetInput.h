@@ -65,13 +65,13 @@ struct HOUDINIENGINERUNTIME_API FHoudiniAssetInputOutlinerMesh
     /** Selected mesh's Actor, for reference. **/
     TWeakObjectPtr<AActor> ActorPtr = nullptr;
     /** Selected mesh's component, for reference. **/
-    UStaticMeshComponent * StaticMeshComponent = nullptr;
+    class UStaticMeshComponent * StaticMeshComponent = nullptr;
 
     /** The selected mesh. **/
-    UStaticMesh * StaticMesh = nullptr;
+    class UStaticMesh * StaticMesh = nullptr;
 
     /** Spline Component **/
-    USplineComponent * SplineComponent = nullptr;
+    class USplineComponent * SplineComponent = nullptr;
 
     /** Number of CVs used by the spline component, used to detect modification **/
     int32 NumberOfSplineControlPoints = -1;
@@ -254,7 +254,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         FReply OnResetStaticMeshClicked( int32 AtIndex );
 
         /** Helper method used to generate choice entry widget. **/
-        TSharedRef< SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
+        TSharedRef< class SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
 
         /** Called when change of selection is triggered. **/
         void OnChoiceChange( TSharedPtr< FString > NewChoice );
@@ -434,9 +434,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Handler for landscape recommit button. **/
         FReply OnButtonClickRecommit();
 
-        /** Handler for World Outliner input selection button. **/
-        FReply OnButtonClickSelectActors();
-
         /** Start world outliner Actor transform monitor ticking. **/
         void StartWorldOutlinerTicking();
 
@@ -475,13 +472,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         TArray<UObject *> InputObjects;
 
         /** Houdini spline component which is used for curve input. **/
-        UHoudiniSplineComponent * InputCurve;
+        class UHoudiniSplineComponent * InputCurve;
 
         /** Houdini asset component pointer of the input asset (actor). **/
-        UHoudiniAssetComponent * InputAssetComponent;
+        class UHoudiniAssetComponent * InputAssetComponent;
 
         /** Landscape actor used for input. **/
-        ALandscapeProxy * InputLandscapeProxy;
+        class ALandscapeProxy * InputLandscapeProxy;
 
         /** List of selected meshes and actors from the World Outliner. **/
         TArray< FHoudiniAssetInputOutlinerMesh > InputOutlinerMeshArray;
@@ -515,9 +512,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Is the transform UI expanded ? **/
         TArray< bool > TransformUIExpanded;
-
-        /** Widget for the expander arrow */
-        TSharedPtr< SButton > ExpanderArrow;
 
         /** Flags used by this input. **/
         union
