@@ -238,7 +238,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
 
-        const struct FSlateBrush* GetExpanderImage( int32 AtIndex ) const;
         FReply OnExpandInputTransform( int32 AtIndex );
 
     protected:
@@ -512,9 +511,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Is the transform UI expanded ? **/
         TArray< bool > TransformUIExpanded;
-
-        /** Widget for the expander arrow */
-        TSharedPtr< SButton > ExpanderArrow;
 
         /** Flags used by this input. **/
         union

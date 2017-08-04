@@ -3049,36 +3049,6 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     }
 }
 
-/** Delegate: Gets the image for the expander button */
-const FSlateBrush* UHoudiniAssetInput::GetExpanderImage( int32 AtIndex ) const
-{
-    FName ResourceName;
-    if ( TransformUIExpanded[ AtIndex ] )
-    {
-        if ( ExpanderArrow->IsHovered() )
-        {
-            ResourceName = "TreeArrow_Expanded_Hovered";
-        }
-        else
-        {
-            ResourceName = "TreeArrow_Expanded";
-        }
-    }
-    else
-    {
-        if ( ExpanderArrow->IsHovered() )
-        {
-            ResourceName = "TreeArrow_Collapsed_Hovered";
-        }
-        else
-        {
-            ResourceName = "TreeArrow_Collapsed";
-        }
-    }
-
-    return FEditorStyle::GetBrush( ResourceName );
-}
-
 FReply
 UHoudiniAssetInput::OnExpandInputTransform( int32 AtIndex )
 {

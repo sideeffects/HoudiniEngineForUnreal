@@ -1298,7 +1298,8 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
         ];
     
     {
-        //TSharedPtr<SButton> ExpanderArrow;
+        TSharedPtr<SButton> ExpanderArrow;
+        TSharedPtr<SImage> ExpanderImage;
         VerticalBox->AddSlot().Padding( 0, 2 ).AutoHeight()
         [
             SNew( SHorizontalBox )
@@ -1307,17 +1308,13 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
             .VAlign( VAlign_Center )
             .AutoWidth()
             [
-                SAssignNew( InParam.ExpanderArrow, SButton )
+                SAssignNew( ExpanderArrow, SButton )
                 .ButtonStyle( FEditorStyle::Get(), "NoBorder" )
                 .ClickMethod( EButtonClickMethod::MouseDown )
-                    .Visibility( EVisibility::Visible )
+                .Visibility( EVisibility::Visible )
                 .OnClicked( FOnClicked::CreateUObject(&InParam, &UHoudiniAssetInput::OnExpandInputTransform, AtIndex ) )
                 [
-                    SNew( SImage )
-                    .Image( FEditorStyle::GetBrush( TEXT( "TreeArrow_Collapsed" ) ) )
-                    .Image( TAttribute<const FSlateBrush*>::Create(
-                        TAttribute<const FSlateBrush*>::FGetter::CreateUObject(
-                        &InParam, &UHoudiniAssetInput::GetExpanderImage, AtIndex ) ) )
+                    SAssignNew( ExpanderImage, SImage )
                     .ColorAndOpacity( FSlateColor::UseForeground() )
                 ]
             ]
@@ -1332,6 +1329,27 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
                 .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
             ]
         ];
+        // Set delegate for image
+        ExpanderImage->SetImage(
+            TAttribute<const FSlateBrush*>::Create(
+                TAttribute<const FSlateBrush*>::FGetter::CreateLambda( [=]() {
+            FName ResourceName;
+            if ( MyParam->TransformUIExpanded[ AtIndex ] )
+            {
+                if ( ExpanderArrow->IsHovered() )
+                    ResourceName = "TreeArrow_Expanded_Hovered";
+                else
+                    ResourceName = "TreeArrow_Expanded";
+            }
+            else
+            {
+                if ( ExpanderArrow->IsHovered() )
+                    ResourceName = "TreeArrow_Collapsed_Hovered";
+                else
+                    ResourceName = "TreeArrow_Collapsed";
+            }
+            return FEditorStyle::GetBrush( ResourceName );
+        } ) ) );
     }
 
     // TRANSFORM 
