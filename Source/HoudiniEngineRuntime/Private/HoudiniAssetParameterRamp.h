@@ -18,15 +18,6 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -68,7 +59,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveFloat : public UCu
     protected:
 
         /** Parent ramp parameter. **/
-        UHoudiniAssetParameterRamp * HoudiniAssetParameterRamp;
+        TWeakObjectPtr<UHoudiniAssetParameterRamp> HoudiniAssetParameterRamp;
 };
 
 namespace EHoudiniAssetParameterRampCurveColorEvent
@@ -88,6 +79,7 @@ UCLASS( BlueprintType )
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveColor : public UCurveLinearColor, public FTickableGameObject
 {
     GENERATED_UCLASS_BODY()
+
 
     public:
 
@@ -132,7 +124,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRampCurveColor : public UCu
     protected:
 
         /** Parent ramp parameter. **/
-        UHoudiniAssetParameterRamp * HoudiniAssetParameterRamp;
+        TWeakObjectPtr<UHoudiniAssetParameterRamp> HoudiniAssetParameterRamp;
 
         /** Current event. **/
         EHoudiniAssetParameterRampCurveColorEvent::Type ColorEvent;
@@ -157,10 +149,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAsset
 {
     GENERATED_UCLASS_BODY()
 
-    public:
-
-        /** Destructor. **/
-        virtual ~UHoudiniAssetParameterRamp();
+    friend struct FHoudiniParameterDetails;
 
     public:
 
@@ -189,15 +178,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAsset
 
         virtual void Serialize( FArchive & Ar ) override;
         virtual void PostLoad() override;
-        virtual void BeginDestroy() override;
         static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
-
-#if WITH_EDITOR
-
-        /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
-
-#endif
 
         /** Called when curve editing is finished and update should take place. **/
         void OnCurveEditingFinished();
@@ -249,13 +230,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterRamp : public UHoudiniAsset
         static const EHoudiniAssetParameterRampKeyInterpolation::Type DefaultUnknownInterpolation;
 
     protected:
-
-#if WITH_EDITOR
-
-        //! Curve editor widget.
-        TSharedPtr< SHoudiniAssetParameterRampCurveEditor > CurveEditor;
-
-#endif
 
         //! Curves which are being edited.
         UHoudiniAssetParameterRampCurveFloat * HoudiniAssetParameterRampCurveFloat;
