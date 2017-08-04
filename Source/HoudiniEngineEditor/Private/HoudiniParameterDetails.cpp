@@ -29,6 +29,8 @@
 #include "HoudiniAssetParameterChoice.h"
 #include "HoudiniAssetParameterColor.h"
 #include "HoudiniAssetParameterFile.h"
+#include "HoudiniAssetParameterFolder.h"
+#include "HoudiniAssetParameterFolderList.h"
 #include "HoudiniAssetParameterFloat.h"
 #include "HoudiniAssetParameterMultiparm.h"
 #include "HoudiniAssetParameterToggle.h"
@@ -135,9 +137,17 @@ FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCate
 {
     check( InParam );
 
-    if ( auto ParamFile = Cast<UHoudiniAssetParameterFile>( InParam ) )
+    if ( auto ParamFloat = Cast<UHoudiniAssetParameterFloat>( InParam ) )
     {
-        CreateWidgetFile( LocalDetailCategoryBuilder, *ParamFile );
+        CreateWidgetFloat( LocalDetailCategoryBuilder, *ParamFloat );
+    }
+    else if ( auto ParamFolder = Cast<UHoudiniAssetParameterFolder>( InParam ) )
+    {
+        CreateWidgetFolder( LocalDetailCategoryBuilder, *ParamFolder );
+    }
+    else if ( auto ParamFolderList = Cast<UHoudiniAssetParameterFolderList>( InParam ) )
+    {
+        CreateWidgetFolderList( LocalDetailCategoryBuilder, *ParamFolderList );
     }
     else if ( auto ParamButton = Cast<UHoudiniAssetParameterButton>( InParam ) )
     {
@@ -155,13 +165,13 @@ FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCate
     {
         CreateWidgetToggle( LocalDetailCategoryBuilder, *ParamToggle );
     }
-    else if ( auto ParamFloat = Cast<UHoudiniAssetParameterFloat>( InParam ) )
-    {
-        CreateWidgetFloat( LocalDetailCategoryBuilder, *ParamFloat );
-    }
     else if ( auto ParamInput = Cast<UHoudiniAssetInput>( InParam ) )
     {
         CreateWidgetInput( LocalDetailCategoryBuilder, *ParamInput );
+    }
+    if ( auto ParamFile = Cast<UHoudiniAssetParameterFile>( InParam ) )
+    {
+        CreateWidgetFile( LocalDetailCategoryBuilder, *ParamFile );
     }
     else
     {
@@ -190,7 +200,8 @@ FHoudiniParameterDetails::CreateWidget( TSharedPtr< SVerticalBox > VerticalBox, 
     }
 }
 
-void FHoudiniParameterDetails::CreateWidgetFile( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFile& InParam )
+void 
+FHoudiniParameterDetails::CreateWidgetFile( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFile& InParam )
 {
     FDetailWidgetRow& Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
@@ -237,9 +248,80 @@ void FHoudiniParameterDetails::CreateWidgetFile( IDetailCategoryBuilder & LocalD
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 }
 
+void
+FHoudiniParameterDetails::CreateWidgetFolder( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFolder& InParam )
+{
+    if ( InParam.ParentParameter && InParam.ParentParameter->IsActiveChildParameter( &InParam ) )
+    {
+        // Recursively create all child parameters.
+        for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
+            FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+    }
+}
+
+void
+FHoudiniParameterDetails::CreateWidgetFolderList( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFolderList& InParam )
+{
+    TWeakObjectPtr<UHoudiniAssetParameterFolderList> MyParam( &InParam );
+    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
+
+    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+    [
+        SAssignNew(HorizontalBox, SHorizontalBox)
+    ];
+
+    for ( int32 ParameterIdx = 0; ParameterIdx < InParam.ChildParameters.Num(); ++ParameterIdx )
+    {
+        UHoudiniAssetParameter * HoudiniAssetParameterChild = InParam.ChildParameters[ ParameterIdx ];
+        if ( HoudiniAssetParameterChild->IsA( UHoudiniAssetParameterFolder::StaticClass() ) )
+        {
+            FText ParameterLabelText = FText::FromString( HoudiniAssetParameterChild->GetParameterLabel() );
+
+            HorizontalBox->AddSlot().Padding( 0, 2, 0, 2 )
+            [
+                SNew( SButton )
+                .VAlign( VAlign_Center )
+                .HAlign( HAlign_Center )
+                .Text( ParameterLabelText )
+                .ToolTipText( ParameterLabelText )
+                .OnClicked( FOnClicked::CreateLambda( [=]() {
+                    if ( MyParam.IsValid() )
+                    {
+                        MyParam->ActiveChildParameter = ParameterIdx;
+                        MyParam->OnParamStateChanged();
+                    }
+                    return FReply::Handled();
+                }))
+            ];
+        }
+    }
+
+    // Recursively create all child parameters.
+    for ( UHoudiniAssetParameter * ChildParam : InParam.ChildParameters )
+        FHoudiniParameterDetails::CreateWidget( LocalDetailCategoryBuilder, ChildParam );
+
+    if ( InParam.ChildParameters.Num() > 1 )
+    {
+        TSharedPtr< STextBlock > TextBlock;
+
+        LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
+        [
+            SAssignNew( TextBlock, STextBlock )
+            .Text( FText::GetEmpty() )
+            .ToolTipText( FText::GetEmpty() )
+            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+            .WrapTextAt( HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH )
+        ];
+
+        if ( TextBlock.IsValid() )
+            TextBlock->SetEnabled( !InParam.bIsDisabled );
+    }
+}
+
 void 
 FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterButton& InParam )
 {
+    TWeakObjectPtr<UHoudiniAssetParameterButton> MyParam( &InParam );
     FDetailWidgetRow& Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
 
     // Create the standard parameter name widget.
@@ -257,7 +339,15 @@ FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDeta
             .HAlign( HAlign_Center )
             .Text( ParameterLabelText )
             .ToolTipText( ParameterLabelText )
-            .OnClicked( FOnClicked::CreateUObject( &InParam, &UHoudiniAssetParameterButton::OnButtonClick ) )
+            .OnClicked( FOnClicked::CreateLambda( [=]() {
+                if ( MyParam.IsValid() )
+                {
+                    // There's no undo operation for button.
+                    MyParam->MarkPreChanged();
+                    MyParam->MarkChanged();
+                }
+                return FReply::Handled();
+             }))
         ];
 
     if ( Button.IsValid() )

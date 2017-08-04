@@ -98,18 +98,3 @@ UHoudiniAssetParameterButton::SetParameterVariantValue(
 
     return true;
 }
-
-#if WITH_EDITOR
-
-FReply
-UHoudiniAssetParameterButton::OnButtonClick()
-{
-    // There's no undo operation for button.
-
-    MarkPreChanged();
-    MarkChanged();
-
-    return FReply::Handled();
-}
-
-#endif // WITH_EDITOR
