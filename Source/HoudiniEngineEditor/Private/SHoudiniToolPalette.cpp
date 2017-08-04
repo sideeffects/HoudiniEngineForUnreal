@@ -22,6 +22,7 @@
 */
 
 #include "HoudiniApi.h"
+#include "Editor.h"
 #include "SHoudiniToolPalette.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/SBoxPanel.h"
@@ -36,10 +37,12 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SButton.h"
 #include "EditorStyleSet.h"
 #include "HoudiniAssetActor.h"
 #include "AssetRegistryModule.h"
 #include "AssetDragDropOp.h"
+
 
 #define LOCTEXT_NAMESPACE "HoudiniToolPalette"
 
@@ -65,6 +68,7 @@ void SHoudiniToolPalette::Construct( const FArguments& InArgs )
         .ListItemsSource( &HoudiniEngineEditor.GetToolTypes() )
         .OnGenerateRow( this, &SHoudiniToolPalette::MakeListViewWidget )
         .OnSelectionChanged( this, &SHoudiniToolPalette::OnSelectionChanged )
+        .OnMouseButtonDoubleClick( this, &SHoudiniToolPalette::OnDoubleClickedListViewWidget)
         .ItemHeight( 35 );
 
     ChildSlot
@@ -88,6 +92,18 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
     check( ToolType.IsValid() );
  
     auto Style = FHoudiniEngineEditor::Get().GetSlateStyle();
+
+    auto HelpDefault = FEditorStyle::GetBrush( "HelpIcon" );
+    auto HelpHovered = FEditorStyle::GetBrush( "HelpIcon.Hovered" );
+    auto HelpPressed = FEditorStyle::GetBrush( "HelpIcon.Pressed" );
+    TSharedPtr< SImage > HelpButtonImage;
+    TSharedPtr< SButton > HelpButton;
+
+    FString HelpURL = ToolType->HelpURL;
+    FText ToolTip = HelpURL.Len() > 0 ? 
+        FText::Format( LOCTEXT( "OpenHelp", "Click to view tool help: {0}" ), FText::FromString( HelpURL ) ) : 
+        ToolType->Text;
+
     TSharedRef< STableRow<TSharedPtr<FHoudiniToolType>> > TableRowWidget =
         SNew( STableRow<TSharedPtr<FHoudiniToolType>>, OwnerTable )
         .Style( Style, "HoudiniEngine.TableRow" )
@@ -97,7 +113,7 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
         SNew( SBorder )
         .BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
         .Padding( 0 )
-        .ToolTip( SNew( SToolTip ).Text( ToolType->ToolTipText ) )
+        .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
         .Cursor( EMouseCursor::GrabHand )
         [
             SNew( SHorizontalBox )
@@ -135,7 +151,40 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
                     .TextStyle( *Style, "HoudiniEngine.ThumbnailText" )
                     .Text( ToolType->Text )
                 ]
+            + SHorizontalBox::Slot()
+                .VAlign( VAlign_Center )
+                .AutoWidth()
+                [
+                    SAssignNew( HelpButton, SButton )
+                    .ContentPadding( 0 )
+                    .ButtonStyle( FEditorStyle::Get(), "HelpButton" )
+                    .OnClicked( FOnClicked::CreateLambda( [HelpURL]() {
+                        if ( HelpURL.Len() )
+                            FPlatformProcess::LaunchURL( *HelpURL, nullptr, nullptr );
+                        return FReply::Handled();
+                     } ))
+                    .HAlign( HAlign_Center )
+                    .VAlign( VAlign_Center )
+                    .ToolTip( SNew( SToolTip ).Text( ToolTip ))
+                    [
+                        SAssignNew( HelpButtonImage, SImage )
+                    ]
+                ]
         ];
+
+    HelpButtonImage->SetImage( TAttribute<const FSlateBrush *>::Create( TAttribute<const FSlateBrush *>::FGetter::CreateLambda( [=]() {
+        if ( HelpButton->IsPressed() )
+        {
+            return HelpPressed;
+        }
+
+        if ( HelpButtonImage->IsHovered() )
+        {
+            return HelpHovered;
+        }
+
+        return HelpDefault;
+    } ) ) );
 
     TableRowWidget->SetContent( Content );
 
@@ -170,5 +219,20 @@ FReply SHoudiniToolPalette::OnDraggingListViewWidget( const FGeometry& MyGeometr
     return FReply::Unhandled();
 }
 
+
+void 
+SHoudiniToolPalette::OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniToolType> ToolType )
+{
+    if ( ToolType.IsValid() )
+    {
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>( "AssetRegistry" );
+        UObject* AssetObj = ToolType->HoudiniAsset.LoadSynchronous();
+        if ( AssetObj )
+        {
+            UActorFactory* Factory = GEditor->FindActorFactoryForActorClass( AHoudiniAssetActor::StaticClass() );
+            Factory->CreateActor( AssetObj, GEditor->GetEditorWorldContext().World()->GetCurrentLevel(), FTransform::Identity );
+        }
+    }
+}
 
 #undef LOCTEXT_NAMESPACE
