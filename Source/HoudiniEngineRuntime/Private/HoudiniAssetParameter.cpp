@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -54,9 +46,6 @@ GetTypeHash( const UHoudiniAssetParameter * HoudiniAssetParameter )
 
 UHoudiniAssetParameter::UHoudiniAssetParameter( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
-#if WITH_EDITOR
-    , DetailCategoryBuilder( nullptr )
-#endif
     , PrimaryObject( nullptr )
     , ParentParameter( nullptr )
     , NodeId( -1 )
@@ -146,9 +135,6 @@ UHoudiniAssetParameter::Duplicate( UObject* InOuter )
 void
 UHoudiniAssetParameter::CreateWidget( IDetailCategoryBuilder & InDetailCategoryBuilder )
 {
-    // Store category builder.
-    DetailCategoryBuilder = &InDetailCategoryBuilder;
-
     // Recursively create all child parameters.
     for ( TArray< UHoudiniAssetParameter * >::TIterator IterParameter( ChildParameters ); IterParameter; ++IterParameter)
         (*IterParameter)->CreateWidget( InDetailCategoryBuilder );
