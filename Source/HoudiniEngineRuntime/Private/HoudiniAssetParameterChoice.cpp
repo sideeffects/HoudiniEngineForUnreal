@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -44,9 +36,6 @@ UHoudiniAssetParameterChoice::UHoudiniAssetParameterChoice( const FObjectInitial
 {
     StringValue = TEXT( "" );
 }
-
-UHoudiniAssetParameterChoice::~UHoudiniAssetParameterChoice()
-{}
 
 UHoudiniAssetParameterChoice *
 UHoudiniAssetParameterChoice::Create(
@@ -178,83 +167,6 @@ UHoudiniAssetParameterChoice::CreateParameter(
 
     return true;
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterChoice::CreateWidget( IDetailCategoryBuilder & localDetailCategoryBuilder )
-{
-    Super::CreateWidget( localDetailCategoryBuilder );
-
-    FDetailWidgetRow & Row = localDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, true );
-
-    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
-    TSharedPtr< SComboBox< TSharedPtr< FString > > > ComboBox;
-
-    HorizontalBox->AddSlot().Padding( 2, 2, 5, 2 )
-    [
-        SAssignNew( ComboBox, SComboBox< TSharedPtr< FString > > )
-        .OptionsSource( &StringChoiceLabels )
-        .InitiallySelectedItem( StringChoiceLabels[ CurrentValue ] )
-        .OnGenerateWidget( SComboBox< TSharedPtr< FString > >::FOnGenerateWidget::CreateUObject(
-            this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget ) )
-        .OnSelectionChanged( SComboBox< TSharedPtr< FString > >::FOnSelectionChanged::CreateUObject(
-            this, &UHoudiniAssetParameterChoice::OnChoiceChange ) )
-        [
-            SNew( STextBlock )
-            .Text( TAttribute< FText >::Create( TAttribute< FText >::FGetter::CreateUObject(
-                this, &UHoudiniAssetParameterChoice::HandleChoiceContentText ) ) )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-    ];
-
-    if ( ComboBox.IsValid() )
-        ComboBox->SetEnabled( !bIsDisabled );
-
-    Row.ValueWidget.Widget = HorizontalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
-
-void
-UHoudiniAssetParameterChoice::CreateWidget( TSharedPtr< SVerticalBox > VerticalBox )
-{
-    Super::CreateWidget( VerticalBox );
-
-    FText ParameterLabelText = FText::FromString( GetParameterLabel() );
-
-    VerticalBox->AddSlot().Padding( 2, 2, 2, 2 )
-    [
-        SNew( SHorizontalBox )
-        +SHorizontalBox::Slot().MaxWidth( 80 ).Padding( 7, 1, 0, 0 ).VAlign( VAlign_Center )
-        [
-            SNew( STextBlock )
-            .Text( ParameterLabelText )
-            .ToolTipText( ParameterLabelText )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-        ]
-        +SHorizontalBox::Slot()
-        [
-            SNew( SComboBox< TSharedPtr< FString > > )
-            .OptionsSource( &StringChoiceLabels )
-            .InitiallySelectedItem( StringChoiceLabels[ CurrentValue ] )
-            .OnGenerateWidget( SComboBox< TSharedPtr< FString > >::FOnGenerateWidget::CreateUObject(
-                this, &UHoudiniAssetParameterChoice::CreateChoiceEntryWidget ) )
-            .OnSelectionChanged( SComboBox< TSharedPtr< FString > >::FOnSelectionChanged::CreateUObject(
-                this, &UHoudiniAssetParameterChoice::OnChoiceChange ) )
-            [
-                SNew( STextBlock )
-                .Text( TAttribute< FText >::Create( TAttribute< FText >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetParameterChoice::HandleChoiceContentText ) ) )
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-            ]
-        ]
-    ];
-}
-
-#endif // WITH_EDITOR
 
 TOptional< TSharedPtr< FString > >
 UHoudiniAssetParameterChoice::GetValue( int32 Idx ) const
@@ -480,11 +392,8 @@ UHoudiniAssetParameterChoice::CreateChoiceEntryWidget( TSharedPtr< FString > Cho
 }
 
 void
-UHoudiniAssetParameterChoice::OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType )
+UHoudiniAssetParameterChoice::OnChoiceChange( TSharedPtr< FString > NewChoice )
 {
-    if ( !NewChoice.IsValid() )
-        return;
-
     bool bLocalChanged = false;
     StringValue = *( NewChoice.Get() );
 

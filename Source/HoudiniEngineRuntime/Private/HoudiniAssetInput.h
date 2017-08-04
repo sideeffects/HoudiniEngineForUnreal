@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -115,10 +107,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 {
     GENERATED_UCLASS_BODY()
 
-    public:
+    friend struct FHoudiniParameterDetails;
 
-        /** Destructor. **/
-        virtual ~UHoudiniAssetInput();
+    public:
 
         /** Create instance of this class for use as an input **/
         static UHoudiniAssetInput * Create( UObject * InPrimaryObject, int32 InInputIndex, HAPI_NodeId InNodeId );
@@ -140,13 +131,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetDefaultInputTypeFromLabel();
 
 #if WITH_EDITOR
-        /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder ) override;
-        /** Create a single geometry widget for the given input object */
-        void CreateGeometryWidget( 
-            int32 AtIndex, UObject* InputObject, 
-            TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool, TSharedRef< SVerticalBox > VerticalBox );
-
         virtual void PostEditUndo() override;
 
         /** Directly set the input (for testing ) */
@@ -272,11 +256,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Helper method used to generate choice entry widget. **/
         TSharedRef< SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
 
-        /** Helper method used to generate the menu builder used for custom actor pickers **/
-        FMenuBuilder CreateCustomActorPickerWidget(const TAttribute<FText>& HeadingText, const bool& bShowCurrentSelectionSection);
-
         /** Called when change of selection is triggered. **/
-        void OnChoiceChange( TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType );
+        void OnChoiceChange( TSharedPtr< FString > NewChoice );
 
         /** Called on actor picker selection to filter the actors by type. **/
         bool OnShouldFilterActor( const AActor * const Actor ) const;
@@ -381,9 +362,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
 #if WITH_EDITOR
 
-        /** Combo element used for input type selection. **/
-        TSharedPtr< SComboBox< TSharedPtr< FString> > > InputTypeComboBox;
-
         /** Delegate for filtering static meshes. **/
         FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
@@ -482,6 +460,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Return checked state of landscape tile uv checkbox. **/
         ECheckBoxState IsCheckedPackBeforeMerge() const;
+
+        /** Callbacks for geo array UI buttons */
+        void OnInsertGeo( int32 AtIndex );
+        void OnDeleteGeo( int32 AtIndex );
+        void OnDuplicateGeo( int32 AtIndex );
 
 #endif
 

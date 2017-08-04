@@ -43,6 +43,13 @@
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniAssetActor.h"
 
+//#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/ObjectLibrary.h"
+#include "EditorDirectories.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+
 #include "SHoudiniToolPalette.h"
 #include "IPlacementModeModule.h"
 

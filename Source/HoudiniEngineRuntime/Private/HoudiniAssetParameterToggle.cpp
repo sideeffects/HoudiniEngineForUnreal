@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -41,9 +33,6 @@ UHoudiniAssetParameterToggle::UHoudiniAssetParameterToggle( const FObjectInitial
     // Parameter will have at least one value.
     Values.AddZeroed( 1 );
 }
-
-UHoudiniAssetParameterToggle::~UHoudiniAssetParameterToggle()
-{}
 
 UHoudiniAssetParameterToggle *
 UHoudiniAssetParameterToggle::Create(
@@ -97,90 +86,6 @@ UHoudiniAssetParameterToggle::CreateParameter(
     // Min and max make no sense for this type of parameter.
     return true;
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterToggle::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-    FText ParameterLabelText = FText::FromString( GetParameterLabel() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, false );
-
-    TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
-
-    for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
-    {
-        TSharedPtr< SCheckBox > CheckBox;
-
-        VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-        [
-            SAssignNew( CheckBox, SCheckBox )
-            .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                this, &UHoudiniAssetParameterToggle::CheckStateChanged, Idx ) )
-            .IsChecked( TAttribute< ECheckBoxState >::Create(
-                TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                    this, &UHoudiniAssetParameterToggle::IsChecked, Idx ) ) )
-            .Content()
-            [
-                SNew( STextBlock )
-                .Text( ParameterLabelText )
-                .ToolTipText( ParameterLabelText )
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-            ]
-        ];
-
-        if ( CheckBox.IsValid() )
-            CheckBox->SetEnabled( !bIsDisabled );
-    }
-
-    Row.ValueWidget.Widget = VerticalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
-
-void
-UHoudiniAssetParameterToggle::CreateWidget( TSharedPtr< SVerticalBox > VerticalBox )
-{
-    Super::CreateWidget( VerticalBox );
-    FText ParameterLabelText = FText::FromString( GetParameterLabel() );
-
-    for ( int32 Idx = 0; Idx < TupleSize; ++Idx )
-    {
-        VerticalBox->AddSlot().Padding( 0, 2, 0, 2 )
-        [
-            SNew( SHorizontalBox )
-            +SHorizontalBox::Slot().MaxWidth( 8 )
-            [
-                SNew( STextBlock )
-                .Text( FText::GetEmpty() )
-                .ToolTipText( ParameterLabelText )
-                .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-            ]
-            +SHorizontalBox::Slot()
-            [
-                SNew( SCheckBox )
-                .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                    this, &UHoudiniAssetParameterToggle::CheckStateChanged, Idx ) )
-                .IsChecked(TAttribute< ECheckBoxState >::Create(
-                    TAttribute< ECheckBoxState >::FGetter::CreateUObject(
-                        this, &UHoudiniAssetParameterToggle::IsChecked, Idx ) ) )
-                .Content()
-                [
-                    SNew( STextBlock )
-                    .Text( ParameterLabelText )
-                    .ToolTipText( ParameterLabelText )
-                    .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-                ]
-            ]
-        ];
-    }
-}
-
-#endif
 
 bool
 UHoudiniAssetParameterToggle::UploadParameterValue()
