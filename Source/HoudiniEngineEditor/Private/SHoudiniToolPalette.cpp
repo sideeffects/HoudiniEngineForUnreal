@@ -100,7 +100,7 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
     TSharedPtr< SButton > HelpButton;
 
     FString HelpURL = ToolType->HelpURL;
-    FText ToolTip = HelpURL.Len() > 0 ? 
+    FText Tip = HelpURL.Len() > 0 ? 
         FText::Format( LOCTEXT( "OpenHelp", "Click to view tool help: {0}" ), FText::FromString( HelpURL ) ) : 
         ToolType->Text;
 
@@ -113,7 +113,7 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
         SNew( SBorder )
         .BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
         .Padding( 0 )
-        .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
+        .ToolTip( SNew( SToolTip ).Text( Tip ) )
         .Cursor( EMouseCursor::GrabHand )
         [
             SNew( SHorizontalBox )
@@ -165,7 +165,7 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
                      } ))
                     .HAlign( HAlign_Center )
                     .VAlign( VAlign_Center )
-                    .ToolTip( SNew( SToolTip ).Text( ToolTip ))
+                    .ToolTip( SNew( SToolTip ).Text( Tip ))
                     [
                         SAssignNew( HelpButtonImage, SImage )
                     ]
