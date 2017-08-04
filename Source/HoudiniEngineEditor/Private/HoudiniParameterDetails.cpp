@@ -276,10 +276,13 @@ FHoudiniParameterDetails::CreateWidgetFile( IDetailCategoryBuilder & LocalDetail
             &InParam, &UHoudiniAssetParameterFile::HandleFilePathPickerPathPicked, Idx ) )
             .IsNewFile(true)
         ];
+
     }
 
     Row.ValueWidget.Widget = VerticalBox;
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+
+    Row.ValueWidget.Widget->SetEnabled( !InParam.bIsDisabled );
 }
 
 void
@@ -934,16 +937,16 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
             .Z( TAttribute< TOptional< float > >::Create( TAttribute< TOptional< float > >::FGetter::CreateUObject( &InParam, &UHoudiniAssetParameterFloat::GetValue, SwappedAxis3Vector ? 1 : 2 ) ) )
             .OnXCommitted( FOnFloatValueCommitted::CreateLambda(
                 [=]( float Val, ETextCommit::Type TextCommitType ) {
-            MyParam->SetValue( Val, 0, true, true );
-        } ) )
+                MyParam->SetValue( Val, 0, true, true );
+            } ) )
             .OnYCommitted( FOnFloatValueCommitted::CreateLambda(
                 [=]( float Val, ETextCommit::Type TextCommitType ) {
-            MyParam->SetValue( Val, SwappedAxis3Vector ? 2 : 1, true, true );
-        } ) )
+                MyParam->SetValue( Val, SwappedAxis3Vector ? 2 : 1, true, true );
+            } ) )
             .OnZCommitted( FOnFloatValueCommitted::CreateLambda(
                 [=]( float Val, ETextCommit::Type TextCommitType ) {
-            MyParam->SetValue( Val, SwappedAxis3Vector ? 1 : 2, true, true );
-        } ) )
+                MyParam->SetValue( Val, SwappedAxis3Vector ? 1 : 2, true, true );
+            } ) )
             .TypeInterface( TypeInterface );
     }
     else
@@ -955,9 +958,9 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
             TSharedPtr< SNumericEntryBox< float > > NumericEntryBox;
 
             VerticalBox->AddSlot().Padding( 2, 2, 5, 2 )
-                [
-                    SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
-                    .AllowSpin( true )
+            [
+                SAssignNew( NumericEntryBox, SNumericEntryBox< float > )
+                .AllowSpin( true )
 
                 .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 
@@ -971,12 +974,12 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
                     &InParam, &UHoudiniAssetParameterFloat::GetValue, Idx ) ) )
                 .OnValueChanged( SNumericEntryBox< float >::FOnValueChanged::CreateLambda(
                     [=]( float Val ) {
-                MyParam->SetValue( Val, Idx, false, false );
-            } ) )
+                    MyParam->SetValue( Val, Idx, false, false );
+                } ) )
                 .OnValueCommitted( SNumericEntryBox< float >::FOnValueCommitted::CreateLambda(
                     [=]( float Val, ETextCommit::Type TextCommitType ) {
-                MyParam->SetValue( Val, Idx, true, true );
-            } ) )
+                    MyParam->SetValue( Val, Idx, true, true );
+                } ) )
                 .OnBeginSliderMovement( FSimpleDelegate::CreateUObject(
                     &InParam, &UHoudiniAssetParameterFloat::OnSliderMovingBegin, Idx ) )
                 .OnEndSliderMovement( SNumericEntryBox< float >::FOnValueChanged::CreateUObject(
@@ -984,15 +987,13 @@ FHoudiniParameterDetails::CreateWidgetFloat( IDetailCategoryBuilder & LocalDetai
 
                 .SliderExponent( 1.0f )
                 .TypeInterface( TypeInterface )
-                ];
-
-            if ( NumericEntryBox.IsValid() )
-                NumericEntryBox->SetEnabled( !InParam.bIsDisabled );
+            ];
         }
 
         Row.ValueWidget.Widget = VerticalBox;
     }
     Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
+    Row.ValueWidget.Widget->SetEnabled( !InParam.bIsDisabled );
 }
 
 void 
