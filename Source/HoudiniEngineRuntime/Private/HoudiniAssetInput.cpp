@@ -3040,7 +3040,7 @@ UHoudiniAssetInput::HasChanged() const
 bool
 UHoudiniAssetInput::UpdateInputOulinerArray()
 {
-    bool bChanged = false;
+    bool NeedsUpdate = false;
 
     // See if some outliner inputs need to be updated, or removed
     // If an input's Actor is no longer valid, then when need to remove that input.
@@ -3054,7 +3054,7 @@ UHoudiniAssetInput::UpdateInputOulinerArray()
         if ( !OutlinerInput.ActorPtr.IsValid() )
         {
             // This input has an invalid actor: destroy it and its asset
-            bChanged = true;
+            NeedsUpdate = true;
 
             // Destroy Houdini asset
             if ( FHoudiniEngineUtils::IsValidAssetId( OutlinerInput.AssetId ) )
@@ -3077,7 +3077,7 @@ UHoudiniAssetInput::UpdateInputOulinerArray()
 
             ActorToUpdateArray.Add( OutlinerInput.ActorPtr.Get() );
 
-            bChanged = true;
+            NeedsUpdate = true;
         }
     }
 
@@ -3085,7 +3085,7 @@ UHoudiniAssetInput::UpdateInputOulinerArray()
     for ( auto & CurrentActor : ActorToUpdateArray )
         UpdateInputOulinerArrayFromActor( CurrentActor, true );
 
-    return bChanged;
+    return NeedsUpdate;
 }
 
 void

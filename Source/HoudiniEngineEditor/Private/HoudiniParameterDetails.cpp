@@ -129,25 +129,25 @@ FHoudiniParameterDetails::CreateWidget( IDetailCategoryBuilder & LocalDetailCate
 {
     check( InParam );
 
-    if ( auto Param = Cast<UHoudiniAssetParameterFile>( InParam ) )
+    if ( auto ParamFile = Cast<UHoudiniAssetParameterFile>( InParam ) )
     {
-        CreateWidgetFile( LocalDetailCategoryBuilder, *Param );
+        CreateWidgetFile( LocalDetailCategoryBuilder, *ParamFile );
     }
-    else if ( auto Param = Cast<UHoudiniAssetParameterButton>( InParam ) )
+    else if ( auto ParamButton = Cast<UHoudiniAssetParameterButton>( InParam ) )
     {
-        CreateWidgetButton( LocalDetailCategoryBuilder, *Param );
+        CreateWidgetButton( LocalDetailCategoryBuilder, *ParamButton );
     }
-    else if ( auto Param = Cast<UHoudiniAssetParameterChoice>( InParam ) )
+    else if ( auto ParamChoice = Cast<UHoudiniAssetParameterChoice>( InParam ) )
     {
-        CreateWidgetChoice( LocalDetailCategoryBuilder, *Param );
+        CreateWidgetChoice( LocalDetailCategoryBuilder, *ParamChoice );
     }
-    else if ( auto Param = Cast<UHoudiniAssetParameterToggle>( InParam ) )
+    else if ( auto ParamToggle = Cast<UHoudiniAssetParameterToggle>( InParam ) )
     {
-        CreateWidgetToggle( LocalDetailCategoryBuilder, *Param );
+        CreateWidgetToggle( LocalDetailCategoryBuilder, *ParamToggle );
     }
-    else if ( auto Param = Cast<UHoudiniAssetInput>( InParam ) )
+    else if ( auto ParamInput = Cast<UHoudiniAssetInput>( InParam ) )
     {
-        CreateWidgetInput( LocalDetailCategoryBuilder, *Param );
+        CreateWidgetInput( LocalDetailCategoryBuilder, *ParamInput );
     }
     else
     {
@@ -161,13 +161,13 @@ FHoudiniParameterDetails::CreateWidget( TSharedPtr< SVerticalBox > VerticalBox, 
 {
     check( InParam );
 
-    if ( auto Param = Cast<UHoudiniAssetParameterChoice>( InParam ) )
+    if ( auto ParamChoice = Cast<UHoudiniAssetParameterChoice>( InParam ) )
     {
-        CreateWidgetChoice( VerticalBox, *Param );
+        CreateWidgetChoice( VerticalBox, *ParamChoice );
     }
-    else if ( auto Param = Cast<UHoudiniAssetParameterToggle>( InParam ) )
+    else if ( auto ParamToggle = Cast<UHoudiniAssetParameterToggle>( InParam ) )
     {
-        CreateWidgetToggle( VerticalBox, *Param );
+        CreateWidgetToggle( VerticalBox, *ParamToggle );
     }
     else
     {
