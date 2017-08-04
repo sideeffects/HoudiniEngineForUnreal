@@ -33,6 +33,8 @@ struct FHoudiniParameterDetails
 
     static void CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameter* InParam );
     static void CreateWidgetFile( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFile& InParam );
+    static void CreateWidgetFolder( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFolder& InParam );
+    static void CreateWidgetFolderList( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFolderList& InParam );
     static void CreateWidgetButton( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterButton& InParam );
     static void CreateWidgetChoice( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterChoice& InParam );
     static void CreateWidgetColor( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterColor& InParam );

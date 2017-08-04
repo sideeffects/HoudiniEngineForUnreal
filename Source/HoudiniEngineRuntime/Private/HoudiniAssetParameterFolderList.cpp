@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -34,13 +26,9 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetParameterFolder.h"
 #include "HoudiniAssetComponent.h"
-#include "Widgets/Input/SButton.h"
 
 UHoudiniAssetParameterFolderList::UHoudiniAssetParameterFolderList( const FObjectInitializer & ObjectInitializer)
     : Super( ObjectInitializer )
-{}
-
-UHoudiniAssetParameterFolderList::~UHoudiniAssetParameterFolderList()
 {}
 
 UHoudiniAssetParameterFolderList *
@@ -90,65 +78,3 @@ UHoudiniAssetParameterFolderList::CreateParameter(
     return true;
 }
 
-#if WITH_EDITOR
-
-void
-UHoudiniAssetParameterFolderList::CreateWidget( IDetailCategoryBuilder & LocalDetailCategoryBuilder )
-{
-    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
-
-    LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-    [
-        SAssignNew(HorizontalBox, SHorizontalBox)
-    ];
-
-    for ( int32 ParameterIdx = 0; ParameterIdx < ChildParameters.Num(); ++ParameterIdx )
-    {
-        UHoudiniAssetParameter * HoudiniAssetParameterChild = ChildParameters[ ParameterIdx ];
-        if ( HoudiniAssetParameterChild->IsA( UHoudiniAssetParameterFolder::StaticClass() ) )
-        {
-            FText ParameterLabelText = FText::FromString( HoudiniAssetParameterChild->GetParameterLabel() );
-
-            HorizontalBox->AddSlot().Padding( 0, 2, 0, 2 )
-            [
-                SNew( SButton )
-                .VAlign( VAlign_Center )
-                .HAlign( HAlign_Center )
-                .Text( ParameterLabelText )
-                .ToolTipText( ParameterLabelText )
-                .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetParameterFolderList::OnButtonClick, ParameterIdx ) )
-            ];
-        }
-    }
-
-    Super::CreateWidget( LocalDetailCategoryBuilder );
-
-    if ( ChildParameters.Num() > 1 )
-    {
-        TSharedPtr< STextBlock > TextBlock;
-
-        LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
-        [
-            SAssignNew( TextBlock, STextBlock )
-            .Text( FText::GetEmpty() )
-            .ToolTipText( FText::GetEmpty() )
-            .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-            .WrapTextAt( HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH )
-        ];
-
-        if ( TextBlock.IsValid() )
-            TextBlock->SetEnabled( !bIsDisabled );
-    }
-}
-
-FReply
-UHoudiniAssetParameterFolderList::OnButtonClick( int32 ParameterIdx )
-{
-    ActiveChildParameter = ParameterIdx;
-
-    OnParamStateChanged();
-
-    return FReply::Handled();
-}
-
-#endif
