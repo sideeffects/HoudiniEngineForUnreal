@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -34,13 +26,9 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
-#include "Widgets/Input/SButton.h"
 
 UHoudiniAssetParameterButton::UHoudiniAssetParameterButton( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
-{}
-
-UHoudiniAssetParameterButton::~UHoudiniAssetParameterButton()
 {}
 
 UHoudiniAssetParameterButton *
@@ -112,37 +100,6 @@ UHoudiniAssetParameterButton::SetParameterVariantValue(
 }
 
 #if WITH_EDITOR
-
-void
-UHoudiniAssetParameterButton::CreateWidget( IDetailCategoryBuilder & localDetailCategoryBuilder )
-{
-    Super::CreateWidget( localDetailCategoryBuilder );
-
-    FDetailWidgetRow & Row = localDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
-    FText ParameterLabelText = FText::FromString( GetParameterLabel() );
-
-    // Create the standard parameter name widget.
-    CreateNameWidget( Row, false );
-
-    TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
-    TSharedPtr< SButton > Button;
-
-    HorizontalBox->AddSlot().Padding( 1, 2, 4, 2 )
-    [
-        SAssignNew( Button, SButton )
-        .VAlign( VAlign_Center )
-        .HAlign( HAlign_Center )
-        .Text( ParameterLabelText )
-        .ToolTipText( ParameterLabelText )
-        .OnClicked( FOnClicked::CreateUObject( this, &UHoudiniAssetParameterButton::OnButtonClick ) )
-    ];
-
-    if ( Button.IsValid() )
-        Button->SetEnabled( !bIsDisabled );
-
-    Row.ValueWidget.Widget = HorizontalBox;
-    Row.ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-}
 
 FReply
 UHoudiniAssetParameterButton::OnButtonClick()
