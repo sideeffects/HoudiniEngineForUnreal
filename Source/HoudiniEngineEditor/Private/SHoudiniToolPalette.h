@@ -55,6 +55,9 @@ private:
     /** Begin dragging a list widget */
    FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
+   void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniToolType> ListItem );
+
 private:
     TSharedPtr<FHoudiniToolType> ActiveTool;
+
 };

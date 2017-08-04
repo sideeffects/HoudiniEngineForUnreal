@@ -86,17 +86,25 @@ struct FHoudiniTool
 {
     GENERATED_USTRUCT_BODY()
 
-    UPROPERTY(Category=Shelf, EditAnywhere)
+    /** Name of the tool */
+    UPROPERTY(Category=Tool, EditAnywhere)
     FString Name;
 
-    UPROPERTY( Category = Shelf, EditAnywhere )
+    /** Tooltip shown on mouse hover */
+    UPROPERTY( Category = Tool, EditAnywhere )
     FString ToolTip;
 
-    UPROPERTY( Category = Shelf, EditAnywhere, meta = ( FilePathFilter = "png" ) )
+    /** Path to a custom icon */
+    UPROPERTY( Category = Tool, EditAnywhere, meta = ( FilePathFilter = "png" ) )
     FFilePath IconPath;
 
-    UPROPERTY( Category = Shelf, EditAnywhere )
+    /** Houdini uasset */
+    UPROPERTY( Category = Tool, EditAnywhere )
     TAssetPtr < class UHoudiniAsset > HoudiniAsset;
+
+    /** Clicking on help icon will bring up this URL */
+    UPROPERTY( Category = Tool, EditAnywhere )
+    FString HelpURL;
 };
 
 UCLASS( config = Engine, defaultconfig )

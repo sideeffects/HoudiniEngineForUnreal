@@ -92,18 +92,21 @@ void SNewFilePathPicker::Construct( const FArguments& InArgs )
  // Turn off for < 4.16
  #if 0 // PLATFORM_WINDOWS
 
-// This code is all copied from DesktopPlatformWindows because we want a file chooser dialog
-// that behaves like the Houdini one - doesn't prompt to confirm overwrite of an existing file
-// and allows specifying a file path that doesn't yet exist
-
 #include "WindowsHWrapper.h"
 #include "COMPointer.h"
+//#include "Misc/Paths.h"
+//#include "Misc/Guid.h"
 #include "HAL/FileManager.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <commdlg.h>
+//#include <shellapi.h>
 #include <shlobj.h>
+//#include <Winver.h>
+//#include <LM.h>
+//#include <tlhelp32.h>
+//#include <Psapi.h>
 #include "HideWindowsPlatformTypes.h"
-
+//#pragma comment( lib, "version.lib" )
 
 bool FileDialogShared( bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex )
 {
@@ -121,7 +124,6 @@ bool FileDialogShared( bool bSave, const void* ParentWindowHandle, const FString
             {
                 FileDialog->SetFileName( *FPaths::GetCleanFilename( DefaultFile ) );
             }
-            // cg - Added this block
             DWORD dwFlags = 0;
             FileDialog->GetOptions( &dwFlags );
             FileDialog->SetOptions( dwFlags & ~FOS_OVERWRITEPROMPT );
