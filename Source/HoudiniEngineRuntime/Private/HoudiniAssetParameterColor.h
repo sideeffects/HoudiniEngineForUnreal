@@ -50,13 +50,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAsse
             HAPI_NodeId InNodeId,
             const HAPI_ParmInfo & ParmInfo ) override;
 
-#if WITH_EDITOR
-
-        /** Return true if color picker window is open by this parameter. **/
-        virtual bool IsColorPickerWindowOpen() const;
-
-#endif
-
         /** Upload parameter value to HAPI. **/
         virtual bool UploadParameterValue() override;
 
@@ -89,7 +82,4 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameterColor : public UHoudiniAsse
 
         /** Color for this property. **/
         FLinearColor Color;
-
-        /** Is set to true if color picker is open. **/
-        bool bIsColorPickerOpen;
 };
