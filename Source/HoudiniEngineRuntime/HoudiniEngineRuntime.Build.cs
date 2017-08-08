@@ -165,37 +165,35 @@ public class HoudiniEngineRuntime : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bBuildEditor == true)
-		{
-			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"AssetTools",
-					"UnrealEd",
-					"Slate",
-					"SlateCore",
-					"Projects",
-					"PropertyEditor",
-					"ContentBrowser",
-					"LevelEditor",
-					"MainFrame",
-					"EditorStyle",
-					"EditorWidgets",
-					"AppFramework",
-					"TargetPlatform",
-					"RawMesh",
-					"DesktopWidgets",
-					"Settings"
-				}
-			);
-		}
-
-		PrivateDependencyModuleNames.AddRange(
+       PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				// ... add private dependencies that you statically link with here ...
 			}
 			);
+
+		if (UEBuildConfiguration.bBuildEditor == true)
+		{
+            PrivateDependencyModuleNames.AddRange(
+			    new string[]
+			    {
+                    "AppFramework",
+                    "AssetTools",
+                    "EditorStyle",
+                    "EditorWidgets",
+                    "LevelEditor",
+                    "MainFrame",
+                    "Projects",
+                    "PropertyEditor",
+                    "RawMesh",
+                    "Settings",
+                    "Slate",
+                    "SlateCore",
+                    "TargetPlatform",
+                    "UnrealEd"
+                }
+			);
+		}
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
