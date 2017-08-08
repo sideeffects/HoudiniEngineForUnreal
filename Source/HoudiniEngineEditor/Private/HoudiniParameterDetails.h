@@ -43,7 +43,6 @@ struct FHoudiniParameterDetails
     static void CreateWidgetToggle( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterToggle& InParam );
     static void CreateWidgetFloat( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterFloat& InParam );
     static void CreateWidgetInt( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterInt& InParam );
-    static void CreateWidgetInstanceInput( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetInstanceInput& InParam );
     static void CreateWidgetInput( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetInput& InParam );
     static void CreateWidgetLabel( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterLabel& InParam );
     static void CreateWidgetString( IDetailCategoryBuilder & LocalDetailCategoryBuilder, class UHoudiniAssetParameterString& InParam );
@@ -52,7 +51,6 @@ struct FHoudiniParameterDetails
     static void CreateWidget( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameter* InParam );
     static void CreateWidgetChoice( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameterChoice& InParam );
     static void CreateWidgetToggle( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameterToggle& InParam );
-
 private:
     static FMenuBuilder Helper_CreateCustomActorPickerWidget( UHoudiniAssetInput& InParam, const TAttribute<FText>& HeadingText, const bool& bShowCurrentSelectionSection );
     static void Helper_CreateGeometryWidget( class UHoudiniAssetInput& InParam, int32 AtIndex, UObject* InputObject,

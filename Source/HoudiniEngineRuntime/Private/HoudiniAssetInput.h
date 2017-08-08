@@ -361,6 +361,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
 #if WITH_EDITOR
 
+        /** Delegate for filtering static meshes. **/
+        FOnShouldFilterAsset OnShouldFilterStaticMesh;
+
         /** Check if state of landscape selection checkbox has changed. **/
         void CheckStateChangedExportOnlySelected( ECheckBoxState NewState );
 

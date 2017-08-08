@@ -33,6 +33,7 @@
 UHoudiniAssetParameterColor::UHoudiniAssetParameterColor( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )
     , Color( FColor::White )
+    , bIsColorPickerOpen( false )
 {}
 
 void
@@ -164,6 +165,16 @@ UHoudiniAssetParameterColor::GetColor() const
 {
     return Color;
 }
+
+#if WITH_EDITOR
+
+bool
+UHoudiniAssetParameterColor::IsColorPickerWindowOpen() const
+{
+    return bIsColorPickerOpen;
+}
+
+#endif // WITH_EDITOR
 
 void
 UHoudiniAssetParameterColor::OnPaintColorChanged( FLinearColor InNewColor, bool bTriggerModify, bool bRecordUndo )

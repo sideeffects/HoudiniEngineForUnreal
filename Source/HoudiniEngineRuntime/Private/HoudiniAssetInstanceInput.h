@@ -19,12 +19,23 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
+* Produced by:
+*      Mykola Konyk
+*      Side Effects Software Inc
+*      123 Front Street West, Suite 1401
+*      Toronto, Ontario
+*      Canada   M5J 2M2
+*      416-504-9876
+*
 */
 
 #pragma once
 
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetParameter.h"
+#if WITH_EDITOR
+    #include "ContentBrowserDelegates.h"
+#endif
 #include "HoudiniAssetInstanceInput.generated.h"
 
 
@@ -41,7 +52,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
     GENERATED_UCLASS_BODY()
 
-    friend struct FHoudiniParameterDetails;
+    public:
+
+        /** Destructor. **/
+        virtual ~UHoudiniAssetInstanceInput();
 
     public:
 
@@ -95,6 +109,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Set component for this parameter. **/
         virtual void SetHoudiniAssetComponent( UHoudiniAssetComponent * InComponent ) override;
+
+#if WITH_EDITOR
+
+        /** Create widget for this parameter and add it to a given category. **/
+        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder );
+
+#endif
+
+        /** Upload parameter value to HAPI. **/
+        virtual bool UploadParameterValue();
 
     /** UObject methods. **/
     public:
@@ -256,6 +280,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** List of fields created by this instance input. **/
         TArray< UHoudiniAssetInstanceInputField * > InstanceInputFields;
+
+#if WITH_EDITOR
+
+        /** Delegate for filtering static meshes. **/
+        FOnShouldFilterAsset OnShouldFilterStaticMesh;
+
+#endif
 
         /** Corresponding geo part object. **/
         FHoudiniGeoPartObject HoudiniGeoPartObject;
