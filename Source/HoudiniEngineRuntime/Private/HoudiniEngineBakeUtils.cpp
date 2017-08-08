@@ -46,6 +46,7 @@
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "FileHelpers.h"
+    #include "Editor/UnrealEd/Public/Layers/ILayers.h"
 #endif
 #include "EngineUtils.h"
 #include "MetaData.h"

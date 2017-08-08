@@ -31,6 +31,8 @@
 #include "HoudiniEngineString.h"
 
 #include "Internationalization.h"
+#include "Paths.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 UHoudiniAssetParameterFile::UHoudiniAssetParameterFile( const FObjectInitializer & ObjectInitializer )

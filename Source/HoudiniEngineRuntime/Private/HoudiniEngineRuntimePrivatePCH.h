@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Damian Campeanu, Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -40,34 +32,9 @@
 #include "ComponentAssetBroker.h"
 #include "PackageTools.h"
 #include "ThumbnailHelpers.h"
-#include "DetailLayoutBuilder.h"
-#include "DetailCategoryBuilder.h"
-#include "DetailWidgetRow.h"
-#include "IDetailGroup.h"
-#include "IDetailPropertyRow.h"
 #include "LevelEditor.h"
 #include "IMainFrameModule.h"
 #include "ClassIconFinder.h"
-#include "SAssetDropTarget.h"
-#include "SAssetSearchBox.h"
-#include "SColorBlock.h"
-#include "SColorPicker.h"
-#include "Widgets/Input/SFilePathPicker.h"
-#include "SNumericEntryBox.h"
-#include "SRotatorInputBox.h"
-#include "SVectorInputBox.h"
-#include "SNotificationList.h"
-#include "SCurveEditor.h"
-#include "NotificationManager.h"
-#include "Editor/UnrealEd/Private/GeomFitUtils.h"
-#include "Editor/UnrealEd/Public/AssetThumbnail.h"
-#include "Editor/UnrealEd/Public/BusyCursor.h"
-#include "Editor/UnrealEd/Public/Layers/ILayers.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Private/PropertyNode.h"
-#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
-//#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "ScopedTransaction.h"
 #include "RawMesh.h"
 #include "Kismet2/KismetEditorUtilities.h"

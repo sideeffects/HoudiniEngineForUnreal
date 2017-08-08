@@ -19,21 +19,11 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetInstanceInput.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Input/SComboButton.h"
 #include "HoudiniAssetInstanceInputField.generated.h"
 
 class UStaticMesh;
@@ -107,20 +97,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
             UMaterialInterface * Material,
             TMap< UStaticMesh *, int32 > & MaterialReplacementsMap );
 
-#if WITH_EDITOR
-
-        /** Set thumbnail border used by static mesh used by this field. **/
-        void AssignThumbnailBorder( TSharedPtr< SBorder > InThumbnailBorder );
-
-        /** Get thumbnail border used by static mesh used by this field. **/
-        TSharedPtr< SBorder > GetThumbnailBorder() const;
-
-        /** Set combo button used by static mesh used by this field. **/
-        void AssignComboButton( TSharedPtr< SComboButton > InComboButton );
-
-        /** Get combo button used by static mesh used by this field. **/
-        TSharedPtr< SComboButton > GetComboButton() const;
-#endif
         /** After duplicating this field we need to fix up the referenced external objects */
         void FixInstancedObjects( const TMap<UObject*, UObject*>& ReplacementMap );
 
@@ -178,16 +154,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInputField : public UObject
         void UpdateInstanceTransforms( bool RecomputeVariationAssignments );
 
     protected:
-
-#if WITH_EDITOR
-
-        /** Thumbnail border used by slate for this field. **/
-        TSharedPtr< SBorder > ThumbnailBorder;
-
-        /** Combo box element used by slate for this field. **/
-        TSharedPtr< SComboButton > StaticMeshComboButton;
-
-#endif
 
         /** Original object used by the instancer. **/
         UObject* OriginalObject;

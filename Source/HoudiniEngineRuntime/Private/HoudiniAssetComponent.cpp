@@ -63,8 +63,6 @@
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Engine/StaticMeshSocket.h"
-#include "MessageDialog.h"
-#include "Widgets/Input/SButton.h"
 #include "HoudiniCookHandler.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
@@ -73,9 +71,21 @@
 #include "EdMode.h"
 #include "EditorModeManager.h"
 #include "EditorModes.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Editor/UnrealEd/Private/GeomFitUtils.h"
+#include "MessageDialog.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "NotificationManager.h"
+#include "Editor/UnrealEd/Public/BusyCursor.h"
+#include "Editor/UnrealEd/Public/AssetThumbnail.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "Editor/PropertyEditor/Private/PropertyNode.h"
+#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #endif
 
 #include "Internationalization.h"
+
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 

@@ -36,16 +36,21 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniParameterDetails.h"
 
-#include "Landscape.h"
 #include "ContentBrowserModule.h"
-#include "IContentBrowserSingleton.h"
-#include "Widgets/Layout/SSeparator.h"
-#include "Widgets/Input/SEditableTextBox.h"
-#include "Widgets/Input/SButton.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "DetailWidgetRow.h"
 #include "Editor.h"
+#include "IContentBrowserSingleton.h"
+#include "Landscape.h"
+#include "SAssetDropTarget.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Layout/SSeparator.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Internationalization.h"
+#include "DetailLayoutBuilder.h"
+#include "IDetailGroup.h"
 
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 

@@ -1303,17 +1303,6 @@ UHoudiniAssetInput::OnThumbnailDoubleClick( const FGeometry & InMyGeometry, cons
     return FReply::Handled();
 }
 
-TSharedRef< SWidget >
-UHoudiniAssetInput::CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry )
-{
-    FText ChoiceEntryText = FText::FromString( *ChoiceEntry );
-
-    return SNew( STextBlock )
-        .Text( ChoiceEntryText )
-        .ToolTipText( ChoiceEntryText )
-        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
-}
-
 void UHoudiniAssetInput::OnStaticMeshBrowse(int32 AtIndex)
 {
     UObject* InputObject = GetInputObject( AtIndex );

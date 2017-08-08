@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -488,34 +480,6 @@ UHoudiniAssetInstanceInputField::InstanceVariationCount() const
 {
     return InstancedObjects.Num();
 }
-
-#if WITH_EDITOR
-
-void
-UHoudiniAssetInstanceInputField::AssignThumbnailBorder( TSharedPtr< SBorder > InThumbnailBorder )
-{
-    ThumbnailBorder = InThumbnailBorder;
-}
-
-TSharedPtr< SBorder >
-UHoudiniAssetInstanceInputField::GetThumbnailBorder() const
-{
-    return ThumbnailBorder;
-}
-
-void
-UHoudiniAssetInstanceInputField::AssignComboButton( TSharedPtr< SComboButton > InComboButton )
-{
-    StaticMeshComboButton = InComboButton;
-}
-
-TSharedPtr< SComboButton >
-UHoudiniAssetInstanceInputField::GetComboButton() const
-{
-    return StaticMeshComboButton;
-}
-
-#endif
 
 const FRotator &
 UHoudiniAssetInstanceInputField::GetRotationOffset( int32 VariationIdx ) const
