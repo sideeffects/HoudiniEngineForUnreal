@@ -369,6 +369,9 @@ public:
 
         FString GetBakingBaseName( const FHoudiniGeoPartObject& GeoPartObject ) const override;
 
+        /** Is the asset still waiting for upstream asset to finish instantiating **/
+        bool UpdateWaitingForUpstreamAssetsToInstantiate( bool bNotifyUpstreamAsset = false );
+
     /** UObject methods. **/
     public:
 

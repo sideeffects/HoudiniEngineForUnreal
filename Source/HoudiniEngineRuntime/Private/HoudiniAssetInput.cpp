@@ -370,7 +370,6 @@ UHoudiniAssetInput::DisconnectAndDestroyInputAsset()
         if ( InputAssetComponent )
             InputAssetComponent->RemoveDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
 
-        InputAssetComponent = nullptr;
         bInputAssetConnectedInHoudini = false;
         ConnectedAssetId = -1;
     }
@@ -1593,8 +1592,8 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
     else
     {
         AHoudiniAssetActor * HoudiniAssetActor = (AHoudiniAssetActor *) Actor;
-	if (HoudiniAssetActor == nullptr)
-	    return;
+        if (HoudiniAssetActor == nullptr)
+            return;
 
         UHoudiniAssetComponent * ConnectedHoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 
@@ -1618,6 +1617,10 @@ UHoudiniAssetInput::OnInputActorSelected( AActor * Actor )
 
         InputAssetComponent = ConnectedHoudiniAssetComponent;
         ConnectedAssetId = InputAssetComponent->GetAssetId();
+
+        // Do we have to wait for the input asset to cook?
+        if ( GetHoudiniAssetComponent() )
+            GetHoudiniAssetComponent()->UpdateWaitingForUpstreamAssetsToInstantiate( true );
 
         // Mark as disconnected since we need to reconnect to the new asset.
         bInputAssetConnectedInHoudini = false;
@@ -1760,10 +1763,20 @@ UHoudiniAssetInput::TickWorldOutlinerInputs()
 void
 UHoudiniAssetInput::ConnectInputAssetActor()
 {
-    if ( InputAssetComponent && FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() )
-        && !bInputAssetConnectedInHoudini )
-    {
+    // Check the component we're connected to is valid
+    if ( !InputAssetComponent )
+        return;
 
+    if ( !FHoudiniEngineUtils::IsValidAssetId( InputAssetComponent->GetAssetId() ) )
+        return;
+
+    // Check we have the correct Id
+    if ( ConnectedAssetId != InputAssetComponent->GetAssetId() )
+        ConnectedAssetId = InputAssetComponent->GetAssetId();
+
+    // Connect if needed
+    if ( !bInputAssetConnectedInHoudini )
+    {
         ConnectInputNode();
         InputAssetComponent->AddDownstreamAsset( GetHoudiniAssetComponent(), InputIndex );
         bInputAssetConnectedInHoudini = true;
