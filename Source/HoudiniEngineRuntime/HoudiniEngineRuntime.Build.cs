@@ -46,7 +46,6 @@ public class HoudiniEngineRuntime : ModuleRules
 {
 	public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
 	{
-        bFasterWithoutUnity = true;
 		PCHUsage = PCHUsageMode.UseSharedPCHs;
 		bool bIsRelease = true;
 		string HFSPath = "";
