@@ -1484,9 +1484,6 @@ FHoudiniLandscapeUtils::ConvertLandscapeDataToHeightfieldData(
     //--------------------------------------------------------------------------------------------------
     // 3. Fill the volume info
     //--------------------------------------------------------------------------------------------------
-
-    HeightfieldVolumeInfo.nameSH;
-
     HeightfieldVolumeInfo.xLength = HoudiniXSize;
     HeightfieldVolumeInfo.yLength = HoudiniYSize;
     HeightfieldVolumeInfo.zLength = 1;
@@ -1596,9 +1593,6 @@ FHoudiniLandscapeUtils::ConvertLandscapeLayerDataToHeightfieldData(
     //--------------------------------------------------------------------------------------------------
     // 2. Fill the volume info
     //--------------------------------------------------------------------------------------------------
-
-    LayerVolumeInfo.nameSH;
-
     LayerVolumeInfo.xLength = HoudiniXSize;
     LayerVolumeInfo.yLength = HoudiniYSize;
     LayerVolumeInfo.zLength = 1;
