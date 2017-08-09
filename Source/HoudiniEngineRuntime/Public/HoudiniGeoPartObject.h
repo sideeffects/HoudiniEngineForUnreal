@@ -33,7 +33,6 @@ struct HAPI_GeoInfo;
 struct HAPI_PartInfo;
 struct HAPI_ObjectInfo;
 class FHoudiniEngineString;
-struct FHoudiniAttributeObject;
 
 struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 {
@@ -122,27 +121,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGeoPartObject
 
         /** Return the unique path to this part's node */
         const FString& GetNodePath() const;
-
-    public:
-
-        /** Return attribute objects associated with this geo part object. **/
-        bool HapiGetAttributeObjects(
-            HAPI_AttributeOwner AttributeOwner,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjects ) const;
-        bool HapiGetAttributeObjects(
-            HAPI_NodeId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjects ) const;
-        bool HapiGetAllAttributeObjects(
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPoint,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsVertex,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPrimitive,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsDetail ) const;
-        bool HapiGetAllAttributeObjects(
-            HAPI_NodeId OtherAssetId,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPoint,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsVertex,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPrimitive,
-            TMap< FString, FHoudiniAttributeObject > & AttributeObjectsDetail ) const;
 
     /** HAPI: Other helpers. **/
     public:
