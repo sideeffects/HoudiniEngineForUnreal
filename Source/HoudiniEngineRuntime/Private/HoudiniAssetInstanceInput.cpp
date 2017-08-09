@@ -31,6 +31,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "Components/AudioComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundBase.h"
 
@@ -1217,7 +1218,7 @@ UHoudiniAssetInstanceInput::SetScaleZ(
 
 void
 UHoudiniAssetInstanceInput::CheckStateChanged(
-    ECheckBoxState NewState, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
+    bool IsChecked, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
 {
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
@@ -1225,7 +1226,7 @@ UHoudiniAssetInstanceInput::CheckStateChanged(
         PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
-    HoudiniAssetInstanceInputField->SetLinearOffsetScale( NewState == ECheckBoxState::Checked, VariationIdx );
+    HoudiniAssetInstanceInputField->SetLinearOffsetScale( IsChecked, VariationIdx );
 }
 
 #endif

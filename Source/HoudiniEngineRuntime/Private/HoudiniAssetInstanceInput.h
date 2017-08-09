@@ -233,7 +233,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Set option for whether scale should be linear. **/
         void CheckStateChanged(
-            ECheckBoxState NewState, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
+            bool IsChecked, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
             int32 VariationIdx );
 
 #endif

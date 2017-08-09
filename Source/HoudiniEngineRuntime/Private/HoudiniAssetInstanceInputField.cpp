@@ -28,6 +28,8 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniInstancedActorComponent.h"
 
+#include "Components/InstancedStaticMeshComponent.h"
+
 
 // Fastrand is a faster alternative to std::rand()
 // and doesn't oscillate when looking for 2 values like Unreal's.

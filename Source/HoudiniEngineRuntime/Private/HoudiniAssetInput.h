@@ -25,6 +25,9 @@
 #include "HoudiniAssetParameter.h"
 #include "CoreMinimal.h"
 #include "TimerManager.h"
+#if WITH_EDITOR
+#include "Styling/SlateTypes.h"
+#endif
 #include "HoudiniAssetInput.generated.h"
 
 class ALandscapeProxy;

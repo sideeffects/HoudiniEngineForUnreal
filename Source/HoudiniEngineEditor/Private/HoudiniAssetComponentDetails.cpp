@@ -36,6 +36,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniParameterDetails.h"
 
+#include "Components/InstancedStaticMeshComponent.h"
 #include "ContentBrowserModule.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "DetailWidgetRow.h"
@@ -1708,7 +1709,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
     {
         // Retrieve material interface which is being replaced.
         UMaterialInterface * MaterialInterface = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
-        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
 
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
         if ( !HoudiniAssetComponent )
@@ -1796,7 +1797,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
 
         // Retrieve the material interface which is being replaced.
         UMaterialInterface * MaterialInterface = MaterialIdx == 0 ? Landscape->GetLandscapeMaterial() : Landscape->GetLandscapeHoleMaterial();
-        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
 
         bool bMaterialRestored = false;
         FString MaterialShopName;

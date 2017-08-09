@@ -1355,8 +1355,10 @@ FHoudiniParameterDetails::CreateWidgetInstanceInput( IDetailCategoryBuilder & Lo
                     SNew( SCheckBox )
                     .Style( FEditorStyle::Get(), "TransparentCheckBox" )
                     .ToolTipText( LOCTEXT( "PreserveScaleToolTip", "When locked, scales uniformly based on the current xyz scale values so the object maintains its shape in each direction when scaled" ) )
-                    .OnCheckStateChanged( FOnCheckStateChanged::CreateUObject(
-                        &InParam, &UHoudiniAssetInstanceInput::CheckStateChanged, HoudiniAssetInstanceInputField, VariationIdx ) )
+                    .OnCheckStateChanged( FOnCheckStateChanged::CreateLambda( [=]( ECheckBoxState NewState ) {
+                        if ( MyParam.IsValid() && InputFieldPtr.IsValid() )
+                            MyParam->CheckStateChanged( NewState == ECheckBoxState::Checked, InputFieldPtr.Get(), VariationIdx );
+                    }))
                     .IsChecked( TAttribute< ECheckBoxState >::Create(
                         TAttribute<ECheckBoxState>::FGetter::CreateLambda( [=]() {
                             if ( InputFieldPtr.IsValid() && InputFieldPtr->AreOffsetsScaledLinearly( VariationIdx ) )
