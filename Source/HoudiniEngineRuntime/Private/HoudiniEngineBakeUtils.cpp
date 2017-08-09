@@ -685,6 +685,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                             if (UStaticMeshComponent* SMC = SMActor->GetStaticMeshComponent())
                             {
                                 FHoudiniGeoPartObject GeoPartObject = HoudiniAssetComponent->LocateGeoPartObject( OtherSMC->GetStaticMesh() );
+
+                                // Set the part id to 0 so we can access the instancer
                                 GeoPartObject.PartId = 0;
                                 FHoudiniEngineUtils::UpdateUPropertyAttributes( SMC, GeoPartObject );
                             }

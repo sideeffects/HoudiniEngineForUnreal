@@ -105,13 +105,13 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
     PDI->SetHitProxy( new HHoudiniHandleVisProxy( HandleComponent ) );
     {
         static const float GrabHandleSize = 12.0f;
-        PDI->DrawPoint( HandleComponent->ComponentToWorld.GetLocation(), IsActive ? ActiveColor : InactiveColor, GrabHandleSize, SDPG_Foreground );
+        PDI->DrawPoint( HandleComponent->GetComponentTransform().GetLocation(), IsActive ? ActiveColor : InactiveColor, GrabHandleSize, SDPG_Foreground );
     }
 
     if( HandleComponent->HandleType == EHoudiniHandleType::Bounder )
     {
         // draw the scale box
-        FTransform BoxTransform = HandleComponent->ComponentToWorld;
+        FTransform BoxTransform = HandleComponent->GetComponentTransform();
         const float BoxRad = 50.f;
         const FBox Box( FVector( -BoxRad, -BoxRad, -BoxRad ), FVector( BoxRad, BoxRad, BoxRad ) );
         DrawWireBox( PDI, BoxTransform.ToMatrixWithScale(), Box, IsActive ? ActiveColor : InactiveColor, SDPG_Foreground );
@@ -174,7 +174,7 @@ FHoudiniHandleComponentVisualizer::GetWidgetLocation(
 {
     if ( EditedComponent )
     {
-        OutLocation = EditedComponent->ComponentToWorld.GetLocation();
+        OutLocation = EditedComponent->GetComponentTransform().GetLocation();
         return true;
     }
 
@@ -188,7 +188,7 @@ FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
 {   
     if ( EditedComponent && ViewportClient->GetWidgetMode() == FWidget::WM_Scale )
     {
-        OutMatrix = FRotationMatrix::Make( EditedComponent->ComponentToWorld.GetRotation() );
+        OutMatrix = FRotationMatrix::Make( EditedComponent->GetComponentTransform().GetRotation() );
         return true;
     }
     else
@@ -208,19 +208,19 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(
     bool bUpdated = false;
     if ( !DeltaTranslate.IsZero() && bAllowTranslate )
     {
-        EditedComponent->SetWorldLocation( EditedComponent->ComponentToWorld.GetLocation() + DeltaTranslate );
+        EditedComponent->SetWorldLocation( EditedComponent->GetComponentTransform().GetLocation() + DeltaTranslate );
         bUpdated = true;
     }
 
     if ( !DeltaRotate.IsZero() && bAllowRotation )
     {
-        EditedComponent->SetWorldRotation( DeltaRotate.Quaternion() * EditedComponent->ComponentToWorld.GetRotation() );
+        EditedComponent->SetWorldRotation( DeltaRotate.Quaternion() * EditedComponent->GetComponentTransform().GetRotation() );
         bUpdated = true;
     }
 
     if ( !DeltaScale.IsZero() && bAllowScale )
     {
-        EditedComponent->SetWorldScale3D( EditedComponent->ComponentToWorld.GetScale3D() + DeltaScale );
+        EditedComponent->SetWorldScale3D( EditedComponent->GetComponentTransform().GetScale3D() + DeltaScale );
         bUpdated = true;
     }
 

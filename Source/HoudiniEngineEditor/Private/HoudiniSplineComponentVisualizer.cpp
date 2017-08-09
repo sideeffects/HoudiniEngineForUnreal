@@ -141,7 +141,7 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
         static const float GrabHandleSizeSelected = 13.0f;
 
         // Get component transformation.
-        const FTransform & HoudiniSplineComponentTransform = HoudiniSplineComponent->ComponentToWorld;
+        const FTransform & HoudiniSplineComponentTransform = HoudiniSplineComponent->GetComponentTransform();
 
         // Get curve points.
         const TArray< FTransform > & CurvePoints = HoudiniSplineComponent->CurvePoints;
@@ -339,7 +339,7 @@ FHoudiniSplineComponentVisualizer::GetWidgetLocation(
     }
 
     LocationSum /= EditedControlPointsIndexes.Num();
-    OutLocation = EditedHoudiniSplineComponent->ComponentToWorld.TransformPosition(LocationSum);
+    OutLocation = EditedHoudiniSplineComponent->GetComponentTransform().TransformPosition(LocationSum);
 
     return true;
 }
@@ -388,7 +388,7 @@ FHoudiniSplineComponentVisualizer::HandleInputDelta(
     const TArray< FTransform > & CurvePoints = EditedHoudiniSplineComponent->CurvePoints;
 
     // Get component transformation.
-    const FTransform & HoudiniSplineComponentTransform = EditedHoudiniSplineComponent->ComponentToWorld;
+    const FTransform & HoudiniSplineComponentTransform = EditedHoudiniSplineComponent->GetComponentTransform();
     
 
     FTransform CurrentPoint = FTransform::Identity;
