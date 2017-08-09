@@ -241,11 +241,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
 
-        FReply OnExpandInputTransform( int32 AtIndex );
-
     protected:
 
 #if WITH_EDITOR
+        
+        FReply OnExpandInputTransform( int32 AtIndex );
 
         /** Delegate used when static mesh has been drag and dropped. **/
         void OnStaticMeshDropped( UObject * InObject, int32 AtIndex );

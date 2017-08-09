@@ -55,6 +55,7 @@
 #include "EngineUtils.h"
 #include "MetaData.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 #if PLATFORM_WINDOWS
     #include "WindowsHWrapper.h"

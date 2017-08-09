@@ -63,6 +63,8 @@
 #include "MetaData.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "StaticMeshResources.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Paths.h"
 
 #if PLATFORM_WINDOWS
     #include "WindowsHWrapper.h"
@@ -8185,6 +8187,7 @@ FHoudiniEngineUtils::ExtractRawName( const FString & Name )
     return nullptr;
 }
 
+#if WITH_EDITOR
 void
 FHoudiniEngineUtils::CreateFaceMaterialArray(
     const TArray< FStaticMaterial > & Materials, const TArray< int32 > & FaceMaterialIndices,
@@ -8244,6 +8247,8 @@ FHoudiniEngineUtils::DeleteFaceMaterialArray( TArray< char * > & OutStaticMeshFa
 
     OutStaticMeshFaceMaterials.Empty();
 }
+
+#endif // WITH_EDITOR
 
 void
 FHoudiniEngineUtils::ExtractStringPositions( const FString & Positions, TArray< FVector > & OutPositions )
@@ -8860,11 +8865,11 @@ FHoudiniEngineUtils::MaterialLocateExpression( UMaterialExpression * Expression,
 {
     if ( !Expression )
         return nullptr;
-
+#if WITH_EDITOR
     if ( ExpressionClass == Expression->GetClass() )
         return Expression;
 
-#if WITH_EDITOR
+
     // If this is a channel multiply expression, we can recurse.
     UMaterialExpressionMultiply * MaterialExpressionMultiply = Cast< UMaterialExpressionMultiply >( Expression );
     if ( MaterialExpressionMultiply )

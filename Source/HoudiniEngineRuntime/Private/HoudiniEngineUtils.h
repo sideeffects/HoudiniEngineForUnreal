@@ -634,8 +634,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Helper routine to count number of degenerate triangles. **/
         static int32 CountDegenerateTriangles( const FRawMesh & RawMesh );
 
-#endif // WITH_EDITOR
-
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(
             const TArray< FStaticMaterial > & Materials,
@@ -644,6 +642,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Delete helper array of material names. **/
         static void DeleteFaceMaterialArray( TArray< char * > & OutStaticMeshFaceMaterials );
+
+#endif // WITH_EDITOR
 
         /** Return a specified HAPI status string. **/
         static const FString GetStatusString( HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity );
