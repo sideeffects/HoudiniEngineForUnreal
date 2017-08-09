@@ -1580,11 +1580,8 @@ UHoudiniAssetComponent::TickHoudiniComponent()
 
             if ( bWaitingForUpstreamAssetsToInstantiate )
             {
-                // We are waiting for upstream assets to instantiate.
-
-                bWaitingForUpstreamAssetsToInstantiate = false;
-                for ( auto LocalInput : Inputs )
-                    bWaitingForUpstreamAssetsToInstantiate |= LocalInput->DoesInputAssetNeedInstantiation();
+                // We are waiting for upstream assets to instantiate. Update the flag
+                UpdateWaitingForUpstreamAssetsToInstantiate();
 
                 // Try instantiating this asset again.
                 if ( !bWaitingForUpstreamAssetsToInstantiate )
@@ -1770,16 +1767,7 @@ UHoudiniAssetComponent::StartTaskAssetInstantiation( bool bLocalLoadedComponent,
     bAssetIsBeingInstantiated = true;
 
     // We first need to make sure all our asset inputs have been instantiated and reconnected.
-    for ( auto LocalInput : Inputs )
-    {
-        bool bInputAssetNeedsInstantiation = LocalInput->DoesInputAssetNeedInstantiation();
-        if ( bInputAssetNeedsInstantiation )
-        {
-            UHoudiniAssetComponent * LocalInputAssetComponent = LocalInput->GetConnectedInputAssetComponent();
-            LocalInputAssetComponent->NotifyParameterChanged( nullptr );
-            bWaitingForUpstreamAssetsToInstantiate = true;
-        }
-    }
+    UpdateWaitingForUpstreamAssetsToInstantiate( true );
 
     if ( !bWaitingForUpstreamAssetsToInstantiate )
     {
@@ -4150,6 +4138,49 @@ UHoudiniAssetComponent::UpdateLoadedInputs()
     {
         HOUDINI_LOG_ERROR(TEXT("%s UpdateLoadedInputs failed"), *GetOwner()->GetName());
     }
+}
+
+bool
+UHoudiniAssetComponent::UpdateWaitingForUpstreamAssetsToInstantiate( bool bNotifyUpstreamAsset )
+{
+    bWaitingForUpstreamAssetsToInstantiate = false;
+
+    // We first need to make sure all our asset inputs have been instantiated and reconnected.
+    for ( auto LocalInput : Inputs )
+    {
+        bool bInputAssetNeedsInstantiation = LocalInput->DoesInputAssetNeedInstantiation();
+        if ( !bInputAssetNeedsInstantiation )
+            continue;
+
+        bWaitingForUpstreamAssetsToInstantiate = true;
+
+        if ( bNotifyUpstreamAsset )
+        {
+            UHoudiniAssetComponent * LocalInputAssetComponent = LocalInput->GetConnectedInputAssetComponent();
+            LocalInputAssetComponent->NotifyParameterChanged( nullptr );
+        }
+    }
+
+    for ( TMap< HAPI_ParmId, UHoudiniAssetParameter * >::TIterator IterParams( Parameters ); IterParams; ++IterParams )
+    {
+        UHoudiniAssetInput* Input = Cast< UHoudiniAssetInput >( IterParams.Value() );
+        if ( !Input )
+            continue;
+
+        bool bInputAssetNeedsInstantiation = Input->DoesInputAssetNeedInstantiation();
+        if ( !bInputAssetNeedsInstantiation )
+            continue;
+
+        bWaitingForUpstreamAssetsToInstantiate = true;
+
+        if ( bNotifyUpstreamAsset )
+        {
+            UHoudiniAssetComponent * LocalInputAssetComponent = Input->GetConnectedInputAssetComponent();
+            LocalInputAssetComponent->NotifyParameterChanged( nullptr );
+        }
+    }
+
+    return bWaitingForUpstreamAssetsToInstantiate;
 }
 
 bool
