@@ -52,7 +52,7 @@ FHoudiniShelfEdModeToolkit::GetToolkitFName() const
 FText
 FHoudiniShelfEdModeToolkit::GetBaseToolkitName() const
 {
-    return LOCTEXT( "ToolkitName", "Houdini Edtiro" );
+    return LOCTEXT( "ToolkitName", "Houdini Editor" );
 }
 
 class FEdMode*

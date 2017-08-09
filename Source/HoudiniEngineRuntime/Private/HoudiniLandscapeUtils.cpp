@@ -2187,7 +2187,7 @@ FHoudiniLandscapeUtils::ExtractLandscapeData(
             }
 
             // Retrieve component transform.
-            const FTransform & ComponentTransform = LandscapeComponent->ComponentToWorld;
+            const FTransform & ComponentTransform = LandscapeComponent->GetComponentTransform();
 
             // Retrieve component scale.
             const FVector & ScaleVector = ComponentTransform.GetScale3D();
