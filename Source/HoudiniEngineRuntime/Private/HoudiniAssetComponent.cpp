@@ -57,14 +57,14 @@
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniParamUtils.h"
 #include "HoudiniLandscapeUtils.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Landscape.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
+#include "Materials/Material.h"
 #include "Engine/StaticMeshSocket.h"
-#include "MessageDialog.h"
-#include "Widgets/Input/SButton.h"
 #include "HoudiniCookHandler.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
@@ -73,9 +73,21 @@
 #include "EdMode.h"
 #include "EditorModeManager.h"
 #include "EditorModes.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Editor/UnrealEd/Private/GeomFitUtils.h"
+#include "MessageDialog.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "NotificationManager.h"
+#include "Editor/UnrealEd/Public/BusyCursor.h"
+#include "Editor/UnrealEd/Public/AssetThumbnail.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "Editor/PropertyEditor/Private/PropertyNode.h"
+#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #endif
 
 #include "Internationalization.h"
+
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -838,7 +850,7 @@ UHoudiniAssetComponent::ReleaseObjectGeoPartResources(
     TArray< UStaticMesh * > StaticMeshesToDelete;
 
     // Get Houdini logo.
-    UStaticMesh * HoudiniLogoMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh();
+    UStaticMesh * HoudiniLogoMesh = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh().Get();
 
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
     {
@@ -2928,7 +2940,7 @@ UHoudiniAssetComponent::CreateStaticMeshHoudiniLogoResource( TMap< FHoudiniGeoPa
 
     // Create Houdini logo static mesh and component for it.
     FHoudiniGeoPartObject HoudiniGeoPartObject;
-    StaticMeshMap.Add( HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh() );
+    StaticMeshMap.Add( HoudiniGeoPartObject, FHoudiniEngine::Get().GetHoudiniLogoStaticMesh().Get() );
     CreateObjectGeoPartResources( StaticMeshMap );
     bContainsHoudiniLogoGeometry = true;
 }
@@ -3591,7 +3603,7 @@ void UHoudiniAssetComponent::SanitizePostLoad()
             {
                 if( nullptr == StaticMeshMaterials[ MaterialIdx ].MaterialInterface )
                 {
-                    auto DefaultMI = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+                    auto DefaultMI = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
                     StaticMeshMaterials[ MaterialIdx ].MaterialInterface = DefaultMI;
                     SMC->SetMaterial( MaterialIdx, DefaultMI );
                 }
@@ -5506,7 +5518,7 @@ UHoudiniAssetComponent::ReplaceMaterial(
 
     TMap< FString, UMaterialInterface * > & MaterialAssignments = HoudiniAssetComponentMaterials->Assignments;
 
-    UMaterialInterface * DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+    UMaterialInterface * DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
 
     if ( !MaterialReplacements.Contains( HoudiniGeoPartObject ) )
     {

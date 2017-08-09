@@ -19,63 +19,27 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Damian Campeanu, Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
 
 /** Unreal Editor headers. **/
 #if WITH_EDITOR
-//#include "UnrealEd.h"
 #include "CoreMinimal.h"
 #include "ObjectTools.h"
 #include "AssetTypeActions_Base.h"
 #include "ComponentAssetBroker.h"
 #include "PackageTools.h"
 #include "ThumbnailHelpers.h"
-#include "DetailLayoutBuilder.h"
-#include "DetailCategoryBuilder.h"
-#include "DetailWidgetRow.h"
-#include "IDetailGroup.h"
-#include "IDetailPropertyRow.h"
 #include "LevelEditor.h"
 #include "IMainFrameModule.h"
 #include "ClassIconFinder.h"
-#include "SAssetDropTarget.h"
-#include "SAssetSearchBox.h"
-#include "SColorBlock.h"
-#include "SColorPicker.h"
-#include "Widgets/Input/SFilePathPicker.h"
-#include "SNumericEntryBox.h"
-#include "SRotatorInputBox.h"
-#include "SVectorInputBox.h"
-#include "SNotificationList.h"
-#include "SCurveEditor.h"
-#include "NotificationManager.h"
-#include "Editor/UnrealEd/Private/GeomFitUtils.h"
-#include "Editor/UnrealEd/Public/AssetThumbnail.h"
-#include "Editor/UnrealEd/Public/BusyCursor.h"
-#include "Editor/UnrealEd/Public/Layers/ILayers.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Private/PropertyNode.h"
-#include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
-//#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "ScopedTransaction.h"
 #include "RawMesh.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "IPluginManager.h"
 #include "ISettingsModule.h"
 #include "DesktopPlatformModule.h"
-//#include "TargetPlatform.h"
-#include "Components/StaticMeshComponent.h"
 #include "Editor.h"
 #endif
 
@@ -91,32 +55,18 @@
 #include "Engine/CollisionProfile.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsEngine/BodySetup.h"
-//#include "Core.h"
 #include "AssetData.h"
 #include "AssetRegistryModule.h"
 #include "HitProxies.h"
 #include "Components.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/StaticMesh.h"
-#include "Materials/Material.h"
-#include "Materials/MaterialInstance.h"
-#include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialExpressionTextureCoordinate.h"
-#include "Materials/MaterialExpressionConstant4Vector.h"
-#include "Materials/MaterialExpressionConstant.h"
-#include "Materials/MaterialExpressionMultiply.h"
-#include "Materials/MaterialExpressionVertexColor.h"
-#include "Materials/MaterialExpressionTextureSampleParameter2D.h"
-#include "Materials/MaterialExpressionVectorParameter.h"
-#include "Materials/MaterialExpressionScalarParameter.h"
 #include "LandscapeProxy.h"
 #include "LandscapeDataAccess.h"
 #include "Engine/Level.h"
 #include "Curves/CurveBase.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveLinearColor.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "StaticMeshResources.h"
 #include "ImageUtils.h"
 #include "Internationalization/Internationalization.h"
 

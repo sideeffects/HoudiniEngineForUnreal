@@ -25,6 +25,7 @@
 #include "HoudiniParameterDetails.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 
+#include "HoudiniAssetComponent.h"
 #include "HoudiniAssetInput.h"
 #include "HoudiniAssetInstanceInput.h"
 #include "HoudiniAssetInstanceInputField.h"
@@ -46,6 +47,7 @@
 #include "SNewFilePathPicker.h"
 
 #include "CurveEditorSettings.h"
+#include "DetailLayoutBuilder.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
@@ -58,9 +60,11 @@
 #include "Engine/SkeletalMesh.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Internationalization.h"
+#include "IDetailGroup.h"
 #include "NumericUnitTypeInterface.inl"
 #include "Particles/ParticleSystemComponent.h"
 #include "SCurveEditor.h"
+#include "SAssetDropTarget.h"
 #include "Sound/SoundBase.h"
 #include "UnitConversion.h"
 #include "Widgets/Colors/SColorPicker.h"
@@ -73,6 +77,7 @@
 #include "Widgets/Input/SVectorInputBox.h"
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 

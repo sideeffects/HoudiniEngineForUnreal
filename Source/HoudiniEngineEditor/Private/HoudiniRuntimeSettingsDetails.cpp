@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
@@ -37,6 +29,10 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Internationalization.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 TSharedRef< IDetailCustomization >

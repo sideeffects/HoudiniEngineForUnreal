@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -567,7 +559,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TArray< FString >& AllSocketsActors );
 
         /** Add the actor stored in the socket tag to the socket for the given static mesh component 			**/
-        static bool AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMeshComponent* StaticMeshComponent );
+        static bool AddActorsToMeshSocket( UStaticMeshSocket* Socket, class UStaticMeshComponent* StaticMeshComponent );
 
         /** Add the mesh aggregate collision geo to the specified StaticMesh						**/
         static bool AddAggregateCollisionGeometryToStaticMesh(
@@ -642,8 +634,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Helper routine to count number of degenerate triangles. **/
         static int32 CountDegenerateTriangles( const FRawMesh & RawMesh );
 
-#endif // WITH_EDITOR
-
         /** Create helper array of material names, we use it for marshalling. **/
         static void CreateFaceMaterialArray(
             const TArray< FStaticMaterial > & Materials,
@@ -652,6 +642,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Delete helper array of material names. **/
         static void DeleteFaceMaterialArray( TArray< char * > & OutStaticMeshFaceMaterials );
+
+#endif // WITH_EDITOR
 
         /** Return a specified HAPI status string. **/
         static const FString GetStatusString( HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity );
