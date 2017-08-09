@@ -36,7 +36,6 @@
 #include "HoudiniEngine.h"
 #include "HoudiniPluginSerializationVersion.h"
 #include "HoudiniEngineString.h"
-#include "HoudiniAttributeObject.h"
 
 uint32
 GetTypeHash( const FHoudiniGeoPartObject & HoudiniGeoPartObject )
@@ -2096,73 +2095,6 @@ FHoudiniGeoPartObject::HapiGetDetailAttributeNames( TArray< FString > & Attribut
     return HapiGetDetailAttributeNames( AssetId, AttributeNames );
 }
 
-bool
-FHoudiniGeoPartObject::HapiGetAttributeObjects(
-    HAPI_AttributeOwner AttributeOwner,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjects ) const
-{
-    return HapiGetAttributeObjects( AssetId, AttributeOwner, AttributeObjects );
-}
-
-bool
-FHoudiniGeoPartObject::HapiGetAttributeObjects(
-    HAPI_NodeId OtherAssetId, HAPI_AttributeOwner AttributeOwner,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjects ) const
-{
-    AttributeObjects.Empty();
-
-    TArray< FString > AttributeValues;
-    if ( HapiGetAttributeNames( OtherAssetId, AttributeOwner, AttributeValues ) )
-    {
-        for ( int32 AttributeNameIdx = 0, AttributeNameCount = AttributeValues.Num();
-            AttributeNameIdx < AttributeNameCount; ++AttributeNameIdx )
-        {
-            const FString & AttributeName = AttributeValues[ AttributeNameIdx ];
-            HAPI_AttributeInfo AttributeInfo;
-
-            if ( HapiGetAttributeInfo( OtherAssetId, AttributeName, AttributeOwner, AttributeInfo ) )
-            {
-                AttributeObjects.Add( AttributeName, FHoudiniAttributeObject(
-                    OtherAssetId, ObjectId, GeoId, PartId,
-                    AttributeName, AttributeInfo ) );
-            }
-        }
-
-        return true;
-    }
-
-    return false;
-}
-
-bool
-FHoudiniGeoPartObject::HapiGetAllAttributeObjects(
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPoint,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsVertex,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPrimitive,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsDetail ) const
-{
-    return HapiGetAllAttributeObjects(
-        AssetId, AttributeObjectsPoint, AttributeObjectsVertex,
-        AttributeObjectsPrimitive, AttributeObjectsDetail );
-}
-
-bool
-FHoudiniGeoPartObject::HapiGetAllAttributeObjects(
-    HAPI_NodeId OtherAssetId,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPoint,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsVertex,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsPrimitive,
-    TMap< FString, FHoudiniAttributeObject > & AttributeObjectsDetail ) const
-{
-    bool bResult = false;
-
-    bResult |= HapiGetAttributeObjects( OtherAssetId, HAPI_ATTROWNER_POINT, AttributeObjectsPoint );
-    bResult |= HapiGetAttributeObjects( OtherAssetId, HAPI_ATTROWNER_VERTEX, AttributeObjectsVertex );
-    bResult |= HapiGetAttributeObjects( OtherAssetId, HAPI_ATTROWNER_PRIM, AttributeObjectsPrimitive );
-    bResult |= HapiGetAttributeObjects( OtherAssetId, HAPI_ATTROWNER_DETAIL, AttributeObjectsDetail );
-
-    return bResult;
-}
 
 bool
 FHoudiniGeoPartObject::HapiGetVertices( HAPI_NodeId OtherAssetId, TArray< int32 > & Vertices ) const
