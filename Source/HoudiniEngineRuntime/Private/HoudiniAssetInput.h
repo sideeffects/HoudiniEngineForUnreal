@@ -25,6 +25,10 @@
 #include "HoudiniAssetParameter.h"
 #include "CoreMinimal.h"
 #include "TimerManager.h"
+#if WITH_EDITOR
+#include "Styling/SlateTypes.h"
+#include "Input/Reply.h"
+#endif
 #include "HoudiniAssetInput.generated.h"
 
 class ALandscapeProxy;
@@ -238,11 +242,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
 
-        FReply OnExpandInputTransform( int32 AtIndex );
-
     protected:
 
 #if WITH_EDITOR
+        
+        FReply OnExpandInputTransform( int32 AtIndex );
 
         /** Delegate used when static mesh has been drag and dropped. **/
         void OnStaticMeshDropped( UObject * InObject, int32 AtIndex );
@@ -255,9 +259,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Handler for reset static mesh button. **/
         FReply OnResetStaticMeshClicked( int32 AtIndex );
-
-        /** Helper method used to generate choice entry widget. **/
-        TSharedRef< class SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
 
         /** Called when change of selection is triggered. **/
         void OnChoiceChange( TSharedPtr< FString > NewChoice );
@@ -360,9 +361,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         TArray< TSharedPtr< FString > > StringChoiceLabels;
 
 #if WITH_EDITOR
-
-        /** Delegate for filtering static meshes. **/
-        FOnShouldFilterAsset OnShouldFilterStaticMesh;
 
         /** Check if state of landscape selection checkbox has changed. **/
         void CheckStateChangedExportOnlySelected( ECheckBoxState NewState );

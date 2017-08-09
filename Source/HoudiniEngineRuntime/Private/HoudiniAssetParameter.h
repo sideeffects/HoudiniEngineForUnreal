@@ -22,17 +22,13 @@
 */
 
 #pragma once
-#include "HoudiniParameterObject.h"
-#if WITH_EDITOR
-    #include "DetailWidgetRow.h"
-#endif
-#include "Widgets/SBoxPanel.h"
+#include "SlateCore.h"
+#include "Object.h"
 #include "HoudiniAssetParameter.generated.h"
 
 class FArchive;
 class FVariant;
 class FReferenceCollector;
-class IDetailCategoryBuilder;
 
 UCLASS( config = Editor )
 class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
@@ -61,19 +57,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Return parent parameter for this parameter, if there's one. **/
         UHoudiniAssetParameter * GetParentParameter() const;
-
-#if WITH_EDITOR
-
-        /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & InDetailCategoryBuilder );
-
-        /** Create widget for this parameter inside a given box. **/
-        virtual void CreateWidget( TSharedPtr< SVerticalBox > VerticalBox );
-
-        /** Return true if color picker window is open by this parameter. **/
-        virtual bool IsColorPickerWindowOpen() const;
-
-#endif // WITH_EDITOR
 
         /** Upload parameter value to HAPI. **/
         virtual bool UploadParameterValue();
@@ -187,16 +170,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Called when state of the parameter changes as side-effect of some action */
         void OnParamStateChanged();
-
-#if WITH_EDITOR
-
-        /** Assigns a unique parameter name. **/
-        void AssignUniqueParameterName();
-
-        /** Create parameter name widget. **/
-        void CreateNameWidget( FDetailWidgetRow & Row, bool bLabel );
-
-#endif // WITH_EDITOR
 
         /** Return true if parameter is spare, that is, created by Houdini Engine only. **/
         bool IsSpare() const;

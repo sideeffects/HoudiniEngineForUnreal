@@ -42,7 +42,9 @@
 #include "LandscapeLayerInfoObject.h"
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
-
+#if WITH_EDITOR
+#include "Materials/Material.h"
+#endif
 void
 FHoudiniLandscapeUtils::GetHeightfieldsInArray(
     const TArray< FHoudiniGeoPartObject >& InArray,
@@ -2431,7 +2433,7 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
 {
     if ( !LandscapeProxy )
         return false;
-
+#if WITH_EDITOR
     // Compute number of necessary indices.
     int32 IndexCount = QuadCount * 4;
     if ( IndexCount < 0 )
@@ -2589,7 +2591,7 @@ bool FHoudiniLandscapeUtils::AddLandscapeMeshIndicesAndMaterialsAttribute(
         NodeId, 0, MarshallingAttributeMaterialHoleName.c_str(),
         &AttributeInfoPrimitiveMaterialHole, (const char **) FaceHoleMaterials.GetData(), 0,
         AttributeInfoPrimitiveMaterialHole.count ), false );
-
+#endif // WITH_EDITOR
     return true;
 }
 

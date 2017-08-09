@@ -19,23 +19,13 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
 
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniAssetParameter.h"
-#if WITH_EDITOR
-    #include "ContentBrowserDelegates.h"
-#endif
+#include "SlateCore.h"
 #include "HoudiniAssetInstanceInput.generated.h"
 
 
@@ -52,10 +42,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
     GENERATED_UCLASS_BODY()
 
-    public:
-
-        /** Destructor. **/
-        virtual ~UHoudiniAssetInstanceInput();
+    friend struct FHoudiniParameterDetails;
 
     public:
 
@@ -109,16 +96,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** Set component for this parameter. **/
         virtual void SetHoudiniAssetComponent( UHoudiniAssetComponent * InComponent ) override;
-
-#if WITH_EDITOR
-
-        /** Create widget for this parameter and add it to a given category. **/
-        virtual void CreateWidget( IDetailCategoryBuilder & DetailCategoryBuilder );
-
-#endif
-
-        /** Upload parameter value to HAPI. **/
-        virtual bool UploadParameterValue();
 
     /** UObject methods. **/
     public:
@@ -192,20 +169,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
             UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
             int32 Idx, int32 VariationIdx );
 
-        /** Gets the border brush to show around thumbnails, changes when the user hovers on it. **/
-        const FSlateBrush * GetStaticMeshThumbnailBorder(
-            UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
-            int32 Idx, int32 VariationIdx ) const;
-
         /** Handler for when static mesh thumbnail is double clicked. We open editor in this case. **/
         FReply OnThumbnailDoubleClick(
             const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent, UObject * Object );
-
-        /** Delegate for handling selection in content browser. **/
-        void OnStaticMeshSelected(
-            const FAssetData& AssetData, 
-            UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
-            int32 Idx, int32 VariationIdx );
 
         /** Closes the combo button. **/
         void CloseStaticMeshComboButton(
@@ -266,12 +232,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
         void SetScaleY( float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx );
         void SetScaleZ( float Value, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx );
 
-        /** Return true if given index must scale linearly. **/
-        ECheckBoxState IsChecked(UHoudiniAssetInstanceInputField* HoudiniAssetInstanceInputField, int32 VariationIdx) const;
-        const FSlateBrush* GetPreserveScaleRatioImage( UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx ) const;
         /** Set option for whether scale should be linear. **/
         void CheckStateChanged(
-            ECheckBoxState NewState, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
+            bool IsChecked, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
             int32 VariationIdx );
 
 #endif
@@ -280,13 +243,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInstanceInput : public UHoudiniAsset
 
         /** List of fields created by this instance input. **/
         TArray< UHoudiniAssetInstanceInputField * > InstanceInputFields;
-
-#if WITH_EDITOR
-
-        /** Delegate for filtering static meshes. **/
-        FOnShouldFilterAsset OnShouldFilterStaticMesh;
-
-#endif
 
         /** Corresponding geo part object. **/
         FHoudiniGeoPartObject HoudiniGeoPartObject;

@@ -19,17 +19,10 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Chris Grebeldinger
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniApi.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #if WITH_EDITOR
