@@ -22,7 +22,6 @@
 */
 
 #pragma once
-#include "HoudiniParameterObject.h"
 #include "HoudiniAssetParameter.generated.h"
 
 class FArchive;
