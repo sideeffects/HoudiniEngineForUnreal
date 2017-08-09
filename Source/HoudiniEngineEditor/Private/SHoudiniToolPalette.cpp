@@ -39,10 +39,11 @@
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Input/SButton.h"
 #include "EditorStyleSet.h"
+#include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "AssetRegistryModule.h"
 #include "AssetDragDropOp.h"
-
+#include "ActorFactories/ActorFactory.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniToolPalette"
 
