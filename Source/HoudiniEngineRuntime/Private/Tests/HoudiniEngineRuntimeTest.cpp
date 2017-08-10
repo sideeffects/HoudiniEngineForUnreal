@@ -55,6 +55,10 @@ struct FTestCookHandler : public FHoudiniCookParams, public IHoudiniCookHandler
         CookedTemporaryPackages = &CookedTemporaryPackages_;
     }
 
+    virtual ~FTestCookHandler()
+    {
+    }
+
     virtual FString GetBakingBaseName( const struct FHoudiniGeoPartObject& GeoPartObject ) const override
     {
         if( GeoPartObject.HasCustomName() )
@@ -95,7 +99,6 @@ struct FTestCookHandler : public FHoudiniCookParams, public IHoudiniCookHandler
     {
         return nullptr;
     }
-
 };
 
 struct FHVert
