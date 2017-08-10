@@ -5762,9 +5762,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                     {
                         if( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
                         {
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
                             BodySetup->RemoveSimpleCollision();
-#endif
                         }
 
                         // See if we need to enable collisions on the whole mesh.
@@ -9391,18 +9389,14 @@ FHoudiniEngineUtils::AddAggregateCollisionGeometryToStaticMesh(
         return false;
 
     // Do we need to remove the old collisions from the previous cook
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
     if ( !HoudiniGeoPartObject.bHasCollisionBeenAdded )
         BodySetup->RemoveSimpleCollision();
-#endif
 
     BodySetup->AddCollisionFrom( AggregateCollisionGeo );
     BodySetup->CollisionTraceFlag = ECollisionTraceFlag::CTF_UseDefault;
 
     BodySetup->ClearPhysicsMeshes();
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
     BodySetup->InvalidatePhysicsData();
-#endif
 
 #if WITH_EDITOR
     RefreshCollisionChange( *StaticMesh );
