@@ -44,8 +44,8 @@
 struct FGeometry;
 struct FSlateBrush;
 struct FPointerEvent;
+struct FAssetData;
 
-class FAssetData;
 class UStaticMesh;
 class IDetailLayoutBuilder;
 class UHoudiniAssetComponent;
