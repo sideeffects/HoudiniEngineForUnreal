@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Damian Campeanu, Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
@@ -38,6 +30,8 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAsset.h"
 #include "PlatformMisc.h"
+#include "SlateApplication.h"
+#include "Materials/Material.h"
 
 const FName FHoudiniEngine::HoudiniEngineAppIdentifier = FName( TEXT( "HoudiniEngineApp" ) );
 
@@ -68,22 +62,22 @@ FHoudiniEngine::GetHoudiniLogoBrush() const
 
 #endif
 
-UStaticMesh *
+TWeakObjectPtr<UStaticMesh>
 FHoudiniEngine::GetHoudiniLogoStaticMesh() const
 {
-    return HoudiniLogoStaticMesh.Get();
+    return HoudiniLogoStaticMesh;
 }
 
-UMaterial *
+TWeakObjectPtr<UMaterial>
 FHoudiniEngine::GetHoudiniDefaultMaterial() const
 {
-    return HoudiniDefaultMaterial.Get();
+    return HoudiniDefaultMaterial;
 }
 
-UHoudiniAsset *
+TWeakObjectPtr<UHoudiniAsset>
 FHoudiniEngine::GetHoudiniBgeoAsset() const
 {
-    return HoudiniBgeoAsset.Get();
+    return HoudiniBgeoAsset;
 }
 
 bool

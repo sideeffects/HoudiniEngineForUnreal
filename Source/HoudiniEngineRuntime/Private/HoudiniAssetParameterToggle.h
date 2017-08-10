@@ -23,6 +23,9 @@
 
 #pragma once
 #include "HoudiniAssetParameter.h"
+#if WITH_EDITOR
+#include "Styling/SlateTypes.h"
+#endif
 #include "HoudiniAssetParameterToggle.generated.h"
 
 UCLASS()

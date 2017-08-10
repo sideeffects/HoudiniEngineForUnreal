@@ -43,9 +43,9 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngine : public IHoudiniEngine
     /** IHoudiniEngine methods. **/
     public:
 
-        virtual UStaticMesh * GetHoudiniLogoStaticMesh() const override;
-        virtual UMaterial * GetHoudiniDefaultMaterial() const override;
-        virtual UHoudiniAsset * GetHoudiniBgeoAsset() const override;
+        virtual TWeakObjectPtr<UStaticMesh> GetHoudiniLogoStaticMesh() const override;
+        virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultMaterial() const override;
+        virtual TWeakObjectPtr<UHoudiniAsset> GetHoudiniBgeoAsset() const override;
 
 #if WITH_EDITOR
 

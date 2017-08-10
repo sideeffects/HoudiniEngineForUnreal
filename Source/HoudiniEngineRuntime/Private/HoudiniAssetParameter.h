@@ -22,7 +22,10 @@
 */
 
 #pragma once
-#include "HoudiniParameterObject.h"
+#if WITH_EDITOR
+#include "SlateCore.h"
+#endif
+#include "Object.h"
 #include "HoudiniAssetParameter.generated.h"
 
 class FArchive;

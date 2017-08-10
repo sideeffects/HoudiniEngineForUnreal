@@ -32,6 +32,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniApi.h"
 #include "Curves/CurveBase.h"
+#include "SlateApplication.h"
 
 UHoudiniAssetParameterRampCurveFloat::UHoudiniAssetParameterRampCurveFloat( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

@@ -19,14 +19,6 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 *
-* Produced by:
-*      Damian Campeanu, Mykola Konyk
-*      Side Effects Software Inc
-*      123 Front Street West, Suite 1401
-*      Toronto, Ontario
-*      Canada   M5J 2M2
-*      416-504-9876
-*
 */
 
 #pragma once
@@ -35,6 +27,14 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniCookHandler.h"
+
+#include "Landscape.h"
+#include "TimerManager.h"
+#include "Components/PrimitiveComponent.h"
+#if WITH_EDITOR
+#include "Factories/Factory.h"
+#endif
+#include "PhysicsEngine/BodySetup.h"
 #include "HoudiniAssetComponent.generated.h"
 
 class UClass;
@@ -45,6 +45,7 @@ class UStaticMesh;
 class UHoudiniAsset;
 class UObjectProperty;
 class USplineComponent;
+class UInstancedStaticMeshComponent;
 class UPhysicalMaterial;
 class UHoudiniAssetInput;
 class AHoudiniAssetActor;
@@ -734,7 +735,7 @@ public:
 #if WITH_EDITOR
 
         /** Notification used by this component. **/
-        TWeakPtr< SNotificationItem > NotificationPtr;
+        TWeakPtr< class SNotificationItem > NotificationPtr;
 
         /** Component from which this component has been copied. **/
         UHoudiniAssetComponent * CopiedHoudiniComponent;

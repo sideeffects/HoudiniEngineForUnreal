@@ -31,7 +31,11 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "Components/AudioComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Sound/SoundBase.h"
+#include "Widgets/Input/SButton.h"
+#include "Engine/SkeletalMesh.h"
 
 #include "HoudiniEngineBakeUtils.h"
 
@@ -995,17 +999,6 @@ UHoudiniAssetInstanceInput::OnStaticMeshDropped(
     }
 }
 
-const FSlateBrush *
-UHoudiniAssetInstanceInput::GetStaticMeshThumbnailBorder(
-    UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 Idx, int32 VariationIdx ) const
-{
-    TSharedPtr< SBorder > ThumbnailBorder = HoudiniAssetInstanceInputField->GetThumbnailBorder();
-    if ( ThumbnailBorder.IsValid() && ThumbnailBorder->IsHovered() )
-        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailLight" );
-    else
-        return FEditorStyle::GetBrush( "PropertyEditor.AssetThumbnailShadow" );
-}
-
 FReply
 UHoudiniAssetInstanceInput::OnThumbnailDoubleClick(
     const FGeometry & InMyGeometry, const FPointerEvent & InMouseEvent, UObject * Object )
@@ -1053,22 +1046,6 @@ UHoudiniAssetInstanceInput::ChangedStaticMeshComboButton(
     {
         // If combo button has been closed, update the UI.
         OnParamStateChanged();
-    }
-}
-
-void
-UHoudiniAssetInstanceInput::OnStaticMeshSelected(
-    const FAssetData & AssetData,
-    UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField,
-    int32 Idx, int32 VariationIdx)
-{
-    TSharedPtr<SComboButton> AssetComboButton = HoudiniAssetInstanceInputField->GetComboButton();
-    if ( AssetComboButton.IsValid() )
-    {
-        AssetComboButton->SetIsOpen( false );
-
-        UObject * Object = AssetData.GetAsset();
-        OnStaticMeshDropped( Object, HoudiniAssetInstanceInputField, Idx, VariationIdx );
     }
 }
 
@@ -1239,7 +1216,7 @@ UHoudiniAssetInstanceInput::SetScaleZ(
 
 void
 UHoudiniAssetInstanceInput::CheckStateChanged(
-    ECheckBoxState NewState, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
+    bool IsChecked, UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx )
 {
     FScopedTransaction Transaction(
         TEXT( HOUDINI_MODULE_RUNTIME ),
@@ -1247,27 +1224,7 @@ UHoudiniAssetInstanceInput::CheckStateChanged(
         PrimaryObject );
     HoudiniAssetInstanceInputField->Modify();
 
-    HoudiniAssetInstanceInputField->SetLinearOffsetScale( NewState == ECheckBoxState::Checked, VariationIdx );
-}
-
-ECheckBoxState
-UHoudiniAssetInstanceInput::IsChecked(
-    UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx ) const
-{
-    if ( HoudiniAssetInstanceInputField->AreOffsetsScaledLinearly( VariationIdx ) )
-        return ECheckBoxState::Checked;
-
-    return ECheckBoxState::Unchecked;
-}
-
-const FSlateBrush* 
-UHoudiniAssetInstanceInput::GetPreserveScaleRatioImage( UHoudiniAssetInstanceInputField * HoudiniAssetInstanceInputField, int32 VariationIdx ) const
-{
-    if( HoudiniAssetInstanceInputField->AreOffsetsScaledLinearly( VariationIdx ) )
-    {
-        return FEditorStyle::GetBrush( TEXT( "GenericLock" ) );
-    }
-    return FEditorStyle::GetBrush( TEXT( "GenericUnlock" ) );
+    HoudiniAssetInstanceInputField->SetLinearOffsetScale( IsChecked, VariationIdx );
 }
 
 #endif

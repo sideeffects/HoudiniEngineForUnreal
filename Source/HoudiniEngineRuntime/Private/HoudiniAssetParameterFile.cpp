@@ -29,6 +29,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineString.h"
+#include "Paths.h"
 
 UHoudiniAssetParameterFile::UHoudiniAssetParameterFile( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

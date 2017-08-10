@@ -36,7 +36,28 @@
 #include "HoudiniParameterDetails.h"
 
 #include "Landscape.h"
+
+#include "Components/InstancedStaticMeshComponent.h"
 #include "ContentBrowserModule.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "DetailWidgetRow.h"
+#include "Editor.h"
+#include "IContentBrowserSingleton.h"
+#include "Landscape.h"
+#include "SAssetDropTarget.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Images/SImage.h"
+#include "Materials/Material.h"
+#include "SlateApplication.h"
+
+#include "Internationalization.h"
+#include "DetailLayoutBuilder.h"
+#include "IDetailGroup.h"
 
 uint32
 GetTypeHash( TPair< UStaticMesh *, int32 > Pair )
@@ -1691,7 +1712,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
     {
         // Retrieve material interface which is being replaced.
         UMaterialInterface * MaterialInterface = StaticMesh->Materials[ MaterialIdx ];
-        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
 
         UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
         if ( !HoudiniAssetComponent )
@@ -1779,7 +1800,7 @@ FHoudiniAssetComponentDetails::OnResetMaterialInterfaceClicked(
 
         // Retrieve the material interface which is being replaced.
         UMaterialInterface * MaterialInterface = MaterialIdx == 0 ? Landscape->GetLandscapeMaterial() : Landscape->GetLandscapeHoleMaterial();
-        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial();
+        UMaterialInterface * MaterialInterfaceReplacement = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
 
         bool bMaterialRestored = false;
         FString MaterialShopName;

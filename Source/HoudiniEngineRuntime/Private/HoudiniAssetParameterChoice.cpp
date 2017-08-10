@@ -380,17 +380,6 @@ UHoudiniAssetParameterChoice::Serialize( FArchive & Ar )
 
 #if WITH_EDITOR
 
-TSharedRef< SWidget >
-UHoudiniAssetParameterChoice::CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry )
-{
-    FText ChoiceEntryText = FText::FromString( *ChoiceEntry );
-
-    return SNew( STextBlock )
-        .Text( ChoiceEntryText )
-        .ToolTipText( ChoiceEntryText )
-        .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
-}
-
 void
 UHoudiniAssetParameterChoice::OnChoiceChange( TSharedPtr< FString > NewChoice )
 {

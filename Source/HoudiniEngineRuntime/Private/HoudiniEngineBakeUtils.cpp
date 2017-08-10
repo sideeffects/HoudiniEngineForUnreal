@@ -46,9 +46,16 @@
     #include "Interfaces/ITargetPlatform.h"
     #include "Interfaces/ITargetPlatformManagerModule.h"
     #include "FileHelpers.h"
+    #include "Editor/UnrealEd/Public/Layers/ILayers.h"
+    #include "Materials/Material.h"
+    #include "Materials/MaterialInstance.h"
+    #include "Materials/MaterialExpressionTextureSample.h"
+    #include "Materials/MaterialExpressionTextureCoordinate.h"
+    #include "StaticMeshResources.h"
 #endif
 #include "EngineUtils.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 UPackage *
 FHoudiniEngineBakeUtils::BakeCreateBlueprintPackageForComponent(

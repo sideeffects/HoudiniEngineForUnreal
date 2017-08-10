@@ -240,6 +240,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
     protected:
 
 #if WITH_EDITOR
+        
+        FReply OnExpandInputTransform( int32 AtIndex );
 
         /** Delegate used when static mesh has been drag and dropped. **/
         void OnStaticMeshDropped( UObject * InObject, int32 AtIndex );
@@ -252,9 +254,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Handler for reset static mesh button. **/
         FReply OnResetStaticMeshClicked( int32 AtIndex );
-
-        /** Helper method used to generate choice entry widget. **/
-        TSharedRef< class SWidget > CreateChoiceEntryWidget( TSharedPtr< FString > ChoiceEntry );
 
         /** Called when change of selection is triggered. **/
         void OnChoiceChange( TSharedPtr< FString > NewChoice );
@@ -295,7 +294,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Handles the expander arrow for the input transform offset **/
         const FSlateBrush* GetExpanderImage(int32 AtIndex) const;
-        FReply OnExpandInputTransform(int32 AtIndex);
 
 #endif
 
