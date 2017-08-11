@@ -84,6 +84,8 @@
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "Editor/PropertyEditor/Private/PropertyNode.h"
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
+#include "StaticMeshResources.h"
+#include "SlateApplication.h"
 #endif
 
 #include "Internationalization.h"

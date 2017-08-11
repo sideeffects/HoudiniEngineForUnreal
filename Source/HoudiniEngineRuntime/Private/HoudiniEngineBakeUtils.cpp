@@ -51,6 +51,7 @@
     #include "Materials/MaterialInstance.h"
     #include "Materials/MaterialExpressionTextureSample.h"
     #include "Materials/MaterialExpressionTextureCoordinate.h"
+    #include "StaticMeshResources.h"
 #endif
 #include "EngineUtils.h"
 #include "MetaData.h"

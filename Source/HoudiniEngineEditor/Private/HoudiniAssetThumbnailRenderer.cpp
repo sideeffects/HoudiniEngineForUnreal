@@ -19,14 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * Produced by:
- *      Mykola Konyk
- *      Side Effects Software Inc
- *      123 Front Street West, Suite 1401
- *      Toronto, Ontario
- *      Canada   M5J 2M2
- *      416-504-9876
- *
  */
 
 #include "HoudiniApi.h"
@@ -34,7 +26,9 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniAssetThumbnailScene.h"
 #include "HoudiniAsset.h"
-
+#include "RendererInterface.h"
+#include "SceneInterface.h"
+#include "SceneView.h"
 
 UHoudiniAssetThumbnailRenderer::UHoudiniAssetThumbnailRenderer( const FObjectInitializer & ObjectInitializer )
     : Super( ObjectInitializer )

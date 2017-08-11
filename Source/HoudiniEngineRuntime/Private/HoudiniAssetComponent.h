@@ -733,7 +733,7 @@ public:
 #if WITH_EDITOR
 
         /** Notification used by this component. **/
-        TWeakPtr< SNotificationItem > NotificationPtr;
+        TWeakPtr< class SNotificationItem > NotificationPtr;
 
         /** Component from which this component has been copied. **/
         UHoudiniAssetComponent * CopiedHoudiniComponent;

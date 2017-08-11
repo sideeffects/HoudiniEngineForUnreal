@@ -34,6 +34,7 @@
 #include "PlatformMisc.h"
 #include "PlatformFilemanager.h"
 #include "ScopeLock.h"
+#include "SlateApplication.h"
 #include "Materials/Material.h"
 
 #include "Internationalization.h"

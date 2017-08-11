@@ -27,6 +27,7 @@
 #include "TimerManager.h"
 #if WITH_EDITOR
 #include "Styling/SlateTypes.h"
+#include "Input/Reply.h"
 #endif
 #include "HoudiniAssetInput.generated.h"
 

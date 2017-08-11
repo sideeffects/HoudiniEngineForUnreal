@@ -45,8 +45,12 @@
 #include "Landscape.h"
 #include "SAssetDropTarget.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Images/SImage.h"
+#include "SlateApplication.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "Internationalization.h"
