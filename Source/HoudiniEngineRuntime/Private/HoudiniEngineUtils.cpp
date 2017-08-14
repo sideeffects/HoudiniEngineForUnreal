@@ -9466,6 +9466,18 @@ FHoudiniEngineUtils::AddActorsToMeshSocket( UStaticMeshSocket* Socket, UStaticMe
 }
 
 int32
+FHoudiniEngineUtils::GetUPropertyAttributesList( const FHoudiniGeoPartObject& GeoPartObject, TArray< UPropertyAttribute >& AllUProps )
+{
+    // Get the detail uprop attributes
+    int nUPropsCount = FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, AllUProps, HAPI_ATTROWNER_DETAIL );
+
+    // Then the primitive uprop attributes
+    nUPropsCount += FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, AllUProps, HAPI_ATTROWNER_PRIM );
+
+    return nUPropsCount;
+}
+
+int32
 FHoudiniEngineUtils::GetUPropertyAttributesList(
     const FHoudiniGeoPartObject& GeoPartObject,
     TArray< UPropertyAttribute >& AllUProps,
@@ -9693,11 +9705,32 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
     return nUPropCount;
 }
 
+void
+FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(
+    UObject* MeshComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject )
+{
+    if ( !MeshComponent )
+        return;
+
+    // Get the list of uproperties to modify from the geopartobject's attributes
+    TArray< UPropertyAttribute > UPropertiesAttributesToModify;
+    if ( FHoudiniEngineUtils::GetUPropertyAttributesList( HoudiniGeoPartObject, UPropertiesAttributesToModify ) )
+    {
+        // Try to update uproperty atributes
+        FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(MeshComponent, UPropertiesAttributesToModify );
+    }
+}
+
 void 
-FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudiniGeoPartObject GeoPartObject )
+FHoudiniEngineUtils::ApplyUPropertyAttributesOnObject(
+    UObject* MeshComponent, const TArray< UPropertyAttribute >& UPropertiesToModify )
 {
 #if WITH_EDITOR
     if ( !MeshComponent )
+        return;
+
+    int nUPropsCount = UPropertiesToModify.Num();
+    if ( nUPropsCount <= 0 )
         return;
 
     // MeshComponent should be either a StaticMeshComponent, an InstancedStaticMeshComponent or an InstancedActorComponent
@@ -9710,19 +9743,10 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudini
 
     UClass* MeshClass = IAC ? IAC->StaticClass() : ISMC ? ISMC->StaticClass() : SMC->StaticClass();
 
-    TArray< UPropertyAttribute > AllUProps;
-    // Get the detail uprop attributes
-    int nUPropsCount = FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, AllUProps );
-    // Then the primitive uprop attributes
-    nUPropsCount += FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, AllUProps, HAPI_ATTROWNER_PRIM );
-
-    if ( nUPropsCount <= 0 )
-        return;
-
     // Trying to find the UProps in the object 
     for ( int32 nAttributeIdx = 0; nAttributeIdx < nUPropsCount; nAttributeIdx++ )
     {
-        UPropertyAttribute CurrentPropAttribute = AllUProps[ nAttributeIdx ];
+        UPropertyAttribute CurrentPropAttribute = UPropertiesToModify[ nAttributeIdx ];
         FString CurrentUPropertyName = CurrentPropAttribute.PropertyName;
         if ( CurrentUPropertyName.IsEmpty() )
             continue;
@@ -10002,6 +10026,7 @@ FHoudiniEngineUtils::UpdateUPropertyAttributes( UObject* MeshComponent, FHoudini
             {
                 // Property was found, but is of an unsupported type
                 HOUDINI_LOG_MESSAGE( TEXT("Unsupported UProperty Class: %s found for uproperty %s" ), *PropertyClass->GetName(), *CurrentPropAttribute.PropertyName );
+                continue;
             }
 
             // Some UProperties might need some additional tweaks...
