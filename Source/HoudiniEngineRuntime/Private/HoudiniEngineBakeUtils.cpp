@@ -638,7 +638,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
                         SMC->SetVisibility( OtherSMC->IsVisible() );
 
                         // Reapply the uproperties modified by attributes on the new component
-                        FHoudiniEngineUtils::UpdateUPropertyAttributes( SMC, HoudiniGeoPartObject );
+                        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, HoudiniGeoPartObject );
                     }
                 }
             };
@@ -695,7 +695,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors_StaticMeshes(
 
                                 // Set the part id to 0 so we can access the instancer
                                 GeoPartObject.PartId = 0;
-                                FHoudiniEngineUtils::UpdateUPropertyAttributes( SMC, GeoPartObject );
+                                FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( SMC, GeoPartObject );
                             }
                         }
                     }

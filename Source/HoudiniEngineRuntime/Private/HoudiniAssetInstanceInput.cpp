@@ -934,7 +934,7 @@ UHoudiniAssetInstanceInput::CloneComponentsAndAttachToActor( AActor * Actor )
             DuplicatedComponent->SetStaticMesh( OutStaticMesh );
 
             // Reapply the uproperties modified by attributes on the duplicated component
-            FHoudiniEngineUtils::UpdateUPropertyAttributes( DuplicatedComponent, HoudiniGeoPartObject );
+            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( DuplicatedComponent, HoudiniGeoPartObject );
 
             // Set component instances.
             {
