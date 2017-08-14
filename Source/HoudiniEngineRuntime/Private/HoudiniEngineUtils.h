@@ -573,15 +573,24 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FHoudiniGeoPartObject & HoudiniGeoPartObject,
             FString & MeshName, FGuid & BakeGUID );
 
+        /** Updates all Uproperty attributes found on the given object **/
+        static void UpdateUPropertyAttributesOnObject(
+                UObject* MeshComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject );
+
         /** Return a list with all the UProperty attributes found **/
+        static int32 GetUPropertyAttributesList( 
+            const FHoudiniGeoPartObject& GeoPartObject,
+            TArray< UPropertyAttribute >& AllUProps );
+
+        /** Return a list of all the UProperty attributes for a given Attribute Owner **/
         static int32 GetUPropertyAttributesList(
             const FHoudiniGeoPartObject& GeoPartObject,
             TArray< UPropertyAttribute >& AllUProps,
-            const HAPI_AttributeOwner& AttributeOwner = HAPI_ATTROWNER_DETAIL );
+            const HAPI_AttributeOwner& AttributeOwner );
 
-        /** Try to update values from all the UProperty attributes found for this object **/
-        static void UpdateUPropertyAttributes( 
-            UObject* MeshComponent, FHoudiniGeoPartObject GeoPartObject );
+        /** Tries to update values for all the UProperty attributes to apply on the object. **/
+        static void ApplyUPropertyAttributesOnObject(
+            UObject* MeshComponent, const TArray< UPropertyAttribute >& UPropertiesToModify);
 
         static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
 

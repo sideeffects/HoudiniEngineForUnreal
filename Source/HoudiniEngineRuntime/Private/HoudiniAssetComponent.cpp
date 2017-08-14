@@ -801,7 +801,7 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 }
 
                 // Try to update uproperty atributes
-                FHoudiniEngineUtils::UpdateUPropertyAttributes( StaticMeshComponent, HoudiniGeoPartObject );
+                FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( StaticMeshComponent, HoudiniGeoPartObject );
             }
         }
     }
@@ -834,6 +834,15 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 #endif
 
     CleanUpAttachedStaticMeshComponents();
+        
+    // If one of the children we created is movable, we need to set ourselves to movable as well
+    const auto & LocalAttachChildren = GetAttachChildren();
+    for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
+    {
+        USceneComponent * SceneComponent = *Iter;
+        if ( SceneComponent->Mobility == EComponentMobility::Movable )
+            SetMobility( EComponentMobility::Movable );
+    }
 }
 
 
@@ -2397,8 +2406,7 @@ UHoudiniAssetComponent::OnAssetPostImport( UFactory * Factory, UObject * Object 
     TMap<UObject*, UObject*> ReplacementMap;
 
     // We need to reconstruct geometry from copied actor.
-    for( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CopiedHoudiniComponent->StaticMeshes );
-        Iter; ++Iter )
+    for( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( CopiedHoudiniComponent->StaticMeshes ); Iter; ++Iter )
     {
         FHoudiniGeoPartObject & HoudiniGeoPartObject = Iter.Key();
         UStaticMesh * StaticMesh = Iter.Value();
@@ -2991,15 +2999,14 @@ UHoudiniAssetComponent::PostLoad()
     // Post attach components to parent asset component.
     PostLoadReattachComponents();
 
-    // Update static mobility.
-    if ( Mobility == EComponentMobility::Static )
+    // Update mobility.
+    // If one of our children is movable, we need to set ourselves to movable as well
+    const auto & LocalAttachChildren = GetAttachChildren();
+    for (TArray< USceneComponent * >::TConstIterator Iter(LocalAttachChildren); Iter; ++Iter)
     {
-        const auto & LocalAttachChildren = GetAttachChildren();
-        for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
-        {
-            USceneComponent * SceneComponent = *Iter;
-            SceneComponent->SetMobility( EComponentMobility::Static );
-        }
+        USceneComponent * SceneComponent = *Iter;
+        if (SceneComponent->Mobility == EComponentMobility::Movable)
+            SetMobility(EComponentMobility::Movable);
     }
 
     // Need to update rendering information.
@@ -3456,7 +3463,7 @@ UHoudiniAssetComponent::CloneComponentsAndCreateActor()
             }
 
             // Reapply the uproperties modified by attributes on the duplicated component
-            FHoudiniEngineUtils::UpdateUPropertyAttributes( DuplicatedComponent, HoudiniGeoPartObject );
+            FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( DuplicatedComponent, HoudiniGeoPartObject );
 
             DuplicatedComponent->AttachToComponent( RootComponent, FAttachmentTransformRules::KeepRelativeTransform );
             DuplicatedComponent->RegisterComponent();
