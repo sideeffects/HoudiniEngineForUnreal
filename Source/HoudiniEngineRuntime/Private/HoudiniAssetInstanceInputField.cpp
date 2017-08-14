@@ -256,7 +256,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
                 InstancedStaticMeshComponent->SetMaterial( Idx, InstancerMaterial );
         }
 
-        FHoudiniEngineUtils::UpdateUPropertyAttributes( InstancedStaticMeshComponent, InstancerHoudiniGeoPartObject);
+        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( InstancedStaticMeshComponent, InstancerHoudiniGeoPartObject);
     }
     else
     {
@@ -274,7 +274,7 @@ UHoudiniAssetInstanceInputField::AddInstanceComponent( int32 VariationIdx )
             RootComp, FAttachmentTransformRules::KeepRelativeTransform );
         InstancedObjectComponent->RegisterComponent();
 
-        FHoudiniEngineUtils::UpdateUPropertyAttributes( InstancedObjectComponent, HoudiniGeoPartObject );
+        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject( InstancedObjectComponent, HoudiniGeoPartObject );
     }
 
     UpdateRelativeTransform();
@@ -347,7 +347,7 @@ UHoudiniAssetInstanceInputField::UpdateInstanceUPropertyAttributes()
 
     int32 VariationCount = InstanceVariationCount();
     for ( int32 Idx = 0; Idx < VariationCount; Idx++ )
-        FHoudiniEngineUtils::UpdateUPropertyAttributes(InstancerComponents[ Idx ], InstancerHoudiniGeoPartObject );
+        FHoudiniEngineUtils::UpdateUPropertyAttributesOnObject(InstancerComponents[ Idx ], InstancerHoudiniGeoPartObject );
 }
 
 const FHoudiniGeoPartObject &
