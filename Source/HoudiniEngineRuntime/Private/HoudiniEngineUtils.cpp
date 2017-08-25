@@ -4029,6 +4029,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
     std::string MarshallingAttributeNameLightmapResolution = HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION;
     std::string MarshallingAttributeNameMaterial = HAPI_UNREAL_ATTRIB_MATERIAL;
     std::string MarshallingAttributeNameMaterialFallback = HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK;
+    std::string MarshallingAttributeNameMaterialInstance = HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE;
     std::string MarshallingAttributeNameFaceSmoothingMask = HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK;
 
     if ( HoudiniRuntimeSettings )
@@ -5051,6 +5052,16 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                     AttribFaceMaterials, FaceMaterials );
                             }
 
+                            // If material attribute and fallbacks were not found, check the material instance attribute.
+                            if ( !AttribFaceMaterials.exists )
+                            {
+                                FaceMaterials.Empty();
+                                FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                                    AssetId, ObjectInfo.nodeId, GeoInfo.nodeId,
+                                    PartInfo.id, MarshallingAttributeNameMaterialInstance.c_str(),
+                                    AttribFaceMaterials, FaceMaterials);
+                            }
+
                             if ( AttribFaceMaterials.exists && AttribFaceMaterials.owner != HAPI_ATTROWNER_PRIM && AttribFaceMaterials.owner != HAPI_ATTROWNER_DETAIL )
                             {
                                 HOUDINI_LOG_WARNING( TEXT( "Static Mesh [%d %s], Geo [%d], Part [%d %s]: unreal_material must be a primitive or detail attribute, ignoring attribute." ),
@@ -5500,7 +5511,7 @@ bool FHoudiniEngineUtils::CreateStaticMeshesFromHoudiniAsset(
                                 if ( MaterialInterface )
                                 {
                                     // Make sure this material is in the assignments before replacing it.
-                                    if( HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialInterface->GetName() ) )
+                                    if( !HoudiniCookParams.HoudiniCookManager->GetAssignmentMaterial( MaterialInterface->GetName() ) )
                                     {
                                         HoudiniCookParams.HoudiniCookManager->AddAssignmentMaterial( MaterialInterface->GetName(), MaterialInterface );
                                     }
@@ -9469,10 +9480,10 @@ int32
 FHoudiniEngineUtils::GetUPropertyAttributesList( const FHoudiniGeoPartObject& GeoPartObject, TArray< UPropertyAttribute >& AllUProps )
 {
     // Get the detail uprop attributes
-    int nUPropsCount = FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, AllUProps, HAPI_ATTROWNER_DETAIL );
+    int nUPropsCount = FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX, AllUProps, HAPI_ATTROWNER_DETAIL );
 
     // Then the primitive uprop attributes
-    nUPropsCount += FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, AllUProps, HAPI_ATTROWNER_PRIM );
+    nUPropsCount += FHoudiniEngineUtils::GetUPropertyAttributesList( GeoPartObject, HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX, AllUProps, HAPI_ATTROWNER_PRIM );
 
     return nUPropsCount;
 }
@@ -9480,6 +9491,7 @@ FHoudiniEngineUtils::GetUPropertyAttributesList( const FHoudiniGeoPartObject& Ge
 int32
 FHoudiniEngineUtils::GetUPropertyAttributesList(
     const FHoudiniGeoPartObject& GeoPartObject,
+    const FString& GenericAttributePrefix,
     TArray< UPropertyAttribute >& AllUProps,
     const HAPI_AttributeOwner& AttributeOwner )
 {
@@ -9539,12 +9551,12 @@ FHoudiniEngineUtils::GetUPropertyAttributesList(
         FHoudiniEngineString HoudiniEngineString( AttribNameSHArray[ Idx ] );
         HoudiniEngineString.ToFString( HapiString );
 
-        if ( HapiString.StartsWith( "unreal_uproperty_",  ESearchCase::IgnoreCase ) )
+        if ( HapiString.StartsWith( GenericAttributePrefix,  ESearchCase::IgnoreCase ) )
         {
             UPropertyAttribute CurrentUProperty;
 
             // Extract the name of the UProperty from the attribute name
-            CurrentUProperty.PropertyName = HapiString.Right( HapiString.Len() - 17 );
+            CurrentUProperty.PropertyName = HapiString.Right( HapiString.Len() - GenericAttributePrefix.Len() );
 
             // Get the Attribute Info
             HAPI_AttributeInfo AttribInfo;

@@ -194,6 +194,7 @@
 #define HAPI_UNREAL_ATTRIB_MATERIAL                     "unreal_material"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_HOLE                "unreal_material_hole"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK            "unreal_face_material"
+#define HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE            "unreal_material_instance"
 #define HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK          "unreal_face_smoothing_mask"
 #define HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION          "unreal_lightmap_resolution"
 #define HAPI_UNREAL_ATTRIB_GENERATED_MESH_NAME          "unreal_generated_mesh_name"
@@ -204,6 +205,9 @@
 #define HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE            "unreal_input_source_file"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME             "unreal_mesh_socket_name"
 #define HAPI_UNREAL_ATTRIB_MESH_SOCKET_ACTOR            "unreal_mesh_socket_actor"
+
+#define HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX         "unreal_uproperty_"
+#define HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX     "unreal_material_parameter_"
 
 /** Names of other Houdini Engine attributes and parameters. **/
 #define HAPI_UNREAL_ATTRIB_INSTANCE                     "instance"

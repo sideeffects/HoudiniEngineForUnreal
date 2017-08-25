@@ -338,6 +338,10 @@ public:
 
         /** Remove material replacement. **/
         void RemoveReplacementMaterial( const FHoudiniGeoPartObject & HoudiniGeoPartObject, const FString & MaterialName );
+
+        /** Creates Material Instance from attributes **/
+        bool CreateMaterialInstances( const FHoudiniGeoPartObject& HoudiniGeoPartObject,
+            UMaterialInstance *& CreatedMaterialInstance, UMaterialInterface*& OriginalMaterialInterface );
         
         /** Collect all Substance parameters. **/
         void CollectSubstanceParameters( TMap< FString, UHoudiniAssetParameter * > & SubstanceParameters ) const;
@@ -729,6 +733,9 @@ public:
 
         /** overrides for baking names per part */
         TMap< FHoudiniGeoPartObject, FString > BakeNameOverrides;
+
+        /** list of the modified uproperties per geopartobject **/
+        //TMap< FHoudiniGeoPartObject, TArray< UPropertyAttribute > > ModifedUProperties;
 
 #if WITH_EDITOR
 

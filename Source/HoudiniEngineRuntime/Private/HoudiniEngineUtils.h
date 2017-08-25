@@ -585,6 +585,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         /** Return a list of all the UProperty attributes for a given Attribute Owner **/
         static int32 GetUPropertyAttributesList(
             const FHoudiniGeoPartObject& GeoPartObject,
+            const FString& GenericAttributePrefix,
             TArray< UPropertyAttribute >& AllUProps,
             const HAPI_AttributeOwner& AttributeOwner );
 
