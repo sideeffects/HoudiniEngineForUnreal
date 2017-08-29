@@ -66,8 +66,10 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Engine/StaticMeshSocket.h"
 #include "HoudiniCookHandler.h"
+#include "MetaData.h"
 #if WITH_EDITOR
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -5908,16 +5910,113 @@ UHoudiniAssetComponent::CreateMaterialInstances( const FHoudiniGeoPartObject& Ho
             NewMaterialInstance->BasePropertyOverrides.DitheredLODTransition = CurrentMatParam.GetBoolValue();
             continue;
         }
+        else if ( CurrentMatParam.PropertyName.Compare( "PhysMaterial", ESearchCase::IgnoreCase ) == 0 )
+        {
+            // Try to load a Material corresponding to the parameter value
+            FString ParamValue = CurrentMatParam.GetStringValue();
+            UPhysicalMaterial* FoundPhysMaterial = Cast< UPhysicalMaterial >(
+                StaticLoadObject( UPhysicalMaterial::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr ) );
+
+            if ( FoundPhysMaterial )
+            {
+                NewMaterialInstance->PhysMaterial = FoundPhysMaterial;
+                continue;
+            }
+        }
 
         // Handling custom parameters
         FName CurrentMatParamName = FName( *CurrentMatParam.PropertyName );
         if ( CurrentMatParam.PropertyType == HAPI_STORAGETYPE_STRING )
         {
-            // Need to find the texture corresponding to the param
-            UTexture* texture = nullptr;
-
             // String attributes are used for textures parameters
-            NewMaterialInstance->SetTextureParameterValueEditorOnly( CurrentMatParamName, texture );
+            // We need to find the texture corresponding to the param
+            UTexture* FoundTexture = nullptr;
+            FString ParamValue = CurrentMatParam.GetStringValue();
+
+            // Texture can either be already existing texture assets in UE4, or a newly generated textures by this asset
+            // Try to find the texture corresponding to the param value in the existing assets first.
+            FoundTexture = Cast< UTexture >(
+                StaticLoadObject( UTexture::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr ) );
+
+            if ( !FoundTexture )
+            {
+                // We couldn't find a texture corresponding to the parameter in the existing UE4 assets
+                // Try to find the corresponding texture in the cooked temporary package we just generated
+                for ( TMap<FString, TWeakObjectPtr< UPackage > >::TIterator IterPackage( CookedTemporaryPackages ); IterPackage; ++IterPackage )
+                {
+                    // Iterate through the cooked package
+                    UPackage * CurrentPackage = IterPackage.Value().Get();
+                    if ( !CurrentPackage )
+                        continue;
+
+                    // See if the package contains a texture
+                    FString CurrentPackageName = CurrentPackage->GetName();
+                    UTexture* PackageTexture = LoadObject< UTexture >( CurrentPackage, *CurrentPackageName, nullptr, LOAD_None, nullptr );
+                    if ( !PackageTexture )
+                        continue;
+
+                    // Check if the package's metadata match what we're looking for
+                    UMetaData * MetaData = CurrentPackage->GetMetaData();
+                    if ( MetaData && MetaData->HasValue( PackageTexture, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT ) )
+                    {
+                        // Get the texture type from the meta data
+                        const FString TextureTypeString = MetaData->GetValue( PackageTexture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE );
+                        if ( TextureTypeString.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
+                        {
+                            FoundTexture = PackageTexture;
+                            break;
+                        }
+
+                        // Convert the texture type to a "friendly" version
+                        FString TextureTypeFriendlyString = TextureTypeString;
+                        if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE, ESearchCase::IgnoreCase ) == 0 )
+                            TextureTypeFriendlyString = TEXT( "diffuse" );
+                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, ESearchCase::IgnoreCase) == 0 )
+                            TextureTypeFriendlyString = TEXT( "normal" );
+                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE, ESearchCase::IgnoreCase) == 0 )
+                            TextureTypeFriendlyString = TEXT( "emissive" );
+                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR, ESearchCase::IgnoreCase) == 0 )
+                            TextureTypeFriendlyString = TEXT( "specular" );
+                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS, ESearchCase::IgnoreCase) == 0 )
+                            TextureTypeFriendlyString = TEXT( "roughness" );
+                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC, ESearchCase::IgnoreCase) == 0 )
+                            TextureTypeFriendlyString = TEXT( "metallic" );
+                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK, ESearchCase::IgnoreCase) == 0 )
+                            TextureTypeFriendlyString = TEXT( "opacity" );
+
+                        // See if we have a match with the friendly name
+                        if ( TextureTypeFriendlyString.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
+                        {
+                            FoundTexture = PackageTexture;
+                            break;
+                        }
+
+                        // Get the node path from the meta data
+                        const FString NodePath = MetaData->GetValue( PackageTexture, HAPI_UNREAL_PACKAGE_META_NODE_PATH );
+                        if ( NodePath.IsEmpty() )
+                            continue;
+
+                        // See if we have a match with the path and texture type
+                        FString PathAndType = NodePath + TEXT("/") + TextureTypeString;
+                        if ( PathAndType.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
+                        {
+                            FoundTexture = PackageTexture;
+                            break;
+                        }
+
+                        // See if we have a match with the friendly path and texture type
+                        FString PathAndFriendlyType = NodePath + TEXT("/") + TextureTypeFriendlyString;
+                        if ( PathAndFriendlyType.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
+                        {
+                            FoundTexture = PackageTexture;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if ( FoundTexture )
+                NewMaterialInstance->SetTextureParameterValueEditorOnly( CurrentMatParamName, FoundTexture );
         }
         else if ( CurrentMatParam.PropertyTupleSize == 1 )
         {

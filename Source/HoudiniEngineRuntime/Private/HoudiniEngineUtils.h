@@ -481,42 +481,42 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Create various material components. **/
         static bool CreateMaterialComponentDiffuse(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentNormal(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentSpecular(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentRoughness(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentMetallic(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentEmissive(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentOpacity(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         static bool CreateMaterialComponentOpacityMask(
-            FHoudiniCookParams& HoudiniCookParams,
+            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
             UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
             const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
@@ -680,7 +680,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             UTexture2D * ExistingTexture, const HAPI_ImageInfo & ImageInfo,
             UPackage * Package, const FString & TextureName,
             const TArray< char > & ImageBuffer, const FString & TextureType,
-            const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup );
+            const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup, const FString& NodePath );
 
         /** Reset streams used by the given RawMesh. **/
         static void ResetRawMesh( FRawMesh & RawMesh );

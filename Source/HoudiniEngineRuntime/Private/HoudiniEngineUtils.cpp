@@ -1172,7 +1172,7 @@ FHoudiniEngineUtils::CreateUnrealTexture(
     UTexture2D * ExistingTexture, const HAPI_ImageInfo & ImageInfo,
     UPackage * Package, const FString & TextureName,
     const TArray< char > & ImageBuffer, const FString & TextureType,
-    const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup )
+    const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup, const FString& NodePath )
 {
     UTexture2D * Texture = nullptr;
     if ( ExistingTexture )
@@ -1186,17 +1186,19 @@ FHoudiniEngineUtils::CreateUnrealTexture(
             Package, UTexture2D::StaticClass(), *TextureName,
             RF_Transactional );
 
-        // Add meta information to package.
-        FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-            Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT( "true" ) );
-        FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-            Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName );
-        FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-            Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType );
-
         // Assign texture group.
         Texture->LODGroup = LODGroup;
     }
+
+    // Add/Update meta information to package.
+    FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
+        Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT( "true" ) );
+    FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
+        Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName );
+    FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
+        Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType );
+    FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
+        Package, Texture, HAPI_UNREAL_PACKAGE_META_NODE_PATH, *NodePath );
 
     // Initialize texture source.
     Texture->Source.Init( ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8 );
@@ -1219,8 +1221,8 @@ FHoudiniEngineUtils::CreateUnrealTexture(
             uint32 DataOffset = y * SrcWidth * 4 + x * 4;
 
             *DestPtr++ = *(uint8*)( SrcData + DataOffset + 2 ); // B
-            *DestPtr++ = *(uint8*)( SrcData + DataOffset + 1 ); //  G
-            *DestPtr++ = *(uint8*)( SrcData + DataOffset + 0 ); //R
+            *DestPtr++ = *(uint8*)( SrcData + DataOffset + 1 ); // G
+            *DestPtr++ = *(uint8*)( SrcData + DataOffset + 0 ); // R
 
             if ( TextureParameters.bUseAlpha )
                 *DestPtr++ = *(uint8*)( SrcData + DataOffset + 3 ); // A
@@ -6338,35 +6340,35 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
             // Extract diffuse plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract opacity plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacity(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract opacity mask plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract normal plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentNormal(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract specular plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentSpecular(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract roughness plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentRoughness(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract metallic plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentMetallic(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Extract emissive plane.
             bMaterialComponentCreated |= FHoudiniEngineUtils::CreateMaterialComponentEmissive(
-                HoudiniCookParams, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
+                HoudiniCookParams, AssetId, Material, MaterialInfo, NodeInfo, NodeParams, MaterialNodeY );
 
             // Set other material properties.
             Material->TwoSided = true;
@@ -6401,9 +6403,9 @@ FHoudiniEngineUtils::HapiCreateMaterials(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     HAPI_Result Result = HAPI_RESULT_SUCCESS;
 
@@ -6610,13 +6612,16 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
                 if ( !TextureDiffuse )
                     bCreatedNewTextureDiffuse = true;
 
+                // Get the node path to add it to the meta data
+                FString NodePath;
+                GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                 // Reuse existing diffuse texture, or create new one.
                 TextureDiffuse = FHoudiniEngineUtils::CreateUnrealTexture(
                     TextureDiffuse, ImageInfo,
                     TextureDiffusePackage, TextureDiffuseName, ImageBuffer,
                     HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
-                    CreateTexture2DParameters,
-                    TEXTUREGROUP_World );
+                    CreateTexture2DParameters, TEXTUREGROUP_World, NodePath );
 
                 if ( BakeMode == EBakeMode::CookToTemp )
                     TextureDiffuse->SetFlags( RF_Public | RF_Standalone );
@@ -6750,7 +6755,7 @@ FHoudiniEngineUtils::CreateMaterialComponentDiffuse(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
@@ -6854,13 +6859,17 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
                 if ( !TextureOpacity )
                     bCreatedNewTextureOpacity = true;
 
+                // Get the node path to add it to the meta data
+                FString NodePath;
+                GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                 // Reuse existing opacity texture, or create new one.
                 TextureOpacity = FHoudiniEngineUtils::CreateUnrealTexture(
                     TextureOpacity, ImageInfo,
                     TextureOpacityPackage, TextureOpacityName, ImageBuffer,
                     HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK,
                     CreateTexture2DParameters,
-                    TEXTUREGROUP_World );
+                    TEXTUREGROUP_World, NodePath );
 
                 if ( BakeMode == EBakeMode::CookToTemp )
                     TextureOpacity->SetFlags(RF_Public | RF_Standalone);
@@ -6918,7 +6927,7 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacityMask(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentOpacity(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
@@ -7090,9 +7099,9 @@ FHoudiniEngineUtils::CreateMaterialComponentOpacity(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentNormal(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
+    const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
     bool bExpressionCreated = false;
     bool bTangentSpaceNormal = true;
@@ -7217,13 +7226,18 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                 if ( !TextureNormal )
                     bCreatedNewTextureNormal = true;
 
+                // Get the node path to add it to the meta data
+                FString NodePath;
+                GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                 // Reuse existing normal texture, or create new one.
                 TextureNormal = FHoudiniEngineUtils::CreateUnrealTexture(
                     TextureNormal, ImageInfo,
                     TextureNormalPackage, TextureNormalName, ImageBuffer,
                     HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
                     CreateTexture2DParameters,
-                    TEXTUREGROUP_WorldNormalMap );
+                    TEXTUREGROUP_WorldNormalMap,
+                    NodePath );
 
                 if ( BakeMode == EBakeMode::CookToTemp )
                     TextureNormal->SetFlags(RF_Public | RF_Standalone);
@@ -7335,12 +7349,16 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
                     if ( !TextureNormal )
                         bCreatedNewTextureNormal = true;
 
+                    // Get the node path to add it to the meta data
+                    FString NodePath;
+                    GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                     // Reuse existing normal texture, or create new one.
                     TextureNormal = FHoudiniEngineUtils::CreateUnrealTexture(
                         TextureNormal, ImageInfo,
                         TextureNormalPackage, TextureNormalName, ImageBuffer,
                         HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, CreateTexture2DParameters,
-                        TEXTUREGROUP_WorldNormalMap );
+                        TEXTUREGROUP_WorldNormalMap, NodePath );
 
                     if ( BakeMode == EBakeMode::CookToTemp )
                         TextureNormal->SetFlags( RF_Public | RF_Standalone );
@@ -7388,7 +7406,7 @@ FHoudiniEngineUtils::CreateMaterialComponentNormal(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentSpecular(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
@@ -7482,13 +7500,17 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
                 if ( !TextureSpecular )
                     bCreatedNewTextureSpecular = true;
 
+                // Get the node path to add it to the meta data
+                FString NodePath;
+                GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                 // Reuse existing specular texture, or create new one.
                 TextureSpecular = FHoudiniEngineUtils::CreateUnrealTexture(
                     TextureSpecular, ImageInfo,
                     TextureSpecularPackage, TextureSpecularName, ImageBuffer,
                     HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
                     CreateTexture2DParameters,
-                    TEXTUREGROUP_World );
+                    TEXTUREGROUP_World, NodePath );
 
                 if ( BakeMode == EBakeMode::CookToTemp )
                     TextureSpecular->SetFlags( RF_Public | RF_Standalone );
@@ -7592,7 +7614,7 @@ FHoudiniEngineUtils::CreateMaterialComponentSpecular(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentRoughness(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
@@ -7686,13 +7708,17 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
                 if ( !TextureRoughness )
                     bCreatedNewTextureRoughness = true;
 
+                // Get the node path to add it to the meta data
+                FString NodePath;
+                GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                 // Reuse existing roughness texture, or create new one.
                 TextureRoughness = FHoudiniEngineUtils::CreateUnrealTexture(
                     TextureRoughness, ImageInfo,
                     TextureRoughnessPackage, TextureRoughnessName, ImageBuffer,
                     HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
                     CreateTexture2DParameters,
-                    TEXTUREGROUP_World );
+                    TEXTUREGROUP_World, NodePath );
 
                 if ( BakeMode == EBakeMode::CookToTemp )
                     TextureRoughness->SetFlags( RF_Public | RF_Standalone );
@@ -7796,7 +7822,7 @@ FHoudiniEngineUtils::CreateMaterialComponentRoughness(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentMetallic(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY)
 {
@@ -7882,13 +7908,17 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
                 if ( !TextureMetallic )
                     bCreatedNewTextureMetallic = true;
 
+                // Get the node path to add it to the meta data
+                FString NodePath;
+                GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                 // Reuse existing metallic texture, or create new one.
                 TextureMetallic = FHoudiniEngineUtils::CreateUnrealTexture(
                     TextureMetallic, ImageInfo,
                     TextureMetallicPackage, TextureMetallicName, ImageBuffer,
                     HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
                     CreateTexture2DParameters,
-                    TEXTUREGROUP_World );
+                    TEXTUREGROUP_World, NodePath );
 
                 if ( BakeMode == EBakeMode::CookToTemp )
                     TextureMetallic->SetFlags( RF_Public | RF_Standalone );
@@ -7983,7 +8013,7 @@ FHoudiniEngineUtils::CreateMaterialComponentMetallic(
 
 bool
 FHoudiniEngineUtils::CreateMaterialComponentEmissive(
-    FHoudiniCookParams& HoudiniCookParams,
+    FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
     UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
     const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY )
 {
@@ -8069,13 +8099,17 @@ FHoudiniEngineUtils::CreateMaterialComponentEmissive(
                 if ( !TextureEmissive )
                     bCreatedNewTextureEmissive = true;
 
+                // Get the node path to add it to the meta data
+                FString NodePath;
+                GetUniqueMaterialShopName( AssetId, MaterialInfo.nodeId, NodePath );
+
                 // Reuse existing emissive texture, or create new one.
                 TextureEmissive = FHoudiniEngineUtils::CreateUnrealTexture(
                     TextureEmissive, ImageInfo,
                     TextureEmissivePackage, TextureEmissiveName, ImageBuffer,
                     HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE,
                     CreateTexture2DParameters,
-                    TEXTUREGROUP_World );
+                    TEXTUREGROUP_World, NodePath );
 
                 if ( BakeMode == EBakeMode::CookToTemp )
                     TextureEmissive->SetFlags( RF_Public | RF_Standalone );
