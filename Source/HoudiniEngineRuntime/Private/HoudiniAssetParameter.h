@@ -99,6 +99,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
         /** Return label name. **/
         const FString & GetParameterLabel() const;
 
+        /** Return parameter help **/
+        const FString & GetParameterHelp() const;
+
         /** Update parameter's node id. This is necessary after parameter is loaded. **/
         void SetNodeId( HAPI_NodeId InNodeId );
 
@@ -151,6 +154,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Set name and label. **/
         bool SetNameAndLabel( const FString & Name );
+
+        /** Set the parameter's help (tooltip)**/
+        bool SetHelp( const HAPI_ParmInfo & ParmInfo );
 
         /** Check if parameter is visible. **/
         bool IsVisible( const HAPI_ParmInfo & ParmInfo ) const;
@@ -219,6 +225,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetParameter : public UObject
 
         /** Active child parameter. **/
         int32 ActiveChildParameter;
+
+        /** The parameter's help, to be used as a tooltip **/
+        FString ParameterHelp;
 
         /** Flags used by this parameter. **/
         union

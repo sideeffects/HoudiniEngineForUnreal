@@ -78,11 +78,13 @@
 void
 FHoudiniParameterDetails::CreateNameWidget( UHoudiniAssetParameter* InParam, FDetailWidgetRow & Row, bool WithLabel )
 {
+    if ( !InParam )
+        return;
+
     FText ParameterLabelText = FText::FromString( InParam->GetParameterLabel() );
     const FText & FinalParameterLabelText = WithLabel ? ParameterLabelText : FText::GetEmpty();
-    FText ParameterTooltip = WithLabel ? FText::FromString( InParam->GetParameterName() ) : 
-        FText::FromString( InParam->GetParameterLabel() + TEXT( " (" ) + InParam->GetParameterName() + TEXT( ")" ) );
 
+    FText ParameterTooltip = GetParameterTooltip( InParam );
     if ( InParam->bIsChildOfMultiparm && InParam->ParentParameter )
     {
         TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
@@ -151,9 +153,29 @@ FHoudiniParameterDetails::CreateNameWidget( UHoudiniAssetParameter* InParam, FDe
         Row.NameWidget.Widget =
             SNew( STextBlock )
             .Text( FinalParameterLabelText )
-            .ToolTipText( ParameterLabelText )
+            .ToolTipText( ParameterTooltip )
             .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
     }
+}
+
+FText
+FHoudiniParameterDetails::GetParameterTooltip( UHoudiniAssetParameter* InParam )
+{
+    if ( !InParam )
+        return FText();
+
+    /*
+    FString Tooltip = InParam->GetParameterLabel() + TEXT(" (") + InParam->GetParameterName() + TEXT(")");
+    if ( !InParam->GetParameterHelp().IsEmpty() )
+        Tooltip += TEXT ( ":\n") + InParam->GetParameterHelp();
+
+    return FText::FromString( Tooltip );
+    */
+    
+    if ( !InParam->GetParameterHelp().IsEmpty() )
+        return FText::FromString( InParam->GetParameterHelp() );
+    else
+        return FText::FromString( InParam->GetParameterLabel() + TEXT( " (" ) + InParam->GetParameterName() + TEXT( ")" ) );
 }
 
 void 
@@ -330,6 +352,7 @@ FHoudiniParameterDetails::CreateWidgetFolderList( IDetailCategoryBuilder & Local
         if ( HoudiniAssetParameterChild->IsA( UHoudiniAssetParameterFolder::StaticClass() ) )
         {
             FText ParameterLabelText = FText::FromString( HoudiniAssetParameterChild->GetParameterLabel() );
+            FText ParameterToolTip = GetParameterTooltip( HoudiniAssetParameterChild );
 
             HorizontalBox->AddSlot().Padding( 0, 2, 0, 2 )
             [
@@ -337,7 +360,7 @@ FHoudiniParameterDetails::CreateWidgetFolderList( IDetailCategoryBuilder & Local
                 .VAlign( VAlign_Center )
                 .HAlign( HAlign_Center )
                 .Text( ParameterLabelText )
-                .ToolTipText( ParameterLabelText )
+                .ToolTipText( ParameterToolTip )
                 .OnClicked( FOnClicked::CreateLambda( [=]() {
                     if ( MyParam.IsValid() )
                     {
@@ -667,6 +690,7 @@ FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDeta
     CreateNameWidget( &InParam, Row, true );
 
     FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
+    FText ParameterTooltip = GetParameterTooltip( &InParam );
 
     TSharedRef< SHorizontalBox > HorizontalBox = SNew( SHorizontalBox );
     TSharedPtr< SButton > Button;
@@ -677,7 +701,7 @@ FHoudiniParameterDetails::CreateWidgetButton( IDetailCategoryBuilder & LocalDeta
         .VAlign( VAlign_Center )
         .HAlign( HAlign_Center )
         .Text( ParameterLabelText )
-        .ToolTipText( ParameterLabelText )
+        .ToolTipText( ParameterTooltip )
         .OnClicked( FOnClicked::CreateLambda( [=]() {
             if ( MyParam.IsValid() )
             {
@@ -748,9 +772,10 @@ void
 FHoudiniParameterDetails::CreateWidgetChoice( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameterChoice& InParam )
 {
     FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
-    
-    TWeakObjectPtr<UHoudiniAssetParameterChoice> MyParam( &InParam );
+    FText ParameterTooltip = GetParameterTooltip( &InParam );
 
+    TWeakObjectPtr<UHoudiniAssetParameterChoice> MyParam( &InParam );
+    
     VerticalBox->AddSlot().Padding( 2, 2, 2, 2 )
     [
         SNew( SHorizontalBox )
@@ -758,7 +783,7 @@ FHoudiniParameterDetails::CreateWidgetChoice( TSharedPtr< SVerticalBox > Vertica
         [
             SNew( STextBlock )
             .Text( ParameterLabelText )
-            .ToolTipText( ParameterLabelText )
+            .ToolTipText( ParameterTooltip )
             .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
         ]
         + SHorizontalBox::Slot()
@@ -861,7 +886,7 @@ FHoudiniParameterDetails::CreateWidgetToggle( IDetailCategoryBuilder & LocalDeta
             [
                 SNew( STextBlock )
                 .Text( ParameterLabelText )
-                .ToolTipText( ParameterLabelText )
+                .ToolTipText( GetParameterTooltip( &InParam ) )
                 .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
             ]
         ];
@@ -878,6 +903,7 @@ void
 FHoudiniParameterDetails::CreateWidgetToggle( TSharedPtr< SVerticalBox > VerticalBox, class UHoudiniAssetParameterToggle& InParam )
 {
     FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
+    FText ParameterTooltip = GetParameterTooltip( &InParam );
 
     for ( int32 Idx = 0; Idx < InParam.GetTupleSize(); ++Idx )
     {
@@ -903,7 +929,7 @@ FHoudiniParameterDetails::CreateWidgetToggle( TSharedPtr< SVerticalBox > Vertica
                 [
                     SNew( STextBlock )
                     .Text( ParameterLabelText )
-                    .ToolTipText( ParameterLabelText )
+                    .ToolTipText( ParameterTooltip )
                     .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
                 ]
             ]
@@ -1473,6 +1499,7 @@ void FHoudiniParameterDetails::Helper_CreateGeometryWidget(
 
     // Thumbnail : Static Mesh
     FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
+    //FText ParameterTooltip = GetParameterTooltip( &InParam, true );
     TSharedPtr< SBorder > StaticMeshThumbnailBorder;
 
     HorizontalBox->AddSlot().Padding( 0.0f, 0.0f, 2.0f, 0.0f ).AutoWidth()
@@ -1931,11 +1958,11 @@ FHoudiniParameterDetails::CreateWidgetInput( IDetailCategoryBuilder & LocalDetai
     TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
     FDetailWidgetRow & Row = LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() );
     FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
-
+    FText ParameterTooltip = GetParameterTooltip( &InParam );
     Row.NameWidget.Widget =
         SNew( STextBlock )
             .Text( ParameterLabelText )
-            .ToolTipText( ParameterLabelText )
+            .ToolTipText( ParameterTooltip )
             .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) );
 
     TSharedRef< SVerticalBox > VerticalBox = SNew( SVerticalBox );
@@ -2521,12 +2548,13 @@ FHoudiniParameterDetails::CreateWidgetLabel( IDetailCategoryBuilder & LocalDetai
 {
     TSharedPtr< STextBlock > TextBlock;
     FText ParameterLabelText = FText::FromString( InParam.GetParameterLabel() );
+    FText ParameterTooltip = GetParameterTooltip( &InParam );
 
     LocalDetailCategoryBuilder.AddCustomRow( FText::GetEmpty() )
     [
         SAssignNew( TextBlock, STextBlock )
         .Text( ParameterLabelText )
-        .ToolTipText( ParameterLabelText )
+        .ToolTipText( ParameterTooltip )
         .Font( FEditorStyle::GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
         .WrapTextAt( HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH )
         .Justification( ETextJustify::Center )
