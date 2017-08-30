@@ -61,6 +61,7 @@ UHoudiniAssetParameter::UHoudiniAssetParameter( const FObjectInitializer & Objec
 {
     ParameterName = TEXT( "" );
     ParameterLabel = TEXT( "" );
+    ParameterHelp = TEXT( "" );
 }
 
 bool
@@ -83,6 +84,10 @@ UHoudiniAssetParameter::CreateParameter(
 
     // Set name and label.
     if ( !SetNameAndLabel( ParmInfo ) )
+        return false;
+
+    // Set the help
+    if ( !SetHelp( ParmInfo ) )
         return false;
 
     // If it is a Substance parameter, mark it as such.
@@ -278,6 +283,15 @@ UHoudiniAssetParameter::Serialize( FArchive & Ar )
         Ar << Dummy;
     }
 
+    if ( HoudiniAssetParameterVersion >= VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_ADDED_PARAM_HELP )
+    {
+        Ar << ParameterHelp;
+    }
+    else
+    {
+        ParameterHelp = TEXT( "" );
+    }
+
     if ( Ar.IsTransacting() )
     {
         Ar << PrimaryObject;
@@ -351,6 +365,17 @@ UHoudiniAssetParameter::SetNameAndLabel( const FString & Name )
     ParameterLabel = Name;
 
     return true;
+}
+
+bool
+UHoudiniAssetParameter::SetHelp( const HAPI_ParmInfo & ParmInfo )
+{
+    FHoudiniEngineString HoudiniEngineStringHelp( ParmInfo.helpSH );
+
+    bool bresult = true;
+    bresult = HoudiniEngineStringHelp.ToFString( ParameterHelp );
+
+    return bresult;
 }
 
 void
@@ -464,6 +489,13 @@ UHoudiniAssetParameter::GetParameterLabel() const
 {
     return ParameterLabel;
 }
+
+const FString &
+UHoudiniAssetParameter::GetParameterHelp() const
+{
+    return ParameterHelp;
+}
+
 
 void
 UHoudiniAssetParameter::SetNodeId( HAPI_NodeId InNodeId )
