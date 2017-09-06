@@ -24,32 +24,29 @@
 #pragma once
 
 #include "HoudiniAssetInput.h"
-#include "ImageUtils.h"
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniCookHandler.h"
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Engine/StaticMeshSocket.h"
 
-class UTexture2D;
 class UStaticMesh;
 class UHoudiniAsset;
 class ALandscapeProxy;
 class AHoudiniAssetActor;
-class UMaterialExpression;
 class USplineComponent;
 
 struct FRawMesh;
 
 DECLARE_STATS_GROUP( TEXT( "HoudiniEngine" ), STATGROUP_HoudiniEngine, STATCAT_Advanced );
 
-struct HOUDINIENGINERUNTIME_API UPropertyAttribute
+struct HOUDINIENGINERUNTIME_API UGenericAttribute
 {
-    FString PropertyName;
+    FString AttributeName;
 
-    HAPI_StorageType PropertyType;
-    int32 PropertyCount;
-    int32 PropertyTupleSize;
+    HAPI_StorageType AttributeType;
+    int32 AttributeCount;
+    int32 AttributeTupleSize;
 
     TArray< double > DoubleValues;
     TArray< int64 > IntValues;
@@ -57,17 +54,17 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
 
     double GetDoubleValue( int32 index = 0 )
     {
-        if ( ( PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        if ( ( AttributeType == HAPI_STORAGETYPE_FLOAT ) || ( AttributeType == HAPI_STORAGETYPE_FLOAT64 ) )
         {
             if ( DoubleValues.IsValidIndex( index ) )
                 return DoubleValues[ index ];
         }
-        else if  ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        else if  ( ( AttributeType == HAPI_STORAGETYPE_INT ) || ( AttributeType == HAPI_STORAGETYPE_INT64 ) )
         {
             if ( IntValues.IsValidIndex( index ) )
                 return (double)IntValues[ index ];
         }
-        else if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        else if ( AttributeType == HAPI_STORAGETYPE_STRING )
         {
             if ( StringValues.IsValidIndex( index ) )
                 return FCString::Atod( *StringValues[ index ] );
@@ -78,25 +75,25 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
 
     void GetDoubleTuple( TArray<double>& TupleValues, int32 index = 0 )
     {
-        TupleValues.SetNumZeroed( PropertyTupleSize );
+        TupleValues.SetNumZeroed( AttributeTupleSize );
 
-        for ( int32 n = 0; n < PropertyTupleSize; n++ )
-            TupleValues[ n ] = GetDoubleValue( index * PropertyTupleSize + n );
+        for ( int32 n = 0; n < AttributeTupleSize; n++ )
+            TupleValues[ n ] = GetDoubleValue( index * AttributeTupleSize + n );
     }
 
     int64 GetIntValue( int32 index = 0 )
     {
-        if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        if ( ( AttributeType == HAPI_STORAGETYPE_INT ) || ( AttributeType == HAPI_STORAGETYPE_INT64 ) )
         {
             if ( IntValues.IsValidIndex( index ) )
                 return IntValues[ index ];
         }
-        else if ( ( PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        else if ( ( AttributeType == HAPI_STORAGETYPE_FLOAT ) || ( AttributeType == HAPI_STORAGETYPE_FLOAT64 ) )
         {
             if ( DoubleValues.IsValidIndex( index ) )
                 return (int64)DoubleValues[ index ];
         }
-        else if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        else if ( AttributeType == HAPI_STORAGETYPE_STRING )
         {
             if ( StringValues.IsValidIndex( index ) )
                 return FCString::Atoi64( *StringValues[ index ] );
@@ -107,25 +104,25 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
 
     void GetIntTuple( TArray<int64>& TupleValues, int32 index = 0 )
     {
-        TupleValues.SetNumZeroed( PropertyTupleSize );
+        TupleValues.SetNumZeroed( AttributeTupleSize );
 
-        for ( int32 n = 0; n < PropertyTupleSize; n++ )
-            TupleValues[ n ] = GetIntValue( index * PropertyTupleSize + n );
+        for ( int32 n = 0; n < AttributeTupleSize; n++ )
+            TupleValues[ n ] = GetIntValue( index * AttributeTupleSize + n );
     }
 
     FString GetStringValue( int32 index = 0 )
     {
-        if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        if ( AttributeType == HAPI_STORAGETYPE_STRING )
         {
             if ( StringValues.IsValidIndex( index ) )
                 return StringValues[ index ];
         }
-        else if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        else if ( ( AttributeType == HAPI_STORAGETYPE_INT ) || ( AttributeType == HAPI_STORAGETYPE_INT64 ) )
         {
             if ( IntValues.IsValidIndex( index ) )
                 return FString::FromInt( (int32) IntValues[ index ] );
         }
-        else if ( (PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        else if ( ( AttributeType == HAPI_STORAGETYPE_FLOAT ) || ( AttributeType == HAPI_STORAGETYPE_FLOAT64 ) )
         {
             if ( DoubleValues.IsValidIndex( index ) )
                 return FString::SanitizeFloat( DoubleValues[ index ] );
@@ -136,25 +133,25 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
 
     void GetStringTuple( TArray<FString>& TupleValues, int32 index = 0 )
     {
-        TupleValues.SetNumZeroed( PropertyTupleSize );
+        TupleValues.SetNumZeroed( AttributeTupleSize );
 
-        for ( int32 n = 0; n < PropertyTupleSize; n++ )
-            TupleValues[ n ] = GetStringValue( index * PropertyTupleSize + n );
+        for ( int32 n = 0; n < AttributeTupleSize; n++ )
+            TupleValues[ n ] = GetStringValue( index * AttributeTupleSize + n );
     }
 
     bool GetBoolValue( int32 index = 0 )
     {
-        if ( (PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        if ( (AttributeType == HAPI_STORAGETYPE_FLOAT ) || ( AttributeType == HAPI_STORAGETYPE_FLOAT64 ) )
         {
             if ( DoubleValues.IsValidIndex( index ) )
                 return DoubleValues[ index ] == 0.0 ? false : true;
         }
-        else if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        else if ( ( AttributeType == HAPI_STORAGETYPE_INT ) || ( AttributeType == HAPI_STORAGETYPE_INT64 ) )
         {
             if ( IntValues.IsValidIndex( index ) )
                 return IntValues[ index ] == 0 ? false : true;
         }
-        else if ( PropertyType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
+        else if ( AttributeType == HAPI_StorageType::HAPI_STORAGETYPE_STRING )
         {
             if ( StringValues.IsValidIndex( index ) )
                 return StringValues[ index ].Equals( TEXT( "true" ), ESearchCase::IgnoreCase ) ? true : false;
@@ -165,25 +162,25 @@ struct HOUDINIENGINERUNTIME_API UPropertyAttribute
 
     void GetBoolTuple( TArray<bool>& TupleValues, int32 index = 0 )
     {
-        TupleValues.SetNumZeroed( PropertyTupleSize );
+        TupleValues.SetNumZeroed( AttributeTupleSize );
 
-        for ( int32 n = 0; n < PropertyTupleSize; n++ )
-            TupleValues[ n ] = GetBoolValue( index * PropertyTupleSize + n );
+        for ( int32 n = 0; n < AttributeTupleSize; n++ )
+            TupleValues[ n ] = GetBoolValue( index * AttributeTupleSize + n );
     }
 
     void* GetData()
     {
-        if ( PropertyType == HAPI_STORAGETYPE_STRING )
+        if ( AttributeType == HAPI_STORAGETYPE_STRING )
         {
             if ( StringValues.Num() > 0 )
                 return StringValues.GetData();
         }
-        else if ( ( PropertyType == HAPI_STORAGETYPE_INT ) || ( PropertyType == HAPI_STORAGETYPE_INT64 ) )
+        else if ( ( AttributeType == HAPI_STORAGETYPE_INT ) || ( AttributeType == HAPI_STORAGETYPE_INT64 ) )
         {
             if ( IntValues.Num() > 0 )
                 return IntValues.GetData();
         }
-        else if ( ( PropertyType == HAPI_STORAGETYPE_FLOAT ) || ( PropertyType == HAPI_STORAGETYPE_FLOAT64 ) )
+        else if ( ( AttributeType == HAPI_STORAGETYPE_FLOAT ) || ( AttributeType == HAPI_STORAGETYPE_FLOAT64 ) )
         {
             if ( DoubleValues.Num() > 0 )
                 return DoubleValues.GetData();
@@ -232,9 +229,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** Destroy asset, returns the status. **/
         static bool DestroyHoudiniAsset( HAPI_NodeId AssetId );
-
-        /** HAPI : Get unique material SHOP name. **/
-        static bool GetUniqueMaterialShopName( HAPI_NodeId AssetId, HAPI_NodeId MaterialId, FString & Name );
 
         /** HAPI : Convert Unreal string to ascii one. **/
         static void ConvertUnrealString( const FString & UnrealString, std::string & String );
@@ -456,69 +450,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
         static int32 HapiFindParameterByNameOrTag( const HAPI_NodeId& NodeId, const std::string ParmName, HAPI_ParmInfo& FoundParmInfo );
         static int32 HapiFindParameterByNameOrTag( const TArray< HAPI_ParmInfo > NodeParams, const HAPI_NodeId& NodeId, const std::string ParmName );
 
-        /** HAPI : Retrieve a list of image planes. **/
-        static bool HapiGetImagePlanes(
-            HAPI_ParmId NodeParmId, const HAPI_MaterialInfo & MaterialInfo,
-            TArray< FString > & ImagePlanes );
-
-        /** HAPI : Extract image data. **/
-        static bool HapiExtractImage(
-            HAPI_ParmId NodeParmId, const HAPI_MaterialInfo & MaterialInfo,
-            TArray< char > & ImageBuffer, const char * PlaneType, HAPI_ImageDataFormat ImageDataFormat,
-            HAPI_ImagePacking ImagePacking, bool bRenderToImage );
-
-        /** HAPI : Return true if given material is transparent. **/
-        static bool HapiIsMaterialTransparent( const HAPI_MaterialInfo & MaterialInfo );
-
-        /** HAPI : Create Unreal materials and necessary textures. Reuse existing materials, if they are not updated. **/
-        static void HapiCreateMaterials(
-            HAPI_NodeId AssetId,
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_AssetInfo & AssetInfo,
-            const TSet< HAPI_NodeId > & UniqueMaterialIds, const TSet< HAPI_NodeId > & UniqueInstancerMaterialIds,
-            TMap< FString, UMaterialInterface * > & Materials, const bool& bForceRecookAll );
-
 #if WITH_EDITOR
-
-        /** Create various material components. **/
-        static bool CreateMaterialComponentDiffuse(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
-
-        static bool CreateMaterialComponentNormal(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
-
-        static bool CreateMaterialComponentSpecular(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
-
-        static bool CreateMaterialComponentRoughness(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
-
-        static bool CreateMaterialComponentMetallic(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
-
-        static bool CreateMaterialComponentEmissive(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
-
-        static bool CreateMaterialComponentOpacity(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
-
-        static bool CreateMaterialComponentOpacityMask(
-            FHoudiniCookParams& HoudiniCookParams, const HAPI_NodeId& AssetId,
-            UMaterial * Material, const HAPI_MaterialInfo & MaterialInfo, const HAPI_NodeInfo & NodeInfo,
-            const TArray< HAPI_ParmInfo > & NodeParams, int32 & MaterialNodeY );
 
         /** Helper routine to check invalid lightmap faces. **/
         static bool ContainsInvalidLightmapFaces( const FRawMesh & RawMesh, int32 LightmapSourceIdx );
@@ -567,33 +499,25 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             FHoudiniGeoPartObject& HoudiniGeoPartObject,
             FKAggregateGeom& AggregateCollisionGeo );
 
-        /** Create a package for given component for static mesh baking. **/
-        static UPackage * BakeCreateStaticMeshPackageForComponent(
-            FHoudiniCookParams& HoudiniCookParams,
-            const FHoudiniGeoPartObject & HoudiniGeoPartObject,
-            FString & MeshName, FGuid & BakeGUID );
-
         /** Updates all Uproperty attributes found on the given object **/
         static void UpdateUPropertyAttributesOnObject(
                 UObject* MeshComponent, const FHoudiniGeoPartObject& HoudiniGeoPartObject );
 
         /** Return a list with all the UProperty attributes found **/
-        static int32 GetUPropertyAttributesList( 
+        static int32 GetUPropertyAttributeList( 
             const FHoudiniGeoPartObject& GeoPartObject,
-            TArray< UPropertyAttribute >& AllUProps );
+            TArray< UGenericAttribute >& AllUProps );
 
-        /** Return a list of all the UProperty attributes for a given Attribute Owner **/
-        static int32 GetUPropertyAttributesList(
+        /** Return a list of all the generic attributes for a given attribute owner **/
+        static int32 GetGenericAttributeList(
             const FHoudiniGeoPartObject& GeoPartObject,
             const FString& GenericAttributePrefix,
-            TArray< UPropertyAttribute >& AllUProps,
+            TArray< UGenericAttribute >& AllUProps,
             const HAPI_AttributeOwner& AttributeOwner );
 
         /** Tries to update values for all the UProperty attributes to apply on the object. **/
         static void ApplyUPropertyAttributesOnObject(
-            UObject* MeshComponent, const TArray< UPropertyAttribute >& UPropertiesToModify);
-
-        static bool CheckPackageSafeForBake(UPackage* Package, FString& FoundAssetName);
+            UObject* MeshComponent, const TArray< UGenericAttribute >& UPropertiesToModify );
 
         /** Helper function to extract a raw name from a given Fstring. Caller is responsible for clean up. **/
         static char * ExtractRawName(const FString & Name);
@@ -607,34 +531,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             const FString & HoudiniInstallationType, const FString & HoudiniVersionString, FString & StoredLibHAPILocation );
 #endif
     public:
-        /** Create a package for a given component for material. **/
-        static UPackage * BakeCreateMaterialPackageForComponent(
-            FHoudiniCookParams& HoudiniCookParams,
-            const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName );
-
-        /** Create a package for a given component for texture. **/
-        static UPackage * BakeCreateTexturePackageForComponent(
-            FHoudiniCookParams& HoudiniCookParams,
-            const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
-            FString & TextureName );
-
-        /** Create a package for a given component for either a texture or material **/
-        static UPackage * BakeCreateTextureOrMaterialPackageForComponent(
-            FHoudiniCookParams& HoudiniCookParams,
-            const FString & MaterialInfoDescriptor, FString & MaterialName );
 
         /** Helper function to extract colors and store them in a given RawMesh. Returns number of wedges. **/
         static int32 TransferRegularPointAttributesToVertices(
             const TArray< int32 > & VertexList,
             const HAPI_AttributeInfo & AttribInfo, TArray< float > & Data );
-
-        /** Add Houdini meta information to package for a given object. **/
-        static void AddHoudiniMetaInformationToPackage(
-            UPackage * Package, UObject * Object, const TCHAR * Key, const TCHAR * Value );
-
-        /** Retrieve item name from Houdini meta information. **/
-        static bool GetHoudiniGeneratedNameFromMetaInformation(
-            UPackage * Package, UObject * Object, FString & HoudiniName );
 
 #if WITH_EDITOR
 
@@ -664,9 +565,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
             TSet< HAPI_NodeId > & InstancerMaterialIds,
             TMap< FHoudiniGeoPartObject, HAPI_NodeId > & InstancerMaterialMap );
 
-        /** Helper function to locate first Material expression of given class within given expression subgraph. **/
-        static UMaterialExpression * MaterialLocateExpression( UMaterialExpression * Expression, UClass * ExpressionClass );
-
         /** Pick vertex color from texture mip level. **/
         static FColor PickVertexColorFromTextureMip(
             const uint8 * MipBytes, FVector2D & UVCoord, int32 MipWidth, int32 MipHeight );
@@ -674,13 +572,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
     protected:
 
 #if WITH_EDITOR
-
-        /** Create a texture from given information. **/
-        static UTexture2D * CreateUnrealTexture(
-            UTexture2D * ExistingTexture, const HAPI_ImageInfo & ImageInfo,
-            UPackage * Package, const FString & TextureName,
-            const TArray< char > & ImageBuffer, const FString & TextureType,
-            const FCreateTexture2DParameters & TextureParameters, TextureGroup LODGroup, const FString& NodePath );
 
         /** Reset streams used by the given RawMesh. **/
         static void ResetRawMesh( FRawMesh & RawMesh );
@@ -694,10 +585,4 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineUtils
 
         /** How many GUID symbols are used for package item name generation. **/
         static const int32 PackageGUIDItemNameLength;
-
-        /** Material node construction offsets. **/
-        static const int32 MaterialExpressionNodeX;
-        static const int32 MaterialExpressionNodeY;
-        static const int32 MaterialExpressionNodeStepX;
-        static const int32 MaterialExpressionNodeStepY;
 };

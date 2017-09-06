@@ -96,4 +96,37 @@ public:
 
     /** Bakes landscape (detach them from the asset), if OnlyBakeThisLandscape is null, all landscapes will be baked **/
     static bool BakeLandscape( UHoudiniAssetComponent* HoudiniAssetComponent, class ALandscape * OnlyBakeThisLandscape = nullptr );
+
+    /** Create a package for a given component for material. **/
+    static UPackage * BakeCreateMaterialPackageForComponent(
+        FHoudiniCookParams& HoudiniCookParams,
+        const HAPI_MaterialInfo & MaterialInfo, FString & MaterialName );
+
+    /** Create a package for a given component for texture. **/
+    static UPackage * BakeCreateTexturePackageForComponent(
+        FHoudiniCookParams& HoudiniCookParams,
+        const HAPI_MaterialInfo & MaterialInfo, const FString & TextureType,
+        FString & TextureName );
+
+    /** Create a package for a given component for either a texture or material **/
+    static UPackage * BakeCreateTextureOrMaterialPackageForComponent(
+        FHoudiniCookParams& HoudiniCookParams,
+        const FString & MaterialInfoDescriptor, FString & MaterialName );
+
+    /** Create a package for given component for static mesh baking. **/
+    static UPackage * BakeCreateStaticMeshPackageForComponent(
+        FHoudiniCookParams& HoudiniCookParams,
+        const FHoudiniGeoPartObject & HoudiniGeoPartObject,
+        FString & MeshName, FGuid & BakeGUID );
+
+    /** Checks the package is not referenced or marked for garbage collection **/
+    static bool CheckPackageSafeForBake( UPackage* Package, FString& FoundAssetName );
+    
+    /** Add Houdini meta information to package for a given object. **/
+    static void AddHoudiniMetaInformationToPackage(
+        UPackage * Package, UObject * Object, const TCHAR * Key, const TCHAR * Value );
+
+    /** Retrieve item name from Houdini meta information. **/
+    static bool GetHoudiniGeneratedNameFromMetaInformation(
+        UPackage * Package, UObject * Object, FString & HoudiniName );
 };

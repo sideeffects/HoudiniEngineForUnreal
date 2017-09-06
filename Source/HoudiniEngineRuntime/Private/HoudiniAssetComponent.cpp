@@ -26,6 +26,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineBakeUtils.h"
+#include "HoudiniEngineMaterialUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
@@ -63,10 +64,7 @@
 #include "UObjectToken.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
-#include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
-#include "Materials/MaterialInstanceConstant.h"
-#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Engine/StaticMeshSocket.h"
 #include "HoudiniCookHandler.h"
 #include "MetaData.h"
@@ -90,7 +88,6 @@
 #include "Editor/PropertyEditor/Private/SDetailsViewBase.h"
 #include "StaticMeshResources.h"
 #include "SlateApplication.h"
-#include "Factories/MaterialInstanceConstantFactoryNew.h"
 #endif
 
 #include "Internationalization.h"
@@ -841,6 +838,10 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
     CleanUpAttachedStaticMeshComponents();
 
 #if WITH_EDITOR
+    FHoudiniCookParams HoudiniCookParams( this );
+    HoudiniCookParams.PackageGUID = ComponentGUID;
+    HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
+
     // Handling the creation of material instances from attributes
     bool bMaterialReplaced = false;
     for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
@@ -853,9 +854,8 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 
         // Create material instances if needed
         UMaterialInstance* MaterialInstance = nullptr;
-        UMaterialInterface* OldMaterialInterface = nullptr; 
-
-        if ( !CreateMaterialInstances( HoudiniGeoPartObject, MaterialInstance, OldMaterialInterface ) )
+        UMaterialInterface* OldMaterialInterface = nullptr;
+        if ( !FHoudiniEngineMaterialUtils::CreateMaterialInstances( HoudiniGeoPartObject, HoudiniCookParams, MaterialInstance, OldMaterialInterface ) )
             continue;
 
         if ( !MaterialInstance || !OldMaterialInterface )
@@ -872,14 +872,11 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
                 continue;
 
             // Update the StaticMesh, StaticMeshComponents and Instanced Static Mesh Components
-            /*
-            StaticMesh->Modify();
-            StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface = MaterialInstance;
-
+            StaticMesh->Modify(); 
             StaticMesh->PreEditChange( nullptr );
+            StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface = MaterialInstance;            
             StaticMesh->PostEditChange();
             StaticMesh->MarkPackageDirty();
-            */
 
             UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
             if ( StaticMeshComponent )
@@ -5683,415 +5680,6 @@ UHoudiniAssetComponent::RemoveReplacementMaterial(
             MaterialReplacementsValues.Remove( MaterialName );
         }
     }
-}
-
-bool 
-UHoudiniAssetComponent::CreateMaterialInstances( const FHoudiniGeoPartObject& HoudiniGeoPartObject, UMaterialInstance*& CreatedMaterialInstance, UMaterialInterface*& OriginalMaterialInterface )
-{
-#if WITH_EDITOR
-    if ( !HoudiniGeoPartObject.IsValid() )
-        return false;
-
-    // First, make sure this geopartObj has a material instance attribute
-    HAPI_AttributeInfo AttribMaterialInstances;
-    FMemory::Memset< HAPI_AttributeInfo >( AttribMaterialInstances, 0 );
-
-    std::string MaterialInstanceAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE;
-    TArray< FString > MaterialInstances;
-    
-    FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-        HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
-        HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId,
-        MaterialInstanceAttributeName.c_str(),
-        AttribMaterialInstances, MaterialInstances );
-
-    // No material instance attribute
-    if ( !AttribMaterialInstances.exists || MaterialInstances.Num() <= 0 )
-        return false;
-
-    const FString & MaterialName = MaterialInstances[ 0 ];
-    if ( MaterialName.IsEmpty() )
-        return false;
-
-    // Trying to find the material we want to create an instance of
-    OriginalMaterialInterface = Cast< UMaterialInterface >(
-        StaticLoadObject( UMaterialInterface::StaticClass(), nullptr, *MaterialName, nullptr, LOAD_NoWarn, nullptr ) );
-
-    // The source material wasn't found
-    if ( !OriginalMaterialInterface )
-        return false;
-
-    UMaterial* ParentMaterial = OriginalMaterialInterface->GetMaterial();
-    if ( !ParentMaterial )
-        return false;
-
-    // Create/Retrieve the package for the MI
-    FString MaterialInstanceName;
-    FString MaterialInstanceNamePrefix = PackageTools::SanitizePackageName( ParentMaterial->GetName() + TEXT("_instance_") );
-    
-    // See if we can find the package in the cooked temp package cache
-    FHoudiniCookParams HoudiniCookParams(this);
-    HoudiniCookParams.PackageGUID = ComponentGUID;
-    HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
-
-    UPackage * MaterialInstancePackage = nullptr;
-    TWeakObjectPtr< UPackage > * FoundPointer = HoudiniCookParams.CookedTemporaryPackages->Find( MaterialInstanceNamePrefix );
-    if ( FoundPointer && (*FoundPointer).IsValid() )
-    {
-        // We found an already existing package for the M_I
-        MaterialInstancePackage = (*FoundPointer).Get();
-        MaterialInstanceName = MaterialInstancePackage->GetName();
-    }
-    else 
-    {
-        // We Couldnt find the corresponding M_I package, so create a new one
-        MaterialInstancePackage = FHoudiniEngineUtils::BakeCreateTextureOrMaterialPackageForComponent(
-            HoudiniCookParams, MaterialInstanceNamePrefix, MaterialInstanceName );
-    }
-
-    // Couldn't create a package for the Material Instance
-    if ( !MaterialInstancePackage )
-        return false;
-
-    //UMaterialInterface * MaterialInstanceInterface = Cast< UMaterialInterface >(
-    //    StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialInstanceNameString, nullptr, LOAD_NoWarn, nullptr));
-    // Trying to load the material instance from the package
-    bool bNewMaterialCreated = false;
-    UMaterialInstanceConstant* NewMaterialInstance = LoadObject<UMaterialInstanceConstant>( MaterialInstancePackage, *MaterialInstanceName, nullptr, LOAD_None, nullptr );
-    if ( !NewMaterialInstance )
-    {
-        // Factory to create materials.
-        UMaterialInstanceConstantFactoryNew* MaterialInstanceFactory = NewObject< UMaterialInstanceConstantFactoryNew >();
-        if ( !MaterialInstanceFactory )
-            return false;
-
-        // Create the new material instance
-        MaterialInstanceFactory->AddToRoot();
-        MaterialInstanceFactory->InitialParent = ParentMaterial;
-        NewMaterialInstance = ( UMaterialInstanceConstant* )MaterialInstanceFactory->FactoryCreateNew(
-            UMaterialInstanceConstant::StaticClass(), MaterialInstancePackage, FName( *MaterialInstanceName ),
-            RF_Public | RF_Standalone, NULL, GWarn );
-
-        if ( NewMaterialInstance )
-            bNewMaterialCreated = true;
-
-        MaterialInstanceFactory->RemoveFromRoot();
-
-        /*
-        // Creating a new material instance
-        NewMaterialInstance = NewObject< UMaterialInstanceConstant >( MaterialInstancePackage, FName( *MaterialInstanceName ), RF_Public );
-        checkf( NewMaterialInstance, TEXT( "Failed to create instanced material" ) );
-        NewMaterialInstance->Parent = Material;
-
-        // Notify registry that we have created a new duplicate material.
-        FAssetRegistryModule::AssetCreated( NewMaterialInstance );
-
-        // Dirty the material package.
-        NewMaterialInstance->MarkPackageDirty();
-
-        // Reset any derived state
-        //MaterialInstance->ForceRecompileForRendering();
-        */
-    }
-
-    if ( !OriginalMaterialInterface || !NewMaterialInstance )
-        return false;
-
-    // Update context for generated materials (will trigger when object goes out of scope).
-    FMaterialUpdateContext MaterialUpdateContext;
-
-    // See if we need to override some of the material instance's parameters
-    TArray< UPropertyAttribute > AllMatParams;
-    // Get the detail material parameters
-    int ParamCount = FHoudiniEngineUtils::GetUPropertyAttributesList( HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX, AllMatParams, HAPI_ATTROWNER_DETAIL );
-    // Then the primitive material parameters
-    ParamCount += FHoudiniEngineUtils::GetUPropertyAttributesList( HoudiniGeoPartObject, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX, AllMatParams, HAPI_ATTROWNER_PRIM );
-    for ( int32 ParamIdx = 0; ParamIdx < AllMatParams.Num(); ParamIdx++ )
-    {
-        UPropertyAttribute CurrentMatParam = AllMatParams[ ParamIdx ];
-        if ( CurrentMatParam.PropertyName.IsEmpty() )
-            continue;
-
-        // The default material instance parameters needs to be handled as they cant be change via SetParameters function
-        if ( CurrentMatParam.PropertyName.Compare( "CastShadowAsMasked", ESearchCase::IgnoreCase ) == 0 )
-        {
-            NewMaterialInstance->SetOverrideCastShadowAsMasked( true );
-            NewMaterialInstance->SetCastShadowAsMasked( CurrentMatParam.GetBoolValue() );
-            continue;
-        }
-        else  if ( CurrentMatParam.PropertyName.Compare( "EmissiveBoost", ESearchCase::IgnoreCase ) == 0 )
-        {
-            NewMaterialInstance->SetOverrideEmissiveBoost( true );
-            NewMaterialInstance->SetEmissiveBoost( (float)CurrentMatParam.GetDoubleValue() );
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare( "DiffuseBoost", ESearchCase::IgnoreCase ) == 0 )
-        {
-            NewMaterialInstance->SetOverrideDiffuseBoost( true );
-            NewMaterialInstance->SetDiffuseBoost( (float)CurrentMatParam.GetDoubleValue() );
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare( "ExportResolutionScale", ESearchCase::IgnoreCase ) == 0 )
-        {
-            NewMaterialInstance->SetOverrideExportResolutionScale( true );
-            NewMaterialInstance->SetExportResolutionScale( (float)CurrentMatParam.GetDoubleValue() );
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare( "OpacityMaskClipValue", ESearchCase::IgnoreCase ) == 0 )
-        {
-            NewMaterialInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue = true;
-            NewMaterialInstance->BasePropertyOverrides.OpacityMaskClipValue = (float)CurrentMatParam.GetDoubleValue();
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare( "BlendMode", ESearchCase::IgnoreCase ) == 0 )
-        {
-            EBlendMode EnumValue = (EBlendMode)CurrentMatParam.GetIntValue();
-            if ( CurrentMatParam.PropertyType == HAPI_STORAGETYPE_STRING )
-            {
-                FString StringValue = CurrentMatParam.GetStringValue();
-                if ( StringValue.Compare( "Opaque", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EBlendMode::BLEND_Opaque;
-                else if ( StringValue.Compare( "Masked", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EBlendMode::BLEND_Masked;
-                else if ( StringValue.Compare( "Translucent", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EBlendMode::BLEND_Translucent;
-                else if ( StringValue.Compare( "Additive", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EBlendMode::BLEND_Additive;
-                else if ( StringValue.Compare( "Modulate", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EBlendMode::BLEND_Modulate;
-                else if ( StringValue.StartsWith( "Alpha", ESearchCase::IgnoreCase ) )
-                    EnumValue = EBlendMode::BLEND_AlphaComposite;
-            }
-
-            NewMaterialInstance->BasePropertyOverrides.bOverride_BlendMode = true;
-            NewMaterialInstance->BasePropertyOverrides.BlendMode = EnumValue;
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare("ShadingModel", ESearchCase::IgnoreCase ) == 0 )
-        {
-            EMaterialShadingModel EnumValue = (EMaterialShadingModel)CurrentMatParam.GetIntValue();
-            if ( CurrentMatParam.PropertyType == HAPI_STORAGETYPE_STRING )
-            {
-                FString StringValue = CurrentMatParam.GetStringValue();
-                if ( StringValue.Compare( "Unlit", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EMaterialShadingModel::MSM_Unlit;
-                else if ( StringValue.StartsWith( "Default", ESearchCase::IgnoreCase ) )
-                    EnumValue = EMaterialShadingModel::MSM_DefaultLit;
-                else if ( StringValue.Compare( "Subsurface", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EMaterialShadingModel::MSM_Subsurface;
-                else if ( StringValue.StartsWith( "Preintegrated", ESearchCase::IgnoreCase ) )
-                    EnumValue = EMaterialShadingModel::MSM_PreintegratedSkin;
-                else if ( StringValue.StartsWith( "Clear", ESearchCase::IgnoreCase ) )
-                    EnumValue = EMaterialShadingModel::MSM_ClearCoat;
-                else if ( StringValue.Compare( "SubsurfaceProfile", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EMaterialShadingModel::MSM_SubsurfaceProfile;
-                else if ( StringValue.Compare( "TwoSidedFoliage", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EMaterialShadingModel::MSM_TwoSidedFoliage;
-                else if ( StringValue.Compare( "Hair", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EMaterialShadingModel::MSM_Hair;
-                else if ( StringValue.Compare( "Cloth", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EMaterialShadingModel::MSM_Cloth;
-                else if ( StringValue.Compare( "Eye", ESearchCase::IgnoreCase ) == 0 )
-                    EnumValue = EMaterialShadingModel::MSM_Eye;
-            }
-            NewMaterialInstance->BasePropertyOverrides.bOverride_ShadingModel = true;
-            NewMaterialInstance->BasePropertyOverrides.ShadingModel = EnumValue;
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare( "TwoSided", ESearchCase::IgnoreCase ) == 0 )
-        {
-            NewMaterialInstance->BasePropertyOverrides.bOverride_TwoSided = true;
-            NewMaterialInstance->BasePropertyOverrides.TwoSided = CurrentMatParam.GetBoolValue();
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare( "DitheredLODTransition", ESearchCase::IgnoreCase ) == 0 )
-        {
-            NewMaterialInstance->BasePropertyOverrides.bOverride_DitheredLODTransition = true;
-            NewMaterialInstance->BasePropertyOverrides.DitheredLODTransition = CurrentMatParam.GetBoolValue();
-            continue;
-        }
-        else if ( CurrentMatParam.PropertyName.Compare( "PhysMaterial", ESearchCase::IgnoreCase ) == 0 )
-        {
-            // Try to load a Material corresponding to the parameter value
-            FString ParamValue = CurrentMatParam.GetStringValue();
-            UPhysicalMaterial* FoundPhysMaterial = Cast< UPhysicalMaterial >(
-                StaticLoadObject( UPhysicalMaterial::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr ) );
-
-            if ( FoundPhysMaterial )
-            {
-                NewMaterialInstance->PhysMaterial = FoundPhysMaterial;
-                continue;
-            }
-        }
-
-        // Handling custom parameters
-        FName CurrentMatParamName = FName( *CurrentMatParam.PropertyName );
-        if ( CurrentMatParam.PropertyType == HAPI_STORAGETYPE_STRING )
-        {
-            // String attributes are used for textures parameters
-            // We need to find the texture corresponding to the param
-            UTexture* FoundTexture = nullptr;
-            FString ParamValue = CurrentMatParam.GetStringValue();
-
-            // Texture can either be already existing texture assets in UE4, or a newly generated textures by this asset
-            // Try to find the texture corresponding to the param value in the existing assets first.
-            FoundTexture = Cast< UTexture >(
-                StaticLoadObject( UTexture::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr ) );
-
-            if ( !FoundTexture )
-            {
-                // We couldn't find a texture corresponding to the parameter in the existing UE4 assets
-                // Try to find the corresponding texture in the cooked temporary package we just generated
-                for ( TMap<FString, TWeakObjectPtr< UPackage > >::TIterator IterPackage( CookedTemporaryPackages ); IterPackage; ++IterPackage )
-                {
-                    // Iterate through the cooked package
-                    UPackage * CurrentPackage = IterPackage.Value().Get();
-                    if ( !CurrentPackage )
-                        continue;
-
-                    // See if the package contains a texture
-                    FString CurrentPackageName = CurrentPackage->GetName();
-                    UTexture* PackageTexture = LoadObject< UTexture >( CurrentPackage, *CurrentPackageName, nullptr, LOAD_None, nullptr );
-                    if ( !PackageTexture )
-                        continue;
-
-                    // Check if the package's metadata match what we're looking for
-                    UMetaData * MetaData = CurrentPackage->GetMetaData();
-                    if ( MetaData && MetaData->HasValue( PackageTexture, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT ) )
-                    {
-                        // Get the texture type from the meta data
-                        const FString TextureTypeString = MetaData->GetValue( PackageTexture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE );
-                        if ( TextureTypeString.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
-                        {
-                            FoundTexture = PackageTexture;
-                            break;
-                        }
-
-                        // Convert the texture type to a "friendly" version
-                        FString TextureTypeFriendlyString = TextureTypeString;
-                        if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE, ESearchCase::IgnoreCase ) == 0 )
-                            TextureTypeFriendlyString = TEXT( "diffuse" );
-                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL, ESearchCase::IgnoreCase) == 0 )
-                            TextureTypeFriendlyString = TEXT( "normal" );
-                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE, ESearchCase::IgnoreCase) == 0 )
-                            TextureTypeFriendlyString = TEXT( "emissive" );
-                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR, ESearchCase::IgnoreCase) == 0 )
-                            TextureTypeFriendlyString = TEXT( "specular" );
-                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS, ESearchCase::IgnoreCase) == 0 )
-                            TextureTypeFriendlyString = TEXT( "roughness" );
-                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC, ESearchCase::IgnoreCase) == 0 )
-                            TextureTypeFriendlyString = TEXT( "metallic" );
-                        else if ( TextureTypeString.Compare( HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK, ESearchCase::IgnoreCase) == 0 )
-                            TextureTypeFriendlyString = TEXT( "opacity" );
-
-                        // See if we have a match with the friendly name
-                        if ( TextureTypeFriendlyString.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
-                        {
-                            FoundTexture = PackageTexture;
-                            break;
-                        }
-
-                        // Get the node path from the meta data
-                        const FString NodePath = MetaData->GetValue( PackageTexture, HAPI_UNREAL_PACKAGE_META_NODE_PATH );
-                        if ( NodePath.IsEmpty() )
-                            continue;
-
-                        // See if we have a match with the path and texture type
-                        FString PathAndType = NodePath + TEXT("/") + TextureTypeString;
-                        if ( PathAndType.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
-                        {
-                            FoundTexture = PackageTexture;
-                            break;
-                        }
-
-                        // See if we have a match with the friendly path and texture type
-                        FString PathAndFriendlyType = NodePath + TEXT("/") + TextureTypeFriendlyString;
-                        if ( PathAndFriendlyType.Compare( ParamValue, ESearchCase::IgnoreCase ) == 0 )
-                        {
-                            FoundTexture = PackageTexture;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            if ( FoundTexture )
-                NewMaterialInstance->SetTextureParameterValueEditorOnly( CurrentMatParamName, FoundTexture );
-        }
-        else if ( CurrentMatParam.PropertyTupleSize == 1 )
-        {
-            // Single attributes are for scalar parameters
-            float value = (float)CurrentMatParam.GetDoubleValue();
-            NewMaterialInstance->SetScalarParameterValueEditorOnly( CurrentMatParamName, value );
-        }
-        else
-        {
-            // Tuple attributes are for vector parameters
-            FLinearColor LinearColor;
-
-            // if the attribute is stored in an int, we'll have to convert a color to a linear color
-            if ( CurrentMatParam.PropertyType == HAPI_STORAGETYPE_INT || CurrentMatParam.PropertyType == HAPI_STORAGETYPE_INT64 )
-            {
-                FColor IntColor;
-                IntColor.R = (int8)CurrentMatParam.GetIntValue( 0 );
-                IntColor.G = (int8)CurrentMatParam.GetIntValue( 1 );
-                IntColor.B = (int8)CurrentMatParam.GetIntValue( 2 );
-                if ( CurrentMatParam.PropertyTupleSize >= 4 )
-                    IntColor.A = (int8)CurrentMatParam.GetIntValue( 3 );
-                else
-                    IntColor.A = 1;
-
-                LinearColor = FLinearColor( IntColor );
-            }
-            else
-            {
-                LinearColor.R = (float)CurrentMatParam.GetDoubleValue( 0 );
-                LinearColor.G = (float)CurrentMatParam.GetDoubleValue( 1 );
-                LinearColor.B = (float)CurrentMatParam.GetDoubleValue( 2 );
-                if ( CurrentMatParam.PropertyTupleSize >= 4 )
-                    LinearColor.A = (float)CurrentMatParam.GetDoubleValue( 3 );
-            }
-
-            NewMaterialInstance->SetVectorParameterValueEditorOnly( CurrentMatParamName, LinearColor );
-        }
-    }
-
-    // Schedule this material for update.
-    MaterialUpdateContext.AddMaterialInstance( NewMaterialInstance );
-
-    if ( bNewMaterialCreated )
-    {
-        // Add meta information to this package.
-        FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-            MaterialInstancePackage, NewMaterialInstance, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
-        FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-            MaterialInstancePackage, NewMaterialInstance, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialInstanceName);
-
-        // Notify registry that we have created a new duplicate material.
-        FAssetRegistryModule::AssetCreated( NewMaterialInstance );
-
-        // Dirty the material package.
-        NewMaterialInstance->MarkPackageDirty();
-    }
-
-    // Update the material instance
-    NewMaterialInstance->InitStaticPermutation();
-    NewMaterialInstance->PreEditChange(nullptr);
-    NewMaterialInstance->PostEditChange();
-    NewMaterialInstance->MarkPackageDirty();
-
-    // Update the return pointers
-    CreatedMaterialInstance = NewMaterialInstance;
-
-    // Automatically save the package to avoid further issue
-    UPackage::SavePackage(
-        MaterialInstancePackage, nullptr, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone,
-        *FPackageName::LongPackageNameToFilename( MaterialInstancePackage->GetName(), FPackageName::GetAssetPackageExtension() ) );
-
-    return true;
-#else
-    return false;
-#endif
 }
 
 bool
