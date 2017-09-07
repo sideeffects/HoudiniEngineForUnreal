@@ -101,7 +101,8 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
     TSharedPtr< SButton > HelpButton;
 
     FString HelpURL = ToolType->HelpURL;
-    FText Tip = HelpURL.Len() > 0 ? 
+    FText ToolTip = ToolType->ToolTipText;
+    FText HelpTip = HelpURL.Len() > 0 ? 
         FText::Format( LOCTEXT( "OpenHelp", "Click to view tool help: {0}" ), FText::FromString( HelpURL ) ) : 
         ToolType->Text;
 
@@ -114,7 +115,7 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
         SNew( SBorder )
         .BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
         .Padding( 0 )
-        .ToolTip( SNew( SToolTip ).Text( Tip ) )
+        .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
         .Cursor( EMouseCursor::GrabHand )
         [
             SNew( SHorizontalBox )
@@ -138,6 +139,7 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
                         [
                             SNew( SImage )
                             .Image( ToolType->Icon )
+                            .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
                         ]
                     ]
                 ]
@@ -151,7 +153,9 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
                     SNew( STextBlock )
                     .TextStyle( *Style, "HoudiniEngine.ThumbnailText" )
                     .Text( ToolType->Text )
+                    .ToolTip( SNew( SToolTip ).Text( ToolTip ) )
                 ]
+
             + SHorizontalBox::Slot()
                 .VAlign( VAlign_Center )
                 .AutoWidth()
@@ -163,12 +167,13 @@ TSharedRef<ITableRow> SHoudiniToolPalette::MakeListViewWidget( TSharedPtr<FHoudi
                         if ( HelpURL.Len() )
                             FPlatformProcess::LaunchURL( *HelpURL, nullptr, nullptr );
                         return FReply::Handled();
-                     } ))
+                     } ) )
                     .HAlign( HAlign_Center )
                     .VAlign( VAlign_Center )
-                    .ToolTip( SNew( SToolTip ).Text( Tip ))
+                    .ToolTip( SNew( SToolTip ).Text( HelpTip ) )
                     [
                         SAssignNew( HelpButtonImage, SImage )
+                        .ToolTip( SNew( SToolTip ).Text( HelpTip ) )
                     ]
                 ]
         ];

@@ -589,24 +589,16 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
     if ( HoudiniRuntimeSettings->bHidePlacementModeHoudiniTools )
         return;
 
+    //
     // Set up Built-in Houdini Tools
     //
-    FString ToolsDir = FPaths::EnginePluginsDir() / TEXT( "Runtime/HoudiniEngine/Content/Tools/" );
-
     auto ToolArray = HoudiniRuntimeSettings->CustomHoudiniTools;
-
-    ToolArray.Add( FHoudiniTool{
-        TEXT( "Rock Generator" ),
-        TEXT( "Generates procedural rock meshes" ),
-        FFilePath{ ToolsDir / TEXT( "rock_generator_40.png" ) },
-        TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ),
-        TEXT("http://www.sidefx.com/docs/unreal/")
-    } );
+    AddDefaultHoudiniToolToArray( ToolArray );
 
     for ( const FHoudiniTool& HoudiniTool : ToolArray )
     {
-        FText AssetName = FText::FromString(HoudiniTool.Name);
-        FText AssetTip = FText::FromString(HoudiniTool.ToolTip);
+        FText AssetName = FText::FromString( HoudiniTool.Name );
+        FText AssetTip = FText::FromString( HoudiniTool.ToolTip );
 
         FString IconPath = FPaths::ConvertRelativePathToFull( HoudiniTool.IconPath.FilePath );
         const FSlateBrush* CustomIconBrush = nullptr;
@@ -631,6 +623,51 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
     Info.CustomGenerator = []() -> TSharedRef<SWidget> { return SNew( SHoudiniToolPalette ); };
 
     IPlacementModeModule::Get().RegisterPlacementCategory( Info );
+}
+
+void
+FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& ToolArray )
+{
+    // Default paths
+    FString ToolsDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Tools/");
+    FString DefaultIconPath = FPaths::EnginePluginsDir() / TEXT( "Runtime/HoudiniEngine/Content/Icons/icon_houdini_logo_40.png" );    
+        
+    int32 nInsertPos = 0;
+    // 1. Rock Generator
+    ToolArray.Insert( FHoudiniTool{
+        TEXT( "Rock Generator" ),
+        TEXT( "Generates procedural rock meshes" ),
+        FFilePath{ ToolsDir / TEXT("rock_generator_40.png") },
+        TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ),
+        TEXT("http://www.sidefx.com/docs/unreal/")
+    }, nInsertPos++ );
+
+    // 2. Boolean
+    ToolArray.Insert( FHoudiniTool{
+        TEXT( "Boolean" ),
+        TEXT( "Apply boolean operations to two input objects" ),
+        FFilePath{ DefaultIconPath },
+        TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_boolean.he_sop_boolean'" ) ) ),
+        TEXT("http://www.sidefx.com/docs/unreal/")
+    }, nInsertPos++ );
+
+    // 3. Polyreducer
+    ToolArray.Insert( FHoudiniTool{
+        TEXT( "Polyreducer" ),
+        TEXT( "Reduces the number of polygons of the input objects" ),
+        FFilePath{ DefaultIconPath },
+        TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_polyreduce.he_sop_polyreduce'" ) ) ),
+        TEXT("http://www.sidefx.com/docs/unreal/")
+    }, nInsertPos++ );
+
+    // 4. Curve Instancer
+    ToolArray.Insert( FHoudiniTool{
+        TEXT( "Curve Instancer" ),
+        TEXT( "Scatters and instances the input objects along a curve or in a zone defined by a closed curve." ),
+        FFilePath{ DefaultIconPath },
+        TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_curve_instancer.he_sop_curve_instancer'" ) ) ),
+        TEXT("http://www.sidefx.com/docs/unreal/")
+    }, nInsertPos++ );
 }
 
 void 

@@ -35,6 +35,7 @@ class IComponentAssetBroker;
 class UHoudiniAssetComponent;
 
 struct FSlateBrush;
+struct FHoudiniTool;
 
 struct FHoudiniToolType
 {
@@ -159,6 +160,9 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
 
         /** Add menu extension for our module. **/
         void AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder );
+
+	/** Add the default Houdini Tools to the Houdini Engine Shelft tool **/
+	void AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& ToolArray );
 
     private:
 
