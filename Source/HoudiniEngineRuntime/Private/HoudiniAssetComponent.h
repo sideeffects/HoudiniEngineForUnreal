@@ -338,7 +338,10 @@ public:
 
         /** Remove material replacement. **/
         void RemoveReplacementMaterial( const FHoudiniGeoPartObject & HoudiniGeoPartObject, const FString & MaterialName );
-        
+
+        /** Handle the creation/update of material instance via attributes **/
+        bool CreateOrUpdateMaterialInstances();
+
         /** Collect all Substance parameters. **/
         void CollectSubstanceParameters( TMap< FString, UHoudiniAssetParameter * > & SubstanceParameters ) const;
 

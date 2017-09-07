@@ -837,78 +837,9 @@ UHoudiniAssetComponent::CreateObjectGeoPartResources( TMap< FHoudiniGeoPartObjec
 
     CleanUpAttachedStaticMeshComponents();
 
-#if WITH_EDITOR
-    FHoudiniCookParams HoudiniCookParams( this );
-    HoudiniCookParams.PackageGUID = ComponentGUID;
-    HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
+    // Now that all the Meshes/Landscapes are created, see if we need to create material instances from attributes
+    CreateOrUpdateMaterialInstances();
 
-    // Handling the creation of material instances from attributes
-    bool bMaterialReplaced = false;
-    for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshMap ); Iter; ++Iter )
-    {
-        const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
-        UStaticMesh * StaticMesh = Iter.Value();
-
-        if ( !HoudiniGeoPartObject.IsVisible() || !StaticMesh )
-            continue;
-
-        // Create material instances if needed
-        UMaterialInstance* MaterialInstance = nullptr;
-        UMaterialInterface* OldMaterialInterface = nullptr;
-        if ( !FHoudiniEngineMaterialUtils::CreateMaterialInstances( HoudiniGeoPartObject, HoudiniCookParams, MaterialInstance, OldMaterialInterface ) )
-            continue;
-
-        if ( !MaterialInstance || !OldMaterialInterface )
-            continue;
-
-        for( int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++ )
-        {
-            UMaterialInterface * SMMatInterface = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
-            if ( SMMatInterface != OldMaterialInterface && SMMatInterface->GetBaseMaterial() != OldMaterialInterface )
-                continue;
-
-            // Replace the material assignment
-            if ( !ReplaceMaterial( HoudiniGeoPartObject, MaterialInstance, OldMaterialInterface, MatIdx ) )
-                continue;
-
-            // Update the StaticMesh, StaticMeshComponents and Instanced Static Mesh Components
-            StaticMesh->Modify(); 
-            StaticMesh->PreEditChange( nullptr );
-            StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface = MaterialInstance;            
-            StaticMesh->PostEditChange();
-            StaticMesh->MarkPackageDirty();
-
-            UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
-            if ( StaticMeshComponent )
-            {
-                StaticMeshComponent->Modify();
-                StaticMeshComponent->SetMaterial( MatIdx, MaterialInstance );
-
-                bMaterialReplaced = true;
-            }
-
-            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
-            if ( LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
-            {
-                for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
-                {
-                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
-                    if ( InstancedStaticMeshComponent )
-                    {
-                        InstancedStaticMeshComponent->Modify();
-                        InstancedStaticMeshComponent->SetMaterial( MatIdx, MaterialInstance );
-
-                        bMaterialReplaced = true;
-                    }
-                }
-            }
-        }
-    }
-
-    if ( bMaterialReplaced )
-        UpdateEditorProperties( false );
-#endif
-        
     // If one of the children we created is movable, we need to set ourselves to movable as well
     const auto & LocalAttachChildren = GetAttachChildren();
     for ( TArray< USceneComponent * >::TConstIterator Iter( LocalAttachChildren ); Iter; ++Iter )
@@ -4578,7 +4509,9 @@ void UHoudiniAssetComponent::GetHeightFieldLandscapeMaterials(
         return;
 
     std::string MarshallingAttributeNameMaterial = HAPI_UNREAL_ATTRIB_MATERIAL;
+    std::string MarshallingAttributeNameMaterialInstance = HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE; 
     std::string MarshallingAttributeNameMaterialHole = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE;
+    std::string MarshallingAttributeNameMaterialHoleInstance = HAPI_UNREAL_ATTRIB_MATERIAL_HOLE_INSTANCE;
 
     // Get runtime settings.
     const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
@@ -4604,6 +4537,15 @@ void UHoudiniAssetComponent::GetHeightFieldLandscapeMaterials(
         FHoudiniEngineUtils::HapiGetAttributeDataAsString(
             Heightfield, MarshallingAttributeNameMaterial.c_str(),
             AttribMaterials, Materials );
+
+        // If the material attribute was not found, check the material instance attribute.
+        if ( !AttribMaterials.exists )
+        {
+            Materials.Empty();
+            FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                Heightfield, MarshallingAttributeNameMaterialInstance.c_str(),
+                AttribMaterials, Materials);
+        }
 
         if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
         {
@@ -4641,6 +4583,15 @@ void UHoudiniAssetComponent::GetHeightFieldLandscapeMaterials(
         FHoudiniEngineUtils::HapiGetAttributeDataAsString(
             Heightfield, MarshallingAttributeNameMaterialHole.c_str(),
             AttribMaterials, Materials );
+
+        // If the material attribute was not found, check the material instance attribute.
+        if (!AttribMaterials.exists)
+        {
+            Materials.Empty();
+            FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+                Heightfield, MarshallingAttributeNameMaterialHoleInstance.c_str(),
+                AttribMaterials, Materials);
+        }
 
         if ( AttribMaterials.exists && AttribMaterials.owner != HAPI_ATTROWNER_PRIM && AttribMaterials.owner != HAPI_ATTROWNER_DETAIL )
         {
@@ -4695,7 +4646,7 @@ void UHoudiniAssetComponent::GetHeightFieldLandscapeMaterials(
             if ( PreviousLandscapeHoleMaterial && PreviousLandscapeHoleMaterial != LandscapeHoleMaterial )
             {
                 ReplaceMaterial( Heightfield, PreviousLandscapeHoleMaterial, LandscapeHoleMaterial, 0 );
-                LandscapeMaterial = PreviousLandscapeHoleMaterial;
+                LandscapeHoleMaterial = PreviousLandscapeHoleMaterial;
             }
         }
     }
@@ -4760,7 +4711,7 @@ UHoudiniAssetComponent::CreateAllLandscapes( const TArray< FHoudiniGeoPartObject
 
         HAPI_NodeId HeightFieldNodeId = CurrentHeightfield->HapiGeoGetNodeId();
 
-        // We need to see if the current heightfield as an unreal_material or unreal_hole_material assigned to it
+        // We need to see if the current heightfield has an unreal_material or unreal_hole_material assigned to it
         UMaterialInterface* LandscapeMaterial = nullptr;
         UMaterialInterface* LandscapeHoleMaterial = nullptr;
         GetHeightFieldLandscapeMaterials( *CurrentHeightfield, LandscapeMaterial, LandscapeHoleMaterial );
@@ -5680,6 +5631,257 @@ UHoudiniAssetComponent::RemoveReplacementMaterial(
             MaterialReplacementsValues.Remove( MaterialName );
         }
     }
+}
+
+bool
+UHoudiniAssetComponent::CreateOrUpdateMaterialInstances()
+{
+#if WITH_EDITOR
+    FHoudiniCookParams HoudiniCookParams( this );
+    HoudiniCookParams.PackageGUID = ComponentGUID;
+    HoudiniCookParams.MaterialAndTextureBakeMode = FHoudiniCookParams::GetDefaultMaterialAndTextureCookMode();
+
+    bool bMaterialReplaced = false;
+
+    // 1. FOR STATIC MESHES
+    // Handling the creation of material instances from attributes    
+    for ( TMap< FHoudiniGeoPartObject, UStaticMesh * >::TIterator Iter( StaticMeshes ); Iter; ++Iter )
+    {
+        const FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+        UStaticMesh * StaticMesh = Iter.Value();
+
+        // Invisible meshes are used for instancers, so we will not skip them as the material instance/parameter attributes
+        // need to be set on the "source" mesh 
+        //if ( !HoudiniGeoPartObject.IsVisible() )
+        //    continue;
+
+        if ( !StaticMesh )
+            continue;
+
+        // The "source" material we want to create an instance of should have already been assigned to the mesh
+        UMaterialInstance* NewMaterialInstance = nullptr;
+        UMaterialInterface* SourceMaterialInterface = nullptr;
+
+        // Create a new material instance if needed and update its parameter if needed
+        if ( !FHoudiniEngineMaterialUtils::CreateMaterialInstances( 
+            HoudiniGeoPartObject, HoudiniCookParams, NewMaterialInstance, SourceMaterialInterface, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE ) )
+            continue;
+
+        if ( !NewMaterialInstance || !SourceMaterialInterface )
+            continue;
+
+        // Replace the source material with the newly created/updated instance
+        for( int32 MatIdx = 0; MatIdx < StaticMesh->StaticMaterials.Num(); MatIdx++ )
+        {
+            UMaterialInterface * SMMatInterface = StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface;
+            if ( SMMatInterface != SourceMaterialInterface && SMMatInterface->GetBaseMaterial() != SourceMaterialInterface )
+                continue;
+
+            // Replace the material assignment
+            if ( !ReplaceMaterial( HoudiniGeoPartObject, NewMaterialInstance, SourceMaterialInterface, MatIdx ) )
+                continue;
+
+            // Update the StaticMesh, StaticMeshComponents and Instanced Static Mesh Components
+            StaticMesh->Modify(); 
+            StaticMesh->PreEditChange( nullptr );
+            StaticMesh->StaticMaterials[ MatIdx ].MaterialInterface = NewMaterialInstance;            
+            StaticMesh->PostEditChange();
+            StaticMesh->MarkPackageDirty();
+
+            UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent( StaticMesh );
+            if ( StaticMeshComponent )
+            {
+                StaticMeshComponent->Modify();
+                StaticMeshComponent->SetMaterial( MatIdx, NewMaterialInstance );
+
+                bMaterialReplaced = true;
+            }
+
+            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+            if ( LocateInstancedStaticMeshComponents( StaticMesh, InstancedStaticMeshComponents ) )
+            {
+                for ( int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx )
+                {
+                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[ Idx ];
+                    if ( InstancedStaticMeshComponent )
+                    {
+                        InstancedStaticMeshComponent->Modify();
+                        InstancedStaticMeshComponent->SetMaterial( MatIdx, NewMaterialInstance );
+
+                        bMaterialReplaced = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. FOR LANDSCAPES
+    // Handling the creation of material instances from attributes
+    for ( TMap< FHoudiniGeoPartObject, ALandscape * >::TIterator Iter( LandscapeComponents ); Iter; ++Iter )
+    {
+        FHoudiniGeoPartObject HoudiniGeoPartObject = Iter.Key();
+        ALandscape* Landscape = Iter.Value();
+
+        // The "source" landscape material we want to create an instance of should have already been assigned to the landscape
+        UMaterialInstance* NewMaterialInstance = nullptr;
+        UMaterialInterface* SourceMaterialInterface = nullptr;
+        // Create/update a material instance if needed for the Landscape Material
+        bool bLandscapeMaterialReplaced = false;
+        if ( FHoudiniEngineMaterialUtils::CreateMaterialInstances(
+            HoudiniGeoPartObject, HoudiniCookParams, NewMaterialInstance, SourceMaterialInterface, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE ) )
+        {
+            if ( NewMaterialInstance && SourceMaterialInterface )
+            {
+                // Get the old material.
+                UMaterialInterface * OldMaterial = Landscape->GetLandscapeMaterial();
+                if ( OldMaterial == SourceMaterialInterface || OldMaterial->GetBaseMaterial() == SourceMaterialInterface )
+                {
+                    // Update our replacement table
+                    bLandscapeMaterialReplaced = ReplaceMaterial( HoudiniGeoPartObject, OldMaterial, NewMaterialInstance, 0 );
+
+                    // Update the landscape's material itself
+                    Landscape->Modify();
+                    Landscape->LandscapeMaterial = NewMaterialInstance;
+                    bLandscapeMaterialReplaced = true;
+                    bMaterialReplaced = true;
+                }
+            }
+        }
+
+        // Repeat the same process for the Landscape HoleMaterial        
+        // The "source" hole material we want to create an instance of should have already been assigned to the landscape
+        UMaterialInstance* NewHoleMaterialInstance = nullptr;
+        UMaterialInterface* SourceHoleMaterialInterface = nullptr;
+        // Create/update a material instance if needed for the Landscape Hole Material
+        bool bLandscapeHoleMaterialReplaced = false;
+        if ( FHoudiniEngineMaterialUtils::CreateMaterialInstances(
+            HoudiniGeoPartObject, HoudiniCookParams, NewHoleMaterialInstance, SourceHoleMaterialInterface, HAPI_UNREAL_ATTRIB_MATERIAL_HOLE_INSTANCE ) )
+        {
+            if ( NewHoleMaterialInstance && SourceHoleMaterialInterface )
+            {
+                // Get old material.
+                UMaterialInterface * OldHoleMaterial = Landscape->GetLandscapeHoleMaterial();
+                if (OldHoleMaterial == SourceHoleMaterialInterface || OldHoleMaterial->GetBaseMaterial() == SourceHoleMaterialInterface)
+                {
+                    // Update our replacement table
+                    bLandscapeHoleMaterialReplaced = ReplaceMaterial(HoudiniGeoPartObject, OldHoleMaterial, NewHoleMaterialInstance, 0);
+
+                    // Update the landscape's hole material
+                    Landscape->Modify();
+                    Landscape->LandscapeHoleMaterial = NewHoleMaterialInstance;
+                    bLandscapeHoleMaterialReplaced = true;
+                    bMaterialReplaced = true;
+                }
+            }
+        }
+
+        // For the landscape update:
+        // As UpdateAllComponentMaterialInstances() is not accessible to us, we'll try to access the Material's UProperty 
+        // to trigger a fake Property change event that will call the Update function...
+        if ( bLandscapeMaterialReplaced )
+        {
+            UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), TEXT( "LandscapeMaterial" ) );
+            if ( FoundProperty )
+            {
+                FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );
+                Landscape->PostEditChangeProperty( PropChanged );
+            }
+        }
+
+        if ( bLandscapeHoleMaterialReplaced )
+        {
+            UProperty* FoundProperty = FindField< UProperty >( Landscape->GetClass(), TEXT( "LandscapeHoleMaterial" ) );
+            if ( FoundProperty )
+            {
+                FPropertyChangedEvent PropChanged( FoundProperty, EPropertyChangeType::ValueSet );
+                Landscape->PostEditChangeProperty( PropChanged );
+            }
+        }
+    }
+
+    /*
+    // 3. FOR INSTANCED STATIC MESHES
+    for ( auto& InstanceInput : InstanceInputs )
+    {
+        if ( !InstanceInput )
+            continue;
+
+        FHoudiniGeoPartObject HoudiniGeoPartObject = InstanceInput->GetGeoPartObject();
+        if ( !HoudiniGeoPartObject.IsVisible() )
+            continue;
+
+        // Create material instances if needed
+        UMaterialInstance* MaterialInstance = nullptr;
+        UMaterialInterface* OldMaterialInterface = nullptr;
+        if ( !FHoudiniEngineMaterialUtils::CreateMaterialInstances(
+            HoudiniGeoPartObject, HoudiniCookParams, MaterialInstance, OldMaterialInterface, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE ) )
+            continue;
+
+        if ( !MaterialInstance || !OldMaterialInterface )
+            continue;
+
+        TMap< UStaticMesh*, int32 > MaterialReplacementsMap;
+        InstanceInput->GetMaterialReplacementMeshes( OldMaterialInterface, MaterialReplacementsMap, true );
+
+        for (TMap< UStaticMesh *, int32 >::TIterator Iter(MaterialReplacementsMap); Iter; ++Iter)
+        {
+            UStaticMesh * StaticMesh = Iter.Key();
+            if ( !StaticMesh )
+                continue;
+
+            int32 MaterialIdx = Iter.Value();
+
+            // Get old material.
+            UMaterialInterface * OldMaterial = StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface;
+            if ( OldMaterial != OldMaterialInterface && OldMaterial->GetBaseMaterial() != OldMaterialInterface)
+                continue;
+
+            // Replace the material assignment
+            if ( !ReplaceMaterial( HoudiniGeoPartObject, MaterialInstance, OldMaterialInterface, MaterialIdx ) )
+                continue;
+
+            // Update the StaticMesh, StaticMeshComponents and Instanced Static Mesh Components
+            StaticMesh->Modify();
+            StaticMesh->PreEditChange(nullptr);
+            StaticMesh->StaticMaterials[ MaterialIdx ].MaterialInterface = MaterialInstance;
+            StaticMesh->PostEditChange();
+            StaticMesh->MarkPackageDirty();
+
+            UStaticMeshComponent * StaticMeshComponent = LocateStaticMeshComponent(StaticMesh);
+            if (StaticMeshComponent)
+            {
+                StaticMeshComponent->Modify();
+                StaticMeshComponent->SetMaterial( MaterialIdx, MaterialInstance );
+
+                bMaterialReplaced = true;
+            }
+
+            TArray< UInstancedStaticMeshComponent * > InstancedStaticMeshComponents;
+            if (LocateInstancedStaticMeshComponents(StaticMesh, InstancedStaticMeshComponents))
+            {
+                for (int32 Idx = 0; Idx < InstancedStaticMeshComponents.Num(); ++Idx)
+                {
+                    UInstancedStaticMeshComponent * InstancedStaticMeshComponent = InstancedStaticMeshComponents[Idx];
+                    if (InstancedStaticMeshComponent)
+                    {
+                        InstancedStaticMeshComponent->Modify();
+                        InstancedStaticMeshComponent->SetMaterial( MaterialIdx, MaterialInstance );
+
+                        bMaterialReplaced = true;
+                    }
+                }
+            }
+        }
+    }
+    */
+
+    if ( bMaterialReplaced )
+        UpdateEditorProperties( false );
+
+    return bMaterialReplaced;
+#else
+    return false;
+#endif
 }
 
 bool

@@ -2348,8 +2348,11 @@ FHoudiniEngineMaterialUtils::MaterialLocateExpression( UMaterialExpression * Exp
 }
 
 
-bool 
-FHoudiniEngineMaterialUtils::CreateMaterialInstances( const FHoudiniGeoPartObject& HoudiniGeoPartObject, FHoudiniCookParams& CookParams, UMaterialInstance*& CreatedMaterialInstance, UMaterialInterface*& OriginalMaterialInterface )
+bool
+FHoudiniEngineMaterialUtils::CreateMaterialInstances(
+    const FHoudiniGeoPartObject& HoudiniGeoPartObject, FHoudiniCookParams& CookParams,
+    UMaterialInstance*& CreatedMaterialInstance, UMaterialInterface*& OriginalMaterialInterface,
+    std::string AttributeName )
 {
 #if WITH_EDITOR
     if ( !HoudiniGeoPartObject.IsValid() )
@@ -2359,13 +2362,11 @@ FHoudiniEngineMaterialUtils::CreateMaterialInstances( const FHoudiniGeoPartObjec
     HAPI_AttributeInfo AttribMaterialInstances;
     FMemory::Memset< HAPI_AttributeInfo >( AttribMaterialInstances, 0 );
 
-    std::string MaterialInstanceAttributeName = HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE;
     TArray< FString > MaterialInstances;
-    
     FHoudiniEngineUtils::HapiGetAttributeDataAsString(
         HoudiniGeoPartObject.AssetId, HoudiniGeoPartObject.ObjectId,
         HoudiniGeoPartObject.GeoId, HoudiniGeoPartObject.PartId,
-        MaterialInstanceAttributeName.c_str(),
+        AttributeName.c_str(),
         AttribMaterialInstances, MaterialInstances );
 
     // No material instance attribute
