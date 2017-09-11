@@ -401,9 +401,6 @@ public:
 
     private:
 
-        /** Computes number of inputs for Houdini asset. **/
-        void ComputeInputCount();
-
         /** Update rendering information. **/
         void UpdateRenderingInformation();
 
@@ -562,6 +559,8 @@ public:
         void SetBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject, const FString& BaseName );
         bool RemoveBakingBaseNameOverride( const FHoudiniGeoPartObject& GeoPartObject );
 
+        /** Apply the preset input for HoudiniTools**/
+        void ApplyHoudiniToolInputPreset();
 #endif
 
         /** Clear all spline related resources. **/
@@ -645,6 +644,9 @@ public:
 
         /** Returns a pointer to the landscape component map **/
         TMap< FHoudiniGeoPartObject, ALandscape * > * GetLandscapeComponents();
+
+        /** Set the preset Input for HoudiniTools **/
+        void SetHoudiniToolInputPresets( const TMap< UObject*, int32 >& InPresets );
 
     private:
 
@@ -793,6 +795,9 @@ public:
 
         /** Indicates that new asset's mesh must rebuild the Navigation System to update the NavMesh properly **/
         bool bNeedToUpdateNavigationSystem;
+
+        /** Map used to preset the asset's inputs for Houdini Tools, maps a UObject to an Input number **/
+        TMap<UObject*, int32> HoudiniToolInputPreset;
 
         /** Flags used by Houdini component. **/
         union

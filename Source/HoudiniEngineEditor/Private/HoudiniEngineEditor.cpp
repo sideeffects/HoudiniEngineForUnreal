@@ -565,10 +565,10 @@ void
 FHoudiniEngineEditor::RegisterModes()
 {
     FEditorModeRegistry::Get().RegisterMode<FHoudiniShelfEdMode>( 
-	    FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId, 
-	    LOCTEXT( "HoudiniMode", "Houdini Tools" ), 
-	    FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo40" ),
-	    true );
+        FHoudiniShelfEdMode::EM_HoudiniShelfEdModeId, 
+        LOCTEXT( "HoudiniMode", "Houdini Tools" ), 
+        FSlateIcon( StyleSet->GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo40" ),
+        true );
 }
 
 void 
@@ -595,10 +595,10 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
     auto ToolArray = HoudiniRuntimeSettings->CustomHoudiniTools;
     AddDefaultHoudiniToolToArray( ToolArray );
 
-    for ( const FHoudiniTool& HoudiniTool : ToolArray )
+    for ( const FHoudiniToolDescription& HoudiniTool : ToolArray )
     {
-        FText AssetName = FText::FromString( HoudiniTool.Name );
-        FText AssetTip = FText::FromString( HoudiniTool.ToolTip );
+        FText ToolName = FText::FromString( HoudiniTool.Name );
+        FText ToolTip = FText::FromString( HoudiniTool.ToolTip );
 
         FString IconPath = FPaths::ConvertRelativePathToFull( HoudiniTool.IconPath.FilePath );
         const FSlateBrush* CustomIconBrush = nullptr;
@@ -611,7 +611,7 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
         {
             CustomIconBrush = StyleSet->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
         }
-        ToolTypes.Add( MakeShareable( new FHoudiniToolType( HoudiniTool.HoudiniAsset, AssetName, AssetTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
+        ToolTypes.Add( MakeShareable( new FHoudiniTool( HoudiniTool.HoudiniAsset, ToolName, HoudiniTool.Type, ToolTip, CustomIconBrush, HoudiniTool.HelpURL ) ) );
     }
 
     FPlacementCategoryInfo Info(
@@ -626,7 +626,7 @@ FHoudiniEngineEditor::RegisterPlacementModeExtensions()
 }
 
 void
-FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& ToolArray )
+FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescription >& ToolArray )
 {
     // Default paths
     FString ToolsDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/Content/Tools/");
@@ -634,8 +634,9 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& Tool
         
     int32 nInsertPos = 0;
     // 1. Rock Generator
-    ToolArray.Insert( FHoudiniTool{
+    ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Rock Generator" ),
+        EHoudiniToolType::HTOOLTYPE_GENERATOR,
         TEXT( "Generates procedural rock meshes" ),
         FFilePath{ ToolsDir / TEXT("rock_generator_40.png") },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/rock_generator.rock_generator'" ) ) ),
@@ -643,8 +644,9 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& Tool
     }, nInsertPos++ );
 
     // 2. Boolean
-    ToolArray.Insert( FHoudiniTool{
+    ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Boolean" ),
+        EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI,
         TEXT( "Apply boolean operations to two input objects" ),
         FFilePath{ DefaultIconPath },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_boolean.he_sop_boolean'" ) ) ),
@@ -652,8 +654,9 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& Tool
     }, nInsertPos++ );
 
     // 3. Polyreducer
-    ToolArray.Insert( FHoudiniTool{
+    ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Polyreducer" ),
+        EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE,
         TEXT( "Reduces the number of polygons of the input objects" ),
         FFilePath{ DefaultIconPath },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_polyreduce.he_sop_polyreduce'" ) ) ),
@@ -661,8 +664,9 @@ FHoudiniEngineEditor::AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& Tool
     }, nInsertPos++ );
 
     // 4. Curve Instancer
-    ToolArray.Insert( FHoudiniTool{
+    ToolArray.Insert( FHoudiniToolDescription{
         TEXT( "Curve Instancer" ),
+        EHoudiniToolType::HTOOLTYPE_OPERATOR_SINGLE,
         TEXT( "Scatters and instances the input objects along a curve or in a zone defined by a closed curve." ),
         FFilePath{ DefaultIconPath },
         TAssetPtr<UHoudiniAsset>( FStringAssetReference( TEXT( "HoudiniAsset'/HoudiniEngine/Tools/he_sop_curve_instancer.he_sop_curve_instancer'" ) ) ),

@@ -77,14 +77,34 @@ enum EHoudiniRuntimeSettingsAxisImport
     HRSAI_MAX,
 };
 
+UENUM()
+enum EHoudiniToolType
+{
+    // For tools that generates geometry, and do not need input
+    HTOOLTYPE_GENERATOR UMETA( DisplayName = "Generator" ),
+
+    // For tools that have a single input, the selection will be merged in that single input
+    HTOOLTYPE_OPERATOR_SINGLE UMETA( DisplayName = "Operator (single)" ),
+
+    // For Tools that have multiple input, a single selected asset will be applied to each input
+    HTOOLTYPE_OPERATOR_MULTI UMETA( DisplayName = "Operator (multiple)" ),
+
+    // For tools that needs to be applied each time for each single selected
+    HTOOLTYPE_OPERATOR_BATCH UMETA( DisplayName = "Batch Operator" )
+};
+
 USTRUCT( BlueprintType )
-struct FHoudiniTool
+struct FHoudiniToolDescription
 {
     GENERATED_USTRUCT_BODY()
 
     /** Name of the tool */
     UPROPERTY(Category=Tool, EditAnywhere)
     FString Name;
+
+    /** Type of the tool */
+    UPROPERTY(Category = Tool, EditAnywhere)
+    TEnumAsByte< enum EHoudiniToolType > Type;
 
     /** Tooltip shown on mouse hover */
     UPROPERTY( Category = Tool, EditAnywhere )
@@ -446,7 +466,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniRuntimeSettings : public UObject
         bool bHidePlacementModeHoudiniTools;
 
         UPROPERTY( GlobalConfig, EditAnywhere, Category = CustomHoudiniTools )
-        TArray<FHoudiniTool> CustomHoudiniTools;
+        TArray<FHoudiniToolDescription> CustomHoudiniTools;
 
     /** Arguments for HAPI_Initialize */
     public:

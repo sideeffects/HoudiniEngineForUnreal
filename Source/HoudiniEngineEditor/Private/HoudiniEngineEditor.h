@@ -27,6 +27,7 @@
 #include "Styling/SlateStyle.h"
 #include "EditorUndoClient.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
+#include "HoudiniRuntimeSettings.h"
 
 
 class IAssetTools;
@@ -35,13 +36,14 @@ class IComponentAssetBroker;
 class UHoudiniAssetComponent;
 
 struct FSlateBrush;
-struct FHoudiniTool;
+struct FHoudiniToolDescription;
 
-struct FHoudiniToolType
+struct FHoudiniTool
 {
-    FHoudiniToolType( TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InText, const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL )
+    FHoudiniTool( TAssetPtr < class UHoudiniAsset > InHoudiniAsset, const FText& InName, const EHoudiniToolType& InType, const FText& InToolTipText, const FSlateBrush* InIcon, const FString& InHelpURL )
         : HoudiniAsset( InHoudiniAsset )
-        , Text( InText )
+        , Name( InName )
+        , Type ( InType )
         , ToolTipText( InToolTipText )
         , Icon( InIcon )
         , HelpURL( InHelpURL )
@@ -50,7 +52,7 @@ struct FHoudiniToolType
     TAssetPtr < class UHoudiniAsset > HoudiniAsset;
 
     /** The name to be displayed */
-    FText Text;
+    FText Name;
 
     /** The name to be displayed */
     FText ToolTipText;
@@ -60,6 +62,9 @@ struct FHoudiniToolType
 
     /** The help URL for this tool */
     FString HelpURL;
+
+    /** The type of tool, this will change how the asset handles the current selection **/
+    EHoudiniToolType Type;
 };
 
 
@@ -151,7 +156,7 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Helper delegate used to determine if BakeAllAssets can be executed. **/
         bool CanBakeAllAssets() const;
 
-        const TArray< TSharedPtr<FHoudiniToolType> >& GetToolTypes() { return ToolTypes; }
+        const TArray< TSharedPtr<FHoudiniTool> >& GetToolTypes() { return ToolTypes; }
 
     protected:
 
@@ -162,7 +167,7 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         void AddHoudiniMenuExtension( FMenuBuilder & MenuBuilder );
 
 	/** Add the default Houdini Tools to the Houdini Engine Shelft tool **/
-	void AddDefaultHoudiniToolToArray( TArray< FHoudiniTool >& ToolArray );
+	void AddDefaultHoudiniToolToArray( TArray< FHoudiniToolDescription >& ToolArray );
 
     private:
 
@@ -192,5 +197,5 @@ class FHoudiniEngineEditor : public IHoudiniEngineEditor, public FEditorUndoClie
         /** Stored last used Houdini component which was involved in undo. **/
         mutable UHoudiniAssetComponent * LastHoudiniAssetComponentUndoObject;
         
-        TArray< TSharedPtr<FHoudiniToolType> > ToolTypes;
+        TArray< TSharedPtr<FHoudiniTool> > ToolTypes;
 };

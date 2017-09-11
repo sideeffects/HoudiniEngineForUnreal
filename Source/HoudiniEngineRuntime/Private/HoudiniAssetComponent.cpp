@@ -1472,6 +1472,9 @@ UHoudiniAssetComponent::TickHoudiniComponent()
                         // Create default preset buffer.
                         CreateDefaultPreset();
 #if WITH_EDITOR
+                        // Apply the Input presets for Houdini tools if we have any...
+                        ApplyHoudiniToolInputPreset();
+
                         // Update properties panel.
                         UpdateEditorProperties( true );
 #endif
@@ -5983,5 +5986,96 @@ UHoudiniAssetComponent::GetLandscapeComponents()
 {
     return &LandscapeComponents;
 }
+
+
+/** Set the preset Input for HoudiniTools **/
+void
+UHoudiniAssetComponent::SetHoudiniToolInputPresets( const TMap<UObject*, int32>& InPresets )
+{
+#if WITH_EDITOR
+    HoudiniToolInputPreset = InPresets;
+#endif
+}
+
+#if WITH_EDITOR
+void
+UHoudiniAssetComponent::ApplyHoudiniToolInputPreset()
+{
+    // We'll ignore inputs that have been preset to a curve type
+    TArray< UHoudiniAssetInput*> InputArray;
+    for ( auto CurrentInput : Inputs )
+    {
+        if ( CurrentInput->GetChoiceIndex() != EHoudiniAssetInputType::CurveInput )
+            InputArray.Add( CurrentInput );
+    }
+
+    // Identify some special cases first
+    bool OnlyHoudiniAssets = true;
+    bool OnlyLandscapes = true;
+    for ( TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset )
+    {
+        UObject * Object = IterToolPreset.Key();
+        AHoudiniAssetActor* HoudiniAsset = Cast<AHoudiniAssetActor>( Object );
+        if ( !HoudiniAsset )
+            OnlyHoudiniAssets = false;
+
+        ALandscape* Landscape = Cast<ALandscape>( Object );
+        if ( !Landscape )
+            OnlyLandscapes = false;
+    }
+
+    if ( OnlyHoudiniAssets )
+    {
+        // Try to apply the supplied Object to the Input
+        for (TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset)
+        {
+            AHoudiniAssetActor* HoudiniAsset = Cast< AHoudiniAssetActor >( IterToolPreset.Key() );
+            if (!HoudiniAsset)
+                continue;
+
+            int32 InputNumber = IterToolPreset.Value();
+            if ( !InputArray.IsValidIndex( InputNumber ) )
+                continue;
+
+            InputArray[ InputNumber ]->ChangeInputType( EHoudiniAssetInputType::AssetInput );
+            InputArray[ InputNumber ]->OnInputActorSelected( HoudiniAsset );
+        }
+    }
+    else if ( OnlyLandscapes )
+    {
+        // Try to apply the supplied Object to the Input
+        for (TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset)
+        {
+            ALandscape* Landscape = Cast< ALandscape >( IterToolPreset.Key() );
+            if ( !Landscape )
+                continue;
+
+            int32 InputNumber = IterToolPreset.Value();
+            if ( !InputArray.IsValidIndex( InputNumber ) )
+                continue;
+
+            InputArray[ InputNumber ]->ChangeInputType( EHoudiniAssetInputType::LandscapeInput );
+            InputArray[ InputNumber ]->OnLandscapeActorSelected( Landscape );
+        }
+    }
+    else
+    {
+        // Try to apply the supplied Object to the Input
+        for (TMap< UObject*, int32 >::TIterator IterToolPreset( HoudiniToolInputPreset ); IterToolPreset; ++IterToolPreset)
+        {
+            UObject * Object = IterToolPreset.Key();
+            int32 InputNumber = IterToolPreset.Value();
+
+            if ( !InputArray.IsValidIndex( InputNumber ) )
+                continue;
+
+            InputArray[ InputNumber ]->AddInputObject( Object );
+        }
+    }
+
+    // Discard the tool presets after their first setup
+    HoudiniToolInputPreset.Empty();
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

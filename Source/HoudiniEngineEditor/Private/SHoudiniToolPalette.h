@@ -44,20 +44,26 @@ public:
 
     void Construct( const FArguments& InArgs );
 
+    static FTransform GetDefaulToolSpawnTransform();
+    static FTransform GetMeanWorldSelectionTransform();
+
+    static int32 GetContentBrowserSelection( TArray< UObject* >& ContentBrowserSelection );
+    static int32 GetWorldSelection( TArray< UObject* >& WorldSelection );
+
 private:
 
     /** Make a widget for the list view display */
-    TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniToolType> BspBuilder, const TSharedRef<STableViewBase>& OwnerTable );
+    TSharedRef<ITableRow> MakeListViewWidget( TSharedPtr<struct FHoudiniTool> BspBuilder, const TSharedRef<STableViewBase>& OwnerTable );
 
     /** Delegate for when the list view selection changes */
-    void OnSelectionChanged( TSharedPtr<FHoudiniToolType> BspBuilder, ESelectInfo::Type SelectionType );
+    void OnSelectionChanged( TSharedPtr<FHoudiniTool> BspBuilder, ESelectInfo::Type SelectionType );
 
     /** Begin dragging a list widget */
    FReply OnDraggingListViewWidget( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
-   void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniToolType> ListItem );
+   void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
 
 private:
-    TSharedPtr<FHoudiniToolType> ActiveTool;
+    TSharedPtr<FHoudiniTool> ActiveTool;
 
 };

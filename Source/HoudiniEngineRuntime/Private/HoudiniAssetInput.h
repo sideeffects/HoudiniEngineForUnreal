@@ -141,6 +141,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         /** Directly set the input (for testing ) */
         void ForceSetInputObject( UObject * InObject, int32 AtIndex, bool CommitChange );
         void ClearInputs();
+
+        bool AddInputObject( UObject* ObjectToAdd );
 #endif
 
         /** Upload parameter value to HAPI. **/
@@ -242,10 +244,15 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
         void SetScaleY(float Value, int32 AtIndex);
         void SetScaleZ(float Value, int32 AtIndex);
 
-    protected:
-
 #if WITH_EDITOR
-        
+
+        /** Called when change of input actor selection. **/
+        void OnInputActorSelected( AActor * Actor );
+
+        /** Called when change of landscape selection. **/
+        void OnLandscapeActorSelected(AActor * Actor);
+
+    protected:
         FReply OnExpandInputTransform( int32 AtIndex );
 
         /** Delegate used when static mesh has been drag and dropped. **/
@@ -268,12 +275,6 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetInput : public UHoudiniAssetParamete
 
         /** Called when actor selection changed. **/
         void OnActorSelected(AActor * Actor);
-
-        /** Called when change of input actor selection. **/
-        void OnInputActorSelected( AActor * Actor );
-
-        /** Called when change of landscape selection. **/
-        void OnLandscapeActorSelected( AActor * Actor );
 
         /** Called when change of World Outliner selection in Actor Picker. **/
         void OnWorldOutlinerActorSelected( AActor * Actor );

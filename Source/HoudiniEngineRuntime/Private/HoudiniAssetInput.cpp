@@ -3004,7 +3004,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     for ( UActorComponent * Component : Actor->GetComponentsByClass( UStaticMeshComponent::StaticClass() ) )
     {
         UStaticMeshComponent * StaticMeshComponent = CastChecked< UStaticMeshComponent >( Component );
-        if ( !StaticMeshComponent || StaticMeshComponent->ComponentHasTag(NAME_HoudiniNoUpload) )
+        if ( !StaticMeshComponent || StaticMeshComponent->ComponentHasTag( NAME_HoudiniNoUpload ) )
             continue;
 
         UStaticMesh * StaticMesh = StaticMeshComponent->GetStaticMesh();
@@ -3028,7 +3028,7 @@ UHoudiniAssetInput::UpdateInputOulinerArrayFromActor( AActor * Actor, const bool
     for ( UActorComponent * Component : Actor->GetComponentsByClass( USplineComponent::StaticClass() ) )
     {
         USplineComponent * SplineComponent = CastChecked< USplineComponent >( Component );
-        if ( !SplineComponent || SplineComponent->ComponentHasTag(NAME_HoudiniNoUpload) )
+        if ( !SplineComponent || SplineComponent->ComponentHasTag( NAME_HoudiniNoUpload ) )
             continue;
 
         // Add the spline to the array
@@ -3368,6 +3368,33 @@ UHoudiniAssetInput::SetScaleZ( float Value, int32 AtIndex )
 
     MarkChanged( true );
     bStaticMeshChanged = true;
+}
+
+bool
+UHoudiniAssetInput::AddInputObject( UObject* ObjectToAdd )
+{
+    if ( !ObjectToAdd )
+        return false;
+
+    int32 IndexToAdd = InputObjects.Num();
+    if ( IndexToAdd == 1 && ( InputObjects[ 0 ] == nullptr ) )
+        IndexToAdd = 0;
+
+    UStaticMesh* StaticMesh = Cast< UStaticMesh >( ObjectToAdd );
+    if ( StaticMesh )
+    {
+        ForceSetInputObject( ObjectToAdd, IndexToAdd, true );
+        return true;
+    }
+
+    AActor* WorldActor = Cast< AActor >( ObjectToAdd );
+    if ( WorldActor )
+    {
+        ForceSetInputObject( ObjectToAdd, IndexToAdd, true );
+        return true;
+    }
+
+    return false;
 }
 
 #endif
